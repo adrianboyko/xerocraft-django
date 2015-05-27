@@ -8,7 +8,7 @@ class Member(models.Model):
     first_name = models.CharField(max_length = 40)
     last_name = models.CharField(max_length = 40)
     user_id = models.CharField(max_length = 40, help_text = "The user-id the member uses to sign in at Xerocraft.")
-    family = models.ForeignKey('self', help_text = "If this member is part of a family account then this points to the 'anchor' member for the family.")
+    family = models.ForeignKey('self', null = True, help_text = "If this member is part of a family account then this points to the 'anchor' member for the family.")
     tags = models.ManyToManyField(Tag)
 
 class DayInNthWeek(models.Model):
@@ -38,21 +38,21 @@ class DayInNthWeek(models.Model):
 class RecurringTaskTemplate(models.Model):
     short_desc = models.CharField(max_length = 40)
     long_desc = models.TextField(max_length = 500)
-    reviewer = models.ForeignKey(Member)
+    reviewer = models.ForeignKey(Member, null = True)
     first_instance_date = models.DateField()
-    when1 = models.ForeignKey(DayInNthWeek, help_text = "Use when1 XOR when2.")
-    when2 = models.DateField(help_text = "Use when1 XOR when2.")
+    when1 = models.ForeignKey(DayInNthWeek, null = True, help_text = "Use when1 XOR when2.")
+    when2 = models.DateField(null = True, help_text = "Use when1 XOR when2.")
     
 class Task(models.Model):
     short_desc = models.CharField(max_length = 40)
     long_desc = models.TextField(max_length = 500)
-    claim_date = models.DateField()
-    claimed_by = models.OneToOneField(Member, related_name = "tasks_claimed")
-    prev_claimed_by =  models.ForeignKey(Member, related_name = "+") # Reminder: "+" means no backwards relation.
-    reviewer = models.ForeignKey(Member, related_name = "tasks_to_review")
+    claim_date = models.DateField(null = True)
+    claimed_by = models.OneToOneField(Member, null = True, related_name = "tasks_claimed")
+    prev_claimed_by =  models.ForeignKey(Member, null = True, related_name = "+") # Reminder: "+" means no backwards relation.
+    reviewer = models.ForeignKey(Member, null = True, related_name = "tasks_to_review")
     work_done = models.BooleanField(default = False)
-    work_accepted = models.BooleanField(default = False)
-    recurring_task_template = models.ForeignKey(RecurringTaskTemplate)
+    work_accepted = models.NullBooleanField()
+    recurring_task_template = models.ForeignKey(RecurringTaskTemplate, null = True)
     def is_closed(self):
         "Returns True if claimant should receive credit for the task."
         if self.reviewer == None:
