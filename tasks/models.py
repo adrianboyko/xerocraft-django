@@ -60,9 +60,9 @@ class Task(models.Model):
     reviewer = models.ForeignKey(Member, null=True, blank=True, on_delete=models.SET_NULL, related_name="tasks_to_review", help_text="If required, a member who will review the completed work and either accept or reject it.")
     # Other fields:
     deadline = models.DateField(null=True, blank=True, help_text="If appropriate, specify a deadline by which the task must be completed.")
-    depends_on = models.ManyToManyField('self', related_name="prerequisite_for", help_text="If appropriate, specify what tasks must be completed before this one can start.")
+    depends_on = models.ManyToManyField('self', symmetrical=False, related_name="prerequisite_for", help_text="If appropriate, specify what tasks must be completed before this one can start.")
     claim_date = models.DateField(null=True, blank=True)
-    claimed_by = models.OneToOneField(Member, null=True, blank=True, related_name="tasks_claimed")
+    claimed_by = models.ForeignKey(Member, null=True, blank=True, related_name="tasks_claimed")
     prev_claimed_by =  models.ForeignKey(Member, null=True, blank=True, on_delete=models.SET_NULL, related_name="+") # Reminder: "+" means no backwards relation.
     work_done = models.BooleanField(default=False)
     work_accepted = models.NullBooleanField()
