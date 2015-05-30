@@ -11,7 +11,9 @@ class Member(models.Model):
     first_name = models.CharField(max_length=40)
     last_name = models.CharField(max_length=40)
     user_id = models.CharField(max_length=40, help_text="The user-id the member uses to sign in at Xerocraft.")
-    family = models.ForeignKey('self', null=True, blank=True, on_delete=models.SET_NULL, help_text="If this member is part of a family account then this points to the 'anchor' member for the family.")
+    family_anchor = models.ForeignKey('self', 
+        null=True, blank=True, related_name="family_members", on_delete=models.SET_NULL, 
+        help_text="If this member is part of a family account then this points to the 'anchor' member for the family.")
     tags = models.ManyToManyField(Tag)
     def __str__(self):
         return "%s %s" % (self.first_name, self.last_name)
