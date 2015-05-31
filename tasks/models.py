@@ -8,6 +8,7 @@ class Tag(models.Model):
         return self.name
 
 class Member(models.Model):
+    """Represents a Xerocraft member, in their many varieties."""
     first_name = models.CharField(max_length=40)
     last_name = models.CharField(max_length=40)
     user_id = models.CharField(max_length=40, help_text="The user-id the member uses to sign in at Xerocraft.")
@@ -17,16 +18,24 @@ class Member(models.Model):
     tags = models.ManyToManyField(Tag)
     def __str__(self):
         return "%s %s" % (self.first_name, self.last_name)
-    
-TASK_SHORT_DESC_LEN = 40 # The description length must be the same in both RecurringTaskTemplate and Task.
 
-class RecurringTaskTemplate(models.Model):
+def make_task_mixin(related_name_val):
+    class TaskMixin(models.Model):
+        """
+        Defines fields that are common between RecurringTaskTemplate and Task.
+        When a task is created from the template, these fields are copied from the template to the task.
+        """
+        short_desc = models.CharField(max_length=40, help_text="A description that will be copied to instances of the recurring task.")
+        eligible_claimants = models.ManyToManyField(Member, symmetrical=False, related_name=related_name_val, help_text="Anybody listed is eligible to claim the task")
+        eligible_tags = models.ManyToManyField(Tag, symmetrical=False, related_name=related_name_val, help_text="Anybody that has one of the listed tags is eligible to claim the task")
+        reviewer = models.ForeignKey(Member, null=True, blank=True, on_delete=models.SET_NULL, help_text="A reviewer that will be copied to instances of the recurring task.")
+        work_estimate = models.IntegerField(default=0, help_text="Provide an estimate of how much work this tasks requires, in minutes. This is work time, not elapsed time.")
+        class Meta:
+            abstract = True
+    return TaskMixin
+
+class RecurringTaskTemplate(make_task_mixin("+")):
     "Uses a day-of-week vs nth-of-month matrix to define a schedule for recurring tasks"
-    # Copied to instances:
-    short_desc = models.CharField(max_length=TASK_SHORT_DESC_LEN, help_text="A description that will be copied to instances of the recurring task.")
-    reviewer = models.ForeignKey(Member, null=True, blank=True, on_delete=models.SET_NULL, help_text="A reviewer that will be copied to instances of the recurring task.")
-    work_estimate = models.IntegerField(default=0, help_text="Provide an estimate of how much work this tasks requires, in minutes. This is work time, not elapsed time.")
-    # Specific to template
     start_date = models.DateField(help_text="Choose a date for the first instance of the recurring task.")
     # Week of month:
     first_week = models.BooleanField(default=False, help_text="Task will recur on first weekday in the month.")
@@ -55,12 +64,7 @@ class RecurringTaskTemplate(models.Model):
         else:
             return True, "Looks good."
 
-class Task(models.Model):
-    # For recurring tasks, these will be copied from RecurringTaskTemplate:
-    short_desc = models.CharField(max_length=TASK_SHORT_DESC_LEN, help_text="A very short description of the task which will be used as it's name. Don't try to provide detailed instructions here - attach a TaskNote instead.")
-    work_estimate = models.IntegerField(default=0, help_text="Provide an estimate of how much work this tasks requires, in minutes. This is work time, not elapsed time.")
-    reviewer = models.ForeignKey(Member, null=True, blank=True, on_delete=models.SET_NULL, related_name="tasks_to_review", help_text="If required, a member who will review the completed work and either accept or reject it.")
-    # Other fields:
+class Task(make_task_mixin("claimable_tasks")):
     deadline = models.DateField(null=True, blank=True, help_text="If appropriate, specify a deadline by which the task must be completed.")
     depends_on = models.ManyToManyField('self', symmetrical=False, related_name="prerequisite_for", help_text="If appropriate, specify what tasks must be completed before this one can start.")
     claim_date = models.DateField(null=True, blank=True)

@@ -1,5 +1,5 @@
 from django.test import TestCase
-from tasks.models import Member
+from tasks.models import Member, RecurringTaskTemplate
 
 class TestMember(TestCase):
 
@@ -19,4 +19,9 @@ class TestMember(TestCase):
         jr = Member.objects.get(first_name="Andrew Jr")
         self.assertEqual(jr.family_anchor, ab)
         self.assertTrue(jr in ab.family_members.all())
+
+class TestRecurringTask(TestCase):
+
+    def setUp(self):
+        rt1 = RecurringTaskTemplate.objects.create(short_desc="A test",work_estimate=1.5)
 
