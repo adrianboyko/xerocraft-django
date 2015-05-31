@@ -10,7 +10,7 @@ class TestMember(TestCase):
         jr.save()
         ab.save()
 
-    def test_member(self):
+    def test_family(self):
         ab = Member.objects.get(first_name="Andrew")
         self.assertEqual(ab.first_name, "Andrew")
         self.assertEqual(ab.last_name, "Baker")
@@ -19,6 +19,11 @@ class TestMember(TestCase):
         jr = Member.objects.get(first_name="Andrew Jr")
         self.assertEqual(jr.family_anchor, ab)
         self.assertTrue(jr in ab.family_members.all())
+
+    def test_member_rules_against_db(self):
+        for m in Member.objects.all():
+            valid,_ = m.validate()
+            self.assertTrue(valid)
 
 class TestRecurringTask(TestCase):
 
