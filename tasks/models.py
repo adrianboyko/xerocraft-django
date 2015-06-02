@@ -52,9 +52,16 @@ def make_task_mixin(related_name_val):
 
     return TaskMixin
 
+class TaskNote(models.Model):
+
+    author = models.ForeignKey(Member, null=True, blank=True, on_delete=models.SET_NULL) # Note will become anonymous if member is deleted.
+    content = models.TextField(2048, help_text="Anything you want to say about the task. Instructions, hints, requirements, review feedback, etc.")
+    task = models.ForeignKey("Task") # default on_delete, i.e. delete note if task is deleted.
+
 class RecurringTaskTemplate(make_task_mixin("+")):
     """Uses a 'day-of-week vs nth-of-month' matrix to define a schedule for recurring tasks."""
 
+    instructions_note = models.ForeignKey(TaskNote, null=True, blank=True, help_text="Provide instructions that will apply to <b>every</b> task that's created from this template.") # default on_delete, i.e. delete note if RecurringTaskTemplate is deleted.
     start_date = models.DateField(help_text="Choose a date for the first instance of the recurring task.")
     suspended = models.BooleanField(default=False, help_text="Additional tasks will not be created from this template while it is suspended.")
 
@@ -134,6 +141,12 @@ class RecurringTaskTemplate(make_task_mixin("+")):
                 t.eligible_tags = self.eligible_tags.all()
                 t.reviewer = self.reviewer
                 t.work_estimate = self.work_estimate
+                t.save()
+                if self.instructions_note:
+                    instr = self.instructions_note
+                    instr.primary_key = None  # Because I'm cloning the note.
+                    instr.task = t
+                    instr.save()
             curr += timedelta(days = +1)
 
     def validate(self):
@@ -146,6 +159,9 @@ class RecurringTaskTemplate(make_task_mixin("+")):
             # zero will mean "not yet estimated" but anything that has been estimated must have work > 0.
             return False, "Invalid work estimate."
         return True, "Looks good."
+
+    def __str__(self):
+        return "Template for: %s" % self.short_desc
 
 class Task(make_task_mixin("claimable_tasks")):
 
@@ -183,8 +199,5 @@ class Task(make_task_mixin("claimable_tasks")):
             return False, "A task corresponding to a ScheduledTaskTemplate must have a scheduled date."
         return True, "Looks good."
 
-class TaskNote(models.Model):
-
-    author = models.ForeignKey(Member, null=True, blank=True, on_delete=models.SET_NULL) # Note will become anonymous if member is deleted.
-    content = models.TextField(2048, help_text="Anything you want to say about the task. Instructions, hints, requirements, review feedback, etc.")
-    task = models.ForeignKey(Task) # default on_delete, i.e. delete note if task is deleted.
+    def __str__(self):
+        return "%s on %s" % (self.short_desc, self.scheduled_date)
