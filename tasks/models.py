@@ -22,7 +22,7 @@ class Member(models.Model):
     family_anchor = models.ForeignKey('self',
         null=True, blank=True, related_name="family_members", on_delete=models.SET_NULL,
         help_text="If this member is part of a family account then this points to the 'anchor' member for the family.")
-    tags = models.ManyToManyField(Tag)
+    tags = models.ManyToManyField(Tag, blank=True)
 
     def validate(self):
         if self.family_anchor is not None and len(self.family_members.all()) > 0:
@@ -43,8 +43,8 @@ def make_task_mixin(related_name_val):
         """
 
         short_desc = models.CharField(max_length=40, help_text="A description that will be copied to instances of the recurring task.")
-        eligible_claimants = models.ManyToManyField(Member, symmetrical=False, related_name=related_name_val, help_text="Anybody listed is eligible to claim the task")
-        eligible_tags = models.ManyToManyField(Tag, symmetrical=False, related_name=related_name_val, help_text="Anybody that has one of the listed tags is eligible to claim the task")
+        eligible_claimants = models.ManyToManyField(Member, blank=True, symmetrical=False, related_name=related_name_val, help_text="Anybody listed is eligible to claim the task.")
+        eligible_tags = models.ManyToManyField(Tag, blank=True, symmetrical=False, related_name=related_name_val, help_text="Anybody that has one of the listed tags is eligible to claim the task.")
         reviewer = models.ForeignKey(Member, null=True, blank=True, on_delete=models.SET_NULL, help_text="A reviewer that will be copied to instances of the recurring task.")
         work_estimate = models.IntegerField(default=0, help_text="Provide an estimate of how much work this tasks requires, in minutes. This is work time, not elapsed time.")
         class Meta:
@@ -132,6 +132,7 @@ class RecurringTaskTemplate(make_task_mixin("+")):
         """
 
         curr = self.greatest_scheduled_date() + timedelta(days = +1)
+        curr = max(curr, date.today())  # Don't create tasks in the past.
         stop = date.today() + timedelta(max_days_in_advance)
         while curr < stop:
             if self.date_matches_template(curr):
@@ -158,6 +159,8 @@ class RecurringTaskTemplate(make_task_mixin("+")):
         if self.work_estimate < 0:
             # zero will mean "not yet estimated" but anything that has been estimated must have work > 0.
             return False, "Invalid work estimate."
+        if self.eligible_claimants==None and self.eligible_tags==None:
+            return False, "One or more people and/or one or more tags must be selected."
         return True, "Looks good."
 
     def __str__(self):
