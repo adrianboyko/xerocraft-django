@@ -61,7 +61,7 @@ class TaskNote(models.Model):
 class RecurringTaskTemplate(make_task_mixin("+")):
     """Uses a 'day-of-week vs nth-of-month' matrix to define a schedule for recurring tasks."""
 
-    instructions_note = models.ForeignKey(TaskNote, null=True, blank=True, help_text="Provide instructions that will apply to <b>every</b> task that's created from this template.") # default on_delete, i.e. delete note if RecurringTaskTemplate is deleted.
+    instructions_note = models.ForeignKey(TaskNote, null=True, blank=True, help_text="Provide instructions that will apply to EVERY task that's created from this template.") # default on_delete, i.e. delete note if RecurringTaskTemplate is deleted.
     start_date = models.DateField(help_text="Choose a date for the first instance of the recurring task.")
     suspended = models.BooleanField(default=False, help_text="Additional tasks will not be created from this template while it is suspended.")
 
@@ -164,7 +164,7 @@ class RecurringTaskTemplate(make_task_mixin("+")):
         return True, "Looks good."
 
     def __str__(self):
-        return "Template for: %s" % self.short_desc
+        return self.short_desc
 
 class Task(make_task_mixin("claimable_tasks")):
 
