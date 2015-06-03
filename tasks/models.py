@@ -2,9 +2,7 @@ from django.db import models
 from django.utils import timezone
 from datetime import date, timedelta
 
-
 # TODO: Rework various validate() methods into Model.clean()? See Django's "model validation" docs.
-# TODO: Use local dates, not datetimes.
 
 class Tag(models.Model):
     name = models.CharField(max_length=40, help_text="A short name for the tag.")
@@ -32,36 +30,38 @@ class Member(models.Model):
     def __str__(self):
         return "%s %s" % (self.first_name, self.last_name)
 
-def make_task_mixin(related_name_val):
-    """This function tunes the mix-in by allowing the related_name for eligible_claimants and eligible_tags to be specified.
-    The rest of the mix-in is identical for both Task and RecurringTaskTemplate.
-    """
+
+def make_TaskMixin(dest_class_alias):
+    """This function tunes the mix-in to avoid reverse accessor clashes.
+-   The rest of the mix-in is identical for both Task and RecurringTaskTemplate.
+-   """
 
     class TaskMixin(models.Model):
         """Defines fields that are common between RecurringTaskTemplate and Task.
         When a task is created from the template, these fields are copied from the template to the task.
         """
 
-        short_desc = models.CharField(max_length=40, help_text="A description that will be copied to instances of the recurring task.")
-        eligible_claimants = models.ManyToManyField(Member, blank=True, symmetrical=False, related_name=related_name_val, help_text="Anybody listed is eligible to claim the task.")
-        eligible_tags = models.ManyToManyField(Tag, blank=True, symmetrical=False, related_name=related_name_val, help_text="Anybody that has one of the listed tags is eligible to claim the task.")
-        reviewer = models.ForeignKey(Member, null=True, blank=True, on_delete=models.SET_NULL, help_text="A reviewer that will be copied to instances of the recurring task.")
-        work_estimate = models.IntegerField(default=0, help_text="Provide an estimate of how much work this tasks requires, in minutes. This is work time, not elapsed time.")
+        owner = models.ForeignKey(Member, null=True, blank=True, on_delete=models.SET_NULL, related_name="owned_"+dest_class_alias,
+            help_text="The member that asked for this task to be created or has taken responsibility for its content.")
+        instructions = models.TextField(max_length=2048, blank=True,
+            help_text="Instructions that will apply to EVERY task that's created from this template.")
+        short_desc = models.CharField(max_length=40,
+            help_text="A description that will be copied to instances of the recurring task.")
+        eligible_claimants = models.ManyToManyField(Member, blank=True, symmetrical=False, related_name="claimable_"+dest_class_alias,
+            help_text="Anybody listed is eligible to claim the task.")
+        eligible_tags = models.ManyToManyField(Tag, blank=True, symmetrical=False, related_name="claimable_"+dest_class_alias,
+            help_text="Anybody that has one of the listed tags is eligible to claim the task.")
+        reviewer = models.ForeignKey(Member, null=True, blank=True, on_delete=models.SET_NULL,
+            help_text="A reviewer that will be copied to instances of the recurring task.")
+        work_estimate = models.IntegerField(default=0,
+            help_text="Provide an estimate of how much work this tasks requires, in minutes. This is work time, not elapsed time.")
         class Meta:
             abstract = True
-
     return TaskMixin
 
-class TaskNote(models.Model):
-
-    author = models.ForeignKey(Member, null=True, blank=True, on_delete=models.SET_NULL) # Note will become anonymous if member is deleted.
-    content = models.TextField(2048, help_text="Anything you want to say about the task. Instructions, hints, requirements, review feedback, etc.")
-    task = models.ForeignKey("Task") # default on_delete, i.e. delete note if task is deleted.
-
-class RecurringTaskTemplate(make_task_mixin("+")):
+class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
     """Uses a 'day-of-week vs nth-of-month' matrix to define a schedule for recurring tasks."""
 
-    instructions_note = models.ForeignKey(TaskNote, null=True, blank=True, help_text="Provide instructions that will apply to EVERY task that's created from this template.") # default on_delete, i.e. delete note if RecurringTaskTemplate is deleted.
     start_date = models.DateField(help_text="Choose a date for the first instance of the recurring task.")
     suspended = models.BooleanField(default=False, help_text="Additional tasks will not be created from this template while it is suspended.")
 
@@ -129,7 +129,10 @@ class RecurringTaskTemplate(make_task_mixin("+")):
     def create_tasks(self, max_days_in_advance):
         """Creates and schedules new tasks from greatest_scheduled_date() (non-inclusive).
         Stops when scheduling a new task would be more than max_days_in_advance from current date.
+        Does nothing if the template is suspended.
         """
+
+        if self.suspended: return
 
         curr = self.greatest_scheduled_date() + timedelta(days = +1)
         curr = max(curr, date.today())  # Don't create tasks in the past.
@@ -137,17 +140,14 @@ class RecurringTaskTemplate(make_task_mixin("+")):
         while curr < stop:
             if self.date_matches_template(curr):
                 t = Task.objects.create(recurring_task_template = self)
+                t.owner = self.owner
+                t.instructions = self.instructions
                 t.short_desc = self.short_desc
                 t.eligible_claimants = self.eligible_claimants.all()
                 t.eligible_tags = self.eligible_tags.all()
                 t.reviewer = self.reviewer
                 t.work_estimate = self.work_estimate
                 t.save()
-                if self.instructions_note:
-                    instr = self.instructions_note
-                    instr.primary_key = None  # Because I'm cloning the note.
-                    instr.task = t
-                    instr.save()
             curr += timedelta(days = +1)
 
     def validate(self):
@@ -166,13 +166,14 @@ class RecurringTaskTemplate(make_task_mixin("+")):
     def __str__(self):
         return self.short_desc
 
-class Task(make_task_mixin("claimable_tasks")):
+
+class Task(make_TaskMixin("Tasks")):
 
     scheduled_date = models.DateField(null=True, blank=True, help_text="If appropriate, set a date on which the task must be performed.")
     deadline = models.DateField(null=True, blank=True, help_text="If appropriate, specify a deadline by which the task must be completed.")
     depends_on = models.ManyToManyField('self', symmetrical=False, related_name="prerequisite_for", help_text="If appropriate, specify what tasks must be completed before this one can start.")
     claim_date = models.DateField(null=True, blank=True)
-    claimed_by = models.ForeignKey(Member, null=True, blank=True, related_name="tasks_claimed")
+    claimed_by = models.ForeignKey(Member, null=True, blank=True, on_delete=models.SET_NULL, related_name="tasks_claimed")
     prev_claimed_by =  models.ForeignKey(Member, null=True, blank=True, on_delete=models.SET_NULL, related_name="+") # Reminder: "+" means no backwards relation.
     work_done = models.BooleanField(default=False)
     work_accepted = models.NullBooleanField()
@@ -204,3 +205,13 @@ class Task(make_task_mixin("claimable_tasks")):
 
     def __str__(self):
         return "%s on %s" % (self.short_desc, self.scheduled_date)
+
+
+class TaskNote(models.Model):
+
+    # Note will become anonymous if author is deleted or author is blank.
+    author = models.ForeignKey(Member, null=True, blank=True, on_delete=models.SET_NULL,
+        help_text="The member who wrote this note.")
+    content = models.TextField(max_length=2048,
+        help_text="Anything you want to say about the task. Questions, hints, problems, review feedback, etc.")
+    task = models.ForeignKey(Task, on_delete=models.CASCADE)
