@@ -44,17 +44,17 @@ def make_TaskMixin(dest_class_alias):
         owner = models.ForeignKey(Member, null=True, blank=True, on_delete=models.SET_NULL, related_name="owned_"+dest_class_alias,
             help_text="The member that asked for this task to be created or has taken responsibility for its content.")
         instructions = models.TextField(max_length=2048, blank=True,
-            help_text="Instructions that will apply to EVERY task that's created from this template.")
+            help_text="Instructions for completing the task.")
         short_desc = models.CharField(max_length=40,
-            help_text="A description that will be copied to instances of the recurring task.")
+            help_text="A short description/name for the task.")
         eligible_claimants = models.ManyToManyField(Member, blank=True, symmetrical=False, related_name="claimable_"+dest_class_alias,
             help_text="Anybody listed is eligible to claim the task.")
         eligible_tags = models.ManyToManyField(Tag, blank=True, symmetrical=False, related_name="claimable_"+dest_class_alias,
             help_text="Anybody that has one of the listed tags is eligible to claim the task.")
         reviewer = models.ForeignKey(Member, null=True, blank=True, on_delete=models.SET_NULL,
-            help_text="A reviewer that will be copied to instances of the recurring task.")
+            help_text="If required, a member who will review the work once its completed.")
         work_estimate = models.IntegerField(default=0,
-            help_text="Provide an estimate of how much work this tasks requires, in minutes. This is work time, not elapsed time.")
+            help_text="An estimate of how much work this tasks requires, in hours (e.g. 1.25). This is work time, not elapsed time.")
         class Meta:
             abstract = True
     return TaskMixin
@@ -163,8 +163,19 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
             return False, "One or more people and/or one or more tags must be selected."
         return True, "Looks good."
 
+
     def __str__(self):
-        return self.short_desc
+        blank = '\u25CC'
+        return "%s [%s%s%s%s%s%s%s]" % (
+            self.short_desc,
+            "M" if self.monday else blank,
+            "T" if self.tuesday else blank,
+            "W" if self.wednesday else blank,
+            "T" if self.thursday else blank,
+            "F" if self.friday else blank,
+            "S" if self.saturday else blank,
+            "S" if self.sunday else blank,
+        )
 
 
 class Task(make_TaskMixin("Tasks")):
