@@ -21,6 +21,7 @@ class Member(models.Model):
         null=True, blank=True, related_name="family_members", on_delete=models.SET_NULL,
         help_text="If this member is part of a family account then this points to the 'anchor' member for the family.")
     tags = models.ManyToManyField(Tag, blank=True)
+    #TODO: active = models.BooleanField(default=True, help_text="System will not generate email to this member while it is inactive.")
 
     def validate(self):
         if self.family_anchor is not None and len(self.family_members.all()) > 0:
@@ -48,15 +49,16 @@ def make_TaskMixin(dest_class_alias):
         short_desc = models.CharField(max_length=40,
             help_text="A short description/name for the task.")
         eligible_claimants = models.ManyToManyField(Member, blank=True, symmetrical=False, related_name="claimable_"+dest_class_alias,
-            help_text="Anybody listed is eligible to claim the task.")
+            help_text="Anybody chosen is eligible to claim the task.")
         eligible_tags = models.ManyToManyField(Tag, blank=True, symmetrical=False, related_name="claimable_"+dest_class_alias,
-            help_text="Anybody that has one of the listed tags is eligible to claim the task.")
+            help_text="Anybody that has one of the chosen tags is eligible to claim the task.")
         reviewer = models.ForeignKey(Member, null=True, blank=True, on_delete=models.SET_NULL,
             help_text="If required, a member who will review the work once its completed.")
         work_estimate = models.IntegerField(default=0,
             help_text="An estimate of how much work this tasks requires, in hours (e.g. 1.25). This is work time, not elapsed time.")
         class Meta:
             abstract = True
+            ordering = ['short_desc']
     return TaskMixin
 
 class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
@@ -163,7 +165,6 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
             return False, "One or more people and/or one or more tags must be selected."
         return True, "Looks good."
 
-
     def __str__(self):
         blank = '\u25CC'
         return "%s [%s%s%s%s%s%s%s]" % (
@@ -186,6 +187,7 @@ class Task(make_TaskMixin("Tasks")):
     claim_date = models.DateField(null=True, blank=True)
     claimed_by = models.ForeignKey(Member, null=True, blank=True, on_delete=models.SET_NULL, related_name="tasks_claimed")
     prev_claimed_by =  models.ForeignKey(Member, null=True, blank=True, on_delete=models.SET_NULL, related_name="+") # Reminder: "+" means no backwards relation.
+    #TODO: work_actual = models.IntegerField(default=0, help_text="The actual time worked, in hours (e.g. 1.25). This is work time, not elapsed time.")
     work_done = models.BooleanField(default=False)
     work_accepted = models.NullBooleanField()
     recurring_task_template = models.ForeignKey(RecurringTaskTemplate, null=True, blank=True, on_delete=models.SET_NULL)

@@ -9,11 +9,17 @@ class MemberAdmin(admin.ModelAdmin):
         css = {
             "all": ("tasks/member_admin.css",)
         }
-    formfield_overrides = {
-        models.ManyToManyField: {'widget': CheckboxSelectMultiple}
-    }
+
+    filter_horizontal = ['tags']
 
 class RecurringTaskTemplateAdmin(admin.ModelAdmin):
+
+    class Media:
+        css = {
+            "all": ("tasks/recurring_task_template_admin.css",)
+        }
+
+    filter_horizontal = ['eligible_claimants', 'eligible_tags']
 
     fieldsets = [
 
