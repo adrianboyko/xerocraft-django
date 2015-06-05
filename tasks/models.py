@@ -54,7 +54,7 @@ def make_TaskMixin(dest_class_alias):
             help_text="Anybody that has one of the chosen tags is eligible to claim the task.")
         reviewer = models.ForeignKey(Member, null=True, blank=True, on_delete=models.SET_NULL,
             help_text="If required, a member who will review the work once its completed.")
-        work_estimate = models.IntegerField(default=0,
+        work_estimate = models.IntegerField(default=0,  #TODO: Make this some sort of float since it's hours instead of minutes.
             help_text="An estimate of how much work this tasks requires, in hours (e.g. 1.25). This is work time, not elapsed time.")
         class Meta:
             abstract = True
@@ -62,27 +62,33 @@ def make_TaskMixin(dest_class_alias):
     return TaskMixin
 
 class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
-    """Uses a 'day-of-week vs nth-of-month' matrix to define a schedule for recurring tasks."""
+    """Uses two mutually exclusive methods to define a schedule for recurring tasks.
+    (1) A 'day-of-week vs nth-of-month' matrix for schedules like "every first and third Thursday"
+    (2) A 'repeat delay' value for schedules like "every 30 days"
+    """
 
     start_date = models.DateField(help_text="Choose a date for the first instance of the recurring task.")
     suspended = models.BooleanField(default=False, help_text="Additional tasks will not be created from this template while it is suspended.")
 
     # Weekday of month:
-    first = models.BooleanField(default=False, help_text="Task will recur on first weekday in the month.")
-    second = models.BooleanField(default=False, help_text="Task will recur on second weekday in the month.")
-    third = models.BooleanField(default=False, help_text="Task will recur on third weekday in the month.")
-    fourth = models.BooleanField(default=False, help_text="Task will recur on fourth weekday in the month.")
-    last = models.BooleanField(default=False, help_text="Task will recur on last weekday in the month. This will be 4th or 5th weekday, depending on calendar.")
-    every = models.BooleanField(default=False, help_text="Task recur every week")
+    first = models.BooleanField(default=False)  #, help_text="Task will recur on first weekday in the month.")
+    second = models.BooleanField(default=False)  #, help_text="Task will recur on second weekday in the month.")
+    third = models.BooleanField(default=False)  #, help_text="Task will recur on third weekday in the month.")
+    fourth = models.BooleanField(default=False)  #, help_text="Task will recur on fourth weekday in the month.")
+    last = models.BooleanField(default=False)  #, help_text="Task will recur on last weekday in the month. This will be 4th or 5th weekday, depending on calendar.")
+    every = models.BooleanField(default=False)  #, help_text="Task recur every week")
 
     # Day of week:
-    monday = models.BooleanField(default=False, help_text="Task will recur on Monday.")
-    tuesday = models.BooleanField(default=False, help_text="Task will recur on Tuesday.")
-    wednesday = models.BooleanField(default=False, help_text="Task will recur on Wednesday.")
-    thursday = models.BooleanField(default=False, help_text="Task will recur on Thursday.")
-    friday = models.BooleanField(default=False, help_text="Task will recur on Friday.")
-    saturday = models.BooleanField(default=False, help_text="Task will recur a Saturday.")
-    sunday = models.BooleanField(default=False, help_text="Task will recur a Sunday.")
+    monday = models.BooleanField(default=False)  #, help_text="Task will recur on Monday.")
+    tuesday = models.BooleanField(default=False)  #, help_text="Task will recur on Tuesday.")
+    wednesday = models.BooleanField(default=False)  #, help_text="Task will recur on Wednesday.")
+    thursday = models.BooleanField(default=False)  #, help_text="Task will recur on Thursday.")
+    friday = models.BooleanField(default=False)  #, help_text="Task will recur on Friday.")
+    saturday = models.BooleanField(default=False)  #, help_text="Task will recur a Saturday.")
+    sunday = models.BooleanField(default=False)  #, help_text="Task will recur a Sunday.")
+
+    #TODO: repeat_delay = models.SmallIntegerField(null=True, blank=True, help_text="Minimum number of days between recurrences, e.g. 14 for every two weeks.")
+    #TODO: on_demand = models.BooleanField(default=False, help_text="If selected, tasks will only be scheduled on demand (subject to the delay constraint), otherwise tasks will be automatically scheduled after delay.")
 
     def greatest_scheduled_date(self):
         "Of the Tasks that correspond to this template, returns the greatest scheduled_date."
@@ -183,6 +189,7 @@ class Task(make_TaskMixin("Tasks")):
 
     scheduled_date = models.DateField(null=True, blank=True, help_text="If appropriate, set a date on which the task must be performed.")
     deadline = models.DateField(null=True, blank=True, help_text="If appropriate, specify a deadline by which the task must be completed.")
+    #TODO: depends_on should be null/blank True.
     depends_on = models.ManyToManyField('self', symmetrical=False, related_name="prerequisite_for", help_text="If appropriate, specify what tasks must be completed before this one can start.")
     claim_date = models.DateField(null=True, blank=True)
     claimed_by = models.ForeignKey(Member, null=True, blank=True, on_delete=models.SET_NULL, related_name="tasks_claimed")

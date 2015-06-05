@@ -38,21 +38,28 @@ class RecurringTaskTemplateAdmin(admin.ModelAdmin):
             'reviewer',
         ]}),
 
-        ("Recurrence Pattern", {'fields': [
-            'first',
-            'second',
-            'third',
-            'fourth',
-            'last',
-            'every',
-            'monday',
-            'tuesday',
-            'wednesday',
-            'thursday',
-            'friday',
-            'saturday',
-            'sunday',
-        ]}),
+        ("Recur by Day-of-Week and Position-in-Month", {
+            'description': "Use this option for schedules like 'Every 1st and 3rd Thursday'",
+            'fields': [
+                (
+                    'first',
+                    'second',
+                    'third',
+                    'fourth',
+                    'last',
+                    'every',
+                ),
+                (
+                    'monday',
+                    'tuesday',
+                    'wednesday',
+                    'thursday',
+                    'friday',
+                    'saturday',
+                    'sunday',
+                ),
+            ]
+        }),
     ]
 
 admin.site.register(Member, MemberAdmin)
