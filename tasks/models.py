@@ -11,6 +11,10 @@ class Tag(models.Model):
     def __str__(self):
         return self.name
 
+    class Meta:
+        ordering = ['name']
+
+
 class Member(models.Model):
     """Represents a Xerocraft member, in their many varieties."""
 
@@ -31,6 +35,8 @@ class Member(models.Model):
     def __str__(self):
         return "%s %s" % (self.first_name, self.last_name)
 
+    class Meta:
+        ordering = ['first_name','last_name']
 
 def make_TaskMixin(dest_class_alias):
     """This function tunes the mix-in to avoid reverse accessor clashes.

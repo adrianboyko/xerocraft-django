@@ -62,10 +62,46 @@ class RecurringTaskTemplateAdmin(admin.ModelAdmin):
         }),
     ]
 
+class TaskAdmin(admin.ModelAdmin):
+
+    class Media:
+        css = {
+            "all": ("tasks/task_admin.css",)
+        }
+
+    filter_horizontal = ['eligible_claimants', 'eligible_tags']
+
+    fieldsets = [
+
+        (None, {'fields': [
+            'short_desc',
+            'instructions',
+            'work_estimate',
+            'scheduled_date',
+            'deadline',
+        ]}),
+
+        ("People", {'fields': [
+            'owner',
+            ('claimed_by', 'claim_date', 'prev_claimed_by'),
+            'eligible_claimants',
+            'eligible_tags',
+            'reviewer',
+        ]}),
+
+        ("Completion", {
+            'fields': [
+                'work_done',
+                'work_accepted',
+                #TODO: work_actual
+            ]
+        }),
+    ]
+
 admin.site.register(Member, MemberAdmin)
 admin.site.register(RecurringTaskTemplate, RecurringTaskTemplateAdmin)
+admin.site.register(Task, TaskAdmin)
 
 admin.site.register(Tag)
-admin.site.register(Task)
 admin.site.register(TaskNote)
 
