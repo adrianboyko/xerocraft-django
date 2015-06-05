@@ -60,6 +60,12 @@ class RecurringTaskTemplateAdmin(admin.ModelAdmin):
                 ),
             ]
         }),
+
+        ("Recur every X Days", {'fields': [
+            'repeat_interval',
+            'flexible_dates',
+        ]}),
+
     ]
 
 class TaskAdmin(admin.ModelAdmin):
@@ -92,8 +98,8 @@ class TaskAdmin(admin.ModelAdmin):
         ("Completion", {
             'fields': [
                 'work_done',
+                'work_actual',
                 'work_accepted',
-                #TODO: work_actual
             ]
         }),
     ]

@@ -5,6 +5,7 @@ from datetime import date, timedelta
 # TODO: Rework various validate() methods into Model.clean()? See Django's "model validation" docs.
 
 class Tag(models.Model):
+
     name = models.CharField(max_length=40, help_text="A short name for the tag.")
     meaning = models.TextField(max_length=500, help_text="A discussion of the tag's semantics. What does it mean? What does it NOT mean?")
 
@@ -25,7 +26,7 @@ class Member(models.Model):
         null=True, blank=True, related_name="family_members", on_delete=models.SET_NULL,
         help_text="If this member is part of a family account then this points to the 'anchor' member for the family.")
     tags = models.ManyToManyField(Tag, blank=True)
-    #TODO: active = models.BooleanField(default=True, help_text="System will not generate email to this member while it is inactive.")
+    active = models.BooleanField(default=True, help_text="If selected, systems will ignore this member, to the extent possible.")
 
     def validate(self):
         if self.family_anchor is not None and len(self.family_members.all()) > 0:
@@ -49,22 +50,24 @@ def make_TaskMixin(dest_class_alias):
         """
 
         owner = models.ForeignKey(Member, null=True, blank=True, on_delete=models.SET_NULL, related_name="owned_"+dest_class_alias,
-            help_text="The member that asked for this task to be created or has taken responsibility for its content.")
+            help_text="The member that asked for this task to be created or has taken responsibility for its content.<br/>This is almost certainly not the person who will claim the task and do the work.")
         instructions = models.TextField(max_length=2048, blank=True,
             help_text="Instructions for completing the task.")
         short_desc = models.CharField(max_length=40,
             help_text="A short description/name for the task.")
         eligible_claimants = models.ManyToManyField(Member, blank=True, symmetrical=False, related_name="claimable_"+dest_class_alias,
-            help_text="Anybody chosen is eligible to claim the task.")
+            help_text="Anybody chosen is eligible to claim the task.<br/>")
         eligible_tags = models.ManyToManyField(Tag, blank=True, symmetrical=False, related_name="claimable_"+dest_class_alias,
-            help_text="Anybody that has one of the chosen tags is eligible to claim the task.")
+            help_text="Anybody that has one of the chosen tags is eligible to claim the task.<br/>")
         reviewer = models.ForeignKey(Member, null=True, blank=True, on_delete=models.SET_NULL,
             help_text="If required, a member who will review the work once its completed.")
-        work_estimate = models.IntegerField(default=0,  #TODO: Make this some sort of float since it's hours instead of minutes.
-            help_text="An estimate of how much work this tasks requires, in hours (e.g. 1.25). This is work time, not elapsed time.")
+        work_estimate = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True,
+            help_text="An estimate of how much work this tasks requires, in hours (e.g. 1.25).<br/>This is work time, not elapsed time.")
+
         class Meta:
             abstract = True
             ordering = ['short_desc']
+
     return TaskMixin
 
 class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
@@ -93,8 +96,10 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
     saturday = models.BooleanField(default=False)  #, help_text="Task will recur a Saturday.")
     sunday = models.BooleanField(default=False)  #, help_text="Task will recur a Sunday.")
 
-    #TODO: repeat_delay = models.SmallIntegerField(null=True, blank=True, help_text="Minimum number of days between recurrences, e.g. 14 for every two weeks.")
-    #TODO: on_demand = models.BooleanField(default=False, help_text="If selected, tasks will only be scheduled on demand (subject to the delay constraint), otherwise tasks will be automatically scheduled after delay.")
+    # Every X days:
+    repeat_interval = models.SmallIntegerField(null=True, blank=True, help_text="Minimum number of days between recurrences, e.g. 14 for every two weeks.")
+    #TODO: flexible_dates should be set to "No" if repeat_interval is set to a value.  Should be set to "N/A" if repeat_interval becomes None.
+    flexible_dates = models.NullBooleanField(default=None, choices=[(True, "Yes"), (False, "No"), (None, "N/A")], help_text="Select 'No' if this task must occur on specific regularly-spaced dates.<br/>Select 'Yes' if the task is like an oil change that should happen every 90 days, but not on any specific date.")
 
     def greatest_scheduled_date(self):
         "Of the Tasks that correspond to this template, returns the greatest scheduled_date."
@@ -140,6 +145,29 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
 
         return ordinal_matches
 
+    def is_dow_chosen(self):
+        return self.monday    \
+            or self.tuesday   \
+            or self.wednesday \
+            or self.thursday  \
+            or self.friday    \
+            or self.saturday  \
+            or self.sunday
+
+    def is_ordinal_chosen(self):
+        return self.first  \
+            or self.second \
+            or self.third  \
+            or self.fourth \
+            or self.last   \
+            or self.every
+
+    def does_repeat_on_certain_days(self):
+        return self.is_dow_chosen() and self.is_ordinal_chosen()
+
+    def does_repeat_at_intervals(self):
+        return self.repeat_interval is not None and self.flexible_dates is not None
+
     def create_tasks(self, max_days_in_advance):
         """Creates and schedules new tasks from greatest_scheduled_date() (non-inclusive).
         Stops when scheduling a new task would be more than max_days_in_advance from current date.
@@ -165,7 +193,6 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
             curr += timedelta(days = +1)
 
     def validate(self):
-        sd = self.start_date
         if self.last and self.fourth:
             return False, "Choose either fourth week or last week, not both."
         if self.every and (self.first or self.second or self.third or self.fourth or self.last):
@@ -178,31 +205,40 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
         return True, "Looks good."
 
     def __str__(self):
-        blank = '\u25CC'
-        return "%s [%s%s%s%s%s%s%s]" % (
-            self.short_desc,
-            "M" if self.monday else blank,
-            "T" if self.tuesday else blank,
-            "W" if self.wednesday else blank,
-            "T" if self.thursday else blank,
-            "F" if self.friday else blank,
-            "S" if self.saturday else blank,
-            "S" if self.sunday else blank,
-        )
-
+        days_of_week = self.does_repeat_on_certain_days()
+        intervals = self.does_repeat_at_intervals()
+        if days_of_week and intervals:
+            return "%s [?]" % self.short_desc
+        if (not days_of_week) and (not intervals):
+            return "%s [?]" % self.short_desc
+        if days_of_week:
+            blank = '\u25CC'
+            return "%s [%s%s%s%s%s%s%s]" % (
+                self.short_desc,
+                "M" if self.monday else blank,
+                "T" if self.tuesday else blank,
+                "W" if self.wednesday else blank,
+                "T" if self.thursday else blank,
+                "F" if self.friday else blank,
+                "S" if self.saturday else blank,
+                "S" if self.sunday else blank,
+            )
+        if intervals:
+            units = "day" if self.repeat_interval==1 else "days"
+            return "%s [%d %s]" % (self.short_desc, self.repeat_interval, units)
 
 class Task(make_TaskMixin("Tasks")):
 
     scheduled_date = models.DateField(null=True, blank=True, help_text="If appropriate, set a date on which the task must be performed.")
     deadline = models.DateField(null=True, blank=True, help_text="If appropriate, specify a deadline by which the task must be completed.")
-    #TODO: depends_on should be null/blank True.
     depends_on = models.ManyToManyField('self', symmetrical=False, related_name="prerequisite_for", help_text="If appropriate, specify what tasks must be completed before this one can start.")
     claim_date = models.DateField(null=True, blank=True)
     claimed_by = models.ForeignKey(Member, null=True, blank=True, on_delete=models.SET_NULL, related_name="tasks_claimed")
     prev_claimed_by =  models.ForeignKey(Member, null=True, blank=True, on_delete=models.SET_NULL, related_name="+") # Reminder: "+" means no backwards relation.
-    #TODO: work_actual = models.IntegerField(default=0, help_text="The actual time worked, in hours (e.g. 1.25). This is work time, not elapsed time.")
+    work_actual = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, help_text="The actual time worked, in hours (e.g. 1.25). This is work time, not elapsed time.")
     work_done = models.BooleanField(default=False)
-    work_accepted = models.NullBooleanField()
+    #TODO: work_accepted should be N/A if reviewer is None.  If reviewer is set, work_accepted should be set to "No".
+    work_accepted = models.NullBooleanField([(True, "Yes"), (False, "No"), (None, "N/A")])
     recurring_task_template = models.ForeignKey(RecurringTaskTemplate, null=True, blank=True, on_delete=models.SET_NULL)
 
     def is_closed(self):
@@ -217,7 +253,6 @@ class Task(make_TaskMixin("Tasks")):
         return not self.is_closed()
 
     def validate(self):
-        # TODO: questionable if deadline is set but task is an instance of RecurringTaskTemplate.
         if self.work_accepted and not self.work_done:
             return False, "Work cannot be reviewed before it is marked as completed."
         if self.prev_claimed_by == self.claimed_by:
