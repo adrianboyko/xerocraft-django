@@ -26,7 +26,7 @@ class Member(models.Model):
         null=True, blank=True, related_name="family_members", on_delete=models.SET_NULL,
         help_text="If this member is part of a family account then this points to the 'anchor' member for the family.")
     tags = models.ManyToManyField(Tag, blank=True)
-    active = models.BooleanField(default=True, help_text="If selected, systems will ignore this member, to the extent possible.")
+    active = models.BooleanField(default=True, help_text="If NOT selected, systems will ignore this member where appropriate.")
 
     def validate(self):
         if self.family_anchor is not None and len(self.family_members.all()) > 0:
@@ -49,6 +49,7 @@ def make_TaskMixin(dest_class_alias):
         When a task is created from the template, these fields are copied from the template to the task.
         """
 
+        # TODO: create_date
         owner = models.ForeignKey(Member, null=True, blank=True, on_delete=models.SET_NULL, related_name="owned_"+dest_class_alias,
             help_text="The member that asked for this task to be created or has taken responsibility for its content.<br/>This is almost certainly not the person who will claim the task and do the work.")
         instructions = models.TextField(max_length=2048, blank=True,
@@ -77,6 +78,7 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
     """
 
     start_date = models.DateField(help_text="Choose a date for the first instance of the recurring task.")
+    # TODO: Change suspended to active
     suspended = models.BooleanField(default=False, help_text="Additional tasks will not be created from this template while it is suspended.")
 
     # Weekday of month:
@@ -162,10 +164,10 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
             or self.last   \
             or self.every
 
-    def does_repeat_on_certain_days(self):
+    def repeats_on_certain_days(self):
         return self.is_dow_chosen() and self.is_ordinal_chosen()
 
-    def does_repeat_at_intervals(self):
+    def repeats_at_intervals(self):
         return self.repeat_interval is not None and self.flexible_dates is not None
 
     def create_tasks(self, max_days_in_advance):
@@ -204,17 +206,16 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
             return False, "One or more people and/or one or more tags must be selected."
         return True, "Looks good."
 
-    def __str__(self):
-        days_of_week = self.does_repeat_on_certain_days()
-        intervals = self.does_repeat_at_intervals()
+    def recurrence_str(self):
+        days_of_week = self.repeats_on_certain_days()
+        intervals = self.repeats_at_intervals()
         if days_of_week and intervals:
-            return "%s [?]" % self.short_desc
+            return "?"
         if (not days_of_week) and (not intervals):
-            return "%s [?]" % self.short_desc
+            return "?"
         if days_of_week:
             blank = '\u25CC'
-            return "%s [%s%s%s%s%s%s%s]" % (
-                self.short_desc,
+            return "%s%s%s%s%s%s%s" % (
                 "M" if self.monday else blank,
                 "T" if self.tuesday else blank,
                 "W" if self.wednesday else blank,
@@ -224,8 +225,14 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
                 "S" if self.sunday else blank,
             )
         if intervals:
-            units = "day" if self.repeat_interval==1 else "days"
-            return "%s [%d %s]" % (self.short_desc, self.repeat_interval, units)
+            if self.repeat_interval == 1:
+                return "every day"
+            else:
+                return "every %d days" % self.repeat_interval
+        return "X"
+
+    def __str__(self):
+        return "%s [%s]" % (self.short_desc, self.recurrence_str())
 
 class Task(make_TaskMixin("Tasks")):
 
@@ -235,10 +242,11 @@ class Task(make_TaskMixin("Tasks")):
     claim_date = models.DateField(null=True, blank=True)
     claimed_by = models.ForeignKey(Member, null=True, blank=True, on_delete=models.SET_NULL, related_name="tasks_claimed")
     prev_claimed_by =  models.ForeignKey(Member, null=True, blank=True, on_delete=models.SET_NULL, related_name="+") # Reminder: "+" means no backwards relation.
+    # REVIEW: Should work_actual be replaced with N work entries, possibly from more than one person?
     work_actual = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, help_text="The actual time worked, in hours (e.g. 1.25). This is work time, not elapsed time.")
     work_done = models.BooleanField(default=False)
-    #TODO: work_accepted should be N/A if reviewer is None.  If reviewer is set, work_accepted should be set to "No".
-    work_accepted = models.NullBooleanField([(True, "Yes"), (False, "No"), (None, "N/A")])
+    # TODO: work_accepted should be N/A if reviewer is None.  If reviewer is set, work_accepted should be set to "No".
+    work_accepted = models.NullBooleanField(choices=[(True, "Yes"), (False, "No"), (None, "N/A")])
     recurring_task_template = models.ForeignKey(RecurringTaskTemplate, null=True, blank=True, on_delete=models.SET_NULL)
 
     def is_closed(self):
@@ -258,14 +266,18 @@ class Task(make_TaskMixin("Tasks")):
         if self.prev_claimed_by == self.claimed_by:
             return False, "Member cannot claim a task they've previously claimed. Somebody else has to get a chance at it."
         if self.work_estimate < 0:
-            # zero will mean "not yet estimated" but anything that has been estimated must have work > 0.
+            # REVIEW: zero will mean "not yet estimated" but anything that has been estimated must have work > 0.
             return False, "Invalid work estimate."
         if self.recurring_task_template is not None and self.scheduled_date is None:
             return False, "A task corresponding to a ScheduledTaskTemplate must have a scheduled date."
         return True, "Looks good."
 
     def __str__(self):
-        return "%s on %s" % (self.short_desc, self.scheduled_date)
+        if self.deadline is None:
+            return "%s" % (self.short_desc)
+        else:
+            return "%s [%s deadline]" % (self.short_desc, self.deadline)
+
 
 
 class TaskNote(models.Model):

@@ -5,6 +5,7 @@ from .models import Member, Tag, RecurringTaskTemplate, Task, TaskNote
 
 class MemberAdmin(admin.ModelAdmin):
 
+    list_display = ('first_name', 'last_name', 'user_id', 'active')
     class Media:
         css = {
             "all": ("tasks/member_admin.css",)
@@ -12,7 +13,10 @@ class MemberAdmin(admin.ModelAdmin):
 
     filter_horizontal = ['tags']
 
+
 class RecurringTaskTemplateAdmin(admin.ModelAdmin):
+
+    list_display = ('short_desc','recurrence_str', 'owner', 'reviewer', 'suspended')
 
     class Media:
         css = {
@@ -39,7 +43,7 @@ class RecurringTaskTemplateAdmin(admin.ModelAdmin):
         ]}),
 
         ("Recur by Day-of-Week and Position-in-Month", {
-            'description': "Use this option for schedules like 'Every 1st and 3rd Thursday'",
+            'description': "Use this option for schedules like '1st and 3rd Thursday.'",
             'fields': [
                 (
                     'first',
@@ -61,12 +65,20 @@ class RecurringTaskTemplateAdmin(admin.ModelAdmin):
             ]
         }),
 
-        ("Recur every X Days", {'fields': [
-            'repeat_interval',
-            'flexible_dates',
-        ]}),
+        ("Recur every X Days", {
+            'description': "Use this option for schedules like 'Every 90 days'",
+            'fields': [
+                'repeat_interval',
+                'flexible_dates',
+            ]
+        }),
 
     ]
+
+class TaskNoteInline(admin.StackedInline):
+    model = TaskNote
+    extra = 0
+
 
 class TaskAdmin(admin.ModelAdmin):
 
@@ -103,11 +115,12 @@ class TaskAdmin(admin.ModelAdmin):
             ]
         }),
     ]
+    inlines = [TaskNoteInline]
+
 
 admin.site.register(Member, MemberAdmin)
 admin.site.register(RecurringTaskTemplate, RecurringTaskTemplateAdmin)
 admin.site.register(Task, TaskAdmin)
 
 admin.site.register(Tag)
-admin.site.register(TaskNote)
 
