@@ -1,0 +1,9 @@
+{% if task_list %}
+    <ul>
+    {% for task in task_list %}
+        <li>{{ task.short_desc }}</li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>No tasks are available.</p>
+{% endif %}
