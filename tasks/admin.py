@@ -14,7 +14,17 @@ class MemberAdmin(admin.ModelAdmin):
     filter_horizontal = ['tags']
 
 def create_create_tasks(number_of_days):
+    """ Return an admin action function that creates tasks up to a certain number of days into the future.
+    :param number_of_days: How far forward the desired function should schedule tasks
+    :return: a function that schedules tasks
+    """
     def create_tasks(model_admin, request, query_set):
+        """ See admin action documentation. """
+        """ TODO: If there are foreseeable error conditions that may occur while running your action, you
+        should gracefully inform the user of the problem. This means handling exceptions and using
+        django.contrib.admin.ModelAdmin.message_user() to display a user friendly description of the problem
+        in the response.
+        """
         for template in query_set:
             template.create_tasks(number_of_days)
     create_tasks.short_description = "Create tasks for next %d days" % number_of_days

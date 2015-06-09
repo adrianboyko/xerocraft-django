@@ -11,6 +11,4 @@ def list(request):
     """ This view will present all tasks with status and optional filtering.
     """
     task_list = Task.objects.all()
-    template = loader.get_template('tasks/list.html')
-    context = RequestContext(request, {'task_list': task_list})
-    return HttpResponse(template.render(context))
+    return render(request,'tasks/list.html',{'task_list': task_list})

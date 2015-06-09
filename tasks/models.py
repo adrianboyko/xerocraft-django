@@ -198,6 +198,7 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
             if self.date_matches_template(curr):
                 t = Task.objects.create(recurring_task_template=self)
                 t.scheduled_date = curr
+                # TODO: t.creation_date = curr
                 t.owner = self.owner
                 t.instructions = self.instructions
                 t.short_desc = self.short_desc
@@ -250,6 +251,7 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
 
 class Task(make_TaskMixin("Tasks")):
 
+    # TODO: Add creation_date so slippage can be tracked.
     scheduled_date = models.DateField(null=True, blank=True, help_text="If appropriate, set a date on which the task must be performed.")
     deadline = models.DateField(null=True, blank=True, help_text="If appropriate, specify a deadline by which the task must be completed.")
     depends_on = models.ManyToManyField('self', symmetrical=False, related_name="prerequisite_for", help_text="If appropriate, specify what tasks must be completed before this one can start.")
