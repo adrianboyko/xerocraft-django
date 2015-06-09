@@ -34,7 +34,7 @@ class TestRecurringTaskTemplateValidity(TestCase):
             valid,_ = rtt.validate()
             self.assertTrue(valid)
 
-class TestRecurringTaskTemplate(TestCase):
+class TestRecurringTaskTemplateCertainDays(TestCase):
 
     def setUp(self):
         self.rt = RecurringTaskTemplate.objects.create(
@@ -53,3 +53,23 @@ class TestRecurringTaskTemplate(TestCase):
     def test_create_tasks(self):
         self.rt.create_tasks(max_days_in_advance=28)
         self.assertEqual(len(Task.objects.all()),1)
+        # create_tasks should be idempotent for a particular argument.
+        self.rt.create_tasks(max_days_in_advance=28)
+        self.assertEqual(len(Task.objects.all()),1)
+
+class TestRecurringTaskTemplateIntervals(TestCase):
+
+    def setUp(self):
+        self.rt = RecurringTaskTemplate.objects.create(
+            short_desc = "A test",
+            work_estimate = 1.5,
+            start_date = date.today(),
+            flexible_dates = True,
+            repeat_interval = 28)
+
+    def test_create_tasks(self):
+        self.rt.create_tasks(60)
+        self.assertEqual(len(Task.objects.all()),2)
+        # create_tasks should be idempotent for a particular argument.
+        self.rt.create_tasks(60)
+        self.assertEqual(len(Task.objects.all()),2)

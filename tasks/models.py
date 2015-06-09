@@ -112,7 +112,7 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
             result = self.start_date + timedelta(days = -1)
             return result
 
-        scheduled_dates = map(lambda x: x.scheduled_date, self.task_set)
+        scheduled_dates = map(lambda x: x.scheduled_date, self.task_set.all())
         return max(scheduled_dates)
 
     def date_matches_template(self, d: date):
@@ -120,6 +120,19 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
         :param d: Date to be tested.
         :return: Boolean indicating if d matches the day-of-week and ordinal-in-month specified by the template.
         """
+
+        if self.repeats_at_intervals():
+            return self.date_matches_template_intervals(d)
+
+        if self.repeats_on_certain_days():
+            return self.date_matches_template_certain_days(d)
+
+    def date_matches_template_intervals(self, date_considered: date):
+        last_date = self.greatest_scheduled_date()
+        days_since = date_considered - last_date
+        return days_since.days == self.repeat_interval
+
+    def date_matches_template_certain_days(self, d: date):
         dow_num = d.weekday() # day-of-week number
         day_matches = (dow_num==0 and self.monday) \
             or (dow_num==1 and self.tuesday) \
@@ -183,7 +196,8 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
         stop = date.today() + timedelta(max_days_in_advance)
         while curr < stop:
             if self.date_matches_template(curr):
-                t = Task.objects.create(recurring_task_template = self)
+                t = Task.objects.create(recurring_task_template=self)
+                t.scheduled_date = curr
                 t.owner = self.owner
                 t.instructions = self.instructions
                 t.short_desc = self.short_desc
@@ -244,9 +258,9 @@ class Task(make_TaskMixin("Tasks")):
     prev_claimed_by =  models.ForeignKey(Member, null=True, blank=True, on_delete=models.SET_NULL, related_name="+") # Reminder: "+" means no backwards relation.
     # REVIEW: Should work_actual be replaced with N work entries, possibly from more than one person?
     work_actual = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, help_text="The actual time worked, in hours (e.g. 1.25). This is work time, not elapsed time.")
-    work_done = models.BooleanField(default=False)
+    work_done = models.BooleanField(default=False, help_text="The person who does the work sets this to true when the work is completely done.")
     # TODO: work_accepted should be N/A if reviewer is None.  If reviewer is set, work_accepted should be set to "No".
-    work_accepted = models.NullBooleanField(choices=[(True, "Yes"), (False, "No"), (None, "N/A")])
+    work_accepted = models.NullBooleanField(choices=[(True, "Yes"), (False, "No"), (None, "N/A")], help_text="If there is a reviewer for this task, the reviewer sets this to true or false once the worker has said that the work is done.")
     recurring_task_template = models.ForeignKey(RecurringTaskTemplate, null=True, blank=True, on_delete=models.SET_NULL)
 
     def is_closed(self):
@@ -272,12 +286,16 @@ class Task(make_TaskMixin("Tasks")):
             return False, "A task corresponding to a ScheduledTaskTemplate must have a scheduled date."
         return True, "Looks good."
 
+    def scheduled_weekday(self):
+        return self.scheduled_date.strftime('%A') if self.scheduled_date is not None else '(None)'
+        # return week[self.scheduled_date.weekday()] if self.scheduled_date is not None else '(None)'
+    scheduled_weekday.short_description = "Weekday"
+
     def __str__(self):
         if self.deadline is None:
             return "%s" % (self.short_desc)
         else:
             return "%s [%s deadline]" % (self.short_desc, self.deadline)
-
 
 
 class TaskNote(models.Model):

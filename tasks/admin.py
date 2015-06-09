@@ -13,10 +13,18 @@ class MemberAdmin(admin.ModelAdmin):
 
     filter_horizontal = ['tags']
 
+def create_create_tasks(number_of_days):
+    def create_tasks(model_admin, request, query_set):
+        for template in query_set:
+            template.create_tasks(number_of_days)
+    create_tasks.short_description = "Create tasks for next %d days" % number_of_days
+    return create_tasks
+
 
 class RecurringTaskTemplateAdmin(admin.ModelAdmin):
 
-    list_display = ('short_desc','recurrence_str', 'owner', 'reviewer', 'suspended')
+    list_display = ['short_desc','recurrence_str', 'owner', 'reviewer', 'suspended']
+    actions = [create_create_tasks(60)]
 
     class Media:
         css = {
@@ -79,7 +87,6 @@ class TaskNoteInline(admin.StackedInline):
     model = TaskNote
     extra = 0
 
-
 class TaskAdmin(admin.ModelAdmin):
 
     class Media:
@@ -88,6 +95,7 @@ class TaskAdmin(admin.ModelAdmin):
         }
 
     filter_horizontal = ['eligible_claimants', 'eligible_tags']
+    list_display = ['short_desc', 'scheduled_weekday', 'scheduled_date', 'owner', 'claimed_by', 'work_done', 'reviewer', 'work_accepted']
 
     fieldsets = [
 
