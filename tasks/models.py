@@ -1,5 +1,4 @@
 from django.db import models
-from django.utils import timezone
 from datetime import date, timedelta
 
 # TODO: Rework various validate() methods into Model.clean()? See Django's "model validation" docs.
@@ -19,25 +18,22 @@ class Tag(models.Model):
 class Member(models.Model):
     """Represents a Xerocraft member, in their many varieties."""
 
-    first_name = models.CharField(max_length=40)
-    last_name = models.CharField(max_length=40)
-    user_id = models.CharField(max_length=40, help_text="The user-id the member uses to sign in at Xerocraft.")
+    auth_user = models.OneToOneField('auth.User', null=False)
     family_anchor = models.ForeignKey('self',
         null=True, blank=True, related_name="family_members", on_delete=models.SET_NULL,
         help_text="If this member is part of a family account then this points to the 'anchor' member for the family.")
     tags = models.ManyToManyField(Tag, blank=True)
-    active = models.BooleanField(default=True, help_text="If NOT selected, systems will ignore this member where appropriate.")
 
     def validate(self):
         if self.family_anchor is not None and len(self.family_members.all()) > 0:
             return False, "A member which points to an anchor should not itself be an anchor."
         return True, "Looks good"
 
-    def __str__(self):
-        return "%s %s" % (self.first_name, self.last_name)
+#    def __str__(self):
+#        return "%s %s" % (self.user.first_name, self.user.last_name)
 
-    class Meta:
-        ordering = ['first_name','last_name']
+#    class Meta:
+#        ordering = ['first_name', 'last_name']
 
 def make_TaskMixin(dest_class_alias):
     """This function tunes the mix-in to avoid reverse accessor clashes.
@@ -49,7 +45,6 @@ def make_TaskMixin(dest_class_alias):
         When a task is created from the template, these fields are copied from the template to the task.
         """
 
-        # TODO: create_date
         owner = models.ForeignKey(Member, null=True, blank=True, on_delete=models.SET_NULL, related_name="owned_"+dest_class_alias,
             help_text="The member that asked for this task to be created or has taken responsibility for its content.<br/>This is almost certainly not the person who will claim the task and do the work.")
         instructions = models.TextField(max_length=2048, blank=True,
@@ -78,8 +73,7 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
     """
 
     start_date = models.DateField(help_text="Choose a date for the first instance of the recurring task.")
-    # TODO: Change suspended to active
-    suspended = models.BooleanField(default=False, help_text="Additional tasks will not be created from this template while it is suspended.")
+    active = models.BooleanField(default=True, help_text="Additional tasks will be created only when the template is active.")
 
     # Weekday of month:
     first = models.BooleanField(default=False)  #, help_text="Task will recur on first weekday in the month.")
@@ -186,19 +180,18 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
     def create_tasks(self, max_days_in_advance):
         """Creates and schedules new tasks from greatest_scheduled_date() (non-inclusive).
         Stops when scheduling a new task would be more than max_days_in_advance from current date.
-        Does nothing if the template is suspended.
+        Does nothing if the template is not active.
         """
 
-        if self.suspended: return
+        if not self.active: return
 
         curr = self.greatest_scheduled_date() + timedelta(days = +1)
         curr = max(curr, date.today())  # Don't create tasks in the past.
         stop = date.today() + timedelta(max_days_in_advance)
         while curr < stop:
             if self.date_matches_template(curr):
-                t = Task.objects.create(recurring_task_template=self)
+                t = Task.objects.create(recurring_task_template=self, creation_date = date.today())
                 t.scheduled_date = curr
-                # TODO: t.creation_date = curr
                 t.owner = self.owner
                 t.instructions = self.instructions
                 t.short_desc = self.short_desc
@@ -251,7 +244,7 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
 
 class Task(make_TaskMixin("Tasks")):
 
-    # TODO: Add creation_date so slippage can be tracked.
+    creation_date = models.DateField(null=False, default=date.today, help_text="The date on which this task was originally created, for tracking slippage.")
     scheduled_date = models.DateField(null=True, blank=True, help_text="If appropriate, set a date on which the task must be performed.")
     deadline = models.DateField(null=True, blank=True, help_text="If appropriate, specify a deadline by which the task must be completed.")
     depends_on = models.ManyToManyField('self', symmetrical=False, related_name="prerequisite_for", help_text="If appropriate, specify what tasks must be completed before this one can start.")

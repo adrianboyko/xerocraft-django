@@ -1,17 +1,31 @@
 from django.contrib import admin
 from django.forms import CheckboxSelectMultiple
 from django.db import models
+from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.models import User
 from .models import Member, Tag, RecurringTaskTemplate, Task, TaskNote
 
-class MemberAdmin(admin.ModelAdmin):
+class MemberInline(admin.StackedInline):
+    model = Member
+    can_delete = False
+    verbose_name_plural = 'member'
 
-    list_display = ('first_name', 'last_name', 'user_id', 'active')
-    class Media:
-        css = {
-            "all": ("tasks/member_admin.css",)
-        }
+class UserAdmin(UserAdmin):
 
-    filter_horizontal = ['tags']
+    inlines = (MemberInline,)
+
+    # list_display = ('first_name', 'user.last_name', 'main_web_id', 'user.active')
+
+    # class Media:
+    #     css = {
+    #         "all": ("tasks/member_admin.css",)
+    #     }
+
+    # filter_horizontal = ['tags']
+
+admin.site.unregister(User)
+admin.site.register(User, UserAdmin)
 
 def create_create_tasks(number_of_days):
     """ Return an admin action function that creates tasks up to a certain number of days into the future.
@@ -33,7 +47,7 @@ def create_create_tasks(number_of_days):
 
 class RecurringTaskTemplateAdmin(admin.ModelAdmin):
 
-    list_display = ['short_desc','recurrence_str', 'owner', 'reviewer', 'suspended']
+    list_display = ['short_desc','recurrence_str', 'owner', 'reviewer', 'active']
     actions = [create_create_tasks(60)]
 
     class Media:
@@ -135,8 +149,6 @@ class TaskAdmin(admin.ModelAdmin):
     ]
     inlines = [TaskNoteInline]
 
-
-admin.site.register(Member, MemberAdmin)
 admin.site.register(RecurringTaskTemplate, RecurringTaskTemplateAdmin)
 admin.site.register(Task, TaskAdmin)
 
