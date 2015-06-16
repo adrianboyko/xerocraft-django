@@ -3,10 +3,16 @@ from datetime import date, timedelta
 
 # TODO: Rework various validate() methods into Model.clean()? See Django's "model validation" docs.
 
+# TODO: class MetaTag?  E.g. Tag instructor tags with "instructor" meta-tag?
+
+# TODO: Import various *Field classes and remove "models."?
+
 class Tag(models.Model):
 
-    name = models.CharField(max_length=40, help_text="A short name for the tag.")
-    meaning = models.TextField(max_length=500, help_text="A discussion of the tag's semantics. What does it mean? What does it NOT mean?")
+    name = models.CharField(max_length=40,
+        help_text="A short name for the tag.")
+    meaning = models.TextField(max_length=500,
+        help_text="A discussion of the tag's semantics. What does it mean? What does it NOT mean?")
 
     def __str__(self):
         return self.name
@@ -19,21 +25,20 @@ class Member(models.Model):
     """Represents a Xerocraft member, in their many varieties."""
 
     auth_user = models.OneToOneField('auth.User', null=False)
-    family_anchor = models.ForeignKey('self',
-        null=True, blank=True, related_name="family_members", on_delete=models.SET_NULL,
-        help_text="If this member is part of a family account then this points to the 'anchor' member for the family.")
+
+    # TODO: tags through many to many table with "date granted" and "granted by"
     tags = models.ManyToManyField(Tag, blank=True)
 
     def validate(self):
-        if self.family_anchor is not None and len(self.family_members.all()) > 0:
-            return False, "A member which points to an anchor should not itself be an anchor."
+        # No validation logic, yet.
         return True, "Looks good"
 
-#    def __str__(self):
-#        return "%s %s" % (self.user.first_name, self.user.last_name)
+    def __str__(self):
+        return "%s %s" % (self.auth_user.first_name, self.auth_user.last_name)
 
-#    class Meta:
-#        ordering = ['first_name', 'last_name']
+    # Note: Can't order Member because the interesting fields are in auth.User
+    # class Meta:
+    #     ordering = ['']
 
 def make_TaskMixin(dest_class_alias):
     """This function tunes the mix-in to avoid reverse accessor clashes.
@@ -43,6 +48,7 @@ def make_TaskMixin(dest_class_alias):
     class TaskMixin(models.Model):
         """Defines fields that are common between RecurringTaskTemplate and Task.
         When a task is created from the template, these fields are copied from the template to the task.
+        Help text describes the fields in terms of their role in Task.
         """
 
         owner = models.ForeignKey(Member, null=True, blank=True, on_delete=models.SET_NULL, related_name="owned_"+dest_class_alias,
@@ -51,14 +57,18 @@ def make_TaskMixin(dest_class_alias):
             help_text="Instructions for completing the task.")
         short_desc = models.CharField(max_length=40,
             help_text="A short description/name for the task.")
+        max_claimants = models.IntegerField(default=1,
+            help_text="The maximum number of members that can simultaneously claim/work the task, often 1.")
         eligible_claimants = models.ManyToManyField(Member, blank=True, symmetrical=False, related_name="claimable_"+dest_class_alias,
             help_text="Anybody chosen is eligible to claim the task.<br/>")
         eligible_tags = models.ManyToManyField(Tag, blank=True, symmetrical=False, related_name="claimable_"+dest_class_alias,
             help_text="Anybody that has one of the chosen tags is eligible to claim the task.<br/>")
-        reviewer = models.ForeignKey(Member, null=True, blank=True, on_delete=models.SET_NULL,
+        reviewer = models.ForeignKey(Member, null=True, blank=True, on_delete=models.SET_NULL, related_name="reviewable"+dest_class_alias,
             help_text="If required, a member who will review the work once its completed.")
         work_estimate = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True,
             help_text="An estimate of how much work this tasks requires, in hours (e.g. 1.25).<br/>This is work time, not elapsed time.")
+        uninterested = models.ManyToManyField(Member, blank=True, symmetrical=False, related_name="uninteresting_"+dest_class_alias,
+            help_text="Members that are not interested in this item.")
 
         class Meta:
             abstract = True
@@ -210,7 +220,7 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
         if self.work_estimate < 0:
             # zero will mean "not yet estimated" but anything that has been estimated must have work > 0.
             return False, "Invalid work estimate."
-        if self.eligible_claimants==None and self.eligible_tags==None:
+        if self.eligible_claimants is None and self.eligible_tags is None:
             return False, "One or more people and/or one or more tags must be selected."
         return True, "Looks good."
 
@@ -242,17 +252,38 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
     def __str__(self):
         return "%s [%s]" % (self.short_desc, self.recurrence_str())
 
+
+class Claim(models.Model):
+
+    CURRENT = "C"
+    EXPIRED = "X"
+    QUEUED = "Q"
+    CLAIM_STATUS_CHOICES = [
+        (CURRENT, "Current Claim"),
+        (EXPIRED, "Expired Claim"),
+        (QUEUED, "Queued Claim")
+    ]
+    task = models.ForeignKey('Task')
+    member = models.ForeignKey(Member)
+    date = models.DateField()
+    status = models.CharField(max_length=1, choices=CLAIM_STATUS_CHOICES)
+
+
+class Work(models.Model):
+
+    worker = models.ForeignKey(Member, help_text="Member that did work toward completing task.")
+    task = models.ForeignKey('Task', help_text="The task that was worked.")
+    hours = models.DecimalField(max_digits=5, decimal_places=2, help_text="The actual time worked, in hours (e.g. 1.25). This is work time, not elapsed time.")
+
+
 class Task(make_TaskMixin("Tasks")):
 
     creation_date = models.DateField(null=False, default=date.today, help_text="The date on which this task was originally created, for tracking slippage.")
     scheduled_date = models.DateField(null=True, blank=True, help_text="If appropriate, set a date on which the task must be performed.")
     deadline = models.DateField(null=True, blank=True, help_text="If appropriate, specify a deadline by which the task must be completed.")
     depends_on = models.ManyToManyField('self', symmetrical=False, related_name="prerequisite_for", help_text="If appropriate, specify what tasks must be completed before this one can start.")
-    claim_date = models.DateField(null=True, blank=True)
-    claimed_by = models.ForeignKey(Member, null=True, blank=True, on_delete=models.SET_NULL, related_name="tasks_claimed")
-    prev_claimed_by =  models.ForeignKey(Member, null=True, blank=True, on_delete=models.SET_NULL, related_name="+") # Reminder: "+" means no backwards relation.
-    # REVIEW: Should work_actual be replaced with N work entries, possibly from more than one person?
-    work_actual = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, help_text="The actual time worked, in hours (e.g. 1.25). This is work time, not elapsed time.")
+    claimants = models.ManyToManyField(Member, through=Claim, related_name="tasks_claimed")
+    workers = models.ManyToManyField(Member, through=Work, related_name="tasks_worked")
     work_done = models.BooleanField(default=False, help_text="The person who does the work sets this to true when the work is completely done.")
     # TODO: work_accepted should be N/A if reviewer is None.  If reviewer is set, work_accepted should be set to "No".
     work_accepted = models.NullBooleanField(choices=[(True, "Yes"), (False, "No"), (None, "N/A")], help_text="If there is a reviewer for this task, the reviewer sets this to true or false once the worker has said that the work is done.")
@@ -260,7 +291,7 @@ class Task(make_TaskMixin("Tasks")):
 
     def is_closed(self):
         "Returns True if claimant should receive credit for the task."
-        if self.reviewer == None:
+        if self.reviewer is None:
             return self.work_done
         else:
             return self.work_done and self.work_accepted
@@ -291,7 +322,6 @@ class Task(make_TaskMixin("Tasks")):
             return "%s" % (self.short_desc)
         else:
             return "%s [%s deadline]" % (self.short_desc, self.deadline)
-
 
 class TaskNote(models.Model):
 

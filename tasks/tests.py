@@ -15,25 +15,11 @@ class TestMemberWithFamily(TestCase):
     def setUp(self):
         ab = User.objects.create(username='fake1', first_name="Andrew", last_name="Baker", password="fake1")
         ab_member = Member.objects.create(auth_user=ab)
-        jr = User.objects.create(username='fake2', first_name="Andrew Jr", last_name="Baker", password="fake2")
-        jr_member = Member.objects.create(auth_user=jr)
-        jr.member.family_anchor = ab_member
-        jr.save()
-        jr_member.save()
         ab.save()
         ab_member.save()
 
-    def test_family(self):
-        ab = User.objects.get(first_name="Andrew")
-        self.assertEqual(ab.first_name, "Andrew")
-        self.assertEqual(ab.last_name, "Baker")
-        self.assertEqual(ab.username, "fake1")
-        self.assertEqual(ab.member.family_anchor, None)
-        jr = User.objects.get(first_name="Andrew Jr")
-        self.assertEqual(jr.member.family_anchor, ab.member)
-        self.assertTrue(jr.member in ab.member.family_members.all())
-
 class TestRecurringTaskTemplateValidity(TestCase):
+
     def test_RecurringTaskTemplate_rules_against_db(self):
         for rtt in RecurringTaskTemplate.objects.all():
             valid,_ = rtt.validate()

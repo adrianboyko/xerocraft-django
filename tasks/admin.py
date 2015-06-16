@@ -1,28 +1,27 @@
 from django.contrib import admin
-from django.forms import CheckboxSelectMultiple
-from django.db import models
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
-from .models import Member, Tag, RecurringTaskTemplate, Task, TaskNote
+from .models import Member, Tag, RecurringTaskTemplate, Task, TaskNote, Claim
+
+# TODO: TagAdmin with inline Members?
 
 class MemberInline(admin.StackedInline):
     model = Member
     can_delete = False
-    verbose_name_plural = 'member'
+    verbose_name_plural = 'membership'
+    filter_horizontal = ['tags']
+
+    """ TODO: Modify CSS to work in this new inline context:
+    class Media:
+        css = {
+            "all": ("tasks/member_admin.css",)
+        }
+    """
 
 class UserAdmin(UserAdmin):
 
     inlines = (MemberInline,)
-
-    # list_display = ('first_name', 'user.last_name', 'main_web_id', 'user.active')
-
-    # class Media:
-    #     css = {
-    #         "all": ("tasks/member_admin.css",)
-    #     }
-
-    # filter_horizontal = ['tags']
 
 admin.site.unregister(User)
 admin.site.register(User, UserAdmin)
@@ -64,7 +63,7 @@ class RecurringTaskTemplateAdmin(admin.ModelAdmin):
             'instructions',
             'work_estimate',
             'start_date',
-            'suspended',
+            'active',
         ]}),
 
         ("People", {'fields': [
@@ -111,6 +110,10 @@ class TaskNoteInline(admin.StackedInline):
     model = TaskNote
     extra = 0
 
+class ClaimInline(admin.StackedInline):
+    model = Claim
+    extra = 0
+
 class TaskAdmin(admin.ModelAdmin):
 
     class Media:
@@ -119,7 +122,7 @@ class TaskAdmin(admin.ModelAdmin):
         }
 
     filter_horizontal = ['eligible_claimants', 'eligible_tags']
-    list_display = ['short_desc', 'scheduled_weekday', 'scheduled_date', 'owner', 'claimed_by', 'work_done', 'reviewer', 'work_accepted']
+    list_display = ['short_desc', 'scheduled_weekday', 'scheduled_date', 'owner', 'work_done', 'reviewer', 'work_accepted']
 
     fieldsets = [
 
@@ -147,7 +150,7 @@ class TaskAdmin(admin.ModelAdmin):
             ]
         }),
     ]
-    inlines = [TaskNoteInline]
+    inlines = [TaskNoteInline, ClaimInline]
 
 admin.site.register(RecurringTaskTemplate, RecurringTaskTemplateAdmin)
 admin.site.register(Task, TaskAdmin)
