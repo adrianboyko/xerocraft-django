@@ -22,15 +22,28 @@ class Tag(models.Model):
 
 
 class Member(models.Model):
-    """Represents a Xerocraft member, in their many varieties."""
+    """Represents a Xerocraft member.
+    Member is an extension of auth.User that adds Xerocraft-specific state like "tags".
+    """
+    MEMB_CARD_STR_LEN = 32
 
-    auth_user = models.OneToOneField('auth.User', null=False)
+    auth_user = models.OneToOneField('auth.User', null=False,
+        help_text="This must point to the corresponding auth.User object.")
+
+    # Saving as MD5 provides some protection against read-only attacks.
+    membership_card_md5 = models.CharField(max_length=MEMB_CARD_STR_LEN, null=True, blank=True,
+        help_text="MD5 checksum of the random urlsafe base64 string on the membership card.")
+
+    membership_card_when = models.DateTimeField(null=True, blank=True,
+        help_text="Date/time on which the membership card was created.")
 
     # TODO: tags through many to many table with "date granted" and "granted by"
     tags = models.ManyToManyField(Tag, blank=True)
 
     def validate(self):
-        # No validation logic, yet.
+        if self.membership_card_str is not None:
+            if len(self.membership_card_str) != self.MEMB_CARD_STR_LEN:
+                return False, "Bad membership card string."
         return True, "Looks good"
 
     def __str__(self):
