@@ -34,10 +34,12 @@ def list(request):
 def _user_info(member_id):
     data = {}
     m = Member.objects.get(pk=member_id)
-    data['is_active'] = m.auth_user.is_active
-    data['username'] = m.auth_user.username
-    data['first_name'] = m.auth_user.first_name
-    data['last_name'] = m.auth_user.last_name
+    u = m.auth_user
+    data['is_active'] = u.is_active
+    data['username'] = u.username
+    data['first_name'] = u.first_name
+    data['last_name'] = u.last_name
+    data['email'] = u.email
     data['tags'] = [t.name for t in m.tags.all()]
     return data
 
