@@ -7,12 +7,25 @@ from datetime import date, timedelta
 
 # TODO: Import various *Field classes and remove "models."?
 
+
+# class MetaTag(models.Model):
+#
+#     name = models.CharField(max_length=40,
+#         help_text="A short name for the metatag.")
+#     meaning = models.TextField(max_length=500,
+#         help_text="A discussion of the metatag's semantics. What does it mean? What does it NOT mean?")
+#
+#     def __str__(self):
+#         return self.name
+
 class Tag(models.Model):
 
     name = models.CharField(max_length=40,
         help_text="A short name for the tag.")
     meaning = models.TextField(max_length=500,
         help_text="A discussion of the tag's semantics. What does it mean? What does it NOT mean?")
+    # meta_tags = models.ManyToManyField(MetaTag, blank=True,
+    #     help_text="A tag can have zero or more metatags.")
 
     def __str__(self):
         return self.name
@@ -339,8 +352,17 @@ class Task(make_TaskMixin("Tasks")):
 class TaskNote(models.Model):
 
     # Note will become anonymous if author is deleted or author is blank.
-    author = models.ForeignKey(Member, null=True, blank=True, on_delete=models.SET_NULL,
+    author = models.ForeignKey(Member, null=True, blank=True, on_delete=models.SET_NULL, related_name="task_notes_authored",
         help_text="The member who wrote this note.")
     content = models.TextField(max_length=2048,
         help_text="Anything you want to say about the task. Questions, hints, problems, review feedback, etc.")
     task = models.ForeignKey(Task, on_delete=models.CASCADE)
+
+class MemberNote(models.Model):
+
+    # Note will become anonymous if author is deleted or author is blank.
+    author = models.ForeignKey(Member, null=True, blank=True, on_delete=models.SET_NULL, related_name="member_notes_authored",
+        help_text="The member who wrote this note.")
+    content = models.TextField(max_length=2048,
+        help_text="For staff. Anything you want to say about the member.")
+    task = models.ForeignKey(Member, on_delete=models.CASCADE)
