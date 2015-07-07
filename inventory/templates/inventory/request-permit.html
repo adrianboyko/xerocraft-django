@@ -2,18 +2,18 @@
 {% load staticfiles %}
 
 <body style="margin-left:20pt; margin-right:20pt">
-<h1>Request a Parking Permit</h1>
+<h1 style="font-family:Arial Narrow">Request a Parking Permit</h1>
 <form action="{% url 'inv:create-permit'%}" method="post" style="margin-left:20pt; margin-right:80pt;">
     {% csrf_token %}
 
     <fieldset>
-        <legend>Parking Permit Terms and Conditions</legend>
+        <legend style="font-family:Helvetica">Parking Permit Terms and Conditions</legend>
         <img src="{% static 'inventory/Parking Permit.png' %}" alt="A Parking Permit" style="margin:0px 10px 0px 0px; width:100;float:left;"/>
         <span>I, {{user.first_name}} {{user.last_name}}, am responsible for this property and warrant that I will make a goodwill effort to store it safely for the duration of its time at Xerocraft. I hereby acknowledge that if the permit is not renewed every 30 days, the property may be considered abandoned and will be disposed of or claimed by another member.</span>
         <br/><br/><div style="text-align:right"><input type="checkbox" name="i_agree" id="i_agree">I Agree to Terms &amp; Conditions</div>
     </fieldset>
     <fieldset style="margin-top:15pt">
-        <legend>Information About Parked Item</legend>
+        <legend style="font-family:Helvetica">Information About Parked Item</legend>
 
         <table style="margin-top:2pt"><tr>
             <td style="font-size:26pt;">Q1:</td>
@@ -26,7 +26,7 @@
         <table style="margin-top:8pt"><tr>
             <td style="font-size:26pt;">Q2:</td>
             <td style="padding-left:10pt;">
-                <div>Can we carefully move the item, if necessary?</div>
+                <div>We will carefully move the item, if necessary.<br/>Would you like us to try to contact you first?</div>
                 <div>
                 <input type="radio" name="move" id="move_yes" value="Y">Yes
                 <input type="radio" name="move" id="move_no" value="N">No

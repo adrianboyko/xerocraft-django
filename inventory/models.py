@@ -1,12 +1,13 @@
 from django.db import models
-from tasks.models import Member
+
+from pytz import timezone
 import datetime
 
 # Create your models here.
 
 class Location(models.Model):
 
-    numeric_name = models.IntegerField(
+    numeric_name = models.IntegerField(unique=True,
         help_text="A number designating the location")
     short_desc = models.CharField(max_length=40,
         help_text="A short description/name for the location.")
@@ -28,19 +29,28 @@ class ParkingPermit(models.Model):
     ok_to_move = models.BooleanField(default=True,
         help_text="Is it OK to carefully move the item to another location, if necessary?")
     def __str__(self):
-        return "#%d, %s %s, '%s'" % (
+        return "#%04d, %s %s, '%s'" % (
             self.pk,
             self.owner.auth_user.first_name, self.owner.auth_user.last_name,
             self.short_desc)
-
+    class Meta:
+        ordering = ['renewed']
 
 
 class PermitScan(models.Model):
 
+    #REVIEW: Is there a good balance between Admin presentation and making these fields editable=False?
     permit = models.ForeignKey(ParkingPermit, null=False, blank=False, on_delete=models.CASCADE,
         help_text="The parking permit that was scanned")
     when = models.DateTimeField(null=False, blank=False,
         help_text="Date/time on which the parking permit was created.")
     where = models.ForeignKey(Location, null=False, blank=False, on_delete=models.PROTECT,
         help_text="The location at which the parking permit was scanned.")
-
+    def __str__(self):
+        p = self.permit
+        return "Permit #%04d at location #%03d on %s" % (
+            p.pk,
+            self.where.numeric_name,
+            str(self.when.astimezone(timezone('US/Arizona')))[:10])
+    class Meta:
+        ordering = ['where','when']
