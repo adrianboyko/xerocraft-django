@@ -19,8 +19,9 @@ from datetime import date, timedelta
 #         return self.name
 
 class Tag(models.Model):
-
-    name = models.CharField(max_length=40,
+    """ A tag represents some attribute of a Member. Examples are various skills, shop roles, or shop permissions.
+    """
+    name = models.CharField(max_length=40, unique=True,
         help_text="A short name for the tag.")
     meaning = models.TextField(max_length=500,
         help_text="A discussion of the tag's semantics. What does it mean? What does it NOT mean?")
@@ -33,6 +34,18 @@ class Tag(models.Model):
     class Meta:
         ordering = ['name']
 
+# TODO: How will using this intermediate class affect admin?
+# SEE: ManyToMany's through_fields since this has two Member FKs.
+# class Tagging(models.Model):
+#     """ Intermediate table representing the many-tomany relation between Member and Tag
+#     """
+#     tagged = models.ForeignKey(Member, on_delete=models.CASCADE,
+#         help_text="The member tagged.")
+#     tag = models.ForeignKey(Tag, on_delete=models.CASCADE,
+#         help_text="The tag assigned to the member.")
+#     tagger = models.ForeignKey(Member, on_delete=models.CASCADE,
+#         help_text="The member that created this tagging")
+
 
 class Member(models.Model):
     """Represents a Xerocraft member.
@@ -40,7 +53,7 @@ class Member(models.Model):
     """
     MEMB_CARD_STR_LEN = 32
 
-    auth_user = models.OneToOneField('auth.User', null=False,
+    auth_user = models.OneToOneField('auth.User', null=False, unique=True,
         help_text="This must point to the corresponding auth.User object.")
 
     # Saving as MD5 provides some protection against read-only attacks.
@@ -51,12 +64,14 @@ class Member(models.Model):
         help_text="Date/time on which the membership card was created.")
 
     # TODO: tags through many to many table with "date granted" and "granted by"
-    tags = models.ManyToManyField(Tag, blank=True)
+    tags = models.ManyToManyField(Tag, blank=True, related_name="members")
 
     def validate(self):
-        if self.membership_card_str is not None:
-            if len(self.membership_card_str) != self.MEMB_CARD_STR_LEN:
+        if self.membership_card_md5 is not None:
+            if len(self.membership_card_md5) != self.MEMB_CARD_STR_LEN:
                 return False, "Bad membership card string."
+            if self.auth_user is None:
+                return False, "Every Member must be linked to a User."
         return True, "Looks good"
 
     def __str__(self):

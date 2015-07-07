@@ -1,5 +1,4 @@
 from django.contrib import admin
-from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
 from .models import Member, Tag, RecurringTaskTemplate, Task, TaskNote, Claim
@@ -136,7 +135,6 @@ class TaskAdmin(admin.ModelAdmin):
 
         ("People", {'fields': [
             'owner',
-            ('claimed_by', 'claim_date', 'prev_claimed_by'),
             'eligible_claimants',
             'eligible_tags',
             'reviewer',
@@ -145,15 +143,22 @@ class TaskAdmin(admin.ModelAdmin):
         ("Completion", {
             'fields': [
                 'work_done',
-                'work_actual',
                 'work_accepted',
             ]
         }),
     ]
     inlines = [TaskNoteInline, ClaimInline]
 
+#REVIEW: Can Members be inlined into TagAdmin in a way that's palatable?
+class MemberInlineForTag(admin.TabularInline):
+    model = Member.tags.through
+    extra = 0
+
+class TagAdmin(admin.ModelAdmin):
+    fields = ['name','meaning']
+    inlines = [MemberInlineForTag]
+
 admin.site.register(RecurringTaskTemplate, RecurringTaskTemplateAdmin)
 admin.site.register(Task, TaskAdmin)
-
 admin.site.register(Tag)
 
