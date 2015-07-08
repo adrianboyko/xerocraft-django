@@ -105,7 +105,7 @@ def create_parking_permit(request):
     return respond_with_permit_pdf(permit)
 
 def get_parking_permit(request, pk):
-    """Generate the PDF of the permit the user has asked for by PK."""
+    """Generate the PDF of the specified permit. Permit must already exist."""
 
     permit = get_object_or_404(ParkingPermit, id=pk)
     return respond_with_permit_pdf(permit)
@@ -127,11 +127,18 @@ def get_parking_permit_scans(request, pk):
     json["scans"] = scans
     return JsonResponse(json)
 
-def note_parking_permit_scan(request, permit_pk, loc_name):
+def note_parking_permit_scan(request, permit_pk, loc_pk):
     """Record the fact that the specified permit was scanned at the specified location."""
 
-    permit = get_object_or_404(ParkingPermit, id=pk)
-    pass #TODO
+    permit_scanned = get_object_or_404(ParkingPermit, id=permit_pk)
+    location_of_scan = get_object_or_404(Location, id=loc_pk)
+
+    PermitScan.objects.create(
+        permit=permit_scanned,
+        where=location_of_scan,
+        when=timezone.now())
+
+    return JsonResponse({"result":"OK"})
 
 def parking_permit_scan_instructions(request):
     """Generate an HTML page instructing reader which locations most need to be scanned."""

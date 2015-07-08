@@ -16,7 +16,7 @@ class Location(models.Model):
     short_desc = models.CharField(max_length=40,
         help_text="A short description/name for the location.")
     def __str__(self):
-        return "L%04d, %s" % (self.id, self.short_desc)
+        return "L%04d, %s" % (self.pk, self.short_desc)
     class Meta:
         ordering = ['short_desc']
 
@@ -52,9 +52,9 @@ class PermitScan(models.Model):
         help_text="The location at which the parking permit was scanned.")
     def __str__(self):
         p = self.permit
-        return "Permit #%04d at location #%03d on %s" % (
+        return "Permit #%04d at Location #%04d on %s" % (
             p.pk,
-            self.where.numeric_name,
+            self.where.pk,
             str(self.when.astimezone(timezone('US/Arizona')))[:10])
     class Meta:
         ordering = ['where','when']
