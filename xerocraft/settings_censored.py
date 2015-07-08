@@ -39,6 +39,7 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',
     'django_tables2',
     'tasks',
+    'inventory',
 )
 
 MIDDLEWARE_CLASSES = (
