@@ -7,12 +7,16 @@ import datetime
 
 class Location(models.Model):
 
-    numeric_name = models.IntegerField(unique=True,
-        help_text="A number designating the location")
+    x = models.FloatField(null=True, blank=True,
+        help_text="An ordinate in some coordinate system to help locate the location.")
+    y = models.FloatField(null=True, blank=True,
+        help_text="An ordinate in some coordinate system to help locate the location.")
+    z = models.FloatField(null=True, blank=True,
+        help_text="An ordinate in some coordinate system to help locate the location.")
     short_desc = models.CharField(max_length=40,
         help_text="A short description/name for the location.")
     def __str__(self):
-        return "[%s] %s" % (self.numeric_name, self.short_desc)
+        return "L%04d, %s" % (self.id, self.short_desc)
     class Meta:
         ordering = ['short_desc']
 

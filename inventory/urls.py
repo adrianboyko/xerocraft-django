@@ -11,5 +11,5 @@ urlpatterns = [
     url(r'^get-permit-location/(?P<pk>[0-9]+)/$', views.get_parking_permit_location, name='get-permit-location'),
     url(r'^note-permit-scan/(?P<permit_pk>[0-9]+)_(?P<loc_name>[0-9]+)/$', views.note_parking_permit_scan, name='note-permit-scan'),
     url(r'^scan-instructions/$', views.parking_permit_scan_instructions, name='scan-instructions'),
-    url(r'^get-location-qr/(?P<loc_name>[0-9]+)$', views.get_location_qr, name='get-location-qr'),
+    url(r'^get-location-qrs/(?P<start_pk>[0-9]+)/$', views.get_location_qrs, name='get-location-qrs'),
 ]
