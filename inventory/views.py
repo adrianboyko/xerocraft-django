@@ -1,5 +1,5 @@
 from django.shortcuts import render, get_object_or_404
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.utils import timezone
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
@@ -115,11 +115,17 @@ def renew_parking_permits(request):
     """Generate an HTML page that allows user to specify permits to be renewed and/or closed."""
     pass #TODO
 
-def get_parking_permit_location(request, pk):
-    """Generate a JSON response that indicates where the permit is located. Intended for mobile apps."""
+def get_parking_permit_scans(request, pk):
+    """Generate a JSON response that lists locations where the permit was scanned. Intended for mobile apps."""
 
     permit = get_object_or_404(ParkingPermit, id=pk)
-    pass #TODO
+    scans = []
+    for scan in permit.scans.all():
+        scans.append({"where":scan.where.pk, "when":scan.when})
+    json = {}
+    json["permit"] = permit.pk
+    json["scans"] = scans
+    return JsonResponse(json)
 
 def note_parking_permit_scan(request, permit_pk, loc_name):
     """Record the fact that the specified permit was scanned at the specified location."""
