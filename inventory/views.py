@@ -17,7 +17,7 @@ from reportlab.rl_config import defaultPageSize
 from datetime import datetime
 
 def index(request):
-    return HttpResponse("This is the inventory index.")
+    return render(request, 'inventory/inventory-home.html',{})
 
 
 def respond_with_permit_pdf(permit):
@@ -201,3 +201,6 @@ def get_location_qrs(request, start_pk):
     p.showPage()
     p.save()
     return response
+
+def list_my_permits(request):
+    pass

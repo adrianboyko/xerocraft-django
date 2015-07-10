@@ -1,0 +1,18 @@
+
+{% load staticfiles %}
+
+<head>
+    <title>Inventory</title>
+</head>
+<body style="margin-left:20pt; margin-right:20pt">
+    <img src="{% static 'inventory/Big Bold X.png' %}" alt="A Parking Permit" style="width:110;float:left;margin-right:5pt;"/>
+    <h1 style="font-family:Arial Narrow">Xerocraft<br/>Inventory<br/>System</h1>
+
+    <ul style="font-family:Arial">
+        <li><a href="{% url 'inv:list-my-permits'%}">List all my permits</a></li>
+        <li><a href="{% url 'inv:request-permit'%}">Request a new parking permit</a></li>
+    </ul>
+</body>
+
+
+
