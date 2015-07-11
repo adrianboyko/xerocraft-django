@@ -14,12 +14,10 @@ from reportlab.graphics import renderPDF
 from reportlab.lib.units import inch
 from reportlab.rl_config import defaultPageSize
 
-from datetime import datetime
-
 def index(request):
     return render(request, 'inventory/inventory-home.html',{})
 
-
+#TODO: Permit PDF is a little too long. Compare to credit card and fix.
 def respond_with_permit_pdf(permit):
     """
     :param permit: The permit for which to generate the PDF
@@ -130,6 +128,8 @@ def get_parking_permit_scans(request, pk):
 def note_parking_permit_scan(request, permit_pk, loc_pk):
     """Record the fact that the specified permit was scanned at the specified location."""
 
+    #TODO: 404 isn't a very friendly response to the app and it reports failure to parse response. Respond with error JSON instead?
+    # {"error":"No such parking permit exists in database."} or {"error":"No such location exists in database."}
     permit_scanned = get_object_or_404(ParkingPermit, id=permit_pk)
     location_of_scan = get_object_or_404(Location, id=loc_pk)
 
@@ -167,8 +167,8 @@ def get_location_qrs(request, start_pk):
     yCount = 8
     for y in range(yCount):
         for x in range(xCount):
-            centerX = marginX + x*(tagw+spacingX);
-            centerY = pageH - (marginY + y*(tagh+spacingY));
+            centerX = marginX + x*(tagw+spacingX)
+            centerY = pageH - (marginY + y*(tagh+spacingY))
 
             #p.rect(centerX-tagw/2, centerY-tagh/2, tagw, tagh)
 
@@ -183,6 +183,7 @@ def get_location_qrs(request, start_pk):
             p.lines([(r-m,b,r,b),(r,b,r,b+m)])
 
             loc_pk = start_pk + xCount*y + x
+            #TODO: Create location in DB if it doesn't yet exist.
 
             # QR Code:
             qr = QrCodeWidget('{"loc":%d}' % loc_pk)
