@@ -47,6 +47,7 @@ class PermitScan(models.Model):
     #REVIEW: Is there a good balance between Admin presentation and making these fields editable=False?
     permit = models.ForeignKey(ParkingPermit, null=False, blank=False, on_delete=models.CASCADE, related_name='scans',
         help_text="The parking permit that was scanned")
+    #TODO: Who scanned?
     when = models.DateTimeField(null=False, blank=False,
         help_text="Date/time on which the parking permit was created.")
     where = models.ForeignKey(Location, null=False, blank=False, on_delete=models.PROTECT,

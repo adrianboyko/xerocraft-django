@@ -128,8 +128,10 @@ def get_parking_permit_scans(request, pk):
 def note_parking_permit_scan(request, permit_pk, loc_pk):
     """Record the fact that the specified permit was scanned at the specified location."""
 
-    #TODO: 404 isn't a very friendly response to the app and it reports failure to parse response. Respond with error JSON instead?
+    #TODO: 404 isn't a very friendly response to the app and it reports failure to parse response.
+    # Respond with error JSON instead?
     # {"error":"No such parking permit exists in database."} or {"error":"No such location exists in database."}
+    # Log odd request?
     permit_scanned = get_object_or_404(ParkingPermit, id=permit_pk)
     location_of_scan = get_object_or_404(Location, id=loc_pk)
 
@@ -140,7 +142,7 @@ def note_parking_permit_scan(request, permit_pk, loc_pk):
 
     return JsonResponse({"result":"OK"})
 
-def parking_permit_scan_instructions(request):
+def inventory_todos(request):
     """Generate an HTML page instructing reader which locations most need to be scanned."""
     pass #TODO
 

@@ -3,15 +3,34 @@
 
 <head>
     <title>Inventory</title>
+
+    <style>
+        ul { font-family:Arial; }
+    </style>
 </head>
+
 <body style="margin-left:20pt; margin-right:20pt">
     <img src="{% static 'inventory/Big Bold X.png' %}" alt="A Parking Permit" style="width:110;float:left;margin-right:5pt;"/>
     <h1 style="font-family:Arial Narrow">Xerocraft<br/>Inventory<br/>System</h1>
 
-    <ul style="font-family:Arial">
+    <h2>Your Stuff</h2>
+    <ul>
         <li><a href="{% url 'inv:list-my-permits'%}">List all my permits</a></li>
         <li><a href="{% url 'inv:request-permit'%}">Request a new parking permit</a></li>
     </ul>
+
+    <h2>Xerocraft's Stuff</h2>
+    <ul>
+        <li><a href="">Report a problem, brakedown, etc.</a></li>
+        <li><a href="">Find a tool, material, etc.</a></li>
+    </ul>
+
+    <h2>Other</h2>
+    <ul>
+        <li><a href="">Report an uncategorized item.</a></li>
+    </ul>
+
+
 </body>
 
 
