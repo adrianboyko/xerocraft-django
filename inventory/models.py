@@ -27,6 +27,7 @@ class ParkingPermit(models.Model):
     created = models.DateField(null=False, blank=False, auto_now_add=True,
         help_text="Date/time on which the parking permit was created.")
     #TODO: Table for renewals, so we have a complete history?
+    #TODO: isAtXerocraft. Defaults to True, owner can set to false.
     renewed = models.DateField(null=False, blank=False, default=datetime.date.today,
         help_text="Date/time on which the parking permit was most recently renewed. Initially equal to date created.")
     short_desc = models.CharField(max_length=40, blank=False,
