@@ -26,22 +26,27 @@ class ParkingPermit(models.Model):
         help_text="The member who owns the parked item.")
     created = models.DateField(null=False, blank=False, auto_now_add=True,
         help_text="Date/time on which the parking permit was created.")
-    #TODO: Table for renewals, so we have a complete history?
-    #TODO: isAtXerocraft. Defaults to True, owner can set to false.
-    renewed = models.DateField(null=False, blank=False, default=datetime.date.today,
-        help_text="Date/time on which the parking permit was most recently renewed. Initially equal to date created.")
     short_desc = models.CharField(max_length=40, blank=False,
         help_text="A short description of the item parked.")
     ok_to_move = models.BooleanField(default=True,
         help_text="Is it OK to carefully move the item to another location, if necessary?")
+    is_in_inventoried_space = models.BooleanField(default=True,
+        help_text="True if the item is in our inventoried space/building(s). False if the owner has taken it home.")
     def __str__(self):
         return "#%04d, %s %s, '%s'" % (
             self.pk,
             self.owner.auth_user.first_name, self.owner.auth_user.last_name,
             self.short_desc)
     class Meta:
-        ordering = ['renewed']
+        ordering = ['owner', 'created']
 
+class PermitRenewal(models.Model):
+    permit = models.ForeignKey(ParkingPermit, null=False, blank=False, on_delete=models.CASCADE, related_name='renewals',
+        help_text="The parking permit that was renewed.")
+    when = models.DateTimeField(null=False, blank=False,
+        help_text="Date/time on which the parking permit was renewed.")
+    class Meta:
+        ordering = ['when']
 
 class PermitScan(models.Model):
 

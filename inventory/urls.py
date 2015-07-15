@@ -19,7 +19,7 @@ urlpatterns = [
     url(r'^create-permit/$', views.create_parking_permit, name='create-permit'),
 
     # For apps:
-    url(r'^get-permit-scans/(?P<pk>[0-9]+)/$', views.get_parking_permit_scans, name='get-permit-scans'),
+    url(r'^get-permit-details/(?P<pk>[0-9]+)/$', views.get_parking_permit_details, name='get-permit-details'),
     url(r'^note-permit-scan/(?P<permit_pk>[0-9]+)_(?P<loc_pk>[0-9]+)/$', views.note_parking_permit_scan, name='note-permit-scan'),
 
 ]

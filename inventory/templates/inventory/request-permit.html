@@ -1,6 +1,12 @@
 
 {% load staticfiles %}
 
+<!--
+  TODO: Show current email address and add wording to the effect that
+  items may be disposed of without notification if a real, working
+  email address is not provided.
+-->
+
 <body style="margin-left:20pt; margin-right:20pt">
 <h1 style="font-family:Arial Narrow">Request a Parking Permit</h1>
 <form action="{% url 'inv:create-permit'%}" method="post" style="margin-left:20pt; margin-right:80pt;">

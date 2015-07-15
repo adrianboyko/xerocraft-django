@@ -113,16 +113,38 @@ def renew_parking_permits(request):
     """Generate an HTML page that allows user to specify permits to be renewed and/or closed."""
     pass #TODO
 
-def get_parking_permit_scans(request, pk):
-    """Generate a JSON response that lists locations where the permit was scanned. Intended for mobile apps."""
+def get_parking_permit_details(request, pk):
+    """Generate a JSON response that contains:
+        1) Permit attributes
+        2) List of locs where the permit was scanned
+        3) List of renewal dates
+     Intended for mobile apps."""
 
-    permit = get_object_or_404(ParkingPermit, id=pk)
+    try:
+        permit = ParkingPermit.objects.get(id=pk)
+    except ParkingPermit.DoesNotExist:
+        return JsonResponse({"error":"Parking Permit does not exist in database."})
+
     scans = []
     for scan in permit.scans.all():
         scans.append({"where":scan.where.pk, "when":scan.when})
+
+    renewals = []
+    for renewal in permit.renewals.all():
+        renewals.append(scan.when)
+
     json = {}
     json["permit"] = permit.pk
+    json["short_desc"] = permit.short_desc
+    json["ok_to_move"] = permit.ok_to_move
+    json["owner_pk"] = permit.owner.pk
+    json["owner_name"] = str(permit.owner)
+    json["created"] = permit.created
+    json["is_in_inventoried_space"] = permit.is_in_inventoried_space
+
     json["scans"] = scans
+    json["renewals"] = renewals
+
     return JsonResponse(json)
 
 def note_parking_permit_scan(request, permit_pk, loc_pk):
@@ -140,7 +162,9 @@ def note_parking_permit_scan(request, permit_pk, loc_pk):
         where=location_of_scan,
         when=timezone.now())
 
-    return JsonResponse({"result":"OK"})
+    permit_scanned.is_in_inventoried_space = True
+
+    return JsonResponse({"success":"OK"})
 
 def inventory_todos(request):
     """Generate an HTML page instructing reader which locations most need to be scanned."""
