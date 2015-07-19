@@ -1,5 +1,5 @@
 from django.db import models
-
+from members.models import Member
 from pytz import timezone
 import datetime
 
@@ -22,7 +22,7 @@ class Location(models.Model):
 
 class ParkingPermit(models.Model):
 
-    owner = models.ForeignKey("tasks.Member", null=False, blank=False, on_delete=models.PROTECT,
+    owner = models.ForeignKey(Member, null=False, blank=False, on_delete=models.PROTECT,
         help_text="The member who owns the parked item.")
     created = models.DateField(null=False, blank=False, auto_now_add=True,
         help_text="Date/time on which the parking permit was created.")

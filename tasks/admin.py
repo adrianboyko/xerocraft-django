@@ -1,29 +1,9 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
-from .models import Member, Tag, RecurringTaskTemplate, Task, TaskNote, Claim
 
-# TODO: TagAdmin with inline Members?
+from tasks.models import RecurringTaskTemplate, Task, TaskNote, Claim
 
-class MemberInline(admin.StackedInline):
-    model = Member
-    can_delete = False
-    verbose_name_plural = 'membership'
-    filter_horizontal = ['tags']
-
-    """ TODO: Modify CSS to work in this new inline context:
-    class Media:
-        css = {
-            "all": ("tasks/member_admin.css",)
-        }
-    """
-
-class UserAdmin(UserAdmin):
-
-    inlines = (MemberInline,)
-
-admin.site.unregister(User)
-admin.site.register(User, UserAdmin)
 
 def create_create_tasks(number_of_days):
     """ Return an admin action function that creates tasks up to a certain number of days into the future.
@@ -149,16 +129,6 @@ class TaskAdmin(admin.ModelAdmin):
     ]
     inlines = [TaskNoteInline, ClaimInline]
 
-#REVIEW: Can Members be inlined into TagAdmin in a way that's palatable?
-class MemberInlineForTag(admin.TabularInline):
-    model = Member.tags.through
-    extra = 0
-
-class TagAdmin(admin.ModelAdmin):
-    fields = ['name','meaning']
-    inlines = [MemberInlineForTag]
-
 admin.site.register(RecurringTaskTemplate, RecurringTaskTemplateAdmin)
 admin.site.register(Task, TaskAdmin)
-admin.site.register(Tag)
 

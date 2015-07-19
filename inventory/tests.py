@@ -1,11 +1,8 @@
 from django.test import TestCase, Client
 from django.test.utils import override_settings
 from django.utils import timezone
-from tasks.models import Member
 from inventory.models import ParkingPermit, PermitScan, Location
 from django.contrib.auth.models import User
-from datetime import date, timedelta
-
 
 class TestStringReps(TestCase):
 

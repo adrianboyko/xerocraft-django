@@ -4,7 +4,7 @@ from django.utils import timezone
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 
-from tasks.models import Member
+from members.models import Member
 from inventory.models import PermitScan, ParkingPermit, Location
 
 from reportlab.pdfgen import canvas

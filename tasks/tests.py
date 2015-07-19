@@ -1,28 +1,8 @@
 from django.test import TestCase
-from tasks.models import Member, RecurringTaskTemplate, Task
+from tasks.models import RecurringTaskTemplate, Task
+from members.models import Tag
 from django.contrib.auth.models import User
 from datetime import date, timedelta
-
-class TestMembers(TestCase):
-
-    def setUp(self):
-        ab = User.objects.create(username='fake1', first_name="Andrew", last_name="Baker", password="fake1")
-        ab.save()
-
-    def test_member_validity(self):
-        for u in User.objects.all():
-            m = u.member
-            self.assertTrue(m is not None)
-            valid,_ = m.validate()
-            self.assertTrue(valid)
-
-    def test_member_auto_gen_content(self):
-        for u in User.objects.all():
-            m = u.member
-            self.assertTrue(m is not None)
-            tag_names = [x.name for x in m.tags.all()]
-            self.assertTrue("Member" in tag_names) # Every member should have this tag.
-            self.assertTrue(m.auth_user is not None) # Every member should be connected to a Django user.
 
 class TestRecurringTaskTemplateValidity(TestCase):
 
@@ -30,6 +10,39 @@ class TestRecurringTaskTemplateValidity(TestCase):
         for rtt in RecurringTaskTemplate.objects.all():
             valid,_ = rtt.validate()
             self.assertTrue(valid)
+
+class TestTemplateToInstanceCopy(TestCase):
+
+    def setUp(self):
+        tag1 = Tag.objects.create(name="test1",meaning="foo")
+        tag2 = Tag.objects.create(name="test2",meaning="bar")
+        self.rt = RecurringTaskTemplate.objects.create(
+            short_desc = "A test",
+            work_estimate = 1.5,
+            start_date = date.today(),
+            flexible_dates = True,
+            repeat_interval = 1,)
+
+        self.rt.eligible_tags.add(tag1,tag2)
+        self.rt.save()
+
+    def test_field_copies(self):
+        self.rt.create_tasks(max_days_in_advance=2)
+        task = Task.objects.all()[:1].get()
+        template = task.recurring_task_template
+
+        #REVIEW: Is there a way to dynamically discover and test mixin fields instead of hard-coding them?
+
+        self.assertEqual(task.owner, template.owner)
+        self.assertEqual(task.instructions, template.instructions)
+        self.assertEqual(task.short_desc, template.short_desc)
+        self.assertEqual(task.max_claimants, template.max_claimants)
+        self.assertEqual(task.reviewer, template.reviewer)
+        self.assertEqual(task.work_estimate, template.work_estimate)
+        self.assertTrue(len(task.eligible_tags.all())==2)
+        self.assertEqual(set(task.uninterested.all()), set(template.uninterested.all()))
+        self.assertEqual(set(task.eligible_claimants.all()), set(template.eligible_claimants.all()))
+        self.assertEqual(set(task.eligible_tags.all()), set(template.eligible_tags.all()))
 
 class TestRecurringTaskTemplateCertainDays(TestCase):
 

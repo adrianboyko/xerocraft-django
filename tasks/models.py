@@ -1,5 +1,6 @@
 from django.db import models
 from datetime import date, timedelta
+from members import models as mm
 
 # TODO: Rework various validate() methods into Model.clean()? See Django's "model validation" docs.
 
@@ -18,69 +19,6 @@ from datetime import date, timedelta
 #     def __str__(self):
 #         return self.name
 
-class Tag(models.Model):
-    """ A tag represents some attribute of a Member. Examples are various skills, shop roles, or shop permissions.
-    """
-    name = models.CharField(max_length=40, unique=True,
-        help_text="A short name for the tag.")
-    meaning = models.TextField(max_length=500,
-        help_text="A discussion of the tag's semantics. What does it mean? What does it NOT mean?")
-    # meta_tags = models.ManyToManyField(MetaTag, blank=True,
-    #     help_text="A tag can have zero or more metatags.")
-
-    def __str__(self):
-        return self.name
-
-    class Meta:
-        ordering = ['name']
-
-# TODO: How will using this intermediate class affect admin?
-# SEE: ManyToMany's through_fields since this has two Member FKs.
-# class Tagging(models.Model):
-#     """ Intermediate table representing the many-tomany relation between Member and Tag
-#     """
-#     tagged = models.ForeignKey(Member, on_delete=models.CASCADE,
-#         help_text="The member tagged.")
-#     tag = models.ForeignKey(Tag, on_delete=models.CASCADE,
-#         help_text="The tag assigned to the member.")
-#     tagger = models.ForeignKey(Member, on_delete=models.CASCADE,
-#         help_text="The member that created this tagging")
-
-
-class Member(models.Model):
-    """Represents a Xerocraft member.
-    Member is an extension of auth.User that adds Xerocraft-specific state like "tags".
-    """
-    MEMB_CARD_STR_LEN = 32
-
-    auth_user = models.OneToOneField('auth.User', null=False, unique=True,
-        help_text="This must point to the corresponding auth.User object.")
-
-    # Saving as MD5 provides some protection against read-only attacks.
-    membership_card_md5 = models.CharField(max_length=MEMB_CARD_STR_LEN, null=True, blank=True,
-        help_text="MD5 checksum of the random urlsafe base64 string on the membership card.")
-
-    membership_card_when = models.DateTimeField(null=True, blank=True,
-        help_text="Date/time on which the membership card was created.")
-
-    # TODO: tags through many to many table with "date granted" and "granted by"
-    tags = models.ManyToManyField(Tag, blank=True, related_name="members")
-
-    def validate(self):
-        if self.membership_card_md5 is not None:
-            if len(self.membership_card_md5) != self.MEMB_CARD_STR_LEN:
-                return False, "Bad membership card string."
-            if self.auth_user is None:
-                return False, "Every Member must be linked to a User."
-        return True, "Looks good"
-
-    def __str__(self):
-        return "%s %s" % (self.auth_user.first_name, self.auth_user.last_name)
-
-    # Note: Can't order Member because the interesting fields are in auth.User
-    # class Meta:
-    #     ordering = ['']
-
 def make_TaskMixin(dest_class_alias):
     """This function tunes the mix-in to avoid reverse accessor clashes.
 -   The rest of the mix-in is identical for both Task and RecurringTaskTemplate.
@@ -92,7 +30,7 @@ def make_TaskMixin(dest_class_alias):
         Help text describes the fields in terms of their role in Task.
         """
 
-        owner = models.ForeignKey(Member, null=True, blank=True, on_delete=models.SET_NULL, related_name="owned_"+dest_class_alias,
+        owner = models.ForeignKey(mm.Member, null=True, blank=True, on_delete=models.SET_NULL, related_name="owned_"+dest_class_alias,
             help_text="The member that asked for this task to be created or has taken responsibility for its content.<br/>This is almost certainly not the person who will claim the task and do the work.")
         instructions = models.TextField(max_length=2048, blank=True,
             help_text="Instructions for completing the task.")
@@ -100,15 +38,15 @@ def make_TaskMixin(dest_class_alias):
             help_text="A short description/name for the task.")
         max_claimants = models.IntegerField(default=1,
             help_text="The maximum number of members that can simultaneously claim/work the task, often 1.")
-        eligible_claimants = models.ManyToManyField(Member, blank=True, symmetrical=False, related_name="claimable_"+dest_class_alias,
+        eligible_claimants = models.ManyToManyField(mm.Member, blank=True, symmetrical=False, related_name="claimable_"+dest_class_alias,
             help_text="Anybody chosen is eligible to claim the task.<br/>")
-        eligible_tags = models.ManyToManyField(Tag, blank=True, symmetrical=False, related_name="claimable_"+dest_class_alias,
+        eligible_tags = models.ManyToManyField(mm.Tag, blank=True, symmetrical=False, related_name="claimable_"+dest_class_alias,
             help_text="Anybody that has one of the chosen tags is eligible to claim the task.<br/>")
-        reviewer = models.ForeignKey(Member, null=True, blank=True, on_delete=models.SET_NULL, related_name="reviewable"+dest_class_alias,
+        reviewer = models.ForeignKey(mm.Member, null=True, blank=True, on_delete=models.SET_NULL, related_name="reviewable"+dest_class_alias,
             help_text="If required, a member who will review the work once its completed.")
         work_estimate = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True,
             help_text="An estimate of how much work this tasks requires, in hours (e.g. 1.25).<br/>This is work time, not elapsed time.")
-        uninterested = models.ManyToManyField(Member, blank=True, symmetrical=False, related_name="uninteresting_"+dest_class_alias,
+        uninterested = models.ManyToManyField(mm.Member, blank=True, symmetrical=False, related_name="uninteresting_"+dest_class_alias,
             help_text="Members that are not interested in this item.")
 
         class Meta:
@@ -243,15 +181,21 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
             if self.date_matches_template(curr):
                 t = Task.objects.create(recurring_task_template=self, creation_date = date.today())
                 t.scheduled_date = curr
+
+                # Copy mixin fields from template to instance:
                 t.owner = self.owner
                 t.instructions = self.instructions
                 t.short_desc = self.short_desc
-                t.eligible_claimants = self.eligible_claimants.all()
-                t.eligible_tags = self.eligible_tags.all()
                 t.reviewer = self.reviewer
                 t.work_estimate = self.work_estimate
+                t.max_claimants = self.max_claimants
+                t.eligible_claimants = self.eligible_claimants.all()
+                t.eligible_tags = self.eligible_tags.all()
+                t.uninterested = self.uninterested.all()
+
                 t.save()
             curr += timedelta(days = +1)
+
 
     def validate(self):
         if self.last and self.fourth:
@@ -305,14 +249,14 @@ class Claim(models.Model):
         (QUEUED, "Queued Claim")
     ]
     task = models.ForeignKey('Task')
-    member = models.ForeignKey(Member)
+    member = models.ForeignKey(mm.Member)
     date = models.DateField()
     status = models.CharField(max_length=1, choices=CLAIM_STATUS_CHOICES)
 
 
 class Work(models.Model):
 
-    worker = models.ForeignKey(Member, help_text="Member that did work toward completing task.")
+    worker = models.ForeignKey(mm.Member, help_text="Member that did work toward completing task.")
     task = models.ForeignKey('Task', help_text="The task that was worked.")
     hours = models.DecimalField(max_digits=5, decimal_places=2, help_text="The actual time worked, in hours (e.g. 1.25). This is work time, not elapsed time.")
 
@@ -323,8 +267,8 @@ class Task(make_TaskMixin("Tasks")):
     scheduled_date = models.DateField(null=True, blank=True, help_text="If appropriate, set a date on which the task must be performed.")
     deadline = models.DateField(null=True, blank=True, help_text="If appropriate, specify a deadline by which the task must be completed.")
     depends_on = models.ManyToManyField('self', symmetrical=False, related_name="prerequisite_for", help_text="If appropriate, specify what tasks must be completed before this one can start.")
-    claimants = models.ManyToManyField(Member, through=Claim, related_name="tasks_claimed")
-    workers = models.ManyToManyField(Member, through=Work, related_name="tasks_worked")
+    claimants = models.ManyToManyField(mm.Member, through=Claim, related_name="tasks_claimed")
+    workers = models.ManyToManyField(mm.Member, through=Work, related_name="tasks_worked")
     work_done = models.BooleanField(default=False, help_text="The person who does the work sets this to true when the work is completely done.")
     # TODO: work_accepted should be N/A if reviewer is None.  If reviewer is set, work_accepted should be set to "No".
     work_accepted = models.NullBooleanField(choices=[(True, "Yes"), (False, "No"), (None, "N/A")], help_text="If there is a reviewer for this task, the reviewer sets this to true or false once the worker has said that the work is done.")
@@ -367,17 +311,19 @@ class Task(make_TaskMixin("Tasks")):
 class TaskNote(models.Model):
 
     # Note will become anonymous if author is deleted or author is blank.
-    author = models.ForeignKey(Member, null=True, blank=True, on_delete=models.SET_NULL, related_name="task_notes_authored",
+    author = models.ForeignKey(mm.Member, null=True, blank=True, on_delete=models.SET_NULL, related_name="task_notes_authored",
         help_text="The member who wrote this note.")
     content = models.TextField(max_length=2048,
         help_text="Anything you want to say about the task. Questions, hints, problems, review feedback, etc.")
     task = models.ForeignKey(Task, on_delete=models.CASCADE)
 
+'''
 class MemberNote(models.Model):
 
     # Note will become anonymous if author is deleted or author is blank.
-    author = models.ForeignKey(Member, null=True, blank=True, on_delete=models.SET_NULL, related_name="member_notes_authored",
+    author = models.ForeignKey(mm.Member, null=True, blank=True, on_delete=models.SET_NULL, related_name="member_notes_authored",
         help_text="The member who wrote this note.")
     content = models.TextField(max_length=2048,
         help_text="For staff. Anything you want to say about the member.")
-    task = models.ForeignKey(Member, on_delete=models.CASCADE)
+    task = models.ForeignKey(mm.Member, on_delete=models.CASCADE)
+'''
