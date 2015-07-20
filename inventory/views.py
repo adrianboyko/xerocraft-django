@@ -209,7 +209,7 @@ def get_location_qrs(request, start_pk):
             p.lines([(r-m,b,r,b),(r,b,r,b+m)])
 
             loc_pk = start_pk + xCount*y + x
-            #TODO: Create location in DB if it doesn't yet exist.
+            Location.objects.get_or_create(pk=loc_pk)
 
             # QR Code:
             qr = QrCodeWidget('{"loc":%d}' % loc_pk)

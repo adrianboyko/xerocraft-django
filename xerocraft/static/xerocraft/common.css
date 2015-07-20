@@ -1,0 +1,26 @@
+body {
+    margin-left:20pt;
+    margin-right:20pt;
+}
+
+h1 {
+    font-family:Arial Narrow;
+    font-size:16pt;
+}
+
+h2 {
+    font-family:Arial Narrow;
+    font-size:14pt;
+}
+
+
+ul {
+    font-family:Arial;
+    font-size:10pt;
+}
+
+img {
+    width:75;
+    float:left;
+    margin-right:5pt;
+}

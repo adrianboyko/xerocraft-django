@@ -22,7 +22,7 @@ import hashlib
 
 
 def index(request):
-    template = loader.get_template('tasks/index.html')
+    template = loader.get_template('tasks/tasks-home.html')
     return HttpResponse(template.render(None))
 
 def list(request):

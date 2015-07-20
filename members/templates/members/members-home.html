@@ -1,0 +1,21 @@
+
+{% load staticfiles %}
+
+<head>
+    <title>Membership</title>
+    <link rel="StyleSheet" type="text/css" href="{% static 'xerocraft/common.css' %}"/>
+</head>
+
+<body>
+
+    <img src="{% static 'xerocraft/Big Bold X.png' %}" alt="Xerocraft Logo"/>
+    <h1>Xerocraft<br/>Membership<br/>Utilities</h1>
+
+    <ul>
+        <li><a href="/">Home</a></li>
+        <li><a href="{% url 'memb:create-card'%}">Create a membership card</a></li>
+    </ul>
+</body>
+
+
+

@@ -3,15 +3,12 @@
 
 <head>
     <title>Inventory</title>
-
-    <style>
-        ul { font-family:Arial; }
-    </style>
+    <link rel="StyleSheet" type="text/css" href="{% static 'xerocraft/common.css' %}"/>
 </head>
 
-<body style="margin-left:20pt; margin-right:20pt">
-    <img src="{% static 'inventory/Big Bold X.png' %}" alt="Xerocraft Logo" style="width:110;float:left;margin-right:5pt;"/>
-    <h1 style="font-family:Arial Narrow">Xerocraft<br/>Inventory<br/>System</h1>
+<body>
+    <img src="{% static 'xerocraft/Big Bold X.png' %}" alt="Xerocraft Logo"/>
+    <h1>Xerocraft<br/>Inventory<br/>System</h1>
 
     <h2>Your Stuff</h2>
     <ul>
@@ -27,6 +24,7 @@
 
     <h2>Other</h2>
     <ul>
+        <li><a href="/">Home</a></li>
         <li><a href="">Report an uncategorized item.</a></li>
     </ul>
 

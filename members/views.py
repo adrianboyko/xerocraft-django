@@ -1,7 +1,6 @@
 
 from django.shortcuts import render
 from django.http import HttpResponse, JsonResponse
-from django.template import loader
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
@@ -21,10 +20,14 @@ import base64
 import uuid
 import hashlib
 
+def index(request):
+    return render(request, 'members/members-home.html',{})
+
 def _user_info(member_id):
     data = {}
     m = Member.objects.get(pk=member_id)
     u = m.auth_user
+    data['pk'] = member_id
     data['is_active'] = u.is_active
     data['username'] = u.username
     data['first_name'] = u.first_name

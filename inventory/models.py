@@ -13,12 +13,13 @@ class Location(models.Model):
         help_text="An ordinate in some coordinate system to help locate the location.")
     z = models.FloatField(null=True, blank=True,
         help_text="An ordinate in some coordinate system to help locate the location.")
-    short_desc = models.CharField(max_length=40,
+    short_desc = models.CharField(max_length=40, null=True, blank=True,
         help_text="A short description/name for the location.")
     def __str__(self):
-        return "L%04d, %s" % (self.pk, self.short_desc)
+        sd = self.short_desc if self.short_desc is not None else "For future use."
+        return "L%04d, %s" % (self.pk, sd)
     class Meta:
-        ordering = ['short_desc']
+        ordering = ['pk']
 
 class ParkingPermit(models.Model):
 

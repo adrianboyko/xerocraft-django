@@ -1,0 +1,23 @@
+
+{% load staticfiles %}
+
+<head>
+    <title>XCIS Home</title>
+    <link rel="StyleSheet" type="text/css" href="{% static 'xerocraft/common.css' %}"/>
+</head>
+
+<body>
+
+    <img src="{% static 'xerocraft/Big Bold X.png' %}" alt="Xerocraft Logo"/>
+    <h1>Xerocraft<br/>Internal<br/>Systems</h1>
+
+    <ul>
+        <li><a href="{% url 'memb:index'%}">Membership Utilities</a></li>
+        <li><a href="{% url 'task:index'%}">Task and Work Trade</a></li>
+        <li><a href="{% url 'inv:index'%}">Inventory System</a></li>
+    </ul>
+
+</body>
+
+
+
