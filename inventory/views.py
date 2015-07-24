@@ -14,9 +14,6 @@ from reportlab.graphics import renderPDF
 from reportlab.lib.units import inch
 from reportlab.rl_config import defaultPageSize
 
-def index(request):
-    return render(request, 'inventory/inventory-home.html',{})
-
 #TODO: Permit PDF is a little too long. Compare to credit card and fix.
 def respond_with_permit_pdf(permit):
     """

@@ -5,7 +5,6 @@ from . import views
 urlpatterns = [
 
     # For all members:
-    url(r'^$', views.index, name='index'),
     url(r'^request-permit/$', views.request_parking_permit, name='request-permit'),
     url(r'^list-my-permits/$', views.list_my_permits, name='list-my-permits'),
     url(r'^get-permit/(?P<pk>[0-9]+)/$', views.get_parking_permit, name='get-permit'),

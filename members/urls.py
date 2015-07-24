@@ -5,7 +5,6 @@ from . import views
 urlpatterns = [
 
     # For people:
-    url(r'^$', views.index, name='index'),
     url(r'^create-card/$', views.create_membership_card, name='create-card'),
 
     # For software:

@@ -21,10 +21,6 @@ import uuid
 import hashlib
 
 
-def index(request):
-    template = loader.get_template('tasks/tasks-home.html')
-    return HttpResponse(template.render(None))
-
 def list(request):
     """ This view will present all tasks with status and optional filtering.
     """

@@ -20,9 +20,6 @@ import base64
 import uuid
 import hashlib
 
-def index(request):
-    return render(request, 'members/members-home.html',{})
-
 def _user_info(member_id):
     data = {}
     m = Member.objects.get(pk=member_id)

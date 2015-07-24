@@ -3,20 +3,51 @@
 
 <head>
     <title>XCIS Home</title>
-    <link rel="StyleSheet" type="text/css" href="{% static 'xerocraft/common.css' %}"/>
+
+    <style>
+        body { margin-left:20pt; margin-right:20pt; }
+        h1 { font-family:Arial Narrow; font-size:24pt; margin-top:50px; }
+        h2 { font-family:Arial Narrow; font-size:14pt; margin-top:20px; }
+        ul { font-family:Arial; font-size:10pt; }
+        img { width:40; margin-right:0pt; }
+        td { vertical-align:top; text-align:center; }
+    </style>
+
 </head>
 
-<body>
+<body style="text-align:center">
 
-    <img src="{% static 'xerocraft/Big Bold X.png' %}" alt="Xerocraft Logo"/>
-    <h1>Xerocraft<br/>Internal<br/>Systems</h1>
+    <h1><img src="{% static 'xerocraft/Big Bold X.png' %}" alt="Xerocraft Logo"/>erocraft Internal Systems</h1>
 
-    <ul>
-        <li><a href="{% url 'memb:index'%}">Membership Utilities</a></li>
-        <li><a href="{% url 'task:index'%}">Task and Work Trade</a></li>
-        <li><a href="{% url 'inv:index'%}">Inventory System</a></li>
-    </ul>
+    <table width="100%">
 
+        <tr>
+            <td><h2>Membership</h2></td>
+            <td><h2>Tasks & Work-Trade</h2></td>
+            <td><h2>Inventory</h2></td>
+        </tr>
+
+        <tr>
+            <td>
+                <div><a href="">Check in using my card</a></div>
+                <div><a href="">Show permissions for a card</a></div>
+                <div><a href="{% url 'memb:create-card'%}">Create my membership card</a></div>
+            </td>
+            <td>
+                <div><a href="">List all my open tasks</a></div>
+                <div><a href="{% url 'task:list'%}">Browse all tasks</a></div>
+                <div><a href="">Request a new task</a></div>
+            </td>
+            <td>
+                <div><a href="{% url 'inv:list-my-permits'%}">List all my permits</a></div>
+                <div><a href="{% url 'inv:request-permit'%}">Request a new parking permit</a></div>
+                <div><a href="">Report a problem, brakedown, etc.</a></div>
+                <div><a href="">Find a tool, material, etc.</a></div>
+                <div><a href="">Report an uncategorized item.</a></div>
+            </td>
+        </tr>
+
+    </table>
 </body>
 
 
