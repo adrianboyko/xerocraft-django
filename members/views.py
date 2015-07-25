@@ -124,3 +124,9 @@ def create_membership_card(request):
     p.showPage()
     p.save()
     return response
+
+def kiosk_waiting(request):
+        return render(request, 'members/kiosk-waiting.html',{})
+
+def kiosk_member_details(request, membership_card_str):
+        return render(request, 'members/kiosk-waiting.html',{})
