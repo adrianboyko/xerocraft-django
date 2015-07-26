@@ -13,8 +13,8 @@ from reportlab.pdfgen import canvas
 from reportlab.graphics.shapes import Drawing
 from reportlab.graphics.barcode.qr import QrCodeWidget
 from reportlab.graphics import renderPDF
-from reportlab.lib.units import inch
-from reportlab.rl_config import defaultPageSize
+from reportlab.lib.units import inch, mm
+from reportlab.lib.pagesizes import letter
 
 import base64
 import uuid
@@ -59,9 +59,11 @@ def read_membership_card(request, membership_card_str):
 @login_required
 def create_membership_card(request):
 
+    filename = "member_card_%s.pdf" % request.user.username
+
     # Create the HttpResponse object with the appropriate PDF headers.
     response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = 'attachment; filename="member_card_%s.pdf"' % request.user.username
+    response['Content-Disposition'] = 'attachment; filename="%s"' % filename
 
     # Generate a membership card string which is 32 characters of url-safe base64.
     u1 = uuid.uuid4().bytes
@@ -85,29 +87,35 @@ def create_membership_card(request):
         user.member.save()
 
     # Produce PDF using ReportLab:
-    p = canvas.Canvas(response)
-    pageW = defaultPageSize[0]
-    pageH = defaultPageSize[1]
-    refX = pageW/2
-    refY = 7.75*inch
+    p = canvas.Canvas(response, pagesize=letter)
+    pageW, pageH = letter
+
+    # Business card size is 2" x 3"
+    # Credit card size is 2.2125" x 3.370"
+    card_width = 2.125*inch
+    card_height = 3.370*inch
+    card_corner_r = 3.0*mm
+
+    refX = pageW/2.0
+    refY = 7.25*inch
 
     # Some text to place near the top of the page.
     p.setFont("Helvetica", 16)
     p.drawCentredString(refX, refY+3.00*inch, 'This is your new Xerocraft membership card.')
     p.drawCentredString(refX, refY+2.75*inch, 'Always bring it with you when you visit Xerocraft.')
-    p.drawCentredString(refX, refY+2.50*inch, 'The rectangle is wallet sized, if you would like to cut it out.')
+    p.drawCentredString(refX, refY+2.50*inch, 'The rectangle is credit card sized, if you would like to cut it out.')
     p.drawCentredString(refX, refY+2.25*inch, 'If you have any older cards, they have been deactivated.')
 
-    # Changing refY allows the follwoing to be moved up/down as a group, w.r.t. the text above.
+    # Changing refY allows the following to be moved up/down as a group, w.r.t. the text above.
     refY -= 0.3*inch
 
     # Most of the wallet size card:
-    p.rect(refX-1*inch, refY-1.34*inch, 2*inch, 3.5*inch)
+    p.roundRect(refX-card_width/2, refY-1.34*inch, card_width, card_height, card_corner_r)
     p.setFont("Helvetica", 21)
-    p.drawCentredString(refX, refY-0.07*inch, 'XEROCRAFT')
+    p.drawCentredString(refX, refY-0.3*inch, 'XEROCRAFT')
     p.setFontSize(16)
-    p.drawCentredString(refX, refY-0.5*inch, user.first_name)
-    p.drawCentredString(refX, refY-0.7*inch, user.last_name)
+    p.drawCentredString(refX, refY-0.65*inch, user.first_name)
+    p.drawCentredString(refX, refY-0.85*inch, user.last_name)
     p.setFontSize(12)
     p.drawCentredString(refX, refY-1.2 *inch, date.today().isoformat())
 
@@ -119,7 +127,7 @@ def create_membership_card(request):
     qrH = bounds[3] - bounds[1]
     drawing = Drawing(1000,1000,transform=[qrSide/qrW, 0, 0, qrSide/qrH, 0, 0])
     drawing.add(qr)
-    renderPDF.draw(drawing, p, refX-qrSide/2, refY)
+    renderPDF.draw(drawing, p, refX-qrSide/2, refY-0.19*inch)
 
     p.showPage()
     p.save()

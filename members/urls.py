@@ -4,7 +4,7 @@ from . import views
 
 urlpatterns = [
 
-    # For people:
+    # For logged-in people:
     url(r'^create-card/$', views.create_membership_card, name='create-card'),
 
     # For people at kiosk:
