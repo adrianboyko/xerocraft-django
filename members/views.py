@@ -134,15 +134,18 @@ def create_membership_card(request):
     return response
 
 def kiosk_waiting(request):
-        return render(request, 'members/kiosk-waiting.html',{})
+    return render(request, 'members/kiosk-waiting.html',{})
 
-def kiosk_member_details(request, membership_card_str):
+def kiosk_member_details(request, member_card_str, staff_card_str):
+    return render(request, 'members/kiosk-member-details.html',{})
 
-    membership_card_md5 = hashlib.md5(membership_card_str.encode()).hexdigest()
+def kiosk_check_in_member(request, member_card_str):
+
+    member_card_md5 = hashlib.md5(member_card_str.encode()).hexdigest()
     try:
-        m = Member.objects.get(membership_card_md5=membership_card_md5)
+        m = Member.objects.get(membership_card_md5=member_card_md5)
     except Member.DoesNotExist:
         return render(request, 'members/kiosk-invalid-card.html',{})
 
     # TODO: Inform Kyle's system of check-in.
-    return render(request, 'members/kiosk-member-details.html',{})
+    return render(request, 'members/kiosk-check-in-member.html',{})

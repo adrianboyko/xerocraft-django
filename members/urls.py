@@ -9,7 +9,8 @@ urlpatterns = [
 
     # For people at kiosk:
     url(r'^kiosk/waiting/$', views.kiosk_waiting),
-    url(r'^kiosk/member-details/(?P<membership_card_str>[-_a-zA-Z0-9]{32})/$', views.kiosk_member_details),
+    url(r'^kiosk/check-in-member/(?P<member_card_str>[-_a-zA-Z0-9]{32})/$', views.kiosk_check_in_member),
+    url(r'^kiosk/member-details/(?P<member_card_str>[-_a-zA-Z0-9]{32})_(?P<staff_card_str>[-_a-zA-Z0-9]{32})/$', views.kiosk_member_details),
 
     # For software:
     url(r'^tags/(?P<member_id>[0-9]+)/$', views.tags_for_member_pk),
