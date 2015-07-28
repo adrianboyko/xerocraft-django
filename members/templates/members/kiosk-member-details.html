@@ -3,11 +3,43 @@
 
 <head>
     <title>Member Details</title>
+    <style>
+        span {
+            font-size:12pt;
+            display:inline-block;
+            margin-top:5px;
+            padding:3px;
+            color: #3E6D8E;
+            white-space: nowrap;
+            background: #E4EDF4 none repeat scroll 0% 0%;
+        }
+        u {
+            font-size:12pt;
+            font-weight: bold;
+        }
+    </style>
 </head>
 
-<body style="text-align:center">
+<body style="text-align:center; font-size:14pt;">
     <img style="width:40; margin-right:0pt; margin-top:60pt" src="{% static 'xerocraft/Big Bold X.png' %}" alt="Xerocraft Logo"/>
     <h1>Member Details</h1>
+
+    <p><u>Name</u>: {{ name }}</p>
+    <p><u>Userid</u>: {{ username }}</p>
+    <p><u>Email</u>: {{ email }}</p>
+
+    <p style="font-size:12pt"><u>Currently tagged with:</u>:<br/>
+        {% for tag_name in tag_names %}
+            <span>{{tag_name}}</span>
+        {% endfor %}
+    </p>
+
+    <p style="font-size:12pt"><u>You can add these tags</u>:<br/>
+        {% for tag_name in tag_names %}
+            <span>{{tag_name}}</span>
+        {% endfor %}
+    </p>
+
 </body>
 
 

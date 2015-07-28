@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
 
-from members.models import Member, Tag
+from members.models import Member, Tag, Tagging
 
 # TODO: TagAdmin with inline Members?
 
@@ -37,3 +37,7 @@ class TagAdmin(admin.ModelAdmin):
 
 admin.site.register(Tag)
 
+class TaggingAdmin(admin.ModelAdmin):
+    list_display = ['tagged_member','tag', 'can_tag', 'authorizing_member']
+
+admin.site.register(Tagging, TaggingAdmin)

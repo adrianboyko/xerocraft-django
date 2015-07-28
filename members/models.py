@@ -35,18 +35,6 @@ class Tag(models.Model):
     class Meta:
         ordering = ['name']
 
-# TODO: How will using this intermediate class affect admin?
-# SEE: ManyToMany's through_fields since this has two Member FKs.
-# class Tagging(models.Model):
-#     """ Intermediate table representing the many-tomany relation between Member and Tag
-#     """
-#     tagged = models.ForeignKey(Member, on_delete=models.CASCADE,
-#         help_text="The member tagged.")
-#     tag = models.ForeignKey(Tag, on_delete=models.CASCADE,
-#         help_text="The tag assigned to the member.")
-#     tagger = models.ForeignKey(Member, on_delete=models.CASCADE,
-#         help_text="The member that created this tagging")
-
 
 class Member(models.Model):
     """Represents a Xerocraft member.
@@ -65,7 +53,8 @@ class Member(models.Model):
         help_text="Date/time on which the membership card was created.")
 
     # TODO: tags through many to many table with "date granted" and "granted by"
-    tags = models.ManyToManyField(Tag, blank=True, related_name="members")
+    tags = models.ManyToManyField(Tag, blank=True, related_name="members",
+        through='Tagging', through_fields=('tagged_member', 'tag'))
 
     def validate(self):
         if self.membership_card_md5 is not None:
@@ -81,6 +70,28 @@ class Member(models.Model):
     # Note: Can't order Member because the interesting fields are in auth.User
     # class Meta:
     #     ordering = ['']
+
+
+# TODO: How will using this intermediate class affect admin?
+class Tagging(models.Model):
+    """ Intermediate table representing the many-tomany relation between Member and Tag
+    """
+    tagged_member = models.ForeignKey(Member, on_delete=models.CASCADE, related_name='taggings',
+        help_text="The member tagged.")
+
+    tag = models.ForeignKey(Tag, on_delete=models.CASCADE,
+        help_text="The tag assigned to the member.")
+
+    authorizing_member = models.ForeignKey(Member, null=True, blank=False, on_delete=models.SET_NULL, related_name='authorized_taggings',
+        help_text="The member that authorized that the member be tagged.")
+        # Note: If authorizing member is deleted, his/her Taggings shouldn't be. Hence on_delete=SET_NULL.
+        # However, blank=False because somebody using admin really should provide the authorizing member info.
+
+    can_tag = models.BooleanField(default=False,
+        help_text="If True, the tagged member can be a authorizing member for this tag.")
+        # Note: Above assumes that only people with a certain tag can grant that tag.
+        # However, Django admins with appropriate permissions can tag any member with any tag, when required.
+
 
 class MemberNote(models.Model):
 

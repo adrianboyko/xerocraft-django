@@ -20,6 +20,7 @@ import base64
 import uuid
 import hashlib
 
+
 def _user_info(member_id):
     data = {}
     m = Member.objects.get(pk=member_id)
@@ -32,6 +33,7 @@ def _user_info(member_id):
     data['email'] = u.email
     data['tags'] = [t.name for t in m.tags.all()]
     return data
+
 
 def tags_for_member_pk(request, member_id):
     return JsonResponse(_user_info(member_id))
@@ -55,6 +57,7 @@ def read_membership_card(request, membership_card_str):
         return JsonResponse(_user_info(m.pk))
     except Member.DoesNotExist:
         return JsonResponse({'error':'No matching membership.'})
+
 
 @login_required
 def create_membership_card(request):
@@ -133,11 +136,10 @@ def create_membership_card(request):
     p.save()
     return response
 
+
 def kiosk_waiting(request):
     return render(request, 'members/kiosk-waiting.html',{})
 
-def kiosk_member_details(request, member_card_str, staff_card_str):
-    return render(request, 'members/kiosk-member-details.html',{})
 
 def kiosk_check_in_member(request, member_card_str):
 
@@ -148,4 +150,26 @@ def kiosk_check_in_member(request, member_card_str):
         return render(request, 'members/kiosk-invalid-card.html',{})
 
     # TODO: Inform Kyle's system of check-in.
-    return render(request, 'members/kiosk-check-in-member.html',{})
+    return render(request, 'members/kiosk-check-in-member.html',{"username" : m.auth_user.username})
+
+
+def kiosk_member_details(request, member_card_str, staff_card_str):
+    member_card_md5 = hashlib.md5(member_card_str.encode()).hexdigest()
+    staff_card_md5 = hashlib.md5(staff_card_str.encode()).hexdigest()
+    try:
+        member = Member.objects.get(membership_card_md5=member_card_md5)
+        staff = Member.objects.get(membership_card_md5=staff_card_md5)
+    except Member.DoesNotExist:
+        return render(request, 'members/kiosk-invalid-card.html', {})
+
+    if "Staff" in [x.name for x in staff.tags.all()]:
+        return render(request, 'members/kiosk-member-details.html',{
+            "name" : "%s %s" % (member.auth_user.first_name, member.auth_user.last_name),
+            "username" : member.auth_user.username,
+            "email" : member.auth_user.email,
+            "tag_names" : [t.name for t in member.tags.all()],
+        })
+    else:
+        return render(request, 'members/kiosk-not-staff.html', {
+            "name" : "%s %s" % (staff.auth_user.first_name, staff.auth_user.last_name),
+        })
