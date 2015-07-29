@@ -38,6 +38,6 @@ class TagAdmin(admin.ModelAdmin):
 admin.site.register(Tag)
 
 class TaggingAdmin(admin.ModelAdmin):
-    list_display = ['tagged_member','tag', 'can_tag', 'authorizing_member']
+    list_display = ['pk','tagged_member','tag','can_tag','date_tagged','authorizing_member']
 
 admin.site.register(Tagging, TaggingAdmin)

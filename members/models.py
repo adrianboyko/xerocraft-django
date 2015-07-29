@@ -52,9 +52,23 @@ class Member(models.Model):
     membership_card_when = models.DateTimeField(null=True, blank=True,
         help_text="Date/time on which the membership card was created.")
 
-    # TODO: tags through many to many table with "date granted" and "granted by"
     tags = models.ManyToManyField(Tag, blank=True, related_name="members",
         through='Tagging', through_fields=('tagged_member', 'tag'))
+
+    @property
+    def first_name(self): return self.auth_user.first_name
+
+    @property
+    def last_name(self): return self.auth_user.last_name
+
+    @property
+    def username(self): return self.auth_user.username
+
+    @property
+    def email(self): return self.auth_user.email
+
+    @property
+    def is_active(self): return self.auth_user.is_active
 
     def validate(self):
         if self.membership_card_md5 is not None:
@@ -72,12 +86,14 @@ class Member(models.Model):
     #     ordering = ['']
 
 
-# TODO: How will using this intermediate class affect admin?
 class Tagging(models.Model):
     """ Intermediate table representing the many-tomany relation between Member and Tag
     """
     tagged_member = models.ForeignKey(Member, on_delete=models.CASCADE, related_name='taggings',
         help_text="The member tagged.")
+
+    date_tagged = models.DateTimeField(null=False, blank=False, auto_now_add=True,
+        help_text="Date/time on which the member was tagged.")
 
     tag = models.ForeignKey(Tag, on_delete=models.CASCADE,
         help_text="The tag assigned to the member.")
@@ -92,6 +108,11 @@ class Tagging(models.Model):
         # Note: Above assumes that only people with a certain tag can grant that tag.
         # However, Django admins with appropriate permissions can tag any member with any tag, when required.
 
+    def __str__(self):
+        return "%s/%s/%s" % (self.tagged_member.auth_user.username, self.tag.name, self.can_tag)
+
+    class Meta:
+        unique_together = ('tagged_member', 'tag')
 
 class MemberNote(models.Model):
 

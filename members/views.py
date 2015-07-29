@@ -1,11 +1,11 @@
 
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.http import HttpResponse, JsonResponse
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 
-from members.models import Member
+from members.models import Member, Tag, Tagging
 
 from datetime import date
 
@@ -24,13 +24,12 @@ import hashlib
 def _user_info(member_id):
     data = {}
     m = Member.objects.get(pk=member_id)
-    u = m.auth_user
     data['pk'] = member_id
-    data['is_active'] = u.is_active
-    data['username'] = u.username
-    data['first_name'] = u.first_name
-    data['last_name'] = u.last_name
-    data['email'] = u.email
+    data['is_active'] = m.is_active
+    data['username'] = m.username
+    data['first_name'] = m.first_name
+    data['last_name'] = m.last_name
+    data['email'] = m.email
     data['tags'] = [t.name for t in m.tags.all()]
     return data
 
@@ -150,7 +149,7 @@ def kiosk_check_in_member(request, member_card_str):
         return render(request, 'members/kiosk-invalid-card.html',{})
 
     # TODO: Inform Kyle's system of check-in.
-    return render(request, 'members/kiosk-check-in-member.html',{"username" : m.auth_user.username})
+    return render(request, 'members/kiosk-check-in-member.html',{"username" : m.username})
 
 
 def kiosk_member_details(request, member_card_str, staff_card_str):
@@ -163,13 +162,46 @@ def kiosk_member_details(request, member_card_str, staff_card_str):
         return render(request, 'members/kiosk-invalid-card.html', {})
 
     if "Staff" in [x.name for x in staff.tags.all()]:
+
+        member_tags = member.tags.all()
+        staff_can_tags = [ting.tag for ting in Tagging.objects.filter(can_tag=True,tagged_member=staff)]
+        # staff member can't add tags that member already has, so:
+        for tag in member_tags:
+            if tag in staff_can_tags:
+                staff_can_tags.remove(tag)
+
         return render(request, 'members/kiosk-member-details.html',{
-            "name" : "%s %s" % (member.auth_user.first_name, member.auth_user.last_name),
-            "username" : member.auth_user.username,
-            "email" : member.auth_user.email,
-            "tag_names" : [t.name for t in member.tags.all()],
+            "staff_fname" : staff.first_name,
+            "memb_fname" : member.first_name,
+            "memb_name" : "%s %s" % (member.first_name, member.last_name),
+            "username" : member.username,
+            "email" : member.email,
+            "members_tags" : member_tags,
+            "staff_can_tags" : staff_can_tags,
         })
     else:
         return render(request, 'members/kiosk-not-staff.html', {
-            "name" : "%s %s" % (staff.auth_user.first_name, staff.auth_user.last_name),
+            "name" : "%s %s" % (staff.first_name, staff.last_name),
         })
+
+def kiosk_add_tag(request, member_card_str, staff_card_str, tag_pk):
+    # We only get to this view from a link produced by a previous view.
+    # This view assumes that the previous view is passing valid strs and pk.
+    # Any exceptions raised in this view can be considered programming errors and are not caught.
+    # This view DOES NOT use member PKs even though the previous view could provide them.
+    # Using PKs would make this view vulnerable to brute force attacks to create unauthorized taggings.
+
+    member_card_md5 = hashlib.md5(member_card_str.encode()).hexdigest()
+    staff_card_md5 = hashlib.md5(staff_card_str.encode()).hexdigest()
+
+    member = Member.objects.get(membership_card_md5=member_card_md5)
+    staff = Member.objects.get(membership_card_md5=staff_card_md5)
+
+    tag = Tag.objects.get(pk=tag_pk)
+
+    # The following can be considered an assertion that the given staff member is authorized to grant the given tag.
+    Tagging.objects.get(can_tag=True,tagged_member=staff,tag=tag)
+
+    # Create the new tagging and then go back to the member details view.
+    Tagging.objects.create(tagged_member=member, authorizing_member=staff, tag=tag)
+    return redirect('..')

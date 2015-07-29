@@ -4,7 +4,8 @@
 <head>
     <title>Member Details</title>
     <style>
-        span {
+        a, span {
+            text-decoration: none;
             font-size:12pt;
             display:inline-block;
             margin-top:5px;
@@ -24,21 +25,23 @@
     <img style="width:40; margin-right:0pt; margin-top:60pt" src="{% static 'xerocraft/Big Bold X.png' %}" alt="Xerocraft Logo"/>
     <h1>Member Details</h1>
 
-    <p><u>Name</u>: {{ name }}</p>
+    <p><u>Name</u>: {{ memb_name }}</p>
     <p><u>Userid</u>: {{ username }}</p>
     <p><u>Email</u>: {{ email }}</p>
 
-    <p style="font-size:12pt"><u>Currently tagged with:</u>:<br/>
-        {% for tag_name in tag_names %}
-            <span>{{tag_name}}</span>
+    <p style="font-size:12pt"><u>{{ memb_fname }} is currently tagged with:</u>:<br/>
+        {% for tag in members_tags %}
+            <span>{{tag.name}}</span>
         {% endfor %}
     </p>
 
-    <p style="font-size:12pt"><u>You can add these tags</u>:<br/>
-        {% for tag_name in tag_names %}
-            <span>{{tag_name}}</span>
+    {% if staff_can_tags|length > 0 %}
+    <p style="font-size:12pt"><u>{{ staff_fname }} can add the following tag{{ staff_can_tags|length|pluralize:"s" }}</u>:<br/>
+        {% for tag in staff_can_tags %}
+            <a href="{{tag.pk}}/">{{tag.name}}</a>
         {% endfor %}
     </p>
+    {% endif %}
 
 </body>
 
