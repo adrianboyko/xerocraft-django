@@ -308,6 +308,7 @@ class Task(make_TaskMixin("Tasks")):
         else:
             return "%s [%s deadline]" % (self.short_desc, self.deadline)
 
+
 class TaskNote(models.Model):
 
     # Note will become anonymous if author is deleted or author is blank.
@@ -317,13 +318,3 @@ class TaskNote(models.Model):
         help_text="Anything you want to say about the task. Questions, hints, problems, review feedback, etc.")
     task = models.ForeignKey(Task, on_delete=models.CASCADE)
 
-'''
-class MemberNote(models.Model):
-
-    # Note will become anonymous if author is deleted or author is blank.
-    author = models.ForeignKey(mm.Member, null=True, blank=True, on_delete=models.SET_NULL, related_name="member_notes_authored",
-        help_text="The member who wrote this note.")
-    content = models.TextField(max_length=2048,
-        help_text="For staff. Anything you want to say about the member.")
-    task = models.ForeignKey(mm.Member, on_delete=models.CASCADE)
-'''

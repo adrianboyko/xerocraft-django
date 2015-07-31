@@ -1,6 +1,8 @@
 from django.db import models
-
-# Create your models here.
+from django.utils import timezone
+import base64
+import uuid
+import hashlib
 
 # TODO: Rework various validate() methods into Model.clean()? See Django's "model validation" docs.
 
@@ -54,6 +56,27 @@ class Member(models.Model):
 
     tags = models.ManyToManyField(Tag, blank=True, related_name="members",
         through='Tagging', through_fields=('tagged_member', 'tag'))
+
+    def generate_member_card_str(self):
+        # Generate a membership card string which is 32 characters of url-safe base64.
+        u1 = uuid.uuid4().bytes
+        u2 = uuid.uuid4().bytes
+        b64 = base64.urlsafe_b64encode(u1+u2).decode()[:32]
+        md5 = hashlib.md5(b64.encode()).hexdigest()
+
+        # Check for md5 hash collision.
+        md5_count = Member.objects.filter(membership_card_md5=md5).count()
+        assert md5_count <= 1 # Greater than 1 means collision checking has somehow failed in the past.
+        if md5_count > 0:
+            # Collision detected, so try again.
+            return self.generate_member_card_str()
+
+        # Save the the md5 of the base64 string in the member table.
+        # Since login is required for this view, User.DoesNotExist will not be thrown.
+        self.membership_card_md5 = md5
+        self.membership_card_when = timezone.now()
+        self.save()
+        return b64
 
     @property
     def first_name(self): return self.auth_user.first_name
@@ -113,6 +136,7 @@ class Tagging(models.Model):
 
     class Meta:
         unique_together = ('tagged_member', 'tag')
+
 
 class MemberNote(models.Model):
 

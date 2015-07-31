@@ -21,6 +21,7 @@ import uuid
 import hashlib
 
 
+#TODO: Delete _user_info, rename _user_info_2 to _user_info, and adjust calling code.
 def _user_info(member_id):
     data = {}
     m = Member.objects.get(pk=member_id)
@@ -32,6 +33,34 @@ def _user_info(member_id):
     data['email'] = m.email
     data['tags'] = [t.name for t in m.tags.all()]
     return data
+
+
+def _user_info_2(member_card_str, staff_card_str):
+
+    member_card_md5 = hashlib.md5(member_card_str.encode()).hexdigest()
+    staff_card_md5 = hashlib.md5(staff_card_str.encode()).hexdigest()
+
+    try:
+        member = Member.objects.get(membership_card_md5=member_card_md5)
+    except Member.DoesNotExist:
+        return False, "Invalid staff card"
+    try:
+        staff = Member.objects.get(membership_card_md5=staff_card_md5)
+    except Member.DoesNotExist:
+        return False, "Invalid staff card"
+
+    if "Staff" not in [x.name for x in staff.tags.all()]:
+        return False, "Not a staff member"
+
+    data = {}
+    data['pk'] = member.pk
+    data['is_active'] = member.is_active
+    data['username'] = member.username
+    data['first_name'] = member.first_name
+    data['last_name'] = member.last_name
+    data['email'] = member.email
+    data['tags'] = member.tags.all()
+    return True, (member, staff, data)
 
 
 def tags_for_member_pk(request, member_id):
@@ -67,6 +96,7 @@ def create_membership_card(request):
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="%s"' % filename
 
+    #TODO: Use Member.generate_member_card_str() instead of following
     # Generate a membership card string which is 32 characters of url-safe base64.
     u1 = uuid.uuid4().bytes
     u2 = uuid.uuid4().bytes
