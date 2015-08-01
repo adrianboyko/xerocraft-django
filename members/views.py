@@ -96,27 +96,9 @@ def create_membership_card(request):
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="%s"' % filename
 
-    #TODO: Use Member.generate_member_card_str() instead of following
-    # Generate a membership card string which is 32 characters of url-safe base64.
-    u1 = uuid.uuid4().bytes
-    u2 = uuid.uuid4().bytes
-    b64 = base64.urlsafe_b64encode(u1+u2).decode()[:32]
-    md5 = hashlib.md5(b64.encode()).hexdigest()
+    member = request.user.member
 
-    # Check for md5 hash collision.
-    md5_count = Member.objects.filter(membership_card_md5=md5).count()
-    assert md5_count <= 1 # Greater than 1 means collision checking has somehow failed in the past.
-    if md5_count > 0:
-        # Collision detected, so try again.
-        return create_membership_card(request)
-    else:
-        # Save the the md5 of the base64 string in the member table.
-        # Since login is required for this view, User.DoesNotExist will not be thrown.
-        user = User.objects.get(username=request.user.username)
-        assert user.member is not None
-        user.member.membership_card_md5 = md5
-        user.member.membership_card_when = timezone.now()
-        user.member.save()
+    b64 = member.generate_member_card_str()
 
     # Produce PDF using ReportLab:
     p = canvas.Canvas(response, pagesize=letter)
@@ -146,8 +128,8 @@ def create_membership_card(request):
     p.setFont("Helvetica", 21)
     p.drawCentredString(refX, refY-0.3*inch, 'XEROCRAFT')
     p.setFontSize(16)
-    p.drawCentredString(refX, refY-0.65*inch, user.first_name)
-    p.drawCentredString(refX, refY-0.85*inch, user.last_name)
+    p.drawCentredString(refX, refY-0.65*inch, member.first_name)
+    p.drawCentredString(refX, refY-0.85*inch, member.last_name)
     p.setFontSize(12)
     p.drawCentredString(refX, refY-1.2 *inch, date.today().isoformat())
 
@@ -213,6 +195,7 @@ def kiosk_member_details(request, member_card_str, staff_card_str):
         return render(request, 'members/kiosk-not-staff.html', {
             "name" : "%s %s" % (staff.first_name, staff.last_name),
         })
+
 
 def kiosk_add_tag(request, member_card_str, staff_card_str, tag_pk):
     # We only get to this view from a link produced by a previous view.
