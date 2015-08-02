@@ -21,21 +21,7 @@ import uuid
 import hashlib
 
 
-#TODO: Delete _user_info, rename _user_info_2 to _user_info, and adjust calling code.
-def _user_info(member_id):
-    data = {}
-    m = Member.objects.get(pk=member_id)
-    data['pk'] = member_id
-    data['is_active'] = m.is_active
-    data['username'] = m.username
-    data['first_name'] = m.first_name
-    data['last_name'] = m.last_name
-    data['email'] = m.email
-    data['tags'] = [t.name for t in m.tags.all()]
-    return data
-
-
-def _user_info_2(member_card_str, staff_card_str):
+def _member_details(member_card_str, staff_card_str):
 
     member_card_md5 = hashlib.md5(member_card_str.encode()).hexdigest()
     staff_card_md5 = hashlib.md5(staff_card_str.encode()).hexdigest()
@@ -52,39 +38,31 @@ def _user_info_2(member_card_str, staff_card_str):
     if "Staff" not in [x.name for x in staff.tags.all()]:
         return False, "Not a staff member"
 
-    data = {}
-    data['pk'] = member.pk
-    data['is_active'] = member.is_active
-    data['username'] = member.username
-    data['first_name'] = member.first_name
-    data['last_name'] = member.last_name
-    data['email'] = member.email
-    data['tags'] = member.tags.all()
+    data = {
+        'pk': member.pk,
+        'is_active': member.is_active,
+        'username': member.username,
+        'first_name': member.first_name,
+        'last_name': member.last_name,
+        'email': member.email,
+        'tags': member.tags.all()
+    }
     return True, (member, staff, data)
 
 
-def tags_for_member_pk(request, member_id):
-    return JsonResponse(_user_info(member_id))
+def api_member_details(request, member_card_str, staff_card_str):
+    """ Respond with corresponding user/member info given the membership card string in the QR code. """
 
+    success, info = _member_details(member_card_str, staff_card_str)
 
-def read_membership_card(request, membership_card_str):
-    """
-    Respond with corresponding user/member info given the membership card string in the QR code.
+    if success:
+        (_, _, details) = info
+        details['tags'] = [tag.name for tag in details['tags']]
+        return JsonResponse(details)
 
-    :param request: The http request.
-    :param qr_code_string: 32 character base64 string from the membership card's QR code.
-    :return: JSON encoded info about the member/user or an indication that the qr code data was invalid.
-    """
-
-    # TODO: Log validation requests and results?
-
-    membership_card_md5 = hashlib.md5(membership_card_str.encode()).hexdigest()
-
-    try:
-        m = Member.objects.get(membership_card_md5=membership_card_md5)
-        return JsonResponse(_user_info(m.pk))
-    except Member.DoesNotExist:
-        return JsonResponse({'error':'No matching membership.'})
+    else:
+        error_msg = info
+        return JsonResponse({'error':error_msg})
 
 
 @login_required
@@ -165,6 +143,7 @@ def kiosk_check_in_member(request, member_card_str):
 
 
 def kiosk_member_details(request, member_card_str, staff_card_str):
+    #TODO: Use _member_details
     member_card_md5 = hashlib.md5(member_card_str.encode()).hexdigest()
     staff_card_md5 = hashlib.md5(staff_card_str.encode()).hexdigest()
     try:

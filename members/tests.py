@@ -1,11 +1,13 @@
+import json
+from django.test import Client
 from django.test import TestCase
 from django.contrib.auth.models import User
+from .models import Tag, Tagging
 
 class TestMembers(TestCase):
 
     def setUp(self):
         ab = User.objects.create(username='fake1', first_name="Andrew", last_name="Baker", password="fake1")
-        ab.save()
 
     def test_member_validity(self):
         for u in User.objects.all():
@@ -21,3 +23,30 @@ class TestMembers(TestCase):
             tag_names = [x.name for x in m.tags.all()]
             self.assertTrue("Member" in tag_names) # Every member should have this tag.
             self.assertTrue(m.auth_user is not None) # Every member should be connected to a Django user.
+
+
+class TestCardsAndApi(TestCase):
+
+    def setUp(self):
+        u1 = User.objects.create(username='fake1', first_name="Andrew", last_name="Baker", password="fake1")
+        u2 = User.objects.create(username='fake2', first_name="Zhou", last_name="Yang", password="fake2")
+        self.m1 = u1.member
+        self.m2 = u2.member
+        self.str1 = self.m1.generate_member_card_str()
+        self.str2 = self.m2.generate_member_card_str()
+
+    def test_member_details_non_staff(self):
+        c = Client()
+        path = "/members/api/member-details/%s_%s/" % (self.str1, self.str2)
+        response = c.get(path)
+        json_response = json.loads(response.content.decode())
+        self.assertTrue(json_response['error'] == "Not a staff member")
+
+    def test_member_details_is_staff(self):
+        tag = Tag.objects.create(name="Staff", meaning="spam")
+        tagging = Tagging.objects.create(tagged_member=self.m2, tag=tag, authorizing_member=self.m2)
+        c = Client()
+        path = "/members/api/member-details/%s_%s/" % (self.str1, self.str2)
+        response = c.get(path)
+        json_response = json.loads(response.content.decode())
+        self.assertTrue(json_response['last_name'] == "Baker")

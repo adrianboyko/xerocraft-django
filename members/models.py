@@ -58,6 +58,7 @@ class Member(models.Model):
         through='Tagging', through_fields=('tagged_member', 'tag'))
 
     def generate_member_card_str(self):
+
         # Generate a membership card string which is 32 characters of url-safe base64.
         u1 = uuid.uuid4().bytes
         u2 = uuid.uuid4().bytes
