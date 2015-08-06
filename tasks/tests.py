@@ -82,8 +82,8 @@ class TestRecurringTaskTemplateIntervals(TestCase):
             repeat_interval = 28)
 
     def test_create_tasks(self):
-        self.rt.create_tasks(60)
-        self.assertEqual(len(Task.objects.all()),2)
+        self.rt.create_tasks(365)
+        self.assertEqual(len(Task.objects.all()), 13)
         # create_tasks should be idempotent for a particular argument.
-        self.rt.create_tasks(60)
-        self.assertEqual(len(Task.objects.all()),2)
+        self.rt.create_tasks(365)
+        self.assertEqual(len(Task.objects.all()), 13)

@@ -116,6 +116,22 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
         return days_since.days == self.repeat_interval
 
     def date_matches_template_certain_days(self, d: date):
+
+        def nth_xday(d):
+            """ Return a value which indicates that date d is the nth <x>day of the month. """
+            dom_num = d.day
+            ord_num = 1
+            while dom_num > 7:
+                dom_num -= 7
+                ord_num += 1
+            return ord_num
+
+        def is_last_xday(d):
+            """ Return a value which indicates whether date d is the LAST <x>day of the month. """
+            month = d.month
+            d += timedelta(days = +1)
+            return True if d.month > month else False
+
         dow_num = d.weekday() # day-of-week number
         day_matches = (dow_num==0 and self.monday) \
             or (dow_num==1 and self.tuesday) \
@@ -127,20 +143,15 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
 
         if not day_matches: return False  # Doesn't match template if day-of-week doesn't match.
         if self.every: return True  # Does match if it happens every week and the day-of-week matches.
+        if is_last_xday(d) and self.last: return True # Check for last <x>day match.
 
         # Otherwise, figure out the ordinal and see if we match it.
-        dom_num = d.day
-        ord_num = 1
-        while dom_num > 7:
-            dom_num -= 7
-            ord_num += 1
-        ordinal_matches = (ord_num==1 and self.first==True) \
-            or (ord_num==2 and self.second==True) \
-            or (ord_num==3 and self.third==True) \
-            or (ord_num==4 and self.fourth==True) \
-            or (ord_num==4 and self.last==True) \
-            or (ord_num==5 and self.last==True)
-        #TODO: Bug in ordinal_matches logic, above. "Last" will match BOTH 4th and 5th xDay when there are 5.
+        ord_num = nth_xday(d)
+        ordinal_matches = (ord_num==1 and self.first) \
+            or (ord_num==2 and self.second) \
+            or (ord_num==3 and self.third) \
+            or (ord_num==4 and self.fourth) \
+            or (ord_num==4 and self.last)
 
         return ordinal_matches
 
