@@ -140,6 +140,7 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
             or (ord_num==4 and self.fourth==True) \
             or (ord_num==4 and self.last==True) \
             or (ord_num==5 and self.last==True)
+        #TODO: Bug in ordinal_matches logic, above. "Last" will match BOTH 4th and 5th xDay when there are 5.
 
         return ordinal_matches
 
@@ -167,18 +168,24 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
         return self.repeat_interval is not None and self.flexible_dates is not None
 
     def create_tasks(self, max_days_in_advance):
-        """Creates and schedules new tasks from greatest_scheduled_date() (non-inclusive).
+        """Creates/schedules new tasks from current date (inclusive).
         Stops when scheduling a new task would be more than max_days_in_advance from current date.
+        Does not create/schedule a task on date D if one already exists for date D.
         Does nothing if the template is not active.
         """
 
         if not self.active: return
 
-        curr = self.greatest_scheduled_date() + timedelta(days = +1)
-        curr = max(curr, date.today())  # Don't create tasks in the past.
-        stop = date.today() + timedelta(max_days_in_advance)
+        curr = date.today() + timedelta(days = -1)
+        stop = date.today() + timedelta(days = max_days_in_advance)
         while curr < stop:
+            curr += timedelta(days = +1)
             if self.date_matches_template(curr):
+
+                # Check if task is already instantiated for curr date and skip creation if it does.
+                if Task.objects.filter(recurring_task_template=self, scheduled_date=curr).count() > 0:
+                    continue
+
                 t = Task.objects.create(recurring_task_template=self, creation_date = date.today())
                 t.scheduled_date = curr
 
@@ -194,8 +201,6 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
                 t.uninterested = self.uninterested.all()
 
                 t.save()
-            curr += timedelta(days = +1)
-
 
     def validate(self):
         if self.last and self.fourth:

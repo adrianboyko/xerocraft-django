@@ -4,12 +4,14 @@ from members.models import Tag
 from django.contrib.auth.models import User
 from datetime import date, timedelta
 
+
 class TestRecurringTaskTemplateValidity(TestCase):
 
     def test_RecurringTaskTemplate_rules_against_db(self):
         for rtt in RecurringTaskTemplate.objects.all():
             valid,_ = rtt.validate()
             self.assertTrue(valid)
+
 
 class TestTemplateToInstanceCopy(TestCase):
 
@@ -44,6 +46,7 @@ class TestTemplateToInstanceCopy(TestCase):
         self.assertEqual(set(task.eligible_claimants.all()), set(template.eligible_claimants.all()))
         self.assertEqual(set(task.eligible_tags.all()), set(template.eligible_tags.all()))
 
+
 class TestRecurringTaskTemplateCertainDays(TestCase):
 
     def setUp(self):
@@ -66,6 +69,7 @@ class TestRecurringTaskTemplateCertainDays(TestCase):
         # create_tasks should be idempotent for a particular argument.
         self.rt.create_tasks(max_days_in_advance=28)
         self.assertEqual(len(Task.objects.all()),1)
+
 
 class TestRecurringTaskTemplateIntervals(TestCase):
 
