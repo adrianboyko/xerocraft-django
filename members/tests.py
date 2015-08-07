@@ -2,13 +2,34 @@ import json
 from django.test import Client
 from django.test import TestCase
 from django.contrib.auth.models import User
+
+import factory
+#from django.db.models import signals
+
 from .models import Tag, Tagging
+
+""" TODO: The following test is complicated by my signal processing.
+    Specifically, when loading a fixture there's no need for the handler that creates a member for each user.
+"""
+# class TestMemberValidity(TestCase):
+#
+#     fixtures = ['members.json']
+#
+#     @factory.django.mute_signals(signals.post_save)
+#     def test_member_validity(self):
+#         for u in User.objects.all():
+#             m = u.member
+#             self.assertTrue(m is not None)
+#             valid,_ = m.validate()
+#             self.assertTrue(valid)
+#
 
 class TestMembers(TestCase):
 
     def setUp(self):
         ab = User.objects.create(username='fake1', first_name="Andrew", last_name="Baker", password="fake1")
 
+    #TODO: Remove this test if TestMemberValidity can be made to work.
     def test_member_validity(self):
         for u in User.objects.all():
             m = u.member

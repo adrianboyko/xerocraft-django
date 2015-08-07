@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 
-from members.models import Member, Tag, Tagging
+from members.models import Member, Tag, Tagging, VisitEvent
 
 from datetime import date
 
@@ -16,28 +16,17 @@ from reportlab.graphics import renderPDF
 from reportlab.lib.units import inch, mm
 from reportlab.lib.pagesizes import letter
 
-import base64
-import uuid
-import hashlib
 
+def api_member_details(request, member_card_str, staff_card_str):
+    """ Respond with corresponding user/member info given the membership card string in the QR code. """
 
-def _member_details(member_card_str, staff_card_str):
+    success, info = Member.get_for_staff(member_card_str, staff_card_str)
 
-    member_card_md5 = hashlib.md5(member_card_str.encode()).hexdigest()
-    staff_card_md5 = hashlib.md5(staff_card_str.encode()).hexdigest()
+    if not success:
+        error_msg = info
+        return JsonResponse({'error':error_msg})
 
-    try:
-        member = Member.objects.get(membership_card_md5=member_card_md5)
-    except Member.DoesNotExist:
-        return False, "Invalid staff card"
-    try:
-        staff = Member.objects.get(membership_card_md5=staff_card_md5)
-    except Member.DoesNotExist:
-        return False, "Invalid staff card"
-
-    if "Staff" not in [x.name for x in staff.tags.all()]:
-        return False, "Not a staff member"
-
+    member, staff = info
     data = {
         'pk': member.pk,
         'is_active': member.is_active,
@@ -45,24 +34,19 @@ def _member_details(member_card_str, staff_card_str):
         'first_name': member.first_name,
         'last_name': member.last_name,
         'email': member.email,
-        'tags': member.tags.all()
+        'tags': [tag.name for tag in member.tags.all()]
     }
-    return True, (member, staff, data)
+    return JsonResponse(data)
 
+def api_log_visit_event(request, member_card_str, event_type):
 
-def api_member_details(request, member_card_str, staff_card_str):
-    """ Respond with corresponding user/member info given the membership card string in the QR code. """
+    member = Member.get_by_card_str(member_card_str)
+    if member is None:
+        return JsonResponse({'error':"Invalid member card"})
 
-    success, info = _member_details(member_card_str, staff_card_str)
-
-    if success:
-        (_, _, details) = info
-        details['tags'] = [tag.name for tag in details['tags']]
-        return JsonResponse(details)
-
-    else:
-        error_msg = info
-        return JsonResponse({'error':error_msg})
+    VisitEvent.objects.create(who=member, event=event_type)
+    _inform_other_systems_of_checkin(member)
+    return JsonResponse({'success':"Member checked in"})
 
 
 @login_required
@@ -130,50 +114,47 @@ def kiosk_waiting(request):
     return render(request, 'members/kiosk-waiting.html',{})
 
 
+def _inform_other_systems_of_checkin(member):
+    # TODO: Inform Kyle's system
+    pass
+
+
 def kiosk_check_in_member(request, member_card_str):
 
-    member_card_md5 = hashlib.md5(member_card_str.encode()).hexdigest()
-    try:
-        m = Member.objects.get(membership_card_md5=member_card_md5)
-    except Member.DoesNotExist:
-        return render(request, 'members/kiosk-invalid-card.html',{})
+    member = Member.get_by_card_str(member_card_str)
+    if member is None:
+        return render(request, 'members/kiosk-invalid-card.html',{}) #TODO: use kiosk-domain-error template?
 
-    # TODO: Inform Kyle's system of check-in.
-    return render(request, 'members/kiosk-check-in-member.html',{"username" : m.username})
+    ve = VisitEvent.objects.create(who=member, event_type=VisitEvent.ARRIVAL)
+    _inform_other_systems_of_checkin(member)
+
+    params = {"username" : member.username}
+    return render(request, 'members/kiosk-check-in-member.html', params)
 
 
 def kiosk_member_details(request, member_card_str, staff_card_str):
-    #TODO: Use _member_details
-    member_card_md5 = hashlib.md5(member_card_str.encode()).hexdigest()
-    staff_card_md5 = hashlib.md5(staff_card_str.encode()).hexdigest()
-    try:
-        member = Member.objects.get(membership_card_md5=member_card_md5)
-        staff = Member.objects.get(membership_card_md5=staff_card_md5)
-    except Member.DoesNotExist:
-        return render(request, 'members/kiosk-invalid-card.html', {})
 
-    if "Staff" in [x.name for x in staff.tags.all()]:
+    success, info = Member.get_for_staff(member_card_str, staff_card_str)
 
-        member_tags = member.tags.all()
-        staff_can_tags = [ting.tag for ting in Tagging.objects.filter(can_tag=True,tagged_member=staff)]
-        # staff member can't add tags that member already has, so:
-        for tag in member_tags:
-            if tag in staff_can_tags:
-                staff_can_tags.remove(tag)
+    if not success:
+        return render(request, 'members/kiosk-invalid-card.html', {}) #TODO: use kiosk-domain-error template?
 
-        return render(request, 'members/kiosk-member-details.html',{
-            "staff_fname" : staff.first_name,
-            "memb_fname" : member.first_name,
-            "memb_name" : "%s %s" % (member.first_name, member.last_name),
-            "username" : member.username,
-            "email" : member.email,
-            "members_tags" : member_tags,
-            "staff_can_tags" : staff_can_tags,
-        })
-    else:
-        return render(request, 'members/kiosk-not-staff.html', {
-            "name" : "%s %s" % (staff.first_name, staff.last_name),
-        })
+    member, staff = info
+    staff_can_tags = [ting.tag for ting in Tagging.objects.filter(can_tag=True,tagged_member=staff)]
+    # staff member can't add tags that member already has, so:
+    for tag in member.tags.all():
+        if tag in staff_can_tags:
+            staff_can_tags.remove(tag)
+
+    return render(request, 'members/kiosk-member-details.html',{
+        "staff_fname" : staff.first_name,
+        "memb_fname" : member.first_name,
+        "memb_name" : "%s %s" % (member.first_name, member.last_name),
+        "username" : member.username,
+        "email" : member.email,
+        "members_tags" : member.tags.all(),
+        "staff_can_tags" : staff_can_tags,
+    })
 
 
 def kiosk_add_tag(request, member_card_str, staff_card_str, tag_pk):
@@ -183,13 +164,15 @@ def kiosk_add_tag(request, member_card_str, staff_card_str, tag_pk):
     # This view DOES NOT use member PKs even though the previous view could provide them.
     # Using PKs would make this view vulnerable to brute force attacks to create unauthorized taggings.
 
-    member_card_md5 = hashlib.md5(member_card_str.encode()).hexdigest()
-    staff_card_md5 = hashlib.md5(staff_card_str.encode()).hexdigest()
+    success, info = Member.get_for_staff(member_card_str, staff_card_str)
 
-    member = Member.objects.get(membership_card_md5=member_card_md5)
-    staff = Member.objects.get(membership_card_md5=staff_card_md5)
+    if not success:
+        error_msg = info
+        return HttpResponse("Error: %s." % error_msg) #TODO: Use kiosk-domain-error template?
 
     tag = Tag.objects.get(pk=tag_pk)
+
+    member, staff = info
 
     # The following can be considered an assertion that the given staff member is authorized to grant the given tag.
     Tagging.objects.get(can_tag=True,tagged_member=staff,tag=tag)

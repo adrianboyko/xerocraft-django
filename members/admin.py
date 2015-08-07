@@ -2,9 +2,10 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
 
-from members.models import Member, Tag, Tagging
+from members.models import Member, Tag, Tagging, VisitEvent
 
 # TODO: TagAdmin with inline Members?
+
 
 class MemberInline(admin.StackedInline):
     model = Member
@@ -19,6 +20,7 @@ class MemberInline(admin.StackedInline):
         }
     """
 
+
 class UserAdmin(UserAdmin):
 
     inlines = (MemberInline,)
@@ -26,10 +28,12 @@ class UserAdmin(UserAdmin):
 admin.site.unregister(User)
 admin.site.register(User, UserAdmin)
 
+
 #REVIEW: Can Members be inlined into TagAdmin in a way that's palatable?
 class MemberInlineForTag(admin.TabularInline):
     model = Member.tags.through
     extra = 0
+
 
 class TagAdmin(admin.ModelAdmin):
     fields = ['name','meaning']
@@ -37,7 +41,15 @@ class TagAdmin(admin.ModelAdmin):
 
 admin.site.register(Tag)
 
+
 class TaggingAdmin(admin.ModelAdmin):
     list_display = ['pk','tagged_member','tag','can_tag','date_tagged','authorizing_member']
 
 admin.site.register(Tagging, TaggingAdmin)
+
+
+class VisitEventAdmin(admin.ModelAdmin):
+    list_display = ['pk','when','who','event_type','sync1']
+    readonly_fields = ['when','who','event_type','sync1']
+
+admin.site.register(VisitEvent, VisitEventAdmin)

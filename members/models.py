@@ -94,6 +94,29 @@ class Member(models.Model):
     @property
     def is_active(self): return self.auth_user.is_active
 
+    @staticmethod
+    def get_by_card_str(member_card_str):
+        member_card_md5 = hashlib.md5(member_card_str.encode()).hexdigest()
+        try:
+            return Member.objects.get(membership_card_md5=member_card_md5)
+        except Member.DoesNotExist:
+            return None
+
+    @staticmethod
+    def get_for_staff(member_card_str, staff_card_str):
+        """ Given a member card string and a staff card string, return details for the member.
+            Returns (True, (member, staff)) on success
+            Returns (False, error_message) on failure
+        """
+
+        # Look up the subject member and the staff member and report various possible errors:
+        member = Member.get_by_card_str(member_card_str)
+        if member is None: return False, "Invalid member card"
+        staff = Member.get_by_card_str(staff_card_str)
+        if staff is None: return False, "Invalid staff card"
+        if "Staff" not in [x.name for x in staff.tags.all()]: return False, "Not a staff member"
+        return True, (member, staff)
+
     def validate(self):
         if self.membership_card_md5 is not None:
             if len(self.membership_card_md5) != self.MEMB_CARD_STR_LEN:
@@ -147,3 +170,33 @@ class MemberNote(models.Model):
     content = models.TextField(max_length=2048,
         help_text="For staff. Anything you want to say about the member.")
     task = models.ForeignKey(Member, on_delete=models.CASCADE)
+
+
+class VisitEvent(models.Model):
+
+    ARRIVAL = "A"
+    PRESENT = "P"
+    DEPARTURE = "D"
+    VISIT_EVENT_CHOICES = [
+        (ARRIVAL, "Arrival"),
+        (PRESENT, "Present"),
+        (DEPARTURE, "Departure")
+    ]
+
+    who = models.ForeignKey(Member, on_delete=models.PROTECT,
+        help_text="The member who's visiting or visited.")
+
+    when = models.DateTimeField(null=False, blank=False, auto_now_add=True,
+        help_text="Date/time of visit event.")
+
+    event_type = models.CharField(max_length=1, choices=VISIT_EVENT_CHOICES, null=False, blank=False,
+        help_text="The type of visit event.")
+
+    sync1 = models.BooleanField(default=False,
+        help_text="True if this event has been sync'ed to 'other system #1'")
+
+    def __str__(self):
+        return "%s, %s %s, %s" % (self.when.isoformat()[:10], self.who.first_name, self.who.last_name, self.event_type)
+
+    class Meta:
+        ordering = ['when']

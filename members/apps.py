@@ -2,6 +2,7 @@ __author__ = 'Adrian'
 
 from django.apps import AppConfig
 
+
 class MembersAppConfig(AppConfig):
     name = 'members'
     verbose_name = 'Members'
