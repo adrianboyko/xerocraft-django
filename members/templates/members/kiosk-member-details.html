@@ -3,7 +3,13 @@
 
 <head>
     <title>Member Details</title>
+    <link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Oswald">
     <style>
+        html, body { height:100%; }
+        html { display:table; margin:auto; }
+        body { display:table-cell; vertical-align:middle; text-align:center; font-size:14pt; }
+        h1 { font-family:Oswald; font-size:24pt; margin-top:0px; }
+        img { width:40; margin-right:0pt; margin-top:0pt; }
         a, span {
             text-decoration: none;
             font-size:12pt;
@@ -21,8 +27,8 @@
     </style>
 </head>
 
-<body style="text-align:center; font-size:14pt;">
-    <img style="width:40; margin-right:0pt; margin-top:60pt" src="{% static 'xerocraft/Big Bold X.png' %}" alt="Xerocraft Logo"/>
+<body>
+    <img src="{% static 'xerocraft/Big Bold X.png' %}" alt="Xerocraft Logo"/>
     <h1>Member Details</h1>
 
     <p><u>Name</u>: {{ memb_name }}</p>
