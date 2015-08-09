@@ -114,21 +114,26 @@ def kiosk_waiting(request):
     return render(request, 'members/kiosk-waiting.html',{})
 
 
-def _inform_other_systems_of_checkin(member):
+def _inform_other_systems_of_checkin(member, event_type):
     # TODO: Inform Kyle's system
     pass
 
 
-def kiosk_check_in_member(request, member_card_str):
+#TODO: Following should be renamed to kiosk_visit_event
+def kiosk_check_in_member(request, member_card_str, event_type):
 
     member = Member.get_by_card_str(member_card_str)
     if member is None:
         return render(request, 'members/kiosk-invalid-card.html',{}) #TODO: use kiosk-domain-error template?
 
-    ve = VisitEvent.objects.create(who=member, event_type=VisitEvent.ARRIVAL)
-    _inform_other_systems_of_checkin(member)
+    ve = VisitEvent.objects.create(who=member, event_type=event_type)
+    _inform_other_systems_of_checkin(member, event_type)
 
-    params = {"username" : member.username}
+    actions = {"A":"checked in", "D":"checked out", "P":"made your presence known"}
+    params = {
+        "username" : member.username,
+        "action" : actions.get(event_type)
+    }
     return render(request, 'members/kiosk-check-in-member.html', params)
 
 
@@ -147,6 +152,7 @@ def kiosk_member_details(request, member_card_str, staff_card_str):
             staff_can_tags.remove(tag)
 
     return render(request, 'members/kiosk-member-details.html',{
+        "staff_card_str" : staff_card_str,
         "staff_fname" : staff.first_name,
         "memb_fname" : member.first_name,
         "memb_name" : "%s %s" % (member.first_name, member.last_name),
@@ -180,3 +186,41 @@ def kiosk_add_tag(request, member_card_str, staff_card_str, tag_pk):
     # Create the new tagging and then go back to the member details view.
     Tagging.objects.create(tagged_member=member, authorizing_member=staff, tag=tag)
     return redirect('..')
+
+
+def kiosk_main_menu(request, member_card_str):
+    member = Member.get_by_card_str(member_card_str)
+
+    if member is None:
+        return render(request, 'members/kiosk-invalid-card.html',{}) #TODO: use kiosk-domain-error template?
+
+    params = {
+        "memb_fname" : member.first_name,
+        "memb_card_str" : member_card_str,
+        "memb_is_staff" : member.is_tagged_with("Staff")
+    }
+    return render(request, 'members/kiosk-main-menu.html', params)
+
+def kiosk_staff_menu(request, member_card_str):
+
+    member = Member.get_by_card_str(member_card_str)
+    if member is None or not member.is_domain_staff():
+        return render(request, 'members/kiosk-invalid-card.html',{}) #TODO: use kiosk-domain-error template?
+
+    params = {
+        "memb_fname" : member.first_name,
+        "memb_card_str" : member_card_str
+    }
+    return render(request, 'members/kiosk-staff-menu.html', params)
+
+def kiosk_identify_subject(request, staff_card_str, next_url):
+
+    member = Member.get_by_card_str(staff_card_str)
+    if member is None or not member.is_domain_staff():
+        return render(request, 'members/kiosk-invalid-card.html',{}) #TODO: use kiosk-domain-error template?
+
+    params = {
+        "staff_card_str" : staff_card_str,
+        "next_url" : next_url
+    }
+    return render(request, 'members/kiosk-identify-subject.html', params)

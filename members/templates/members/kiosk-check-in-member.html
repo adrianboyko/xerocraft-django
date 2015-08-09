@@ -3,7 +3,7 @@
 
 <html>
 <head>
-    <title>Checked In</title>
+    <title>Xerocraft Kiosk</title>
     <link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Oswald">
 
     <style>
@@ -13,14 +13,20 @@
         h1 { font-family:Oswald; font-size:24pt; margin-top:0px; margin-bottom:0px }
         h2 { font-family:Oswald; font-size:18pt; margin-top:0px; }
         img { width:40; margin-right:0pt; margin-top:0pt; }
-
     </style>
+
+    <script type="text/javascript">
+        // This handles QR data coming from webcam.
+        function handleQR(data) { /* Do nothing */ }
+    </script>
+
 </head>
 
 <body>
     <img src="{% static 'xerocraft/Big Bold X.png' %}" alt="Xerocraft Logo"/>
-    <h1>You have checked in!</h1>
+    <h1>You have {{ action }}!</h1>
     <h2>userid: {{ username }}</h2>
+    <p>Please remove your card.</p>
 </body>
 </html>
 

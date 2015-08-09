@@ -4,6 +4,7 @@
 <head>
     <title>Xerocraft Kiosk</title>
     <link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Oswald">
+
     <style>
         html, body { height:100%; }
         html { display:table; margin:auto; }
@@ -11,6 +12,13 @@
         h1 { font-family:Oswald; font-size:24pt; margin-top:0px; }
         img { width:40; margin-right:0pt; }
     </style>
+
+    <script type="text/javascript">
+        // This handles QR data coming from webcam.
+        function handleQR(data) {
+            window.location.href = "../main-menu/"+data+"/";
+        }
+    </script>
 
 </head>
 

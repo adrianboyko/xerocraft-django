@@ -1,0 +1,36 @@
+
+{% load staticfiles %}
+
+<head>
+    <title>Xerocraft Kiosk</title>
+    <link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Oswald">
+
+    <style>
+        html, body { height:100%; }
+        html { display:table; margin:auto; }
+        body { display:table-cell; vertical-align:middle; text-align:center; }
+        h1 { font-family:Oswald; font-size:24pt; margin-top:0px; }
+        img { width:40; margin-right:0pt; }
+    </style>
+
+    <script type="text/javascript">
+        // This handles QR data coming from webcam.
+        function handleQR(data) {
+            window.location.href = "../../member-details/"+data+"_"+"{{ staff_card_str }}"+"/";
+        }
+    </script>
+
+</head>
+
+<body>
+
+    <h1><img src="{% static 'xerocraft/Big Bold X.png' %}" alt="Xerocraft Logo"/>erocraft Staff</h1>
+
+    <p>
+        Place the member's card on top of your card.<br/>
+        Be sure to cover your QR code with the member's QR code.
+    </p>
+</body>
+
+
+

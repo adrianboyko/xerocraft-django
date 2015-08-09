@@ -1,8 +1,9 @@
 
 {% load staticfiles %}
 
+<html>
 <head>
-    <title>Member Details</title>
+    <title>Xeroraft Kiosk</title>
     <link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Oswald">
     <style>
         html, body { height:100%; }
@@ -25,6 +26,17 @@
             font-weight: bold;
         }
     </style>
+
+    <script type="text/javascript">
+        // This handles QR data coming from webcam.
+        function handleQR(data) {
+            if ("{{staff_card_str}}" == data) {
+                // REVIEW: Probably better to go back to the "identify subject" page.
+                window.location.href = "../../staff-menu/"+"{{staff_card_str}}";
+            }
+        }
+    </script>
+
 </head>
 
 <body>
@@ -50,6 +62,4 @@
     {% endif %}
 
 </body>
-
-
-
+</html>

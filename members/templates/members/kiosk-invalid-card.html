@@ -1,11 +1,29 @@
 
 {% load staticfiles %}
 
+<html>
 <head>
-    <title>Invalid Card</title>
+    <title>Xerocraft Kiosk</title>
+    <link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Oswald">
+
+    <style>
+        html, body { height:100%; }
+        html { display:table; margin:auto; }
+        body { display:table-cell; vertical-align:middle; text-align:center; }
+        h1 { font-family:Oswald; font-size:24pt; margin-top:0px; margin-bottom:0px }
+        h2 { font-family:Oswald; font-size:18pt; margin-top:0px; }
+        img { width:40; margin-right:0pt; margin-top:0pt; }
+    </style>
+
+    <script type="text/javascript">
+        // This handles QR data coming from webcam.
+        function handleQR(data) { /* Do nothing */ }
+    </script>
+
 </head>
 
-<body style="text-align:center">
-    <img style="width:40; margin-right:0pt; margin-top:60pt" src="{% static 'xerocraft/Big Bold X.png' %}" alt="Xerocraft Logo"/>
+<body>
+    <h1><img src="{% static 'xerocraft/Big Bold X.png' %}" alt="Xerocraft Logo"/>erocraft Kiosk</h1>
     <p>The card presented is not valid.<br/>Try again or ask staff for assistance.</p>
 </body>
+</html>
