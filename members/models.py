@@ -82,6 +82,9 @@ class Member(models.Model):
     def is_tagged_with(self, tag_name):
         return True if tag_name in [x.name for x in self.tags.all()] else False
 
+    def is_domain_staff(self):
+        return self.is_tagged_with("Staff")
+
     @property
     def first_name(self): return self.auth_user.first_name
 
@@ -117,7 +120,7 @@ class Member(models.Model):
         if member is None: return False, "Invalid member card"
         staff = Member.get_by_card_str(staff_card_str)
         if staff is None: return False, "Invalid staff card"
-        if not staff.is_tagged_with("Self"): return False, "Not a staff member"
+        if not staff.is_domain_staff(): return False, "Not a staff member"
         return True, (member, staff)
 
     def validate(self):
