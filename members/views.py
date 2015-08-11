@@ -44,8 +44,8 @@ def api_log_visit_event(request, member_card_str, event_type):
     if member is None:
         return JsonResponse({'error':"Invalid member card"})
 
-    VisitEvent.objects.create(who=member, event=event_type)
-    _inform_other_systems_of_checkin(member)
+    VisitEvent.objects.create(who=member, event_type=event_type)
+    _inform_other_systems_of_checkin(member, event_type)
     return JsonResponse({'success':"Member checked in"})
 
 
