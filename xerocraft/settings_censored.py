@@ -20,7 +20,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # See https://docs.djangoproject.com/en/1.8/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'CENSORED'
+SECRET_KEY = 'CENSORED' #CENSOR!
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -37,8 +37,11 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'xerocraft', # I'm including this for its /static folder. Any negative consequences?
+    'members',
     'tasks',
     'inventory',
+    'djrill',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -80,10 +83,10 @@ WSGI_APPLICATION = 'xerocraft.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'CENSORED',
-        'HOST': 'CENSORED',
-        'USER': 'CENSORED',
-        'PASSWORD': 'CENSORED'
+        'NAME': 'CENSORED', #CENSOR!
+        'HOST': 'CENSORED', #CENSOR!
+        'USER': 'CENSORED', #CENSOR!
+        'PASSWORD': 'CENSORED', #CENSOR!
     }
 }
 
@@ -105,3 +108,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/1.8/howto/static-files/
 
 STATIC_URL = '/static/'
+
+MANDRILL_API_KEY = "CENSORED" #CENSOR!
+EMAIL_BACKEND = "djrill.mail.backends.djrill.DjrillBackend"
+DEFAULT_FROM_EMAIL = "tasks@xerocraft.org"
