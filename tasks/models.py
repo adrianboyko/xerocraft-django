@@ -48,10 +48,13 @@ def make_TaskMixin(dest_class_alias):
             help_text="An estimate of how much work this tasks requires, in hours (e.g. 1.25).<br/>This is work time, not elapsed time.")
         uninterested = models.ManyToManyField(mm.Member, blank=True, symmetrical=False, related_name="uninteresting_"+dest_class_alias,
             help_text="Members that are not interested in this item.")
+        start_time = models.TimeField(null=True, blank=True,
+            help_text="The time at which the task should being, if any.")
+        end_time = models.TimeField(null=True, blank=True,
+            help_text="The time at which the task should end, if any.")
 
         class Meta:
             abstract = True
-            ordering = ['short_desc']
 
     return TaskMixin
 
@@ -210,7 +213,8 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
                 t.eligible_claimants = self.eligible_claimants.all()
                 t.eligible_tags = self.eligible_tags.all()
                 t.uninterested = self.uninterested.all()
-
+                t.start_time = self.start_time
+                t.end_time = self.end_time
                 t.save()
 
     def validate(self):
@@ -249,9 +253,13 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
             else:
                 return "every %d days" % self.repeat_interval
         return "X"
+    recurrence_str.short_description = "Recurrence"
 
     def __str__(self):
         return "%s [%s]" % (self.short_desc, self.recurrence_str())
+
+    class Meta:
+        ordering = ['short_desc','-monday','-tuesday','-wednesday','-thursday','-friday','-saturday','-sunday']
 
 
 class Claim(models.Model):
@@ -260,34 +268,49 @@ class Claim(models.Model):
     EXPIRED = "X"
     QUEUED = "Q"
     CLAIM_STATUS_CHOICES = [
-        (CURRENT, "Current Claim"),
-        (EXPIRED, "Expired Claim"),
-        (QUEUED, "Queued Claim")
+        (CURRENT, "Current"),
+        (EXPIRED, "Expired"),
+        (QUEUED, "Queued")
     ]
     task = models.ForeignKey('Task')
     member = models.ForeignKey(mm.Member)
     date = models.DateField()
+    hours_claimed = models.DecimalField(max_digits=5, decimal_places=2,
+        help_text="The actual time claimed, in hours (e.g. 1.25). This is work time, not elapsed time.")
     status = models.CharField(max_length=1, choices=CLAIM_STATUS_CHOICES)
 
 
 class Work(models.Model):
 
-    worker = models.ForeignKey(mm.Member, help_text="Member that did work toward completing task.")
-    task = models.ForeignKey('Task', help_text="The task that was worked.")
-    hours = models.DecimalField(max_digits=5, decimal_places=2, help_text="The actual time worked, in hours (e.g. 1.25). This is work time, not elapsed time.")
+    worker = models.ForeignKey(mm.Member,
+        help_text="Member that did work toward completing task.")
+    task = models.ForeignKey('Task',
+        help_text="The task that was worked.")
+    hours = models.DecimalField(max_digits=5, decimal_places=2,
+        help_text="The actual time worked, in hours (e.g. 1.25). This is work time, not elapsed time.")
+    when = models.DateField(null=False, default=date.today,
+        help_text="The date on which the work was done.")
 
 
 class Task(make_TaskMixin("Tasks")):
 
-    creation_date = models.DateField(null=False, default=date.today, help_text="The date on which this task was originally created, for tracking slippage.")
-    scheduled_date = models.DateField(null=True, blank=True, help_text="If appropriate, set a date on which the task must be performed.")
-    deadline = models.DateField(null=True, blank=True, help_text="If appropriate, specify a deadline by which the task must be completed.")
-    depends_on = models.ManyToManyField('self', symmetrical=False, related_name="prerequisite_for", help_text="If appropriate, specify what tasks must be completed before this one can start.")
-    claimants = models.ManyToManyField(mm.Member, through=Claim, related_name="tasks_claimed")
-    workers = models.ManyToManyField(mm.Member, through=Work, related_name="tasks_worked")
-    work_done = models.BooleanField(default=False, help_text="The person who does the work sets this to true when the work is completely done.")
+    creation_date = models.DateField(null=False, default=date.today,
+        help_text="The date on which this task was originally created, for tracking slippage.")
+    scheduled_date = models.DateField(null=True, blank=True,
+        help_text="If appropriate, set a date on which the task must be performed.")
+    deadline = models.DateField(null=True, blank=True,
+        help_text="If appropriate, specify a deadline by which the task must be completed.")
+    depends_on = models.ManyToManyField('self', symmetrical=False, related_name="prerequisite_for",
+        help_text="If appropriate, specify what tasks must be completed before this one can start.")
+    claimants = models.ManyToManyField(mm.Member, through=Claim, related_name="tasks_claimed",
+        help_text="The people who say they are going to work on this task.")
+    workers = models.ManyToManyField(mm.Member, through=Work, related_name="tasks_worked",
+        help_text="The people who have actually posted hours against this task.")
+    work_done = models.BooleanField(default=False,
+        help_text="The person who does the work sets this to true when the work is completely done.")
     # TODO: work_accepted should be N/A if reviewer is None.  If reviewer is set, work_accepted should be set to "No".
-    work_accepted = models.NullBooleanField(choices=[(True, "Yes"), (False, "No"), (None, "N/A")], help_text="If there is a reviewer for this task, the reviewer sets this to true or false once the worker has said that the work is done.")
+    work_accepted = models.NullBooleanField(choices=[(True, "Yes"), (False, "No"), (None, "N/A")],
+        help_text="If there is a reviewer for this task, the reviewer sets this to true or false once the worker has said that the work is done.")
     recurring_task_template = models.ForeignKey(RecurringTaskTemplate, null=True, blank=True, on_delete=models.SET_NULL)
 
     def is_closed(self):
@@ -302,6 +325,8 @@ class Task(make_TaskMixin("Tasks")):
         return not self.is_closed()
 
     def validate(self):
+        #TODO: Sum of claim hours should be <= work_estimate.
+        #
         if self.work_accepted and not self.work_done:
             return False, "Work cannot be reviewed before it is marked as completed."
         if self.prev_claimed_by == self.claimed_by:
@@ -314,8 +339,8 @@ class Task(make_TaskMixin("Tasks")):
         return True, "Looks good."
 
     def scheduled_weekday(self):
-        return self.scheduled_date.strftime('%A') if self.scheduled_date is not None else '(None)'
-        # return week[self.scheduled_date.weekday()] if self.scheduled_date is not None else '(None)'
+        return self.scheduled_date.strftime('%A') if self.scheduled_date is not None else '-'
+        # return week[self.scheduled_date.weekday()] if self.scheduled_date is not None else '-'
     scheduled_weekday.short_description = "Weekday"
 
     def __str__(self):
@@ -324,13 +349,26 @@ class Task(make_TaskMixin("Tasks")):
         else:
             return "%s [%s deadline]" % (self.short_desc, self.deadline)
 
+    class Meta:
+        ordering = ['scheduled_date','start_time']
 
 class TaskNote(models.Model):
 
     # Note will become anonymous if author is deleted or author is blank.
     author = models.ForeignKey(mm.Member, null=True, blank=True, on_delete=models.SET_NULL, related_name="task_notes_authored",
         help_text="The member who wrote this note.")
+
     content = models.TextField(max_length=2048,
         help_text="Anything you want to say about the task. Questions, hints, problems, review feedback, etc.")
+
     task = models.ForeignKey(Task, on_delete=models.CASCADE)
 
+    CRITICAL = "C" # The note describes a critical issue that must be resolved. E.g. work estimate is too low.
+    RESOLVED = "R" # The note was previously listed as CRITICAL but the issue has been resolved.
+    INFO = "I" # The note is purely informational.
+    NOTE_TYPE_CHOICES = [
+        (CRITICAL, "Critical"),
+        (RESOLVED, "Resolved"),
+        (INFO, "Informational")
+    ]
+    status = models.CharField(max_length=1, choices=NOTE_TYPE_CHOICES)

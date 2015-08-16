@@ -1,8 +1,9 @@
 from django.contrib import admin
+from django.contrib.admin.views import main
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
 
-from tasks.models import RecurringTaskTemplate, Task, TaskNote, Claim
+from tasks.models import RecurringTaskTemplate, Task, TaskNote, Claim, Work
 
 
 def create_create_tasks(number_of_days):
@@ -25,7 +26,12 @@ def create_create_tasks(number_of_days):
 
 class RecurringTaskTemplateAdmin(admin.ModelAdmin):
 
-    list_display = ['short_desc','recurrence_str', 'owner', 'reviewer', 'active']
+    # Following overrides the empty changelist value. See http://stackoverflow.com/questions/28174881/
+    def __init__(self,*args,**kwargs):
+        super(RecurringTaskTemplateAdmin, self).__init__(*args, **kwargs)
+        main.EMPTY_CHANGELIST_VALUE = '-'
+
+    list_display = ['short_desc','recurrence_str', 'start_time', 'end_time', 'owner', 'reviewer', 'active']
     actions = [create_create_tasks(60)]
 
     class Media:
@@ -33,7 +39,7 @@ class RecurringTaskTemplateAdmin(admin.ModelAdmin):
             "all": ("tasks/recurring_task_template_admin.css",)
         }
 
-    filter_horizontal = ['eligible_claimants', 'eligible_tags']
+    filter_horizontal = ['eligible_claimants', 'eligible_tags', 'uninterested']
 
     fieldsets = [
 
@@ -42,16 +48,19 @@ class RecurringTaskTemplateAdmin(admin.ModelAdmin):
             'instructions',
             'work_estimate',
             'start_date',
+            'start_time',
+            'end_time',
             'active',
         ]}),
 
         ("People", {'fields': [
             'owner',
+            'max_claimants',
             'eligible_claimants',
+            'uninterested',
             'eligible_tags',
             'reviewer',
         ]}),
-
         ("Recur by Day-of-Week and Position-in-Month", {
             'description': "Use this option for schedules like '1st and 3rd Thursday.'",
             'fields': [
@@ -93,6 +102,10 @@ class ClaimInline(admin.StackedInline):
     model = Claim
     extra = 0
 
+class WorkInline(admin.StackedInline):
+    model = Work
+    extra = 0
+
 class TaskAdmin(admin.ModelAdmin):
 
     class Media:
@@ -101,7 +114,7 @@ class TaskAdmin(admin.ModelAdmin):
         }
 
     filter_horizontal = ['eligible_claimants', 'eligible_tags']
-    list_display = ['short_desc', 'scheduled_weekday', 'scheduled_date', 'owner', 'work_done', 'reviewer', 'work_accepted']
+    list_display = ['short_desc', 'scheduled_weekday', 'scheduled_date', 'start_time', 'owner', 'work_done', 'reviewer', 'work_accepted']
 
     fieldsets = [
 
@@ -127,7 +140,7 @@ class TaskAdmin(admin.ModelAdmin):
             ]
         }),
     ]
-    inlines = [TaskNoteInline, ClaimInline]
+    inlines = [TaskNoteInline, ClaimInline, WorkInline]
 
 admin.site.register(RecurringTaskTemplate, RecurringTaskTemplateAdmin)
 admin.site.register(Task, TaskAdmin)

@@ -2,7 +2,9 @@
 #id_eligible_claimants_from,
 #id_eligible_claimants_to,
 #id_eligible_tags_from,
-#id_eligible_tags_to {
+#id_eligible_tags_to,
+#id_uninterested_from,
+#id_uninterested_to {
     width: 200px;
     height: 100px;
 }
