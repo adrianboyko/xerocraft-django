@@ -66,6 +66,7 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
 
     start_date = models.DateField(help_text="Choose a date for the first instance of the recurring task.")
     active = models.BooleanField(default=True, help_text="Additional tasks will be created only when the template is active.")
+    nag = models.BooleanField(default=False, help_text="If true, people will be encouraged to work the task via email messages.")
 
     # Weekday of month:
     first = models.BooleanField(default=False)  #, help_text="Task will recur on first weekday in the month.")
