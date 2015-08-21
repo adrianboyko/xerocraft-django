@@ -16,6 +16,7 @@
     <script type="text/javascript">
         // This handles QR data coming from webcam.
         function handleQR(data) {
+            //TODO: Following is hard coded to member_details but should use next_url instead.
             window.location.href = "../../member-details/"+data+"_"+"{{ staff_card_str }}"+"/";
         }
     </script>
