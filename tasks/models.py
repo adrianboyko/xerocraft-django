@@ -29,6 +29,14 @@ def make_TaskMixin(dest_class_alias):
         When a task is created from the template, these fields are copied from the template to the task.
         Help text describes the fields in terms of their role in Task.
         """
+        HIGH_PRIO = "H"
+        MED_PRIO = "M"
+        LOW_PRIO = "L"
+        PRIORITY_CHOICES = [
+            (HIGH_PRIO, "High"),
+            (MED_PRIO, "Medium"),
+            (LOW_PRIO, "Low")
+        ]
 
         owner = models.ForeignKey(mm.Member, null=True, blank=True, on_delete=models.SET_NULL, related_name="owned_"+dest_class_alias,
             help_text="The member that asked for this task to be created or has taken responsibility for its content.<br/>This is almost certainly not the person who will claim the task and do the work.")
@@ -52,6 +60,10 @@ def make_TaskMixin(dest_class_alias):
             help_text="The time at which the task should being, if any.")
         end_time = models.TimeField(null=True, blank=True,
             help_text="The time at which the task should end, if any.")
+        priority = models.CharField(max_length=1, default=MED_PRIO, choices=PRIORITY_CHOICES,
+            help_text="The priority of the task, compared to other tasks.")
+        nag = models.BooleanField(default=False,
+            help_text="If true, people will be encouraged to work the task via email messages.")
 
         class Meta:
             abstract = True
@@ -66,7 +78,6 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
 
     start_date = models.DateField(help_text="Choose a date for the first instance of the recurring task.")
     active = models.BooleanField(default=True, help_text="Additional tasks will be created only when the template is active.")
-    nag = models.BooleanField(default=False, help_text="If true, people will be encouraged to work the task via email messages.")
 
     # Weekday of month:
     first = models.BooleanField(default=False)  #, help_text="Task will recur on first weekday in the month.")
@@ -133,7 +144,7 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
         def is_last_xday(d):
             """ Return a value which indicates whether date d is the LAST <x>day of the month. """
             month = d.month
-            d += timedelta(days = +1)
+            d += timedelta(weeks = +1)
             return True if d.month > month else False
 
         dow_num = d.weekday() # day-of-week number
@@ -216,6 +227,7 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
                 t.uninterested = self.uninterested.all()
                 t.start_time = self.start_time
                 t.end_time = self.end_time
+                t.nag = self.nag
                 t.save()
 
     def validate(self):

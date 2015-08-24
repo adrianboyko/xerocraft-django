@@ -37,11 +37,13 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sites', # Required by chroniker
     'xerocraft', # I'm including this for its /static folder. Any negative consequences?
     'members',
     'tasks',
     'inventory',
     'djrill',
+    'chroniker',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -106,9 +108,10 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.8/howto/static-files/
-
 STATIC_URL = '/static/'
 
 MANDRILL_API_KEY = "CENSORED" #CENSOR!
 EMAIL_BACKEND = "djrill.mail.backends.djrill.DjrillBackend"
 DEFAULT_FROM_EMAIL = "tasks@xerocraft.org"
+
+SITE_ID = 1 # For django.contrib.sites
