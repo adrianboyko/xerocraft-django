@@ -134,9 +134,8 @@ class Member(models.Model):
     def __str__(self):
         return "%s %s" % (self.auth_user.first_name, self.auth_user.last_name)
 
-    # Note: Can't order Member because the interesting fields are in auth.User
-    # class Meta:
-    #     ordering = ['']
+    class Meta:
+        ordering = ['auth_user__first_name','auth_user__last_name']
 
 
 class Tagging(models.Model):
