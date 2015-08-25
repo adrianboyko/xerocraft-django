@@ -71,6 +71,7 @@ class RecurringTaskTemplateAdmin(admin.ModelAdmin):
             'start_time',
             'end_time',
             'active',
+            'nag',
         ]}),
 
         ("People", {'fields': [
@@ -114,6 +115,11 @@ class RecurringTaskTemplateAdmin(admin.ModelAdmin):
 
     ]
 
+def toggle_task_nags(model_admin, request, query_set):
+    for task in query_set:
+        task.nag = not task.nag
+        task.save()
+
 class TaskNoteInline(admin.StackedInline):
     model = TaskNote
     extra = 0
@@ -133,8 +139,9 @@ class TaskAdmin(admin.ModelAdmin):
             "all": ("tasks/task_admin.css",)
         }
 
+    actions = [toggle_task_nags]
     filter_horizontal = ['eligible_claimants', 'eligible_tags']
-    list_display = ['short_desc', 'scheduled_weekday', 'scheduled_date', 'start_time', 'owner', 'work_done', 'reviewer', 'work_accepted']
+    list_display = ['short_desc', 'scheduled_weekday', 'scheduled_date', 'start_time', 'owner', 'nag', 'work_done', 'reviewer', 'work_accepted']
 
     fieldsets = [
 
@@ -155,6 +162,7 @@ class TaskAdmin(admin.ModelAdmin):
 
         ("Completion", {
             'fields': [
+                'nag',
                 'work_done',
                 'work_accepted',
             ]
