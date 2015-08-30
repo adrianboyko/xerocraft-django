@@ -1,6 +1,7 @@
 from django.db import models
 from datetime import date, timedelta
 from members import models as mm
+from decimal import Decimal
 
 # TODO: Rework various validate() methods into Model.clean()? See Django's "model validation" docs.
 
@@ -285,12 +286,37 @@ class Claim(models.Model):
         (EXPIRED, "Expired"),
         (QUEUED, "Queued")
     ]
-    task = models.ForeignKey('Task')
-    member = models.ForeignKey(mm.Member)
-    date = models.DateField()
+
+    task = models.ForeignKey('Task', null=False,
+        on_delete=models.CASCADE, # The claim means nothing if the task is gone.
+        help_text="The task against which the claim to work is made.")
+    task.verbose_name = "Task claimed"
+
+    member = models.ForeignKey(mm.Member,
+        help_text = "The member claiming the task.")
+    member.verbose_name = "Claiming member"
+
+    date = models.DateField(
+        help_text = "The date on which the member claimed the task.")
+    date.verbose_name = "Date claimed"
+
     hours_claimed = models.DecimalField(max_digits=5, decimal_places=2,
-        help_text="The actual time claimed, in hours (e.g. 1.25). This is work time, not elapsed time.")
-    status = models.CharField(max_length=1, choices=CLAIM_STATUS_CHOICES)
+        help_text = "The actual time claimed, in hours (e.g. 1.25). This is work time, not elapsed time.")
+
+    status = models.CharField(max_length=1, choices=CLAIM_STATUS_CHOICES,
+        help_text = "The status of this claim.")
+
+    @staticmethod
+    def sum_in_period(startDate, endDate):
+        """ Sum up hours claimed per claimant during period startDate to endDate, inclusive. """
+        claimants = {}
+        for task in Task.objects.filter(scheduled_date__gte=startDate).filter(scheduled_date__lte=endDate):
+            for claim in task.claim_set.all():
+                if claim.status == claim.CURRENT:
+                    if claim.member not in claimants:
+                        claimants[claim.member] = Decimal(0.0)
+                    claimants[claim.member] += claim.hours_claimed
+        return claimants
 
 
 class Work(models.Model):
@@ -351,16 +377,57 @@ class Task(make_TaskMixin("Tasks")):
             return False, "A task corresponding to a ScheduledTaskTemplate must have a scheduled date."
         return True, "Looks good."
 
+    def is_fully_claimed(self):
+        """
+        Determine whether all the hours estimated for a task have been claimed by one or more members.
+        :return: True or False
+        """
+        unclaimed_hours = self.work_estimate
+        for claim in self.claim_set.all():
+            if claim.status == claim.CURRENT:
+                unclaimed_hours -= claim.hours_claimed
+        assert(unclaimed_hours >= 0.0)
+        return not unclaimed_hours
+
+    def all_eligible_claimants(self):
+        """
+        Determine all eligible claimants whether they're directly eligible by name or indirectly by tag
+        :return: A set of Members
+        """
+        result = set()
+        result |= set(list(self.eligible_claimants.all()))
+        for tag in self.eligible_tags.all():
+            result |= set(list(tag.members.all()))
+        return result
+
+    def current_claimants(self):
+        """
+        Determine the set of current claimants.
+        :return: A set of Members
+        """
+        result = set()
+        for claim in self.claim_set.all():
+            if claim.status == claim.CURRENT:
+                result |= set([claim.member])
+        return result
+
     def scheduled_weekday(self):
         return self.scheduled_date.strftime('%A') if self.scheduled_date is not None else '-'
         # return week[self.scheduled_date.weekday()] if self.scheduled_date is not None else '-'
     scheduled_weekday.short_description = "Weekday"
 
     def __str__(self):
-        if self.deadline is None:
-            return "%s" % (self.short_desc)
-        else:
-            return "%s [%s deadline]" % (self.short_desc, self.deadline)
+        when = ""
+        dead = ""
+        result = "%s" % self.short_desc
+        if self.scheduled_date is not None:
+            when = ", %s %s" % (self.scheduled_weekday(), self.scheduled_date.strftime('%b %d'))
+        if self.deadline is not None:
+            dead = " [%s deadline]" % self.deadline
+        return "%s%s%s" % (self.short_desc, when, dead)
+
+    @property
+    def full_desc(self): return str(self)
 
     class Meta:
         ordering = ['scheduled_date','start_time']

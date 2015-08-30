@@ -1,0 +1,11 @@
+<html>
+<body>
+<p>Hi {{member.first_name}},</p>
+<p>Xerocraft needs your help with the following tasks which are scheduled within the next 7 days but still need to be staffed:</p>
+<ul>
+{% for task in tasks %}
+    <li><a href="">{{task.full_desc}}</a></li>
+    {% endfor %}
+</ul>
+</body>
+</html>

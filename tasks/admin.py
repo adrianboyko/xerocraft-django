@@ -115,22 +115,27 @@ class RecurringTaskTemplateAdmin(admin.ModelAdmin):
 
     ]
 
+
 def toggle_task_nags(model_admin, request, query_set):
     for task in query_set:
         task.nag = not task.nag
         task.save()
 
+
 class TaskNoteInline(admin.StackedInline):
     model = TaskNote
     extra = 0
+
 
 class ClaimInline(admin.StackedInline):
     model = Claim
     extra = 0
 
+
 class WorkInline(admin.StackedInline):
     model = Work
     extra = 0
+
 
 class TaskAdmin(admin.ModelAdmin):
 
@@ -170,6 +175,11 @@ class TaskAdmin(admin.ModelAdmin):
     ]
     inlines = [TaskNoteInline, ClaimInline, WorkInline]
 
+
+class ClaimAdmin(admin.ModelAdmin):
+    list_display = ['pk', 'task', 'member', 'hours_claimed', 'date', 'status']
+
+
 admin.site.register(RecurringTaskTemplate, RecurringTaskTemplateAdmin)
 admin.site.register(Task, TaskAdmin)
-
+admin.site.register(Claim, ClaimAdmin)
