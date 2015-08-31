@@ -3,7 +3,7 @@ from django.test import Client
 from django.test import TestCase
 from django.contrib.auth.models import User
 
-import factory
+#import factory
 #from django.db.models import signals
 
 from .models import Tag, Tagging
