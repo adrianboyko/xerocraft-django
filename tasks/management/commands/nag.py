@@ -4,7 +4,8 @@ from django.core.management.base import BaseCommand, CommandError
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import get_template
 from django.template import Context
-from tasks.models import Task, Claim
+from tasks.models import Task, Claim, Nag
+from members.models import Member
 import datetime
 from decimal import Decimal
 
@@ -43,6 +44,11 @@ class Command(BaseCommand):
         text_content_template = get_template('tasks/email_nag_template.txt')
         html_content_template = get_template('tasks/email_nag_template.html')
         for member,tasks in nag_lists.items():
+
+            b64,md5 = Member.generate_auth_token_str(
+                lambda token: Nag.objects.filter(auth_token_md5=token).count() == 0 # uniqueness test
+            )
+
             d = Context({
                 'member': member,
                 'tasks': tasks
