@@ -64,10 +64,10 @@ class TestRecurringTaskTemplateCertainDays(TestCase):
         self.assertGreater(self.rt.start_date, sched)
 
     def test_create_tasks(self):
-        self.rt.create_tasks(max_days_in_advance=28)
+        self.rt.create_tasks(max_days_in_advance=27)
         self.assertEqual(len(Task.objects.all()),1)
         # create_tasks should be idempotent for a particular argument.
-        self.rt.create_tasks(max_days_in_advance=28)
+        self.rt.create_tasks(max_days_in_advance=27)
         self.assertEqual(len(Task.objects.all()),1)
 
 
