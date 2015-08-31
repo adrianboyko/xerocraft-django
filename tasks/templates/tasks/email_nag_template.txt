@@ -1,1 +1,6 @@
-Testing
+Hi {{member.first_name}},
+
+Xerocraft needs your help with the following tasks which are scheduled within the next 7 days but still need to be staffed:</p>
+
+{% for task in tasks %}{{task.full_desc}}
+{% endfor %}
