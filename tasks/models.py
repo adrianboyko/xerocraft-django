@@ -47,15 +47,15 @@ def make_TaskMixin(dest_class_alias):
             help_text="A short description/name for the task.")
         max_claimants = models.IntegerField(default=1,
             help_text="The maximum number of members that can simultaneously claim/work the task, often 1.")
-        eligible_claimants = models.ManyToManyField(mm.Member, blank=True, symmetrical=False, related_name="claimable_"+dest_class_alias,
+        eligible_claimants = models.ManyToManyField(mm.Member, blank=True, related_name="claimable_"+dest_class_alias,
             help_text="Anybody chosen is eligible to claim the task.<br/>")
-        eligible_tags = models.ManyToManyField(mm.Tag, blank=True, symmetrical=False, related_name="claimable_"+dest_class_alias,
+        eligible_tags = models.ManyToManyField(mm.Tag, blank=True, related_name="claimable_"+dest_class_alias,
             help_text="Anybody that has one of the chosen tags is eligible to claim the task.<br/>")
         reviewer = models.ForeignKey(mm.Member, null=True, blank=True, on_delete=models.SET_NULL, related_name="reviewable"+dest_class_alias,
             help_text="If required, a member who will review the work once its completed.")
         work_estimate = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True,
             help_text="An estimate of how much work this tasks requires, in hours (e.g. 1.25).<br/>This is work time, not elapsed time.")
-        uninterested = models.ManyToManyField(mm.Member, blank=True, symmetrical=False, related_name="uninteresting_"+dest_class_alias,
+        uninterested = models.ManyToManyField(mm.Member, blank=True, related_name="uninteresting_"+dest_class_alias,
             help_text="Members that are not interested in this item.")
         start_time = models.TimeField(null=True, blank=True,
             help_text="The time at which the task should being, if any.")
@@ -63,7 +63,7 @@ def make_TaskMixin(dest_class_alias):
             help_text="The time at which the task should end, if any.")
         priority = models.CharField(max_length=1, default=MED_PRIO, choices=PRIORITY_CHOICES,
             help_text="The priority of the task, compared to other tasks.")
-        nag = models.BooleanField(default=False,
+        should_nag = models.BooleanField(default=False,
             help_text="If true, people will be encouraged to work the task via email messages.")
 
         class Meta:
@@ -228,7 +228,7 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
                 t.uninterested = self.uninterested.all()
                 t.start_time = self.start_time
                 t.end_time = self.end_time
-                t.nag = self.nag
+                t.should_nag = self.should_nag
                 t.save()
 
     def validate(self):
@@ -335,21 +335,29 @@ class Task(make_TaskMixin("Tasks")):
 
     creation_date = models.DateField(null=False, default=date.today,
         help_text="The date on which this task was originally created, for tracking slippage.")
+
     scheduled_date = models.DateField(null=True, blank=True,
         help_text="If appropriate, set a date on which the task must be performed.")
+
     deadline = models.DateField(null=True, blank=True,
         help_text="If appropriate, specify a deadline by which the task must be completed.")
+
     depends_on = models.ManyToManyField('self', symmetrical=False, related_name="prerequisite_for",
         help_text="If appropriate, specify what tasks must be completed before this one can start.")
+
     claimants = models.ManyToManyField(mm.Member, through=Claim, related_name="tasks_claimed",
         help_text="The people who say they are going to work on this task.")
+
     workers = models.ManyToManyField(mm.Member, through=Work, related_name="tasks_worked",
         help_text="The people who have actually posted hours against this task.")
+
     work_done = models.BooleanField(default=False,
         help_text="The person who does the work sets this to true when the work is completely done.")
+
     # TODO: work_accepted should be N/A if reviewer is None.  If reviewer is set, work_accepted should be set to "No".
     work_accepted = models.NullBooleanField(choices=[(True, "Yes"), (False, "No"), (None, "N/A")],
         help_text="If there is a reviewer for this task, the reviewer sets this to true or false once the worker has said that the work is done.")
+
     recurring_task_template = models.ForeignKey(RecurringTaskTemplate, null=True, blank=True, on_delete=models.SET_NULL)
 
     def is_closed(self):
@@ -452,3 +460,22 @@ class TaskNote(models.Model):
         (INFO, "Informational")
     ]
     status = models.CharField(max_length=1, choices=NOTE_TYPE_CHOICES)
+
+
+class Nag(models.Model):
+
+    when = models.DateTimeField(null=False, auto_now_add=True,
+        help_text="The date and time when member was asked to work the task.")
+
+    tasks = models.ManyToManyField(Task,
+        help_text="The task that the member was asked to work.")
+    tasks.verbose_name = "Recommended Tasks"
+
+    who = models.ForeignKey(mm.Member, null=True,
+        on_delete=models.SET_NULL, # The member might still respond to the nag email, so don't delete.
+        help_text = "The member who was nagged.")
+    who.verbose_name = "Member who was asked to work the task."
+
+    # Saving as MD5 provides some protection against read-only attacks.
+    auth_token_md5 = models.CharField(max_length=32, null=False, blank=False,
+        help_text="MD5 checksum of the random urlsafe base64 string used in the nagging email's URLs.")

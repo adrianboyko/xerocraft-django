@@ -25,7 +25,7 @@ class Command(BaseCommand):
 
         # Cycle through the next week's NAGGING tasks to see which need workers and who should be nagged.
         nag_lists = {}
-        for task in Task.objects.filter(scheduled_date__gte=today).filter(scheduled_date__lte=nextweek).filter(nag=True):
+        for task in Task.objects.filter(scheduled_date__gte=today).filter(scheduled_date__lte=nextweek).filter(should_nag=True):
             if not task.is_fully_claimed():
                 if not task.work_done:
                     potentials = task.all_eligible_claimants() - task.current_claimants()

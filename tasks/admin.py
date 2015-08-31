@@ -51,7 +51,7 @@ class RecurringTaskTemplateAdmin(admin.ModelAdmin):
         super(RecurringTaskTemplateAdmin, self).__init__(*args, **kwargs)
         main.EMPTY_CHANGELIST_VALUE = '-'
 
-    list_display = ['short_desc','recurrence_str', 'start_time', 'end_time', 'owner', 'reviewer', 'active', 'nag']
+    list_display = ['short_desc','recurrence_str', 'start_time', 'end_time', 'owner', 'reviewer', 'active', 'should_nag']
     actions = [create_create_tasks(60), toggle_template_nags]
 
     class Media:
@@ -71,7 +71,7 @@ class RecurringTaskTemplateAdmin(admin.ModelAdmin):
             'start_time',
             'end_time',
             'active',
-            'nag',
+            'should_nag',
         ]}),
 
         ("People", {'fields': [
@@ -146,7 +146,7 @@ class TaskAdmin(admin.ModelAdmin):
 
     actions = [toggle_task_nags]
     filter_horizontal = ['eligible_claimants', 'eligible_tags']
-    list_display = ['short_desc', 'scheduled_weekday', 'scheduled_date', 'start_time', 'owner', 'nag', 'work_done', 'reviewer', 'work_accepted']
+    list_display = ['short_desc', 'scheduled_weekday', 'scheduled_date', 'start_time', 'owner', 'should_nag', 'work_done', 'reviewer', 'work_accepted']
 
     fieldsets = [
 
@@ -167,7 +167,7 @@ class TaskAdmin(admin.ModelAdmin):
 
         ("Completion", {
             'fields': [
-                'nag',
+                'should_nag',
                 'work_done',
                 'work_accepted',
             ]
