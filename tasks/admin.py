@@ -25,7 +25,7 @@ def create_create_tasks(number_of_days):
 
 def toggle_template_nags(model_admin, request, query_set):
     for template in query_set:
-        template.nag = not template.nag
+        template.should_nag = not template.should_nag
         template.save()
 
 # Following is untested. Not sure if I will need it or not. Commenting out for now.
