@@ -3,7 +3,7 @@ from django.contrib.admin.views import main
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
 
-from tasks.models import RecurringTaskTemplate, Task, TaskNote, Claim, Work
+from tasks.models import RecurringTaskTemplate, Task, TaskNote, Claim, Work, Nag
 
 
 def create_create_tasks(number_of_days):
@@ -180,6 +180,12 @@ class ClaimAdmin(admin.ModelAdmin):
     list_display = ['pk', 'task', 'member', 'hours_claimed', 'date', 'status']
 
 
+class NagAdmin(admin.ModelAdmin):
+    list_display = ['pk', 'who', 'task_count', 'when', 'auth_token_md5']
+    readonly_fields = ['who','auth_token_md5','tasks']
+
+
 admin.site.register(RecurringTaskTemplate, RecurringTaskTemplateAdmin)
 admin.site.register(Task, TaskAdmin)
 admin.site.register(Claim, ClaimAdmin)
+admin.site.register(Nag, NagAdmin)

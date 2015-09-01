@@ -469,13 +469,21 @@ class Nag(models.Model):
 
     tasks = models.ManyToManyField(Task,
         help_text="The task that the member was asked to work.")
-    tasks.verbose_name = "Recommended Tasks"
 
     who = models.ForeignKey(mm.Member, null=True,
         on_delete=models.SET_NULL, # The member might still respond to the nag email, so don't delete.
         help_text = "The member who was nagged.")
-    who.verbose_name = "Member who was asked to work the task."
 
     # Saving as MD5 provides some protection against read-only attacks.
     auth_token_md5 = models.CharField(max_length=32, null=False, blank=False,
         help_text="MD5 checksum of the random urlsafe base64 string used in the nagging email's URLs.")
+
+    def task_count(self):
+        return self.tasks.count()
+
+    def __str__(self):
+        return "%s %s, %ld tasks, %s" % (
+            self.who.first_name,
+            self.who.last_name,
+            self.tasks.count(),
+            self.when.strftime('%b %d'))

@@ -49,7 +49,11 @@ class Command(BaseCommand):
                 lambda token: Nag.objects.filter(auth_token_md5=token).count() == 0 # uniqueness test
             )
 
+            nag = Nag.objects.create(who=member, auth_token_md5=md5)
+            nag.tasks.add(*tasks)
+
             d = Context({
+                'token': b64,
                 'member': member,
                 'tasks': tasks
             })
