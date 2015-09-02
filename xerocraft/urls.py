@@ -16,6 +16,8 @@ Including another URLconf
 from django.conf.urls import include, url
 from django.contrib import admin
 from . import views
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
     url(r'^$', views.index),
@@ -23,4 +25,4 @@ urlpatterns = [
     url(r'^members/', include('members.urls', namespace="memb")),
     url(r'^tasks/', include('tasks.urls', namespace="task")),
     url(r'^inventory/', include('inventory.urls', namespace="inv")),
-]
+] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
