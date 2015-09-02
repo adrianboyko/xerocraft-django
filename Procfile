@@ -1,1 +1,1 @@
-web: gunicorn xerocraft:app --log-file -
+web: gunicorn xerocraft/wsgi.py --log-file -
