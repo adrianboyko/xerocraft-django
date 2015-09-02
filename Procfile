@@ -1,0 +1,1 @@
+web: gunicorn xerocraft:app --log-file -
