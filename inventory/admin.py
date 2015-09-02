@@ -1,9 +1,11 @@
 from django.contrib import admin
 from .models import PermitScan, PermitRenewal, ParkingPermit, Location
 
+
 class PermitRenewalInline(admin.TabularInline):
     model = PermitRenewal
     extra = 0
+
 
 class PermitScanInline(admin.TabularInline):
     model = PermitScan
@@ -15,8 +17,10 @@ class ParkingPermitAdmin(admin.ModelAdmin):
     readonly_fields = ['created']
     inlines = [PermitRenewalInline, PermitScanInline]
 
-admin.site.register(PermitScan)
+class PermitScanAdmin(admin.ModelAdmin):
+    list_display = ['pk', 'when', 'permit', 'where']
+
+admin.site.register(PermitScan, PermitScanAdmin)
 admin.site.register(Location)
 admin.site.register(ParkingPermit, ParkingPermitAdmin)
-
 

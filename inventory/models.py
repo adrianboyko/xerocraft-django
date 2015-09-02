@@ -3,7 +3,6 @@ from members.models import Member
 from pytz import timezone
 import datetime
 
-# Create your models here.
 
 class Location(models.Model):
 
@@ -21,6 +20,7 @@ class Location(models.Model):
     class Meta:
         ordering = ['pk']
 
+
 class ParkingPermit(models.Model):
 
     owner = models.ForeignKey(Member, null=False, blank=False, on_delete=models.PROTECT,
@@ -34,12 +34,13 @@ class ParkingPermit(models.Model):
     is_in_inventoried_space = models.BooleanField(default=True,
         help_text="True if the item is in our inventoried space/building(s). False if the owner has taken it home.")
     def __str__(self):
-        return "#%04d, %s %s, '%s'" % (
+        return "P%04d, %s %s, '%s'" % (
             self.pk,
             self.owner.auth_user.first_name, self.owner.auth_user.last_name,
             self.short_desc)
     class Meta:
         ordering = ['owner', 'created']
+
 
 class PermitRenewal(models.Model):
     permit = models.ForeignKey(ParkingPermit, null=False, blank=False, on_delete=models.CASCADE, related_name='renewals',
@@ -48,6 +49,7 @@ class PermitRenewal(models.Model):
         help_text="Date/time on which the parking permit was renewed.")
     class Meta:
         ordering = ['when']
+
 
 class PermitScan(models.Model):
 
