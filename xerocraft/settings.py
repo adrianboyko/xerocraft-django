@@ -88,7 +88,7 @@ WSGI_APPLICATION = 'xerocraft.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2', # or django.db.backends.mysql
-        'NAME': 'xerocraft',
+        'NAME': os.environ['DB_DATABASE_FOR_DJANGO'],
         'USER': os.environ['DB_USER_FOR_DJANGO'],
         'PASSWORD': os.environ['DB_PW_FOR_DJANGO'],
         'HOST': os.environ['DB_HOST_FOR_DJANGO'],
