@@ -119,8 +119,8 @@ STATICFILES_DIRS = (
     os.path.join(BASE_DIR, 'static'),
 )
 
-#EMAIL_BACKEND = "djrill.mail.backends.djrill.DjrillBackend"
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+EMAIL_BACKEND = "djrill.mail.backends.djrill.DjrillBackend"
+#EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 MANDRILL_API_KEY = os.environ['MANDRILL_API_KEY']
 DEFAULT_FROM_EMAIL = "Volunteer Coordinator <volunteer@xerocraft.org>"
 

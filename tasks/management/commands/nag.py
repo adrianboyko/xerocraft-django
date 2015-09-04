@@ -55,7 +55,8 @@ class Command(BaseCommand):
             d = Context({
                 'token': b64,
                 'member': member,
-                'tasks': tasks
+                'tasks': tasks,
+                'host': 'http://xerocraft-django.herokuapp.com'
             })
             subject = 'Call for Volunteers'
             from_email = 'Volunteer Coordinator <volunteer@xerocraft.org>'
