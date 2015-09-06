@@ -38,6 +38,23 @@ def api_member_details(request, member_card_str, staff_card_str):
     }
     return JsonResponse(data)
 
+
+def api_member_details_pub(request, member_card_str):
+    """ Respond with corresponding user/member tags given the membership card string. """
+
+    subject = Member.get_by_card_str(member_card_str)
+
+    if subject is None:
+        return JsonResponse({'error':"Invalid member card string"})
+
+    data = {
+        'pk': subject.pk,
+        'is_active': subject.is_active,
+        'tags': [tag.name for tag in subject.tags.all()]
+    }
+    return JsonResponse(data)
+
+
 def api_log_visit_event(request, member_card_str, event_type):
 
     member = Member.get_by_card_str(member_card_str)
