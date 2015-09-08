@@ -1,5 +1,5 @@
 from django.db import models
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from members import models as mm
 from decimal import Decimal
 
@@ -385,17 +385,33 @@ class Task(make_TaskMixin("Tasks")):
             return False, "A task corresponding to a ScheduledTaskTemplate must have a scheduled date."
         return True, "Looks good."
 
-    def is_fully_claimed(self):
-        """
-        Determine whether all the hours estimated for a task have been claimed by one or more members.
-        :return: True or False
-        """
+    def unclaimed_hours(self):
         unclaimed_hours = self.work_estimate
         for claim in self.claim_set.all():
             if claim.status == claim.CURRENT:
                 unclaimed_hours -= claim.hours_claimed
         assert(unclaimed_hours >= 0.0)
+        return unclaimed_hours
+
+    def is_fully_claimed(self):
+        """
+        Determine whether all the hours estimated for a task have been claimed by one or more members.
+        :return: True or False
+        """
+        unclaimed_hours = self.unclaimed_hours()
         return not unclaimed_hours
+
+    def duration(self):
+        if not self.end_time: return None
+        if not self.start_time: return None
+        start_datetime = datetime.combine(date.today(), self.start_time)
+        end_date = date.today()
+        if self.end_time < self.start_time:
+            end_date += 1
+        end_datetime = datetime.combine(end_date, self.end_time)
+        duration = end_datetime - start_datetime
+        hours = duration.seconds/3600.0
+        return hours
 
     def all_eligible_claimants(self):
         """

@@ -56,7 +56,7 @@ class Command(BaseCommand):
                 'token': b64,
                 'member': member,
                 'tasks': tasks,
-                'host': 'http://xerocraft-django.herokuapp.com'
+                'host': 'http://xerocraft-django.herokuapp.com' #'http://192.168.1.101:8000'
             })
             subject = 'Call for Volunteers'
             from_email = 'Volunteer Coordinator <volunteer@xerocraft.org>'

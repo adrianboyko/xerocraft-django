@@ -146,7 +146,7 @@ class TaskAdmin(admin.ModelAdmin):
 
     actions = [toggle_task_nags]
     filter_horizontal = ['eligible_claimants', 'eligible_tags']
-    list_display = ['short_desc', 'scheduled_weekday', 'scheduled_date', 'start_time', 'owner', 'should_nag', 'work_done', 'reviewer', 'work_accepted']
+    list_display = ['pk', 'short_desc', 'scheduled_weekday', 'scheduled_date', 'start_time', 'owner', 'should_nag', 'work_done', 'reviewer', 'work_accepted']
 
     fieldsets = [
 

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Task Offer</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Oswald">
+    <style>
+        body { text-align: center; }
+        ul { margin-top: 0pt; }
+        h1 { font-family: Oswald; }
+        button { font-family: Oswald; font-size:16pt; }
+    </style>
+</head>
+<body>
+    <h1>Hi {{member.first_name}}!</h1>
+    <p>
+        You have clicked the following task:
+        <br/>"{{task.short_desc}}"
+        <br/>{{dow}} {{task.scheduled_date}}
+        <br/>{{task.start_time}} to {{task.end_time}}
+    </p>
+
+    <p>
+        Estimated hours for this task: {{task.work_estimate}} hrs
+        {% if claims %}
+            <br/>Currently planning to work this task:
+            {% for claim in claims %}
+                <br/>{{claim.member}}, {{claim.hours_claimed}} hrs
+            {% endfor %}
+        {% else %}
+            <br/>Nobody is helping with this task, yet.
+        {% endif %}
+    </p>
+        {% if max_hrs_to_claim > 0 %}
+            <button type="button">Claim {{max_hrs_to_claim}} hrs</button>
+        {% endif %}
+</body>
+</html>
