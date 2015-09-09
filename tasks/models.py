@@ -5,7 +5,9 @@ from decimal import Decimal
 
 # TODO: Rework various validate() methods into Model.clean()? See Django's "model validation" docs.
 
-# TODO: class MetaTag?  E.g. Tag instructor tags with "instructor" meta-tag?
+# TODO: class MetaTag?
+# E.g. Tag instructor tags with "instructor" meta-tag
+# Tags that shouldn't be public knowledge would have "confidential" meta-tag?
 
 # TODO: Import various *Field classes and remove "models."?
 
@@ -30,6 +32,7 @@ def make_TaskMixin(dest_class_alias):
         When a task is created from the template, these fields are copied from the template to the task.
         Help text describes the fields in terms of their role in Task.
         """
+
         HIGH_PRIO = "H"
         MED_PRIO = "M"
         LOW_PRIO = "L"
@@ -41,35 +44,50 @@ def make_TaskMixin(dest_class_alias):
 
         owner = models.ForeignKey(mm.Member, null=True, blank=True, on_delete=models.SET_NULL, related_name="owned_"+dest_class_alias,
             help_text="The member that asked for this task to be created or has taken responsibility for its content.<br/>This is almost certainly not the person who will claim the task and do the work.")
+
         instructions = models.TextField(max_length=2048, blank=True,
             help_text="Instructions for completing the task.")
+
         short_desc = models.CharField(max_length=40,
             help_text="A short description/name for the task.")
+
         max_claimants = models.IntegerField(default=1,
             help_text="The maximum number of members that can simultaneously claim/work the task, often 1.")
+
         eligible_claimants = models.ManyToManyField(mm.Member, blank=True, related_name="claimable_"+dest_class_alias,
             help_text="Anybody chosen is eligible to claim the task.<br/>")
+
         eligible_tags = models.ManyToManyField(mm.Tag, blank=True, related_name="claimable_"+dest_class_alias,
             help_text="Anybody that has one of the chosen tags is eligible to claim the task.<br/>")
+
         reviewer = models.ForeignKey(mm.Member, null=True, blank=True, on_delete=models.SET_NULL, related_name="reviewable"+dest_class_alias,
             help_text="If required, a member who will review the work once its completed.")
+
         work_estimate = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True,
             help_text="An estimate of how much work this tasks requires, in hours (e.g. 1.25).<br/>This is work time, not elapsed time.")
+
         uninterested = models.ManyToManyField(mm.Member, blank=True, related_name="uninteresting_"+dest_class_alias,
             help_text="Members that are not interested in this item.")
+
         start_time = models.TimeField(null=True, blank=True,
             help_text="The time at which the task should being, if any.")
+
         end_time = models.TimeField(null=True, blank=True,
             help_text="The time at which the task should end, if any.")
+
         priority = models.CharField(max_length=1, default=MED_PRIO, choices=PRIORITY_CHOICES,
             help_text="The priority of the task, compared to other tasks.")
+
         should_nag = models.BooleanField(default=False,
             help_text="If true, people will be encouraged to work the task via email messages.")
+
+        # TODO: action_if_missed, REMOVE, SLIDE_SELF, SLIDE_SELF_AND_LATER. Replaces flexible_dates.
 
         class Meta:
             abstract = True
 
     return TaskMixin
+
 
 class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
     """Uses two mutually exclusive methods to define a schedule for recurring tasks.
@@ -296,7 +314,7 @@ class Claim(models.Model):
         help_text = "The member claiming the task.")
     member.verbose_name = "Claiming member"
 
-    date = models.DateField(
+    date = models.DateField(auto_now_add=True,
         help_text = "The date on which the member claimed the task.")
     date.verbose_name = "Date claimed"
 
@@ -317,6 +335,9 @@ class Claim(models.Model):
                         claimants[claim.member] = Decimal(0.0)
                     claimants[claim.member] += claim.hours_claimed
         return claimants
+
+    class Meta:
+        unique_together = ('member','task')
 
 
 class Work(models.Model):

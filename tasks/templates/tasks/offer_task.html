@@ -5,12 +5,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Oswald">
+
     <style>
+
         body { text-align: center; }
         ul { margin-top: 0pt; }
         h1 { font-family: Oswald; }
-        button { font-family: Oswald; font-size:16pt; }
+        #claim_task { font-family: Oswald; font-size:16pt; }
+        #already_staffed { color:red; font-family: Oswald; font-size:16pt; }
+
+
+        .choice_button {
+            background-color: #EEEEEE;
+            moz-border-radius: 15px;
+            -webkit-border-radius: 15px;
+            border: 3px solid gray;
+            padding: 10px;
+            font-family: Oswald;
+        }
+
+        a:link { color: black; text-decoration:none; }
+        a:visited { color: blue; text-decoration:none; }
+        a:hover { text-decoration:underline; }
+
     </style>
+
 </head>
 <body>
     <h1>Hi {{member.first_name}}!</h1>
@@ -32,8 +51,13 @@
             <br/>Nobody is helping with this task, yet.
         {% endif %}
     </p>
+    <p>
         {% if max_hrs_to_claim > 0 %}
-            <button type="button">Claim {{max_hrs_to_claim}} hrs</button>
+            <br/>
+            <a class="choice_button" href="{% url 'task:claim-task' hours=max_hrs_to_claim auth_token=auth_token task_pk=task.pk %}">Claim {{max_hrs_to_claim}} hrs</a>
+        {% else %}
+            <span id="already_staffed">This task is already staffed.</span>
         {% endif %}
+    </p>
 </body>
 </html>
