@@ -37,13 +37,11 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'django.contrib.sites', # Required by chroniker
     'xerocraft', # I'm including this for its /static folder. Any negative consequences?
     'members',
     'tasks',
     'inventory',
-    'djrill',
-    #'chroniker',
+    'djrill'
 )
 
 MIDDLEWARE_CLASSES = (
@@ -124,4 +122,3 @@ EMAIL_BACKEND = "djrill.mail.backends.djrill.DjrillBackend"
 MANDRILL_API_KEY = os.environ['MANDRILL_API_KEY']
 DEFAULT_FROM_EMAIL = "Volunteer Coordinator <volunteer@xerocraft.org>"
 
-SITE_ID = 1 # For django.contrib.sites
