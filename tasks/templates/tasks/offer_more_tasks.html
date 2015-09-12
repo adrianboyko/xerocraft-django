@@ -5,12 +5,35 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Oswald">
+    <link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Roboto Slab">
 
     <style>
 
-        body { text-align: center; }
+        body { text-align: center; font-family:Roboto Slab; }
         ul { margin-top: 0pt; }
         h1 { font-family: Oswald; }
+        li { line-height:200%; padding-left:0px; padding-left:10px; margin:5px; background:#EEEEEE; }
+        ul { text-align:left; width:220px; list-style:none; padding-left:0; display:table; margin:0 auto; }
+
+        #submit { visibility: hidden; }
+
+        .unselectable {
+           -moz-user-select: -moz-none;
+           -khtml-user-select: none;
+           -webkit-user-select: none;
+           -ms-user-select: none;
+           user-select: none;
+        }
+
+        .choice_button {
+            background-color: #EEEEEE;
+            moz-border-radius: 15px;
+            border-radius: 15px;
+            -webkit-border-radius: 15px;
+            border: 3px solid gray;
+            padding: 10px;
+            font-family: Oswald;
+        }
 
         a:link { color: black; text-decoration:none; }
         a:visited { color: blue; text-decoration:none; }
@@ -18,20 +41,49 @@
 
     </style>
 
+    <script type="text/javascript">
+        function manageButton() {
+            var button = document.getElementById('submit');
+            var inputNodes = document.getElementsByTagName('input');
+            var inputList = Array.prototype.slice.call(inputNodes);
+            for (var i in inputList) {
+                if (inputList[i].checked) {
+                    button.style.visibility = 'visible';
+                    return;
+                }
+            }
+            button.style.visibility = 'hidden';
+        }
+    </script>
+
 </head>
-<body>
+<body class="unselectable">
     <h1>Thank You!</h1>
     <p>
         Can you help with
         <br/>subsequent {{dow}} instances of
         <br/>"{{task.short_desc}}"?
         <br/>
-        <br/>If "yes", check them below:
     </p>
-    <form>
-        {% for task in instances %}
-        <input type="checkbox" name="tasks" value="{{task.pk}}">{{dow}}, {{task.scheduled_date}}<br/>
-        {% endfor %}
+
+    <form id="form" action="foo.php" method="post">
+        If "yes", select which, below:
+        <ul>
+            {% for task in instances %}
+            <label for="{{task.pk}}">
+                <li>
+                    <input type="checkbox" name="tasks" id="{{task.pk}}" value="{{task.pk}}" onclick="manageButton();">
+                    {{dow}}, {{task.scheduled_date}}
+                </li>
+            </label>
+            {% endfor %}
+        </ul>
+        <br/>
+        <a id="submit"
+           class="choice_button"
+           onclick="document.getElementById('form').submit(); return false;"
+           href="javascript:{}">Claim Hours</a>
+
     </form>
 
 </body>
