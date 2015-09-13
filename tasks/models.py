@@ -213,7 +213,7 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
         return self.repeat_interval is not None and self.flexible_dates is not None
 
     def create_tasks(self, max_days_in_advance):
-        """Creates/schedules new tasks from current date (inclusive).
+        """Creates/schedules new tasks from  (inclusive).
         Stops when scheduling a new task would be more than max_days_in_advance from current date.
         Does not create/schedule a task on date D if one already exists for date D.
         Does nothing if the template is not active.
@@ -221,17 +221,21 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
 
         if not self.active: return
 
-        curr = date.today() + timedelta(days = -1)
-        stop = date.today() + timedelta(days = max_days_in_advance)
+        # Earliest possible date to schedule is "day after GSD" or "today", whichever is later.
+        # Note that curr gets inc'ed at start of while, so we need "GSD" and "yesterday" here.
+        gsd = self.greatest_scheduled_date()
+        yesterday = date.today()+timedelta(days=-1)
+        curr = max(gsd, yesterday)
+        stop = date.today() + timedelta(days=max_days_in_advance)
         while curr < stop:
-            curr += timedelta(days = +1)
+            curr += timedelta(days=+1)
             if self.date_matches_template(curr):
 
                 # Check if task is already instantiated for curr date and skip creation if it does.
-                if Task.objects.filter(recurring_task_template=self, scheduled_date=curr).count() > 0:
-                    continue
+                #if Task.objects.filter(recurring_task_template=self, scheduled_date=curr).count() > 0:
+                #    continue
 
-                t = Task.objects.create(recurring_task_template=self, creation_date = date.today())
+                t = Task.objects.create(recurring_task_template=self, creation_date=date.today())
                 t.scheduled_date = curr
 
                 # Copy mixin fields from template to instance:

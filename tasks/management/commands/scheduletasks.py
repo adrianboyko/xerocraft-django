@@ -11,8 +11,9 @@ class Command(BaseCommand):
         parser.add_argument('num_days', type=int)
 
     def handle(self, *args, **options):
+        num_days = options['num_days']
         for template in RecurringTaskTemplate.objects.filter(active=True):
-            num_days = options['num_days']
             template.create_tasks(num_days)
+
         #TODO: Reschedule sliding tasks
 
