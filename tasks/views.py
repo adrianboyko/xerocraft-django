@@ -61,7 +61,7 @@ def offer_more_tasks(request, task_pk, auth_token):
             "member": nag.who,
             "auth_token": auth_token,
         }
-        return render(request, 'tasks/offer_icalendar.html', {"member": nag.who})
+        return render(request, 'tasks/offer_icalendar.html', params)
 
     else: # GET or other methods:
         future_instances_same_dow = []
