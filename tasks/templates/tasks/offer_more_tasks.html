@@ -9,9 +9,8 @@
     <style>
 
         body { text-align: center; font-family:"Roboto Condensed"; padding-bottom:20px;}
-        ul { margin-top: 0pt; }
         li { line-height:200%; padding-left:0px; padding-left:10px; margin:5px; background:#EEEEEE; }
-        ul { text-align:left; width:200px; list-style:none; padding-left:0; display:table; margin:0 auto; }
+        ul { text-align:left; width:220px; list-style:none; padding-left:0; display:table; margin:0 auto; }
 
         #submit { visibility: hidden; }
 
@@ -64,14 +63,14 @@
         <br/>
     </p>
 
-    <form id="form" action="foo.php" method="post">
+    <form id="form" action="{{request.path}}" method="post">{% csrf_token %}
         If "yes", select which, below:
         <ul>
             {% for task in instances %}
             <label for="{{task.pk}}">
                 <li>
                     <input type="checkbox" name="tasks" id="{{task.pk}}" value="{{task.pk}}" onclick="manageButton();">
-                    {{dow}}, {{task.scheduled_date}}
+                    {{task.scheduled_date | date:"D M d"}} @ {{task.start_time}}
                 </li>
             </label>
             {% endfor %}
@@ -80,7 +79,7 @@
         <a id="submit"
            class="choice_button"
            onclick="document.getElementById('form').submit(); return false;"
-           href="javascript:{}">Claim Hours</a>
+           href="javascript:{}">Claim Tasks</a>
 
     </form>
 </body>

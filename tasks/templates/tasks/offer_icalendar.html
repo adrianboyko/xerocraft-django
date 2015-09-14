@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Roboto Condensed">
+
+    <style>
+
+        body { text-align: center; font-family:"Roboto Condensed"; padding-bottom:20px;}
+
+        .unselectable {
+           -moz-user-select: -moz-none;
+           -khtml-user-select: none;
+           -webkit-user-select: none;
+           -ms-user-select: none;
+           user-select: none;
+        }
+
+        .choice_button {
+            background-color: #EEEEEE;
+            moz-border-radius: 15px;
+            border-radius: 15px;
+            -webkit-border-radius: 15px;
+            border: 3px solid gray;
+            padding: 10px;
+            font-size: 14pt;
+        }
+
+        a:link { color: black; text-decoration:none; }
+        a:visited { color: black; text-decoration:none; }
+        a:hover { text-decoration:underline; }
+
+    </style>
+</head>
+
+<body class="unselectable">
+    <h1>Done!</h1>
+    <p>
+        You now have the option to download an
+        <br/>updated schedule of your Xerocraft
+        <br/>tasks for your personal calendar.
+    </p>
+    <br/>
+    <a id="submit"
+       class="choice_button"
+       href="{% url 'task:get-icalendar' auth_token=auth_token %}">Download</a>
+
+</body>
+</html>

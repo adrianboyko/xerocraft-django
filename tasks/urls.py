@@ -8,5 +8,6 @@ urlpatterns = [
     url(r'^offer-task/(?P<task_pk>[0-9]+)_(?P<auth_token>[-_a-zA-Z0-9]{32})/$', views.offer_task, name='offer-task'),
     url(r'^claim-task/(?P<task_pk>[0-9]+)_(?P<auth_token>[-_a-zA-Z0-9]{32})/(?P<hours>[\.\d]+)/$', views.claim_task, name='claim-task'),
     url(r'^offer-more-tasks/(?P<task_pk>[0-9]+)_(?P<auth_token>[-_a-zA-Z0-9]{32})/$', views.offer_more_tasks, name='offer-more-tasks'),
+    url(r'^get-icalendar/(?P<auth_token>[-_a-zA-Z0-9]{32})/$', views.get_icalendar, name='get-icalendar')
 
 ]
