@@ -34,7 +34,7 @@ def offer_task(request, task_pk, auth_token):
         "member": nag.who,
         "dow": task.scheduled_weekday(),
         "claims": task.claim_set.filter(status=Claim.CURRENT),
-        "max_hrs_to_claim": float(min(task.unclaimed_hours(), task.duration())),
+        "max_hrs_to_claim": float(min(task.unclaimed_hours(), task.duration.seconds/3600.0)),
         "auth_token": auth_token
     }
     return render(request, 'tasks/offer_task.html', params)
@@ -55,7 +55,7 @@ def offer_more_tasks(request, task_pk, auth_token):
         pks = request.POST.getlist('tasks')
         for pk in pks:
             t = Task.objects.get(pk=pk)
-            Claim.objects.create(task=t, member=nag.who, hours_claimed=t.duration(), status=Claim.CURRENT)
+            Claim.objects.create(task=t, member=nag.who, hours_claimed=t.duration.seconds/3600.0, status=Claim.CURRENT)
 
         params = {
             "member": nag.who,

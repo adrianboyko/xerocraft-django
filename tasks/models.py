@@ -66,14 +66,14 @@ def make_TaskMixin(dest_class_alias):
         work_estimate = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True,
             help_text="An estimate of how much work this tasks requires, in hours (e.g. 1.25).<br/>This is work time, not elapsed time.")
 
+        start_time = models.TimeField(null=True, blank=True,
+            help_text="The time at which the task should begin, if any.")
+
+        duration = models.DurationField(null=True, blank=True,
+            help_text="The duration of the task, if applicable. This is elapsed time, not work time.")
+
         uninterested = models.ManyToManyField(mm.Member, blank=True, related_name="uninteresting_"+dest_class_alias,
             help_text="Members that are not interested in this item.")
-
-        start_time = models.TimeField(null=True, blank=True,
-            help_text="The time at which the task should being, if any.")
-
-        end_time = models.TimeField(null=True, blank=True,
-            help_text="The time at which the task should end, if any.")
 
         priority = models.CharField(max_length=1, default=MED_PRIO, choices=PRIORITY_CHOICES,
             help_text="The priority of the task, compared to other tasks.")
@@ -147,7 +147,7 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
     def date_matches_template_intervals(self, date_considered: date):
         last_date = self.greatest_scheduled_date()
         days_since = date_considered - last_date
-        return days_since.days == self.repeat_interval
+        return days_since.days >= self.repeat_interval # >= instead of == b/c of a bootstrapping scenario.
 
     def date_matches_template_certain_days(self, d: date):
 
@@ -249,7 +249,7 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
                 t.eligible_tags = self.eligible_tags.all()
                 t.uninterested = self.uninterested.all()
                 t.start_time = self.start_time
-                t.end_time = self.end_time
+                t.duration = self.duration
                 t.should_nag = self.should_nag
                 t.save()
 
@@ -425,18 +425,6 @@ class Task(make_TaskMixin("Tasks")):
         """
         unclaimed_hours = self.unclaimed_hours()
         return not unclaimed_hours
-
-    def duration(self):
-        if not self.end_time: return None
-        if not self.start_time: return None
-        start_datetime = datetime.combine(date.today(), self.start_time)
-        end_date = date.today()
-        if self.end_time < self.start_time:
-            end_date += 1
-        end_datetime = datetime.combine(end_date, self.end_time)
-        duration = end_datetime - start_datetime
-        hours = duration.seconds/3600.0
-        return hours
 
     def all_eligible_claimants(self):
         """
