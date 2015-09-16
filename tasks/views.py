@@ -10,7 +10,9 @@ from datetime import date, datetime
 from icalendar import Calendar, Event
 
 from tasks.models import Task, Nag, Claim
+from members.models import Member
 
+from django_ical.views import ICalFeed
 
 def _get_task_and_nag(task_pk, auth_token):
     md5str = md5(auth_token.encode()).hexdigest()
@@ -93,14 +95,56 @@ def offer_more_tasks(request, task_pk, auth_token):
             return render(request, 'tasks/offer_icalendar.html', params)
 
 
-def get_icalendar(request, auth_token):
+class TaskFeed(ICalFeed):
 
-    raise Http404("Calendar not yet available. Under development.")
+    def item_title(self, item):
+        return item.short_desc
 
-    md5str = md5(auth_token.encode()).hexdigest()
-    nag = get_object_or_404(Nag, auth_token_md5=md5str)
-    member = nag.who
-    cal = Calendar()
-    for task in member.tasks_claimed.all():
-        event = Event()
-        event.add('summary',task.short_desc)
+    def item_description(self, item):
+        return item.instructions
+
+    def item_start_datetime(self, item):
+        dtstart = datetime.combine(item.scheduled_date, item.start_time)
+        return dtstart
+
+    def item_end_datetime(self, item):
+        dtstart = datetime.combine(item.scheduled_date, item.start_time)
+        dtend = dtstart + item.duration
+        return dtend
+
+    def item_guid(self, item):
+        return item.pk
+
+    def item_link(self, item):
+        return "/task/%d" % item.pk
+
+    class Meta:
+        abstract = True
+
+
+class AllTasksFeed(TaskFeed):
+    file_name = "AllXerocraftTasks.ics"
+    title = "All Xerocraft Tasks"
+
+    def items(self):
+        result = []
+        for task in Task.objects.all():
+            if task.scheduled_date is None or task.start_time is None or task.duration is None:
+                continue
+            result.append(task)
+        return result
+
+
+class MyTasksFeed(TaskFeed):
+    file_name = "MyXerocraftTasks.ics"
+    title = "My Xerocraft Tasks"
+
+    def items(self):
+        result = []
+        member = Member.objects.get(auth_user__username='adrianb')
+        for task in member.tasks_claimed.all():
+            if task.scheduled_date is None or task.start_time is None or task.duration is None:
+                continue
+            result.append(task)
+        return result
+
