@@ -10,9 +10,10 @@
 
         body { text-align: center; font-family:"Roboto Condensed"; padding-bottom:20px;}
         li { line-height:200%; padding-left:0px; padding-left:10px; margin:5px; background:#EEEEEE; }
-        ul { text-align:left; width:220px; list-style:none; padding-left:0; display:table; margin:0 auto; }
+        ul { text-align:left; width:200px; list-style:none; padding-left:0; display:table; margin:0 auto; }
 
-        #submit { visibility: hidden; }
+        #submit { display: none; }
+        #skip { display: inline; }
 
         .unselectable {
            -moz-user-select: -moz-none;
@@ -33,23 +34,26 @@
         }
 
         a:link { color: black; text-decoration:none; }
-        a:visited { color: blue; text-decoration:none; }
+        a:visited { color: black; text-decoration:none; }
         a:hover { text-decoration:underline; }
 
     </style>
 
     <script type="text/javascript">
         function manageButton() {
-            var button = document.getElementById('submit');
+            var submitButton = document.getElementById('submit');
+            var skipButton = document.getElementById('skip');
             var inputNodes = document.getElementsByTagName('input');
             var inputList = Array.prototype.slice.call(inputNodes);
             for (var i in inputList) {
                 if (inputList[i].checked) {
-                    button.style.visibility = 'visible';
+                    submitButton.style.display = 'inline';
+                    skipButton.style.display = 'none'
                     return;
                 }
             }
-            button.style.visibility = 'hidden';
+            submitButton.style.display = 'none';
+            skipButton.style.display = 'inline';
         }
     </script>
 
@@ -77,10 +81,13 @@
         </ul>
         <br/>
         <a id="submit"
+           style="display: none"
            class="choice_button"
            onclick="document.getElementById('form').submit(); return false;"
            href="javascript:{}">Claim Tasks</a>
-
+        <a id="skip"
+           class="choice_button"
+           href="{% url 'task:offer-adjacent-tasks' auth_token=auth_token %}">Skip It</a>
     </form>
 </body>
 </html>

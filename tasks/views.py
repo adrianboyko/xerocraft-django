@@ -26,27 +26,27 @@ def offer_task(request, task_pk, auth_token):
 
     task, nag = _get_task_and_nag(task_pk, auth_token)
 
-    # TODO: Is task closed?
-    # TODO: Is task fully claimed?
-    # TODO: Is task scheduled in the past?
-    # TODO: Is member still eligible to work the task?
+    if request.method == 'POST':
+        hours = request.POST['hours']
+        Claim.objects.create(task=task, member=nag.who, hours_claimed=hours, status=Claim.CURRENT)
+        return redirect('task:offer-more-tasks', task_pk=task_pk, auth_token=auth_token)
 
-    params = {
-        "task": task,
-        "member": nag.who,
-        "dow": task.scheduled_weekday(),
-        "claims": task.claim_set.filter(status=Claim.CURRENT),
-        "max_hrs_to_claim": float(min(task.unclaimed_hours(), task.duration.seconds/3600.0)),
-        "auth_token": auth_token
-    }
-    return render(request, 'tasks/offer_task.html', params)
+    else:  # GET and other methods
 
+        # TODO: Is task closed?
+        # TODO: Is task fully claimed?
+        # TODO: Is task scheduled in the past?
+        # TODO: Is member still eligible to work the task?
 
-def claim_task(request, task_pk, auth_token, hours):
-
-    task,nag = _get_task_and_nag(task_pk, auth_token)
-    Claim.objects.create(task=task, member=nag.who, hours_claimed=hours, status=Claim.CURRENT)
-    return redirect('task:offer-more-tasks', task_pk=task_pk, auth_token=auth_token)
+        params = {
+            "task": task,
+            "member": nag.who,
+            "dow": task.scheduled_weekday(),
+            "claims": task.claim_set.filter(status=Claim.CURRENT),
+            "max_hrs_to_claim": float(min(task.unclaimed_hours(), task.duration.seconds/3600.0)),
+            "auth_token": auth_token
+        }
+        return render(request, 'tasks/offer_task.html', params)
 
 
 def offer_more_tasks(request, task_pk, auth_token):
@@ -63,21 +63,23 @@ def offer_more_tasks(request, task_pk, auth_token):
             "member": nag.who,
             "auth_token": auth_token,
         }
-        return render(request, 'tasks/offer_icalendar.html', params)
+        return render(request, 'tasks/offer_adjacent_tasks.html', params)
 
     else: # GET or other methods:
-        future_instances_same_dow = []
+
         all_future_instances = Task.objects.filter(
             recurring_task_template=task.recurring_task_template,
             scheduled_date__gt=task.scheduled_date,
             work_done=False
         )
+        future_instances_same_dow = []
         for instance in all_future_instances:
-
             if instance.scheduled_weekday() == task.scheduled_weekday() \
                and instance.unclaimed_hours() == instance.work_estimate \
                and nag.who in instance.all_eligible_claimants():
                 future_instances_same_dow.append(instance)
+            if len(future_instances_same_dow) > 3:  # Don't overwhelm potential worker.
+                break
 
         if len(future_instances_same_dow) > 0:
             params = {
@@ -85,14 +87,27 @@ def offer_more_tasks(request, task_pk, auth_token):
                 "member": nag.who,
                 "dow": task.scheduled_weekday(),
                 "instances": future_instances_same_dow,
+                "auth_token": auth_token,
             }
             return render(request, 'tasks/offer_more_tasks.html', params)
-        else:
+        else:  # There aren't any future instances of interest so go to "offer adjacent tasks"
             params = {
                 "member": nag.who,
                 "auth_token": auth_token,
             }
-            return render(request, 'tasks/offer_icalendar.html', params)
+            return render(request, 'tasks/offer_adjacent_tasks.html', params)
+
+
+def offer_adjacent_tasks(request, auth_token):
+
+    md5str = md5(auth_token.encode()).hexdigest()
+    nag = get_object_or_404(Nag, auth_token_md5=md5str)
+
+    if request.method == 'POST':
+        pass
+
+    else:  # GET and other methods
+        pass
 
 
 class TaskFeed(ICalFeed):
@@ -101,7 +116,9 @@ class TaskFeed(ICalFeed):
         return item.short_desc
 
     def item_description(self, item):
-        return item.instructions
+        desc = item.instructions
+        desc = desc.replace("\r\n", " ")
+        return desc
 
     def item_start_datetime(self, item):
         dtstart = datetime.combine(item.scheduled_date, item.start_time)
@@ -116,7 +133,7 @@ class TaskFeed(ICalFeed):
         return item.pk
 
     def item_link(self, item):
-        return "/task/%d" % item.pk
+        return "/tasks/task-info/%d" % item.pk
 
     class Meta:
         abstract = True

@@ -49,13 +49,22 @@
             <br/>Nobody is helping with this task, yet.
         {% endif %}
     </p>
-    <p>
-        {% if max_hrs_to_claim > 0 %}
-            <br/>
-            <a class="choice_button" href="{% url 'task:claim-task' hours=max_hrs_to_claim auth_token=auth_token task_pk=task.pk %}">Claim {{max_hrs_to_claim}} hrs</a>
-        {% else %}
+    {% if max_hrs_to_claim > 0 %}
+        <br/>
+        <form id="form" action="{{request.path}}" method="post">{% csrf_token %}
+
+            <input type="hidden" name="hours" value="{{max_hrs_to_claim}}">
+
+            <a class="choice_button"
+               onclick="document.getElementById('form').submit(); return false;"
+               href="javascript:{}">Claim {{max_hrs_to_claim}} hrs</a>
+
+        </form>
+    {% else %}
+        <p>
             <span id="already_staffed">This task is already staffed.</span>
-        {% endif %}
-    </p>
+        </p>
+    {% endif %}
+
 </body>
 </html>
