@@ -23,28 +23,23 @@ def create_create_tasks(number_of_days):
     create_tasks.short_description = "Create tasks for next %d days" % number_of_days
     return create_tasks
 
-def toggle_template_nags(model_admin, request, query_set):
-    for template in query_set:
-        template.should_nag = not template.should_nag
-        template.save()
 
-# Following is untested. Not sure if I will need it or not. Commenting out for now.
-# def duplicate_templates(model_admin, request, query_set):
-#     for template in query_set:
-#         # See https://docs.djangoproject.com/en/1.7/topics/db/queries/#copying-model-instances
-#         old_eligible_claimants = template.eligible_claimants.all()
-#         old_eligible_tags = template.eligible_tags.all()
-#         old_uninterested = template.uninterested.all()
-#         template.pk = None
-#         template.id = None
-#         template.eligible_claimants = old_eligible_claimants
-#         template.eligible_tags = old_eligible_tags
-#         template.uninterested = old_uninterested
-#         template.save()
-#     duplicate_templates.short_description = "Duplicate templates"
+def toggle_should_nag(model_admin, request, query_set):
+    for obj in query_set:
+        assert type(obj) is Task or type(obj) is RecurringTaskTemplate
+        obj.should_nag = not obj.should_nag
+        obj.save()
+
+
+def toggle_should_nag_for_isntances(model_admin, request, query_set):
+    for template in query_set:
+        assert type(template) is RecurringTaskTemplate
+        toggle_should_nag(model_admin, request, template.instances.all())
 
 
 class RecurringTaskTemplateAdmin(admin.ModelAdmin):
+
+    save_as = True
 
     # Following overrides the empty changelist value. See http://stackoverflow.com/questions/28174881/
     def __init__(self,*args,**kwargs):
@@ -52,7 +47,7 @@ class RecurringTaskTemplateAdmin(admin.ModelAdmin):
         main.EMPTY_CHANGELIST_VALUE = '-'
 
     list_display = ['short_desc','recurrence_str', 'start_time', 'duration', 'owner', 'reviewer', 'active', 'should_nag']
-    actions = [create_create_tasks(60), toggle_template_nags]
+    actions = [create_create_tasks(60), toggle_should_nag, toggle_should_nag_for_isntances]
 
     class Media:
         css = {
@@ -116,12 +111,6 @@ class RecurringTaskTemplateAdmin(admin.ModelAdmin):
     ]
 
 
-def toggle_task_nags(model_admin, request, query_set):
-    for task in query_set:
-        task.nag = not task.nag
-        task.save()
-
-
 class TaskNoteInline(admin.StackedInline):
     model = TaskNote
     extra = 0
@@ -144,7 +133,7 @@ class TaskAdmin(admin.ModelAdmin):
             "all": ("tasks/task_admin.css",)
         }
 
-    actions = [toggle_task_nags]
+    actions = [toggle_should_nag]
     filter_horizontal = ['eligible_claimants', 'eligible_tags']
     list_display = ['pk', 'short_desc', 'scheduled_weekday', 'scheduled_date', 'start_time', 'duration', 'owner', 'should_nag', 'work_done', 'reviewer', 'work_accepted']
 

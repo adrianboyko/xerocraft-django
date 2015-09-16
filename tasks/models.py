@@ -123,13 +123,13 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
     def greatest_scheduled_date(self):
         "Of the Tasks that correspond to this template, returns the greatest scheduled_date."
 
-        if len(self.task_set.all()) == 0:
+        if len(self.instances.all()) == 0:
             # Nothing is scheduled yet but nothing can be scheduled before start_date.
             # So, pretend that day before start_date is the greatest scheduled date.
             result = self.start_date + timedelta(days = -1)
             return result
 
-        scheduled_dates = map(lambda x: x.scheduled_date, self.task_set.all())
+        scheduled_dates = map(lambda x: x.scheduled_date, self.instances.all())
         return max(scheduled_dates)
 
     def date_matches_template(self, d: date):
@@ -383,7 +383,7 @@ class Task(make_TaskMixin("Tasks")):
     work_accepted = models.NullBooleanField(choices=[(True, "Yes"), (False, "No"), (None, "N/A")],
         help_text="If there is a reviewer for this task, the reviewer sets this to true or false once the worker has said that the work is done.")
 
-    recurring_task_template = models.ForeignKey(RecurringTaskTemplate, null=True, blank=True, on_delete=models.SET_NULL)
+    recurring_task_template = models.ForeignKey(RecurringTaskTemplate, null=True, blank=True, on_delete=models.SET_NULL, related_name="instances")
 
     def is_closed(self):
         "Returns True if claimant should receive credit for the task."
