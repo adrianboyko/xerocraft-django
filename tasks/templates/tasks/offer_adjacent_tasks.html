@@ -1,10 +1,95 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+    <title>Open/Close?</title>
     <meta charset="UTF-8">
-    <title></title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Roboto Condensed">
+
+    <style>
+
+        body { text-align: center; font-family:"Roboto Condensed"; padding-bottom:20px;}
+        li { line-height:200%; padding-left:0px; padding-left:10px; margin:5px; background:#EEEEEE; }
+        ul { text-align:left; width:200px; list-style:none; padding-left:0; display:table; margin:0 auto; }
+
+        #submit { display: none; }
+        #skip { display: inline; }
+
+        .unselectable {
+           -moz-user-select: -moz-none;
+           -khtml-user-select: none;
+           -webkit-user-select: none;
+           -ms-user-select: none;
+           user-select: none;
+        }
+
+        .choice_button {
+            background-color: #EEEEEE;
+            moz-border-radius: 15px;
+            border-radius: 15px;
+            -webkit-border-radius: 15px;
+            border: 3px solid gray;
+            padding: 10px;
+            font-size: 14pt;
+        }
+
+        a:link { color: black; text-decoration:none; }
+        a:visited { color: black; text-decoration:none; }
+        a:hover { text-decoration:underline; }
+
+    </style>
+
+    <script type="text/javascript">
+        function manageButton() {
+            var submitButton = document.getElementById('submit');
+            var skipButton = document.getElementById('skip');
+            var inputNodes = document.getElementsByTagName('input');
+            var inputList = Array.prototype.slice.call(inputNodes);
+            for (var i in inputList) {
+                if (inputList[i].checked) {
+                    submitButton.style.display = 'inline';
+                    skipButton.style.display = 'none'
+                    return;
+                }
+            }
+            submitButton.style.display = 'none';
+            skipButton.style.display = 'inline';
+        }
+    </script>
 </head>
-<body>
-  Offer Open/Close Tasks
+
+<body class="unselectable">
+
+    <h1>Open/Close?</h1>
+    <p>
+        I see that you're a keyholder that has
+        <br/>claimed tasks that begin at XC open or
+        <br/>end at XC close. Can you come early or
+        <br/>leave late to open/close Xerocraft?
+    </p>
+
+    <form id="form" action="{{request.path}}" method="post">{% csrf_token %}
+        If "yes", select which, below:
+        <ul>
+            {% for task in opens_and_closes %}
+            <label for="{{task.pk}}">
+                <li>
+                    <input type="checkbox" name="tasks" id="{{task.pk}}" value="{{task.pk}}" onclick="manageButton();">
+                    {{task.scheduled_date | date:"D M d"}} @ {{task.start_time}}
+                </li>
+            </label>
+            {% endfor %}
+        </ul>
+        <br/>
+        <a id="submit"
+           style="display: none"
+           class="choice_button"
+           onclick="document.getElementById('form').submit(); return false;"
+           href="javascript:{}">Claim Tasks</a>
+        <a id="skip"
+           class="choice_button"
+           href="{% url 'task:offers-done' auth_token=auth_token %}">Skip It</a>
+    </form>
 </body>
 </html>

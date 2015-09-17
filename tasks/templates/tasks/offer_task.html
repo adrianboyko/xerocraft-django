@@ -12,6 +12,13 @@
         ul { margin-top: 0pt; }
         #already_staffed { color:red; font-size:16pt; }
 
+        .unselectable {
+           -moz-user-select: -moz-none;
+           -khtml-user-select: none;
+           -webkit-user-select: none;
+           -ms-user-select: none;
+           user-select: none;
+        }
 
         .choice_button {
             background-color: #EEEEEE;
@@ -29,7 +36,8 @@
     </style>
 
 </head>
-<body>
+
+<body class="unselectable">
     <h1>Hi {{member.first_name}}!</h1>
     <p>
         You have clicked the following task:
