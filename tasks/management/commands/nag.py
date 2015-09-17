@@ -26,11 +26,16 @@ class Command(BaseCommand):
 
         # Cycle through the next week's NAGGING tasks to see which need workers and who should be nagged.
         nag_lists = {}
-        for task in Task.objects.filter(scheduled_date__gte=today).filter(scheduled_date__lte=nextweek).filter(should_nag=True):
+        for task in Task.objects.filter(scheduled_date__gte=today, scheduled_date__lte=nextweek, should_nag=True):
+            # Skip open/close tasks that are far out. They'll likely be filled by views.offer_adjacent_tasks().
+            if task.short_desc=="Open Xerocraft" or task.short_desc=="Close Xerocraft":
+                if (task.scheduled_date - today) > datetime.timedelta(days=1):
+                    continue
             if not task.is_fully_claimed():
                 if not task.work_done:
                     potentials = task.all_eligible_claimants() - task.current_claimants()
-                    # If a given member is already heavily scheduled this week, don't nag them except for tasks today or tomorrow that aren't fully staffed.
+                    # If a given member is already heavily scheduled this week, don't nag them
+                    # except for tasks today or tomorrow that aren't fully staffed.
                     if (task.scheduled_date - today) > datetime.timedelta(days=1):
                         potentials -= heavily_scheduled
                     # People without email addresses can't be nagged:
@@ -56,7 +61,8 @@ class Command(BaseCommand):
                 'token': b64,
                 'member': member,
                 'tasks': tasks,
-                'host': 'http://xerocraft-django.herokuapp.com' #'http://192.168.1.101:8000'
+                #'host': 'http://192.168.1.101:8000'
+                'host': 'http://xerocraft-django.herokuapp.com'
             })
             subject = 'Call for Volunteers'
             from_email = 'Volunteer Coordinator <volunteer@xerocraft.org>'
