@@ -97,6 +97,10 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
 
     start_date = models.DateField(help_text="Choose a date for the first instance of the recurring task.")
     active = models.BooleanField(default=True, help_text="Additional tasks will be created only when the template is active.")
+    # TODO:
+    #default_claimant = models.ForeignKey(mm.Member, null=True, blank=True, on_delete=models.SET_NULL,
+    #    help_text="Some recurring tasks (e.g. classes) have a default a default claimant (e.g. the instructor).")
+
 
     # Weekday of month:
     first = models.BooleanField(default=False)  #, help_text="Task will recur on first weekday in the month.")
