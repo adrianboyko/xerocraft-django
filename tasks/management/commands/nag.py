@@ -28,7 +28,7 @@ class Command(BaseCommand):
         nag_lists = {}
         for task in Task.objects.filter(scheduled_date__gte=today, scheduled_date__lte=nextweek, should_nag=True):
             # Skip open/close tasks that are far out. They'll likely be filled by views.offer_adjacent_tasks().
-            if task.short_desc=="Open Xerocraft" or task.short_desc=="Close Xerocraft":
+            if task.short_desc == "Open Xerocraft" or task.short_desc == "Close Xerocraft":
                 if (task.scheduled_date - today) > datetime.timedelta(days=1):
                     continue
             if not task.is_fully_claimed():
@@ -64,7 +64,7 @@ class Command(BaseCommand):
                 #'host': 'http://192.168.1.101:8000'
                 'host': 'http://xerocraft-django.herokuapp.com'
             })
-            subject = 'Call for Volunteers'
+            subject = 'Call for Volunteers '+str(datetime.date.today())
             from_email = 'Volunteer Coordinator <volunteer@xerocraft.org>'
             to = member.email
             text_content = text_content_template.render(d)
