@@ -6,24 +6,6 @@ from django.contrib.auth.models import User
 from tasks.models import RecurringTaskTemplate, Task, TaskNote, Claim, Work, Nag
 
 
-def create_create_tasks(number_of_days):
-    """ Return an admin action function that creates tasks up to a certain number of days into the future.
-    :param number_of_days: How far forward the desired function should schedule tasks
-    :return: a function that schedules tasks
-    """
-    def create_tasks(model_admin, request, query_set):
-        """ See admin action documentation. """
-        """ TODO: If there are foreseeable error conditions that may occur while running your action, you
-        should gracefully inform the user of the problem. This means handling exceptions and using
-        django.contrib.admin.ModelAdmin.message_user() to display a user friendly description of the problem
-        in the response.
-        """
-        for template in query_set:
-            template.create_tasks(number_of_days)
-    create_tasks.short_description = "Create tasks for next %d days" % number_of_days
-    return create_tasks
-
-
 def toggle_should_nag(model_admin, request, query_set):
     for obj in query_set:
         assert type(obj) is Task or type(obj) is RecurringTaskTemplate
@@ -31,7 +13,7 @@ def toggle_should_nag(model_admin, request, query_set):
         obj.save()
 
 
-def toggle_should_nag_for_isntances(model_admin, request, query_set):
+def toggle_should_nag_for_instances(model_admin, request, query_set):
     for template in query_set:
         assert type(template) is RecurringTaskTemplate
         toggle_should_nag(model_admin, request, template.instances.all())
@@ -47,7 +29,7 @@ class RecurringTaskTemplateAdmin(admin.ModelAdmin):
         main.EMPTY_CHANGELIST_VALUE = '-'
 
     list_display = ['short_desc','recurrence_str', 'start_time', 'duration', 'owner', 'reviewer', 'active', 'should_nag']
-    actions = [create_create_tasks(60), toggle_should_nag, toggle_should_nag_for_isntances]
+    actions = [toggle_should_nag, toggle_should_nag_for_instances]
 
     class Media:
         css = {
