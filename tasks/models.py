@@ -462,7 +462,7 @@ class Task(make_TaskMixin("Tasks")):
         dead = ""
         result = "%s" % self.short_desc
         if self.scheduled_date is not None:
-            when = ", %s %s" % (self.scheduled_weekday(), self.scheduled_date.strftime('%b %d'))
+            when = ", " + self.scheduled_date.strftime('%a %b %d')
         if self.deadline is not None:
             dead = " [%s deadline]" % self.deadline
         return "%s%s%s" % (self.short_desc, when, dead)

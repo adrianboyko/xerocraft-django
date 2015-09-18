@@ -17,9 +17,12 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
 
         # Find out who's doing what over the next week.
+        oneday = datetime.timedelta(days=1)
         today = datetime.date.today()
+        tomorrow = today + oneday
         nextweek = today + datetime.timedelta(weeks=+1)
-        already_scheduled = Claim.sum_in_period(today,nextweek)
+
+        already_scheduled = Claim.sum_in_period(today, nextweek)
 
         # Determine who has already signed up for "a lot" of work already. Threshold value is arbitrary.
         heavily_scheduled = set([member for member,hours in already_scheduled.items() if hours >= 6.0])
@@ -27,23 +30,27 @@ class Command(BaseCommand):
         # Cycle through the next week's NAGGING tasks to see which need workers and who should be nagged.
         nag_lists = {}
         for task in Task.objects.filter(scheduled_date__gte=today, scheduled_date__lte=nextweek, should_nag=True):
-            # Skip open/close tasks that are far out. They'll likely be filled by views.offer_adjacent_tasks().
-            if task.short_desc == "Open Xerocraft" or task.short_desc == "Close Xerocraft":
-                if (task.scheduled_date - today) > datetime.timedelta(days=1):
-                    continue
-            if not task.is_fully_claimed():
-                if not task.work_done:
-                    potentials = task.all_eligible_claimants() - task.current_claimants()
-                    # If a given member is already heavily scheduled this week, don't nag them
-                    # except for tasks today or tomorrow that aren't fully staffed.
-                    if (task.scheduled_date - today) > datetime.timedelta(days=1):
-                        potentials -= heavily_scheduled
-                    # People without email addresses can't be nagged:
-                    potentials = [p for p in potentials if p.email > ""]
-                    for member in potentials:
-                        if member not in nag_lists:
-                            nag_lists[member] = []
-                        nag_lists[member] += [task]
+
+            # Skip open/close tasks that aren't happening today. They'll likely be filled by views.offer_adjacent_tasks().
+            if (task.short_desc == "Open Xerocraft" or task.short_desc == "Close Xerocraft") \
+               and task.scheduled_date != today:
+                continue
+
+            # No need to nag if task is fully claimed or marked as "done".
+            if task.work_done or task.is_fully_claimed():
+                continue
+
+            potentials = task.all_eligible_claimants() - task.current_claimants()
+            # If a given member is already heavily scheduled this week, don't nag them
+            # except for tasks today or tomorrow that aren't fully staffed.
+            if (task.scheduled_date - today) > datetime.timedelta(days=1):
+                potentials -= heavily_scheduled
+            # People without email addresses can't be nagged:
+            potentials = [p for p in potentials if p.email > ""]
+            for member in potentials:
+                if member not in nag_lists:
+                    nag_lists[member] = []
+                nag_lists[member] += [task]
 
         # Send email messages:
         text_content_template = get_template('tasks/email_nag_template.txt')
@@ -64,7 +71,7 @@ class Command(BaseCommand):
                 #'host': 'http://192.168.1.101:8000'
                 'host': 'http://xerocraft-django.herokuapp.com'
             })
-            subject = 'Call for Volunteers '+str(datetime.date.today())
+            subject = 'Call for Volunteers, ' + datetime.date.today().strftime('%a %b %d')
             from_email = 'Volunteer Coordinator <volunteer@xerocraft.org>'
             to = member.email
             text_content = text_content_template.render(d)
