@@ -54,6 +54,7 @@ class RecurringTaskTemplateAdmin(admin.ModelAdmin):
         ("People", {'fields': [
             'owner',
             'max_claimants',
+            'default_claimant',
             'eligible_claimants',
             'uninterested',
             'eligible_tags',
@@ -86,7 +87,7 @@ class RecurringTaskTemplateAdmin(admin.ModelAdmin):
             'description': "Use this option for schedules like 'Every 90 days'",
             'fields': [
                 'repeat_interval',
-                'flexible_dates',
+                'missed_date_action',
             ]
         }),
 

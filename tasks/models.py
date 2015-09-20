@@ -33,15 +33,6 @@ def make_TaskMixin(dest_class_alias):
         Help text describes the fields in terms of their role in Task.
         """
 
-        HIGH_PRIO = "H"
-        MED_PRIO = "M"
-        LOW_PRIO = "L"
-        PRIORITY_CHOICES = [
-            (HIGH_PRIO, "High"),
-            (MED_PRIO, "Medium"),
-            (LOW_PRIO, "Low")
-        ]
-
         owner = models.ForeignKey(mm.Member, null=True, blank=True, on_delete=models.SET_NULL, related_name="owned_"+dest_class_alias,
             help_text="The member that asked for this task to be created or has taken responsibility for its content.<br/>This is almost certainly not the person who will claim the task and do the work.")
 
@@ -75,13 +66,31 @@ def make_TaskMixin(dest_class_alias):
         uninterested = models.ManyToManyField(mm.Member, blank=True, related_name="uninteresting_"+dest_class_alias,
             help_text="Members that are not interested in this item.")
 
+        HIGH_PRIO = "H"
+        MED_PRIO = "M"
+        LOW_PRIO = "L"
+        PRIORITY_CHOICES = [
+            (HIGH_PRIO, "High"),
+            (MED_PRIO, "Medium"),
+            (LOW_PRIO, "Low")
+        ]
         priority = models.CharField(max_length=1, default=MED_PRIO, choices=PRIORITY_CHOICES,
             help_text="The priority of the task, compared to other tasks.")
 
         should_nag = models.BooleanField(default=False,
             help_text="If true, people will be encouraged to work the task via email messages.")
 
-        # TODO: action_if_missed, REMOVE, SLIDE_SELF, SLIDE_SELF_AND_LATER. Replaces flexible_dates.
+        IGNORE = "I"
+        SLIDE_SELF = "s"
+        SLIDE_SELF_AND_LATER = "S"
+        MISSED_DATE_ACTIONS = [
+            (IGNORE, "Don't do anything."),
+            (SLIDE_SELF, "Slide the task to the next day."),
+            (SLIDE_SELF_AND_LATER, "Slide task and all later instances to next day.")
+        ]
+        missed_date_action = models.CharField(max_length=1, null=True, blank= True,
+            default=IGNORE, choices=MISSED_DATE_ACTIONS,
+            help_text="What should be done if the task is not completed on the scheduled date.")
 
         class Meta:
             abstract = True
@@ -97,10 +106,9 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
 
     start_date = models.DateField(help_text="Choose a date for the first instance of the recurring task.")
     active = models.BooleanField(default=True, help_text="Additional tasks will be created only when the template is active.")
-    # TODO:
-    #default_claimant = models.ForeignKey(mm.Member, null=True, blank=True, on_delete=models.SET_NULL,
-    #    help_text="Some recurring tasks (e.g. classes) have a default a default claimant (e.g. the instructor).")
 
+    default_claimant = models.ForeignKey(mm.Member, null=True, blank=True, on_delete=models.SET_NULL,
+        help_text="Some recurring tasks (e.g. classes) have a default a default claimant (e.g. the instructor).")
 
     # Weekday of month:
     first = models.BooleanField(default=False)  #, help_text="Task will recur on first weekday in the month.")
@@ -121,8 +129,6 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
 
     # Every X days:
     repeat_interval = models.SmallIntegerField(null=True, blank=True, help_text="Minimum number of days between recurrences, e.g. 14 for every two weeks.")
-    #TODO: flexible_dates should be set to "No" if repeat_interval is set to a value.  Should be set to "N/A" if repeat_interval becomes None.
-    flexible_dates = models.NullBooleanField(default=None, choices=[(True, "Yes"), (False, "No"), (None, "N/A")], help_text="Select 'No' if this task must occur on specific regularly-spaced dates.<br/>Select 'Yes' if the task is like an oil change that should happen every 90 days, but not on any specific date.")
 
     def greatest_scheduled_date(self):
         "Of the Tasks that correspond to this template, returns the greatest scheduled_date."
@@ -214,7 +220,7 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
         return self.is_dow_chosen() and self.is_ordinal_chosen()
 
     def repeats_at_intervals(self):
-        return self.repeat_interval is not None and self.flexible_dates is not None
+        return self.repeat_interval is not None
 
     def create_tasks(self, max_days_in_advance):
         """Creates/schedules new tasks from  (inclusive).
@@ -248,6 +254,7 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
                 t.short_desc = self.short_desc
                 t.reviewer = self.reviewer
                 t.work_estimate = self.work_estimate
+                t.missed_date_action = self.missed_date_action
                 t.max_claimants = self.max_claimants
                 t.eligible_claimants = self.eligible_claimants.all()
                 t.eligible_tags = self.eligible_tags.all()
@@ -256,6 +263,13 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
                 t.duration = self.duration
                 t.should_nag = self.should_nag
                 t.save()
+                if self.default_claimant is not None:
+                    Claim.objects.create(
+                        member=self.default_claimant,
+                        status=Claim.CURRENT,
+                        task=t,
+                        hours_claimed=self.work_estimate
+                    )
 
     def validate(self):
         if self.last and self.fourth:
@@ -304,15 +318,6 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
 
 class Claim(models.Model):
 
-    CURRENT = "C"
-    EXPIRED = "X"
-    QUEUED = "Q"
-    CLAIM_STATUS_CHOICES = [
-        (CURRENT, "Current"),
-        (EXPIRED, "Expired"),
-        (QUEUED, "Queued")
-    ]
-
     task = models.ForeignKey('Task', null=False,
         on_delete=models.CASCADE, # The claim means nothing if the task is gone.
         help_text="The task against which the claim to work is made.")
@@ -329,6 +334,14 @@ class Claim(models.Model):
     hours_claimed = models.DecimalField(max_digits=5, decimal_places=2,
         help_text = "The actual time claimed, in hours (e.g. 1.25). This is work time, not elapsed time.")
 
+    CURRENT = "C"
+    EXPIRED = "X"
+    QUEUED = "Q"
+    CLAIM_STATUS_CHOICES = [
+        (CURRENT, "Current"),
+        (EXPIRED, "Expired"),
+        (QUEUED, "Queued")
+    ]
     status = models.CharField(max_length=1, choices=CLAIM_STATUS_CHOICES,
         help_text = "The status of this claim.")
 

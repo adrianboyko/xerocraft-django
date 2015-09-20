@@ -22,7 +22,6 @@ class TestTemplateToInstanceCopy(TestCase):
             short_desc = "A test",
             work_estimate = 1.5,
             start_date = date.today(),
-            flexible_dates = True,
             repeat_interval = 1,)
 
         self.rt.eligible_tags.add(tag1,tag2)
@@ -78,7 +77,6 @@ class TestRecurringTaskTemplateIntervals(TestCase):
             short_desc = "A test",
             work_estimate = 1.5,
             start_date = date.today(),
-            flexible_dates = True,
             repeat_interval = 28)
 
     def test_create_tasks(self):
