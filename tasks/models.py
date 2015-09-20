@@ -194,8 +194,7 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
         ordinal_matches = (ord_num==1 and self.first) \
             or (ord_num==2 and self.second) \
             or (ord_num==3 and self.third) \
-            or (ord_num==4 and self.fourth) \
-            or (ord_num==4 and self.last)
+            or (ord_num==4 and self.fourth)
 
         return ordinal_matches
 
