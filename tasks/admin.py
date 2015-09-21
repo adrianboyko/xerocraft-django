@@ -6,6 +6,13 @@ from django.contrib.auth.models import User
 from tasks.models import RecurringTaskTemplate, Task, TaskNote, Claim, Work, Nag
 
 
+def duration_fmt(dur):
+    if dur is None: return
+    from tasks.templatetags.tasks_extras import duration_str
+    return duration_str(dur)
+duration_fmt.short_description = "Duration"
+
+
 def toggle_should_nag(model_admin, request, query_set):
     for obj in query_set:
         assert type(obj) is Task or type(obj) is RecurringTaskTemplate
@@ -21,6 +28,9 @@ def toggle_should_nag_for_instances(model_admin, request, query_set):
 
 class RecurringTaskTemplateAdmin(admin.ModelAdmin):
 
+    def duration_fmt(self, obj): return duration_fmt(obj.duration)
+    duration_fmt.short_description = "Duration"
+
     save_as = True
 
     # Following overrides the empty changelist value. See http://stackoverflow.com/questions/28174881/
@@ -28,7 +38,7 @@ class RecurringTaskTemplateAdmin(admin.ModelAdmin):
         super(RecurringTaskTemplateAdmin, self).__init__(*args, **kwargs)
         main.EMPTY_CHANGELIST_VALUE = '-'
 
-    list_display = ['short_desc','recurrence_str', 'start_time', 'duration', 'owner', 'reviewer', 'active', 'should_nag']
+    list_display = ['short_desc','recurrence_str', 'start_time', 'duration_fmt', 'owner', 'reviewer', 'active', 'should_nag']
     actions = [toggle_should_nag, toggle_should_nag_for_instances]
 
     class Media:
@@ -116,9 +126,12 @@ class TaskAdmin(admin.ModelAdmin):
             "all": ("tasks/task_admin.css",)
         }
 
+    def duration_fmt(self, obj): return duration_fmt(obj.duration)
+    duration_fmt.short_description = "Duration"
+
     actions = [toggle_should_nag]
     filter_horizontal = ['eligible_claimants', 'eligible_tags']
-    list_display = ['pk', 'short_desc', 'scheduled_weekday', 'scheduled_date', 'start_time', 'duration', 'owner', 'should_nag', 'work_done', 'reviewer', 'work_accepted']
+    list_display = ['pk', 'short_desc', 'scheduled_weekday', 'scheduled_date', 'start_time', 'duration_fmt', 'owner', 'should_nag', 'work_done', 'reviewer', 'work_accepted']
     search_fields = ['short_desc', 'instructions']
 
     fieldsets = [

@@ -1,4 +1,6 @@
 <!DOCTYPE html>
+
+{% load tasks_extras %}
 <html lang="en">
 <head>
     <title>Task Offer</title>
@@ -43,7 +45,7 @@
         You have clicked the following task:
         <br/>"{{task.short_desc}}"
         <br/>{{dow}} {{task.scheduled_date}}
-        <br/>{{task.start_time}} for {{task.duration}}
+        <br/>{{task.start_time}} for {{task.duration|duration_str}}
     </p>
 
     <p>
