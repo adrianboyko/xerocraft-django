@@ -14,7 +14,8 @@ urlpatterns = [
     url(r'^offers-done/(?P<auth_token>[-_a-zA-Z0-9]{32})/$', views.offers_done, name='offers-done'),
 
     # Calendars
-    url(r'^all-xerocraft-tasks.ics$', views.AllTasksFeed(), name='all-xerocraft-tasks'),
-    url(r'^my-xerocraft-tasks.ics$', views.MyTasksFeed(), name='my-xerocraft-tasks'),
+    url(r'^member-calendar/$', views.member_calendar, name='member-calendar'),
+    url(r'^resource-calendar/$', views.resource_calendar, name='resource-calendar'),
+    url(r'^xerocraft-calendar/$', views.xerocraft_calendar, name='xerocraft-calendar'),
 
 ]

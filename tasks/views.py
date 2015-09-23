@@ -11,7 +11,8 @@ from datetime import date, datetime
 from tasks.models import Task, Nag, Claim
 from members.models import Member
 
-from django_ical.views import ICalFeed
+from icalendar import Calendar, Event
+
 
 def _get_task_and_nag(task_pk, auth_token):
     md5str = md5(auth_token.encode()).hexdigest()
@@ -158,6 +159,65 @@ def task_details(request, task_pk):
     return render(request, "tasks/task_details.html", {'task': task})
 
 
+def _new_calendar(name):
+    cal = Calendar()
+    cal['x-wr-calname'] = "My Xerocraft Tasks"
+    cal['version'] = "2.0"
+    cal['calscale'] = "GREGORIAN"
+    cal['method'] = "PUBLISH"
+    return cal
+
+
+def _add_event(cal, task):
+    dtstart = datetime.combine(task.scheduled_date, task.start_time)
+    event = Event()
+    event.add('uid',         task.pk)
+    event.add('url',         "http://xerocraft-django.herokuapp.com/tasks/task-details/%d/" % task.pk)
+    event.add('summary',     task.short_desc)
+    event.add('description', task.instructions.replace("\r\n", " "))
+    event.add('dtstart',     dtstart)
+    event.add('dtend',       dtstart + task.duration)
+    event.add('dtstamp',     datetime.now())
+    cal.add_component(event)
+
+
+def _ical_response(cal):
+    ics = cal.to_ical()
+    response = HttpResponse(ics, content_type='text/calendar')
+    return response
+
+
+def member_calendar(request):  #TODO: Generalize to all users.
+    member = Member.objects.get(auth_user__username='adrianb')
+    cal = _new_calendar("My Xerocraft Tasks")
+    for task in member.tasks_claimed.all():
+        if task.scheduled_date is None or task.start_time is None or task.duration is None:
+            continue
+        _add_event(cal,task)
+        #TODO: Add ALARM
+    return _ical_response(cal)
+
+
+def xerocraft_calendar(request):
+    cal = _new_calendar("All Xerocraft Tasks")
+    for task in Task.objects.all():
+        if task.scheduled_date is None or task.start_time is None or task.duration is None:
+            continue
+        _add_event(cal,task)
+        # Intentionally lacks ALARM
+    return _ical_response(cal)
+
+
+def resource_calendar(request):
+    cal = _new_calendar("Xerocraft Resource Usage")
+    #for task in Task.objects.all():
+    #    if task.scheduled_date is None or task.start_time is None or task.duration is None:
+    #        continue
+    #    _add_event(cal,task)
+    #    # Intentionally lacks ALARM
+    return _ical_response(cal)
+
+'''
 class TaskFeed(ICalFeed):
 
     def item_title(self, item):
@@ -213,4 +273,5 @@ class MyTasksFeed(TaskFeed):
                 continue
             result.append(task)
         return result
+'''
 
