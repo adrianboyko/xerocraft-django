@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+
+{% load tasks_extras %}
+
+<html lang="en">
+<head>
+    <title>Task Info</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Roboto Condensed">
+    <style>
+        body { text-align: center; font-family:"Roboto Condensed"; font-size:12pt; }
+        ul { margin-top: 0pt; }
+        p { margin:0; }
+        #short_desc { font-size:16pt; }
+        #instructions { margin-top:10px; color:blue; }
+        table { border-collapse: collapse; }
+        td {border:1px; padding-top:15px}
+        .n { font-size:11pt; text-decoration:underline; }
+    </style>
+
+</head>
+<body>
+    <p id="short_desc">{{task.short_desc}}</p>
+    <p>Scheduled {{task.scheduled_date|date:"D M d"}}</p>
+    <p>{{task.start_time}} for {{task.duration|duration_str}}</p>
+
+    <p id="instructions">{{task.instructions}}</p>
+    <table width="100%" align="center">
+        <tr>
+            <td width="33%"><span class="n">Owner</span><br/>{{task.owner}}</td>
+            <td width="33%"><span class="n">Reviewer</span><br/>{{task.reviewer}}</td>
+            <td width="33%"><span class="n">Deadline</span><br/>
+                {% if task.scheduled_date != None %}
+                    N/A
+                {% else %}
+                    {{task.deadline}}
+                {% endif %}</td>
+        </tr>
+        <tr>
+            <td width="33%"><span class="n">Done?</span><br/>{{task.work_done|yesno:"Yes,No,?"}}</td>
+            <td width="33%"><span class="n">Accepted?</span><br/>
+                {% if task.reviewer == None %}
+                    N/A
+                {% else %}
+                    {{task.work_accepted|yesno:"Yes,No,?"}}
+                {% endif %}</td>
+            <td width="33%"><span class="n">Priority</span><br/>{{task.priority}}</td>
+        </tr>
+    </table>
+    {% for note in task.notes %}
+    {% endfor %}
+</body>
+</html>

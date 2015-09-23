@@ -13,7 +13,6 @@ from members.models import Member
 
 from django_ical.views import ICalFeed
 
-
 def _get_task_and_nag(task_pk, auth_token):
     md5str = md5(auth_token.encode()).hexdigest()
     task = get_object_or_404(Task, pk=task_pk)
@@ -152,6 +151,11 @@ def offer_adjacent_tasks(request, auth_token):
 
 def offers_done(request, auth_token):
     return render(request, 'tasks/offers_done.html', {"auth_token":auth_token})
+
+
+def task_details(request, task_pk):
+    task = get_object_or_404(Task, pk=task_pk)
+    return render(request, "tasks/task_details.html", {'task': task})
 
 
 class TaskFeed(ICalFeed):
