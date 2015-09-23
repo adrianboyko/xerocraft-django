@@ -181,7 +181,8 @@ class TaskFeed(ICalFeed):
         return item.pk
 
     def item_link(self, item):
-        return "/tasks/task-info/%d" % item.pk
+        #TODO: Can the URL be looked up by name instead of hard coded?
+        return "/tasks/task-details/%d" % item.pk
 
     class Meta:
         abstract = True
