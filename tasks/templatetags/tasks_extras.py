@@ -16,14 +16,16 @@ def duration_str(some_duration):
 
     def fmt(n, str):
         if n > 0:
-            result = "%d %s%s, " % (n, str, "" if days==1 else "s")
+            result = "%d %s%s, " % (n, str, "" if n==1 else "s")
         else:
             result = ""
-        return result[:-2] if result.endswith(', ') else result
+        return result
 
     days_str = fmt(days,"day")
     hours_str = fmt(hours,"hr")
     minutes_str = fmt(minutes,"min")
     seconds_str = fmt(seconds,"sec")
 
-    return days_str + hours_str + minutes_str + seconds_str
+    str = days_str + hours_str + minutes_str + seconds_str
+    return str[:-2] if str.endswith(', ') else str
+
