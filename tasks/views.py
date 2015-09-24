@@ -203,6 +203,8 @@ def xerocraft_calendar(request):
     for task in Task.objects.all():
         if task.scheduled_date is None or task.start_time is None or task.duration is None:
             continue
+        if task.short_desc == "Open Xerocraft" or task.short_desc == "Close Xerocraft":
+            continue
         _add_event(cal,task)
         # Intentionally lacks ALARM
     return _ical_response(cal)
