@@ -161,7 +161,7 @@ def task_details(request, task_pk):
 
 def _new_calendar(name):
     cal = Calendar()
-    cal['x-wr-calname'] = "My Xerocraft Tasks"
+    cal['x-wr-calname'] = name
     cal['version'] = "2.0"
     cal['calscale'] = "GREGORIAN"
     cal['method'] = "PUBLISH"
