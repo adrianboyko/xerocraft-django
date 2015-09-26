@@ -133,7 +133,8 @@ class TaskAdmin(admin.ModelAdmin):
     filter_horizontal = ['eligible_claimants', 'eligible_tags']
     list_display = ['pk', 'short_desc', 'scheduled_weekday', 'scheduled_date', 'start_time', 'duration_fmt', 'owner', 'should_nag', 'work_done', 'reviewer', 'work_accepted']
     search_fields = ['short_desc', 'instructions']
-
+    list_filter = ['scheduled_date']
+    date_hierarchy = 'scheduled_date'
     fieldsets = [
 
         (None, {'fields': [
