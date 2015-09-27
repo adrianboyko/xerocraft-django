@@ -40,6 +40,11 @@ class RecurringTaskTemplateAdmin(admin.ModelAdmin):
 
     list_display = ['short_desc','recurrence_str', 'start_time', 'duration_fmt', 'owner', 'reviewer', 'active', 'should_nag']
     actions = [toggle_should_nag, toggle_should_nag_for_instances]
+    search_fields = [
+        'short_desc',
+        'owner__auth_user__first_name',
+        'owner__auth_user__last_name',
+    ]
 
     class Media:
         css = {
@@ -132,8 +137,8 @@ class TaskAdmin(admin.ModelAdmin):
     actions = [toggle_should_nag]
     filter_horizontal = ['eligible_claimants', 'eligible_tags']
     list_display = ['pk', 'short_desc', 'scheduled_weekday', 'scheduled_date', 'start_time', 'duration_fmt', 'owner', 'should_nag', 'work_done', 'reviewer', 'work_accepted']
-    search_fields = ['short_desc', 'instructions']
-    list_filter = ['scheduled_date']
+    search_fields = ['short_desc', 'owner__auth_user__first_name', 'owner__auth_user__last_name']
+    list_filter = ['scheduled_date', 'work_done',]
     date_hierarchy = 'scheduled_date'
     fieldsets = [
 
@@ -165,7 +170,14 @@ class TaskAdmin(admin.ModelAdmin):
 
 
 class ClaimAdmin(admin.ModelAdmin):
+
     list_display = ['pk', 'task', 'member', 'hours_claimed', 'date', 'status']
+    list_filter = ['status']
+    search_fields = [
+        'member__auth_user__first_name',
+        'member__auth_user__last_name',
+        'task__short_desc',
+    ]
 
 
 class NagAdmin(admin.ModelAdmin):
