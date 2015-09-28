@@ -60,7 +60,7 @@ def offer_more_tasks(request, task_pk, auth_token):
             t = Task.objects.get(pk=pk)
             # TODO: There's some risk that user will end up here via browser history. Catch unique violoation exception?
             Claim.objects.create(task=t, member=nag.who, hours_claimed=t.duration.seconds/3600.0, status=Claim.CURRENT)
-        return redirect('task:offer-adjacent-tasks', auth_token=auth_token)
+        return redirect('task:offers-done', auth_token=auth_token)
 
     else: # GET or other methods:
 
@@ -87,10 +87,11 @@ def offer_more_tasks(request, task_pk, auth_token):
                 "auth_token": auth_token,
             }
             return render(request, 'tasks/offer_more_tasks.html', params)
-        else:  # There aren't any future instances of interest so go to "offer adjacent tasks"
-            return redirect('task:offer-adjacent-tasks', auth_token=auth_token)
+        else:  # There aren't any future instances of interest so we're done"
+            return redirect('task:offers-done', auth_token=auth_token)
 
 
+"""
 def offer_adjacent_tasks(request, auth_token):
 
     md5str = md5(auth_token.encode()).hexdigest()
@@ -151,6 +152,7 @@ def offer_adjacent_tasks(request, auth_token):
             return render(request, 'tasks/offer_adjacent_tasks.html', params)
         else:  # There aren't any future instances of interest so go to "offer adjacent tasks"
             return redirect('task:offers-done', auth_token=auth_token)
+"""
 
 
 def offers_done(request, auth_token):
@@ -221,62 +223,4 @@ def resource_calendar(request):
     #    _add_event(cal,task)
     #    # Intentionally lacks ALARM
     return _ical_response(cal)
-
-'''
-class TaskFeed(ICalFeed):
-
-    def item_title(self, item):
-        return item.short_desc
-
-    def item_description(self, item):
-        desc = item.instructions
-        desc = desc.replace("\r\n", " ")
-        return desc
-
-    def item_start_datetime(self, item):
-        dtstart = datetime.combine(item.scheduled_date, item.start_time)
-        return dtstart
-
-    def item_end_datetime(self, item):
-        dtstart = datetime.combine(item.scheduled_date, item.start_time)
-        dtend = dtstart + item.duration
-        return dtend
-
-    def item_guid(self, item):
-        return item.pk
-
-    def item_link(self, item):
-        #TODO: Can the URL be looked up by name instead of hard coded?
-        return "/tasks/task-details/%d" % item.pk
-
-    class Meta:
-        abstract = True
-
-
-class AllTasksFeed(TaskFeed):
-    file_name = "AllXerocraftTasks.ics"
-    title = "All Xerocraft Tasks"
-
-    def items(self):
-        result = []
-        for task in Task.objects.all():
-            if task.scheduled_date is None or task.start_time is None or task.duration is None:
-                continue
-            result.append(task)
-        return result
-
-
-class MyTasksFeed(TaskFeed):
-    file_name = "MyXerocraftTasks.ics"
-    title = "My Xerocraft Tasks"
-
-    def items(self):
-        result = []
-        member = Member.objects.get(auth_user__username='adrianb')
-        for task in member.tasks_claimed.all():
-            if task.scheduled_date is None or task.start_time is None or task.duration is None:
-                continue
-            result.append(task)
-        return result
-'''
 
