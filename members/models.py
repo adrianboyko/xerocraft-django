@@ -59,7 +59,7 @@ class Member(models.Model):
 
     @staticmethod
     def generate_auth_token_str(is_unique):
-        """Generate a token (and its md5) which will be used in nag email urls."""
+        """Generate a token (and its md5) which will be used in nag email urls, icalendar urls, etc."""
 
         # Note: This is very similar to the generator in membership. Should there be one util that serves both apps?
 
