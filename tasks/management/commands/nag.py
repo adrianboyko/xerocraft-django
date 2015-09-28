@@ -10,31 +10,29 @@ import datetime
 from decimal import Decimal
 
 
+def oneday_today_tomorrow_nextweek():
+    oneday = datetime.timedelta(days=1)
+    today = datetime.date.today()
+    tomorrow = today + oneday
+    nextweek = today + datetime.timedelta(weeks=+1)
+    return oneday, today, tomorrow, nextweek
+
+
 class Command(BaseCommand):
 
     help = "Emails members asking them to work tasks."
 
-    def handle(self, *args, **options):
+    @staticmethod
+    def nag_for_workers():
+        oneday, today, tomorrow, nextweek = oneday_today_tomorrow_nextweek()
 
-        # Find out who's doing what over the next week.
-        oneday = datetime.timedelta(days=1)
-        today = datetime.date.today()
-        tomorrow = today + oneday
-        nextweek = today + datetime.timedelta(weeks=+1)
-
-        already_scheduled = Claim.sum_in_period(today, nextweek)
-
-        # Determine who has already signed up for "a lot" of work already. Threshold value is arbitrary.
-        heavily_scheduled = set([member for member,hours in already_scheduled.items() if hours >= 6.0])
+        # Find out who's doing what over the next week. Who's already scheduled to work and who's heavily scheduled?
+        ppl_already_scheduled = Claim.sum_in_period(today, nextweek)
+        ppl_heavily_scheduled = set([member for member,hours in ppl_already_scheduled.items() if hours >= 6.0])
 
         # Cycle through the next week's NAGGING tasks to see which need workers and who should be nagged.
         nag_lists = {}
         for task in Task.objects.filter(scheduled_date__gte=today, scheduled_date__lte=nextweek, should_nag=True):
-
-            # Skip open/close tasks that aren't happening today. They'll likely be filled by views.offer_adjacent_tasks().
-            if (task.short_desc == "Open Xerocraft" or task.short_desc == "Close Xerocraft") \
-               and task.scheduled_date != today:
-                continue
 
             # No need to nag if task is fully claimed or marked as "done".
             if task.work_done or task.is_fully_claimed():
@@ -44,7 +42,7 @@ class Command(BaseCommand):
             # If a given member is already heavily scheduled this week, don't nag them
             # except for tasks today or tomorrow that aren't fully staffed.
             if (task.scheduled_date - today) > datetime.timedelta(days=1):
-                potentials -= heavily_scheduled
+                potentials -= ppl_heavily_scheduled
             # People without email addresses can't be nagged:
             potentials = [p for p in potentials if p.email > ""]
             for member in potentials:
@@ -79,3 +77,12 @@ class Command(BaseCommand):
             msg = EmailMultiAlternatives(subject, text_content, from_email, [to])
             msg.attach_alternative(html_content, "text/html")
             msg.send()
+
+    @staticmethod
+    def nag_for_keyholders():
+        pass  #TODO
+
+    def handle(self, *args, **options):
+
+        self.nag_for_workers()
+        self.nag_for_keyholders()
