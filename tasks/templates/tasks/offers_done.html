@@ -28,14 +28,14 @@
         Thanks for volunteering!
     </p>
     <p>
-        If you haven't already done so, consider subscribing to your Xerocraft calendar so
-        that your phone or computer can remind you of upcoming tasks. For instructions,
-        click the appropriate link, below:
+        If you haven't already done so, consider
+        <br/>subscribing to your Xerocraft calendar so
+        <br/>that your phone or computer can remind you
+        <br/>of upcoming tasks. A link to your calendar
+        <br/>(in "icalendar" format) appears below:
     </p>
 
-    <p><a href="">iOS</a></p>
-    <p><a href="">Android</a></p>
-    <p><a href="">Google</a></p>
+    <p><a href="{% url 'task:member-calendar' token=settings.token %}">{{member.first_name}}'s Calendar</a></p>
 
 </body>
 </html>

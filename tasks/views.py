@@ -8,7 +8,7 @@ from django.utils import timezone
 from hashlib import md5
 from datetime import date, datetime
 
-from tasks.models import Task, Nag, Claim
+from tasks.models import Task, Nag, Claim, CalendarSettings
 from members.models import Member
 
 from icalendar import Calendar, Event
@@ -156,7 +156,17 @@ def offer_adjacent_tasks(request, auth_token):
 
 
 def offers_done(request, auth_token):
-    return render(request, 'tasks/offers_done.html', {"auth_token":auth_token})
+    md5str = md5(auth_token.encode()).hexdigest()
+    nag = get_object_or_404(Nag, auth_token_md5=md5str)
+    member = nag.who
+    try:
+        settings = CalendarSettings.objects.get(who=member)
+    except CalendarSettings.DoesNotExist:
+        _, md5str = Member.generate_auth_token_str(
+            lambda token: CalendarSettings.objects.filter(token=token).count() == 0  # uniqueness test
+        )
+        settings = CalendarSettings.objects.create(who=member, token=md5str)
+    return render(request, 'tasks/offers_done.html', {"member": member, "settings": settings})
 
 
 def task_details(request, task_pk):
@@ -192,7 +202,7 @@ def _ical_response(cal):
     return response
 
 
-def member_calendar(request):  #TODO: Generalize to all users.
+def member_calendar(request, token):  #TODO: Generalize to all users.
     member = Member.objects.get(auth_user__username='adrianb')
     cal = _new_calendar("My Xerocraft Tasks")
     for task in member.tasks_claimed.all():
