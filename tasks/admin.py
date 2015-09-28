@@ -3,7 +3,7 @@ from django.contrib.admin.views import main
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
 
-from tasks.models import RecurringTaskTemplate, Task, TaskNote, Claim, Work, Nag
+from tasks.models import RecurringTaskTemplate, Task, TaskNote, Claim, Work, Nag, CalendarSettings
 
 
 def duration_fmt(dur):
@@ -225,7 +225,11 @@ class NagAdmin(admin.ModelAdmin):
     readonly_fields = ['who','auth_token_md5','tasks']
 
 
+class CalendarSettingsAdmin(admin.ModelAdmin):
+    list_display = ['pk', 'who', 'token', 'include_alarms',]
+
 admin.site.register(RecurringTaskTemplate, RecurringTaskTemplateAdmin)
 admin.site.register(Task, TaskAdmin)
 admin.site.register(Claim, ClaimAdmin)
 admin.site.register(Nag, NagAdmin)
+admin.site.register(CalendarSettings, CalendarSettingsAdmin)

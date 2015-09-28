@@ -545,3 +545,6 @@ class CalendarSettings(models.Model):
 
     include_alarms = models.BooleanField(default=True,
         help_text="The member can control whether or not their calendar includes alarms.")
+
+    class Meta:
+        verbose_name_plural = "Calendar settings"
