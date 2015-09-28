@@ -532,3 +532,16 @@ class Nag(models.Model):
             self.who.last_name,
             self.tasks.count(),
             self.when.strftime('%b %d'))
+
+
+class CalendarSettings(models.Model):
+    """ Contains info pertaining to icalendar access for members """
+
+    who = models.ForeignKey(mm.Member, null=False, blank=False, on_delete=models.CASCADE,
+        help_text = "Member the calendar corresponds to.")
+
+    token = models.CharField(max_length=32, null=False, blank=False,
+        help_text="Random hex string used to access calendar.")
+
+    include_alarms = models.BooleanField(default=True,
+        help_text="The member can control whether or not their calendar includes alarms.")
