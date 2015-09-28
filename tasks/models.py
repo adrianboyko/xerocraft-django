@@ -392,6 +392,9 @@ class Task(make_TaskMixin("Tasks")):
     workers = models.ManyToManyField(mm.Member, through=Work, related_name="tasks_worked",
         help_text="The people who have actually posted hours against this task.")
 
+    # TODO: Replace work_done and work_accepted with "status" field: NOMINAL, WORK_DONE, AWAITING_REVIEW, CLOSED, CANCELED
+    # If reviewer is None, setting status to AWAITING_REVIEW should skip to CLOSED.
+
     work_done = models.BooleanField(default=False,
         help_text="The person who does the work sets this to true when the work is completely done.")
 
