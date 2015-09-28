@@ -13,19 +13,51 @@ def duration_fmt(dur):
 duration_fmt.short_description = "Duration"
 
 
-def toggle_should_nag(model_admin, request, query_set):
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+def set_active(query_set, setting):
     for obj in query_set:
-        assert type(obj) is Task or type(obj) is RecurringTaskTemplate
-        obj.should_nag = not obj.should_nag
+        obj.active = setting
         obj.save()
 
 
-def toggle_should_nag_for_instances(model_admin, request, query_set):
+def set_active_off(model_admin, request, query_set):
+    set_active(query_set, False)
+
+
+def set_active_on(model_admin, request, query_set):
+    set_active(query_set, True)
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+def set_nag(query_set, setting):
+    for obj in query_set:
+        obj.should_nag = setting
+        obj.save()
+
+
+def set_nag_off(model_admin, request, query_set):
+    set_nag(query_set, False)
+
+
+def set_nag_on(model_admin, request, query_set):
+    set_nag(query_set, True)
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+def set_nag_for_instances(query_set, setting):
     for template in query_set:
-        assert type(template) is RecurringTaskTemplate
-        toggle_should_nag(model_admin, request, template.instances.all())
+        set_nag(template.instances.all(), setting)
 
 
+def set_nag_off_for_instances(model_admin, request, query_set):
+    set_nag_for_instances(query_set, False)
+
+
+def set_nag_on_for_instances(model_admin, request, query_set):
+    set_nag_for_instances(query_set, True)
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 class RecurringTaskTemplateAdmin(admin.ModelAdmin):
 
     def duration_fmt(self, obj): return duration_fmt(obj.duration)
@@ -38,8 +70,16 @@ class RecurringTaskTemplateAdmin(admin.ModelAdmin):
         super(RecurringTaskTemplateAdmin, self).__init__(*args, **kwargs)
         main.EMPTY_CHANGELIST_VALUE = '-'
 
+    list_filter = ['active','should_nag']
     list_display = ['short_desc','recurrence_str', 'start_time', 'duration_fmt', 'owner', 'reviewer', 'active', 'should_nag']
-    actions = [toggle_should_nag, toggle_should_nag_for_instances]
+    actions = [
+        set_nag_on,
+        set_nag_off,
+        set_nag_on_for_instances,
+        set_nag_off_for_instances,
+        set_active_on,
+        set_active_off,
+    ]
     search_fields = [
         'short_desc',
         'owner__auth_user__first_name',
@@ -134,7 +174,7 @@ class TaskAdmin(admin.ModelAdmin):
     def duration_fmt(self, obj): return duration_fmt(obj.duration)
     duration_fmt.short_description = "Duration"
 
-    actions = [toggle_should_nag]
+    actions = [set_nag_on, set_nag_off]
     filter_horizontal = ['eligible_claimants', 'eligible_tags']
     list_display = ['pk', 'short_desc', 'scheduled_weekday', 'scheduled_date', 'start_time', 'duration_fmt', 'owner', 'should_nag', 'work_done', 'reviewer', 'work_accepted']
     search_fields = ['short_desc', 'owner__auth_user__first_name', 'owner__auth_user__last_name']
