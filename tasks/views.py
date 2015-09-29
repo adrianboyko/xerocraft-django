@@ -38,6 +38,7 @@ def offer_task(request, task_pk, auth_token):
         # TODO: Is task fully claimed?
         # TODO: Is task scheduled in the past?
         # TODO: Is member still eligible to work the task?
+        # TODO: Is member already scheduled for another task in this time slot?
 
         params = {
             "task": task,
@@ -91,17 +92,34 @@ def offer_more_tasks(request, task_pk, auth_token):
             return redirect('task:offers-done', auth_token=auth_token)
 
 
-def offers_done(request, auth_token):
-    md5str = md5(auth_token.encode()).hexdigest()
-    nag = get_object_or_404(Nag, auth_token_md5=md5str)
-    member = nag.who
+def offers_done(request, token):
+
+    # See if token corresponds to a nag and get member from there, if it is.
+    md5str = md5(token.encode()).hexdigest()
+    try:
+        nag = Nag.objects.get(auth_token_md5=md5str)
+        member = nag.who
+    except Nag.DoesNotExist:
+        member = None
+
+    # If token didn't correspond to nag, see if it's a member card string:
+    if member is None:
+        member = Member.get_by_card_str(token)
+
+    if member is None:
+        raise Http404("No such calendar")
+
+    # Get the member's calendar settings, or create them if they don't exist:
     try:
         settings = CalendarSettings.objects.get(who=member)
     except CalendarSettings.DoesNotExist:
+        # I'm arbitrarily choosing md5str, below, but the fact that it came from md5 doesn't matter.
         _, md5str = Member.generate_auth_token_str(
             lambda token: CalendarSettings.objects.filter(token=token).count() == 0  # uniqueness test
         )
         settings = CalendarSettings.objects.create(who=member, token=md5str)
+
+    # Return page with a link to the calendar:
     return render(request, 'tasks/offers_done.html', {"member": member, "settings": settings})
 
 
@@ -135,6 +153,7 @@ def _add_event(cal, task):
 def _ical_response(cal):
     ics = cal.to_ical()
     response = HttpResponse(ics, content_type='text/calendar')
+    # TODO: Add filename?
     return response
 
 

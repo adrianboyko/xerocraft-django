@@ -13,7 +13,7 @@ urlpatterns = [
     url(r'^offers-done/(?P<auth_token>[-_a-zA-Z0-9]{32})/$', views.offers_done, name='offers-done'),
 
     # Calendars
-    url(r'^member-calendar/(?P<token>[a-f0-9]{32})/$', views.member_calendar, name='member-calendar'),
+    url(r'^member-calendar/(?P<token>[-_a-zA-Z0-9]{32})/$', views.member_calendar, name='member-calendar'),
     url(r'^resource-calendar/$', views.resource_calendar, name='resource-calendar'),
     url(r'^xerocraft-calendar/$', views.xerocraft_calendar, name='xerocraft-calendar'),
 
