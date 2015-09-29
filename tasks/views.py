@@ -92,22 +92,11 @@ def offer_more_tasks(request, task_pk, auth_token):
             return redirect('task:offers-done', auth_token=auth_token)
 
 
-def offers_done(request, token):
+def offers_done(request, auth_token):
 
-    # See if token corresponds to a nag and get member from there, if it is.
-    md5str = md5(token.encode()).hexdigest()
-    try:
-        nag = Nag.objects.get(auth_token_md5=md5str)
-        member = nag.who
-    except Nag.DoesNotExist:
-        member = None
-
-    # If token didn't correspond to nag, see if it's a member card string:
-    if member is None:
-        member = Member.get_by_card_str(token)
-
-    if member is None:
-        raise Http404("No such calendar")
+    md5str = md5(auth_token.encode()).hexdigest()
+    nag = get_object_or_404(Nag, auth_token_md5=md5str)
+    member = nag.who
 
     # Get the member's calendar settings, or create them if they don't exist:
     try:
@@ -115,7 +104,7 @@ def offers_done(request, token):
     except CalendarSettings.DoesNotExist:
         # I'm arbitrarily choosing md5str, below, but the fact that it came from md5 doesn't matter.
         _, md5str = Member.generate_auth_token_str(
-            lambda token: CalendarSettings.objects.filter(token=token).count() == 0  # uniqueness test
+            lambda t: CalendarSettings.objects.filter(token=t).count() == 0  # uniqueness test
         )
         settings = CalendarSettings.objects.create(who=member, token=md5str)
 
@@ -157,26 +146,66 @@ def _ical_response(cal):
     return response
 
 
-def member_calendar(request, token):  #TODO: Generalize to all users.
-    member = Member.objects.get(auth_user__username='adrianb')
-    cal = _new_calendar("My Xerocraft Tasks")
+def _gen_tasks_for(member):
     for task in member.tasks_claimed.all():
         if task.scheduled_date is None or task.start_time is None or task.duration is None:
             continue
-        _add_event(cal,task)
+        yield task
+
+
+def _gen_all_tasks():
+    for task in Task.objects.all():
+        if task.scheduled_date is None or task.start_time is None or task.duration is None:
+            continue
+        yield task
+
+
+def member_calendar(request, token):
+
+    # See if token corresponds to a CalendarSettings token:
+    try:
+        cal_settings = CalendarSettings.objects.get(token=token)
+        member = cal_settings.who
+    except Nag.DoesNotExist:
+        member = None
+
+    # If token didn't correspond to nag, see if it's a member card string:
+    if member is None:
+        member = Member.get_by_card_str(token)
+
+    if member is None:
+        raise Http404("No such calendar")
+
+    cal = _new_calendar("My Xerocraft Tasks")
+    for task in _gen_tasks_for(member):
+        _add_event(cal, task)
         #TODO: Add ALARM
     return _ical_response(cal)
 
 
 def xerocraft_calendar(request):
     cal = _new_calendar("All Xerocraft Tasks")
-    for task in Task.objects.all():
-        if task.scheduled_date is None or task.start_time is None or task.duration is None:
-            continue
-        if task.short_desc == "Open Xerocraft" or task.short_desc == "Close Xerocraft":
-            continue
-        _add_event(cal,task)
+    for task in _gen_all_tasks():
+        _add_event(cal, task)
         # Intentionally lacks ALARM
+    return _ical_response(cal)
+
+
+def xerocraft_calendar_staffed(request):
+    cal = _new_calendar("Xerocraft Staffed Tasks")
+    for task in _gen_all_tasks():
+        if task.is_fully_claimed():
+            _add_event(cal, task)
+            # Intentionally lacks ALARM
+    return _ical_response(cal)
+
+
+def xerocraft_calendar_unstaffed(request):
+    cal = _new_calendar("Xerocraft Unstaffed Tasks")
+    for task in _gen_all_tasks():
+        if not task.is_fully_claimed():
+            _add_event(cal, task)
+            # Intentionally lacks ALARM
     return _ical_response(cal)
 
 

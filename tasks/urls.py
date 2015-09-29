@@ -16,5 +16,7 @@ urlpatterns = [
     url(r'^member-calendar/(?P<token>[-_a-zA-Z0-9]{32})/$', views.member_calendar, name='member-calendar'),
     url(r'^resource-calendar/$', views.resource_calendar, name='resource-calendar'),
     url(r'^xerocraft-calendar/$', views.xerocraft_calendar, name='xerocraft-calendar'),
+    url(r'^xerocraft-calendar/staffed/$', views.xerocraft_calendar_staffed, name='xerocraft-calendar-staffed'),
+    url(r'^xerocraft-calendar/unstaffed/$', views.xerocraft_calendar_unstaffed, name='xerocraft-calendar-unstaffed'),
 
 ]
