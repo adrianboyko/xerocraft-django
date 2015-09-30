@@ -85,3 +85,12 @@ class TestRecurringTaskTemplateIntervals(TestCase):
         # create_tasks should be idempotent for a particular argument.
         self.rt.create_tasks(365)
         self.assertEqual(len(Task.objects.all()), 13)
+
+
+class TestPriorityMatch(TestCase):
+
+    def testPrioMatch(self):
+        ''' There is admin code that depends on these being equal. '''
+        self.assertEqual(Task.LOW_PRIO, RecurringTaskTemplate.LOW_PRIO)
+        self.assertEqual(Task.MED_PRIO, RecurringTaskTemplate.MED_PRIO)
+        self.assertEqual(Task.HIGH_PRIO, RecurringTaskTemplate.HIGH_PRIO)

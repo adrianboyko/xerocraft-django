@@ -14,6 +14,28 @@ duration_fmt.short_description = "Duration"
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# These work for Task and RecurringTaskTemplate because
+# Task.<X>_PRIO == RecurringTaskTemplate.<X>_PRIO for all defined X.
+
+def set_priority(query_set, setting):
+    for obj in query_set:
+        obj.priority = setting
+        obj.save()
+
+
+def set_priority_low(model_admin, request, query_set):
+    set_priority(query_set, Task.LOW_PRIO)
+
+
+def set_priority_med(model_admin, request, query_set):
+    set_priority(query_set, Task.MED_PRIO)
+
+
+def set_priority_high(model_admin, request, query_set):
+    set_priority(query_set, Task.HIGH_PRIO)
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 def set_active(query_set, setting):
     for obj in query_set:
         obj.active = setting
@@ -63,6 +85,9 @@ class RecurringTaskTemplateAdmin(admin.ModelAdmin):
     def duration_fmt(self, obj): return duration_fmt(obj.duration)
     duration_fmt.short_description = "Duration"
 
+    def priority_fmt(self, obj): return obj.priority
+    priority_fmt.short_description = "Prio"
+
     save_as = True
 
     # Following overrides the empty changelist value. See http://stackoverflow.com/questions/28174881/
@@ -70,8 +95,11 @@ class RecurringTaskTemplateAdmin(admin.ModelAdmin):
         super(RecurringTaskTemplateAdmin, self).__init__(*args, **kwargs)
         main.EMPTY_CHANGELIST_VALUE = '-'
 
-    list_filter = ['active','should_nag']
-    list_display = ['short_desc','recurrence_str', 'start_time', 'duration_fmt', 'owner', 'reviewer', 'active', 'should_nag']
+    list_filter = ['priority', 'active', 'should_nag']
+    list_display = [
+        'short_desc', 'recurrence_str', 'start_time', 'duration_fmt',
+        'priority_fmt', 'owner', 'reviewer', 'active', 'should_nag'
+    ]
     actions = [
         set_nag_on,
         set_nag_off,
@@ -79,6 +107,9 @@ class RecurringTaskTemplateAdmin(admin.ModelAdmin):
         set_nag_off_for_instances,
         set_active_on,
         set_active_off,
+        set_priority_low,
+        set_priority_med,
+        set_priority_high,
     ]
     search_fields = [
         'short_desc',
@@ -102,6 +133,7 @@ class RecurringTaskTemplateAdmin(admin.ModelAdmin):
             'start_date',
             'start_time',
             'duration',
+            'priority',
             'active',
             'should_nag',
         ]}),
@@ -174,11 +206,23 @@ class TaskAdmin(admin.ModelAdmin):
     def duration_fmt(self, obj): return duration_fmt(obj.duration)
     duration_fmt.short_description = "Duration"
 
-    actions = [set_nag_on, set_nag_off]
+    def priority_fmt(self, obj): return obj.priority
+    priority_fmt.short_description = "Prio"
+
+    actions = [
+        set_nag_on,
+        set_nag_off,
+        set_priority_low,
+        set_priority_med,
+        set_priority_high,
+    ]
     filter_horizontal = ['eligible_claimants', 'eligible_tags']
-    list_display = ['pk', 'short_desc', 'scheduled_weekday', 'scheduled_date', 'start_time', 'duration_fmt', 'owner', 'should_nag', 'work_done', 'reviewer', 'work_accepted']
+    list_display = [
+        'pk', 'short_desc', 'scheduled_weekday', 'scheduled_date', 'start_time', 'duration_fmt',
+        'priority_fmt', 'owner', 'should_nag', 'work_done', 'reviewer', 'work_accepted'
+    ]
     search_fields = ['short_desc', 'owner__auth_user__first_name', 'owner__auth_user__last_name']
-    list_filter = ['scheduled_date', 'work_done',]
+    list_filter = ['scheduled_date', 'priority', 'work_done',]
     date_hierarchy = 'scheduled_date'
     fieldsets = [
 
