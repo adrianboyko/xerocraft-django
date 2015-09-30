@@ -116,6 +116,19 @@ def task_details(request, task_pk):
     task = get_object_or_404(Task, pk=task_pk)
     return render(request, "tasks/task_details.html", {'task': task})
 
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+AZ_TIMEZONE = '''BEGIN:VTIMEZONE
+TZID:America/Phoenix
+X-LIC-LOCATION:America/Phoenix
+BEGIN:STANDARD
+TZOFFSETFROM:-0700
+TZOFFSETTO:-0700
+TZNAME:MST
+DTSTART:19700101T000000
+END:STANDARD
+END:VTIMEZONE
+'''
 
 def _new_calendar(name):
     cal = Calendar()
@@ -123,6 +136,8 @@ def _new_calendar(name):
     cal['version'] = "2.0"
     cal['calscale'] = "GREGORIAN"
     cal['method'] = "PUBLISH"
+    tz = cal.from_ical(AZ_TIMEZONE)
+    cal.add_component(tz)
     return cal
 
 
