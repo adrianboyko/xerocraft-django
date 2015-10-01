@@ -292,13 +292,13 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
         if days_of_week:
             blank = '\u25CC'
             return "%s%s%s%s%s%s%s" % (
+                "S" if self.sunday else blank,
                 "M" if self.monday else blank,
                 "T" if self.tuesday else blank,
                 "W" if self.wednesday else blank,
                 "T" if self.thursday else blank,
                 "F" if self.friday else blank,
                 "S" if self.saturday else blank,
-                "S" if self.sunday else blank,
             )
         if intervals:
             if self.repeat_interval == 1:
@@ -312,7 +312,16 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
         return "%s [%s]" % (self.short_desc, self.recurrence_str())
 
     class Meta:
-        ordering = ['short_desc','-monday','-tuesday','-wednesday','-thursday','-friday','-saturday','-sunday']
+        ordering = [
+            'short_desc',
+            '-sunday',
+            '-monday',
+            '-tuesday',
+            '-wednesday',
+            '-thursday',
+            '-friday',
+            '-saturday',
+        ]
 
 
 class Claim(models.Model):
