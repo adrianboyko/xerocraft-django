@@ -145,7 +145,7 @@ def _add_event(cal, task):
     dtstart = datetime.combine(task.scheduled_date, task.start_time)
     event = Event()
     event.add('uid',         task.pk)
-    event.add('url',         "http://xerocraft-django.herokuapp.com/tasks/task-details/%d/" % task.pk)
+    event.add('url',         "http://xerocraft-django.herokuapp.com/tasks/task-details/%d/" % task.pk)  # TODO: Lookup instead of hard code?
     event.add('summary',     task.short_desc)
     event.add('description', task.instructions.replace("\r\n", " "))
     event.add('dtstart',     dtstart)
@@ -157,6 +157,7 @@ def _add_event(cal, task):
 def _ical_response(cal):
     ics = cal.to_ical()
     response = HttpResponse(ics, content_type='text/calendar')
+    # TODO: No cache header?
     # TODO: Add filename?
     return response
 
