@@ -113,8 +113,8 @@ class RecurringTaskTemplateAdmin(admin.ModelAdmin):
     ]
     search_fields = [
         'short_desc',
-        'owner__auth_user__first_name',
-        'owner__auth_user__last_name',
+        '^owner__auth_user__first_name',
+        '^owner__auth_user__last_name',
     ]
 
     class Media:
@@ -221,7 +221,11 @@ class TaskAdmin(admin.ModelAdmin):
         'pk', 'short_desc', 'scheduled_weekday', 'scheduled_date', 'start_time', 'duration_fmt',
         'priority_fmt', 'owner', 'should_nag', 'work_done', 'reviewer', 'work_accepted'
     ]
-    search_fields = ['short_desc', 'owner__auth_user__first_name', 'owner__auth_user__last_name']
+    search_fields = [
+        'short_desc',
+        '^owner__auth_user__first_name',
+        '^owner__auth_user__last_name'
+    ]
     list_filter = ['scheduled_date', 'priority', 'work_done',]
     date_hierarchy = 'scheduled_date'
     fieldsets = [
@@ -258,8 +262,8 @@ class ClaimAdmin(admin.ModelAdmin):
     list_display = ['pk', 'task', 'member', 'hours_claimed', 'date', 'status']
     list_filter = ['status']
     search_fields = [
-        'member__auth_user__first_name',
-        'member__auth_user__last_name',
+        '^member__auth_user__first_name',
+        '^member__auth_user__last_name',
         'task__short_desc',
     ]
 
