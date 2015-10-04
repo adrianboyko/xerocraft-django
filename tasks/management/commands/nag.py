@@ -34,8 +34,8 @@ class Command(BaseCommand):
         nag_lists = {}
         for task in Task.objects.filter(scheduled_date__gte=today, scheduled_date__lte=nextweek, should_nag=True):
 
-            # No need to nag if task is fully claimed or marked as "done".
-            if task.work_done or task.is_fully_claimed():
+            # No need to nag if task is fully claimed or not workable.
+            if (not task.status == Task.WORKABLE) or task.is_fully_claimed():
                 continue
 
             potentials = task.all_eligible_claimants() - task.current_claimants()

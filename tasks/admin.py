@@ -219,14 +219,14 @@ class TaskAdmin(admin.ModelAdmin):
     filter_horizontal = ['eligible_claimants', 'eligible_tags']
     list_display = [
         'pk', 'short_desc', 'scheduled_weekday', 'scheduled_date', 'start_time', 'duration_fmt',
-        'priority_fmt', 'owner', 'should_nag', 'work_done', 'reviewer', 'work_accepted'
+        'priority_fmt', 'owner', 'should_nag', 'reviewer', 'status',
     ]
     search_fields = [
         'short_desc',
         '^owner__auth_user__first_name',
         '^owner__auth_user__last_name'
     ]
-    list_filter = ['scheduled_date', 'priority', 'work_done',]
+    list_filter = ['scheduled_date', 'priority', 'status']
     date_hierarchy = 'scheduled_date'
     fieldsets = [
 
@@ -249,8 +249,7 @@ class TaskAdmin(admin.ModelAdmin):
         ("Completion", {
             'fields': [
                 'should_nag',
-                'work_done',
-                'work_accepted',
+                'status',
             ]
         }),
     ]

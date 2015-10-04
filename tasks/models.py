@@ -401,34 +401,25 @@ class Task(make_TaskMixin("Tasks")):
     workers = models.ManyToManyField(mm.Member, through=Work, related_name="tasks_worked",
         help_text="The people who have actually posted hours against this task.")
 
-    # TODO: Replace work_done and work_accepted with "status" field: NOMINAL, WORK_DONE, AWAITING_REVIEW, CLOSED, CANCELED
-    # If reviewer is None, setting status to AWAITING_REVIEW should skip to CLOSED.
-
-    work_done = models.BooleanField(default=False,
-        help_text="The person who does the work sets this to true when the work is completely done.")
-
-    # TODO: work_accepted should be N/A if reviewer is None.  If reviewer is set, work_accepted should be set to "No".
-    work_accepted = models.NullBooleanField(choices=[(True, "Yes"), (False, "No"), (None, "N/A")],
-        help_text="If there is a reviewer for this task, the reviewer sets this to true or false once the worker has said that the work is done.")
+    # TODO: If reviewer is None, setting status to REVIEWABLE should skip to DONE.
+    WORKABLE   = "W"
+    REVIEWABLE = "R"
+    DONE       = "D"
+    CANCELED   = "C"
+    TASK_STATUS_CHOICES = [
+        (WORKABLE,   "Workable"),
+        (REVIEWABLE, "Reviewable"),
+        (DONE,       "Done"),
+        (CANCELED,   "Canceled"),
+    ]
+    status = models.CharField(max_length=1, choices=TASK_STATUS_CHOICES, null=False, blank=False, default=WORKABLE,
+        help_text = "The status of this task.")
 
     recurring_task_template = models.ForeignKey(RecurringTaskTemplate, null=True, blank=True, on_delete=models.SET_NULL, related_name="instances")
-
-    def is_closed(self):
-        "Returns True if claimant should receive credit for the task."
-        if self.reviewer is None:
-            return self.work_done
-        else:
-            return self.work_done and self.work_accepted
-
-    def is_open(self):
-        "Returns True if the task isn't yet completed or if there's a reviewer who hasn't yet accepted it."
-        return not self.is_closed()
 
     def validate(self):
         #TODO: Sum of claim hours should be <= work_estimate.
         #
-        if self.work_accepted and not self.work_done:
-            return False, "Work cannot be reviewed before it is marked as completed."
         if self.prev_claimed_by == self.claimed_by:
             return False, "Member cannot claim a task they've previously claimed. Somebody else has to get a chance at it."
         if self.work_estimate < 0:

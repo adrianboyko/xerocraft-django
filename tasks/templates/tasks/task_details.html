@@ -38,14 +38,9 @@
                 {% endif %}</td>
         </tr>
         <tr>
-            <td width="33%"><span class="n">Done?</span><br/>{{task.work_done|yesno:"Yes,No,?"}}</td>
-            <td width="33%"><span class="n">Accepted?</span><br/>
-                {% if task.reviewer == None %}
-                    N/A
-                {% else %}
-                    {{task.work_accepted|yesno:"Yes,No,?"}}
-                {% endif %}</td>
+            <td width="33%"><span class="n">Status</span><br/>{{task.status}}</td>
             <td width="33%"><span class="n">Priority</span><br/>{{task.priority}}</td>
+            <td width="33%"><span class="n">Estimate</span><br/>{{task.work_estimate}}</td>
         </tr>
     </table>
     {% for note in task.notes %}
