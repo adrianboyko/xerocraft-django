@@ -68,7 +68,7 @@ def offer_more_tasks(request, task_pk, auth_token):
         all_future_instances = Task.objects.filter(
             recurring_task_template=task.recurring_task_template,
             scheduled_date__gt=task.scheduled_date,
-            status=Task.WORKABLE
+            status=Task.STAT_ACTIVE
         )
         future_instances_same_dow = []
         for instance in all_future_instances:

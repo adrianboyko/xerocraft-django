@@ -91,6 +91,6 @@ class TestPriorityMatch(TestCase):
 
     def testPrioMatch(self):
         ''' There is admin code that depends on these being equal. '''
-        self.assertEqual(Task.LOW_PRIO, RecurringTaskTemplate.LOW_PRIO)
-        self.assertEqual(Task.MED_PRIO, RecurringTaskTemplate.MED_PRIO)
-        self.assertEqual(Task.HIGH_PRIO, RecurringTaskTemplate.HIGH_PRIO)
+        self.assertEqual(Task.PRIO_LOW, RecurringTaskTemplate.PRIO_LOW)
+        self.assertEqual(Task.PRIO_MED, RecurringTaskTemplate.PRIO_MED)
+        self.assertEqual(Task.PRIO_HIGH, RecurringTaskTemplate.PRIO_HIGH)

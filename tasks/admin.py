@@ -2,7 +2,8 @@ from django.contrib import admin
 from django.contrib.admin.views import main
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
-
+from django.utils.translation import ugettext_lazy as _
+import datetime
 from tasks.models import RecurringTaskTemplate, Task, TaskNote, Claim, Work, Nag, CalendarSettings
 
 
@@ -15,7 +16,7 @@ duration_fmt.short_description = "Duration"
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # These work for Task and RecurringTaskTemplate because
-# Task.<X>_PRIO == RecurringTaskTemplate.<X>_PRIO for all defined X.
+# Task.PRIO_<X> == RecurringTaskTemplate.PRIO_<X> for all defined X.
 
 def set_priority(query_set, setting):
     for obj in query_set:
@@ -24,15 +25,15 @@ def set_priority(query_set, setting):
 
 
 def set_priority_low(model_admin, request, query_set):
-    set_priority(query_set, Task.LOW_PRIO)
+    set_priority(query_set, Task.PRIO_LOW)
 
 
 def set_priority_med(model_admin, request, query_set):
-    set_priority(query_set, Task.MED_PRIO)
+    set_priority(query_set, Task.PRIO_MED)
 
 
 def set_priority_high(model_admin, request, query_set):
-    set_priority(query_set, Task.HIGH_PRIO)
+    set_priority(query_set, Task.PRIO_HIGH)
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -196,6 +197,26 @@ class WorkInline(admin.StackedInline):
     extra = 0
 
 
+class ScheduledDateListFilter(admin.SimpleListFilter):
+    title = _('scheduled date')
+    parameter_name = 'direction'
+
+    def lookups(self, request, model_admin):
+        return (
+            ('past', _('In the past')),
+            ('today', _('Today')),
+            ('future', _('In the future')),
+        )
+
+    def queryset(self, request, queryset):
+        if self.value() == 'past':
+            return queryset.filter(scheduled_date__lt=datetime.date.today())
+        if self.value() == 'today':
+            return queryset.filter(scheduled_date=datetime.date.today())
+        if self.value() == 'future':
+            return queryset.filter(scheduled_date__gt=datetime.date.today())
+
+
 class TaskAdmin(admin.ModelAdmin):
 
     class Media:
@@ -226,7 +247,7 @@ class TaskAdmin(admin.ModelAdmin):
         '^owner__auth_user__first_name',
         '^owner__auth_user__last_name'
     ]
-    list_filter = ['scheduled_date', 'priority', 'status']
+    list_filter = [ScheduledDateListFilter, 'priority', 'status']
     date_hierarchy = 'scheduled_date'
     fieldsets = [
 

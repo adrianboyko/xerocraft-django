@@ -66,31 +66,29 @@ def make_TaskMixin(dest_class_alias):
         uninterested = models.ManyToManyField(mm.Member, blank=True, related_name="uninteresting_"+dest_class_alias,
             help_text="Members that are not interested in this item.")
 
-        HIGH_PRIO = "H"
-        MED_PRIO = "M"
-        LOW_PRIO = "L"
+        PRIO_HIGH = "H"
+        PRIO_MED = "M"
+        PRIO_LOW = "L"
         PRIORITY_CHOICES = [
-            (HIGH_PRIO, "High"),
-            (MED_PRIO, "Medium"),
-            (LOW_PRIO, "Low")
+            (PRIO_HIGH, "High"),
+            (PRIO_MED, "Medium"),
+            (PRIO_LOW, "Low")
         ]
-        priority = models.CharField(max_length=1, default=MED_PRIO, choices=PRIORITY_CHOICES,
+        priority = models.CharField(max_length=1, default=PRIO_MED, choices=PRIORITY_CHOICES,
             help_text="The priority of the task, compared to other tasks.")
 
         should_nag = models.BooleanField(default=False,
             help_text="If true, people will be encouraged to work the task via email messages.")
 
-        IGNORE = "I"
-        SLIDE_SELF = "s"
-        SLIDE_SELF_AND_LATER = "S"
+        MDA_IGNORE = "I"
+        MDA_SLIDE_SELF_AND_LATER = "S"
         MISSED_DATE_ACTIONS = [
-            (IGNORE, "Don't do anything."),
-            (SLIDE_SELF, "Slide the task to the next day."),
-            (SLIDE_SELF_AND_LATER, "Slide task and all later instances to next day.")
+            (MDA_IGNORE, "Don't do anything."),
+            (MDA_SLIDE_SELF_AND_LATER, "Slide task and all later instances forward."),
         ]
         missed_date_action = models.CharField(max_length=1, null=True, blank= True,
-            default=IGNORE, choices=MISSED_DATE_ACTIONS,
-            help_text="What should be done if the task is not completed on the scheduled date.")
+            default=MDA_IGNORE, choices=MISSED_DATE_ACTIONS,
+            help_text="What should be done if the task is not completed by the deadline date.")
 
         class Meta:
             abstract = True
@@ -143,10 +141,6 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
         return max(scheduled_dates)
 
     def date_matches_template(self, d: date):
-        """
-        :param d: Date to be tested.
-        :return: Boolean indicating if d matches the day-of-week and ordinal-in-month specified by the template.
-        """
 
         if self.repeats_at_intervals():
             return self.date_matches_template_intervals(d)
@@ -402,17 +396,17 @@ class Task(make_TaskMixin("Tasks")):
         help_text="The people who have actually posted hours against this task.")
 
     # TODO: If reviewer is None, setting status to REVIEWABLE should skip to DONE.
-    WORKABLE   = "W"
-    REVIEWABLE = "R"
-    DONE       = "D"
-    CANCELED   = "C"
+    STAT_ACTIVE     = "A"  # The task is (or will be) workable.
+    STAT_REVIEWABLE = "R"  # Work is done and is awaiting review. Only meaningful when reviewer is not None.
+    STAT_DONE       = "D"  # Work is complete and (if required) has passed review.
+    STAT_CANCELED   = "C"  # Somebody decided that we will not work the task.
     TASK_STATUS_CHOICES = [
-        (WORKABLE,   "Workable"),
-        (REVIEWABLE, "Reviewable"),
-        (DONE,       "Done"),
-        (CANCELED,   "Canceled"),
+        (STAT_ACTIVE,     "Active"),
+        (STAT_REVIEWABLE, "Reviewable"),
+        (STAT_DONE,       "Done"),
+        (STAT_CANCELED,   "Canceled"),
     ]
-    status = models.CharField(max_length=1, choices=TASK_STATUS_CHOICES, null=False, blank=False, default=WORKABLE,
+    status = models.CharField(max_length=1, choices=TASK_STATUS_CHOICES, null=False, blank=False, default=STAT_ACTIVE,
         help_text = "The status of this task.")
 
     recurring_task_template = models.ForeignKey(RecurringTaskTemplate, null=True, blank=True, on_delete=models.SET_NULL, related_name="instances")
@@ -486,7 +480,8 @@ class Task(make_TaskMixin("Tasks")):
     def full_desc(self): return str(self)
 
     class Meta:
-        ordering = ['scheduled_date','start_time']
+        ordering = ['scheduled_date', 'start_time']
+
 
 class TaskNote(models.Model):
 
