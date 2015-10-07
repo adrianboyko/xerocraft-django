@@ -2,6 +2,7 @@ from django.db import models
 from datetime import date, timedelta, datetime
 from members import models as mm
 from decimal import Decimal
+import logging
 
 # TODO: Rework various validate() methods into Model.clean()? See Django's "model validation" docs.
 
@@ -230,39 +231,48 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
         yesterday = date.today()+timedelta(days=-1)
         curr = max(gsd, yesterday)
         stop = date.today() + timedelta(days=max_days_in_advance)
+        logger = logging.getLogger("tasks")
         while curr < stop:
             curr += timedelta(days=+1)
             if self.date_matches_template(curr):
 
-                # Check if task is already instantiated for curr date and skip creation if it does.
-                #if Task.objects.filter(recurring_task_template=self, scheduled_date=curr).count() > 0:
-                #    continue
-
-                t = Task.objects.create(recurring_task_template=self, creation_date=date.today())
-                t.scheduled_date = curr
-
-                # Copy mixin fields from template to instance:
-                t.owner = self.owner
-                t.instructions = self.instructions
-                t.short_desc = self.short_desc
-                t.reviewer = self.reviewer
-                t.work_estimate = self.work_estimate
-                t.missed_date_action = self.missed_date_action
-                t.max_claimants = self.max_claimants
-                t.eligible_claimants = self.eligible_claimants.all()
-                t.eligible_tags = self.eligible_tags.all()
-                t.uninterested = self.uninterested.all()
-                t.start_time = self.start_time
-                t.duration = self.duration
-                t.should_nag = self.should_nag
-                t.save()
-                if self.default_claimant is not None:
-                    Claim.objects.create(
-                        member=self.default_claimant,
-                        status=Claim.CURRENT,
-                        task=t,
-                        hours_claimed=self.work_estimate
+                # If task creation fails, log it and carry on.
+                try:
+                    t = None
+                    t = Task.objects.create(
+                        recurring_task_template =self,
+                        creation_date           =date.today(),
+                        scheduled_date          =curr,
+                        # Copy mixin fields from template to instance:
+                        owner                   =self.owner,
+                        instructions            =self.instructions,
+                        short_desc              =self.short_desc,
+                        reviewer                =self.reviewer,
+                        work_estimate           =self.work_estimate,
+                        missed_date_action      =self.missed_date_action,
+                        max_claimants           =self.max_claimants,
+                        start_time              =self.start_time,
+                        duration                =self.duration,
+                        should_nag              =self.should_nag,
                     )
+
+                    # Many-to-many fields:
+                    t.uninterested       =self.uninterested.all()
+                    t.eligible_claimants =self.eligible_claimants.all()
+                    t.eligible_tags      =self.eligible_tags.all()
+
+                    if self.default_claimant is not None:
+                        Claim.objects.create(
+                            member=self.default_claimant,
+                            status=Claim.CURRENT,
+                            task=t,
+                            hours_claimed=self.work_estimate
+                        )
+                    logger.info("Created %s on %s", self.short_desc, curr)
+
+                except Exception as e:
+                    logger.error("Couldn't create %s on %s because %s", self.short_desc, curr, str(e))
+                    if t is not None: t.delete()
 
     def validate(self):
         if self.last and self.fourth:
@@ -481,6 +491,9 @@ class Task(make_TaskMixin("Tasks")):
 
     class Meta:
         ordering = ['scheduled_date', 'start_time']
+        # Intentionally using short_desc instead of recurringtasktemplate in constraint below.
+        # In general, using short_desc will give a tighter constraint, crossing templates.
+        unique_together = ('scheduled_date', 'short_desc')
 
 
 class TaskNote(models.Model):
