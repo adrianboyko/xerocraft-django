@@ -168,6 +168,20 @@ class RecurringTaskTemplateAdmin(admin.ModelAdmin):
                     'saturday',
                     'sunday',
                 ),
+                (
+                    'jan',
+                    'feb',
+                    'mar',
+                    'apr',
+                    'may',
+                    'jun',
+                    'jul',
+                    'aug',
+                    'sep',
+                    'oct',
+                    'nov',
+                    'dec',
+                )
             ]
         }),
 

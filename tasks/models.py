@@ -126,6 +126,20 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
     saturday = models.BooleanField(default=False)  #, help_text="Task will recur a Saturday.")
     sunday = models.BooleanField(default=False)  #, help_text="Task will recur a Sunday.")
 
+    # Month of year:
+    jan = models.BooleanField(default=True)
+    feb = models.BooleanField(default=True)
+    mar = models.BooleanField(default=True)
+    apr = models.BooleanField(default=True)
+    may = models.BooleanField(default=True)
+    jun = models.BooleanField(default=True)
+    jul = models.BooleanField(default=True)
+    aug = models.BooleanField(default=True)
+    sep = models.BooleanField(default=True)
+    oct = models.BooleanField(default=True)
+    nov = models.BooleanField(default=True)
+    dec = models.BooleanField(default=True)
+
     # Every X days:
     repeat_interval = models.SmallIntegerField(null=True, blank=True, help_text="Minimum number of days between recurrences, e.g. 14 for every two weeks.")
 
@@ -171,6 +185,20 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
             d += timedelta(weeks = +1)
             return True if d.month > month else False
 
+        month_matches = (d.month==1 and self.jan) \
+            or (d.month==2 and self.feb) \
+            or (d.month==3 and self.mar) \
+            or (d.month==4 and self.apr) \
+            or (d.month==5 and self.may) \
+            or (d.month==6 and self.jun) \
+            or (d.month==7 and self.jul) \
+            or (d.month==8 and self.aug) \
+            or (d.month==9 and self.sep) \
+            or (d.month==10 and self.oct) \
+            or (d.month==11 and self.nov) \
+            or (d.month==12 and self.dec)
+        if not month_matches: return False
+
         dow_num = d.weekday() # day-of-week number
         day_matches = (dow_num==0 and self.monday) \
             or (dow_num==1 and self.tuesday) \
@@ -179,7 +207,6 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
             or (dow_num==4 and self.friday) \
             or (dow_num==5 and self.saturday) \
             or (dow_num==6 and self.sunday)
-
         if not day_matches: return False  # Doesn't match template if day-of-week doesn't match.
         if self.every: return True  # Does match if it happens every week and the day-of-week matches.
         if is_last_xday(d) and self.last: return True # Check for last <x>day match.
@@ -210,8 +237,22 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
             or self.last   \
             or self.every
 
+    def is_month_chosen(self):
+        return self.jan \
+            or self.feb \
+            or self.mar \
+            or self.apr \
+            or self.may \
+            or self.jun \
+            or self.jul \
+            or self.aug \
+            or self.sep \
+            or self.oct \
+            or self.nov \
+            or self.dec
+
     def repeats_on_certain_days(self):
-        return self.is_dow_chosen() and self.is_ordinal_chosen()
+        return self.is_dow_chosen() and self.is_ordinal_chosen() and self.is_month_chosen()
 
     def repeats_at_intervals(self):
         return self.repeat_interval is not None
@@ -275,6 +316,10 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
                     if t is not None: t.delete()
 
     def validate(self):
+        if not (self.repeats_at_intervals() or self.repeats_on_certain_days()):
+            return False, "Must specify 1) repetition at intervals or 2) repetition on certain days."
+        if self.repeats_at_intervals() and self.repeats_on_certain_days():
+            return False, "Must not specify 1) repetition at intervals and 2) repetition on certain days."
         if self.last and self.fourth:
             return False, "Choose either fourth week or last week, not both."
         if self.every and (self.first or self.second or self.third or self.fourth or self.last):
