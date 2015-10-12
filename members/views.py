@@ -17,6 +17,30 @@ from reportlab.lib.units import inch, mm
 from reportlab.lib.pagesizes import letter
 
 
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = PRIVATE
+
+def _inform_other_systems_of_checkin(member, event_type):
+    # TODO: Inform Kyle's system
+    pass
+
+
+def _log_visit_event(member_card_str, event_type):
+
+    is_valid_evt = event_type in [x for (x,_) in VisitEvent.VISIT_EVENT_CHOICES]
+    if not is_valid_evt:
+        return False, "Invalid event type."
+
+    member = Member.get_by_card_str(member_card_str)
+    if member is None:
+        return False, "No matching member found."
+    else:
+        VisitEvent.objects.create(who=member, event_type=event_type)
+        _inform_other_systems_of_checkin(member, event_type)
+        return True, member
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = API
+
 def api_member_details(request, member_card_str, staff_card_str):
     """ Respond with corresponding user/member info given the membership card string in the QR code. """
 
@@ -57,14 +81,14 @@ def api_member_details_pub(request, member_card_str):
 
 def api_log_visit_event(request, member_card_str, event_type):
 
-    member = Member.get_by_card_str(member_card_str)
-    if member is None:
-        return JsonResponse({'error':"Invalid member card"})
+    success, result = _log_visit_event(member_card_str, event_type)
+    if success:
+        return JsonResponse({'success': "Visit event logged"})
+    else:
+        return JsonResponse({'error': result})
 
-    VisitEvent.objects.create(who=member, event_type=event_type)
-    _inform_other_systems_of_checkin(member, event_type)
-    return JsonResponse({'success':"Member checked in"})
 
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = KIOSK
 
 @login_required
 def create_membership_card(request):
@@ -131,27 +155,27 @@ def kiosk_waiting(request):
     return render(request, 'members/kiosk-waiting.html',{})
 
 
-def _inform_other_systems_of_checkin(member, event_type):
-    # TODO: Inform Kyle's system
-    pass
-
-
-#TODO: Following should be renamed to kiosk_visit_event
+# TODO: Following should be renamed to kiosk_visit_event
 def kiosk_check_in_member(request, member_card_str, event_type):
 
-    member = Member.get_by_card_str(member_card_str)
-    if member is None:
-        return render(request, 'members/kiosk-invalid-card.html',{}) #TODO: use kiosk-domain-error template?
-
-    ve = VisitEvent.objects.create(who=member, event_type=event_type)
-    _inform_other_systems_of_checkin(member, event_type)
-
-    actions = {"A":"checked in", "D":"checked out", "P":"made your presence known"}
-    params = {
-        "username" : member.username,
-        "action" : actions.get(event_type)
-    }
-    return render(request, 'members/kiosk-check-in-member.html', params)
+    success, result = _log_visit_event(member_card_str, event_type)
+    if success:
+        member = result
+        actions = {
+            VisitEvent.EVT_ARRIVAL:   "checked in",
+            VisitEvent.EVT_DEPARTURE: "checked out",
+            VisitEvent.EVT_PRESENT:   "made your presence known",
+        }
+        assert len(actions) == len(VisitEvent.VISIT_EVENT_CHOICES)
+        params = {
+            "username" : member.username,
+            "action"   : actions.get(event_type)
+        }
+        return render(request, 'members/kiosk-check-in-member.html', params)
+    else:
+        # TODO: This needs to use a more generic error template.
+        error_msg = result
+        return render(request, 'members/kiosk-invalid-card.html', {})
 
 
 def kiosk_member_details(request, member_card_str, staff_card_str):
@@ -212,9 +236,11 @@ def kiosk_main_menu(request, member_card_str):
         return render(request, 'members/kiosk-invalid-card.html',{}) #TODO: use kiosk-domain-error template?
 
     params = {
-        "memb_fname" : member.first_name,
+        "memb_fname"    : member.first_name,
         "memb_card_str" : member_card_str,
-        "memb_is_staff" : member.is_tagged_with("Staff")
+        "memb_is_staff" : member.is_tagged_with("Staff"),
+        "evt_arrival"   : VisitEvent.EVT_ARRIVAL,
+        "evt_departure" : VisitEvent.EVT_DEPARTURE,
     }
     return render(request, 'members/kiosk-main-menu.html', params)
 

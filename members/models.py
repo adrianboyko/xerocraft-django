@@ -190,21 +190,20 @@ class MemberNote(models.Model):
 
 class VisitEvent(models.Model):
 
-    ARRIVAL = "A"
-    PRESENT = "P"
-    DEPARTURE = "D"
-    VISIT_EVENT_CHOICES = [
-        (ARRIVAL, "Arrival"),
-        (PRESENT, "Present"),
-        (DEPARTURE, "Departure")
-    ]
-
     who = models.ForeignKey(Member, on_delete=models.PROTECT,
         help_text="The member who's visiting or visited.")
 
     when = models.DateTimeField(null=False, blank=False, auto_now_add=True,
         help_text="Date/time of visit event.")
 
+    EVT_ARRIVAL = "A"
+    EVT_PRESENT = "P"
+    EVT_DEPARTURE = "D"
+    VISIT_EVENT_CHOICES = [
+        (EVT_ARRIVAL, "Arrival"),
+        (EVT_PRESENT, "Presence"),
+        (EVT_DEPARTURE, "Departure")
+    ]
     event_type = models.CharField(max_length=1, choices=VISIT_EVENT_CHOICES, null=False, blank=False,
         help_text="The type of visit event.")
 
@@ -216,3 +215,32 @@ class VisitEvent(models.Model):
 
     class Meta:
         ordering = ['when']
+
+"""
+class MembershipPayment(models.Model):
+
+    membership_type
+
+    payment_processor
+
+    amount_paid = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
+        help_text="The full amount paid by the member, including payment processing fee, if any.")
+
+    fee_deducted = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
+        help_text="The fee deducted from 'amount paid' by the payment processor, if any.")
+
+    family_count = models.IntegerField(default=0, null=False, blank=False,
+        help_text="The number of ADDITIONAL family members included in this membership. Usually zero.")
+
+    payment_date = models.DateField(null=True, blank=True,
+        help_text="The date on which the payment was made.")
+
+    start_date = models.DateField(null=False, blank=False,
+        help_text="The frist day on which the membership is valid.")
+
+    end_date = models.DateField(null=False, blank=False,
+        help_text="The last day on which the membership is valid.")
+
+    note = models.TextField(max_length=2048,
+        help_text="For staff. Anything you want to say about this payment or membership.")
+"""

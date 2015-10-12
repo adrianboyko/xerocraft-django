@@ -6,7 +6,7 @@ from django.contrib.auth.models import User
 #import factory
 #from django.db.models import signals
 
-from .models import Tag, Tagging
+from .models import Tag, Tagging, VisitEvent
 
 """ TODO: The following test is complicated by my signal processing.
     Specifically, when loading a fixture there's no need for the handler that creates a member for each user.
@@ -71,3 +71,23 @@ class TestCardsAndApi(TestCase):
         response = c.get(path)
         json_response = json.loads(response.content.decode())
         self.assertTrue(json_response['last_name'] == "Baker")
+
+    def test_visit_event_good(self):
+        c = Client()
+        path = "/members/api/visit-event/%s_%s/" % (self.str1, VisitEvent.EVT_ARRIVAL)
+        response = c.get(path)
+        json_response = json.loads(response.content.decode())
+        self.assertTrue(json_response['success'])
+
+    def test_visit_event_bad_evt_type(self):
+        c = Client()
+        path = "/members/api/visit-event/%s_%s/" % (self.str1, 'BAD')
+        response = c.get(path)
+        self.assertTrue(response.status_code == 404)
+
+    def test_visit_event_bad_member(self):
+        c = Client()
+        path = "/members/api/visit-event/%s_%s/" % (self.str1[:-1]+"X", 'A')
+        response = c.get(path)
+        json_response = json.loads(response.content.decode())
+        self.assertTrue(json_response['error'])

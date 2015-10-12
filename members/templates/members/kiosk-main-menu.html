@@ -37,9 +37,9 @@
 <body>
     <h1><img src="{% static 'xerocraft/Big Bold X.png' %}" alt="Xerocraft Logo"/>erocraft Kiosk</h1>
     <h2>Hello, {{memb_fname}}! Choose an option:</h2>
-    <span class="choice_button"><a href="{% url 'memb:kiosk-check-in-member' member_card_str=memb_card_str event_type='A' %}">Check In</a></span>
+    <span class="choice_button"><a href="{% url 'memb:kiosk-check-in-member' member_card_str=memb_card_str event_type=evt_arrival %}">Check In</a></span>
     &nbsp;
-    <span class="choice_button"><a href="{% url 'memb:kiosk-check-in-member' member_card_str=memb_card_str event_type='D' %}">Check Out</a></span>
+    <span class="choice_button"><a href="{% url 'memb:kiosk-check-in-member' member_card_str=memb_card_str event_type=evt_departure %}">Check Out</a></span>
 
     {% if memb_is_staff %}
     &nbsp;
