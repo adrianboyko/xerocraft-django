@@ -29,7 +29,7 @@ def offer_task(request, task_pk, auth_token):
     if request.method == 'POST':
         hours = request.POST['hours']
         # TODO: There's some risk that user will end up here via browser history. Catch unique violoation exception?
-        Claim.objects.create(task=task, member=nag.who, hours_claimed=hours, status=Claim.CURRENT)
+        Claim.objects.create(task=task, member=nag.who, hours_claimed=hours, status=Claim.STAT_CURRENT)
         return redirect('task:offer-more-tasks', task_pk=task_pk, auth_token=auth_token)
 
     else:  # GET and other methods
@@ -44,7 +44,7 @@ def offer_task(request, task_pk, auth_token):
             "task": task,
             "member": nag.who,
             "dow": task.scheduled_weekday(),
-            "claims": task.claim_set.filter(status=Claim.CURRENT),
+            "claims": task.claim_set.filter(status=Claim.STAT_CURRENT),
             "max_hrs_to_claim": float(min(task.unclaimed_hours(), task.duration.seconds/3600.0)),
             "auth_token": auth_token
         }
@@ -60,7 +60,7 @@ def offer_more_tasks(request, task_pk, auth_token):
         for pk in pks:
             t = Task.objects.get(pk=pk)
             # TODO: There's some risk that user will end up here via browser history. Catch unique violoation exception?
-            Claim.objects.create(task=t, member=nag.who, hours_claimed=t.duration.seconds/3600.0, status=Claim.CURRENT)
+            Claim.objects.create(task=t, member=nag.who, hours_claimed=t.duration.seconds/3600.0, status=Claim.STAT_CURRENT)
         return redirect('task:offers-done', auth_token=auth_token)
 
     else: # GET or other methods:

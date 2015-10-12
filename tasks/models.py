@@ -305,7 +305,7 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
                     if self.default_claimant is not None:
                         Claim.objects.create(
                             member=self.default_claimant,
-                            status=Claim.CURRENT,
+                            status=Claim.STAT_CURRENT,
                             task=t,
                             hours_claimed=self.work_estimate
                         )
@@ -391,13 +391,24 @@ class Claim(models.Model):
     hours_claimed = models.DecimalField(max_digits=5, decimal_places=2,
         help_text = "The actual time claimed, in hours (e.g. 1.25). This is work time, not elapsed time.")
 
-    CURRENT = "C"
-    EXPIRED = "X"
-    QUEUED = "Q"
+    # The following boolean distinguishes two substates of state STAT_CURRENT.
+    verified_current = models.BooleanField(default=False,
+        help_text = "The system has determined that the current claimant will be able to work the task.")
+    verified_current.verbose_name = "Verified"
+
+    STAT_CURRENT   = "C"  # Member has a current claim on the task.
+    STAT_EXPIRED   = "X"  # Member didn't finish the task while claimed, so member's claim has expired.
+    STAT_QUEUED    = "Q"  # Member is interested in claiming task but it is already fully claimed.
+    STAT_ABANDONED = "A"  # Member had a claim on task but had to abandon it.
+    STAT_WORKING   = "W"  # The member is currently working the task, prob determined by checkin @ kiosk.
+    STAT_DONE      = "D"  # The member has finished working the task, prob determined by checkout @ kiosk.
     CLAIM_STATUS_CHOICES = [
-        (CURRENT, "Current"),
-        (EXPIRED, "Expired"),
-        (QUEUED, "Queued")
+        (STAT_CURRENT,  "Current"),
+        (STAT_EXPIRED,  "Expired"),
+        (STAT_QUEUED,   "Queued"),
+        (STAT_ABANDONED,"Abandoned"),
+        (STAT_WORKING,  "Working"),
+        (STAT_DONE,     "Done"),
     ]
     status = models.CharField(max_length=1, choices=CLAIM_STATUS_CHOICES,
         help_text = "The status of this claim.")
@@ -408,7 +419,7 @@ class Claim(models.Model):
         claimants = {}
         for task in Task.objects.filter(scheduled_date__gte=startDate).filter(scheduled_date__lte=endDate):
             for claim in task.claim_set.all():
-                if claim.status == claim.CURRENT:
+                if claim.status == claim.STAT_CURRENT:
                     if claim.member not in claimants:
                         claimants[claim.member] = Decimal(0.0)
                     claimants[claim.member] += claim.hours_claimed
@@ -481,7 +492,7 @@ class Task(make_TaskMixin("Tasks")):
     def unclaimed_hours(self):
         unclaimed_hours = self.work_estimate
         for claim in self.claim_set.all():
-            if claim.status == claim.CURRENT:
+            if claim.status == claim.STAT_CURRENT:
                 unclaimed_hours -= claim.hours_claimed
         assert(unclaimed_hours >= 0.0)
         return unclaimed_hours
@@ -512,7 +523,7 @@ class Task(make_TaskMixin("Tasks")):
         """
         result = set()
         for claim in self.claim_set.all():
-            if claim.status == claim.CURRENT:
+            if claim.status == claim.STAT_CURRENT:
                 result |= set([claim.member])
         return result
 
