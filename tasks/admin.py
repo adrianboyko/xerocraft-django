@@ -220,6 +220,7 @@ class ScheduledDateListFilter(admin.SimpleListFilter):
             ('past', _('In the past')),
             ('today', _('Today')),
             ('future', _('In the future')),
+            ('nodate', _('No date')),
         )
 
     def queryset(self, request, queryset):
@@ -229,6 +230,8 @@ class ScheduledDateListFilter(admin.SimpleListFilter):
             return queryset.filter(scheduled_date=datetime.date.today())
         if self.value() == 'future':
             return queryset.filter(scheduled_date__gt=datetime.date.today())
+        if self.value() == 'nodate':
+            return queryset.filter(scheduled_date__isnull=True)
 
 
 class TaskAdmin(admin.ModelAdmin):
