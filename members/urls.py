@@ -12,7 +12,7 @@ urlpatterns = [
     url(r'^kiosk/main-menu/(?P<member_card_str>[-_a-zA-Z0-9]{32})/$', views.kiosk_main_menu, name="kiosk-main-menu"),
     url(r'^kiosk/staff-menu/(?P<member_card_str>[-_a-zA-Z0-9]{32})/$', views.kiosk_staff_menu, name="kiosk-staff-menu"),
     url(r'^kiosk/identify-subject/(?P<staff_card_str>[-_a-zA-Z0-9]{32})_(?P<next_url>[-a-z]+)/$', views.kiosk_identify_subject, name="kiosk-identify-subject"),
-    url(r'^kiosk/check-in-member/(?P<member_card_str>[-_a-zA-Z0-9]{32})_(?P<event_type>[APD])/$', views.kiosk_check_in_member, name="kiosk-check-in-member"),
+    url(r'^kiosk/check-in-member/(?P<member_card_str>[-_a-zA-Z0-9]{32})_(?P<event_type>[APD])/$', views.Kiosk_LogVisitEvent.as_view(), name="kiosk-check-in-member"),
     url(r'^kiosk/member-details/(?P<member_card_str>[-_a-zA-Z0-9]{32})_(?P<staff_card_str>[-_a-zA-Z0-9]{32})/$', views.kiosk_member_details, name="kiosk-member-details"),
     url(r'^kiosk/member-details/(?P<member_card_str>[-_a-zA-Z0-9]{32})_(?P<staff_card_str>[-_a-zA-Z0-9]{32})/(?P<tag_pk>[0-9]+)/', views.kiosk_add_tag),
 

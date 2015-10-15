@@ -7,12 +7,31 @@
     <link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Oswald">
 
     <style>
+
+        .unselectable {
+           -moz-user-select: -moz-none;
+           -khtml-user-select: none;
+           -webkit-user-select: none;
+           -ms-user-select: none;
+           user-select: none;
+        }
+
+        .choice_button {
+            background-color: #EEEEEE;
+            moz-border-radius: 15px;
+            -webkit-border-radius: 15px;
+            border: 3px solid gray;
+            padding: 10px;
+            font-size: 14pt;
+        }
+
         html, body { height:100%; }
         html { display:table; margin:auto; }
-        body { display:table-cell; vertical-align:middle; text-align:center; }
-        h1 { font-family:Oswald; font-size:24pt; margin-top:0px; margin-bottom:0px }
-        h2 { font-family:Oswald; font-size:18pt; margin-top:0px; }
-        img { width:40; margin-right:0pt; margin-top:0pt; }
+        body { display:table-cell; vertical-align:middle; text-align:center; font-family:Oswald; }
+        h1 { font-size:24pt; margin-top:0px; margin-bottom:0px; }
+        h2 { font-size:18pt; margin-top:0px; margin-bottom:0px; }
+        h3 { font-size:14pt; margin-top:0px; margin-bottom:0px; }
+        img { width:60; margin-right:0pt; margin-top:0pt; }
     </style>
 
     <script type="text/javascript">
@@ -22,11 +41,12 @@
 
 </head>
 
-<body>
+<body class="unselectable">
     <img src="{% static 'xerocraft/Big Bold X.png' %}" alt="Xerocraft Logo"/>
     <h1>You have {{ action }}!</h1>
-    <h2>userid: {{ username }}</h2>
-    <p>Please remove your card.</p>
+    <br/>
+    {{ extra_content|safe }}
+    <p>Remove your card when done.</p>
 </body>
 </html>
 

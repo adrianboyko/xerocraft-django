@@ -1,6 +1,6 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpRequest, HttpResponse, JsonResponse, Http404
-from django.template import loader
+from django.template import loader, Context
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
@@ -9,10 +9,47 @@ from hashlib import md5
 from datetime import date, datetime
 
 from tasks.models import Task, Nag, Claim, CalendarSettings
-from members.models import Member
+from members.models import Member, VisitEvent
 
 from icalendar import Calendar, Event
 
+
+# = = = = = = = = = = = = = = = = = = = = KIOSK VISIT EVENT CONTENT PROVIDERS
+
+from members.views import kiosk_visitevent_contentprovider
+
+
+@kiosk_visitevent_contentprovider
+def workable_tasks(member, visit_event_type):
+
+    claimed_today = []      # The member's claimed tasks for today
+    unclaimed_today = []    # Other tasks scheduled for today that the member could claim
+    unclaimed_anytime = []  # Other unscheduled tasks that the member could claim
+
+    # Find member's claimed tasks for today:
+    for claim in member.claim_set.filter(status=Claim.STAT_CURRENT, task__scheduled_date=date.today()):
+        claimed_today.append(claim.task)
+
+    # Find today's unclaimed tasks:
+    for task in Task.objects.filter(status=Task.STAT_ACTIVE, scheduled_date=date.today()):
+        if member in task.all_eligible_claimants() and task.claimants.count() == 0:
+            unclaimed_today.append(task)
+
+    # Find unclaimed tasks with no scheduled date:
+    for task in Task.objects.filter(status=Task.STAT_ACTIVE, scheduled_date__isnull=True):
+        if member in task.all_eligible_claimants() and task.claimants.count() == 0:
+            unclaimed_anytime.append(task)
+
+    template = loader.get_template('tasks/check_in_content.html')
+    context = Context({
+        'claimed_today'     : claimed_today,
+        'unclaimed_today'   : unclaimed_today,
+        'unclaimed_anytime' : unclaimed_anytime,
+    })
+    return template.render(context)
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 def _get_task_and_nag(task_pk, auth_token):
     md5str = md5(auth_token.encode()).hexdigest()

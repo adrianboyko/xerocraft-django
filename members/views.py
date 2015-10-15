@@ -4,6 +4,7 @@ from django.http import HttpResponse, JsonResponse
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
+from django.views.generic import View
 
 from members.models import Member, Tag, Tagging, VisitEvent
 
@@ -155,27 +156,43 @@ def kiosk_waiting(request):
     return render(request, 'members/kiosk-waiting.html',{})
 
 
-# TODO: Following should be renamed to kiosk_visit_event
-def kiosk_check_in_member(request, member_card_str, event_type):
+def kiosk_visitevent_contentprovider(f):
+    Kiosk_LogVisitEvent.extra_content_providers.append(f)
+    return f
 
-    success, result = _log_visit_event(member_card_str, event_type)
-    if success:
-        member = result
-        actions = {
-            VisitEvent.EVT_ARRIVAL:   "checked in",
-            VisitEvent.EVT_DEPARTURE: "checked out",
-            VisitEvent.EVT_PRESENT:   "made your presence known",
-        }
-        assert len(actions) == len(VisitEvent.VISIT_EVENT_CHOICES)
-        params = {
-            "username" : member.username,
-            "action"   : actions.get(event_type)
-        }
-        return render(request, 'members/kiosk-check-in-member.html', params)
-    else:
-        # TODO: This needs to use a more generic error template.
-        error_msg = result
-        return render(request, 'members/kiosk-invalid-card.html', {})
+
+class Kiosk_LogVisitEvent(View):
+
+    extra_content_providers = []
+
+    def get(self, request, *args, **kwargs):
+        member_card_str = kwargs['member_card_str']
+        event_type = kwargs['event_type']
+
+        success, result = _log_visit_event(member_card_str, event_type)
+        if success:
+            member = result
+            actions = {
+                VisitEvent.EVT_ARRIVAL:   "checked in",
+                VisitEvent.EVT_DEPARTURE: "checked out",
+                VisitEvent.EVT_PRESENT:   "made your presence known",
+            }
+            assert len(actions) == len(VisitEvent.VISIT_EVENT_CHOICES)
+
+            extra_content = ""
+            for f in self.extra_content_providers:
+                extra_content += f(member, event_type)
+
+            params = {
+                "username" : member.username,
+                "action"   : actions.get(event_type),
+                "extra_content" : extra_content
+            }
+            return render(request, 'members/kiosk-check-in-member.html', params)
+        else:
+            # TODO: This needs to use a more generic error template.
+            error_msg = result
+            return render(request, 'members/kiosk-invalid-card.html', {})
 
 
 def kiosk_member_details(request, member_card_str, staff_card_str):

@@ -1,0 +1,78 @@
+
+
+{% load staticfiles %}
+
+<script src="{% static 'xerocraft/sweetalert.min.js' %}"></script>
+<link rel="stylesheet" type="text/css" href="{% static 'xerocraft/sweetalert.css' %}">
+
+<script>
+    function workTask(task,desc) {
+        swal(
+            {
+                title: "Confirm Task Selection",
+                text: desc,
+                type: "warning",
+                confirmButtonText: "Yes",
+                showCancelButton: true,
+                cancelButtonText: "No",
+                closeOnConfirm: false,
+                allowOutsideClick: true,
+                allowEscapeKey: true
+            },
+            function(isConfirm) {
+                if (isConfirm) {
+                    swal("Thanks!", "You are now working the task.", "success");
+                }
+            }
+        );
+    }
+</script>
+
+<style>
+    .sweet-alert { font-family:Oswald; }
+
+    .choice_button { /* Based on sweet alert's button style. */
+        display: inline-block;
+        box-shadow: rgba(140, 212, 245, 0.8) 0px 0px 2px, rgba(0, 0, 0, 0.0470588) 0px 0px 0px 1px inset;
+        background-color: rgb(140, 212, 245);
+        color: white;
+        border: none;
+        font-size: 17px;
+        font-weight: 500;
+        font: 17px Arial;
+        border-radius: 5px;
+        padding: 8px 12px;
+        margin: 10px 5px 0 5px;
+        cursor: pointer;
+    }
+
+    a:link { color: white; text-decoration:none; }
+    a:visited { color: white; text-decoration:none; }
+    a:hover { text-decoration:underline; }
+</style>
+
+{% if claimed_today %}
+    <h3>Your Tasks for Today</h3>
+    {% for task in claimed_today %}
+        {{task.short_desc}}, {{task.start_time | date:"P"}}<br/>
+    {% endfor %}
+
+{% elif unclaimed_today %}
+    <h3>Unclaimed Tasks for Today</h3>
+    {% for task in unclaimed_today %}
+
+    <span class="choice_button"><a
+       onclick="workTask({{task.pk}},'{{task.short_desc}} @ {{task.start_time | date:"P"}}'); return false;"
+       href="javascript:{}">{{task.short_desc}}, {{task.start_time | date:"P"}}</a></span><br/>
+    {% endfor %}
+
+{% elif unclaimed_anytime %}
+    <h3>Unclaimed Unscheduled Tasks</h3>
+    {% for task in unclaimed_anytime %}
+        {{task.short_desc}}<br/>
+    {% endfor %}
+{% endif %}
+
+{% if claimed_today or unclaimed_today or unclaimed_anytime %}
+<p style="margin-top:20px; margin-bottom:0px;">If you're volunteering, pick a task, above.</p>
+{% endif %}
