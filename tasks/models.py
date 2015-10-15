@@ -489,6 +489,17 @@ class Task(make_TaskMixin("Tasks")):
             return False, "A task corresponding to a ScheduledTaskTemplate must have a scheduled date."
         return True, "Looks good."
 
+    def scheduled_now(self):
+        if self.scheduled_date is None: return False
+        if self.start_time is None: return False
+        if self.duration is None: return False
+        start = datetime.combine(self.scheduled_date, self.start_time)
+        now = datetime.now()
+        delta = now - start
+        if delta.seconds < 0: return False
+        if delta > self.duration: return False
+        return True
+
     def unclaimed_hours(self):
         unclaimed_hours = self.work_estimate
         for claim in self.claim_set.all():
