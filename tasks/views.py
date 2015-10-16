@@ -19,8 +19,7 @@ from icalendar import Calendar, Event
 from members.views import kiosk_visitevent_contentprovider
 
 
-@kiosk_visitevent_contentprovider
-def workable_tasks(member, visit_event_type):
+def visitevent_arrival_content(member):
 
     claimed_today = []      # The member's claimed tasks for today
     unclaimed_today = []    # Other tasks scheduled for today that the member could claim
@@ -47,6 +46,18 @@ def workable_tasks(member, visit_event_type):
         'unclaimed_anytime' : unclaimed_anytime,
     })
     return template.render(context)
+
+
+def visitevent_departure_content(member):
+    return ""
+
+@kiosk_visitevent_contentprovider
+def visitevent_content(member, visit_event_type):
+    if visit_event_type == VisitEvent.EVT_ARRIVAL:
+        return visitevent_arrival_content(member)
+    if visit_event_type == VisitEvent.EVT_DEPARTURE:
+        return visitevent_departure_content(member)
+
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
