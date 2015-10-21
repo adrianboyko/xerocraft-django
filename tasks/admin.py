@@ -310,11 +310,22 @@ class NagAdmin(admin.ModelAdmin):
     readonly_fields = ['who','auth_token_md5','tasks']
 
 
+class WorkAdmin(admin.ModelAdmin):
+    list_display = ['pk', 'worker', 'task', 'hours', 'when']
+
+
 class CalendarSettingsAdmin(admin.ModelAdmin):
-    list_display = ['pk', 'who', 'token', 'include_alarms',]
+    list_display = ['pk', 'who', 'token', 'include_alarms']
+
+
+class TaskNoteAdmin(admin.ModelAdmin):
+    list_display = ['pk', 'task', 'author', 'content']
+
 
 admin.site.register(RecurringTaskTemplate, RecurringTaskTemplateAdmin)
 admin.site.register(Task, TaskAdmin)
 admin.site.register(Claim, ClaimAdmin)
 admin.site.register(Nag, NagAdmin)
+admin.site.register(Work, WorkAdmin)
 admin.site.register(CalendarSettings, CalendarSettingsAdmin)
+admin.site.register(TaskNote, TaskNoteAdmin)
