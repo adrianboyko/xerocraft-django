@@ -4,14 +4,25 @@ from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
 from django.utils.translation import ugettext_lazy as _
 import datetime
+from time import strftime
 from tasks.models import RecurringTaskTemplate, Task, TaskNote, Claim, Work, Nag, CalendarSettings
+from nptime import nptime
+from tasks.templatetags.tasks_extras import duration_str2
 
 
-def duration_fmt(dur):
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+def duration_fmt(dur:datetime.timedelta):
     if dur is None: return
-    from tasks.templatetags.tasks_extras import duration_str
-    return duration_str(dur)
+    return duration_str2(dur)
 duration_fmt.short_description = "Duration"
+
+
+def time_window_fmt(start:datetime.time, dur:datetime.timedelta):
+    if start is None or dur is None: return "Anytime"
+    finish = nptime.from_time(start) + dur
+    fmt = "%-H%M"
+    return "%s to %s" % (start.strftime(fmt), finish.strftime(fmt))
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -81,24 +92,41 @@ def set_nag_on_for_instances(model_admin, request, query_set):
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-class RecurringTaskTemplateAdmin(admin.ModelAdmin):
 
-    def duration_fmt(self, obj): return duration_fmt(obj.duration)
-    duration_fmt.short_description = "Duration"
+class TemplateAndTaskBase(admin.ModelAdmin):
+
+    def time_window_fmt(self, obj):
+        return time_window_fmt(obj.work_start_time, obj.work_duration)
+    time_window_fmt.short_description = "Time"
+
+    def work_and_workers_fmt(self, obj):
+        dur_str = duration_fmt(obj.max_work)
+        ppl_str = "ppl" if obj.max_workers > 1 else "pers"
+        return "%s for %d %s" % (dur_str, obj.max_workers, ppl_str)
+    work_and_workers_fmt.short_description = "Amount of Work"
 
     def priority_fmt(self, obj): return obj.priority
     priority_fmt.short_description = "Prio"
 
-    save_as = True
+    class Meta:
+        abstract = True
+
+
+class RecurringTaskTemplateAdmin(TemplateAndTaskBase):
+
+    # save_as = True   There are complications w.r.t. Task instances.
 
     # Following overrides the empty changelist value. See http://stackoverflow.com/questions/28174881/
+    # TODO: Why should it be here? It applies to all views.
     def __init__(self,*args,**kwargs):
         super(RecurringTaskTemplateAdmin, self).__init__(*args, **kwargs)
         main.EMPTY_CHANGELIST_VALUE = '-'
 
     list_filter = ['priority', 'active', 'should_nag']
+
     list_display = [
-        'short_desc', 'recurrence_str', 'start_time', 'duration_fmt',
+        'short_desc', 'recurrence_str',
+        'time_window_fmt', 'work_and_workers_fmt',
         'priority_fmt', 'owner', 'reviewer', 'active', 'should_nag'
     ]
     actions = [
@@ -130,18 +158,30 @@ class RecurringTaskTemplateAdmin(admin.ModelAdmin):
         (None, {'fields': [
             'short_desc',
             'instructions',
-            'work_estimate',
             'start_date',
-            'start_time',
-            'duration',
             'priority',
             'active',
             'should_nag',
         ]}),
 
+        ("Work Window", {
+            'description': "If the work must be performed at a certain time, specify the start time and duration here.<br/>If the work can be done at any time, don't specify anything here.",
+            'fields': [
+                'work_start_time',
+                'work_duration',
+            ],
+        }),
+
+        ("Amount of Work", {
+            'description': "Example 1: If 4 members will meet to work on a task from noon until 1pm, you want something like max_workers=4 and max_work=4 hours.<br/><br/>Example 2: If you have about 20 hours of electrical work that can be done anytime, then max_work=20 and max_workers would be whatever you think is sensible.",
+            'fields': [
+                'max_workers',
+                'max_work'
+            ],
+        }),
+
         ("People", {'fields': [
             'owner',
-            'max_claimants',
             'default_claimant',
             'eligible_claimants',
             'uninterested',
@@ -195,19 +235,22 @@ class RecurringTaskTemplateAdmin(admin.ModelAdmin):
 
     ]
 
+# TODO: Can't use @admin.register decorator for RTTA because of main.EMPTY_CHANGELIST_VALUE = '-' code.
+admin.site.register(RecurringTaskTemplate, RecurringTaskTemplateAdmin)
+
 
 class TaskNoteInline(admin.StackedInline):
     model = TaskNote
     extra = 0
 
 
-class ClaimInline(admin.StackedInline):
-    model = Claim
+class WorkInline(admin.TabularInline):
+    model = Work
     extra = 0
 
 
-class WorkInline(admin.StackedInline):
-    model = Work
+class ClaimInline(admin.StackedInline):
+    model = Claim
     extra = 0
 
 
@@ -234,18 +277,13 @@ class ScheduledDateListFilter(admin.SimpleListFilter):
             return queryset.filter(scheduled_date__isnull=True)
 
 
-class TaskAdmin(admin.ModelAdmin):
+@admin.register(Task)
+class TaskAdmin(TemplateAndTaskBase):
 
     class Media:
         css = {
             "all": ("tasks/task_admin.css",)
         }
-
-    def duration_fmt(self, obj): return duration_fmt(obj.duration)
-    duration_fmt.short_description = "Duration"
-
-    def priority_fmt(self, obj): return obj.priority
-    priority_fmt.short_description = "Prio"
 
     actions = [
         set_nag_on,
@@ -256,7 +294,8 @@ class TaskAdmin(admin.ModelAdmin):
     ]
     filter_horizontal = ['eligible_claimants', 'eligible_tags']
     list_display = [
-        'pk', 'short_desc', 'scheduled_weekday', 'scheduled_date', 'start_time', 'duration_fmt',
+        'pk', 'short_desc', 'scheduled_weekday', 'scheduled_date',
+        'time_window_fmt', 'work_and_workers_fmt',
         'priority_fmt', 'owner', 'should_nag', 'reviewer', 'status',
     ]
     search_fields = [
@@ -271,10 +310,18 @@ class TaskAdmin(admin.ModelAdmin):
         (None, {'fields': [
             'short_desc',
             'instructions',
-            'work_estimate',
+        ]}),
+
+        ("When", {'fields': [
             'scheduled_date',
-            'duration',
+            'work_start_time',
+            'work_duration',
             'deadline',
+        ]}),
+
+        ("How Much", {'fields': [
+            'max_work',
+            'max_workers',
         ]}),
 
         ("People", {'fields': [
@@ -291,41 +338,61 @@ class TaskAdmin(admin.ModelAdmin):
             ]
         }),
     ]
-    inlines = [TaskNoteInline, ClaimInline, WorkInline]
+    inlines = [TaskNoteInline, ClaimInline]
 
 
+@admin.register(Claim)
 class ClaimAdmin(admin.ModelAdmin):
 
-    list_display = ['pk', 'task', 'member', 'hours_claimed', 'date', 'status']
+    list_display = ['pk', 'claimed_task', 'claiming_member', 'claimed_start_time', 'claimed_duration', 'stake_date', 'status']
     list_filter = ['status']
+    inlines = [WorkInline]
     search_fields = [
-        '^member__auth_user__first_name',
-        '^member__auth_user__last_name',
-        'task__short_desc',
+        '^claiming_member__auth_user__first_name',
+        '^claiming_member__auth_user__last_name',
+        'claimed_task__short_desc',
+    ]
+    fieldsets = [
+
+        (None, {
+            'fields': [
+                'claimed_task',
+                'claiming_member',
+                'claimed_start_time',
+                'claimed_duration',
+            ]
+        }),
+
+        ("Status", {
+            'fields': [
+                'status',
+                'date_verified',
+            ]
+        }),
     ]
 
 
+@admin.register(Nag)
 class NagAdmin(admin.ModelAdmin):
     list_display = ['pk', 'who', 'task_count', 'when', 'auth_token_md5']
     readonly_fields = ['who','auth_token_md5','tasks']
 
 
+@admin.register(Work)
 class WorkAdmin(admin.ModelAdmin):
-    list_display = ['pk', 'worker', 'task', 'hours', 'when']
+    list_display = ['pk', 'claim', 'work_date', 'work_duration']
+    search_fields = [
+        '^claim__claiming_member__auth_user__first_name',
+        '^claim__claiming_member__auth_user__last_name',
+        'claim__claimed_task__short_desc',
+    ]
 
-
+@admin.register(CalendarSettings)
 class CalendarSettingsAdmin(admin.ModelAdmin):
     list_display = ['pk', 'who', 'token', 'include_alarms']
 
 
+@admin.register(TaskNote)
 class TaskNoteAdmin(admin.ModelAdmin):
     list_display = ['pk', 'task', 'author', 'content']
 
-
-admin.site.register(RecurringTaskTemplate, RecurringTaskTemplateAdmin)
-admin.site.register(Task, TaskAdmin)
-admin.site.register(Claim, ClaimAdmin)
-admin.site.register(Nag, NagAdmin)
-admin.site.register(Work, WorkAdmin)
-admin.site.register(CalendarSettings, CalendarSettingsAdmin)
-admin.site.register(TaskNote, TaskNoteAdmin)

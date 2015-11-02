@@ -2,6 +2,7 @@
 
 {% load staticfiles %}
 
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
 <script src="{% static 'xerocraft/sweetalert.min.js' %}"></script>
 <link rel="stylesheet" type="text/css" href="{% static 'xerocraft/sweetalert.css' %}">
 
@@ -21,7 +22,17 @@
             },
             function(isConfirm) {
                 if (isConfirm) {
-                    swal("Thanks!", "You are now working the task.", "success");
+                    $.ajax({
+                        type: "POST",
+                        url: "test.html",
+                        context: document.body,
+                        success: function() {
+                            swal("Thanks!", "You are now working the task.", "success");
+                        },
+                        error: function() {
+                            swal("Uh oh...", "We couldn't assign that task.\nContact the Volunteer Coordinator.", "error");
+                        }
+                    });
                 }
             }
         );

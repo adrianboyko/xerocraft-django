@@ -23,7 +23,7 @@
 <body>
     <p id="short_desc">{{task.short_desc}}</p>
     <p>Scheduled {{task.scheduled_date|date:"D M d"}}</p>
-    <p>{{task.start_time}} for {{task.duration|duration_str}}</p>
+    <p>{{task.start_time}} for {{task.work_duration|duration_str}}</p>
 
     <p id="instructions">{{task.instructions}}</p>
     <table width="100%" align="center">
@@ -40,7 +40,7 @@
         <tr>
             <td width="33%"><span class="n">Status</span><br/>{{task.status}}</td>
             <td width="33%"><span class="n">Priority</span><br/>{{task.priority}}</td>
-            <td width="33%"><span class="n">Estimate</span><br/>{{task.work_estimate}}</td>
+            <td width="33%"><span class="n">Estimate</span><br/>{{task.work_duration|duration_str}}</td> <!-- TODO: Change this to work time window -->
         </tr>
     </table>
     {% for note in task.notes %}

@@ -6,7 +6,7 @@ from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 
 from hashlib import md5
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 from tasks.models import Task, Nag, Claim, CalendarSettings
 from members.models import Member, VisitEvent
@@ -27,7 +27,7 @@ def visitevent_arrival_content(member):
 
     # Find member's claimed tasks for today:
     for claim in member.claim_set.filter(status=Claim.STAT_CURRENT, task__scheduled_date=date.today()):
-        claimed_today.append(claim.task)
+        claimed_today.append(claim.claimed_task)
 
     # Find today's unclaimed tasks:
     for task in Task.objects.filter(status=Task.STAT_ACTIVE, scheduled_date=date.today()):
@@ -59,7 +59,6 @@ def visitevent_content(member, visit_event_type):
         return visitevent_departure_content(member)
 
 
-
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 def _get_task_and_nag(task_pk, auth_token):
@@ -75,9 +74,17 @@ def offer_task(request, task_pk, auth_token):
     task, nag = _get_task_and_nag(task_pk, auth_token)
 
     if request.method == 'POST':
-        hours = request.POST['hours']
+        h = request.POST['hours']
+        t = datetime.strptime(h,"%H:%M:%S")
+
         # TODO: There's some risk that user will end up here via browser history. Catch unique violoation exception?
-        Claim.objects.create(task=task, member=nag.who, hours_claimed=hours, status=Claim.STAT_CURRENT)
+        Claim.objects.create(
+            claimed_task=task,
+            claiming_member=nag.who,
+            claimed_start_time=task.work_start_time,
+            claimed_duration=timedelta(hours=t.hour, minutes=t.minute, seconds=t.second),
+            status=Claim.STAT_CURRENT
+        )
         return redirect('task:offer-more-tasks', task_pk=task_pk, auth_token=auth_token)
 
     else:  # GET and other methods
@@ -93,8 +100,9 @@ def offer_task(request, task_pk, auth_token):
             "member": nag.who,
             "dow": task.scheduled_weekday(),
             "claims": task.claim_set.filter(status=Claim.STAT_CURRENT),
-            "max_hrs_to_claim": float(min(task.unclaimed_hours(), task.duration.seconds/3600.0)),
-            "auth_token": auth_token
+            "max_hrs_to_claim": task.max_claimable_hours(),
+            "auth_token": auth_token,
+            "zero": timedelta(0),
         }
         return render(request, 'tasks/offer_task.html', params)
 
@@ -108,7 +116,13 @@ def offer_more_tasks(request, task_pk, auth_token):
         for pk in pks:
             t = Task.objects.get(pk=pk)
             # TODO: There's some risk that user will end up here via browser history. Catch unique violoation exception?
-            Claim.objects.create(task=t, member=nag.who, hours_claimed=t.duration.seconds/3600.0, status=Claim.STAT_CURRENT)
+            Claim.objects.create(
+                claimed_task=t,
+                claiming_member=nag.who,
+                claimed_start_time=t.work_start_time,
+                claimed_duration=t.max_work,
+                status=Claim.STAT_CURRENT,
+            )
         return redirect('task:offers-done', auth_token=auth_token)
 
     else: # GET or other methods:
@@ -121,7 +135,7 @@ def offer_more_tasks(request, task_pk, auth_token):
         future_instances_same_dow = []
         for instance in all_future_instances:
             if instance.scheduled_weekday() == task.scheduled_weekday() \
-               and instance.unclaimed_hours() == instance.work_estimate \
+               and instance.unclaimed_hours() == instance.max_work \
                and nag.who in instance.all_eligible_claimants():
                 future_instances_same_dow.append(instance)
             if len(future_instances_same_dow) > 3:  # Don't overwhelm potential worker.
@@ -190,14 +204,14 @@ def _new_calendar(name):
 
 
 def _add_event(cal, task):
-    dtstart = datetime.combine(task.scheduled_date, task.start_time)
+    dtstart = datetime.combine(task.scheduled_date, task.work_start_time)
     event = Event()
     event.add('uid',         task.pk)
     event.add('url',         "http://xerocraft-django.herokuapp.com/tasks/task-details/%d/" % task.pk)  # TODO: Lookup instead of hard code?
     event.add('summary',     task.short_desc)
     event.add('description', task.instructions.replace("\r\n", " "))
     event.add('dtstart',     dtstart)
-    event.add('dtend',       dtstart + task.duration)
+    event.add('dtend',       dtstart + task.work_duration)
     event.add('dtstamp',     datetime.now())
     cal.add_component(event)
 
@@ -212,14 +226,14 @@ def _ical_response(cal):
 
 def _gen_tasks_for(member):
     for task in member.tasks_claimed.all():
-        if task.scheduled_date is None or task.start_time is None or task.duration is None:
+        if task.scheduled_date is None or task.work_start_time is None or task.work_duration is None:
             continue
         yield task
 
 
 def _gen_all_tasks():
     for task in Task.objects.all():
-        if task.scheduled_date is None or task.start_time is None or task.duration is None:
+        if task.scheduled_date is None or task.work_start_time is None or task.work_duration is None:
             continue
         yield task
 
@@ -276,7 +290,7 @@ def xerocraft_calendar_unstaffed(request):
 def resource_calendar(request):
     cal = _new_calendar("Xerocraft Resource Usage")
     #for task in Task.objects.all():
-    #    if task.scheduled_date is None or task.start_time is None or task.duration is None:
+    #    if task.scheduled_date is None or task.work_start_time is None or task.work_duration is None:
     #        continue
     #    _add_event(cal,task)
     #    # Intentionally lacks ALARM

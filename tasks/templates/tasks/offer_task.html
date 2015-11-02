@@ -45,21 +45,22 @@
         You have clicked the following task:
         <br/>"{{task.short_desc}}"
         <br/>{{dow}} {{task.scheduled_date}}
-        <br/>{{task.start_time}} for {{task.duration|duration_str}}
+        {% if task.work_start_time and task.work_duration %}
+        <br/>{{task.work_start_time}} for {{task.work_duration|duration_str}}
+        {% endif %}
     </p>
 
     <p>
-        Estimated hours for this task: {{task.work_estimate}} hrs
         {% if claims %}
-            <br/>Currently planning to work this task:
+            Currently planning to work this task:
             {% for claim in claims %}
-                <br/>{{claim.member}}, {{claim.hours_claimed}} hrs
+                <br/>{{claim.member}}{% if task.work_duration %}, {{claim.work_duration|duration_str}} hrs{% endif %}
             {% endfor %}
         {% else %}
-            <br/>Nobody is helping with this task, yet.
+            Nobody is helping with this task, yet.
         {% endif %}
     </p>
-    {% if max_hrs_to_claim > 0 %}
+    {% if max_hrs_to_claim > zero %}
         <br/>
         <form id="form" action="{{request.path}}" method="post">{% csrf_token %}
 
@@ -67,7 +68,7 @@
 
             <a class="choice_button"
                onclick="document.getElementById('form').submit(); return false;"
-               href="javascript:{}">Claim {{max_hrs_to_claim}} hrs</a>
+               href="javascript:{}">Claim {{max_hrs_to_claim|duration_str}}</a>
 
         </form>
     {% else %}

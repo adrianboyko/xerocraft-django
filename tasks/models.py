@@ -1,10 +1,10 @@
 from django.db import models
+from django.core.exceptions import ValidationError
+from django.utils.translation import ugettext_lazy as _
 from datetime import date, timedelta, datetime
 from members import models as mm
 from decimal import Decimal
 import logging
-
-# TODO: Rework various validate() methods into Model.clean()? See Django's "model validation" docs.
 
 # TODO: class MetaTag?
 # E.g. Tag instructor tags with "instructor" meta-tag
@@ -43,8 +43,11 @@ def make_TaskMixin(dest_class_alias):
         short_desc = models.CharField(max_length=40,
             help_text="A short description/name for the task.")
 
-        max_claimants = models.IntegerField(default=1,
-            help_text="The maximum number of members that can simultaneously claim/work the task, often 1.")
+        max_workers = models.IntegerField(default=1, null=False, blank=False,
+            help_text="The maximum number of members that can claim/work the task, often 1.")
+
+        max_work = models.DurationField(null=False, blank=False,
+            help_text="The max total amount of hours that can be claimed/worked for this task.")
 
         eligible_claimants = models.ManyToManyField(mm.Member, blank=True, related_name="claimable_"+dest_class_alias,
             help_text="Anybody chosen is eligible to claim the task.<br/>")
@@ -55,14 +58,11 @@ def make_TaskMixin(dest_class_alias):
         reviewer = models.ForeignKey(mm.Member, null=True, blank=True, on_delete=models.SET_NULL, related_name="reviewable"+dest_class_alias,
             help_text="If required, a member who will review the work once its completed.")
 
-        work_estimate = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True,
-            help_text="An estimate of how much work this tasks requires, in hours (e.g. 1.25).<br/>This is work time, not elapsed time.")
-
-        start_time = models.TimeField(null=True, blank=True,
-            help_text="The time at which the task should begin, if any.")
-
-        duration = models.DurationField(null=True, blank=True,
-            help_text="The duration of the task, if applicable. This is elapsed time, not work time.")
+        # TODO: Maybe rename work_start_time -> window_start and work_duration -> window_size?
+        work_start_time = models.TimeField(null=True, blank=True,
+            help_text="The time at which work on the task must begin. If time doesn't matter, leave blank.")
+        work_duration = models.DurationField(null=True, blank=True,
+            help_text="Used with work_start_time to specify the time span over which work must occur. <br/>If work_start_time is blank then this should also be blank.")
 
         uninterested = models.ManyToManyField(mm.Member, blank=True, related_name="uninteresting_"+dest_class_alias,
             help_text="Members that are not interested in this item.")
@@ -142,6 +142,24 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
 
     # Every X days:
     repeat_interval = models.SmallIntegerField(null=True, blank=True, help_text="Minimum number of days between recurrences, e.g. 14 for every two weeks.")
+
+    def clean(self):
+        if self.work_start_time is not None and self.work_duration is None:
+            raise ValidationError(_("You must specify a duration if you specify a start time."))
+        if self.work_start_time is None and self.work_duration is not None:
+            raise ValidationError(_("You must specify a work_start_time if you specify a duration."))
+        if not (self.repeats_at_intervals() or self.repeats_on_certain_days()):
+            raise ValidationError(_("Must specify 1) repetition at intervals or 2) repetition on certain days."))
+        if self.repeats_at_intervals() and self.repeats_on_certain_days():
+            raise ValidationError(_("Must not specify 1) repetition at intervals AND 2) repetition on certain days."))
+        if self.last and self.fourth:  # REVIEW: Maybe it's OK
+            raise ValidationError(_("Choose either fourth week or last week, not both."))
+        if self.every and (self.first or self.second or self.third or self.fourth or self.last):
+            raise ValidationError(_("If you choose 'every week' don't choose any other weeks."))
+        if self.work_duration is not None and self.work_duration <= timedelta(0):
+            raise ValidationError(_("Duration must be greater than zero."))
+        if self.eligible_claimants is None and self.eligible_tags is None:
+            raise ValidationError(_("One or more people and/or one or more tags must be selected."))
 
     def greatest_scheduled_date(self):
         "Of the Tasks that correspond to this template, returns the greatest scheduled_date."
@@ -258,7 +276,7 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
         return self.repeat_interval is not None
 
     def create_tasks(self, max_days_in_advance):
-        """Creates/schedules new tasks from  (inclusive).
+        """Creates/schedules new tasks from today or day after GSD (inclusive).
         Stops when scheduling a new task would be more than max_days_in_advance from current date.
         Does not create/schedule a task on date D if one already exists for date D.
         Does nothing if the template is not active.
@@ -289,11 +307,11 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
                         instructions            =self.instructions,
                         short_desc              =self.short_desc,
                         reviewer                =self.reviewer,
-                        work_estimate           =self.work_estimate,
                         missed_date_action      =self.missed_date_action,
-                        max_claimants           =self.max_claimants,
-                        start_time              =self.start_time,
-                        duration                =self.duration,
+                        max_work                =self.max_work,
+                        max_workers             =self.max_workers,
+                        work_start_time         =self.work_start_time,
+                        work_duration           =self.work_duration,
                         should_nag              =self.should_nag,
                     )
 
@@ -304,32 +322,17 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
 
                     if self.default_claimant is not None:
                         Claim.objects.create(
-                            member=self.default_claimant,
+                            claiming_member=self.default_claimant,
                             status=Claim.STAT_CURRENT,
-                            task=t,
-                            hours_claimed=self.work_estimate
+                            claimed_task=t,
+                            claimed_start_time=self.work_start_time,
+                            claimed_duration=self.work_duration
                         )
                     logger.info("Created %s on %s", self.short_desc, curr)
 
                 except Exception as e:
                     logger.error("Couldn't create %s on %s because %s", self.short_desc, curr, str(e))
                     if t is not None: t.delete()
-
-    def validate(self):
-        if not (self.repeats_at_intervals() or self.repeats_on_certain_days()):
-            return False, "Must specify 1) repetition at intervals or 2) repetition on certain days."
-        if self.repeats_at_intervals() and self.repeats_on_certain_days():
-            return False, "Must not specify 1) repetition at intervals and 2) repetition on certain days."
-        if self.last and self.fourth:
-            return False, "Choose either fourth week or last week, not both."
-        if self.every and (self.first or self.second or self.third or self.fourth or self.last):
-            return False, "If you choose 'every week' don't choose any other weeks."
-        if self.work_estimate < 0:
-            # zero will mean "not yet estimated" but anything that has been estimated must have work > 0.
-            return False, "Invalid work estimate."
-        if self.eligible_claimants is None and self.eligible_tags is None:
-            return False, "One or more people and/or one or more tags must be selected."
-        return True, "Looks good."
 
     def recurrence_str(self):
         days_of_week = self.repeats_on_certain_days()
@@ -375,26 +378,23 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
 
 class Claim(models.Model):
 
-    task = models.ForeignKey('Task', null=False,
+    claimed_task = models.ForeignKey('Task', null=False,
         on_delete=models.CASCADE, # The claim means nothing if the task is gone.
         help_text="The task against which the claim to work is made.")
-    task.verbose_name = "Task claimed"
 
-    member = models.ForeignKey(mm.Member,
+    claiming_member = models.ForeignKey(mm.Member,
         help_text = "The member claiming the task.")
-    member.verbose_name = "Claiming member"
 
-    date = models.DateField(auto_now_add=True,
-        help_text = "The date on which the member claimed the task.")
-    date.verbose_name = "Date claimed"
+    stake_date = models.DateField(auto_now_add=True,
+        help_text = "The date on which the member staked this claim.")
 
-    hours_claimed = models.DecimalField(max_digits=5, decimal_places=2,
-        help_text = "The actual time claimed, in hours (e.g. 1.25). This is work time, not elapsed time.")
+    claimed_start_time = models.TimeField(null=True, blank=True,
+        help_text="If the task specifies a start time and duration, this must fall within that time span. Otherwise it should be blank.")
 
-    # The following boolean distinguishes two substates of state STAT_CURRENT.
-    verified_current = models.BooleanField(default=False,
-        help_text = "The system has determined that the current claimant will be able to work the task.")
-    verified_current.verbose_name = "Verified"
+    claimed_duration = models.DurationField(null=False, blank=False,
+        help_text="The amount of work the member plans to do on the task.")
+
+    date_verified = models.DateField(null=True, blank=True)
 
     STAT_CURRENT   = "C"  # Member has a current claim on the task.
     STAT_EXPIRED   = "X"  # Member didn't finish the task while claimed, so member's claim has expired.
@@ -413,6 +413,15 @@ class Claim(models.Model):
     status = models.CharField(max_length=1, choices=CLAIM_STATUS_CHOICES,
         help_text = "The status of this claim.")
 
+    def clean(self):
+        task = self.claimed_task; claim = self  # Makes it easier to read clean logic.
+        if claim.claimed_duration <= timedelta(0):
+            raise ValidationError(_("Duration must be greater than zero"))
+        if task.work_start_time is not None and claim.claimed_start_time is None:
+            raise ValidationError(_("Must specify the start time for this claim."))
+        if task.work_start_time is None and claim.claimed_start_time is not None:
+            pass  # REVIEW: I think this will be OK.
+
     @staticmethod
     def sum_in_period(startDate, endDate):
         """ Sum up hours claimed per claimant during period startDate to endDate, inclusive. """
@@ -422,23 +431,43 @@ class Claim(models.Model):
                 if claim.status == claim.STAT_CURRENT:
                     if claim.member not in claimants:
                         claimants[claim.member] = Decimal(0.0)
-                    claimants[claim.member] += claim.hours_claimed
+                    claimants[claim.member] += claim.claimed_duration
         return claimants
 
+    def __str__(self):
+        return "%s, %s" % (self.claiming_member.first_name, self.claimed_task.short_desc)
+
     class Meta:
-        unique_together = ('member','task')
+        unique_together = ('claiming_member', 'claimed_task')
 
 
 class Work(models.Model):
+    """Records work against a certain claim."""
 
-    worker = models.ForeignKey(mm.Member,
-        help_text="Member that did work toward completing task.")
-    task = models.ForeignKey('Task',
-        help_text="The task that was worked.")
-    hours = models.DecimalField(max_digits=5, decimal_places=2,
-        help_text="The actual time worked, in hours (e.g. 1.25). This is work time, not elapsed time.")
-    when = models.DateField(null=False, default=date.today,
+    # Note: Worker field removed since it's already available in claim.
+
+    # Note: Time that work was done isn't very important at this point.  The member
+    # is asserting that they worked inside whatever time constraints the task had.
+
+    claim = models.ForeignKey('Claim', null=False, blank=False,
+        on_delete=models.PROTECT, # We don't want to lose data about work done.
+        help_text="The claim against which the work is being reported.")
+
+    work_date = models.DateField(null=False, blank=False,
         help_text="The date on which the work was done.")
+
+    work_duration = models.DurationField(null=False, blank=False,
+        help_text = "The amount of time the member spent working.")
+
+    def clean(self):
+        work = self; claim = work.claim; task = claim.claimed_task  # Makes it easier to read logic, below:
+        if work.work_duration <= timedelta(0):
+            raise ValidationError(_("Duration must be greater than zero."))
+        if work.work_duration > claim.claimed_duration:
+            raise ValidationError(_("Can't report more work than was claimed."))
+
+    class Meta:
+        verbose_name_plural = "Work"
 
 
 class Task(make_TaskMixin("Tasks")):
@@ -458,8 +487,8 @@ class Task(make_TaskMixin("Tasks")):
     claimants = models.ManyToManyField(mm.Member, through=Claim, related_name="tasks_claimed",
         help_text="The people who say they are going to work on this task.")
 
-    workers = models.ManyToManyField(mm.Member, through=Work, related_name="tasks_worked",
-        help_text="The people who have actually posted hours against this task.")
+    #workers = models.ManyToManyField(mm.Member, through=Work, related_name="tasks_worked",
+    #    help_text="The people who have actually posted hours against this task.")
 
     # TODO: If reviewer is None, setting status to REVIEWABLE should skip to DONE.
     STAT_ACTIVE     = "A"  # The task is (or will be) workable.
@@ -477,36 +506,46 @@ class Task(make_TaskMixin("Tasks")):
 
     recurring_task_template = models.ForeignKey(RecurringTaskTemplate, null=True, blank=True, on_delete=models.SET_NULL, related_name="instances")
 
-    def validate(self):
-        #TODO: Sum of claim hours should be <= work_estimate.
-        #
-        if self.prev_claimed_by == self.claimed_by:
-            return False, "Member cannot claim a task they've previously claimed. Somebody else has to get a chance at it."
-        if self.work_estimate < 0:
-            # REVIEW: zero will mean "not yet estimated" but anything that has been estimated must have work > 0.
-            return False, "Invalid work estimate."
+    def clean(self):
+
+        # TODO: Sum of claim hours should be <= duration if max_claimants==1. More complicated for >1.
+
+        # TODO: Rewrite claimed-by check per model changes:
+        # if self.prev_claimed_by == self.claimed_by:
+        #     raise ValidationError(_("Member cannot claim a task they've previously claimed. Somebody else has to get a chance at it."))
+
+        if self.work_duration is not None and self.work_duration <= timedelta(0):
+            raise ValidationError(_("Duration must be greater than zero."))
+
+        if self.max_work is not None and self.max_work <= timedelta(0):
+            raise ValidationError(_("Duration must be greater than zero."))
+
         if self.recurring_task_template is not None and self.scheduled_date is None:
-            return False, "A task corresponding to a ScheduledTaskTemplate must have a scheduled date."
-        return True, "Looks good."
+            raise ValidationError(_("A task corresponding to a ScheduledTaskTemplate must have a scheduled date."))
 
     def scheduled_now(self):
         if self.scheduled_date is None: return False
-        if self.start_time is None: return False
-        if self.duration is None: return False
-        start = datetime.combine(self.scheduled_date, self.start_time)
+        if self.work_start_time is None: return False
+        if self.work_duration is None: return False
+        start = datetime.combine(self.scheduled_date, self.work_start_time)
         now = datetime.now()
         delta = now - start
         if delta.seconds < 0: return False
-        if delta > self.duration: return False
+        if delta > self.work_duration: return False
         return True
 
     def unclaimed_hours(self):
-        unclaimed_hours = self.work_estimate
+        unclaimed_hours = self.max_work
         for claim in self.claim_set.all():
             if claim.status == claim.STAT_CURRENT:
-                unclaimed_hours -= claim.hours_claimed
-        assert(unclaimed_hours >= 0.0)
+                unclaimed_hours -= claim.claimed_duration
         return unclaimed_hours
+
+    def max_claimable_hours(self):
+        if self.work_duration is None:
+            return self.unclaimed_hours()
+        else:
+            return min(self.unclaimed_hours(), self.work_duration)
 
     def is_fully_claimed(self):
         """
@@ -535,7 +574,7 @@ class Task(make_TaskMixin("Tasks")):
         result = set()
         for claim in self.claim_set.all():
             if claim.status == claim.STAT_CURRENT:
-                result |= set([claim.member])
+                result |= set([claim.claiming_member])
         return result
 
     def scheduled_weekday(self):
@@ -557,13 +596,15 @@ class Task(make_TaskMixin("Tasks")):
     def full_desc(self): return str(self)
 
     class Meta:
-        ordering = ['scheduled_date', 'start_time']
+        ordering = ['scheduled_date', 'work_start_time']
         # Intentionally using short_desc instead of recurringtasktemplate in constraint below.
         # In general, using short_desc will give a tighter constraint, crossing templates.
         unique_together = ('scheduled_date', 'short_desc')
 
 
 class TaskNote(models.Model):
+
+    # TODO: TaskNote needs a when_written field.
 
     # Note will become anonymous if author is deleted or author is blank.
     author = models.ForeignKey(mm.Member, null=True, blank=True, on_delete=models.SET_NULL, related_name="task_notes_authored",

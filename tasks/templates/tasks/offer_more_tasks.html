@@ -74,7 +74,7 @@
             <label for="{{task.pk}}">
                 <li>
                     <input type="checkbox" name="tasks" id="{{task.pk}}" value="{{task.pk}}" onclick="manageButton();">
-                    {{task.scheduled_date | date:"D M d"}} @ {{task.start_time}}
+                    {{task.scheduled_date | date:"D M d"}} @ {{task.work_start_time}}
                 </li>
             </label>
             {% endfor %}
