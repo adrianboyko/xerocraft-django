@@ -28,7 +28,7 @@ class Command(BaseCommand):
 
         # Find out who's doing what over the next week. Who's already scheduled to work and who's heavily scheduled?
         ppl_already_scheduled = Claim.sum_in_period(today, nextweek)
-        ppl_heavily_scheduled = set([member for member,hours in ppl_already_scheduled.items() if hours >= 6.0])
+        ppl_heavily_scheduled = set([member for member,dur in ppl_already_scheduled.items() if dur >= datetime.timedelta(hours=6.0)])
 
         # Cycle through the next week's NAGGING tasks to see which need workers and who should be nagged.
         nag_lists = {}
@@ -66,8 +66,8 @@ class Command(BaseCommand):
                 'token': b64,
                 'member': member,
                 'tasks': tasks,
-                'host': 'http://192.168.1.101:8000'
-                #'host': 'http://xerocraft-django.herokuapp.com'
+                #'host': 'http://192.168.1.101:8000'
+                'host': 'http://xerocraft-django.herokuapp.com'
             })
             subject = 'Call for Volunteers, ' + datetime.date.today().strftime('%a %b %d')
             from_email = 'Volunteer Coordinator <volunteer@xerocraft.org>'

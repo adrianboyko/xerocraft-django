@@ -429,9 +429,9 @@ class Claim(models.Model):
         for task in Task.objects.filter(scheduled_date__gte=startDate).filter(scheduled_date__lte=endDate):
             for claim in task.claim_set.all():
                 if claim.status == claim.STAT_CURRENT:
-                    if claim.member not in claimants:
-                        claimants[claim.member] = Decimal(0.0)
-                    claimants[claim.member] += claim.claimed_duration
+                    if claim.claiming_member not in claimants:
+                        claimants[claim.claiming_member] = timedelta(0)
+                    claimants[claim.claiming_member] += claim.claimed_duration
         return claimants
 
     def __str__(self):
