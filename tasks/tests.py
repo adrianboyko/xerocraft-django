@@ -1,3 +1,4 @@
+from django.core import management, mail
 from django.core.urlresolvers import reverse
 from django.test import TestCase, TransactionTestCase, Client, RequestFactory
 from tasks.models import *
@@ -6,7 +7,7 @@ from tasks.admin import *
 from members.models import Member, Tag
 from django.contrib.auth.models import User
 from django.contrib.admin import site
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, time
 from pydoc import locate  # for loading classes
 
 
@@ -178,7 +179,6 @@ class TestAdminConfig(TestCase):
                         check_fieldname(fieldname, model_class, admin_class)
 
 
-
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 class TestAdminViews(TestCase):
@@ -211,30 +211,28 @@ class TestAdminViews(TestCase):
         CalendarSettings.objects.create(who=member, token=arbitrary_token_md5)
         self.fact = RequestFactory()
 
-    def admin_views_helper(self, model_classname):
-
-        model_cls = locate("tasks.models.%s" % model_classname)
-        admin_cls = locate("tasks.admin.%sAdmin" % model_classname)
-        admin_inst = admin_cls(model_cls, site)
-        model_inst = model_cls.objects.first()
-        assert model_inst is not None, "Test didn't create instances of %s" % model_classname
-        url = "/admin/tasks/%s/" % model_classname.lower()
-
-        # Test the list view:
-        request = self.fact.get(url)
-        request.user = self.user
-        response = admin_inst.changelist_view(request)
-        self.assertEqual(response.status_code, 200, "Admin view failure: %s" % url)
-
-        # Test the detail view:
-        request = self.fact.get(url)
-        request.user = self.user
-        response = admin_inst.change_view(request, str(model_inst.pk))
-        self.assertEqual(response.status_code, 200, "Admin view failure: %s" % url)
-
     def test_admin_views(self):
-        for classname in model_classnames:
-            self.admin_views_helper(classname)
+
+        for model_classname in model_classnames:
+
+            model_cls = locate("tasks.models.%s" % model_classname)
+            admin_cls = locate("tasks.admin.%sAdmin" % model_classname)
+            admin_inst = admin_cls(model_cls, site)
+            model_inst = model_cls.objects.first()
+            assert model_inst is not None, "Test didn't create instances of %s" % model_classname
+            url = "/admin/tasks/%s/" % model_classname.lower()
+
+            # Test the list view:
+            request = self.fact.get(url)
+            request.user = self.user
+            response = admin_inst.changelist_view(request)
+            self.assertEqual(response.status_code, 200, "Admin view failure: %s" % url)
+
+            # Test the detail view:
+            request = self.fact.get(url)
+            request.user = self.user
+            response = admin_inst.change_view(request, str(model_inst.pk))
+            self.assertEqual(response.status_code, 200, "Admin view failure: %s" % url)
 
     def test_nag_offer_views(self):
         client = Client()
@@ -277,3 +275,28 @@ class TestAdminViews(TestCase):
         )
         self.assertTrue(response.status_code, 200)
         self.assertEqual(len(Claim.objects.all()), 2)
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+class RunSchedAndNagCmds(TestCase):
+
+    def setUp(self):
+        self.user = User.objects.create_superuser(username='admin', password='123', email='test@example.com')
+        member = Member.objects.first()
+        self.rt = RecurringTaskTemplate.objects.create(
+            short_desc="Sched and Nag Cmd Test",
+            max_work=timedelta(hours=1.5),
+            max_workers=1,
+            work_start_time=time(19, 0, 0),
+            work_duration=timedelta(2),
+            start_date=date.today(),
+            repeat_interval=1,
+            should_nag=True)
+        self.rt.eligible_claimants.add(member)
+
+    def test_run_nagger(self):
+        management.call_command("scheduletasks", "2")
+        management.call_command("nag")
+        self.assertEqual(len(mail.outbox), 1)
+
