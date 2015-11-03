@@ -181,34 +181,36 @@ class TestAdminConfig(TestCase):
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-class TestAdminViews(TestCase):
+class TestViews(TestCase):
 
     def setUp(self):
 
         self.arbitrary_token_b64 = 'S2s8DNreTH2R92Dfhzcdhp1aGVV1X0wj'
         arbitrary_token_md5 = 'acd706cdada4cbaa339cae813a25c30f'
         self.user = User.objects.create_superuser(username='admin', password='123', email='')
-        member = Member.objects.first()
+        self.member = Member.objects.first()
+        self.member.membership_card_md5 = arbitrary_token_md5
+        self.member.save()
         self.rt = RecurringTaskTemplate.objects.create(
             short_desc="Admin View Test",
             max_work=timedelta(hours=1.5),
             start_date=date.today(),
             repeat_interval=1)
-        self.rt.eligible_claimants.add(member)
+        self.rt.eligible_claimants.add(self.member)
         self.rt.create_tasks(max_days_in_advance=3)
         self.task = Task.objects.first()
-        TaskNote.objects.create(task=self.task, author=member, content="spam", status=TaskNote.INFO)
-        self.nag = Nag.objects.create(who=member, auth_token_md5=arbitrary_token_md5)
+        TaskNote.objects.create(task=self.task, author=self.member, content="spam", status=TaskNote.INFO)
+        self.nag = Nag.objects.create(who=self.member, auth_token_md5=arbitrary_token_md5)
         self.nag.tasks.add(self.task)
         self.claim= Claim.objects.create(
-            claiming_member=member,
+            claiming_member=self.member,
             claimed_task=self.task,
             claimed_duration=timedelta(hours=1.5))
         self.work = Work.objects.create(
             claim=self.claim,
             work_date=datetime.today(),
             work_duration=timedelta(hours=1.5))
-        CalendarSettings.objects.create(who=member, token=arbitrary_token_md5)
+        CalendarSettings.objects.create(who=self.member, token=arbitrary_token_md5)
         self.fact = RequestFactory()
 
     def test_admin_views(self):
@@ -276,6 +278,17 @@ class TestAdminViews(TestCase):
         self.assertTrue(response.status_code, 200)
         self.assertEqual(len(Claim.objects.all()), 2)
 
+    def test_kiosk_views(self):
+        client = Client()
+
+        t = Task.objects.create(short_desc="Test Kiosk Views", max_work=timedelta(hours=2), max_workers=1)
+        t.eligible_claimants.add(self.member)
+
+        # Must test this "members" app view because "tasks" is hooked into it and can cause it to fail.
+        url = reverse('memb:kiosk-check-in-member', args=[self.arbitrary_token_b64, VisitEvent.EVT_ARRIVAL])
+        response = client.get(url)
+        self.assertContains(response, "Test Kiosk Views", status_code=200)
+
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
@@ -299,4 +312,5 @@ class RunSchedAndNagCmds(TestCase):
         management.call_command("scheduletasks", "2")
         management.call_command("nag")
         self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(len(Nag.objects.all()), 1)
 

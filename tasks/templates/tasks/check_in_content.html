@@ -69,7 +69,7 @@
 {% if claimed_today %}
     {% for task in claimed_today %}
         <span class="choice_button"><a
-           onclick="workTask({{task.pk}},'{{task.short_desc}} @ {{task.start_time | date:"P"}}'); return false;"
+           onclick="workTask({{task.pk}},'{{task.short_desc}} @ {{task.work_start_time | date:"P"}}'); return false;"
            href="javascript:{}">{{task.short_desc}}, {{task.start_time | date:"P"}}</a></span><br/>
     {% endfor %}
 
@@ -77,13 +77,13 @@
     {% for task in unclaimed_today %}
         <span class="choice_button"><a
            onclick="workTask({{task.pk}},'{{task.short_desc}} @ {{task.start_time | date:"P"}}'); return false;"
-           href="javascript:{}">{{task.short_desc}}, {{task.start_time | date:"P"}}</a></span><br/>
+           href="javascript:{}">{{task.short_desc}}, {{task.work_start_time | date:"P"}}</a></span><br/>
     {% endfor %}
 
 {% elif unclaimed_anytime %}
     {% for task in unclaimed_anytime %}
         <span class="choice_button"><a
-           onclick="workTask({{task.pk}},'{{task.short_desc}} @ {{task.start_time | date:"P"}}'); return false;"
+           onclick="workTask({{task.pk}},'{{task.short_desc}} @ {{task.work_start_time | date:"P"}}'); return false;"
            href="javascript:{}">{{task.short_desc}}</a></span><br/>
     {% endfor %}
 {% endif %}

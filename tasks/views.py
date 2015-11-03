@@ -26,7 +26,7 @@ def visitevent_arrival_content(member):
     unclaimed_anytime = []  # Other unscheduled tasks that the member could claim
 
     # Find member's claimed tasks for today:
-    for claim in member.claim_set.filter(status=Claim.STAT_CURRENT, task__scheduled_date=date.today()):
+    for claim in member.claim_set.filter(status=Claim.STAT_CURRENT, claimed_task__scheduled_date=date.today()):
         claimed_today.append(claim.claimed_task)
 
     # Find today's unclaimed tasks:
