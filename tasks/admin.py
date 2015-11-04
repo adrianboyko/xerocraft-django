@@ -254,27 +254,31 @@ class ClaimInline(admin.StackedInline):
     extra = 0
 
 
-class ScheduledDateListFilter(admin.SimpleListFilter):
-    title = _('scheduled date')
-    parameter_name = 'direction'
+def get_ScheduledDateListFilter_class(date_field_name):
 
-    def lookups(self, request, model_admin):
-        return (
-            ('past', _('In the past')),
-            ('today', _('Today')),
-            ('future', _('In the future')),
-            ('nodate', _('No date')),
-        )
+    class ScheduledDateListFilter(admin.SimpleListFilter):
+        title = date_field_name.replace("_", " ")
+        parameter_name = 'direction'
 
-    def queryset(self, request, queryset):
-        if self.value() == 'past':
-            return queryset.filter(scheduled_date__lt=datetime.date.today())
-        if self.value() == 'today':
-            return queryset.filter(scheduled_date=datetime.date.today())
-        if self.value() == 'future':
-            return queryset.filter(scheduled_date__gt=datetime.date.today())
-        if self.value() == 'nodate':
-            return queryset.filter(scheduled_date__isnull=True)
+        def lookups(self, request, model_admin):
+            return (
+                ('past', _('In the past')),
+                ('today', _('Today')),
+                ('future', _('In the future')),
+                ('nodate', _('No date')),
+            )
+
+        def queryset(self, request, queryset):
+            if self.value() == 'past':
+                return queryset.filter(**{"%s__lt" % date_field_name: datetime.date.today()})
+            if self.value() == 'today':
+                return queryset.filter(**{"%s" % date_field_name: datetime.date.today()})
+            if self.value() == 'future':
+                return queryset.filter(**{"%s__gt" % date_field_name: datetime.date.today()})
+            if self.value() == 'nodate':
+                return queryset.filter(**{"%s__isnull" % date_field_name: True})
+
+    return ScheduledDateListFilter
 
 
 @admin.register(Task)
@@ -303,7 +307,7 @@ class TaskAdmin(TemplateAndTaskBase):
         '^owner__auth_user__first_name',
         '^owner__auth_user__last_name'
     ]
-    list_filter = [ScheduledDateListFilter, 'priority', 'status']
+    list_filter = [get_ScheduledDateListFilter_class('scheduled_date'), 'priority', 'status']
     date_hierarchy = 'scheduled_date'
     fieldsets = [
 
@@ -381,6 +385,8 @@ class NagAdmin(admin.ModelAdmin):
 @admin.register(Work)
 class WorkAdmin(admin.ModelAdmin):
     list_display = ['pk', 'claim', 'work_date', 'work_duration']
+    list_filter = [get_ScheduledDateListFilter_class('work_date')]
+    date_hierarchy = 'work_date'
     search_fields = [
         '^claim__claiming_member__auth_user__first_name',
         '^claim__claiming_member__auth_user__last_name',
