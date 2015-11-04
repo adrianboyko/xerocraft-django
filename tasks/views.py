@@ -25,19 +25,30 @@ def visitevent_arrival_content(member):
     unclaimed_today = []    # Other tasks scheduled for today that the member could claim
     unclaimed_anytime = []  # Other unscheduled tasks that the member could claim
 
+    def desc(obj):
+        if type(obj) == Claim:
+            time = obj.claimed_start_time
+            desc = obj.claimed_task.short_desc
+        else:
+            time = obj.work_start_time
+            desc = obj.short_desc
+        if time is not None:
+            desc += time.strftime(" @ %H%M")
+        return desc
+
     # Find member's claimed tasks for today:
     for claim in member.claim_set.filter(status=Claim.STAT_CURRENT, claimed_task__scheduled_date=date.today()):
-        claimed_today.append(claim.claimed_task)
+        claimed_today.append((claim.claimed_task, desc(claim)))
 
     # Find today's unclaimed tasks:
     for task in Task.objects.filter(status=Task.STAT_ACTIVE, scheduled_date=date.today()):
         if member in task.all_eligible_claimants() and task.claimants.count() == 0:
-            unclaimed_today.append(task)
+            unclaimed_today.append((task, desc(task)))
 
     # Find unclaimed tasks with no scheduled date:
     for task in Task.objects.filter(status=Task.STAT_ACTIVE, scheduled_date__isnull=True):
         if member in task.all_eligible_claimants() and task.claimants.count() == 0:
-            unclaimed_anytime.append(task)
+            unclaimed_anytime.append((task, desc(task)))
 
     template = loader.get_template('tasks/check_in_content.html')
     context = Context({
