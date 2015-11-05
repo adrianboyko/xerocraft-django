@@ -25,14 +25,6 @@ model_classnames = [
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-# TODO: Only useful if a fixture is loaded first.
-class TestRecurringTaskTemplateValidity(TestCase):
-
-    def test_RecurringTaskTemplate_rules_against_db(self):
-        for rtt in RecurringTaskTemplate.objects.all():
-            valid,_ = rtt.full_clean()
-            self.assertTrue(valid)
-
 
 class TestTemplateToInstanceCopy(TransactionTestCase):
 
@@ -289,10 +281,49 @@ class TestViews(TestCase):
         response = client.get(url)
         self.assertContains(response, "Test Kiosk Views", status_code=200)
 
+    def test_calendar_views(self):
+
+        t = Task.objects.create(
+            short_desc="TCV",
+            max_work=timedelta(hours=2),
+            max_workers=1,
+            work_start_time=time(19,00,00),
+            work_duration=timedelta(hours=2),
+            scheduled_date=date.today(),
+        )
+
+        expected_words = ["TCV","BEGIN","SUMMARY","DTSTART","DTEND","DTSTAMP","UID","DESCRIPTION","URL","END"]
+
+        client = Client()
+        url = reverse('task:xerocraft-calendar')
+        response = client.get(url)
+        for word in expected_words:
+            self.assertContains(response, word)
+
+        url = reverse('task:xerocraft-calendar-unstaffed')
+        response = client.get(url)
+        for word in expected_words:
+            self.assertContains(response, word)
+
+        c = Claim.objects.create(
+            claimed_task=t,
+            claiming_member=self.member,
+            claimed_duration=t.work_duration,
+            claimed_start_time=t.work_start_time,
+            status=Claim.STAT_CURRENT,
+        )
+        t.claim_set.add(c)
+
+        url = reverse('task:xerocraft-calendar-staffed')
+        response = client.get(url)
+        for word in expected_words:
+            self.assertContains(response, word)
+
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 class RunSchedAndNagCmds(TestCase):
+    """It's best to run scheduletasks before nag, so this test does both."""
 
     def setUp(self):
         self.user = User.objects.create_superuser(username='admin', password='123', email='test@example.com')
@@ -314,3 +345,10 @@ class RunSchedAndNagCmds(TestCase):
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(len(Nag.objects.all()), 1)
 
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+class RunDbCheckCmd(TestCase):
+
+    def test_database_validity(self):
+        management.call_command("dbchecktasks")
