@@ -25,6 +25,7 @@ def _inform_other_systems_of_checkin(member, event_type):
     pass
 
 
+# TODO: Move following to Event class?
 def _log_visit_event(member_card_str, event_type):
 
     is_valid_evt = event_type in [x for (x,_) in VisitEvent.VISIT_EVENT_CHOICES]
@@ -181,7 +182,7 @@ class Kiosk_LogVisitEvent(View):
 
             extra_content = ""
             for f in self.extra_content_providers:
-                extra_content += f(member, event_type)
+                extra_content += f(member, member_card_str, event_type)
 
             params = {
                 "username" : member.username,
