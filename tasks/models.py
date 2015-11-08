@@ -410,6 +410,7 @@ class Claim(models.Model):
         (STAT_WORKING,  "Working"),
         (STAT_DONE,     "Done"),
     ]
+    # TODO: Make status null=False, blank=False, no default.
     status = models.CharField(max_length=1, choices=CLAIM_STATUS_CHOICES,
         help_text = "The status of this claim.")
 

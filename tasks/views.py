@@ -13,13 +13,14 @@ from members.models import Member, VisitEvent
 
 from icalendar import Calendar, Event
 
+import logging
 
 # = = = = = = = = = = = = = = = = = = = = KIOSK VISIT EVENT CONTENT PROVIDERS
 
 from members.views import kiosk_visitevent_contentprovider
 
 
-def visitevent_arrival_content(member):
+def visitevent_arrival_content(member, member_card_str):
 
     claimed_today = []      # The member's claimed tasks for today
     unclaimed_today = []    # Other tasks scheduled for today that the member could claim
@@ -35,6 +36,9 @@ def visitevent_arrival_content(member):
         if time is not None:
             desc += time.strftime(" @ %H%M")
         return desc
+
+    # TODO: Don't find tasks that are past their time window.
+    # TODO: Don't look for anything if member already has a status==WORKING claim
 
     # Find member's claimed tasks for today:
     for claim in member.claim_set.filter(status=Claim.STAT_CURRENT, claimed_task__scheduled_date=date.today()):
@@ -55,19 +59,21 @@ def visitevent_arrival_content(member):
         'claimed_today'     : claimed_today,
         'unclaimed_today'   : unclaimed_today,
         'unclaimed_anytime' : unclaimed_anytime,
+        'member_card_str'   : member_card_str,
     })
     return template.render(context)
 
 
-def visitevent_departure_content(member):
+def visitevent_departure_content(member, member_card_str):
     return ""
 
+
 @kiosk_visitevent_contentprovider
-def visitevent_content(member, visit_event_type):
+def visitevent_content(member, member_card_str, visit_event_type):
     if visit_event_type == VisitEvent.EVT_ARRIVAL:
-        return visitevent_arrival_content(member)
+        return visitevent_arrival_content(member, member_card_str)
     if visit_event_type == VisitEvent.EVT_DEPARTURE:
-        return visitevent_departure_content(member)
+        return visitevent_departure_content(member, member_card_str)
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -188,6 +194,63 @@ def offers_done(request, auth_token):
 def task_details(request, task_pk):
     task = get_object_or_404(Task, pk=task_pk)
     return render(request, "tasks/task_details.html", {'task': task})
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = KIOSK = = = =
+
+def will_work_now(request, task_pk, member_card_str):
+    """ User says they'll work a certain task starting immediately (or at task start time).
+        Claim the task if it isn't already claimed. Set claim to WORKING status.
+    """
+
+    logger = logging.getLogger("tasks")
+    msg_fmt = "will_work_now: %"
+    try:
+        task = Task.objects.get(pk=task_pk)
+    except Task.DOES_NOT_EXIST:
+        msg = "Info provided doesn't correspond to a task."
+        logger.error(msg_fmt % msg)
+        return JsonResponse({"error": msg})
+
+    if task.work_start_time is None or task.work_duration is None:
+        msg = "Expected a task with a specific time window."
+        logger.error(msg_fmt % msg)
+        return JsonResponse({"error": msg})
+
+    member = Member.get_by_card_str(member_card_str)
+    if member is None:
+        # This might legitimately occur if an invalidated card is presented at the kiosk.
+        msg = "Info provided doesn't correspond to a member."
+        logger.warning(msg_fmt % msg)
+        return JsonResponse({"error": msg})
+
+    # If there are multiple kiosks/apps running, it's possible that somebody else took this task
+    # while member was considering whether or not to claim it. Check to see.
+    if task.is_fully_claimed():
+        # This message doesn't need to be logged since it's an expected error.
+        return JsonResponse({"error": "Looks like somebody else just claimed it, so you can't."})
+
+    if member in task.claimants.all():
+        # Following get won't raise exception because we already know the claim exists.
+        claim = Claim.objects.get(claimed_task=task, claiming_member=member)
+        claim.status = Claim.STAT_WORKING
+        claim.save()
+        return JsonResponse({"success": "Existing claim was set to WORKING status."})
+
+    if member not in task.all_eligible_claimants():
+        # There is a small chance that this will happen legitimately, so I'll call it a warning.
+        msg = "You aren't eligible to claim this task."
+        logger.warning(msg_fmt % msg)
+        return JsonResponse({"error": msg})
+
+    claim = Claim.objects.create(
+        claimed_task=task,
+        claiming_member=member,
+        claimed_start_time=task.work_start_time,
+        claimed_duration=task.work_duration,
+        status=Claim.STAT_WORKING)
+    return JsonResponse({"success": "A new claim was created and set to WORKING status."})
+
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 

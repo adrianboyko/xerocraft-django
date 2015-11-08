@@ -273,13 +273,28 @@ class TestViews(TestCase):
     def test_kiosk_views(self):
         client = Client()
 
-        t = Task.objects.create(short_desc="Test Kiosk Views", max_work=timedelta(hours=2), max_workers=1)
+        t = Task.objects.create(
+            short_desc="Test Kiosk Views",
+            max_work=timedelta(hours=2),
+            max_workers=1,
+            work_start_time=time(19,00,00),
+            work_duration=timedelta(hours=2),
+        )
         t.eligible_claimants.add(self.member)
 
         # Must test this "members" app view because "tasks" is hooked into it and can cause it to fail.
         url = reverse('memb:kiosk-check-in-member', args=[self.arbitrary_token_b64, VisitEvent.EVT_ARRIVAL])
         response = client.get(url)
         self.assertContains(response, "Test Kiosk Views", status_code=200)
+
+        # I consider this view to be part of the API but it's used by the kiosk so I'm testing here.
+        url = reverse('task:will-work-now', args=[t.pk, self.arbitrary_token_b64])
+        response = client.get(url)
+        self.assertContains(response, "success", status_code=200)
+        claims = Claim.objects.filter(claimed_task=t.pk)
+        self.assertEquals(len(claims),1)
+        claim = claims.first()
+        self.assertEquals(claim.status, Claim.STAT_WORKING)
 
     def test_calendar_views(self):
 

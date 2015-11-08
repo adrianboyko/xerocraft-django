@@ -23,13 +23,13 @@
             function(isConfirm) {
                 if (isConfirm) {
                     $.ajax({
-                        type: "POST",
-                        url: "test.html",
+                        type: "GET",
+                        url: "/tasks/will-work-now/"+task+"_{{member_card_str}}",
                         context: document.body,
                         success: function() {
                             swal("Thanks!", "You are now working the task.", "success");
                         },
-                        error: function() {
+                        error: function(jqXHR, textStatus, errorThrown) {
                             swal("Uh oh...", "We couldn't assign that task.\nContact the Volunteer Coordinator.", "error");
                         }
                     });
