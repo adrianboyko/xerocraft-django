@@ -24,19 +24,78 @@
                 if (isConfirm) {
                     $.ajax({
                         type: "GET",
-                        url: "/tasks/will-work-now/"+task+"_{{member_card_str}}",
+                        url: "/tasks/will-work-now/"+task+"_{{member_card_str}}/",
                         context: document.body,
-                        success: function() {
-                            swal("Thanks!", "You are now working the task.", "success");
+                        dataType: "json",
+                        success: function(data, textStatus, jqXHR) {
+                            if (data.hasOwnProperty('success')) {
+                                swal(
+                                    {
+                                        title: "Thanks!",
+                                        text: data.success,
+                                        type: "success",
+                                    },
+                                    function(){ location.reload(true); }
+                                );
+                            }
+                            else {
+                                swal("Uh oh...", data.error+"\nContact the Volunteer Coordinator.", "error");
+                            }
                         },
                         error: function(jqXHR, textStatus, errorThrown) {
-                            swal("Uh oh...", "We couldn't assign that task.\nContact the Volunteer Coordinator.", "error");
+                            swal("Uh oh...", "Problem communicating with Work-Trade system.\nContact the Volunteer Coordinator.\n(Details: "+errorThrown+")", "error");
                         }
                     });
                 }
             }
         );
     }
+
+    function doneTask(task,desc) {
+        swal(
+            {
+                title: "Confirm Task is Done",
+                text: desc,
+                type: "warning",
+                confirmButtonText: "Yes",
+                showCancelButton: true,
+                cancelButtonText: "No",
+                closeOnConfirm: false,
+                allowOutsideClick: true,
+                allowEscapeKey: true
+            },
+            function(isConfirm) {
+                if (isConfirm) {
+                    $.ajax({
+                        type: "GET",
+                        url: "/tasks/record_work/"+task+"_{{member_card_str}}/",
+                        context: document.body,
+                        dataType: "json",
+                        success: function(data, textStatus, jqXHR) {
+                            if (data.hasOwnProperty('success')) {
+                                swal(
+                                    {
+                                        title: "Thanks!",
+                                        text: data.success,
+                                        type: "success",
+                                    },
+                                    function(){ location.reload(true); }
+                                );
+                            }
+                            else {
+                                swal("Uh oh...", data.error+"\nContact the Volunteer Coordinator.", "error");
+                            }
+                        },
+                        error: function(jqXHR, textStatus, errorThrown) {
+                            swal("Uh oh...", "Problem communicating with Work-Trade system.\nContact the Volunteer Coordinator.\n(Details: "+errorThrown+")", "error");
+                        }
+                    });
+                }
+            }
+
+        );
+    }
+
 </script>
 
 <style>
@@ -63,28 +122,43 @@
     a:hover { text-decoration:underline; }
 </style>
 
-{% if claimed_today or unclaimed_today or unclaimed_anytime %}
-<p style="margin-top:0px; margin-bottom:5px;">If you're volunteering, pick a task:</p>
-{% endif %}
 
-{% if claimed_today %}
-    {% for task, desc in claimed_today %}
-        <span class="choice_button"><a
-           onclick="workTask({{task.pk}},'{{desc}}'); return false;"
-           href="javascript:{}">{{desc}}</a></span><br/>
+{% if working_today %}
+
+    <p style="margin-top:0px; margin-bottom:5px;">You are currently working the task{{working_today|length|pluralize}} below.
+        <br/>Click on {{working_today|length|pluralize:"the,a"}} task for detailed info.
+    </p>
+    {% for task, desc in working_today %}
+        <span class="choice_button"><a href="/tasks/kiosk-task-details/{{task.pk}}/">{{desc}}</a></span><br/>
     {% endfor %}
 
-{% elif unclaimed_today %}
-    {% for task, desc in unclaimed_today %}
-        <span class="choice_button"><a
-           onclick="workTask({{task.pk}},'{{desc}}'); return false;"
-           href="javascript:{}">{{desc}}</a></span><br/>
-    {% endfor %}
+{% else %}
 
-{% elif unclaimed_anytime %}
-    {% for task, desc in unclaimed_anytime %}
-        <span class="choice_button"><a
-           onclick="workTask({{task.pk}},'{{desc}}'); return false;"
-           href="javascript:{}">{{desc}}</a></span><br/>
-    {% endfor %}
+
+    {% if claimed_today or unclaimed_today or unclaimed_anytime %}
+        <p style="margin-top:0px; margin-bottom:5px;">If you're volunteering, pick a task:</p>
+    {% endif %}
+
+    {% if claimed_today %}
+        {% for task, desc in claimed_today %}
+            <span class="choice_button"><a
+               onclick="workTask({{task.pk}},'{{desc}}'); return false;"
+               href="javascript:{}">{{desc}}</a></span><br/>
+        {% endfor %}
+
+    {% elif unclaimed_today %}
+        {% for task, desc in unclaimed_today %}
+            <span class="choice_button"><a
+               onclick="workTask({{task.pk}},'{{desc}}'); return false;"
+               href="javascript:{}">{{desc}}</a></span><br/>
+        {% endfor %}
+
+    {% elif unclaimed_anytime %}
+        {% for task, desc in unclaimed_anytime %}
+            <span class="choice_button"><a
+               onclick="workTask({{task.pk}},'{{desc}}'); return false;"
+               href="javascript:{}">{{desc}}</a></span><br/>
+        {% endfor %}
+    {% endif %}
+
 {% endif %}

@@ -277,7 +277,7 @@ class TestViews(TestCase):
             short_desc="Test Kiosk Views",
             max_work=timedelta(hours=2),
             max_workers=1,
-            work_start_time=time(19,00,00),
+            work_start_time=datetime.now().time(),
             work_duration=timedelta(hours=2),
         )
         t.eligible_claimants.add(self.member)
@@ -367,3 +367,86 @@ class RunDbCheckCmd(TestCase):
 
     def test_database_validity(self):
         management.call_command("dbchecktasks")
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+today = date.today()
+oneday = timedelta(hours=24)
+yesterday = today - oneday
+tomorrow = today + oneday
+now = datetime.now()
+onehour = timedelta(hours=1)
+halfhour = timedelta(minutes=30)
+fourhours = timedelta(hours=4)
+zerodur = timedelta(0)
+
+class TestWindowedObject(TestCase):
+
+    def setUp(self):
+        self.t = Task.objects.create(
+            short_desc="TCV",
+            max_work=timedelta(hours=2),
+            max_workers=1
+        )
+
+    def test_task_and_ABC(self):
+
+        def caselet(result, start=None, dur=None, sched=None, dead=None, start_leeway=zerodur, end_leeway=zerodur):
+            self.t.work_start_time = start
+            self.t.work_duration = dur
+            self.t.scheduled_date = sched
+            self.t.deadline = dead
+            # No need to self.t.save() during this test.
+            self.assertEqual(self.t.in_window_now(start_leeway, end_leeway), result)
+
+        caselet(True) # start, dur, sched, and dead all None.
+
+        caselet(False, sched=yesterday)
+        caselet(True, sched=today)
+        caselet(False, sched=tomorrow)
+
+        caselet(False, dead=yesterday)
+        caselet(True, dead=today)
+        caselet(True, dead=tomorrow)
+
+        caselet(True, start=(now-halfhour).time(), dur=fourhours)
+        caselet(False, start=(now+onehour).time(), dur=fourhours)
+        caselet(True, start=(now+halfhour).time(), dur=fourhours, start_leeway=-onehour)  # NOTE: *Minus* onehour
+
+        caselet(False, sched=yesterday, start=(now-halfhour).time(), dur=fourhours)
+        caselet(False, sched=yesterday, start=(now+onehour).time(), dur=fourhours)
+        caselet(False, sched=yesterday, start=(now+halfhour).time(), dur=fourhours, start_leeway=-onehour)  # NOTE: *Minus* onehour
+
+        caselet(True, sched=today, start=(now-halfhour).time(), dur=fourhours)
+        caselet(False, sched=today, start=(now+onehour).time(), dur=fourhours)
+        caselet(True, sched=today, start=(now+halfhour).time(), dur=fourhours, start_leeway=-onehour)  # NOTE: *Minus* onehour
+
+        caselet(False, dead=yesterday, start=(now-halfhour).time(), dur=fourhours)
+        caselet(False, dead=yesterday, start=(now+onehour).time(), dur=fourhours)
+        caselet(False, dead=yesterday, start=(now+halfhour).time(), dur=fourhours, start_leeway=-onehour)  # NOTE: *Minus* onehour
+
+        caselet(True, dead=today, start=(now-halfhour).time(), dur=fourhours)
+        caselet(False, dead=today, start=(now+onehour).time(), dur=fourhours)
+        caselet(True, dead=today, start=(now+halfhour).time(), dur=fourhours, start_leeway=-onehour)  # NOTE: *Minus* onehour
+
+    def test_claim_imp(self):
+
+        user = User.objects.create_user(username='claimer', password='123', email='')
+        member = Member.objects.first()
+
+        self.t.work_start_time = now
+        self.t.work_duration = fourhours
+        self.t.scheduled_date = today
+        self.t.deadline = tomorrow
+
+        claim = Claim.objects.create(
+            claiming_member=member,
+            claimed_task=self.t,
+            claimed_start_time=now,
+            claimed_duration=onehour)
+
+        self.assertEquals(claim.window_start_time(), now)
+        self.assertEquals(claim.window_duration(), onehour)
+        self.assertEquals(claim.window_sched_date(), self.t.scheduled_date)
+        self.assertEquals(claim.window_deadline(), self.t.deadline)

@@ -6,9 +6,11 @@ urlpatterns = [
 
     # General
     url(r'^task-details/(?P<task_pk>[0-9]+)/$', views.task_details, name='task-details'),
+    url(r'^kiosk-task-details/(?P<task_pk>[0-9]+)/$', views.task_details, name='task-details'),
 
     # API
     url(r'^will-work-now/(?P<task_pk>[0-9]+)_(?P<member_card_str>[-_a-zA-Z0-9]{32})/$', views.will_work_now, name='will-work-now'),
+    url(r'^record_work/(?P<task_pk>[0-9]+)_(?P<member_card_str>[-_a-zA-Z0-9]{32})/$', views.record_work, name='record_work'),
 
     # Part of the nag (aka "nudge") system:
     url(r'^offer-task/(?P<task_pk>[0-9]+)_(?P<auth_token>[-_a-zA-Z0-9]{32})/$', views.offer_task, name='offer-task'),

@@ -5,6 +5,8 @@ from datetime import date, timedelta, datetime
 from members import models as mm
 from decimal import Decimal
 import logging
+import abc
+import nptime
 
 # TODO: class MetaTag?
 # E.g. Tag instructor tags with "instructor" meta-tag
@@ -22,6 +24,67 @@ import logging
 #
 #     def __str__(self):
 #         return self.name
+
+
+class TimeWindowedObject(object):
+    __metaclass__ = abc.ABCMeta
+
+    @abc.abstractmethod
+    def window_start_time(self):
+        """The time at which the window opens. E.g. the start time of a meeting. Can be None."""
+        return
+
+    @abc.abstractmethod
+    def window_duration(self):
+        """How long the window stays open. E.g. the duration of a meeting. Can be None."""
+        return
+
+    @abc.abstractmethod
+    def window_sched_date(self):
+        """The date (if any) on which the window exists. Can be None."""
+        return
+
+    @abc.abstractmethod
+    def window_short_desc(self):
+        """A short description of the activity that takes place during the time window. E.g name of meeting."""
+        return
+
+    @abc.abstractmethod
+    def window_deadline(self):
+        """If there'The last date onto which the window can extend"""
+        return
+
+    def window_start_datetime(self):
+        windate = self.window_sched_date()
+        # If window_sched_date() is None, it means that the task can be done any day. So default to today.
+        if windate is None: windate = datetime.now().date()
+        return datetime.combine(windate, self.window_start_time())
+
+    def window_end_datetime(self):
+        return self.window_start_datetime() + self.window_duration()
+
+    def in_daterange_now(self):
+        """Determine whether we are currently in the date range for this object without considering time of day."""
+        scheddate = self.window_sched_date()
+        nowdate = datetime.now().date()
+        deaddate = self.window_deadline()
+        if deaddate is not None and nowdate > deaddate:
+            return False  # The deadline for completing this work has passed, so we're out of the window.
+        if scheddate is not None and scheddate != nowdate:
+            return False  # The scheduled date has passed so we're out of the window.
+        return True
+
+    def in_window_now(self, start_leeway=timedelta(0), end_leeway=timedelta(0)):
+        """Determine whether we are currently in the time range AND date range for this object."""
+
+        if self.window_start_time() is not None and self.window_duration() is not None:
+            now = datetime.now()
+            start = self.window_start_datetime() + start_leeway
+            end = self.window_end_datetime() + end_leeway
+            if start > now: return False
+            if end < now: return False
+
+        return self.in_daterange_now()
 
 def make_TaskMixin(dest_class_alias):
     """This function tunes the mix-in to avoid reverse accessor clashes.
@@ -376,7 +439,7 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
         ]
 
 
-class Claim(models.Model):
+class Claim(models.Model, TimeWindowedObject):
 
     claimed_task = models.ForeignKey('Task', null=False,
         on_delete=models.CASCADE, # The claim means nothing if the task is gone.
@@ -435,6 +498,13 @@ class Claim(models.Model):
                     claimants[claim.claiming_member] += claim.claimed_duration
         return claimants
 
+    # Implementation of TimeWindowedObject abstract methods:
+    def window_start_time(self): return self.claimed_start_time
+    def window_duration(self): return self.claimed_duration
+    def window_sched_date(self): return self.claimed_task.scheduled_date
+    def window_short_desc(self): return self.claimed_task.short_desc
+    def window_deadline(self): return self.claimed_task.deadline
+
     def __str__(self):
         return "%s, %s" % (self.claiming_member.first_name, self.claimed_task.short_desc)
 
@@ -471,8 +541,9 @@ class Work(models.Model):
         verbose_name_plural = "Work"
 
 
-class Task(make_TaskMixin("Tasks")):
+class Task(make_TaskMixin("Tasks"), TimeWindowedObject):
 
+    # TODO: creation_date might be useful but can't be used to calc slippage. Make it originally_scheduled_date?
     creation_date = models.DateField(null=False, default=date.today,
         help_text="The date on which this task was originally created, for tracking slippage.")
 
@@ -525,6 +596,7 @@ class Task(make_TaskMixin("Tasks")):
             raise ValidationError(_("A task corresponding to a ScheduledTaskTemplate must have a scheduled date."))
 
     def scheduled_now(self):
+        # TODO: Use TimeWindowedObject.in_window_now() instead?
         if self.scheduled_date is None: return False
         if self.work_start_time is None: return False
         if self.work_duration is None: return False
@@ -536,13 +608,15 @@ class Task(make_TaskMixin("Tasks")):
         return True
 
     def unclaimed_hours(self):
+        """The grand total of hours still available to ALL WORKERS, considering other member's existing claims, if any."""
         unclaimed_hours = self.max_work
         for claim in self.claim_set.all():
-            if claim.status == claim.STAT_CURRENT:
+            if claim.status in [claim.STAT_CURRENT, claim.STAT_WORKING]:
                 unclaimed_hours -= claim.claimed_duration
         return unclaimed_hours
 
     def max_claimable_hours(self):
+        """The maximum number of hours that ONE WORKER can claim, considering other member's existing claims, if any."""
         if self.work_duration is None:
             return self.unclaimed_hours()
         else:
@@ -554,7 +628,7 @@ class Task(make_TaskMixin("Tasks")):
         :return: True or False
         """
         unclaimed_hours = self.unclaimed_hours()
-        return not unclaimed_hours
+        return unclaimed_hours == timedelta(0)
 
     def all_eligible_claimants(self):
         """
@@ -578,10 +652,18 @@ class Task(make_TaskMixin("Tasks")):
                 result |= set([claim.claiming_member])
         return result
 
+    # TODO: Move this to TaskAdmin?
     def scheduled_weekday(self):
         return self.scheduled_date.strftime('%A') if self.scheduled_date is not None else '-'
         # return week[self.scheduled_date.weekday()] if self.scheduled_date is not None else '-'
     scheduled_weekday.short_description = "Weekday"
+
+    # Implementation of TimeWindowedObject abstract methods:
+    def window_start_time(self): return self.work_start_time
+    def window_duration(self): return self.work_duration
+    def window_sched_date(self): return self.scheduled_date
+    def window_short_desc(self): return self.short_desc
+    def window_deadline(self): return self.deadline
 
     def __str__(self):
         when = ""
@@ -668,3 +750,5 @@ class CalendarSettings(models.Model):
 
     class Meta:
         verbose_name_plural = "Calendar settings"
+
+
