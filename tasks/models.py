@@ -696,7 +696,7 @@ class TaskNote(models.Model):
     content = models.TextField(max_length=2048,
         help_text="Anything you want to say about the task. Questions, hints, problems, review feedback, etc.")
 
-    task = models.ForeignKey(Task, on_delete=models.CASCADE)
+    task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name='notes')
 
     CRITICAL = "C" # The note describes a critical issue that must be resolved. E.g. work estimate is too low.
     RESOLVED = "R" # The note was previously listed as CRITICAL but the issue has been resolved.

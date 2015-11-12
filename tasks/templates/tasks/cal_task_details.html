@@ -23,7 +23,7 @@
 <body>
     <p id="short_desc">{{task.short_desc}}</p>
     <p>Scheduled {{task.scheduled_date|date:"D M d"}}</p>
-    <p>{{task.start_time}} for {{task.work_duration|duration_str}}</p>
+    <p>{{task.work_start_time}} for {{task.work_duration|duration_str}}</p>
 
     <p id="instructions">{{task.instructions}}</p>
     <table width="100%" align="center">

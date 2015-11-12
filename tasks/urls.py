@@ -5,8 +5,7 @@ from . import views
 urlpatterns = [
 
     # General
-    url(r'^task-details/(?P<task_pk>[0-9]+)/$', views.task_details, name='task-details'),
-    url(r'^kiosk-task-details/(?P<task_pk>[0-9]+)/$', views.task_details, name='task-details'),
+    url(r'^kiosk-task-details/(?P<task_pk>[0-9]+)/$', views.kiosk_task_details, name='kiosk-task-details'),
 
     # API
     url(r'^will-work-now/(?P<task_pk>[0-9]+)_(?P<member_card_str>[-_a-zA-Z0-9]{32})/$', views.will_work_now, name='will-work-now'),
@@ -23,5 +22,6 @@ urlpatterns = [
     url(r'^xerocraft-calendar/$', views.xerocraft_calendar, name='xerocraft-calendar'),
     url(r'^xerocraft-calendar/staffed/$', views.xerocraft_calendar_staffed, name='xerocraft-calendar-staffed'),
     url(r'^xerocraft-calendar/unstaffed/$', views.xerocraft_calendar_unstaffed, name='xerocraft-calendar-unstaffed'),
+    url(r'^cal-task-details/(?P<task_pk>[0-9]+)/$', views.cal_task_details, name='cal-task-details'),
 
 ]

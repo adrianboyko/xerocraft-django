@@ -1,3 +1,4 @@
+from django.core.urlresolvers import reverse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpRequest, HttpResponse, JsonResponse, Http404
 from django.template import loader, Context
@@ -5,6 +6,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from nptime import nptime
+
 
 from hashlib import md5
 from datetime import date, datetime, timedelta
@@ -215,9 +217,14 @@ def offers_done(request, auth_token):
     return render(request, 'tasks/offers_done.html', {"member": member, "settings": settings})
 
 
-def task_details(request, task_pk):
+def cal_task_details(request, task_pk):
     task = get_object_or_404(Task, pk=task_pk)
-    return render(request, "tasks/nag_task_details.html", {'task': task})
+    return render(request, "tasks/cal_task_details.html", {'task': task})
+
+
+def kiosk_task_details(request, task_pk):
+    task = get_object_or_404(Task, pk=task_pk)
+    return render(request, "tasks/kiosk_task_details.html", {'task': task, 'notes':task.notes.all()})
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = KIOSK = = = =
@@ -260,6 +267,7 @@ def will_work_now(request, task_pk, member_card_str):
         # Following get won't raise exception because we already know the claim exists.
         claim = Claim.objects.get(claimed_task=task, claiming_member=member)
         if claim.status == Claim.STAT_CURRENT:
+            # TODO: Adjust claimed_start_time and duration if task has already started.
             claim.status = Claim.STAT_WORKING
             claim.save()
             return JsonResponse({"success": "Existing claim was set to WORKING status."})
@@ -354,7 +362,7 @@ def _add_event(cal, task):
     dtstart = datetime.combine(task.scheduled_date, task.work_start_time)
     event = Event()
     event.add('uid',         task.pk)
-    event.add('url',         "http://xerocraft-django.herokuapp.com/tasks/task-details/%d/" % task.pk)  # TODO: Lookup instead of hard code?
+    event.add('url',         reverse('task:cal-task-details', args=[task.pk]))
     event.add('summary',     task.short_desc)
     event.add('description', task.instructions.replace("\r\n", " "))
     event.add('dtstart',     dtstart)

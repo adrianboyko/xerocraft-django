@@ -9,13 +9,51 @@
     <title>Task Info</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Oswald">
     <link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Roboto Condensed">
     <style>
-        body { text-align: center; font-family:"Roboto Condensed"; font-size:12pt; }
+        html, body { height:100%; }
+        html { display:table; margin:auto; }
+        body {
+            display: table-cell;
+            vertical-align: middle;
+            text-align: center;
+            font-family: Oswald;
+            font-size: 12pt;
+        }
+
+        .unselectable {
+           -moz-user-select: -moz-none;
+           -khtml-user-select: none;
+           -webkit-user-select: none;
+           -ms-user-select: none;
+           user-select: none;
+        }
+
+        .choice_button { /* Based on sweet alert's button style. */
+            display: inline-block;
+            box-shadow: rgba(140, 212, 245, 0.8) 0px 0px 2px, rgba(0, 0, 0, 0.0470588) 0px 0px 0px 1px inset;
+            background-color: rgb(140, 212, 245);
+            color: black;
+            border: none;
+            font-size: 17px;
+            font-weight: 500;
+            font: 17px Arial;
+            border-radius: 10px;
+            padding: 10px 10px;
+            margin: 17px 5px 0 5px;
+            cursor: pointer;
+        }
+        a:link { color: black; text-decoration:none; }
+        a:visited { color: black; text-decoration:none; }
+        a:hover { text-decoration:underline; }
+
+
+        #info_table { color: blue; }
         ul { margin-top: 0pt; }
         p { margin:0; }
         #short_desc { font-size:16pt; }
-        #instructions { margin-top:5px; color:blue; }
+        #instructions { font-family:Roboto Condensed; margin-top:5px; color:blue; }
         table { border-collapse: collapse; }
         td {border:1px; padding-top:15px}
         .n { font-size:11pt; text-decoration:underline; }
@@ -24,30 +62,47 @@
     </style>
 
 </head>
-<body>
+<body class="unselectable">
     <p id="short_desc">{{task.short_desc}}</p>
-    <p>Scheduled {{task.scheduled_date|date:"D M d"}}</p>
-    <p>{{task.start_time}} for {{task.work_duration|duration_str}}</p>
 
-    <table width="320" align="center">
+    {% if task.deadline %}
+    <p>Finish By {{task.deadline|date:"D M d"}}</p>
+    {% endif %}
+
+    {% if task.scheduled_date %}
+    <p>Scheduled {{task.scheduled_date|date:"D M d"}}</p>
+    {% endif %}
+
+    {% if task.work_start_time and task.work_duration %}
+    <p>{{task.work_start_time}} for {{task.work_duration|duration_str}}</p>
+    {% endif %}
+
+    <table width="400" align="center" id="info_table">
         <tr><td colspan="3"><p id="instructions">{{task.instructions}}</p></td></tr>
         <tr>
             <td width="33%"><span class="n">Owner</span><br/>{{task.owner}}</td>
             <td width="33%"><span class="n">Reviewer</span><br/>{{task.reviewer}}</td>
-            <td width="33%"><span class="n">Deadline</span><br/>
-                {% if task.scheduled_date != None %}
-                    N/A
-                {% else %}
-                    {{task.deadline}}
-                {% endif %}</td>
+            <td width="33%"><span class="n">Max Workers</span><br/>{{task.max_workers}}</td>
         </tr>
         <tr>
-            <td width="33%"><span class="n">Status</span><br/>{{task.status}}</td>
             <td width="33%"><span class="n">Priority</span><br/>{{task.priority}}</td>
-            <td width="33%"><span class="n">Estimate</span><br/>{{task.work_duration|duration_str}}</td> <!-- TODO: Change this to work time window -->
+
+            <td width="33%">
+                {% if notes %}
+                    <a href="/todo">
+                        <span class="choice_button" style="margin-top:0px">
+                            <span class="n">Notes</span><br/>{{notes|length}}
+                        </span>
+                    </a>
+                {% else %}
+                    <span class="n">Notes</span><br/>none
+                {% endif %}
+            </td>
+
+            <td width="33%"><span class="n">Effort Est</span><br/>{{task.max_work|duration_str}}</td>
         </tr>
     </table>
-    {% for note in task.notes %}
-    {% endfor %}
+    <br/>
+    <p>Remove your card when done.</p>
 </body>
 </html>
