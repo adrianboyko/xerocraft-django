@@ -334,6 +334,15 @@ class TestViews(TestCase):
         for word in expected_words:
             self.assertContains(response, word)
 
+        url = reverse('task:kiosk-task-details', args=[t.pk])
+        response = client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "TCV")
+
+        url = reverse('task:cal-task-details', args=[t.pk])
+        response = client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "TCV")
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 

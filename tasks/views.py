@@ -219,7 +219,7 @@ def offers_done(request, auth_token):
 
 def cal_task_details(request, task_pk):
     task = get_object_or_404(Task, pk=task_pk)
-    return render(request, "tasks/cal_task_details.html", {'task': task})
+    return render(request, "tasks/cal_task_details.html", {'task': task, 'notes':task.notes.all()})
 
 
 def kiosk_task_details(request, task_pk):

@@ -43,7 +43,8 @@
             <td width="33%"><span class="n">Estimate</span><br/>{{task.work_duration|duration_str}}</td> <!-- TODO: Change this to work time window -->
         </tr>
     </table>
-    {% for note in task.notes %}
+    {% for note in notes %}
+        <!-- TODO: Links to notes? -->
     {% endfor %}
 </body>
 </html>
