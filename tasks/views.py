@@ -358,11 +358,12 @@ def _new_calendar(name):
     return cal
 
 
-def _add_event(cal, task):
+def _add_event(cal, task, request):
     dtstart = datetime.combine(task.scheduled_date, task.work_start_time)
+    relpath = reverse('task:cal-task-details', args=[task.pk])
     event = Event()
     event.add('uid',         task.pk)
-    event.add('url',         reverse('task:cal-task-details', args=[task.pk]))
+    event.add('url',         request.build_absolute_uri(relpath))
     event.add('summary',     task.short_desc)
     event.add('description', task.instructions.replace("\r\n", " "))
     event.add('dtstart',     dtstart)
@@ -411,7 +412,7 @@ def member_calendar(request, token):
 
     cal = _new_calendar("My Xerocraft Tasks")
     for task in _gen_tasks_for(member):
-        _add_event(cal, task)
+        _add_event(cal, task, request)
         #TODO: Add ALARM
     return _ical_response(cal)
 
@@ -419,7 +420,7 @@ def member_calendar(request, token):
 def xerocraft_calendar(request):
     cal = _new_calendar("All Xerocraft Tasks")
     for task in _gen_all_tasks():
-        _add_event(cal, task)
+        _add_event(cal, task, request)
         # Intentionally lacks ALARM
     return _ical_response(cal)
 
@@ -428,7 +429,7 @@ def xerocraft_calendar_staffed(request):
     cal = _new_calendar("Xerocraft Staffed Tasks")
     for task in _gen_all_tasks():
         if task.is_fully_claimed():
-            _add_event(cal, task)
+            _add_event(cal, task, request)
             # Intentionally lacks ALARM
     return _ical_response(cal)
 
@@ -437,7 +438,7 @@ def xerocraft_calendar_unstaffed(request):
     cal = _new_calendar("Xerocraft Unstaffed Tasks")
     for task in _gen_all_tasks():
         if not task.is_fully_claimed():
-            _add_event(cal, task)
+            _add_event(cal, task, request)
             # Intentionally lacks ALARM
     return _ical_response(cal)
 
@@ -447,7 +448,7 @@ def resource_calendar(request):
     #for task in Task.objects.all():
     #    if task.scheduled_date is None or task.work_start_time is None or task.work_duration is None:
     #        continue
-    #    _add_event(cal,task)
+    #    _add_event(cal,task,request)
     #    # Intentionally lacks ALARM
     return _ical_response(cal)
 
