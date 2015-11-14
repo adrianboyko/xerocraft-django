@@ -348,7 +348,19 @@ class TaskAdmin(TemplateAndTaskBase):
 @admin.register(Claim)
 class ClaimAdmin(admin.ModelAdmin):
 
-    list_display = ['pk', 'claimed_task', 'claiming_member', 'claimed_start_time', 'claimed_duration', 'stake_date', 'status']
+    def temp_mtd_hours_rollup(self, obj):
+        """This is a temporary measure to help audit work trade data entry. Will be moved to a new model, eventually. """
+        if not obj.claimed_task.short_desc.startswith("Uncategorized"): return None
+        today = datetime.date.today()
+        mtd_seconds = 0
+        for work in obj.work_set.all():
+            workdate = work.work_date
+            if workdate.year == today.year and workdate.month == today.month:
+                mtd_seconds += work.work_duration.total_seconds()
+        return "%.2f" % (mtd_seconds/3600.0)
+    temp_mtd_hours_rollup.short_description = "WMTD"
+
+    list_display = ['pk', 'claimed_task', 'temp_mtd_hours_rollup', 'claiming_member', 'claimed_start_time', 'claimed_duration', 'stake_date', 'status']
     list_filter = ['status']
     inlines = [WorkInline]
     search_fields = [
@@ -356,6 +368,7 @@ class ClaimAdmin(admin.ModelAdmin):
         '^claiming_member__auth_user__last_name',
         'claimed_task__short_desc',
     ]
+    list_display_links = ['pk', 'claiming_member']  # Temporary measure to ease Work Trade data entry.
     fieldsets = [
 
         (None, {
