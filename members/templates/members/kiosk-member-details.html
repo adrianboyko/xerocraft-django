@@ -1,53 +1,45 @@
-
+{% extends "members/kiosk-base.html" %}
 {% load staticfiles %}
 
-<html>
-<head>
-    <title>Xeroraft Kiosk</title>
-    <link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Oswald">
-    <style>
-        html, body { height:100%; }
-        html { display:table; margin:auto; }
-        body { display:table-cell; vertical-align:middle; text-align:center; font-size:14pt; }
-        h1 { font-family:Oswald; font-size:24pt; margin-top:0px; }
-        img { width:40; margin-right:0pt; margin-top:0pt; }
-        a, span {
-            text-decoration: none;
-            font-size:12pt;
-            display:inline-block;
-            margin-top:5px;
-            padding:3px;
-            color: #3E6D8E;
-            white-space: nowrap;
-            background: #E4EDF4 none repeat scroll 0% 0%;
-        }
-        u {
-            font-size:12pt;
-            font-weight: bold;
-        }
-    </style>
+{% block title %}Member Details{% endblock %}
 
-    <script type="text/javascript">
-        // This handles QR data coming from webcam.
-        function handleQR(data) {
-            if ("{{staff_card_str}}" == data) {
-                // REVIEW: Probably better to go back to the "identify subject" page.
-                window.location.href = "../../staff-menu/"+"{{staff_card_str}}";
-            }
+{% block style %}
+    img { width:40px; margin-right:0pt; margin-top:0pt; }
+    a, span {
+        text-decoration: none;
+        font-size:11pt;
+        display:inline-block;
+        margin:5px 2px 0px 2px;
+        padding:5px 10px;
+        color: #3E6D8E;
+        white-space: nowrap;
+        background: #E4EDF4 none repeat scroll 0% 0%;
+    }
+    u {
+        font-size:12pt;
+        font-weight: normal;
+    }
+{% endblock %}
+
+{% block script %}
+    // This handles QR data coming from webcam.
+    function handleQR(data) {
+        if ("{{staff_card_str}}" == data) {
+            // REVIEW: Probably better to go back to the "identify subject" page.
+            window.location.href = "../../staff-menu/"+"{{staff_card_str}}";
         }
-    </script>
+    }
+{% endblock %}
 
-</head>
-
-<body>
+{% block content %}
     <img src="{% static 'xerocraft/Big Bold X.png' %}" alt="Xerocraft Logo"/>
     <h1>Member Details</h1>
 
-    <p><u>Name</u>: {{ memb_name }}</p>
-    <p><u>Userid</u>: {{ username }}</p>
-    <p><u>Email</u>: {{ email }}</p>
+    <p><u>Name</u>: {{ memb_name|default:"none" }}
+    <br/><u>Userid</u>: {{ username }}
+    <br/><u>Email</u>: {{ email|default:"none" }}</p>
 
-    <p style="font-size:12pt"><u>{{ memb_fname }} is currently tagged with:</u>:<br/>
+    <p style="font-size:12pt"><u>{{ memb_fname }} is currently tagged with</u>:<br/>
         {% for tag in members_tags %}
             <span>{{tag.name}}</span>
         {% endfor %}
@@ -60,6 +52,4 @@
         {% endfor %}
     </p>
     {% endif %}
-
-</body>
-</html>
+{% endblock %}

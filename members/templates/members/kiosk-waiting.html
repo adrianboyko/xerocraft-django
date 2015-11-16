@@ -1,36 +1,24 @@
-
+{% extends "members/kiosk-base.html" %}
 {% load staticfiles %}
 
-<head>
-    <title>Xerocraft Kiosk</title>
-    <link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Oswald">
+{% block title %}Kiosk{% endblock %}
 
-    <style>
-        html, body { height:100%; }
-        html { display:table; margin:auto; }
-        body { display:table-cell; vertical-align:middle; text-align:center; }
-        h1 { font-family:Oswald; font-size:24pt; margin-top:0px; }
-        img { width:40; margin-right:0pt; }
-    </style>
+{% block style %}
+    img { width:40px; margin-right:0pt; }
+{% endblock %}
 
-    <script type="text/javascript">
-        // This handles QR data coming from webcam.
-        function handleQR(data) {
-            window.location.href = "../main-menu/"+data+"/";
-        }
-    </script>
+{% block script %}
+    // This handles QR data coming from webcam.
+    function handleQR(data) {
+        window.location.href = "../main-menu/"+data+"/";
+    }
+{% endblock %}
 
-</head>
-
-<body>
-
+{% block content %}
     <h1><img src="{% static 'xerocraft/Big Bold X.png' %}" alt="Xerocraft Logo"/>erocraft Kiosk</h1>
 
     <p>
         Place your membership card on the scanner.<br/>
         Be sure to cover the scanner's QR code with your card's QR code.
     </p>
-</body>
-
-
-
+{% endblock %}

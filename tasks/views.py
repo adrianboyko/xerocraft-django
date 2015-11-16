@@ -94,7 +94,7 @@ def visitevent_departure_content(member, member_card_str, visit_event_type):
         if claim.status == Claim.STAT_WORKING:
             working_today.append((claim.claimed_task, task_button_text(claim)))
 
-    template = loader.get_template('tasks/check_out_content.html')
+    template = loader.get_template('tasks/kiosk_check_out_content.html')
     context = Context({
         'working_today'     : working_today,
         'member_card_str'   : member_card_str,

@@ -1,69 +1,26 @@
-<!DOCTYPE html>
-
-
+{% extends "members/kiosk-base.html" %}
 {% load staticfiles %}
 {% load tasks_extras %}
 
-<html lang="en">
-<head>
-    <title>Task Info</title>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Oswald">
+{% block title %}Task Info{% endblock %}
+
+{% block extra_fonts %}
     <link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Roboto Condensed">
-    <style>
-        html, body { height:100%; }
-        html { display:table; margin:auto; }
-        body {
-            display: table-cell;
-            vertical-align: middle;
-            text-align: center;
-            font-family: Oswald;
-            font-size: 12pt;
-        }
+{% endblock %}
 
-        .unselectable {
-           -moz-user-select: -moz-none;
-           -khtml-user-select: none;
-           -webkit-user-select: none;
-           -ms-user-select: none;
-           user-select: none;
-        }
+{% block style %}
+    #info_table { color: blue; }
+    ul { margin-top: 0pt; }
+    p { margin:0; }
+    #instructions { font-family:Roboto Condensed; margin-top:5px; color:blue; font-style:normal; }
+    table { border-collapse: collapse; }
+    td {border:1px; padding-top:15px}
+    .n { font-size:11pt; text-decoration:underline; }
+    img { width:60px; margin-right:0pt; margin-top:0pt; }
+{% endblock %}
 
-        .choice_button { /* Based on sweet alert's button style. */
-            display: inline-block;
-            box-shadow: rgba(140, 212, 245, 0.8) 0px 0px 2px, rgba(0, 0, 0, 0.0470588) 0px 0px 0px 1px inset;
-            background-color: rgb(140, 212, 245);
-            color: black;
-            border: none;
-            font-size: 17px;
-            font-weight: 500;
-            font: 17px Arial;
-            border-radius: 10px;
-            padding: 10px 10px;
-            margin: 17px 5px 0 5px;
-            cursor: pointer;
-        }
-        a:link { color: black; text-decoration:none; }
-        a:visited { color: black; text-decoration:none; }
-        a:hover { text-decoration:underline; }
-
-
-        #info_table { color: blue; }
-        ul { margin-top: 0pt; }
-        p { margin:0; }
-        #short_desc { font-size:16pt; }
-        #instructions { font-family:Roboto Condensed; margin-top:5px; color:blue; }
-        table { border-collapse: collapse; }
-        td {border:1px; padding-top:15px}
-        .n { font-size:11pt; text-decoration:underline; }
-        img { width:60px; margin-right:0pt; margin-top:0pt; }
-
-    </style>
-
-</head>
-<body class="unselectable">
-    <p id="short_desc">{{task.short_desc}}</p>
+{% block content %}
+    <h2 id="short_desc">{{task.short_desc}}</h2>
 
     {% if task.deadline %}
     <p>Finish By {{task.deadline|date:"D M d"}}</p>
@@ -77,7 +34,7 @@
     <p>{{task.work_start_time}} for {{task.work_duration|duration_str}}</p>
     {% endif %}
 
-    <table width="400" align="center" id="info_table">
+    <table width="450" align="center" id="info_table">
         <tr><td colspan="3"><p id="instructions">{{task.instructions}}</p></td></tr>
         <tr>
             <td width="33%"><span class="n">Owner</span><br/>{{task.owner}}</td>
@@ -95,7 +52,7 @@
                         </span>
                     </a>
                 {% else %}
-                    <span class="n">Notes</span><br/>none
+                    <span class="n">Notes</span><br/>None
                 {% endif %}
             </td>
 
@@ -104,5 +61,4 @@
     </table>
     <br/>
     <p>Remove your card when done.</p>
-</body>
-</html>
+{% endblock %}

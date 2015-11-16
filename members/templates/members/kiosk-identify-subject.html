@@ -1,37 +1,25 @@
-
+{% extends "members/kiosk-base.html" %}
 {% load staticfiles %}
 
-<head>
-    <title>Xerocraft Kiosk</title>
-    <link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Oswald">
+{% block title %}Choose Member{% endblock %}
 
-    <style>
-        html, body { height:100%; }
-        html { display:table; margin:auto; }
-        body { display:table-cell; vertical-align:middle; text-align:center; }
-        h1 { font-family:Oswald; font-size:24pt; margin-top:0px; }
-        img { width:40; margin-right:0pt; }
-    </style>
+{% block style %}
+    img { width:40px; margin-right:0pt; }
+{% endblock %}
 
-    <script type="text/javascript">
-        // This handles QR data coming from webcam.
-        function handleQR(data) {
-            //TODO: Following is hard coded to member_details but should use next_url instead.
-            window.location.href = "../../member-details/"+data+"_"+"{{ staff_card_str }}"+"/";
-        }
-    </script>
+{% block script %}
+    // This handles QR data coming from webcam.
+    function handleQR(data) {
+        //TODO: Following is hard coded to member_details but should use next_url instead.
+        window.location.href = "../../member-details/"+data+"_"+"{{ staff_card_str }}"+"/";
+    }
+{% endblock %}
 
-</head>
-
-<body>
-
+{% block content %}
     <h1><img src="{% static 'xerocraft/Big Bold X.png' %}" alt="Xerocraft Logo"/>erocraft Staff</h1>
 
     <p>
         Place the member's card on top of your card.<br/>
         Be sure to cover your QR code with the member's QR code.
     </p>
-</body>
-
-
-
+{% endblock %}

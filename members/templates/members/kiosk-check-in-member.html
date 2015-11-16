@@ -1,53 +1,20 @@
-
+{% extends "members/kiosk-base.html" %}
 {% load staticfiles %}
 
-<html>
-<head>
-    <title>Xerocraft Kiosk</title>
-    <link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Oswald:300,400">
+{% block title %}{{ action|capfirst }}{% endblock %}
 
-    <style>
+{% block style %}
+    h3 { font-size:14pt; margin-top:0px; margin-bottom:0px; }
+    img { width:60px; margin-right:0pt; margin-top:0pt; }
+{% endblock %}
 
-        .unselectable {
-           -moz-user-select: -moz-none;
-           -khtml-user-select: none;
-           -webkit-user-select: none;
-           -ms-user-select: none;
-           user-select: none;
-        }
+{% block script %}
+{% endblock %}
 
-        .choice_button {
-            background-color: #EEEEEE;
-            moz-border-radius: 15px;
-            -webkit-border-radius: 15px;
-            border: 3px solid gray;
-            padding: 10px;
-            font-size: 14pt;
-        }
-
-        html, body { height:100%; }
-        html { display:table; margin:auto; }
-        body { display:table-cell; vertical-align:middle; text-align:center; font-family:Oswald; }
-        h1 { font-size:24pt; margin-top:0px; margin-bottom:0px; }
-        h2 { font-size:18pt; margin-top:0px; margin-bottom:0px; }
-        h3 { font-size:14pt; margin-top:0px; margin-bottom:0px; }
-        img { width:60; margin-right:0pt; margin-top:0pt; }
-    </style>
-
-    <script type="text/javascript">
-        // This handles QR data coming from webcam.
-        function handleQR(data) { /* Do nothing */ }
-    </script>
-
-</head>
-
-<body class="unselectable">
+{% block content %}
     <img src="{% static 'xerocraft/Big Bold X.png' %}" alt="Xerocraft Logo"/>
     <h1>You have {{ action }}!</h1>
     <br/>
     {{ extra_content|safe }}
     <p>Remove your card when done.</p>
-</body>
-</html>
-
-
+{% endblock %}

@@ -1,59 +1,22 @@
-
+{% extends "members/kiosk-base.html" %}
 {% load staticfiles %}
 
-<html>
-<head>
-    <title>Xerocraft Kiosk</title>
-    <link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Oswald">
+{% block title %}Member Menu{% endblock %}
 
-    <style>
-        html, body { height:100%; }
-        html { display:table; margin:auto; }
-        body { display:table-cell; vertical-align:middle; text-align:center; font-family:Oswald }
-        h1 { font-family:Oswald; font-size:24pt; margin-top:0pt; margin-bottom:0pt }
-        h2 { font-family:Oswald; font-size:18pt; margin-top:5pt; margin-bottom:0pt}
-        img { width:40; margin-right:0pt; margin-top:0pt; }
+{% block style %}
+    img { width:40px; margin-right:0pt; margin-top:0pt; }
+    h2 { margin-bottom:15pt; }
+    .choice_button { width:80px; }
+{% endblock %}
 
-        .choice_button { /* Based on sweet alert's button style. */
-            display: inline-block;
-            box-shadow: rgba(140, 212, 245, 0.8) 0px 0px 2px, rgba(0, 0, 0, 0.0470588) 0px 0px 0px 1px inset;
-            background-color: rgb(140, 212, 245);
-            color: black;
-            border: none;
-            font-size: 17px;
-            font-weight: 500;
-            font: 17px Arial;
-            border-radius: 10px;
-            padding: 10px 10px;
-            margin: 17px 5px 0 5px;
-            cursor: pointer;
-        }
-        a:link { color: black; text-decoration:none; }
-        a:visited { color: black; text-decoration:none; }
-        a:hover { text-decoration:underline; }
-    </style>
-
-    <script type="text/javascript">
-        // This handles QR data coming from webcam.
-        function handleQR(data) { /* Do nothing */ }
-    </script>
-
-</head>
-
-<body >
+{% block content %}
     <h1><img src="{% static 'xerocraft/Big Bold X.png' %}" alt="Xerocraft Logo"/>erocraft Kiosk</h1>
     <h2>Hello, {{memb_fname}}! Choose an option:</h2>
-
     <span class="choice_button"><a href="{% url 'memb:kiosk-check-in-member' member_card_str=memb_card_str event_type=evt_arrival %}">Check In</a></span>
     &nbsp;
     <span class="choice_button"><a href="{% url 'memb:kiosk-check-in-member' member_card_str=memb_card_str event_type=evt_departure %}">Check Out</a></span>
-
     {% if memb_is_staff %}
-    &nbsp;
-    <span class="choice_button"><a href="{% url 'memb:kiosk-staff-menu' member_card_str=memb_card_str %}">Staff Stuff</a></span>
+        &nbsp;
+        <span class="choice_button"><a href="{% url 'memb:kiosk-staff-menu' member_card_str=memb_card_str %}">Staff Stuff</a></span>
     {% endif %}
-
-</body>
-</html>
-
-
+{% endblock %}
