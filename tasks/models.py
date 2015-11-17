@@ -86,6 +86,7 @@ class TimeWindowedObject(object):
 
         return self.in_daterange_now()
 
+
 def make_TaskMixin(dest_class_alias):
     """This function tunes the mix-in to avoid reverse accessor clashes.
 -   The rest of the mix-in is identical for both Task and RecurringTaskTemplate.
@@ -221,8 +222,6 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
             raise ValidationError(_("If you choose 'every week' don't choose any other weeks."))
         if self.work_duration is not None and self.work_duration <= timedelta(0):
             raise ValidationError(_("Duration must be greater than zero."))
-        if self.eligible_claimants is None and self.eligible_tags is None:
-            raise ValidationError(_("One or more people and/or one or more tags must be selected."))
 
     def greatest_scheduled_date(self):
         "Of the Tasks that correspond to this template, returns the greatest scheduled_date."
