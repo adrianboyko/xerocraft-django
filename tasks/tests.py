@@ -30,14 +30,16 @@ class TestTemplateToInstanceCopy(TransactionTestCase):
 
     def setUp(self):
         tag1 = Tag.objects.create(name="test1",meaning="foo")
+        tag1.full_clean()
         tag2 = Tag.objects.create(name="test2",meaning="bar")
+        tag2.full_clean()
         self.rt = RecurringTaskTemplate.objects.create(
             short_desc = "A test",
             max_work = timedelta(hours=1.5),
             start_date = date.today(),
             repeat_interval = 1,
         )
-
+        self.rt.full_clean()
         self.rt.eligible_tags.add(tag1,tag2)
         self.rt.save()
 
@@ -70,6 +72,7 @@ class TestRecurringTaskTemplateCertainDays(TestCase):
             last = True,
             sunday = True,
         )
+        self.rt.full_clean()
 
     def test_greatest_scheduled_date(self):
         sched = self.rt.greatest_scheduled_date()
@@ -93,6 +96,7 @@ class TestRecurringTaskTemplateIntervals(TransactionTestCase):
             max_work = timedelta(hours=1.5),
             start_date = date.today(),
             repeat_interval = 28)
+        self.rt.full_clean()
 
     def test_create_tasks(self):
         self.rt.create_tasks(365)
@@ -184,25 +188,32 @@ class TestViews(TestCase):
         self.member.membership_card_md5 = arbitrary_token_md5
         self.member.save()
         self.rt = RecurringTaskTemplate.objects.create(
-            short_desc="Admin View Test",
+            short_desc="Test Task",
             max_work=timedelta(hours=1.5),
             start_date=date.today(),
             repeat_interval=1)
+        self.rt.full_clean()
         self.rt.eligible_claimants.add(self.member)
         self.rt.create_tasks(max_days_in_advance=3)
         self.task = Task.objects.first()
-        TaskNote.objects.create(task=self.task, author=self.member, content="spam", status=TaskNote.INFO)
+        tn = TaskNote.objects.create(task=self.task, author=self.member, content="spam", status=TaskNote.INFO)
+        tn.full_clean()
         self.nag = Nag.objects.create(who=self.member, auth_token_md5=arbitrary_token_md5)
+        self.nag.full_clean()
         self.nag.tasks.add(self.task)
         self.claim= Claim.objects.create(
+            status=Claim.STAT_CURRENT,
             claiming_member=self.member,
             claimed_task=self.task,
             claimed_duration=timedelta(hours=1.5))
+        self.claim.full_clean()
         self.work = Work.objects.create(
             claim=self.claim,
             work_date=datetime.today(),
             work_duration=timedelta(hours=1.5))
-        CalendarSettings.objects.create(who=self.member, token=arbitrary_token_md5)
+        self.work.full_clean()
+        cs = CalendarSettings.objects.create(who=self.member, token=arbitrary_token_md5)
+        cs.full_clean()
         self.fact = RequestFactory()
 
     def test_admin_views(self):
@@ -273,13 +284,18 @@ class TestViews(TestCase):
     def test_kiosk_views(self):
         client = Client()
 
+        self.claim.status = Claim.STAT_ABANDONED
+        self.claim.save()
+
         t = Task.objects.create(
             short_desc="Test Kiosk Views",
             max_work=timedelta(hours=2),
             max_workers=1,
             work_start_time=datetime.now().time(),
             work_duration=timedelta(hours=2),
+            scheduled_date=date.today(),
         )
+        t.full_clean()
         t.eligible_claimants.add(self.member)
 
         # Must test this "members" app view because "tasks" is hooked into it and can cause it to fail.
@@ -306,6 +322,7 @@ class TestViews(TestCase):
             work_duration=timedelta(hours=2),
             scheduled_date=date.today(),
         )
+        t.full_clean()
 
         expected_words = ["TCV","BEGIN","SUMMARY","DTSTART","DTEND","DTSTAMP","UID","DESCRIPTION","URL","END"]
 
@@ -327,6 +344,7 @@ class TestViews(TestCase):
             claimed_start_time=t.work_start_time,
             status=Claim.STAT_CURRENT,
         )
+        c.full_clean()
         t.claim_set.add(c)
 
         url = reverse('task:xerocraft-calendar-staffed')
@@ -361,6 +379,7 @@ class RunSchedAndNagCmds(TestCase):
             start_date=date.today(),
             repeat_interval=1,
             should_nag=True)
+        self.rt.full_clean()
         self.rt.eligible_claimants.add(member)
 
     def test_run_nagger(self):
@@ -398,6 +417,7 @@ class TestWindowedObject(TestCase):
             max_work=timedelta(hours=2),
             max_workers=1
         )
+        self.t.full_clean()
 
     def test_task_and_ABC(self):
 
@@ -444,18 +464,20 @@ class TestWindowedObject(TestCase):
         user = User.objects.create_user(username='claimer', password='123', email='')
         member = Member.objects.first()
 
-        self.t.work_start_time = now
+        self.t.work_start_time = now.time()
         self.t.work_duration = fourhours
         self.t.scheduled_date = today
         self.t.deadline = tomorrow
 
         claim = Claim.objects.create(
+            status=Claim.STAT_CURRENT,
             claiming_member=member,
             claimed_task=self.t,
             claimed_start_time=now,
             claimed_duration=onehour)
+        claim.full_clean()
 
-        self.assertEquals(claim.window_start_time(), now)
+        self.assertEquals(claim.window_start_time(), now.time())
         self.assertEquals(claim.window_duration(), onehour)
         self.assertEquals(claim.window_sched_date(), self.t.scheduled_date)
         self.assertEquals(claim.window_deadline(), self.t.deadline)
