@@ -48,7 +48,8 @@ def visitevent_arrival_content(member, member_card_str, visit_event_type):
 
     # Find member's claimed tasks for today:
     for claim in member.claim_set.filter(
-      status__in=[Claim.STAT_CURRENT,Claim.STAT_WORKING],
+      claimed_task__status=Task.STAT_ACTIVE,
+      status__in=[Claim.STAT_CURRENT, Claim.STAT_WORKING],
       claimed_task__scheduled_date=date.today()):
         if not claim.in_window_now(start_leeway=-halfhour): continue
         if claim.status == Claim.STAT_CURRENT:
