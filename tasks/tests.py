@@ -294,6 +294,7 @@ class TestViews(TestCase):
             work_start_time=datetime.now().time(),
             work_duration=timedelta(hours=2),
             scheduled_date=date.today(),
+            orig_sched_date=date.today(),
         )
         t.full_clean()
         t.eligible_claimants.add(self.member)
@@ -321,6 +322,7 @@ class TestViews(TestCase):
             work_start_time=time(19,00,00),
             work_duration=timedelta(hours=2),
             scheduled_date=date.today(),
+            orig_sched_date=date.today(),
         )
         t.full_clean()
 

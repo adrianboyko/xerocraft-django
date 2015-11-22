@@ -223,6 +223,8 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
         if self.work_duration is not None and self.work_duration <= timedelta(0):
             raise ValidationError(_("Duration must be greater than zero."))
 
+    # TODO: greatest_orig_sched_date(self):
+
     def greatest_scheduled_date(self):
         "Of the Tasks that correspond to this template, returns the greatest scheduled_date."
 
@@ -348,7 +350,7 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
 
         # Earliest possible date to schedule is "day after GSD" or "today", whichever is later.
         # Note that curr gets inc'ed at start of while, so we need "GSD" and "yesterday" here.
-        gsd = self.greatest_scheduled_date()
+        gsd = self.greatest_scheduled_date()  # TODO: This should work with orig_sched_date, not scheduled_date
         yesterday = date.today()+timedelta(days=-1)
         curr = max(gsd, yesterday)
         stop = date.today() + timedelta(days=max_days_in_advance)
@@ -364,6 +366,7 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
                         recurring_task_template =self,
                         creation_date           =date.today(),
                         scheduled_date          =curr,
+                        orig_sched_date         =curr,
                         # Copy mixin fields from template to instance:
                         owner                   =self.owner,
                         instructions            =self.instructions,
@@ -541,12 +544,14 @@ class Work(models.Model):
 
 class Task(make_TaskMixin("Tasks"), TimeWindowedObject):
 
-    # TODO: creation_date might be useful but can't be used to calc slippage. Make it originally_scheduled_date?
     creation_date = models.DateField(null=False, default=date.today,
-        help_text="The date on which this task was originally created, for tracking slippage.")
+        help_text="The date on which this task was created in the database.")
 
     scheduled_date = models.DateField(null=True, blank=True,
         help_text="If appropriate, set a date on which the task must be performed.")
+
+    orig_sched_date = models.DateField(null=True, blank=True,
+        help_text="This is the first value that scheduled_date was set to. Required to avoid recreating a rescheduled task.")
 
     deadline = models.DateField(null=True, blank=True,
         help_text="If appropriate, specify a deadline by which the task must be completed.")
@@ -592,6 +597,9 @@ class Task(make_TaskMixin("Tasks"), TimeWindowedObject):
 
         if self.recurring_task_template is not None and self.scheduled_date is None:
             raise ValidationError(_("A task corresponding to a ScheduledTaskTemplate must have a scheduled date."))
+
+        if self.scheduled_date is not None and self.orig_sched_date is None:
+            raise ValidationError(_("orig_sched_date must be set when scheduled_date is FIRST set."))
 
     def scheduled_now(self):
         # TODO: Use TimeWindowedObject.in_window_now() instead?
