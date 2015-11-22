@@ -216,6 +216,10 @@ class TestViews(TestCase):
         cs.full_clean()
         self.fact = RequestFactory()
 
+    def test_worker(self):
+        self.assertNotEquals(self.user.member, None)
+        self.assertNotEquals(self.member.worker, None)
+
     def test_admin_views(self):
 
         for model_classname in model_classnames:

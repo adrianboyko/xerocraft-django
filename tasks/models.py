@@ -8,6 +8,7 @@ import logging
 import abc
 import nptime
 
+
 class TimeWindowedObject(object):
     __metaclass__ = abc.ABCMeta
 
@@ -713,6 +714,7 @@ class Nag(models.Model):
             self.when.strftime('%b %d'))
 
 
+# TODO: Delete CalendarSettings once transitioned to Worker.
 class CalendarSettings(models.Model):
     """ Contains info pertaining to icalendar access for members """
 
@@ -729,3 +731,23 @@ class CalendarSettings(models.Model):
         verbose_name_plural = "Calendar settings"
 
 
+class Worker(models.Model):
+    """ Settings per worker. """
+
+    member = models.OneToOneField(mm.Member, null=False, unique=True, related_name="worker",
+        help_text="This must point to the corresponding member.")
+
+    calendar_token = models.CharField(max_length=32, null=True, blank=True,
+        help_text="Random hex string used to access calendar.")
+
+    last_work_mtd_reported = models.DecimalField(max_digits=5, decimal_places=2, default=0, null=False, blank=False,
+        help_text="The most recent work MTD total reported to the worker.")
+
+    should_include_alarms = models.BooleanField(default=False,
+        help_text="Controls whether or not a worker's calendar includes alarms.")
+
+    should_nag = models.BooleanField(default=False,
+        help_text="Controls whether ANY nags should be sent to the worker.")
+
+    should_report_work_mtd = models.BooleanField(default=False,
+        help_text="Controls whether reports should be sent to worker when work MTD changes.")

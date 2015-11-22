@@ -4,8 +4,7 @@ from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
 from django.utils.translation import ugettext_lazy as _
 import datetime
-from time import strftime
-from tasks.models import RecurringTaskTemplate, Task, TaskNote, Claim, Work, Nag, CalendarSettings
+from tasks.models import RecurringTaskTemplate, Task, TaskNote, Claim, Work, Nag, CalendarSettings, Worker
 from nptime import nptime
 from tasks.templatetags.tasks_extras import duration_str2
 
@@ -48,6 +47,7 @@ def set_priority_high(model_admin, request, query_set):
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
 def set_active(query_set, setting):
     for obj in query_set:
         obj.active = setting
@@ -63,6 +63,7 @@ def set_active_on(model_admin, request, query_set):
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
 def set_nag(query_set, setting):
     for obj in query_set:
         obj.should_nag = setting
@@ -78,6 +79,7 @@ def set_nag_on(model_admin, request, query_set):
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
 def set_nag_for_instances(query_set, setting):
     for template in query_set:
         set_nag(template.instances.all(), setting)
@@ -406,9 +408,22 @@ class WorkAdmin(admin.ModelAdmin):
         'claim__claimed_task__short_desc',
     ]
 
+
 @admin.register(CalendarSettings)
 class CalendarSettingsAdmin(admin.ModelAdmin):
     list_display = ['pk', 'who', 'token', 'include_alarms']
+
+
+@admin.register(Worker)
+class WorkerAdmin(admin.ModelAdmin):
+    list_display = [
+        'pk',
+        'member',
+        'calendar_token',
+        'should_include_alarms',
+        'should_nag',
+        'should_report_work_mtd',
+    ]
 
 
 @admin.register(TaskNote)
