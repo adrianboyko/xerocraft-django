@@ -1,47 +1,14 @@
 from django.contrib import admin
-from django.contrib.auth.admin import UserAdmin
-from django.contrib.auth.models import User
 
 from members.models import Member, Tag, Tagging, VisitEvent
 
-# TODO: TagAdmin with inline Members?
 
-
-class MemberInline(admin.StackedInline):
-    model = Member
-    can_delete = False
-    verbose_name_plural = 'membership'
-    filter_horizontal = ['tags']
-
-    """ TODO: Modify CSS to work in this new inline context:
-    class Media:
-        css = {
-            "all": ("members/member_admin.css",)
-        }
-    """
-
-
-class UserAdmin(UserAdmin):
-
-    inlines = (MemberInline,)
-
-admin.site.unregister(User)
-admin.site.register(User, UserAdmin)
-
-
-#REVIEW: Can Members be inlined into TagAdmin in a way that's palatable?
-class MemberInlineForTag(admin.TabularInline):
-    model = Member.tags.through
-    extra = 0
-
-
+@admin.register(Tag)
 class TagAdmin(admin.ModelAdmin):
     fields = ['name','meaning']
-    inlines = [MemberInlineForTag]
-
-admin.site.register(Tag)
 
 
+@admin.register(Tagging)
 class TaggingAdmin(admin.ModelAdmin):
 
     def members_username(self, object):
@@ -56,9 +23,8 @@ class TaggingAdmin(admin.ModelAdmin):
         '^tagged_member__auth_user__username',
     ]
 
-admin.site.register(Tagging, TaggingAdmin)
 
-
+@admin.register(VisitEvent)
 class VisitEventAdmin(admin.ModelAdmin):
     list_display = ['pk', 'when', 'who', 'event_type', 'sync1']
     readonly_fields = ['when', 'who', 'event_type', 'sync1']
@@ -69,4 +35,13 @@ class VisitEventAdmin(admin.ModelAdmin):
     list_filter = ['when']
     date_hierarchy = 'when'
 
-admin.site.register(VisitEvent, VisitEventAdmin)
+
+@admin.register(Member)
+class MemberAdmin(admin.ModelAdmin):
+    list_display = ['pk', '__str__', 'auth_user', 'membership_card_when', 'membership_card_md5']
+    search_fields = [
+        '^auth_user__first_name',
+        '^auth_user__last_name',
+        '^auth_user__username',
+    ]
+
