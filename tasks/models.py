@@ -8,24 +8,6 @@ import logging
 import abc
 import nptime
 
-# TODO: class MetaTag?
-# E.g. Tag instructor tags with "instructor" meta-tag
-# Tags that shouldn't be public knowledge would have "confidential" meta-tag?
-
-# TODO: Import various *Field classes and remove "models."?
-
-
-# class MetaTag(models.Model):
-#
-#     name = models.CharField(max_length=40,
-#         help_text="A short name for the metatag.")
-#     meaning = models.TextField(max_length=500,
-#         help_text="A discussion of the metatag's semantics. What does it mean? What does it NOT mean?")
-#
-#     def __str__(self):
-#         return self.name
-
-
 class TimeWindowedObject(object):
     __metaclass__ = abc.ABCMeta
 
@@ -601,18 +583,6 @@ class Task(make_TaskMixin("Tasks"), TimeWindowedObject):
         if self.scheduled_date is not None and self.orig_sched_date is None:
             raise ValidationError(_("orig_sched_date must be set when scheduled_date is FIRST set."))
 
-    def scheduled_now(self):
-        # TODO: Use TimeWindowedObject.in_window_now() instead?
-        if self.scheduled_date is None: return False
-        if self.work_start_time is None: return False
-        if self.work_duration is None: return False
-        start = datetime.combine(self.scheduled_date, self.work_start_time)
-        now = datetime.now()
-        delta = now - start
-        if delta.seconds < 0: return False
-        if delta > self.work_duration: return False
-        return True
-
     def unclaimed_hours(self):
         """The grand total of hours still available to ALL WORKERS, considering other member's existing claims, if any."""
         unclaimed_hours = self.max_work
@@ -693,11 +663,12 @@ class Task(make_TaskMixin("Tasks"), TimeWindowedObject):
 
 class TaskNote(models.Model):
 
-    # TODO: TaskNote needs a when_written field.
-
     # Note will become anonymous if author is deleted or author is blank.
     author = models.ForeignKey(mm.Member, null=True, blank=True, on_delete=models.SET_NULL, related_name="task_notes_authored",
         help_text="The member who wrote this note.")
+
+    when_written = models.DateTimeField(null=False, auto_now_add=True,
+        help_text="The date and time when the note was written.")
 
     content = models.TextField(max_length=2048,
         help_text="Anything you want to say about the task. Questions, hints, problems, review feedback, etc.")
