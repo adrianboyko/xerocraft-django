@@ -472,8 +472,7 @@ class Claim(models.Model, TimeWindowedObject):
         (STAT_WORKING,  "Working"),
         (STAT_DONE,     "Done"),
     ]
-    # TODO: Make status null=False, blank=False, no default.
-    status = models.CharField(max_length=1, choices=CLAIM_STATUS_CHOICES,
+    status = models.CharField(max_length=1, choices=CLAIM_STATUS_CHOICES, null=False, blank=False,
         help_text = "The status of this claim.")
 
     def clean(self):
