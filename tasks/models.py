@@ -714,23 +714,6 @@ class Nag(models.Model):
             self.when.strftime('%b %d'))
 
 
-# TODO: Delete CalendarSettings once transitioned to Worker.
-class CalendarSettings(models.Model):
-    """ Contains info pertaining to icalendar access for members """
-
-    who = models.ForeignKey(mm.Member, null=False, blank=False, on_delete=models.CASCADE,
-        help_text = "Member the calendar corresponds to.")
-
-    token = models.CharField(max_length=32, null=False, blank=False,
-        help_text="Random hex string used to access calendar.")
-
-    include_alarms = models.BooleanField(default=True,
-        help_text="The member can control whether or not their calendar includes alarms.")
-
-    class Meta:
-        verbose_name_plural = "Calendar settings"
-
-
 class Worker(models.Model):
     """ Settings per worker. """
 
@@ -751,3 +734,18 @@ class Worker(models.Model):
 
     should_report_work_mtd = models.BooleanField(default=False,
         help_text="Controls whether reports should be sent to worker when work MTD changes.")
+
+    @property
+    def first_name(self): return self.auth_user.first_name
+
+    @property
+    def last_name(self): return self.auth_user.last_name
+
+    @property
+    def username(self): return self.auth_user.username
+
+    @property
+    def email(self): return self.auth_user.email
+
+    @property
+    def is_active(self): return self.auth_user.is_active

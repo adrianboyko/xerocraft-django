@@ -40,7 +40,7 @@ class DbCheck(unittest.TestCase):
         for obj in TaskNote.objects.all():
             obj.full_clean()
 
-    def test_CalendarSettings_objs(self):
-        for obj in CalendarSettings.objects.all():
+    def test_Worker_objs(self):
+        for obj in Worker.objects.all():
             obj.full_clean()
 

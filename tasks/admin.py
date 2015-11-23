@@ -4,7 +4,7 @@ from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
 from django.utils.translation import ugettext_lazy as _
 import datetime
-from tasks.models import RecurringTaskTemplate, Task, TaskNote, Claim, Work, Nag, CalendarSettings, Worker
+from tasks.models import RecurringTaskTemplate, Task, TaskNote, Claim, Work, Nag, Worker
 from nptime import nptime
 from tasks.templatetags.tasks_extras import duration_str2
 
@@ -407,11 +407,6 @@ class WorkAdmin(admin.ModelAdmin):
         '^claim__claiming_member__auth_user__last_name',
         'claim__claimed_task__short_desc',
     ]
-
-
-@admin.register(CalendarSettings)
-class CalendarSettingsAdmin(admin.ModelAdmin):
-    list_display = ['pk', 'who', 'token', 'include_alarms']
 
 
 @admin.register(Worker)

@@ -11,7 +11,7 @@ from nptime import nptime
 from hashlib import md5
 from datetime import date, datetime, timedelta
 
-from tasks.models import Task, Nag, Claim, CalendarSettings, TimeWindowedObject
+from tasks.models import Task, Nag, Claim, Worker, TimeWindowedObject
 from members.models import Member, VisitEvent
 
 from icalendar import Calendar, Event
@@ -203,19 +203,18 @@ def offers_done(request, auth_token):
     md5str = md5(auth_token.encode()).hexdigest()
     nag = get_object_or_404(Nag, auth_token_md5=md5str)
     member = nag.who
+    worker = member.worker
 
-    # Get the member's calendar settings, or create them if they don't exist:
-    try:
-        settings = CalendarSettings.objects.get(who=member)
-    except CalendarSettings.DoesNotExist:
+    if worker.calendar_token is None or len(worker.calendar_token) == 0:
         # I'm arbitrarily choosing md5str, below, but the fact that it came from md5 doesn't matter.
         _, md5str = Member.generate_auth_token_str(
-            lambda t: CalendarSettings.objects.filter(token=t).count() == 0  # uniqueness test
+            lambda t: Worker.objects.filter(calendar_token=t).count() == 0  # uniqueness test
         )
-        settings = CalendarSettings.objects.create(who=member, token=md5str)
+        worker.calendar_token = md5str
+        worker.save()
 
     # Return page with a link to the calendar:
-    return render(request, 'tasks/offers_done.html', {"member": member, "settings": settings})
+    return render(request, 'tasks/offers_done.html', {"worker": worker})
 
 
 def cal_task_details(request, task_pk):
@@ -397,10 +396,10 @@ def _gen_all_tasks():
 
 def member_calendar(request, token):
 
-    # See if token corresponds to a CalendarSettings token:
+    # See if token corresponds to a Worker's calendar_token:
     try:
-        cal_settings = CalendarSettings.objects.get(token=token)
-        member = cal_settings.who
+        worker = Worker.objects.get(calendar_token=token)
+        member = worker.member
     except Nag.DoesNotExist:
         member = None
 

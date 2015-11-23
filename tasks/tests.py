@@ -20,7 +20,7 @@ model_classnames = [
     "Claim",
     "Work",
     "TaskNote",
-    "CalendarSettings",
+    "Worker",
 ]
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -212,8 +212,6 @@ class TestViews(TestCase):
             work_date=datetime.today(),
             work_duration=timedelta(hours=1.5))
         self.work.full_clean()
-        cs = CalendarSettings.objects.create(who=self.member, token=arbitrary_token_md5)
-        cs.full_clean()
         self.fact = RequestFactory()
 
     def test_worker(self):
