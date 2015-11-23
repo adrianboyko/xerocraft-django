@@ -214,7 +214,7 @@ def offers_done(request, auth_token):
         worker.save()
 
     # Return page with a link to the calendar:
-    return render(request, 'tasks/offers_done.html', {"worker": worker, "auth_token": auth_token})
+    return render(request, 'tasks/offers_done.html', {"worker": worker})
 
 
 def cal_task_details(request, task_pk):
@@ -400,7 +400,7 @@ def member_calendar(request, token):
     try:
         worker = Worker.objects.get(calendar_token=token)
         member = worker.member
-    except Nag.DoesNotExist:
+    except Worker.DoesNotExist:
         member = None
 
     # If token didn't correspond to nag, see if it's a member card string:

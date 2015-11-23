@@ -36,7 +36,7 @@
     </p>
 
     <!-- Following URL appears as http but webcal might be better. -->
-    <p><a href="{% url 'task:member-calendar' token=auth_token %}">{{worker.first_name}}'s Calendar</a></p>
+    <p><a href="{% url 'task:member-calendar' token=worker.calendar_token %}">{{worker.first_name}}'s Calendar</a></p>
 
 </body>
 </html>

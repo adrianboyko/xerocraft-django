@@ -182,10 +182,10 @@ class TestViews(TestCase):
     def setUp(self):
 
         self.arbitrary_token_b64 = 'S2s8DNreTH2R92Dfhzcdhp1aGVV1X0wj'
-        arbitrary_token_md5 = 'acd706cdada4cbaa339cae813a25c30f'
+        self.arbitrary_token_md5 = 'acd706cdada4cbaa339cae813a25c30f'
         self.user = User.objects.create_superuser(username='admin', password='123', email='')
         self.member = Member.objects.first()
-        self.member.membership_card_md5 = arbitrary_token_md5
+        self.member.membership_card_md5 = self.arbitrary_token_md5
         self.member.save()
         self.rt = RecurringTaskTemplate.objects.create(
             short_desc="Test Task",
@@ -198,7 +198,7 @@ class TestViews(TestCase):
         self.task = Task.objects.first()
         tn = TaskNote.objects.create(task=self.task, author=self.member, content="spam", status=TaskNote.INFO)
         tn.full_clean()
-        self.nag = Nag.objects.create(who=self.member, auth_token_md5=arbitrary_token_md5)
+        self.nag = Nag.objects.create(who=self.member, auth_token_md5=self.arbitrary_token_md5)
         self.nag.full_clean()
         self.nag.tasks.add(self.task)
         self.claim= Claim.objects.create(
@@ -287,6 +287,12 @@ class TestViews(TestCase):
             reverse('task:offers-done', kwargs={'auth_token': self.arbitrary_token_b64})
         )
         self.assertTrue(response.status_code, 200)
+
+        response = client.get(
+            reverse('task:member-calendar', kwargs={'token':self.arbitrary_token_b64})
+        )
+        self.assertTrue(response.status_code, 200)
+
 
     def test_kiosk_views(self):
         client = Client()
