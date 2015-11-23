@@ -736,16 +736,16 @@ class Worker(models.Model):
         help_text="Controls whether reports should be sent to worker when work MTD changes.")
 
     @property
-    def first_name(self): return self.auth_user.first_name
+    def first_name(self): return self.member.first_name
 
     @property
-    def last_name(self): return self.auth_user.last_name
+    def last_name(self): return self.member.last_name
 
     @property
-    def username(self): return self.auth_user.username
+    def username(self): return self.member.username
 
     @property
-    def email(self): return self.auth_user.email
+    def email(self): return self.member.email
 
     @property
-    def is_active(self): return self.auth_user.is_active
+    def is_active(self): return self.member.is_active

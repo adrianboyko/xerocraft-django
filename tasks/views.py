@@ -214,7 +214,7 @@ def offers_done(request, auth_token):
         worker.save()
 
     # Return page with a link to the calendar:
-    return render(request, 'tasks/offers_done.html', {"worker": worker})
+    return render(request, 'tasks/offers_done.html', {"worker": worker, "auth_token": auth_token})
 
 
 def cal_task_details(request, task_pk):

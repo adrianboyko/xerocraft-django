@@ -278,10 +278,15 @@ class TestViews(TestCase):
 
         response = client.post(
             reverse('task:offer-more-tasks', kwargs=kwargs),
-            {'tasks':[str(Task.objects.last().pk)]}
+            {'tasks': [str(Task.objects.last().pk)]}
         )
         self.assertTrue(response.status_code, 200)
         self.assertEqual(len(Claim.objects.all()), 2)
+
+        response = client.get(
+            reverse('task:offers-done', kwargs={'auth_token': self.arbitrary_token_b64})
+        )
+        self.assertTrue(response.status_code, 200)
 
     def test_kiosk_views(self):
         client = Client()
