@@ -385,6 +385,9 @@ class RunSchedAndNagCmds(TestCase):
     def setUp(self):
         self.user = User.objects.create_superuser(username='admin', password='123', email='test@example.com')
         member = Member.objects.first()
+        member.worker.should_nag = True
+        member.worker.save()
+
         self.rt = RecurringTaskTemplate.objects.create(
             short_desc="Sched and Nag Cmd Test",
             max_work=timedelta(hours=1.5),
@@ -402,6 +405,15 @@ class RunSchedAndNagCmds(TestCase):
         management.call_command("nag")
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(len(Nag.objects.all()), 1)
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+# TODO: Maybe merge this into RunSchedAndNagCmds and check that email is generated.
+class RunEmailWMTD(TestCase):
+
+    def test_database_validity(self):
+        management.call_command("emailwmtd")
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =

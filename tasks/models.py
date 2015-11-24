@@ -723,7 +723,7 @@ class Worker(models.Model):
     calendar_token = models.CharField(max_length=32, null=True, blank=True,
         help_text="Random hex string used to access calendar.")
 
-    last_work_mtd_reported = models.DecimalField(max_digits=5, decimal_places=2, default=0, null=False, blank=False,
+    last_work_mtd_reported = models.DurationField(default=timedelta(0), null=False, blank=False,
         help_text="The most recent work MTD total reported to the worker.")
 
     should_include_alarms = models.BooleanField(default=False,

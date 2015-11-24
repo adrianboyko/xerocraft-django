@@ -1,13 +1,13 @@
-__author__ = 'adrian'
-
 from django.core.management.base import BaseCommand, CommandError
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import get_template
 from django.template import Context
-from tasks.models import Task, Claim, Nag
+from tasks.models import Task, Claim, Nag, Worker
 from members.models import Member
 import datetime
 from decimal import Decimal
+
+__author__ = 'adrian'
 
 
 def oneday_today_tomorrow_nextweek():
@@ -29,22 +29,27 @@ class Command(BaseCommand):
         # Find out who's doing what over the next week. Who's already scheduled to work and who's heavily scheduled?
         ppl_already_scheduled = Claim.sum_in_period(today, nextweek)
         ppl_heavily_scheduled = set([member for member,dur in ppl_already_scheduled.items() if dur >= datetime.timedelta(hours=6.0)])
+        ppl_no_nag = set([worker.member for worker in Worker.objects.filter(should_nag=False)])
+        ppl_no_email_addr = set([member for member in Member.objects.filter(auth_user__email="")])
 
         # Cycle through the next week's NAGGING tasks to see which need workers and who should be nagged.
         nag_lists = {}
-        for task in Task.objects.filter(scheduled_date__gte=today, scheduled_date__lte=nextweek, should_nag=True):
+        for task in Task.objects.filter(scheduled_date__gte=today, scheduled_date__lt=nextweek, should_nag=True):
 
             # No need to nag if task is fully claimed or not workable.
             if (not task.status == Task.STAT_ACTIVE) or task.is_fully_claimed():
                 continue
 
-            potentials = task.all_eligible_claimants() - task.current_claimants()
+            potentials = task.all_eligible_claimants()
+            potentials -= task.current_claimants()
+            potentials -= ppl_no_nag
+            potentials -= set(task.uninterested.all())
+            potentials -= ppl_no_email_addr
             # If a given member is already heavily scheduled this week, don't nag them
             # except for tasks today or tomorrow that aren't fully staffed.
             if (task.scheduled_date - today) > datetime.timedelta(days=1):
                 potentials -= ppl_heavily_scheduled
-            # People without email addresses can't be nagged:
-            potentials = [p for p in potentials if p.email > ""]
+
             for member in potentials:
                 if member not in nag_lists:
                     nag_lists[member] = []
@@ -56,7 +61,7 @@ class Command(BaseCommand):
         for member,tasks in nag_lists.items():
 
             b64,md5 = Member.generate_auth_token_str(
-                lambda token: Nag.objects.filter(auth_token_md5=token).count() == 0 # uniqueness test
+                lambda token: Nag.objects.filter(auth_token_md5=token).count() == 0  # uniqueness test
             )
 
             nag = Nag.objects.create(who=member, auth_token_md5=md5)
