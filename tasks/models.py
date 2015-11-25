@@ -749,3 +749,9 @@ class Worker(models.Model):
 
     @property
     def is_active(self): return self.member.is_active
+
+    class Meta:
+        ordering = [
+            'member__auth_user__first_name',
+            'member__auth_user__last_name',
+        ]
