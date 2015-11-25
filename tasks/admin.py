@@ -437,12 +437,19 @@ class WorkerAdmin(admin.ModelAdmin):
     nag.boolean = True
     wmtd.boolean = True
 
+    def reported(self,obj):
+        dur = obj.last_work_mtd_reported
+        if dur == datetime.timedelta(0):
+            return "-"
+        else:
+            return duration_fmt(obj.last_work_mtd_reported)
+
     list_display = [
         'pk',
         'member',
-        'alarm',
-        'nag',
-        'wmtd',
+        'reported',
+        'alarm', 'nag', 'wmtd',
+        #'should_include_alarms', 'should_nag', 'should_report_work_mtd',
         'calendar_token',
     ]
 
