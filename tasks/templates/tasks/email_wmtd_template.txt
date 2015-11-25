@@ -1,7 +1,4 @@
-<!DOCTYPE html>
-
 {% load tasks_extras %}
-
 Hi {{member.first_name}},
 
 Your total hours worked month-to-date has changed. Here is what we have for you so far this month:
