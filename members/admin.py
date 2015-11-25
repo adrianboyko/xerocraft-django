@@ -1,6 +1,6 @@
 from django.contrib import admin
-
 from members.models import Member, Tag, Tagging, VisitEvent
+from django.utils.translation import ugettext_lazy as _
 
 
 @admin.register(Tag)
@@ -36,12 +36,34 @@ class VisitEventAdmin(admin.ModelAdmin):
     date_hierarchy = 'when'
 
 
+class MemberTypeFilter(admin.SimpleListFilter):
+    title = "Worker Type"
+    parameter_name = 'type'
+
+    def lookups(self, request, model_admin):
+        return (
+            ('worktrade', _('Work-Trader')),
+            ('intern', _('Intern')),
+            ('scholar', _('Scholarship')),
+        )
+
+    def queryset(self, request, queryset):
+        if self.value() == 'worktrade': return queryset.filter(tags__name="Work-Trader")
+        if self.value() == 'intern':    return queryset.filter(tags__name="Intern")
+        if self.value() == 'scholar':   return queryset.filter(tags__name="Scholarship")
+
 @admin.register(Member)
 class MemberAdmin(admin.ModelAdmin):
+
     list_display = ['pk', '__str__', 'auth_user', 'membership_card_when', 'membership_card_md5']
+
     search_fields = [
         '^auth_user__first_name',
         '^auth_user__last_name',
         '^auth_user__username',
     ]
+
+    list_display_links = ['pk', '__str__']
+
+    list_filter = [MemberTypeFilter]
 
