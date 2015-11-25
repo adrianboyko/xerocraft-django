@@ -409,17 +409,46 @@ class WorkAdmin(admin.ModelAdmin):
     ]
 
 
+# REVIEW: Following class is very similar to MemberTypeFilter. Can they be combined?
+class WorkerTypeFilter(admin.SimpleListFilter):
+    title = "Worker Type"
+    parameter_name = 'type'
+
+    def lookups(self, request, model_admin):
+        return (
+            ('worktrade', _('Work-Trader')),
+            ('intern', _('Intern')),
+            ('scholar', _('Scholarship')),
+        )
+
+    def queryset(self, request, queryset):
+        if self.value() == 'worktrade': return queryset.filter(member__tags__name="Work-Trader")
+        if self.value() == 'intern':    return queryset.filter(member__tags__name="Intern")
+        if self.value() == 'scholar':   return queryset.filter(member__tags__name="Scholarship")
+
+
 @admin.register(Worker)
 class WorkerAdmin(admin.ModelAdmin):
+
+    def alarm(self, obj): return obj.should_include_alarms
+    def nag(self, obj): return obj.should_nag
+    def wmtd(self, obj): return obj.should_report_work_mtd
+    alarm.boolean = True
+    nag.boolean = True
+    wmtd.boolean = True
+
     list_display = [
         'pk',
         'member',
+        'alarm',
+        'nag',
+        'wmtd',
         'calendar_token',
-        'should_include_alarms',
-        'should_nag',
-        'should_report_work_mtd',
     ]
 
+    list_display_links = ['pk', 'member']
+
+    list_filter = [WorkerTypeFilter]
 
 @admin.register(TaskNote)
 class TaskNoteAdmin(admin.ModelAdmin):
