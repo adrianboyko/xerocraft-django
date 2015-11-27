@@ -3,7 +3,7 @@ from django.core.mail import EmailMultiAlternatives
 from django.template.loader import get_template
 from django.template import Context
 from tasks.models import Task, Claim, Nag, Worker, Work
-from members.models import Member
+from dateutil import relativedelta
 import datetime
 import logging
 
@@ -15,15 +15,20 @@ class Command(BaseCommand):
     help = "If work MTD doesn't match figure last reported, send worker and email with updated info."
 
     @staticmethod
-    def send_report(member, work_list, total):
+    def send_report(member, work_list, total_dur):
+
+        total_hrs = total_dur.total_seconds()/3600.0
+        next_month = datetime.date.today() + relativedelta.relativedelta(months=1)
+        next_month = next_month.strftime("%B")
 
         text_content_template = get_template('tasks/email_wmtd_template.txt')
         html_content_template = get_template('tasks/email_wmtd_template.html')
-
         d = Context({
             'member': member,
             'work_list': work_list,
-            'total': total,
+            'total_dur': total_dur,
+            'total_hrs': total_hrs,
+            'next_month': next_month,
         })
         subject = 'Work Trade Report, ' + datetime.date.today().strftime('%a %b %d')
         from_email = 'Volunteer Coordinator <volunteer@xerocraft.org>'

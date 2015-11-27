@@ -11,9 +11,25 @@
 
     <body style='font-family:Arial; font-color:black'>
         <p>Hi {{member.first_name}},</p>
-        <p>Your hours worked month-to-date total has changed. Here is what we have for you so far this month:</p>
+        <p>Your "hours worked month-to-date" total has changed. Here is what we have for you so far this month:</p>
         <ul>{% for work in work_list %}<li>{{work.work_duration|duration_str}} on {{work.work_date}}</li>{% endfor %}</ul>
-        <p>That's {{total|duration_str}}, total. If your most recent work doesn't appear on this report, please allow a few days for data entry.</p>
+        <p>
+            {% if work_list|length > 1 %}That's {{total_dur|duration_str}}, total. {% endif %}
+            If your most recent work doesn't appear on this report, please allow a few days for data entry.
+        </p>
+        {% if total_hrs >= 9 %}
+            <p>
+                You are currently eligible for $10 membership dues in {{next_month}}!
+                Please make your payment as soon possible since your {{next_month}} membership payment
+                is due {{next_month}} 1st.</p>
+            </p>
+        {% elif total_hrs >= 6 %}
+            <p>
+                You are currently eligible for $25 membership dues in {{next_month}}!
+                Alternately, you can continue to work toward 9 hrs total and the $10 dues.
+                Payment for your {{next_month}} Work-Trade membership is due {{next_month}} 1st.</p>
+            </p>
+        {% endif %}
         <p>Thanks!</p>
     </body>
 
