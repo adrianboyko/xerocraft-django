@@ -10,12 +10,14 @@ from decimal import Decimal
 __author__ = 'adrian'
 
 
-def oneday_today_tomorrow_nextweek():
+def times():
     oneday = datetime.timedelta(days=1)
+    oneweek = datetime.timedelta(weeks=1)
     today = datetime.date.today()
     tomorrow = today + oneday
-    nextweek = today + datetime.timedelta(weeks=+1)
-    return oneday, today, tomorrow, nextweek
+    todayplus1w = today + oneweek
+    todayplus2w = today + oneweek + oneweek
+    return oneday, today, tomorrow, todayplus1w, todayplus2w
 
 
 class Command(BaseCommand):
@@ -24,17 +26,21 @@ class Command(BaseCommand):
 
     @staticmethod
     def nag_for_workers():
-        oneday, today, tomorrow, nextweek = oneday_today_tomorrow_nextweek()
+        oneday, today, tomorrow, todayplus1w, todayplus2w = times()
 
-        # Find out who's doing what over the next week. Who's already scheduled to work and who's heavily scheduled?
-        ppl_already_scheduled = Claim.sum_in_period(today, nextweek)
+        # Find out who's doing what over the next 2 weekw. Who's already scheduled to work and who's heavily scheduled?
+        ppl_already_scheduled = Claim.sum_in_period(today, todayplus2w)
         ppl_heavily_scheduled = set([member for member,dur in ppl_already_scheduled.items() if dur >= datetime.timedelta(hours=6.0)])
-        ppl_no_nag = set([worker.member for worker in Worker.objects.filter(should_nag=False)])
-        ppl_no_email_addr = set([member for member in Member.objects.filter(auth_user__email="")])
+
+        # Rule out the following sets:
+        ppl_excluded = set()
+        ppl_excluded |= set([worker.member for worker in Worker.objects.filter(should_nag=False)])
+        ppl_excluded |= set(Member.objects.filter(auth_user__email=""))
+        ppl_excluded |= set(Member.objects.filter(auth_user__is_active=False))
 
         # Cycle through the next week's NAGGING tasks to see which need workers and who should be nagged.
         nag_lists = {}
-        for task in Task.objects.filter(scheduled_date__gte=today, scheduled_date__lt=nextweek, should_nag=True):
+        for task in Task.objects.filter(scheduled_date__gte=today, scheduled_date__lt=todayplus1w, should_nag=True):
 
             # No need to nag if task is fully claimed or not workable.
             if (not task.status == Task.STAT_ACTIVE) or task.is_fully_claimed():
@@ -42,12 +48,12 @@ class Command(BaseCommand):
 
             potentials = task.all_eligible_claimants()
             potentials -= task.current_claimants()
-            potentials -= ppl_no_nag
             potentials -= set(task.uninterested.all())
-            potentials -= ppl_no_email_addr
-            # If a given member is already heavily scheduled this week, don't nag them
-            # except for tasks today or tomorrow that aren't fully staffed.
-            if (task.scheduled_date - today) > datetime.timedelta(days=1):
+            potentials -= ppl_excluded
+
+            panic_situation = task.scheduled_date == today and task.priority == Task.PRIO_HIGH
+            if not panic_situation:
+                # Don't bother heavily scheduled people if it's not time to panic
                 potentials -= ppl_heavily_scheduled
 
             for member in potentials:
@@ -58,9 +64,9 @@ class Command(BaseCommand):
         # Send email messages:
         text_content_template = get_template('tasks/email_nag_template.txt')
         html_content_template = get_template('tasks/email_nag_template.html')
-        for member,tasks in nag_lists.items():
+        for member, tasks in nag_lists.items():
 
-            b64,md5 = Member.generate_auth_token_str(
+            b64, md5 = Member.generate_auth_token_str(
                 lambda token: Nag.objects.filter(auth_token_md5=token).count() == 0  # uniqueness test
             )
 
