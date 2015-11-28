@@ -55,6 +55,11 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.security.SecurityMiddleware',
 )
 
+AUTHENTICATION_BACKENDS = (
+    'django.contrib.auth.backends.ModelBackend',
+    'xerocraft.authenticators.XerocraftBackend'
+)
+
 ROOT_URLCONF = 'xerocraft.urls'
 
 TEMPLATES = [
@@ -152,6 +157,10 @@ LOGGING = {
     },
     'loggers': {
         'tasks': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+        'xerocraft-django': {
             'handlers': ['console'],
             'level': 'INFO',
         }
