@@ -47,7 +47,7 @@ class Command(BaseCommand):
         # Process this month's work entries, gathering them by member:
         today = datetime.date.today()
         start_of_month = datetime.datetime(today.year, today.month, 1)
-        for work in Work.objects.filter(work_date__gt=start_of_month):
+        for work in Work.objects.filter(work_date__gte=start_of_month):
             member = work.claim.claiming_member
             if member not in work_lists: work_lists[member] = []
             work_lists[member] += [work]
