@@ -1,12 +1,27 @@
 import requests
 import logging
-import time
+import lxml.html
 from django.contrib.auth.backends import ModelBackend
 from django.contrib.auth.models import User
 
 
-# TODO: Add case insensitive index to User.username per comments below.
+# TODO: Add case-insensitive index to User.username for performance.
+# TODO: Add code somewhere to ensure that email addresses for users are unique.
 # TODO: Email address authentication
+
+# NOTE! In code below, "identifier" means "username or email address".as
+def _get_local_user(identifier):
+    try:
+        user = User.objects.get(username__iexact=identifier)
+        return user
+    except User.DoesNotExist:
+        pass
+    try:
+        user = User.objects.get(email__iexact=identifier)
+        return user
+    except User.DoesNotExist:
+        return None
+
 
 # From http://blog.shopfiber.com/?p=220.
 # Note the comment regarding the need to add a case-insensitive index.
@@ -16,13 +31,14 @@ class CaseInsensitiveModelBackend(ModelBackend):
     generally expected.  This backend supports case insensitive username authentication.
     """
     def authenticate(self, username=None, password=None):
-        try:
-            user = User.objects.get(username__iexact=username)
-            if user.check_password(password):
-                return user
-            else:
-                return None
-        except User.DoesNotExist:
+        identifier = username  # Given username is actually a more generic identifier.
+
+        user = _get_local_user(identifier)
+        if user is None:
+            return None
+        elif user.check_password(password):
+            return user
+        else:
             return None
 
 
@@ -30,34 +46,72 @@ class XerocraftBackend(ModelBackend):
 
     def authenticate(self, username=None, password=None):
 
+        # TODO: This would be a lot better/simpler if xerocraft.org's actions.php would offer
+        # action:authenticate, SignInIdentifier:<email or username>, SignInPassword:<password>
+        # that returned {auth:"yes", username:<username>, email:<email>, name:<name>} or {auth:"no"}
+        identifier = username  # Given username is actually a more generic identifier.
         logger = logging.getLogger("xerocraft-django")
+        server = "http://www.xerocraft.org/"  # Allows easy switching to test site.
+        action_url = server+"actions.php"
 
         # Try logging in to xerocraft.org to authenticate given username and password:
-        postdata = {'SignInUsername':username, 'SignInPassword':password, 'action':'signin' }
-        response = requests.post("http://xerocraft.org/actions.php", postdata)
-        if response.text.find('<a href="./index.php?logout=true">[Logout?]</a>') != -1:
-            try:
-                user = User.objects.get(username__iexact=username)  # Will necessitate case-insensitive index.
-                # Saving password amounts to local caching in case xerocraft.org is down.
-                password_before = user.password
-                user.set_password(password)
-                if password_before != user.password:
-                    logger.info("Password for %s updated to match xerocraft.org.", username)
-            except User.DoesNotExist:
-                user = User(username=username, password=password)
+        postdata = {'SignInUsername':identifier, 'SignInPassword':password, 'action':'signin'}
+        response = requests.post(action_url, postdata)
+        cookies = response.cookies
+        if response.text.find('<a href="./index.php?logout=true">[Logout?]</a>') == -1:
+            # xerocraft.org said there's no such identifier/password.
+            return None
+
+        user = _get_local_user(identifier)
+
+        if user is not None:
+
+            # Saving password amounts to local caching in case xerocraft.org is down.
+            password_before = user.password
+            user.set_password(password)
+            if password_before != user.password:
+                user.save()
+                logger.info("Password for %s updated to match xerocraft.org.", user.username)
+
+        else:  # Create a new Django user based on Xerocraft.org info.
+
+            # Scrape usernum
+            usernum_seek = 'profiles.php?id='
+            usernum_start = response.text.find(usernum_seek)
+            usernum_end = response.text.find('"', usernum_start)
+            usernum = response.text[usernum_start+len(usernum_seek):usernum_end]
+
+            # Get the profile associated with the usernum and parse it.
+            postdata = {'action':'ViewProfile', 'id':usernum, 'ax':'y'}
+            response = requests.post(action_url, postdata, cookies=cookies)
+            profile = lxml.html.fromstring(response.text)
+
+            # Scrape username
+            usernames = profile.xpath("//div[@id='pp_username']/h1/text()")
+            if len(usernames) == 0: username = None
+            else: username = str(usernames[0])
+
+            # Record email if user used it as the identifier.
+            email = ""  # Non-null constraint in db. Admin uses empty string.
+            if '@' in identifier: email = identifier
+
+            # scrape name and do naive fname/lname parse
+
+            # Create local copy of user with info we have.
+            if username is not None and password is not None:
+                user = User(username=username, email=email, password=password)
                 user.is_staff = False
                 user.is_superuser = False
+                user.save()
                 logger.info("Created new user: %s", username)
-            user.save()
+            else:
+                logger.error("Couldn't create local user for authenticated id: %s", identifier)
 
-            # Xerocraft.org SERVER maintains a "logged in status" for display
-            # to other users. So explicitly log out to prevent that.
-            # TODO: Does this work without providing a cookie?
-            response = requests.get("http://xerocraft.org/index.php?logout=true")
-            if response.text.find('<u>Sign In Options</u>') == -1:
-                logger.error("Unexpected response from xerocraft.org logout.")
+        # Xerocraft.org SERVER maintains a "logged in status" for display
+        # to other users. So explicitly log out to prevent that.
+        response = requests.get(server+"index.php?logout=true", cookies=cookies)
+        if response.text.find('<u>Sign In Options</u>') == -1:
+            logger.error("Unexpected response from xerocraft.org logout.")
 
-            return user
-
-        return None
+        return user
 
