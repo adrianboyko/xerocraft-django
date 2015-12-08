@@ -160,6 +160,10 @@ LOGGING = {
             'handlers': ['console'],
             'level': 'INFO',
         },
+        'members': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
         'xerocraft-django': {
             'handlers': ['console'],
             'level': 'INFO',

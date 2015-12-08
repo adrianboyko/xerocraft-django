@@ -1,0 +1,9 @@
+Hi {{member.first_name}},
+
+New taggings have been recorded with you as the authorizing member:
+
+{% for tagging in tagging_list %}   {{tagging.tagged_member}} was tagged with "{{tagging.tag}}"
+{% endfor %}
+If you did not authorize these taggings, please reply with details.
+
+Thanks!
