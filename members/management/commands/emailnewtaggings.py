@@ -12,7 +12,7 @@ __author__ = 'adrian'
 
 class Command(BaseCommand):
 
-    help = "Email listing new taggings is sent to members that authorized those taggings."
+    help = "Email reports of new taggings are sent to members that authorized those taggings."
 
     @staticmethod
     def send_report(member, tagging_list):
@@ -38,9 +38,11 @@ class Command(BaseCommand):
         logger = logging.getLogger("members")
 
         # Process yesterday's taggings , gathering them by member:
-        yesterday = datetime.date.today()  # - datetime.timedelta(days=1)
+        oneday = datetime.timedelta(days=1)
+        yesterday = datetime.date.today() - oneday
         yesterday_start = datetime.datetime.combine(yesterday,datetime.time(0,0,0,0,timezone.get_default_timezone()))
-        for tagging in Tagging.objects.filter(date_tagged__gte=yesterday_start):
+        yesterday_end = yesterday_start + oneday
+        for tagging in Tagging.objects.filter(date_tagged__gte=yesterday_start, date_tagged__lt=yesterday_end):
             member = tagging.authorizing_member
             if member is None: continue
             if member not in tagging_lists: tagging_lists[member] = []
@@ -48,8 +50,6 @@ class Command(BaseCommand):
 
         # Look for work lists with totals that have changed since last report:
         for member, tagging_list in tagging_lists.items():
-
             if member.email == "": continue
             logger.info("Sent email to %s regarding authorized taggings", member)
             Command.send_report(member, tagging_list)
-
