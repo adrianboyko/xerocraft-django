@@ -10,6 +10,8 @@ from django.contrib.auth.models import User
 
 # NOTE! In code below, "identifier" means "username or email address".as
 def _get_local_user(identifier):
+    if identifier.isspace() or len(identifier) == 0:
+        return None
     try:
         user = User.objects.get(username__iexact=identifier)
         return user
@@ -51,7 +53,7 @@ class XerocraftBackend(ModelBackend):
 
         identifier = username  # Given "username" is actually a more generic identifier.
         logger = logging.getLogger("xerocraft-django")
-        server = "http://www.xerocraft.org/kfritz/"  # Allows easy switching to test site.
+        server = "http://www.xerocraft.org/"  # Allows easy switching to test site.
         action_url = server+"actions.php"
 
         # Try logging in to xerocraft.org to authenticate given username and password:
