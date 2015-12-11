@@ -2,7 +2,7 @@
 {% load staticfiles %}
 
 <head>
-    <title>XCIS Home</title>
+    <title>XIS Home</title>
 
     <style>
         body { margin-left:20pt; margin-right:20pt; }
@@ -18,6 +18,10 @@
 <body style="text-align:center">
 
     <h1><img src="{% static 'xerocraft/Big Bold X.png' %}" alt="Xerocraft Logo"/>erocraft Internal Systems</h1>
+
+    {% if user.is_authenticated %}
+        <h2><a href="/logout/">Logout {{ request.user }}</a></h2>
+    {% endif %}
 
     <h2><a href="/tasks/desktop-timesheet/">Time-Sheet</a></h2>
     <h2><a href="/admin/">Administration</a></h2>

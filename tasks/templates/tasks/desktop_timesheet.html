@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+
+{% load staticfiles %}
+{% load crispy_forms_tags %}
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Timesheet</title>
+    <link rel="stylesheet" type="text/css" href="{% static 'admin/css/base.css' %}" />
+    <link rel="stylesheet" type="text/css" href="{% static 'admin/css/login.css' %}" />
+    <link rel="stylesheet" type="text/css" href="{% static 'xerocraft/jquery-ui.min.css' %}"/>
+    <link rel="stylesheet" type="text/css" href="{% static 'xerocraft/jquery.ptTimeSelect.css' %}"/>
+    <link rel="stylesheet" type="text/css" href="{% static 'xerocraft/bootstrap.min.css' %}" media="screen"/>
+    <style>
+        #submit-id-submit:hover {
+            background: #fff url(/static/admin/img/nav-bg.gif) bottom repeat-x;
+            color: black;
+        }
+        #branding h1 {
+            margin: 0;
+        }
+        .login #container {
+            width: 30em;
+        }
+        .help-inline {
+            display: none;
+        }
+        legend {
+            margin-bottom: 0;
+        }
+        #id_work_desc {
+            height: 4em;
+            width: 95%;
+        }
+        #logout {
+            float:right;
+            font-size:10pt;
+            line-height:12pt;
+            margin-top:0;
+            margin-bottom:0;
+            text-align:right;
+        }
+    </style>
+
+</head>
+
+<body>
+    <script src="http://code.jquery.com/jquery.js"></script>
+    <script src="{% static 'xerocraft/jquery-ui.min.js' %}"></script>
+    <script src="{% static 'xerocraft/jquery.ptTimeSelect.js' %}"></script>
+    <script src="{% static 'xerocraft/bootstrap.min.js' %}"></script>
+    <script type="text/javascript">
+      $(document).ready(function(){
+        // DATE PICKER
+        $(".datepicker").datepicker({
+          changeMonth: true,
+          changeYear: true,
+          yearRange: "2015:2020",
+        });
+        // TIME PICKER
+        $(".timepicker").ptTimeSelect();
+      });
+    </script>
+
+    <body class="login">
+
+        <div id="container"> <!-- Container -->
+            <div id="header"> <!-- Header -->
+                <div id="branding">
+                    <h1 id="site-name">Work-Trade Time Sheet</h1>
+                </div>
+            </div> <!-- END Header -->
+
+            <div id="content" class="colM"> <!-- Content -->
+                <a id="logout" href="/logout">logout<br>{{request.user}}</a>
+                {% crispy form %}
+            </div>
+        </div>
+
+</body>
+</html>

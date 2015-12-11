@@ -6,7 +6,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from nptime import nptime
-
+from tasks.forms import *
 
 from hashlib import md5
 from datetime import date, datetime, timedelta
@@ -451,4 +451,23 @@ def resource_calendar(request):
     #    _add_event(cal,task,request)
     #    # Intentionally lacks ALARM
     return _ical_response(cal)
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+@login_required
+def desktop_timesheet(request):
+
+    if request.method == 'POST':  # Process the form data.
+        form = Desktop_TimeSheetForm(request.POST, request=request)
+        if form.is_valid():
+            # process the data in form.cleaned_data as required
+            # ...
+            # redirect to a new URL:
+            return redirect('task:desktop-timesheet-pt2' )
+
+    else:  # If a GET (or any other method) we'll create a blank form.
+        form = Desktop_TimeSheetForm(request=request)
+
+    return render(request, 'tasks/desktop_timesheet.html', {'form': form})
 

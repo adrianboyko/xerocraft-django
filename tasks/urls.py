@@ -24,4 +24,7 @@ urlpatterns = [
     url(r'^xerocraft-calendar/unstaffed/$', views.xerocraft_calendar_unstaffed, name='xerocraft-calendar-unstaffed'),
     url(r'^cal-task-details/(?P<task_pk>[0-9]+)/$', views.cal_task_details, name='cal-task-details'),
 
+    # Temporary Work Trade Checkout
+    url(r'^desktop-timesheet/$', views.desktop_timesheet, name='desktop-timesheet'),
+
 ]

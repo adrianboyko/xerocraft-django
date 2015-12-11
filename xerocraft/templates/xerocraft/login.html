@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Login</title>
+        <link rel="stylesheet" type="text/css" href="/static/admin/css/base.css" />
+        <link rel="stylesheet" type="text/css" href="/static/admin/css/login.css" />
+    </head>
+    <body class="login">
+
+        <div id="container"> <!-- Container -->
+            <div id="header"> <!-- Header -->
+                <div id="branding">
+                    <h1 id="site-name"><a href="/admin/">Xerocraft Internal Systems Login</a></h1>
+                </div>
+            </div> <!-- END Header -->
+
+            <div id="content" class="colM"> <!-- Content -->
+                <div id="content-main">
+                    <form action="/login/" method="post" id="login-form">
+                    {% csrf_token %}
+                        <div class="form-row">
+                            <label class="required" for="id_username">Username or Email:</label> <input id="id_username" maxlength="254" name="username" type="text" />
+                        </div>
+                        <div class="form-row">
+                            <label class="required" for="id_password">Password:</label> <input id="id_password" name="password" type="password" />
+                            <input type="hidden" name="next" value="{{next}}" />
+                        </div>
+
+                        <div class="submit-row">
+                            <label>&nbsp;</label><input type="submit" value="Log in" />
+                        </div>
+                    </form>
+                    <script type="text/javascript">
+                        document.getElementById('id_username').focus()
+                    </script>
+                </div>
+                <br class="clear" />
+            </div> <!-- END Content -->
+            <div id="footer"></div>
+        </div> <!-- END Container -->
+    </body>
+</html>

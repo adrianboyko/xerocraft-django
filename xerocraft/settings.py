@@ -27,7 +27,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
-
+LOGIN_URL="/login/"
 # Application definition
 
 INSTALLED_APPS = (
@@ -41,7 +41,8 @@ INSTALLED_APPS = (
     'members',
     'tasks',
     'inventory',
-    'djrill'
+    'djrill',
+    'crispy_forms',
 )
 
 MIDDLEWARE_CLASSES = (
