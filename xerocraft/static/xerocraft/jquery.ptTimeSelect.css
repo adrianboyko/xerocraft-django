@@ -47,9 +47,12 @@
 	border-top:none;
 	border-bottom:none;
 	border-left:none;
-	border-right-width: 2px;
+	border-right:none;
 }
 #ptTimeSelectCntr .ptTimeSelectRightPane.ui-widget-content {
+	border: none;
+}
+#ptTimeSelectCntr .ptTimeSelectAmPmPane.ui-widget-content {
 	border: none;
 }
 #ptTimeSelectCntr .ptTimeSelectHrCntr a,
