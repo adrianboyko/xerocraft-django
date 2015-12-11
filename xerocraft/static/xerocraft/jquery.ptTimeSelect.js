@@ -145,7 +145,7 @@
                         +    '                <div class="ptTimeSelectTimeLabelsCntr">'
                         +    '                    <div class="ptTimeSelectLeftPane" style="width: 40%; text-align: center; float: left;" class="">Hour</div>'
                         +    '                    <div class="ptTimeSelectRightPane" style="width: 40%; text-align: center; float: left;">Minutes</div>'
-                        +    '                    <div class="ptTimeSelectAmPmPane" style="width: 25%; text-align: center; float: left;"></div>'
+                        +    '                    <div class="ptTimeSelectAmPmPane" style="width: 20%; text-align: center; float: left;"></div>'
                         +    '                </div>'
                         +    '                <div>'
                         +    '                    <div style="float: left; width: 40%;">'
@@ -188,16 +188,15 @@
                         +    '                    </div>'
                         +    '                    <div style="float: left; width: 20%;">'
                         +    '                        <div class="ui-widget-content ptTimeSelectAmPmPane">'
-                        +    '                            <div class="ptTimeSelectHrAmPmCntr">'
-                        +    '                                <a class="ptTimeSelectHr ui-state-default" href="javascript: void(0);" '
-                        +    '                                        style="display: block; width: 100%; float: left;">AM </a>'
-                        +    '                                <a class="ptTimeSelectHr ui-state-default" href="javascript: void(0);" '
-                        +    '                                        style="display: block; width: 100%; float: left;">PM</a>'
+                        +    '                            <div class="ptTimeSelectAmPmCntr">'
+                        +    '                                <a class="ptTimeSelectAmPm ui-state-default" href="javascript: void(0);" '
+                        +    '                                        style="display: block; width: 80%; float: left;">AM</a>'
+                        +    '                                <a class="ptTimeSelectAmPm ui-state-default" href="javascript: void(0);" '
+                        +    '                                        style="display: block; width: 80%; float: left;">PM</a>'
                         +    '                                <br style="clear: left;" /><div></div>'
                         +    '                            </div>'
                         +    '                        </div>'
                         +    '                    </div>'
-
                         +    '                </div>'
                         +    '            </div>'
                         +    '            <div style="clear: left;"></div>'
@@ -223,21 +222,58 @@
                     // Add the events to the functions
                     e.find('.ptTimeSelectMin')
                         .bind("click", function(){
+                            jQuery.ptTimeSelect.setMinSelClass($(this))
                             jQuery.ptTimeSelect.setMin($(this).text());
                          });
                     
                     e.find('.ptTimeSelectHr')
                         .bind("click", function(){
+                            jQuery.ptTimeSelect.setHrSelClass($(this))
                             jQuery.ptTimeSelect.setHr($(this).text());
                          });
-                    
+
+                    e.find('.ptTimeSelectAmPm')
+                        .bind("click", function(){
+                            jQuery.ptTimeSelect.setHrSelClass($(this))
+                            jQuery.ptTimeSelect.setHr($(this).text());
+                         });
+
                     $(document).mousedown(jQuery.ptTimeSelect._doCheckMouseClick);            
                 }//end if
             }
         );
     }();// jQuery.ptTimeSelectInit()
     
-    
+    /**
+     * TODO: Maybe split this into an Hr func and an AmPm func.
+     * Sets a class on the most recently clicked hour and removes the class
+     * from the other hours. The class is used to color the most recently
+     * selected hour.
+     */
+    jQuery.ptTimeSelect.setHrSelClass = function(h) {
+        var highlightClass;
+        if (h.text().toLowerCase() == "am" || h.text().toLowerCase() == "pm") {
+            highlightClass = 'ptTimeSelectLastClickedAmPm';
+        }
+        else {
+            highlightClass = 'ptTimeSelectLastClickedHr';
+        }
+        jQuery('.'+highlightClass).removeClass(highlightClass);
+        h.addClass(highlightClass);
+    }
+
+    /**
+     * Sets a class on the most recently clicked minute and removes the class
+     * from the other minutes. The class is used to color the most recently
+     * selected minute.
+     */
+    jQuery.ptTimeSelect.setMinSelClass = function(m) {
+        var highlightClass = 'ptTimeSelectLastClickedMin'
+        jQuery('.'+highlightClass).removeClass(highlightClass);
+        m.addClass(highlightClass);
+    }
+
+
     /**
      * Sets the hour selected by the user on the popup.
      * 
@@ -280,11 +316,10 @@
      * @return {undefined}
      */
     jQuery.ptTimeSelect.setTime = function() {
-        var tSel = jQuery('#ptTimeSelectUserSelHr').text()
-                    + ":"
-                    + jQuery('#ptTimeSelectUserSelMin').text()
-                    + " "
-                    + jQuery('#ptTimeSelectUserSelAmPm').text();
+        var hh = jQuery('#ptTimeSelectUserSelHr');
+        var mm = jQuery('#ptTimeSelectUserSelMin');
+        var xm = jQuery('#ptTimeSelectUserSelAmPm');
+        var tSel = hh.text() + ":" + mm.text() + " " + xm.text();
         jQuery(".isPtTimeSelectActive").val(tSel);
         this.closeCntr();
         
@@ -329,6 +364,15 @@
                 hr    = match[1] || 1;
                 min    = match[2] || '00';
                 tm    = match[3] || 'AM';
+                jQuery.ptTimeSelect.setHrSelClass(
+                    jQuery("a.ptTimeSelectHr").filter(function(){return $(this).text()===hr;})
+                )
+                jQuery.ptTimeSelect.setHrSelClass(
+                    jQuery("a.ptTimeSelectAmPm").filter(function(){return $(this).text()===tm;})
+                )
+                jQuery.ptTimeSelect.setMinSelClass(
+                    jQuery("a.ptTimeSelectMin").filter(function(){return $(this).text()===min;})
+                )
             }
         }
         cntr.find("#ptTimeSelectUserSelHr").empty().append(hr);

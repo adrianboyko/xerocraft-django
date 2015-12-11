@@ -20,6 +20,7 @@
 }
 #ptTimeSelectCntr .ui-widget-header {
 	padding: .2em;
+	display: none;
 }
 #ptTimeSelectCntr #ptTimeSelectUserTime {
 	font-size: larger;
@@ -65,7 +66,7 @@
 	text-align: center;
 	text-decoration: none;
 }
-#ptTimeSelectCntr .ptTimeSelectHrAmPmCntr a {
+#ptTimeSelectCntr .ptTimeSelectAmPmCntr a {
 	text-align: center;
 	margin: 1px;
 }
@@ -83,4 +84,16 @@
 	width: 30%;
 	text-align: center;
 	float: right;
+}
+
+#ptTimeSelectCntr a.ptTimeSelectLastClickedHr {
+    background-color: #aeeaff;
+}
+
+#ptTimeSelectCntr a.ptTimeSelectLastClickedAmPm {
+    background-color: #aeeaff;
+}
+
+#ptTimeSelectCntr a.ptTimeSelectLastClickedMin {
+    background-color: #aeeaff;
 }
