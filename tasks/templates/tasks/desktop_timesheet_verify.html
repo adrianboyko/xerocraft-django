@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+
+{% load staticfiles %}
+{% load crispy_forms_tags %}
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Timesheet</title>
+    <link rel="stylesheet" type="text/css" href="{% static 'admin/css/base.css' %}" />
+    <link rel="stylesheet" type="text/css" href="{% static 'admin/css/login.css' %}" />
+    <link rel="stylesheet" type="text/css" href="{% static 'xerocraft/jquery-ui.min.css' %}"/>
+    <link rel="stylesheet" type="text/css" href="{% static 'xerocraft/jquery.ptTimeSelect.css' %}"/>
+    <link rel="stylesheet" type="text/css" href="{% static 'xerocraft/bootstrap.min.css' %}" media="screen"/>
+    <style>
+        #submit-id-submit:hover {
+            background: #fff url(/static/admin/img/nav-bg.gif) bottom repeat-x;
+            color: black;
+        }
+        #branding h1 {
+            margin: 0;
+        }
+        .login #container {
+            width: 30em;
+        }
+    </style>
+    <script type="text/javascript">
+        function saveWork() {
+        }
+    </script>
+</head>
+
+<body>
+    <script src="https://code.jquery.com/jquery.js"></script>
+    <script src="{% static 'xerocraft/bootstrap.min.js' %}"></script>
+
+    <body class="login">
+
+        <div id="container"> <!-- Container -->
+            <div id="header"> <!-- Header -->
+                <div id="branding">
+                    <h1 id="site-name">Please Review. OK To Save This Info?</h1>
+                </div>
+            </div> <!-- END Header -->
+
+            <div id="content" class="colM"> <!-- Content -->
+                <table>
+                    <tr><td>Worker</td><td>{{request.user.username}}</td></tr>
+                    <tr><td>Desc</td><td>{{request.session.work_desc}}</td></tr>
+                    <tr><td>Date</td><td>{{request.session.work_date}}</td></tr>
+                    <tr><td>Time</td><td>{{request.session.work_time}}</td></tr>
+                    <tr><td>Duration</td><td>{{request.session.work_dur}}</td></tr>
+                    <tr><td>Witness</td><td>{{request.session.witness_username}}</td></tr>
+                </table>
+                <br/>
+                <button type="button" onclick="saveWorkInfo()">Yes, Save It</button>
+                &nbsp;&nbsp;
+                <button type="button" onclick="window.history.back()">No, Needs Edits</button>
+                {% if request.user.username == request.session.witness %}
+                <br/><br/>
+                <p>
+                    <b>Reminder</b>: You should only self-witness when absolutely necessary.
+                    Your eligibility for Work-Trade may be reconsidered if your work is not
+                    pre-authorized by shop managers or their delegates and witnessed
+                    by the same.
+                </p>
+                {% endif %}
+            </div>
+        </div>
+
+</body>
+</html>

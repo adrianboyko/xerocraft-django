@@ -19,8 +19,8 @@ class Desktop_TimeSheetForm(forms.Form):
     )
     work_dur = forms.DecimalField(label="Hours of work done (e.g. 3.5): ")
 
-    witness_id = forms.CharField(label="Witness U or E: ", max_length=50, required=False)
-    witness_pw = forms.CharField(label="Witness Password: ", widget=forms.PasswordInput(), required=False)
+    witness_id = forms.CharField(label="Witness U or E: ", max_length=50)
+    witness_pw = forms.CharField(label="Witness Password: ", widget=forms.PasswordInput())
 
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('request', None).user

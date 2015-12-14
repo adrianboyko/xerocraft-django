@@ -26,5 +26,6 @@ urlpatterns = [
 
     # Temporary Work Trade Checkout
     url(r'^desktop-timesheet/$', views.desktop_timesheet, name='desktop-timesheet'),
+    url(r'^desktop-timesheet-verify/$', views.desktop_timesheet_verify, name='desktop-timesheet-verify'),
 
 ]

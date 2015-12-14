@@ -1,11 +1,10 @@
 from django.core.urlresolvers import reverse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpRequest, HttpResponse, JsonResponse, Http404
-from django.template import loader, Context
+from django.template import loader, Context, RequestContext
 from django.contrib.auth.models import User
+from django.contrib.auth import authenticate
 from django.contrib.auth.decorators import login_required
-from django.utils import timezone
-from nptime import nptime
 from tasks.forms import *
 
 from hashlib import md5
@@ -455,19 +454,52 @@ def resource_calendar(request):
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
+def _form_to_session(request, form, witness_username):
+    request.session['work_desc'] = form.cleaned_data["work_desc"]
+    request.session['work_date'] = form.cleaned_data["work_date"].strftime("%m/%d/%Y")
+    request.session['work_time'] = form.cleaned_data["work_time"].strftime("%-I:%M %p")
+    request.session['work_dur'] = float(form.cleaned_data["work_dur"])
+    request.session['witness_username'] = witness_username
+    request.session.modified = True
+
+
+def _session_to_form(request, form):
+    form.fields['work_desc'].initial = request.session.get('work_desc', "")
+    form.fields['work_date'].initial = request.session.get("work_date", "")
+    form.fields['work_time'].initial = request.session.get("work_time", "")
+    form.fields['work_dur'].initial = request.session.get("work_dur", "")
+    form.fields['witness_id'].initial = request.session.get('witness_username', "")
+
+
 @login_required
 def desktop_timesheet(request):
 
     if request.method == 'POST':  # Process the form data.
         form = Desktop_TimeSheetForm(request.POST, request=request)
         if form.is_valid():
-            # process the data in form.cleaned_data as required
-            # ...
-            # redirect to a new URL:
-            return redirect('task:desktop-timesheet-pt2' )
+            witness_id = form.cleaned_data["witness_id"]
+            witness_pw = form.cleaned_data["witness_pw"]
+            witness = authenticate(username=witness_id, password=witness_pw)
+            worker = request.user
+            if witness is not None:
+                _form_to_session(request, form, witness.username)
+                return redirect('task:desktop-timesheet-verify')
+            else:
+                pass  # This is the only error condition that form validation won't catch.
 
     else:  # If a GET (or any other method) we'll create a blank form.
         form = Desktop_TimeSheetForm(request=request)
+        # _session_to_form(request, form)
 
     return render(request, 'tasks/desktop_timesheet.html', {'form': form})
+
+
+@login_required
+def desktop_timesheet_verify(request):
+
+    if request.method == 'POST':
+        pass  # TODO: Save in database
+
+    else:  # For GET and any other methods:
+        return render(request, 'tasks/desktop_timesheet_verify.html', {})
 
