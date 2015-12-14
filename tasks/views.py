@@ -498,7 +498,8 @@ def desktop_timesheet(request):
 def desktop_timesheet_verify(request):
 
     if request.method == 'POST':
-        pass  # TODO: Save in database
+        # TODO: Save data, returning "ERROR" on failure.
+        return HttpResponse("SUCCESS")
 
     else:  # For GET and any other methods:
         return render(request, 'tasks/desktop_timesheet_verify.html', {})

@@ -25,7 +25,26 @@
         }
     </style>
     <script type="text/javascript">
-        function saveWork() {
+        function saveWorkInfo() {
+            $.ajax({
+                type: "POST",
+                url: window.location.href,
+                data: {csrfmiddlewaretoken: '{{csrf_token}}'},
+                success: function(response) {
+                    if (response === "SUCCESS") {
+                        $('#button_div').hide();
+                        $('#reminder_p').hide();
+                        $('#return_div').show();
+                        $('#site-name').text("Work Noted. Thanks!");
+                    }
+                    else if (response === "ERROR") {
+                        alert("error");
+                    }
+                },
+                error: function(XMLHttpRequest, textStatus, errorThrown) {
+                    alert(errorThrown);
+                }
+            });
         }
     </script>
 </head>
@@ -42,7 +61,6 @@
                     <h1 id="site-name">Please Review. OK To Save This Info?</h1>
                 </div>
             </div> <!-- END Header -->
-
             <div id="content" class="colM"> <!-- Content -->
                 <table>
                     <tr><td>Worker</td><td>{{request.user.username}}</td></tr>
@@ -52,19 +70,22 @@
                     <tr><td>Duration</td><td>{{request.session.work_dur}}</td></tr>
                     <tr><td>Witness</td><td>{{request.session.witness_username}}</td></tr>
                 </table>
-                <br/>
-                <button type="button" onclick="saveWorkInfo()">Yes, Save It</button>
-                &nbsp;&nbsp;
-                <button type="button" onclick="window.history.back()">No, Needs Edits</button>
-                {% if request.user.username == request.session.witness %}
-                <br/><br/>
-                <p>
+                <div id="button_div" align="right" style="margin-top:1.5em">
+                    <button type="button" onclick="saveWorkInfo()">Yes, Save It</button>
+                    &nbsp;&nbsp;
+                    <button type="button" onclick="window.history.back()">No, Needs Edits</button>
+                </div>
+                {% if request.user.username == request.session.witness_username %}
+                <p id="reminder_p" style="margin-top:1.5em;">
                     <b>Reminder</b>: You should only self-witness when absolutely necessary.
-                    Your eligibility for Work-Trade may be reconsidered if your work is not
+                    Your Work-Trade status may be revoked if your work is not
                     pre-authorized by shop managers or their delegates and witnessed
                     by the same.
                 </p>
                 {% endif %}
+                <div id="return_div" style="display:none; margin-top:1.5em">
+                    <a href="/">Return to Main Menu</a>
+                </div>
             </div>
         </div>
 
