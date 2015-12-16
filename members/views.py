@@ -1,15 +1,13 @@
 
 from django.shortcuts import render, redirect
 from django.http import HttpResponse, JsonResponse
+from django.core.urlresolvers import reverse
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.views.generic import View
-
 from members.models import Member, Tag, Tagging, VisitEvent
-
 from datetime import date
-
 from reportlab.pdfgen import canvas
 from reportlab.graphics.shapes import Drawing
 from reportlab.graphics.barcode.qr import QrCodeWidget
@@ -90,10 +88,17 @@ def api_log_visit_event(request, member_card_str, event_type):
         return JsonResponse({'error': result})
 
 
-# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = KIOSK
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = DESKTOP
 
 @login_required
-def create_membership_card(request):
+def create_card(request):
+    download_url = reverse('memb:create-card-download')
+    params = {'download_url':download_url}
+    return render(request, 'members/create-card.html', params)
+
+
+@login_required
+def create_card_download(request):
 
     filename = "member_card_%s.pdf" % request.user.username
 
@@ -152,6 +157,8 @@ def create_membership_card(request):
     p.save()
     return response
 
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = KIOSK
 
 def kiosk_waiting(request):
     return render(request, 'members/kiosk-waiting.html',{})

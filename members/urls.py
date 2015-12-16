@@ -5,7 +5,8 @@ from . import views
 urlpatterns = [
 
     # For logged-in members:
-    url(r'^create-card/$', views.create_membership_card, name='create-card'),
+    url(r'^create-card/$', views.create_card, name='create-card'),
+    url(r'^create-card-download/$', views.create_card_download, name='create-card-download'),
 
     # For kiosk:
     url(r'^kiosk/waiting/$', views.kiosk_waiting),

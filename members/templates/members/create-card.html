@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+
+{% load staticfiles %}
+{% load crispy_forms_tags %}
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Create Card</title>
+    <link rel="stylesheet" type="text/css" href="{% static 'admin/css/base.css' %}" />
+    <link rel="stylesheet" type="text/css" href="{% static 'admin/css/login.css' %}" />
+    <link rel="stylesheet" type="text/css" href="{% static 'xerocraft/jquery-ui.min.css' %}"/>
+    <link rel="stylesheet" type="text/css" href="{% static 'xerocraft/jquery.ptTimeSelect.css' %}"/>
+    <link rel="stylesheet" type="text/css" href="{% static 'xerocraft/bootstrap.min.css' %}" media="screen"/>
+    <style>
+        #branding h1 {
+            margin: 0;
+        }
+        .login #container {
+            width: 30em;
+        }
+        li {
+            margin-top:0;
+            line-height:1em;
+            font-size:10pt;
+        }
+
+    </style>
+    <script type="text/javascript">
+    </script>
+</head>
+
+<body>
+    <script src="https://code.jquery.com/jquery.js"></script>
+    <script src="{% static 'xerocraft/bootstrap.min.js' %}"></script>
+
+    <body class="login">
+
+        <div id="container"> <!-- Container -->
+            <div id="header"> <!-- Header -->
+                <div id="branding">
+                    <h1 id="site-name">Create A Membership Card</h1>
+                </div>
+            </div> <!-- END Header -->
+            <div id="content" class="colM"> <!-- Content -->
+                Create a new card if:
+                <ul>
+                    <li>You don't already have one.</li>
+                    <li>You had one but you lost it.</li>
+                    <li>You think your card might have been copied.</li>
+                </ul>
+
+                <p>
+                    Creating a new card will invalidate your previous card, so don't
+                    download a new card if you already have an uncompromised card
+                    that you like.
+                </p>
+                <p>
+                    After printing the membership card and/or saving it to your thumb
+                    drive, <span style="color:red"><b>you <u>must</u> locate the PDF file on this computer
+                    and <u>delete it</u></b></span>. If you don't, other users of this computer will be
+                    able to use it to impersonate you. If you are unsure how to locate and
+                    delete the file, please ask for help!
+                </p>
+                <div id="return_div" style="margin-top:1.5em">
+                    <a href="{{download_url}}">Create New Card</a>
+                </div>
+            </div>
+        </div>
+
+</body>
+</html>

@@ -11,6 +11,7 @@
         ul { font-family:Arial; font-size:10pt; }
         img { width:40; margin-right:0pt; }
         td { vertical-align:top; text-align:center; }
+        span { font-size:10pt; font-weight:normal; }
     </style>
 
 </head>
@@ -20,11 +21,13 @@
     <h1><img src="{% static 'xerocraft/Big Bold X.png' %}" alt="Xerocraft Logo"/>erocraft Internal Systems</h1>
 
     {% if user.is_authenticated %}
-        <h2><a href="/logout/">Logout {{ request.user }}</a></h2>
+    <h2><a href="/logout/">Logout {{ request.user }}</a></h2>
     {% endif %}
-
-    <h2><a href="/tasks/desktop-timesheet/">Time-Sheet</a></h2>
-    <h2><a href="/admin/">Administration</a></h2>
+    <h2><a href="/tasks/desktop-timesheet/">Time-Sheet</a><br/><span>(work-traders only)</span></h2>
+    {% if user.is_authenticated and user.username == "adrianb2" %}
+    <h2><a href="/members/create-card/">Create Membership Card</a></h2>
+    {% endif %}
+    <h2><a href="/admin/">Administration</a><br/><span>(authorized users only)</span></h2>
 </body>
 
 
