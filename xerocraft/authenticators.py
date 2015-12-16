@@ -3,25 +3,7 @@ import logging
 import lxml.html
 from django.contrib.auth.backends import ModelBackend
 from django.contrib.auth.models import User
-
-# TODO: Add case-insensitive index to User.username for performance.
-# TODO: Add code somewhere to ensure that email addresses for users are unique.
-
-
-# NOTE! In code below, "identifier" means "username or email address".as
-def _get_local_user(identifier):
-    if identifier.isspace() or len(identifier) == 0:
-        return None
-    try:
-        user = User.objects.get(username__iexact=identifier)
-        return user
-    except User.DoesNotExist:
-        pass
-    try:
-        user = User.objects.get(email__iexact=identifier)
-        return user
-    except User.DoesNotExist:
-        return None
+from members.models import Member # REVIEW: I'd rather this were User from django.contrib.auth.models
 
 
 # From http://blog.shopfiber.com/?p=220.
@@ -34,7 +16,7 @@ class CaseInsensitiveModelBackend(ModelBackend):
     def authenticate(self, username=None, password=None):
         identifier = username  # Given username is actually a more generic identifier.
 
-        user = _get_local_user(identifier)
+        user = Member.get_local_user(identifier)
         if user is None:
             return None
         elif user.check_password(password):
@@ -64,7 +46,7 @@ class XerocraftBackend(ModelBackend):
             # xerocraft.org said there's no such identifier/password.
             return None
 
-        user = _get_local_user(identifier)
+        user = Member.get_local_user(identifier)
 
         if user is not None:
 

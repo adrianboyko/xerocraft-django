@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils import timezone
+from django.contrib.auth.models import User
 import base64
 import uuid
 import hashlib
@@ -133,6 +134,24 @@ class Member(models.Model):
         if staff is None: return False, "Invalid staff card"
         if not staff.is_domain_staff(): return False, "Not a staff member"
         return True, (member, staff)
+
+    # TODO: Add case-insensitive index to User.username for performance.
+    # TODO: Add code somewhere to ensure that email addresses for users are unique.
+    @staticmethod
+    def get_local_user(identifier):
+        # NOTE! In code below, "identifier" means "username or email address".
+        if identifier.isspace() or len(identifier) == 0:
+            return None
+        try:
+            user = User.objects.get(username__iexact=identifier)
+            return user
+        except User.DoesNotExist:
+            pass
+        try:
+            user = User.objects.get(email__iexact=identifier)
+            return user
+        except User.DoesNotExist:
+            return None
 
     def validate(self):
         if self.membership_card_md5 is not None:
