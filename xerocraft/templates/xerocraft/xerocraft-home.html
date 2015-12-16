@@ -24,6 +24,7 @@
     <h2><a href="/logout/">Logout {{ request.user }}</a></h2>
     {% endif %}
     <h2><a href="/tasks/desktop-timesheet/">Time-Sheet</a><br/><span>(work-traders only)</span></h2>
+    <h2><a href="/members/desktop/member-tags">Member Tags</a><br/><span>(authorized users only)</span></h2>
     {% if user.is_authenticated and user.username == "adrianb2" %}
     <h2><a href="/members/create-card/">Create Membership Card</a></h2>
     {% endif %}
