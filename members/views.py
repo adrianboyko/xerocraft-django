@@ -7,6 +7,7 @@ from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.views.generic import View
 from members.models import Member, Tag, Tagging, VisitEvent
+from members.forms import Desktop_ChooseUserForm
 from datetime import date
 from reportlab.pdfgen import canvas
 from reportlab.graphics.shapes import Drawing
@@ -156,6 +157,53 @@ def create_card_download(request):
     p.showPage()
     p.save()
     return response
+
+
+@login_required()
+def member_tags(request, tag_pk=None, member_pk=None, op=None):
+
+    staff = request.user.member
+    member = None if member_pk is None else Member.objects.get(pk=member_pk)
+
+    if member is not None and tag_pk is not None and op is not None:
+        tag = Tag.objects.get(pk=tag_pk)
+        if op == "+": Tagging.add_if_permitted(staff, member, tag)
+        if op == "-": Tagging.remove_if_permitted(staff, member, tag)
+
+    staff_can_tags = None
+    staff_addable_tags = None
+    members_tags = None
+
+    if request.method == 'POST':  # Process the form data.
+        form = Desktop_ChooseUserForm(request.POST)
+        if form.is_valid():
+            member_id = form.cleaned_data["userid"]
+            member = Member.get_local_member(member_id)
+        else:
+            # We get here if the userid field was blank.
+            member = None
+
+    else:  # If a GET (or any other method) we'll create a blank form.
+        username = None if member is None else member.username
+        form = Desktop_ChooseUserForm(initial={'userid': username})
+
+    if member is not None:
+        members_tags = member.tags.all()
+        staff_can_tags = [tagging.tag for tagging in Tagging.objects.filter(can_tag=True, tagged_member=staff)]
+        staff_addable_tags = list(staff_can_tags) # copy contents, not pointer.
+        # staff member can't add tags that member already has, so:
+        for tag in member.tags.all():
+            if tag in staff_addable_tags:
+                staff_addable_tags.remove(tag)
+
+    return render(request, 'members/desktop-member-tags.html', {
+        'form': form,
+        'staff': staff,
+        'member': member,
+        'members_tags': members_tags,
+        'staff_can_tags': staff_can_tags,
+        'staff_addable_tags': staff_addable_tags,
+    })
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = KIOSK

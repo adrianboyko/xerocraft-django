@@ -4,9 +4,11 @@ from . import views
 
 urlpatterns = [
 
-    # For logged-in members:
+    # For desktop:
     url(r'^create-card/$', views.create_card, name='create-card'),
     url(r'^create-card-download/$', views.create_card_download, name='create-card-download'),
+    url(r'^desktop/member-tags/$', views.member_tags, name='desktop-member-tags'),
+    url(r'^desktop/member-tags/(?P<member_pk>[0-9]+)(?P<op>[+-])(?P<tag_pk>[0-9]+)/$', views.member_tags, name='desktop-member-tags'),
 
     # For kiosk:
     url(r'^kiosk/waiting/$', views.kiosk_waiting),

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+
+{% load staticfiles %}
+
+<html lang="en">
+
+    <head>
+        <meta charset="UTF-8">
+        <title>{% block title %}Xerocraft{% endblock %}</title>
+
+        <!-- Reuse the Django admin login style -->
+        <link rel="stylesheet" type="text/css" href="{% static 'admin/css/base.css' %}" />
+        <link rel="stylesheet" type="text/css" href="{% static 'admin/css/login.css' %}" />
+        <link rel="stylesheet" type="text/css" href="{% static 'xerocraft/bootstrap.min.css' %}" />
+
+        <style>
+            img#x {
+                float:left;
+                width:2em;
+                margin-top:0.5em;
+                margin-right:0.5em;
+            }
+            #logout {
+                font-size:10pt;
+                line-height:1.1em;
+                float:right;
+                text-align:right;
+                margin-top:0.35em;
+                margin-right:0.4em;
+            }
+            body {
+                font-size:11pt;
+            }
+            #branding h1 {
+                margin: 0 0;
+            }
+            {% block style %}{% endblock %}
+        </style>
+
+        <link rel="shortcut icon" type="image/png" href="{% static 'favicon.ico' %}"/>
+
+        <script src="https://code.jquery.com/jquery.js"></script>
+        <script src="{% static 'xerocraft/bootstrap.min.js' %}"></script>
+        <script type="text/javascript">
+            {% block script %}{% endblock %}
+        </script>
+
+    </head>
+
+    <body class="unselectable login">
+        <div id="container"> <!-- Container -->
+            <div id="header"> <!-- Header -->
+                <div id="branding" style="float:left">
+                    <!-- <img id="x" src="{% static 'xerocraft/Big Bold X.png' %}" alt="Xerocraft Logo"/> -->
+                    <h1 style="float:left;">{% block branding %}{% endblock %}</h1>
+                </div>
+                <a id="logout" href="/logout/">logout<br/>{{request.user.username}}</a>
+            </div> <!-- END Header -->
+            <div id="content" class="colM"> <!-- Content -->
+                {% block content %}{% endblock %}
+            </div>
+        </div>
+    </body>
+
+
+</html>

@@ -1,0 +1,74 @@
+
+{% extends "members/desktop-base.html" %}
+{% load staticfiles %}
+{% load crispy_forms_tags %}
+
+{% block title %}Member Tags{% endblock %}
+
+{% block style %}
+    tag-name {
+        display:inline-block;
+        margin:6px 3px 0px 0px;  /* Top, right, bottom, left */
+        padding:5px 10px 3px 10px;
+        color: #3E6D8E;
+        white-space: nowrap;
+        background: #E4EDF4 none repeat scroll 0% 0%;
+    }
+    u {
+        text-decoration:none;
+        font-size:10pt;
+        font-weight: normal;
+    }
+    .login #container {
+        width: 50em;
+    }
+    .form-horizontal .control-label { width:auto; text-align:left; }
+    span.asteriskField { display:none; }
+    input#id_userid { margin-left:0.5em; }
+
+{% endblock %}
+
+{% block script %}
+    document.registerElement('tag-name');
+    $(function () {
+        // When the page has finished loading, autofocus on the userid field
+        $('input#id_userid').focus();
+    });
+{% endblock %}
+
+{% block branding %}Member Tags{% endblock %}
+
+{% block content %}
+
+    {% crispy form %}
+
+    {% if members_tags and members_tags|length > 0 %}
+    <p style="margin-top:1em; margin-bottom:0;">
+        {{ member.username }}
+            {% if member.first_name %}({{member.first_name}}){% endif %}
+        is currently tagged with:</p>
+    <p style="margin-left:1em;">
+        {% for tag in members_tags %}
+            {% if tag in staff_can_tags %}
+                <a href="{% url 'memb:desktop-member-tags'%}{{member.pk}}-{{tag.pk}}/">
+                    <tag-name><b>{{tag.name}}</b></tag-name>
+                </a>
+            {% else %}
+                <tag-name>{{tag.name}}</tag-name>
+            {% endif %}
+        {% endfor %}
+    </p>
+    {% endif %}
+
+    {% if staff_addable_tags and staff_addable_tags|length > 0 %}
+    <p style="margin-top:1.5em; margin-bottom:0;">You are authorized to add the following tag{{ staff_addable_tags|length|pluralize:"s" }}:</p>
+    <p style="margin-left:1em;">
+        {% for tag in staff_addable_tags %}
+            <a href="{% url 'memb:desktop-member-tags'%}{{member.pk}}+{{tag.pk}}/">
+                <tag-name><b>{{tag.name}}</b></tag-name>
+            </a>
+        {% endfor %}
+    </p>
+    {% endif %}
+    <p style="line-height:0.5em;">&nbsp;</p>
+{% endblock %}

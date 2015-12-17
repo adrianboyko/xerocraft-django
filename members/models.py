@@ -94,6 +94,12 @@ class Member(models.Model):
     def is_tagged_with(self, tag_name):
         return True if tag_name in [x.name for x in self.tags.all()] else False
 
+    def can_tag_with(self, tag):
+        for tagging in self.taggings.all():
+            if tagging.tag.name == tag.name:
+                return tagging.can_tag
+        return False
+
     def is_domain_staff(self):
         return self.is_tagged_with("Staff")
 
@@ -153,6 +159,12 @@ class Member(models.Model):
         except User.DoesNotExist:
             return None
 
+    @staticmethod
+    def get_local_member(identifier):
+        user = Member.get_local_user(identifier)
+        if user is not None: return user.member
+        return None
+
     def validate(self):
         if self.membership_card_md5 is not None:
             if len(self.membership_card_md5) != self.MEMB_CARD_STR_LEN:
@@ -189,6 +201,22 @@ class Tagging(models.Model):
         help_text="If True, the tagged member can be a authorizing member for this tag.")
         # Note: Above assumes that only people with a certain tag can grant that tag.
         # However, Django admins with appropriate permissions can tag any member with any tag, when required.
+
+    @staticmethod
+    def add_if_permitted(tagger, taggee, tag):
+        if taggee.is_tagged_with(tag.name): return
+        if tagger.can_tag_with(tag):
+            Tagging.objects.create(tagged_member=taggee, tag=tag, authorizing_member=tagger)
+
+    @staticmethod
+    def remove_if_permitted(tagger, taggee, tag):
+        if not taggee.is_tagged_with(tag.name): return
+        if tagger.can_tag_with(tag):
+            try:
+                tag = Tagging.objects.get(tagged_member=taggee, tag=tag)
+                tag.delete()
+            except Tagging.DoesNotExist:
+                pass
 
     def __str__(self):
         return "%s/%s/%s" % (self.tagged_member.auth_user.username, self.tag.name, self.can_tag)
