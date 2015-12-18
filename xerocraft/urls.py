@@ -15,7 +15,7 @@ Including another URLconf
 """
 from django.conf.urls import include, url
 from django.contrib import admin
-from . import views
+from xerocraft import views
 from django.conf import settings
 from django.conf.urls.static import static
 
@@ -23,6 +23,7 @@ urlpatterns = [
     url(r'^$', views.index),
     url(r'^login/$', views.login),
     url(r'^logout/$', views.logout),
+    url(r'^admin/login/', views.login),  # This shadows admin's login.
     url(r'^admin/', include(admin.site.urls)),
     url(r'^members/', include('members.urls', namespace="memb")),
     url(r'^tasks/', include('tasks.urls', namespace="task")),
