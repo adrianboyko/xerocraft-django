@@ -51,7 +51,7 @@ def login(request):
     else:
         # No context variables to pass to the template system, hence the
         # blank dictionary object...
-        return render_to_response('xerocraft/login.html', {'next': request.GET['next']}, context)
+        return render_to_response('xerocraft/login.html', {'next': request.GET.get('next')}, context)
 
 
 def logout(request):

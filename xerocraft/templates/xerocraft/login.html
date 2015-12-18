@@ -1,10 +1,45 @@
 <!DOCTYPE html>
+
+{% load staticfiles %}
 <html lang="en">
     <head>
         <meta charset="UTF-8">
         <title>Login</title>
         <link rel="stylesheet" type="text/css" href="/static/admin/css/base.css" />
         <link rel="stylesheet" type="text/css" href="/static/admin/css/login.css" />
+        <style>
+            hr.or {
+                display:inline-block;
+                width:40%;
+                vertical-align:middle;
+                border-top:1px solid #eee;
+            }
+            img.soc-icon {
+                width:24px;
+                height:24px;
+            }
+            a.soc-icon {
+                display:inline-block;
+                margin:8px;
+                border-spacing:10px;
+                border-style:solid;
+                border-width:1px;
+                border-color:#eee;
+                border-radius:6px;
+                padding:12px 12px 12px 12px;
+            }
+            .login .form-row #id_username, .login .form-row #id_password {
+                width:85%;
+                font-size:14pt;
+            }
+            .login div.form-row {
+                margin-left:20px;
+                margin-right:20px;
+            }
+            form#login-form {
+                margin-top:.5em;
+            }
+        </style>
     </head>
     <body class="login">
 
@@ -20,14 +55,16 @@
                     <form action="/login/" method="post" id="login-form">
                     {% csrf_token %}
                         <div class="form-row">
-                            <label class="required" for="id_username">Username or Email:</label> <input id="id_username" maxlength="254" name="username" type="text" />
+                            <!--<label class="required" for="id_username">Username or Email:</label><br/>-->
+                            <input placeholder="userid or email" id="id_username" maxlength="254" name="username" type="text" />
                         </div>
                         <div class="form-row">
-                            <label class="required" for="id_password">Password:</label> <input id="id_password" name="password" type="password" />
+                           <!-- <label class="required" for="id_password">Password:</label><br/> -->
+                            <input placeholder="password" id="id_password" name="password" type="password" />
                             <input type="hidden" name="next" value="{{next}}" />
                         </div>
 
-                        <div class="submit-row">
+                        <div class="submit-row" style="display:none;">
                             <label>&nbsp;</label><input type="submit" value="Log in" />
                         </div>
                     </form>
@@ -35,9 +72,23 @@
                         document.getElementById('id_username').focus()
                     </script>
                 </div>
-                <br class="clear" />
+
+                <div style="text-align:center;"> <!-- Social Media Login -->
+                    <br class="clear"/><br class="clear"/>
+                    <hr class="or"><span style="padding:0 15px">Or</span><hr class="or">
+                    <br class="clear"/><br class="clear"/>
+                    Login using a social media account:<br/>
+                    <a class="soc-icon" href="{% url 'social:begin' 'facebook' %}?next={{next}}">
+                        <img class="soc-icon" src="{% static 'fb-def.svg' %}">
+                    </a>
+                    <a class="soc-icon" href="{% url 'social:begin' 'google-oauth2' %}?next={{next}}">
+                        <img class="soc-icon" src="{% static 'google-def.svg' %}">
+                    </a>
+                    <a class="soc-icon" href="{% url 'social:begin' 'twitter' %}?next={{next}}">
+                        <img class="soc-icon" src="{% static 'twitter-def.svg' %}">
+                    </a>
+                </div> <!-- END Social Logins -->
             </div> <!-- END Content -->
-            <div id="footer"></div>
         </div> <!-- END Container -->
     </body>
 </html>

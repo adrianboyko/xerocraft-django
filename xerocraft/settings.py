@@ -27,9 +27,13 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
-LOGIN_URL="/login/"
-# Application definition
+LOGIN_URL = "/login/"
+LOGIN_REDIRECT_URL = "/"
 
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = os.environ['GOOGLE_OAUTH2_KEY']
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = os.environ['GOOGLE_OAUTH2_SECRET']
+
+# Application definition
 INSTALLED_APPS = (
     'django.contrib.admin',
     'django.contrib.auth',
@@ -37,12 +41,13 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'xerocraft', # I'm including this for its /static folder. Any negative consequences?
+    'xerocraft', # I'm including this for its /static folder. Any negative consequences? Use <proj>/static instead?
     'members',
     'tasks',
     'inventory',
     'djrill',
     'crispy_forms',
+    'social.apps.django_app.default',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -57,8 +62,11 @@ MIDDLEWARE_CLASSES = (
 )
 
 AUTHENTICATION_BACKENDS = (
+    'social.backends.facebook.FacebookOAuth2',
+    'social.backends.google.GoogleOAuth2',
+    'social.backends.twitter.TwitterOAuth',
     'xerocraft.authenticators.CaseInsensitiveModelBackend',
-    'xerocraft.authenticators.XerocraftBackend'
+    'xerocraft.authenticators.XerocraftBackend',
 )
 
 ROOT_URLCONF = 'xerocraft.urls'
@@ -77,7 +85,9 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                'django.core.context_processors.request'
+                'django.core.context_processors.request',
+                'social.apps.django_app.context_processors.backends',
+                'social.apps.django_app.context_processors.login_redirect',
             ],
         },
     },
