@@ -124,11 +124,12 @@ def get_parking_permit_details(request, pk):
 
     scans = []
     for scan in permit.scans.all():
-        scans.append({"where":scan.where.pk, "when":scan.when})
+        who = None if scan.who is None else scan.who.pk
+        scans.append({"who":who, "where":scan.where.pk, "when":scan.when})
 
     renewals = []
     for renewal in permit.renewals.all():
-        renewals.append(scan.when)
+        renewals.append(renewal.when)
 
     json = {}
     json["permit"] = permit.pk
