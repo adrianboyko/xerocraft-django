@@ -755,3 +755,18 @@ class Worker(models.Model):
             'member__auth_user__first_name',
             'member__auth_user__last_name',
         ]
+
+
+class WorkNote(models.Model):
+
+    # Note will become anonymous if author is deleted or author is blank.
+    author = models.ForeignKey(mm.Member, null=True, blank=True, on_delete=models.SET_NULL, related_name="work_notes_authored",
+        help_text="The member who wrote this note.")
+
+    when_written = models.DateTimeField(null=False, auto_now_add=True,
+        help_text="The date and time when the note was written.")
+
+    content = models.TextField(max_length=2048,
+        help_text="Anything you want to say about the work done.")
+
+    work = models.ForeignKey(Work, on_delete=models.CASCADE, related_name='notes')

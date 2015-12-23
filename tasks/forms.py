@@ -1,25 +1,32 @@
 from django import forms
+from django.core.validators import MaxValueValidator
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Submit, HTML, Div
-from crispy_forms.bootstrap import FormActions
+from datetime import datetime
 
 
 class Desktop_TimeSheetForm(forms.Form):
 
     id_verify = forms.BooleanField(label="[SET IN __INIT__]")
+
     work_desc = forms.CharField(max_length=512, label="Description of work done: ", widget=forms.Textarea)
+
     work_date = forms.DateField(
         widget=forms.TextInput(attrs={'class': 'datepicker'}),
-        label="Date on which work was done: "
+        label="Date on which work was done: ",
+        validators=[MaxValueValidator(datetime.today().date())], # Don't allow future dates
     )
+
     work_time = forms.TimeField(
         input_formats=['%I:%M %p'],
         widget=forms.TimeInput(format='%I:%M %p', attrs={'class': 'timepicker'}),
         label="Time at which work was begun: "
     )
+
     work_dur = forms.DecimalField(label="Hours of work done (e.g. 3.5): ")
 
-    witness_id = forms.CharField(label="Witness U or E: ", max_length=50)
+    witness_id = forms.CharField(label="Witness U or E: ",max_length=50)
+
     witness_pw = forms.CharField(label="Witness Password: ", widget=forms.PasswordInput())
 
     def __init__(self, *args, **kwargs):

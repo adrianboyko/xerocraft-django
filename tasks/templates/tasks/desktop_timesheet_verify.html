@@ -37,8 +37,8 @@
                         $('#return_div').show();
                         $('#site-name').text("Work Noted. Thanks!");
                     }
-                    else if (response === "ERROR") {
-                        alert("error");
+                    else if (response.startsWith("ERROR")) {
+                        alert(response);
                     }
                 },
                 error: function(XMLHttpRequest, textStatus, errorThrown) {

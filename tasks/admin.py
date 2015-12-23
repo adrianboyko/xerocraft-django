@@ -4,7 +4,7 @@ from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
 from django.utils.translation import ugettext_lazy as _
 import datetime
-from tasks.models import RecurringTaskTemplate, Task, TaskNote, Claim, Work, Nag, Worker
+from tasks.models import RecurringTaskTemplate, Task, TaskNote, Claim, Work, Nag, Worker, WorkNote
 from nptime import nptime
 from tasks.templatetags.tasks_extras import duration_str2
 
@@ -457,7 +457,12 @@ class WorkerAdmin(admin.ModelAdmin):
 
     list_filter = [WorkerTypeFilter]
 
+
 @admin.register(TaskNote)
 class TaskNoteAdmin(admin.ModelAdmin):
     list_display = ['pk', 'task', 'author', 'content']
 
+
+@admin.register(WorkNote)
+class WorkNoteAdmin(admin.ModelAdmin):
+    list_display = ['pk', 'work', 'author', 'content']

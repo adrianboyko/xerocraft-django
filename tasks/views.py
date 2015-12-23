@@ -1,20 +1,17 @@
 from django.core.urlresolvers import reverse
 from django.shortcuts import render, get_object_or_404, redirect
-from django.http import HttpRequest, HttpResponse, JsonResponse, Http404
+from django.http import HttpResponse, JsonResponse, Http404
 from django.template import loader, Context, RequestContext
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
 from django.contrib.auth.decorators import login_required
 from tasks.forms import *
-
 from hashlib import md5
 from datetime import date, datetime, timedelta
-
-from tasks.models import Task, Nag, Claim, Worker, TimeWindowedObject
+from dateutil.parser import parse
+from tasks.models import Task, Nag, Claim, Work, WorkNote, Worker, TimeWindowedObject
 from members.models import Member, VisitEvent
-
 from icalendar import Calendar, Event
-
 import logging
 
 # = = = = = = = = = = = = = = = = = = = = KIOSK VISIT EVENT CONTENT PROVIDERS
@@ -498,7 +495,24 @@ def desktop_timesheet(request):
 def desktop_timesheet_verify(request):
 
     if request.method == 'POST':
-        # TODO: Save data, returning "ERROR" on failure.
+        user = request.user  # The worker
+        try:
+            uncat_claim = Claim.objects.get(
+                claiming_member=user.member,
+                claimed_task__short_desc="Uncategorized Work-Trade"
+            )
+            work_date = parse(request.session.get('work_date')).date()
+            work_dur = timedelta(hours=float(request.session.get('work_dur')))
+            note = "Started at %s. %s" % (
+                request.session.get('work_time'),
+                request.session.get('work_desc')
+            )
+            work = Work.objects.create(claim=uncat_claim, work_date=work_date,work_duration=work_dur)
+            WorkNote.objects.create(author=user.member, content=note, work=work)
+
+        except Exception as e:
+            return HttpResponse("ERROR "+str(e))
+
         return HttpResponse("SUCCESS")
 
     else:  # For GET and any other methods:
