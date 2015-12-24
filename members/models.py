@@ -146,6 +146,8 @@ class Member(models.Model):
     @staticmethod
     def get_local_user(identifier):
         # NOTE! In code below, "identifier" means "username or email address".
+        if identifier is None:
+            return None
         if identifier.isspace() or len(identifier) == 0:
             return None
         try:
