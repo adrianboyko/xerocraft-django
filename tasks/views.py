@@ -468,6 +468,14 @@ def _session_to_form(request, form):
     form.fields['witness_id'].initial = request.session.get('witness_username', "")
 
 
+def _clear_session(request):
+    del request.session['work_desc']
+    del request.session['work_date']
+    del request.session['work_time']
+    del request.session['work_dur']
+    del request.session['witness_username']
+    request.session.modified = True
+
 @login_required
 def desktop_timesheet(request):
 
@@ -478,15 +486,12 @@ def desktop_timesheet(request):
             witness_pw = form.cleaned_data["witness_pw"]
             witness = authenticate(username=witness_id, password=witness_pw)
             worker = request.user
-            if witness is not None:
-                _form_to_session(request, form, witness.username)
-                return redirect('task:desktop-timesheet-verify')
-            else:
-                pass  # This is the only error condition that form validation won't catch.
+            _form_to_session(request, form, witness.username)
+            return redirect('task:desktop-timesheet-verify')
 
     else:  # If a GET (or any other method) we'll create a blank form.
         form = Desktop_TimeSheetForm(request=request)
-        # _session_to_form(request, form)
+        _session_to_form(request, form)
 
     return render(request, 'tasks/desktop_timesheet.html', {'form': form})
 
@@ -503,12 +508,16 @@ def desktop_timesheet_verify(request):
             )
             work_date = parse(request.session.get('work_date')).date()
             work_dur = timedelta(hours=float(request.session.get('work_dur')))
-            note = "Started at %s. %s" % (
+            # Decided to include witness in WorkNote instead of being an FK in Work
+            # because I couldn't think of a use-case for the latter.
+            note = "Started at %s and witnessed by %s. Description: %s" % (
                 request.session.get('work_time'),
-                request.session.get('work_desc')
+                request.session.get('witness_username'),
+                request.session.get('work_desc'),
             )
             work = Work.objects.create(claim=uncat_claim, work_date=work_date,work_duration=work_dur)
             WorkNote.objects.create(author=user.member, content=note, work=work)
+            _clear_session(request)
 
         except Exception as e:
             return HttpResponse("ERROR "+str(e))
