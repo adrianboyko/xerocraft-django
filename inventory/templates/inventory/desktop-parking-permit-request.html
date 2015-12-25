@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+
+{% load staticfiles %}
+{% load crispy_forms_tags %}
+
+<head>
+    <meta charset="UTF-8">
+    <title>Req Permit</title>
+    <link rel="stylesheet" type="text/css" href="{% static 'admin/css/base.css' %}" />
+    <link rel="stylesheet" type="text/css" href="{% static 'admin/css/login.css' %}" />
+    <link rel="stylesheet" type="text/css" href="{% static 'xerocraft/jquery-ui.min.css' %}"/>
+    <link rel="stylesheet" type="text/css" href="{% static 'xerocraft/jquery.ptTimeSelect.css' %}"/>
+    <link rel="stylesheet" type="text/css" href="{% static 'xerocraft/bootstrap.min.css' %}" media="screen"/>
+    <style>
+        #submit-id-submit:hover {
+            background: #fff url(/static/admin/img/nav-bg.gif) bottom repeat-x;
+            color: black;
+        }
+        #branding h1 {
+            margin: 0;
+        }
+        .login #container {
+            width: 35em;
+        }
+        .help-inline, .help-block {
+            display: none;
+        }
+        legend {
+            margin-bottom: 0;
+        }
+        #id_short_desc {
+            width: 95%;
+        }
+        #logout {
+            float:right;
+            font-size:10pt;
+            line-height:12pt;
+            margin-top:0;
+            margin-bottom:0;
+            text-align:right;
+        }
+        div.terms {
+            padding-left:1.5em;
+            margin-bottom:1em;
+        }
+        div#div_id_paying_member > div.controls {
+            padding-left:1.5em;
+        }
+        div#div_id_ok_to_move > div.controls {
+            padding-left:1.5em;
+        }
+        div.terms > div, div.terms > div > div > label {
+            margin-bottom:0;
+        }
+        p.agree {
+            margin:1em 0 0;
+        }
+    </style>
+</head>
+
+<body style="margin-left:20pt; margin-right:20pt">
+    <script src="https://code.jquery.com/jquery.js"></script>
+    <script src="{% static 'xerocraft/jquery-ui.min.js' %}"></script>
+    <script src="{% static 'xerocraft/bootstrap.min.js' %}"></script>
+
+    <body class="login">
+
+        <div id="container"> <!-- Container -->
+            <div id="header"> <!-- Header -->
+                <div id="branding">
+                    <h1 id="site-name">Request a Parking Permit</h1>
+                </div>
+            </div> <!-- END Header -->
+
+            <div id="content" class="colM"> <!-- Content -->
+                <a id="logout" href="/logout">logout<br>{{request.user}}</a>
+                {% crispy form %}
+            </div>
+        </div>
+
+</body>
+
+
+

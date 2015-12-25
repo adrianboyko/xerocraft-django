@@ -5,17 +5,17 @@ from . import views
 urlpatterns = [
 
     # For all members:
-    url(r'^request-permit/$', views.request_parking_permit, name='request-permit'),
+    url(r'^desktop/request-parking-permit/$', views.desktop_request_parking_permit, name='desktop-request-parking-permit'),
+    url(r'^desktop/approve-parking-permit/$', views.desktop_approve_parking_permit, name='desktop-approve-parking-permit'),
+    url(r'^desktop/verify-parking-permit/$', views.desktop_verify_parking_permit, name='desktop-verify-parking-permit'),
+    url(r'^print-parking-permit/(?P<pk>[0-9]+)/$', views.print_parking_permit, name='print-parking-permit'),
+
     url(r'^list-my-permits/$', views.list_my_permits, name='list-my-permits'),
-    url(r'^get-permit/(?P<pk>[0-9]+)/$', views.get_parking_permit, name='get-permit'),
     url(r'^rewnew-permits/$', views.renew_parking_permits, name='renew-permits'),
 
     # For staff:
     url(r'^inventory-todos/$', views.inventory_todos, name='inventory-todos'),
     url(r'^get-location-qrs/(?P<start_pk>[0-9]+)/$', views.get_location_qrs, name='get-location-qrs'),
-
-    # Internal:
-    url(r'^create-permit/$', views.create_parking_permit, name='create-permit'),
 
     # For apps:
     url(r'^get-permit-details/(?P<pk>[0-9]+)/$', views.get_parking_permit_details, name='get-permit-details'),

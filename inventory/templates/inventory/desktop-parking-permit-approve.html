@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+
+{% load staticfiles %}
+{% load crispy_forms_tags %}
+
+<head>
+    <meta charset="UTF-8">
+    <title>Approve Permit</title>
+    <link rel="stylesheet" type="text/css" href="{% static 'admin/css/base.css' %}" />
+    <link rel="stylesheet" type="text/css" href="{% static 'admin/css/login.css' %}" />
+    <link rel="stylesheet" type="text/css" href="{% static 'xerocraft/jquery-ui.min.css' %}"/>
+    <link rel="stylesheet" type="text/css" href="{% static 'xerocraft/jquery.ptTimeSelect.css' %}"/>
+    <link rel="stylesheet" type="text/css" href="{% static 'xerocraft/bootstrap.min.css' %}" media="screen"/>
+    <style>
+        #submit-id-submit:hover {
+            background: #fff url(/static/admin/img/nav-bg.gif) bottom repeat-x;
+            color: black;
+        }
+
+        #branding h1 { margin: 0; }
+
+        .login #container { width: 35em; }
+
+        .help-inline, .help-block { display: none; }
+
+        legend { margin-bottom: 0; }
+
+        #logout {
+            float:right;
+            font-size:10pt;
+            line-height:12pt;
+            margin-top:0;
+            margin-bottom:0;
+            text-align:right;
+        }
+
+        td {
+            font-size:11pt;
+            font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;
+        }
+
+        div.approval { margin-left:1.5em; }
+
+        label { display:none; }
+
+        div.control-group { margin:0; }
+
+        div.submit { text-align:right; }
+
+        input#submit-id-submit { margin:0; }
+
+        input#id_approving_member_pw { margin:0; }
+
+    </style>
+</head>
+
+<body style="margin-left:20pt; margin-right:20pt">
+    <script src="https://code.jquery.com/jquery.js"></script>
+    <script src="{% static 'xerocraft/jquery-ui.min.js' %}"></script>
+    <script src="{% static 'xerocraft/bootstrap.min.js' %}"></script>
+
+    <body class="login">
+
+        <div id="container"> <!-- Container -->
+            <div id="header"> <!-- Header -->
+                <div id="branding">
+                    <h1 id="site-name">Parking Permit Approval Required</h1>
+                </div>
+            </div> <!-- END Header -->
+            <div id="content" class="colM"> <!-- Content -->
+
+                <table>
+                    <tr><td>Item owner</td><td>{{request.user.username}}</td></tr>
+                    <tr><td>Owner's email</td><td>{{request.session.owner_email}}</td></tr>
+                    <tr><td>Description</td><td>{{request.session.short_desc}}</td></tr>
+                    <tr><td>OK to move?</td><td>{{request.session.ok_to_move|yesno:"Yes, Call owner first"}}</td></tr>
+                </table>
+                <p style="margin-top:1.4em;">
+                    <b>Your request needs to be approved</b> by a staff member, director, or some other paying member.
+                    Please find one and have them enter their credentials, below:
+                </p>
+                {% crispy form %}
+            </div>
+        </div>
+
+</body>

@@ -1,11 +1,13 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse, JsonResponse
 from django.utils import timezone
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth import authenticate
 
-from members.models import Member
 from inventory.models import PermitScan, ParkingPermit, Location
+from inventory.forms import *
+from members.models import Member
 
 from reportlab.pdfgen import canvas
 from reportlab.graphics.shapes import Drawing
@@ -14,7 +16,8 @@ from reportlab.graphics import renderPDF
 from reportlab.lib.units import inch
 from reportlab.rl_config import defaultPageSize
 
-#TODO: Permit PDF is a little too long. Compare to credit card and fix.
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
 def respond_with_permit_pdf(permit):
     """
     :param permit: The permit for which to generate the PDF
@@ -76,39 +79,128 @@ def respond_with_permit_pdf(permit):
     p.save()
     return response
 
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+def _form_to_session(request, form):
+    request.session["id_verify"] = form.cleaned_data["short_desc"]
+    request.session["agree_to_terms_1"] = form.cleaned_data["agree_to_terms_1"]
+    request.session["agree_to_terms_2"] = form.cleaned_data["agree_to_terms_2"]
+    request.session["agree_to_terms_3"] = form.cleaned_data["agree_to_terms_3"]
+    request.session["short_desc"] = form.cleaned_data["short_desc"]
+    request.session["ok_to_move"] = form.cleaned_data["ok_to_move"]
+    request.session["owner_email"] = form.cleaned_data["owner_email"]
+    request.session["paying_member"] = form.cleaned_data["paying_member"]
+    request.session.modified = True
+
+
+def _session_to_form(request, form):
+    form.fields['id_verify'].initial = request.session.get('id_verify', "")
+    form.fields['agree_to_terms_1'].initial = request.session.get('agree_to_terms_1', "")
+    form.fields['agree_to_terms_2'].initial = request.session.get('agree_to_terms_2', "")
+    form.fields['agree_to_terms_3'].initial = request.session.get('agree_to_terms_3', "")
+    form.fields['short_desc'].initial = request.session.get('short_desc', "")
+    form.fields['ok_to_move'].initial = request.session.get('ok_to_move', "")
+    form.fields['owner_email'].initial = request.session.get('owner_email', request.user.email)
+    form.fields['paying_member'].initial = request.session.get('paying_member', "")
+
+
+def _clear_session(request):
+    del request.session["id_verify"]
+    del request.session["agree_to_terms_1"]
+    del request.session["agree_to_terms_2"]
+    del request.session["agree_to_terms_3"]
+    del request.session["short_desc"]
+    del request.session["ok_to_move"]
+    del request.session["owner_email"]
+    del request.session["paying_member"]
+    del request.session["approving_member_username"]
+    request.session.modified = True
+
 @login_required
-def request_parking_permit(request):
+def desktop_request_parking_permit(request):
     """Present a form with parking Ts&Cs and inputs for info about parked item."""
 
-    #TODO: Refuse to create parking permit if user has no fname, lname, or phone#.
-    return render(request, 'inventory/request-permit.html',{})
+    if request.method == 'POST':
+        form = Desktop_RequestPermitForm(request.POST, request=request)
+        if form.is_valid():
+            _form_to_session(request, form)
+            if request.session.get("paying_member"):
+                return redirect('inv:desktop-verify-parking-permit')
+            else:
+                return redirect('inv:desktop-approve-parking-permit')
+
+    else:  # If a GET (or any other method) we'll create a blank form.
+        form = Desktop_RequestPermitForm(request=request)
+        request.session["approving_member_username"] = None
+        _session_to_form(request, form)
+
+    return render(request, 'inventory/desktop-parking-permit-request.html', {'form': form})
 
 
 @login_required
-def create_parking_permit(request):
+def desktop_approve_parking_permit(request):
 
-    # Since login is required for this view, User.DoesNotExist will not be thrown.
-    user = User.objects.get(username=request.user.username)
-    assert user.member is not None
+    if request.method == 'POST':
+        form = Desktop_ApprovePermitForm(request.POST)
+        if form.is_valid():
+            approving_member_id = form.cleaned_data["approving_member_id"]
+            approving_member_pw = form.cleaned_data["approving_member_pw"]
+            approving_member = authenticate(username=approving_member_id, password=approving_member_pw)
+            request.session["approving_member_username"] = approving_member.username
+            return redirect('inv:desktop-verify-parking-permit')
 
-    permit = ParkingPermit.objects.create(
-        owner = user.member,
-        created = timezone.now(),
-        short_desc = request.POST["short_desc"],
-        ok_to_move = request.POST["move"] == "Y")
+    else:  # If a GET (or any other method) we'll create a blank form.
+        form = Desktop_ApprovePermitForm()
 
-    return respond_with_permit_pdf(permit)
+    return render(request, 'inventory/desktop-parking-permit-approve.html', {'form': form})
 
-def get_parking_permit(request, pk):
+@login_required
+def desktop_verify_parking_permit(request):
+
+    if request.method == 'POST':
+        owner = request.user
+        try:
+
+            # Process the email address the owner provided.
+            owner_email = request.session.get("owner_email")
+            if owner.email == "":
+                owner.email == owner_email
+                owner.save()
+            elif owner.email != owner_email:
+                pass
+                # TODO: Save as an alternate email (member app) and log as a WARNING or INFO?
+
+            # Create the parking permit in the database
+            perm = ParkingPermit.objects.create(
+                owner = request.user.member,
+                short_desc = request.session.get("short_desc"),
+                ok_to_move = request.session.get("ok_to_move"),
+                approving_member = Member.get_local_member(request.session.get("approving_member_username"))
+            )
+
+            _clear_session(request)
+            return HttpResponse("SUCCESS "+str(perm.pk))
+
+        except Exception as e:
+            return HttpResponse("ERROR "+str(e))
+
+    else:  # For GET and any other methods:
+        return render(request, 'inventory/desktop-parking-permit-verify.html')
+
+
+def print_parking_permit(request, pk):
     """Generate the PDF of the specified permit. Permit must already exist."""
-
     permit = get_object_or_404(ParkingPermit, id=pk)
     return respond_with_permit_pdf(permit)
+
 
 @login_required
 def renew_parking_permits(request):
     """Generate an HTML page that allows user to specify permits to be renewed and/or closed."""
-    pass #TODO
+    pass  # TODO
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 def get_parking_permit_details(request, pk):
     """Generate a JSON response that contains:
@@ -144,6 +236,7 @@ def get_parking_permit_details(request, pk):
     json["renewals"] = renewals
 
     return JsonResponse(json)
+
 
 def note_parking_permit_scan(request, permit_pk, loc_pk):
     """Record the fact that the specified permit was scanned at the specified location."""

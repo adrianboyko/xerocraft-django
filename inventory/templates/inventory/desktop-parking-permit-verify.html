@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+
+{% load staticfiles %}
+{% load crispy_forms_tags %}
+
+<head>
+    <meta charset="UTF-8">
+    <title>Verify Permit Details</title>
+    <link rel="stylesheet" type="text/css" href="{% static 'admin/css/base.css' %}" />
+    <link rel="stylesheet" type="text/css" href="{% static 'admin/css/login.css' %}" />
+    <link rel="stylesheet" type="text/css" href="{% static 'xerocraft/jquery-ui.min.css' %}"/>
+    <link rel="stylesheet" type="text/css" href="{% static 'xerocraft/bootstrap.min.css' %}" media="screen"/>
+    <style>
+        #submit-id-submit:hover {
+            background: #fff url(/static/admin/img/nav-bg.gif) bottom repeat-x;
+            color: black;
+        }
+        #branding h1 {
+            margin: 0;
+        }
+        .login #container {
+            width: 35em;
+        }
+        .help-inline, .help-block {
+            display: none;
+        }
+        legend {
+            margin-bottom: 0;
+        }
+        #logout {
+            float:right;
+            font-size:10pt;
+            line-height:12pt;
+            margin-top:0;
+            margin-bottom:0;
+            text-align:right;
+        }
+        td {
+            font-size:11pt;
+            font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;
+        }
+    </style>
+    <script type="text/javascript">
+        function savePermitInfo() {
+            $.ajax({
+                type: "POST",
+                url: window.location.href,
+                data: {csrfmiddlewaretoken: '{{csrf_token}}'},
+                success: function(response) {
+                    if (response.startsWith("SUCCESS")) {
+                        $('#button_div').hide();
+                        $('table').hide();
+                        $('#return_div').show();
+                        $('#site-name').text("Download Starting!");
+                        var pkStr = response.split(" ").pop();
+                        window.location.href = "/inventory/print-parking-permit/"+pkStr+"/";
+                    }
+                    else if (response.startsWith("ERROR")) {
+                        alert(response);
+                    }
+                },
+                error: function(XMLHttpRequest, textStatus, errorThrown) {
+                    alert(errorThrown);
+                }
+            });
+        }
+    </script>
+
+</head>
+
+<body style="margin-left:20pt; margin-right:20pt">
+    <script src="https://code.jquery.com/jquery.js"></script>
+    <script src="{% static 'xerocraft/jquery-ui.min.js' %}"></script>
+    <script src="{% static 'xerocraft/bootstrap.min.js' %}"></script>
+
+    <body class="login">
+
+        <div id="container"> <!-- Container -->
+            <div id="header"> <!-- Header -->
+                <div id="branding">
+                    <h1 id="site-name">Please Review. OK to Generate Permit?</h1>
+                </div>
+            </div> <!-- END Header -->
+            <div id="content" class="colM"> <!-- Content -->
+                <table>
+                    <tr><td>Item owner</td><td>{{request.user.username}}</td></tr>
+                    <tr><td>Owner's email</td><td>{{request.session.owner_email}}</td></tr>
+                    <tr><td>Description</td><td>{{request.session.short_desc}}</td></tr>
+                    <tr><td>OK to move?</td><td>{{request.session.ok_to_move|yesno:"Yes, Call owner first"}}</td></tr>
+                    {% if request.session.approving_member_username %}
+                    <tr><td>Approved by</td><td>{{request.session.approving_member_username}}</td></tr>
+                    {% endif %}
+                </table>
+
+                <div id="button_div" align="right" style="margin-top:1.5em">
+                    <button type="button" onclick="savePermitInfo()">Yes</button>
+                    &nbsp;&nbsp;
+                    <button type="button" onclick="window.location.href='../request-parking-permit/'">No, Needs Edits</button>
+                </div>
+                <div id="return_div" style="display:none; margin-top:1em">
+                    <p>
+                        The new permit is being downloaded to you as a PDF file.
+                        Once you've received it, print it and attach it to the item you are parking.
+                        If you need help choosing a good location to park your item, please speak to a staff member.
+                    </p>
+                    <p>When you're finished printing the permit, choose one of the following:</p>
+                    <a href="/">Return to Main Menu</a>
+                    <br/>
+                    <a href="/logout/">Logout</a>
+                </div>
+
+            </div>
+        </div>
+
+</body>
