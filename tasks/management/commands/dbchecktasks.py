@@ -44,3 +44,6 @@ class DbCheck(unittest.TestCase):
         for obj in Worker.objects.all():
             obj.full_clean()
 
+    def test_WorkNote_objs(self):
+        for obj in Worker.objects.all():
+            obj.full_clean()
