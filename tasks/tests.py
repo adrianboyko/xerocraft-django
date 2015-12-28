@@ -21,6 +21,7 @@ model_classnames = [
     "Work",
     "TaskNote",
     "Worker",
+    "WorkNote",
 ]
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
