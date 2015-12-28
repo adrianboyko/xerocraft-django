@@ -146,6 +146,8 @@ class RecurringTaskTemplateAdmin(TemplateAndTaskBase):
         'short_desc',
         '^owner__auth_user__first_name',
         '^owner__auth_user__last_name',
+        '^owner__auth_user__username',
+
     ]
 
     class Media:
@@ -307,7 +309,9 @@ class TaskAdmin(TemplateAndTaskBase):
     search_fields = [
         'short_desc',
         '^owner__auth_user__first_name',
-        '^owner__auth_user__last_name'
+        '^owner__auth_user__last_name',
+        '^owner__auth_user__username',
+
     ]
     list_filter = [get_ScheduledDateListFilter_class('scheduled_date'), 'priority', 'status']
     date_hierarchy = 'scheduled_date'
@@ -368,6 +372,7 @@ class ClaimAdmin(admin.ModelAdmin):
     search_fields = [
         '^claiming_member__auth_user__first_name',
         '^claiming_member__auth_user__last_name',
+        '^claiming_member__auth_user__username',
         'claimed_task__short_desc',
     ]
     list_display_links = ['pk', 'claiming_member']  # Temporary measure to ease Work Trade data entry.
@@ -405,6 +410,7 @@ class WorkAdmin(admin.ModelAdmin):
     search_fields = [
         '^claim__claiming_member__auth_user__first_name',
         '^claim__claiming_member__auth_user__last_name',
+        '^claim__claiming_member__auth_user__username',
         'claim__claimed_task__short_desc',
     ]
 
@@ -456,6 +462,12 @@ class WorkerAdmin(admin.ModelAdmin):
     list_display_links = ['pk', 'member']
 
     list_filter = [WorkerTypeFilter, 'should_include_alarms', 'should_nag', 'should_report_work_mtd']
+
+    search_fields = [
+        '^member__auth_user__first_name',
+        '^member__auth_user__last_name',
+        '^member__auth_user__username',
+    ]
 
 
 @admin.register(TaskNote)
