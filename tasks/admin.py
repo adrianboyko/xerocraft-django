@@ -455,7 +455,7 @@ class WorkerAdmin(admin.ModelAdmin):
 
     list_display_links = ['pk', 'member']
 
-    list_filter = [WorkerTypeFilter]
+    list_filter = [WorkerTypeFilter, 'should_include_alarms', 'should_nag', 'should_report_work_mtd']
 
 
 @admin.register(TaskNote)
