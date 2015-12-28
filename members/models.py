@@ -176,7 +176,10 @@ class Member(models.Model):
         return True, "Looks good"
 
     def __str__(self):
-        return "%s %s" % (self.auth_user.first_name, self.auth_user.last_name)
+        if self.first_name != "" and self.last_name != "":
+            return "%s %s" % (self.first_name, self.last_name)
+        else:
+            return self.username
 
     class Meta:
         ordering = ['auth_user__first_name','auth_user__last_name']
