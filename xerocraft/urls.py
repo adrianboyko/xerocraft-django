@@ -23,7 +23,8 @@ urlpatterns = [
     url(r'^$', views.index),
     url(r'^login/$', views.login),
     url(r'^logout/$', views.logout),
-    url(r'^admin/login/', views.login),  # This shadows admin's login.
+    url(r'^admin/login/', views.login),  # This shadows admin's login. REVIEW: Any downside?
+    url(r'^admin/logout/', views.logout),  # This shadows admin's logout. REVIEW: Any downside?
     url(r'^admin/', include(admin.site.urls)),
     url(r'^members/', include('members.urls', namespace="memb")),
     url(r'^tasks/', include('tasks.urls', namespace="task")),

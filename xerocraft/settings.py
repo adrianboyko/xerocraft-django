@@ -68,11 +68,11 @@ MIDDLEWARE_CLASSES = (
 )
 
 AUTHENTICATION_BACKENDS = (
+    'xerocraft.authenticators.CaseInsensitiveModelBackend',
+    'xerocraft.authenticators.XerocraftBackend',
     'social.backends.facebook.FacebookOAuth2',
     'social.backends.google.GoogleOAuth2',
     'social.backends.twitter.TwitterOAuth',
-    'xerocraft.authenticators.CaseInsensitiveModelBackend',
-    'xerocraft.authenticators.XerocraftBackend',
 )
 
 ROOT_URLCONF = 'xerocraft.urls'

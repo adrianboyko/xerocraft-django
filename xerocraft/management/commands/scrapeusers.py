@@ -14,7 +14,9 @@ import lxml.html
 
 __author__ = 'adrian'
 
-ACTION_URL = "http://www.xerocraft.org/actions.php"  # https is not available
+# IMPORTANT: Check SERVER URL before commit. Don't commit test server.
+SERVER = "http://www.xerocraft.org/" # https is not available
+ACTION_URL = SERVER+"actions.php"
 
 EMAIL_KEY = "Email address"
 PHONE_KEY = "Phone number"
@@ -31,10 +33,11 @@ PROVIDER = "xerocraft.org"
 
 UNINTERESTING_KEYS = [PARTICIPATION_KEY, SINCE_KEY, ROLE_KEY]
 
+
 class Command(BaseCommand):
 
     help = "Scrapes xerocraft.org/profiles.php and creates corresponding accounts on this website, if not already created."
-    logger = logging.getLogger("members")
+    logger = logging.getLogger("xerocraft-django")
     session = requests.session()
     # In any given run, we expect to see the following keys.
     # If we don't, the website has changed or something else has gone wrong.
@@ -62,30 +65,39 @@ class Command(BaseCommand):
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-    def login(self, identifier, password):
+    def login(self):
+        id = os.environ['XEROCRAFT_WEBSITE_ADMIN_ID']
+        pw = os.environ['XEROCRAFT_WEBSITE_ADMIN_PW']
         postdata = {
-            'SignInUsername': identifier,
-            'SignInPassword': password,
+            'SignInUsername': id,
+            'SignInPassword': pw,
             'action': 'signin',
             'ax': 'n',
             'q': '',
         }
         response = self.session.post(ACTION_URL, postdata)
         if response.text.find('<a href="./index.php?logout=true">[Logout?]</a>') == -1:
-            self.logger.error("Could not log in %s", identifier)
+            self.logger.error("Could not log in %s", id)
             return False
         if response.text.find('>Administrator Page</a>') == -1:
-            self.logger.warning("Less data will be collected since %s is not an administrator", identifier)
+            self.logger.warning("Less data will be collected since %s is not an administrator", id)
             # REVIEW: Should this return False? Probably not...
         return True
+
+    def logout(self):
+        response = self.session.get(SERVER+"index.php?logout=true")
+        if response.text.find('<u>Sign In Options</u>') == -1:
+            self.logger.error("Unexpected response from xerocraft.org logout.")
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
     def process_account_diffs(self, user_social_auth, attrs):
+        user = user_social_auth.user
+
         if user_social_auth.extra_data != attrs:
             user_social_auth.extra_data = attrs
             user_social_auth.save()
-            self.logger.info("Updated %s", user_social_auth.user.username)
+            self.logger.info("Updated extra data for %s", user.username)
 
     def create_account(self, attrs):
         try:
@@ -115,12 +127,7 @@ class Command(BaseCommand):
             "Scraped a new user: %s --> %s",
             attrs[USERNAME_KEY], attrs[DJANGO_USERNAME_KEY])
 
-    def consider_account(self, attrs):
-        try:
-            usa = UserSocialAuth.objects.get(provider=PROVIDER, uid=attrs[USERNUM_KEY])
-            self.process_account_diffs(usa, attrs)
-        except UserSocialAuth.DoesNotExist:
-            self.create_account(attrs)
+        return new_user
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
@@ -152,8 +159,19 @@ class Command(BaseCommand):
                 if key in self.unseen_keys:
                     self.unseen_keys.remove(key)
 
+        # There's a bug in xerocraft.org that gives a large percentage of members the current date
+        # as their "member since" date. This looks like data changing every day. Since it's not
+        # used for anything here on xerocraft-django, I'm going to throw it away.
+        if SINCE_KEY in attrs: del attrs[SINCE_KEY]
+
         # Do something with the scraped attrs
-        self.consider_account(attrs)
+        try:
+            usa = UserSocialAuth.objects.get(provider=PROVIDER, uid=attrs[USERNUM_KEY])
+            self.process_account_diffs(usa, attrs)
+            return usa.user
+
+        except UserSocialAuth.DoesNotExist:
+            return self.create_account(attrs)
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
@@ -191,13 +209,11 @@ class Command(BaseCommand):
 
         Command.add_manually_scraped()
 
-        xerocraft_id = os.environ['XEROCRAFT_WEBSITE_ADMIN_ID']
-        xerocraft_pw = os.environ['XEROCRAFT_WEBSITE_ADMIN_PW']
-        if not self.login(xerocraft_id, xerocraft_pw):
-            # Logging is already done in self.login
+        if not self.login():
+            # Problem is already logged in self.login
             return
 
-        page = 1  # TODO: Set to 1 before commit!
+        page = 1  # IMPORTANT: Set to 1 before commit!
         while True:
             response = self.session.post(ACTION_URL,data={"action": "ViewMembersList", "p": page})
             if response.text.find("There are no users to display") >= 0:
@@ -217,7 +233,8 @@ class Command(BaseCommand):
                     logger.error("Failure while working on profile %s: %s", user_num, str(e))
 
             page += 1
-            #if page > 1: break  # TODO: Remove! This is to limit impact on website during dev/test
+            #if page > 1: break # IMPORTANT: Remove or disable following line before commit!
 
+        self.logout()
         for key in self.unseen_keys:
             self.logger.warning("Did not encounter '%s' key.", key)
