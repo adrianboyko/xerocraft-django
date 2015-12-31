@@ -159,11 +159,6 @@ class Command(BaseCommand):
                 if key in self.unseen_keys:
                     self.unseen_keys.remove(key)
 
-        # There's a bug in xerocraft.org that gives a large percentage of members the current date
-        # as their "member since" date. This looks like data changing every day. Since it's not
-        # used for anything here on xerocraft-django, I'm going to throw it away.
-        if SINCE_KEY in attrs: del attrs[SINCE_KEY]
-
         # Do something with the scraped attrs
         try:
             usa = UserSocialAuth.objects.get(provider=PROVIDER, uid=attrs[USERNUM_KEY])
@@ -207,7 +202,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         logger = logging.getLogger("members")
 
-        Command.add_manually_scraped()
+        # Command.add_manually_scraped()
 
         if not self.login():
             # Problem is already logged in self.login
