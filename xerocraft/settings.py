@@ -34,7 +34,11 @@ LOGIN_REDIRECT_URL = "/"
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-# "This is because heroku fails to pass the headers"
+# Forcing social auth redirect to HTTPS fixes social auth inside Xerocraft, where HTTPS is used.
+# However, it breaks social auth outside Xerocraft, where HTTP is used.
+# Social auth would work inside AND outside if we replace reverse proxy inside XC with Heroku's SSL.
+# That said, I'm not sure that access outside Xerocraft should be allowed at all.
+# BTW, one Stack Exchange comment blames Heroku: "This is because heroku fails to pass the headers"
 SOCIAL_AUTH_REDIRECT_IS_HTTPS = True
 
 SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = os.environ['GOOGLE_OAUTH2_KEY']
