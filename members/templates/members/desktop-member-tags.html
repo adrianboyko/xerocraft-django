@@ -40,6 +40,14 @@
 
 {% block content %}
 
+    <br/>
+    <p>
+        Members can be "tagged" to indicate that they have completed some training course,
+        have permission to operate some machine, etc. This page can be used to view a
+        member's current tags. Those with permission to add/remove tags can also do so
+        here.
+    </p>
+
     {% crispy form %}
 
     {% if members_tags and members_tags|length > 0 %}
