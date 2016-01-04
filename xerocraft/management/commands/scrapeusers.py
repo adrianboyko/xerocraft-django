@@ -50,6 +50,7 @@ class Command(BaseCommand):
 
     @staticmethod
     def _djangofy_username(username):
+        username = username.strip()  # Kyle has verified that xerocraft.org database has some untrimmed usernames.
         newname = ""
         for c in username:
             if c.isalnum() or c in "_@+.-": newname += c
@@ -92,12 +93,37 @@ class Command(BaseCommand):
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
     def process_account_diffs(self, user_social_auth, attrs):
+
+        # Changeables is a list of (key name in attrs, field name in Django model) tuples.
+        # These are the fields we'll check for changes.
+        changeables = [
+            (DJANGO_USERNAME_KEY, "username"),
+            (FIRSTNAME_KEY,       "first_name"),
+            (LASTNAME_KEY,        "last_name"),
+            (EMAIL_KEY,           "email"),
+        ]
+
         user = user_social_auth.user
+        user_changed = False
+        for key, fieldname in changeables:
+            oldval = getattr(user, fieldname) if hasattr(user,fieldname) else ""
+            newval = attrs[key] if key in attrs else ""
+            if newval in ["", None]: continue  # Don't want scraper to clear values.
+            if oldval != newval:
+                printable_oldval = oldval if oldval != "" else None
+                self.logger.info("Updating %s, %s > %s", fieldname, printable_oldval, newval)
+                setattr(user, fieldname, newval)
+                user_changed = True
+
+        if user_changed:
+            user.save()
 
         if user_social_auth.extra_data != attrs:
+            if not user_changed:
+                # If user changed, there were already log entries that imply extra_data also changed.
+                self.logger.info("Updating extra_data for %s", user.username)
             user_social_auth.extra_data = attrs
             user_social_auth.save()
-            self.logger.info("Updated extra data for %s", user.username)
 
     def create_account(self, attrs):
         try:
@@ -124,7 +150,7 @@ class Command(BaseCommand):
             raise
 
         self.logger.info(
-            "Scraped a new user: %s --> %s",
+            "Scraped a new user: %s > %s",
             attrs[USERNAME_KEY], attrs[DJANGO_USERNAME_KEY])
 
         return new_user
