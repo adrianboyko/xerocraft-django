@@ -248,6 +248,20 @@ class VisitEvent(models.Model):
     when = models.DateTimeField(null=False, blank=False, auto_now_add=True,
         help_text="Date/time of visit event.")
 
+    METHOD_RFID = "R"
+    METHOD_FRONT_DESK = "F"
+    METHOD_MOBILE_APP = "M"
+    METHOD_UNKNOWN = "U"
+    VISIT_METHOD_CHOICES = [
+        (METHOD_RFID, "RFID"),
+        (METHOD_FRONT_DESK, "Front Desk"),
+        (METHOD_MOBILE_APP, "Mobile App"),
+        (METHOD_UNKNOWN, "Unknown"),
+    ]
+    method = models.CharField(max_length=1, choices=VISIT_METHOD_CHOICES,
+        default=METHOD_UNKNOWN, null=False, blank=False,
+        help_text="The method used to record the visit, such as 'Front Desk' or 'RFID'.")
+
     EVT_ARRIVAL = "A"
     EVT_PRESENT = "P"
     EVT_DEPARTURE = "D"
