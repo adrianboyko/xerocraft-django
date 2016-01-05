@@ -4,7 +4,7 @@ import lxml.html
 from django.contrib.auth.backends import ModelBackend
 from django.contrib.auth.models import User
 from members.models import Member # REVIEW: I'd rather this were User from django.contrib.auth.models
-from xerocraft.management.commands import scrapeusers
+from xerocraft.management.commands.scraper import Scraper
 
 
 # From http://blog.shopfiber.com/?p=220.
@@ -48,7 +48,7 @@ class XerocraftBackend(ModelBackend):
             return None
 
         # At this point we know that the id/pw authenticated on remote xerocraft.
-        # So we use scrapeusers to scrap it which will result in new or updated local account.
+        # So we use Scraper to scrape it which will result in new or updated local account.
         try:  # to parse out the usernum
             usernum_seek = 'profiles.php?id='
             usernum_start = response.text.find(usernum_seek)
@@ -61,8 +61,8 @@ class XerocraftBackend(ModelBackend):
             logger.error(str(err))
             return None
 
-        # Reuse the scraper's logic to create a user for this usernum.
-        scraper = scrapeusers.Command()
+        # Reuse the Scraper's logic to create a user for this usernum.
+        scraper = Scraper()
         if scraper.login():  # Logs in using admin acct in its own requests.session.
             user = scraper.scrape_profile(usernum)
             scraper.logout()
@@ -72,7 +72,7 @@ class XerocraftBackend(ModelBackend):
             return None
 
         assert(user is not None)
-        # scrapeusers doesn't have access to pws, so they need to be synched by this authenticator.
+        # Scraper doesn't have access to pws, so they need to be synched by this authenticator.
         password_before = user.password
         user.set_password(password)
         if password_before != user.password:
