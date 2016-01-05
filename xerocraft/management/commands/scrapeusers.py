@@ -226,9 +226,6 @@ class Command(BaseCommand):
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
     def handle(self, *args, **options):
-        logger = logging.getLogger("members")
-
-        # Command.add_manually_scraped()
 
         if not self.login():
             # Problem is already logged in self.login
@@ -251,7 +248,7 @@ class Command(BaseCommand):
                     # Just log the error and carry on with the rest.
                     # REVIEW: Might want to give up if there are "too many" errors.
                     e = sys.exc_info()[0]
-                    logger.error("Failure while working on profile %s: %s", user_num, str(e))
+                    self.logger.error("Failure while working on profile %s: %s", user_num, str(e))
 
             page += 1
             #if page > 1: break # IMPORTANT: Remove or disable following line before commit!
