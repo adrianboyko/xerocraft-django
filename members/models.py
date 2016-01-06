@@ -245,7 +245,7 @@ class VisitEvent(models.Model):
     who = models.ForeignKey(Member, on_delete=models.PROTECT,
         help_text="The member who's visiting or visited.")
 
-    when = models.DateTimeField(null=False, blank=False, auto_now_add=True,
+    when = models.DateTimeField(null=False, blank=False, default=timezone.now,
         help_text="Date/time of visit event.")
 
     METHOD_RFID = "R"
@@ -277,10 +277,12 @@ class VisitEvent(models.Model):
         help_text="True if this event has been sync'ed to 'other system #1'")
 
     def __str__(self):
-        return "%s, %s %s, %s" % (self.when.isoformat()[:10], self.who.first_name, self.who.last_name, self.event_type)
+        return "%s, %s, %s" % (self.when.isoformat()[:10], self.who, self.event_type)
 
     class Meta:
         ordering = ['when']
+        unique_together = ('who', 'when')
+
 
 """
 class MembershipPayment(models.Model):

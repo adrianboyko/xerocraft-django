@@ -26,11 +26,12 @@ class TaggingAdmin(admin.ModelAdmin):
 
 @admin.register(VisitEvent)
 class VisitEventAdmin(admin.ModelAdmin):
-    list_display = ['pk', 'when', 'who', 'event_type', 'sync1']
-    readonly_fields = ['when', 'who', 'event_type', 'sync1']
+    list_display = ['pk', 'when', 'who', 'event_type', 'method', 'sync1']
+    readonly_fields = ['when', 'who', 'event_type', 'method', 'sync1']
     search_fields = [
         '^who__auth_user__first_name',
         '^who__auth_user__last_name',
+        '^who__auth_user__username',
     ]
     list_filter = ['when']
     date_hierarchy = 'when'
