@@ -213,6 +213,11 @@ class TestViews(TestCase):
             work_date=datetime.today(),
             work_duration=timedelta(hours=1.5))
         self.work.full_clean()
+        self.worknote = WorkNote.objects.create(
+            author=self.member,
+            content="Well done!",
+            work=self.work)
+        self.worknote.full_clean()
         self.fact = RequestFactory()
 
     def test_worker(self):
