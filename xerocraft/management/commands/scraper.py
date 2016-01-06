@@ -26,6 +26,11 @@ ROLE_KEY = "Role at Xerocraft"
 PROVIDER = "xerocraft.org"
 
 
+def djangofy_username(username):
+    return _djangofy_username(username)
+
+
+# TODO: Get rid of private version
 def _djangofy_username(username):
     username = username.strip()  # Kyle has verified that xerocraft.org database has some untrimmed usernames.
     newname = ""
@@ -94,42 +99,47 @@ class Scraper(object):
         if user_changed:
             user.save()
 
-        if user_social_auth.extra_data != attrs:
-            if not user_changed:
-                # If user changed, there were already log entries that imply extra_data also changed.
-                self.logger.info("Updating extra_data for %s", user.username)
-            user_social_auth.extra_data = attrs
+        extra_changed = False
+        for key, val in attrs.items():
+            if val in ["", None]: continue
+            user_social_auth.extra_data[key] = val
+            extra_changed = True
+        if extra_changed:
             user_social_auth.save()
 
     def create_account(self, attrs):
-        try:
-            pw = User.objects.make_random_password()
-            new_user = User.objects.create(
-                username=attrs[DJANGO_USERNAME_KEY],
-                first_name=attrs.get(FIRSTNAME_KEY,""),
-                last_name=attrs.get(LASTNAME_KEY,""),
-                email=attrs.get(EMAIL_KEY,""),
-                is_superuser=False,
-                is_staff=False,
-                is_active=True,
-                password=pw,
-            )
-            new_usa = UserSocialAuth.objects.create(
-                user=new_user,
-                provider=PROVIDER,
-                uid=attrs[USERNUM_KEY],
-                extra_data=attrs,
-            )
-        except:
-            if new_user is not None: new_user.delete()
-            if new_usa is not None: new_usa.delete()
-            raise
+
+        new_user = User.objects.create(
+            username=attrs[DJANGO_USERNAME_KEY],
+            first_name=attrs.get(FIRSTNAME_KEY, ""),
+            last_name=attrs.get(LASTNAME_KEY, ""),
+            email=attrs.get(EMAIL_KEY, ""),
+            is_superuser=False,
+            is_staff=False,
+            is_active=True,
+            password=User.objects.make_random_password(),
+        )
+
+        new_usa = UserSocialAuth.objects.create(
+            user=new_user,
+            provider=PROVIDER,
+            uid=attrs[USERNUM_KEY],
+            extra_data=attrs,
+        )
 
         self.logger.info(
             "Scraped a new user: %s > %s",
             attrs[USERNAME_KEY], attrs[DJANGO_USERNAME_KEY])
 
         return new_user
+
+    def process_attrs(self, attrs):
+        try:
+            usa = UserSocialAuth.objects.get(provider=PROVIDER, uid=attrs[USERNUM_KEY])
+            self.process_account_diffs(usa, attrs)
+            return usa.user
+        except UserSocialAuth.DoesNotExist:
+            return self.create_account(attrs)
 
     def scrape_profile(self, user_num):
 
@@ -156,14 +166,7 @@ class Scraper(object):
             attrs[LASTNAME_KEY] = name.last
 
         # Do something with the scraped attrs
-        try:
-            usa = UserSocialAuth.objects.get(provider=PROVIDER, uid=attrs[USERNUM_KEY])
-            self.process_account_diffs(usa, attrs)
-            result = usa.user
-
-        except UserSocialAuth.DoesNotExist:
-            result = self.create_account(attrs)
-
+        result = self.process_attrs(attrs)
         result.scraped_attrs = attrs  # The caller might want the scraped attrs.
         return result
 
