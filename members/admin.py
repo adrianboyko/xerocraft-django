@@ -14,7 +14,7 @@ class TaggingAdmin(admin.ModelAdmin):
     def members_username(self, object):
         return object.tagged_member.username
     members_username.admin_order_field = 'tagged_member__auth_user__username'
-
+    raw_id_fields = ['tagged_member']
     list_display = ['pk', 'tagged_member', 'members_username', 'tag', 'can_tag', 'date_tagged', 'authorizing_member']
     search_fields = [
         '^tagged_member__auth_user__first_name',
