@@ -207,7 +207,7 @@ def member_tags(request, tag_pk=None, member_pk=None, op=None):
         'members_tags': members_tags,
         'staff_can_tags': staff_can_tags,
         'staff_addable_tags': staff_addable_tags,
-        'visitors': visitors,
+        'visitors': set(visitors),
     })
 
 

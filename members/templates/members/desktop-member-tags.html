@@ -26,6 +26,12 @@
     span.asteriskField { display:none; }
     input#id_userid { margin-left:0.5em; }
 
+    button.checkedin {
+        padding-top: 1px;
+        padding-bottom: 1px;
+        margin-bottom: 4px;
+    }
+
 {% endblock %}
 
 {% block script %}
@@ -59,9 +65,14 @@
         {% if visitors %}
             Or choose one of today's checkins:
             {% for visitor in visitors %}
-                <button class="tag" onclick="useVisitor('{{visitor.username}}'); return false;">{{visitor.username}}</button>
+                <button class="checkedin" onclick="useVisitor('{{visitor.username}}'); return false;">{{visitor.username}}</button>
             {% endfor %}
         {% endif %}
+        <p style="margin-top:1.5em; margin-bottom:0;">If you're done, choose:</p>
+        <div style="padding-left: 1em">
+            <a href="/">Main Menu</a><br/>
+            <a href="/logout/">Logout</a>
+        </div>
     {% endif %} <!-- subject unknown -->
 
     {% if member %}  <!-- subject KNOWN -->
@@ -96,8 +107,10 @@
         {% endif %}
         <p style="margin-top:1.5em; margin-bottom:0;">When you're done with {{member.username}}, choose:</p>
         <div style="padding-left: 1em">
-            <a href=".">Another User<br/>
-            <a href="/">Main Menu</a>
+            <a href="{% url 'memb:desktop-member-tags' %}">Another User<br/>
+            <a href="/">Main Menu</a><br/>
+            <a href="/logout/">Logout</a>
+
         </div>
     {% endif %} <!-- subject KNOWN -->
 
