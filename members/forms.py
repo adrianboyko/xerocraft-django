@@ -8,7 +8,7 @@ from datetime import datetime
 class Desktop_ChooseUserForm(forms.Form):
 
     # userid can be either username or email. userid is a broader concept than username.
-    userid = forms.CharField(max_length=64, label="Choose member by username or email:")
+    userid = forms.CharField(max_length=64, label="Enter member's username or email:")
 
     def __init__(self, *args, **kwargs):
         self.helper = FormHelper()

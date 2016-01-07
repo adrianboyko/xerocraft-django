@@ -34,6 +34,11 @@
         // When the page has finished loading, autofocus on the userid field
         $('input#id_userid').focus();
     });
+
+    function useVisitor(username) {
+        $('input#id_userid').val(username)
+        $('form').submit()
+    }
 {% endblock %}
 
 {% block branding %}Member Tags{% endblock %}
@@ -48,35 +53,54 @@
         here.
     </p>
 
-    {% crispy form %}
+    {% if not member %} <!-- subject unknown -->
+        {% crispy form %}
 
-    {% if members_tags and members_tags|length > 0 %}
-    <p style="margin-top:1em; margin-bottom:0;">
-        {{ member.username }}
-            {% if member.first_name %}({{member.first_name}}){% endif %}
-        is currently tagged with:</p>
-    <p style="margin-left:1em;">
-        {% for tag in members_tags %}
-            {% if tag in staff_can_tags %}
-                <a href="{% url 'memb:desktop-member-tags'%}{{member.pk}}-{{tag.pk}}/">
+        {% if visitors %}
+            Or choose one of today's checkins:
+            {% for visitor in visitors %}
+                <button class="tag" onclick="useVisitor('{{visitor.username}}'); return false;">{{visitor.username}}</button>
+            {% endfor %}
+        {% endif %}
+    {% endif %} <!-- subject unknown -->
+
+    {% if member %}  <!-- subject KNOWN -->
+        {% if members_tags and members_tags|length > 0 %}
+            <p style="margin-top:1em; margin-bottom:0;">
+                {{ member.username }}
+                {% if member.first_name %}({{member.first_name}}){% endif %}
+                is currently tagged with:
+            </p>
+            <p style="margin-left:1em;">
+                {% for tag in members_tags %}
+                    {% if tag in staff_can_tags %}
+                        <a href="{% url 'memb:desktop-member-tags'%}{{member.pk}}-{{tag.pk}}/">
+                            <tag-name><b>{{tag.name}}</b></tag-name>
+                        </a>
+                    {% else %}
+                        <tag-name>{{tag.name}}</tag-name>
+                    {% endif %}
+                {% endfor %}
+            </p>
+        {% endif %}
+
+        {% if staff_addable_tags and staff_addable_tags|length > 0 %}
+        <p style="margin-top:1.5em; margin-bottom:0;">You are authorized to add the following tag{{ staff_addable_tags|length|pluralize:"s" }}:</p>
+        <p style="margin-left:1em;">
+            {% for tag in staff_addable_tags %}
+                <a href="{% url 'memb:desktop-member-tags'%}{{member.pk}}+{{tag.pk}}/">
                     <tag-name><b>{{tag.name}}</b></tag-name>
                 </a>
-            {% else %}
-                <tag-name>{{tag.name}}</tag-name>
-            {% endif %}
-        {% endfor %}
-    </p>
-    {% endif %}
+            {% endfor %}
+        </p>
+        {% endif %}
+        <p style="margin-top:1.5em; margin-bottom:0;">When you're done with {{member.username}}, choose:</p>
+        <div style="padding-left: 1em">
+            <a href=".">Another User<br/>
+            <a href="/">Main Menu</a>
+        </div>
+    {% endif %} <!-- subject KNOWN -->
 
-    {% if staff_addable_tags and staff_addable_tags|length > 0 %}
-    <p style="margin-top:1.5em; margin-bottom:0;">You are authorized to add the following tag{{ staff_addable_tags|length|pluralize:"s" }}:</p>
-    <p style="margin-left:1em;">
-        {% for tag in staff_addable_tags %}
-            <a href="{% url 'memb:desktop-member-tags'%}{{member.pk}}+{{tag.pk}}/">
-                <tag-name><b>{{tag.name}}</b></tag-name>
-            </a>
-        {% endfor %}
-    </p>
-    {% endif %}
-    <p style="line-height:0.5em;">&nbsp;</p>
-{% endblock %}
+<p style="line-height:0.5em;">&nbsp;</p>
+
+{% endblock %} <!-- Content -->

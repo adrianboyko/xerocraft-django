@@ -196,6 +196,10 @@ def member_tags(request, tag_pk=None, member_pk=None, op=None):
             if tag in staff_addable_tags:
                 staff_addable_tags.remove(tag)
 
+    today = date.today()
+    visits = VisitEvent.objects.filter(when__gt=today)
+    visitors = [visit.who for visit in visits]
+
     return render(request, 'members/desktop-member-tags.html', {
         'form': form,
         'staff': staff,
@@ -203,6 +207,7 @@ def member_tags(request, tag_pk=None, member_pk=None, op=None):
         'members_tags': members_tags,
         'staff_can_tags': staff_can_tags,
         'staff_addable_tags': staff_addable_tags,
+        'visitors': visitors,
     })
 
 
