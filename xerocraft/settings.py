@@ -25,7 +25,7 @@ SECRET_KEY = os.environ['XERO_DJANGO_SECRET_KEY']
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False  # IMPORTANT: Set to False before commit.
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['xerocraft-django.herokuapp.com','xis.internal-xerocraft.org']
 
 LOGIN_URL = "/login/"
 LOGIN_REDIRECT_URL = "/"
