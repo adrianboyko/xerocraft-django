@@ -19,3 +19,19 @@ class Desktop_ChooseUserForm(forms.Form):
         super(Desktop_ChooseUserForm, self).__init__(*args, **kwargs)
 
 
+# REVIEW: Use ModelForm instead?
+class Books_NotePaymentForm(forms.Form):
+
+    userid      = forms.CharField(max_length=64, label="Userid:")
+    password    = forms.CharField(max_length=20, label="Password:", widget=forms.PasswordInput())
+    amt_paid    = forms.DecimalField(max_digits=5, decimal_places=2, label="Amount Paid by Member:")
+    when_paid   = forms.DateTimeField(label="Date/Time on which Member Paid:")
+    service     = forms.CharField(max_length=20, label="Service that Processed the Payment:")
+    service_fee = forms.DecimalField(max_digits=5, decimal_places=2, label="Service Fee:")
+    service_id  = forms.CharField(max_length=20, label="Service's ID for Payment:")
+    duration    = forms.CharField(max_length=5, label="Duration of Paid Membership:")
+    fname       = forms.CharField(max_length=30, label="First Name of Member:")
+    lname       = forms.CharField(max_length=30, label="Last Name of Member:")
+    email       = forms.EmailField(label="Email Address of Member:")
+    family      = forms.IntegerField(label="Additonal Family Members:")
+

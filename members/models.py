@@ -284,24 +284,33 @@ class VisitEvent(models.Model):
         unique_together = ('who', 'when')
 
 
-"""
-class MembershipPayment(models.Model):
+class PaidMembership(models.Model):
 
-    membership_type
+    member = models.ForeignKey(Member, related_name='terms',
+        # There are records of payments which no longer seem to have an associated account.
+        # Name used when paying may be different enough to prevent auto-linking.
+        # For two reasons listed above, we allow nulls in next line.
+        default=None, null=True, blank=True,
+        on_delete=models.PROTECT,  # Don't delete payment info nor the member linked to it.
+        help_text="The member who made the payment.")
 
-    payment_processor
-
-    amount_paid = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
-        help_text="The full amount paid by the member, including payment processing fee, if any.")
-
-    fee_deducted = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
-        help_text="The fee deducted from 'amount paid' by the payment processor, if any.")
+    # REVIEW: Membership type is somewhat redundant with "Work-Trade" tag. Eliminate tag?
+    # Note: Strictly speaking, memberships have types, not members.
+    # Note: If there's no membership term covering some period, member has an "unpaid" membership during that time.
+    MT_REGULAR     = "R"  # E.g. members who pay $50/mo
+    MT_WORKTRADE   = "W"  # E.g. members who work 9 hrs/mo and pay reduced $10/mo
+    MT_SCHOLARSHIP = "S"  # The so-called "full membership", i.e. $0/mo. These function as paid memberships.
+    MEMBERSHIP_TYPE_CHOICES = [
+        (MT_REGULAR,     "Regular"),
+        (MT_WORKTRADE,   "Work-Trade"),
+        (MT_SCHOLARSHIP, "Scholarship")
+    ]
+    membership_type = models.CharField(max_length=1, choices=MEMBERSHIP_TYPE_CHOICES,
+        null=False, blank=False, default=MT_REGULAR,
+        help_text="The type of membership.")
 
     family_count = models.IntegerField(default=0, null=False, blank=False,
         help_text="The number of ADDITIONAL family members included in this membership. Usually zero.")
-
-    payment_date = models.DateField(null=True, blank=True,
-        help_text="The date on which the payment was made.")
 
     start_date = models.DateField(null=False, blank=False,
         help_text="The frist day on which the membership is valid.")
@@ -309,6 +318,54 @@ class MembershipPayment(models.Model):
     end_date = models.DateField(null=False, blank=False,
         help_text="The last day on which the membership is valid.")
 
-    note = models.TextField(max_length=2048,
-        help_text="For staff. Anything you want to say about this payment or membership.")
-"""
+    payer_name = models.CharField(max_length=40, blank=True,
+        help_text="No need to provide this if member was linked above.")
+
+    payer_email = models.EmailField(max_length=40, blank=True,
+        help_text="No need to provide this if member was linked above.")
+
+    PAID_BY_CASH   = "$"
+    PAID_BY_CHECK  = "C"
+    PAID_BY_SQUARE = "S"
+    PAID_BY_2CO    = "2"
+    PAID_BY_WEPAY  = "W"
+    PAID_BY_PAYPAL = "P"
+    PAID_BY_CHOICES = [
+        (PAID_BY_CASH,   "Cash"),
+        (PAID_BY_CHECK,  "Check"),
+        (PAID_BY_SQUARE, "Square"),
+        (PAID_BY_2CO,    "2Checkout"),
+        (PAID_BY_WEPAY,  "WePay"),
+        (PAID_BY_PAYPAL, "PayPal"),
+    ]
+    payment_method = models.CharField(max_length=1, choices=PAID_BY_CHOICES,
+        null=False, blank=False, default=PAID_BY_CASH,
+        help_text="The payment method used.")
+
+    paid_by_member = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
+        help_text="The full amount paid by the member, including payment processing fee IF THEY PAID IT.")
+    paid_by_member.verbose_name = "Amt Paid by Member"
+
+    processing_fee = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
+        help_text="Payment processor's fee, regardless of whether it was paid by the member or Xerocraft.")
+    processing_fee.verbose_name = "Amt of Processing Fee"
+
+    ctrlid = models.CharField(max_length=20, null=True, blank=False,
+        help_text="Payment processor's id for this payment.")
+
+    payment_date = models.DateField(null=True, blank=True,
+        help_text="The date on which the payment was made. Can be blank if unknown.")
+
+
+class PaymentAKA(models.Model):
+    """ Intended primarily to record name variations that are used in payments, etc. """
+
+    member = models.ForeignKey(Member, related_name='akas',
+        null=False, blank=False, on_delete=models.CASCADE,
+        help_text="The member who has an AKA.")
+
+    aka = models.CharField(max_length=50, null=False, blank=False,
+        help_text="The AKA (probably a simple variation on their name).")
+
+    class Meta:
+        verbose_name = "Membership AKA"

@@ -24,5 +24,9 @@ urlpatterns = [
     url(r'^api/member-details-pub/(?P<member_card_str>[-_a-zA-Z0-9]{32})/$', views.api_member_details_pub, name="api-member-details-pub"),
     url(r'^api/visit-event/(?P<member_card_str>[-_a-zA-Z0-9]{32})_(?P<event_type>[APD])/$', views.api_log_visit_event, name="api-visit-event"),
 
+    # For accounting/books:
+    # Not sure where this will ultimately end up. It's here until I decide.
+    url(r'^books/note-payment/$', views.books_note_payment, name="books-note-payment"),
+
 ]
 
