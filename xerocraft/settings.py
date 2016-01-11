@@ -14,7 +14,16 @@ https://docs.djangoproject.com/en/1.8/ref/settings/
 import os
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+#BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+# Static files (CSS, JavaScript, Images)
+# https://docs.djangoproject.com/en/1.8/howto/static-files/
+
+STATIC_ROOT = 'staticfiles'
+STATIC_URL = '/static/'
+STATICFILES_DIRS = (
+    os.path.join(BASE_DIR, 'static'),
+)
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.8/howto/deployment/checklist/
@@ -23,9 +32,13 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = os.environ['XERO_DJANGO_SECRET_KEY']
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False  # IMPORTANT: Set to False before commit.
+DEBUG = True  # IMPORTANT: Set to False before commit.
 
-ALLOWED_HOSTS = ['xerocraft-django.herokuapp.com','xis.internal-xerocraft.org']
+ALLOWED_HOSTS = [
+    'localhost',
+    'xerocraft-django.herokuapp.com',
+    'xis.internal-xerocraft.org',
+]
 
 LOGIN_URL = "/login/"
 LOGIN_REDIRECT_URL = "/"
@@ -144,15 +157,6 @@ from django.conf.locale.en import formats as en_formats
 en_formats.DATETIME_FORMAT = "m/d/y H:i:s"
 en_formats.DATE_FORMAT = "m/d/y"
 
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/1.8/howto/static-files/
-
-STATIC_ROOT = 'staticfiles'
-STATIC_URL = '/static/'
-STATICFILES_DIRS = (
-    os.path.join(BASE_DIR, 'static'),
-)
 
 EMAIL_BACKEND = "djrill.mail.backends.djrill.DjrillBackend"
 #EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
