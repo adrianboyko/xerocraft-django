@@ -25,6 +25,11 @@ STATICFILES_DIRS = (
     os.path.join(BASE_DIR, 'static'),
 )
 
+# Simplified static file serving.
+# https://warehouse.python.org/project/whitenoise/
+STATICFILES_STORAGE = 'whitenoise.django.GzipManifestStaticFilesStorage'
+#STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.8/howto/deployment/checklist/
 
@@ -32,10 +37,9 @@ STATICFILES_DIRS = (
 SECRET_KEY = os.environ['XERO_DJANGO_SECRET_KEY']
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True  # IMPORTANT: Set to False before commit.
+DEBUG = False  # IMPORTANT: Set to False before commit.
 
 ALLOWED_HOSTS = [
-    'localhost',
     'xerocraft-django.herokuapp.com',
     'xis.internal-xerocraft.org',
 ]
@@ -105,8 +109,11 @@ TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [
+            os.path.join(BASE_DIR, 'templates'),
             os.path.join(BASE_DIR, 'xerocraft/templates'),
-            os.path.join(BASE_DIR, 'tasks/templates/')
+            os.path.join(BASE_DIR, 'tasks/templates/'),
+            os.path.join(BASE_DIR, 'members/templates/'),
+            os.path.join(BASE_DIR, 'inventory/templates/'),
         ],
         'APP_DIRS': True,
         'OPTIONS': {
