@@ -65,6 +65,7 @@
 	margin: 1px;
 	text-align: center;
 	text-decoration: none;
+	font-size:9pt;
 }
 #ptTimeSelectCntr .ptTimeSelectAmPmCntr a {
 	text-align: center;
@@ -88,12 +89,15 @@
 
 #ptTimeSelectCntr a.ptTimeSelectLastClickedHr {
     background-color: #aeeaff;
+    background-image: none;
 }
 
 #ptTimeSelectCntr a.ptTimeSelectLastClickedAmPm {
     background-color: #aeeaff;
+    background-image: none;
 }
 
 #ptTimeSelectCntr a.ptTimeSelectLastClickedMin {
     background-color: #aeeaff;
+    background-image: none;
 }
