@@ -15,22 +15,23 @@ class Desktop_TimeSheetForm(forms.Form):
 
     id_verify = forms.BooleanField(label="[SET IN __INIT__]")
 
-    work_desc = forms.CharField(max_length=512, label="Description of work done: ", widget=forms.Textarea)
+    work_desc = forms.CharField(max_length=512, label="Description of work done: ",
+        widget=forms.Textarea(attrs={'placeholder':'E.g. Staffed front desk during open hack.'}))
 
     work_date = forms.DateField(
-        widget=forms.TextInput(attrs={'class': 'datepicker'}),
+        widget=forms.TextInput(attrs={'class': 'datepicker', 'placeholder':'MM/DD/YYYY'}),
         label="Date on which work was done: ",
         validators=[MaxValueValidator(datetime.today().date())], # Don't allow future dates
     )
 
     work_time = forms.TimeField(
         input_formats=['%I:%M %p'],
-        widget=forms.TimeInput(format='%I:%M %p', attrs={'class': 'timepicker'}),
+        widget=forms.TimeInput(format='%I:%M %p', attrs={'class': 'timepicker', 'placeholder':'HH:MM AM'}),
         label="Time at which work was begun: "
     )
 
-    work_dur = forms.DecimalField(widget=NumberInput(attrs={'min':0,'step':0.25}),
-        label="Hours of work done (e.g. 3.5): ")
+    work_dur = forms.DecimalField(widget=NumberInput(attrs={'min':0, 'step':0.25, 'class':'durpicker', 'placeholder':'#.## (e.g. 5.25)'}),
+        label="Hours of work done: ")
 
     witness_id = forms.CharField(label="Witness U or E: ",max_length=50)
 

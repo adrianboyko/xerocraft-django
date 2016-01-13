@@ -205,7 +205,7 @@
                         +    '            <a href="javascript: void(0);" onclick="jQuery.ptTimeSelect.setTime()"'
                         +    '                    onmouseover="jQuery(this).removeClass(\'ui-state-default\').addClass(\'ui-state-hover\');" '
                         +    '                        onmouseout="jQuery(this).removeClass(\'ui-state-hover\').addClass(\'ui-state-default\');"'
-                        +    '                        class="ui-corner-all ui-state-default">'
+                        +    '                        class="ui-corner-all ui-state-default" id="ptTimeSelectSetLink">'
                         +    '                SET'
                         +    '            </a>'
                         +    '            <br style="clear: both;" /><div></div>'
@@ -224,18 +224,21 @@
                         .bind("click", function(){
                             jQuery.ptTimeSelect.setMinSelClass($(this))
                             jQuery.ptTimeSelect.setMin($(this).text());
+                            jQuery(".isPtTimeSelectActive").focus();
                          });
                     
                     e.find('.ptTimeSelectHr')
                         .bind("click", function(){
                             jQuery.ptTimeSelect.setHrSelClass($(this))
                             jQuery.ptTimeSelect.setHr($(this).text());
+                            jQuery(".isPtTimeSelectActive").focus();
                          });
 
                     e.find('.ptTimeSelectAmPm')
                         .bind("click", function(){
                             jQuery.ptTimeSelect.setHrSelClass($(this))
                             jQuery.ptTimeSelect.setHr($(this).text());
+                            jQuery(".isPtTimeSelectActive").focus();
                          });
 
                     $(document).mousedown(jQuery.ptTimeSelect._doCheckMouseClick);            
@@ -416,7 +419,7 @@
                 i = $(".isPtTimeSelectActive");
             }
             if (i) {
-                var opt = i.removeClass("isPtTimeSelectActive")
+                var opt = jQuery(i).removeClass("isPtTimeSelectActive")
                             .data("ptTimeSelectOptions");
                 if (opt && opt.onClose) {
                     opt.onClose(i);
@@ -518,7 +521,17 @@
             }
             if (thisOpt.onFocusDisplay){
                 e.focus(function(){
-                    jQuery.ptTimeSelect.openCntr(this);
+                    if (!this.classList.contains("isPtTimeSelectActive")) {
+                        jQuery.ptTimeSelect.openCntr(this);
+                    }
+                });
+                e.blur(function(event){
+                    clicked = jQuery(event.relatedTarget);
+                    if (clicked.hasClass("ptTimeSelectMin")) return;
+                    if (clicked.hasClass("ptTimeSelectHr")) return;
+                    if (clicked.hasClass("ptTimeSelectAmPm")) return;
+                    if (clicked.is("#ptTimeSelectSetLink")) return;
+                    jQuery.ptTimeSelect.closeCntr(this);
                 });
             }
             return this;

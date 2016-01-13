@@ -11,6 +11,7 @@
     <link rel="stylesheet" type="text/css" href="{% static 'admin/css/login.css' %}" />
 
     <link rel="stylesheet" type="text/css" href="{% static 'xerocraft/jquery.ptTimeSelect.css' %}"/>
+    <link rel="stylesheet" type="text/css" href="{% static 'xerocraft/jquery.abDurSelect.css' %}"/>
     <link rel="stylesheet" type="text/css" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/themes/smoothness/jquery-ui.css">
     <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/2.3.2/css/bootstrap.min.css" media='screen'/>
 
@@ -55,6 +56,7 @@
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/2.3.2/js/bootstrap.min.js"></script>
 
     <script src="{% static 'xerocraft/jquery.ptTimeSelect.js' %}"></script>
+    <script src="{% static 'xerocraft/jquery.abDurSelect.js' %}"></script>
 
     <script type="text/javascript">
       $(document).ready(function(){
@@ -70,6 +72,14 @@
         });
         // TIME PICKER
         $(".timepicker").ptTimeSelect({
+          setButtonLabel: 'OK',
+          onBeforeShow: function(input, widget) {
+            widget.css("marginTop", -input.height() + 'px');
+            widget.css("marginLeft", input.width() + 'px');
+          }
+        });
+        // DURATION PICKER
+        $(".durpicker").abDurSelect({
           setButtonLabel: 'OK',
           onBeforeShow: function(input, widget) {
             widget.css("marginTop", -input.height() + 'px');
