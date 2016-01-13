@@ -11,7 +11,7 @@
         <!-- Reuse the Django admin login style -->
         <link rel="stylesheet" type="text/css" href="{% static 'admin/css/base.css' %}" />
         <link rel="stylesheet" type="text/css" href="{% static 'admin/css/login.css' %}" />
-        <link rel="stylesheet" type="text/css" href="{% static 'xerocraft/bootstrap.min.css' %}" />
+        <link rel="stylesheet" type="text/css" href="http://maxcdn.bootstrapcdn.com/bootstrap/2.3.2/css/bootstrap.min.css" media='screen'/>
 
         <style>
             img#x {
@@ -39,8 +39,9 @@
 
         <link rel="shortcut icon" type="image/png" href="{% static 'favicon.ico' %}"/>
 
-        <script src="https://code.jquery.com/jquery.js"></script>
-        <script src="{% static 'xerocraft/bootstrap.min.js' %}"></script>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/2.3.2/js/bootstrap.min.js"></script>
+
         <script type="text/javascript">
             {% block script %}{% endblock %}
         </script>
