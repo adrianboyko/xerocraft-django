@@ -61,8 +61,12 @@ class Command(Scraper, BaseCommand):
             )
 
     def temp_backfill_datestr(self, given):
-        dec_count = VisitEvent.objects.filter(when__year="2015", when__month="12").count()
-        return "2015-12-01" if dec_count == 0 else given
+        old_count = VisitEvent.objects.filter(when__year="2014", when__month="9").count()
+        if old_count == 0:
+            self.logger.info("Running checkin backfill.")
+            return "2014-09-13"
+        else:
+            return given
 
     def handle(self, *args, **options):
 
