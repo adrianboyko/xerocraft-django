@@ -74,8 +74,26 @@ PAYMENT_METHOD_CODE2STR = {code: str for (code, str) in PaidMembership.PAID_BY_C
 MEMBERSHIP_TYPE_CODE2STR = {code: str for (code, str) in PaidMembership.MEMBERSHIP_TYPE_CHOICES}
 
 
+class PaymentLinkedFilter(admin.SimpleListFilter):
+    title = "Linked"
+    parameter_name = 'type'
+
+    def lookups(self, request, model_admin):
+        return (
+            ('yes', _('Yes')),
+            ('no', _('No')),
+        )
+
+    def queryset(self, request, queryset):
+        if self.value() == 'yes': return queryset.filter(member__isnull=False)
+        if self.value() == 'no':  return queryset.filter(member__isnull=True)
+
+
 @admin.register(PaidMembership)
 class PaidMembershipAdmin(admin.ModelAdmin):
+
+    date_hierarchy = 'payment_date'
+    list_filter = [PaymentLinkedFilter]
 
     def fam_fmt(self,obj): return obj.family_count
     fam_fmt.admin_order_field = 'family_count'
@@ -115,7 +133,6 @@ class PaidMembershipAdmin(admin.ModelAdmin):
         'fee_fmt',
         'when_fmt',
         'how_fmt',
-        'ctrlid'
     ]
 
     fieldsets = [
@@ -133,6 +150,7 @@ class PaidMembershipAdmin(admin.ModelAdmin):
             'processing_fee',
             'payment_date',
             'payment_method',
+            'ctrlid',
         ]}),
     ]
 
