@@ -20,7 +20,7 @@ class Command(BaseCommand):
         dotcount = 0
         fetcher = TwoCheckoutFetcher()
 
-        URL = "http://xerocraft-django.herokuapp.com/members/paidmembership/"  # IMPORTANT: Set URL back to production
+        URL = "http://xerocraft-django.herokuapp.com/members/paidmemberships/"  # IMPORTANT: Set URL back to production
         #URL = "http://localhost:8000/members/paidmemberships/"
 
         print("Will push data to {}".format(URL))
@@ -30,7 +30,6 @@ class Command(BaseCommand):
         for pm in fetcher.generate_payments():
 
             # See if the PaidMembership has previously been sent:
-            already_exists = False
             get_params = {'payment_method': pm.payment_method, 'ctrlid': pm.ctrlid}
             response = session.get(URL, params=get_params, headers=auth_headers)
             matchcount = int(response.json()['count'])
@@ -41,7 +40,6 @@ class Command(BaseCommand):
             else:
                 # Else case is an assertion that matchcount is 0 or 1.
                 raise AssertionError("Too many matches for method %s ctrlid %s" % (pm.payment_method, pm.ctrlid))
-
 
             # Either POST or PUT depending on whether it already exists
             twocodata = PaidMembershipSerializer(pm).data
