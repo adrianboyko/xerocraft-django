@@ -1,4 +1,3 @@
-
 from django.shortcuts import render, redirect
 from django.http import HttpResponse, JsonResponse
 from django.core.urlresolvers import reverse
@@ -8,6 +7,8 @@ from django.utils import timezone
 from django.views.generic import View
 from members.models import Member, Tag, Tagging, VisitEvent, PaidMembership
 from members.forms import Desktop_ChooseUserForm, Books_NotePaymentForm
+from rest_framework import viewsets
+from .serializers import PaidMembershipSerializer
 from datetime import date
 from reportlab.pdfgen import canvas
 from reportlab.graphics.shapes import Drawing
@@ -16,8 +17,12 @@ from reportlab.graphics import renderPDF
 from reportlab.lib.units import inch, mm
 from reportlab.lib.pagesizes import letter
 from dateutil import relativedelta
+from logging import getLogger
+
+logger = getLogger("members")
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = PRIVATE
+
 
 def _inform_other_systems_of_checkin(member, event_type):
     # TODO: Inform Kyle's system
@@ -349,69 +354,10 @@ def kiosk_identify_subject(request, staff_card_str, next_url):
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = BOOKS
 
-# This is not meant for human users. Instead, processes running somewhere
-# other than the website will be logging into our payment processing systems,
-# extracting payment information, transforming it into this format, and then
-# loading it into the website via this view. This keeps userids/pws for
-# payment processing systems off the website.
-
-PAYMENT_METHOD_STR2CODE = {string: code for (code, string) in PaidMembership.PAID_BY_CHOICES}
-
-
-def books_note_payment(request):
-
-    if request.method == "POST":
-        form = Books_NotePaymentForm(request.POST)
-        if form.is_valid():
-            userid      = form.cleaned_data["userid"]
-            password    = form.cleaned_data["password"]
-            amt_paid    = form.cleaned_data["amt_paid"]
-            when_paid   = form.cleaned_data["when_paid"]
-            service     = form.cleaned_data["service"]
-            service_fee = form.cleaned_data["service_fee"]
-            service_id  = form.cleaned_data["service_id"]
-            duration    = form.cleaned_data["duration"]
-            fname       = form.cleaned_data["fname"]
-            lname       = form.cleaned_data["lname"]
-            email       = form.cleaned_data["email"]
-            family      = form.cleaned_data["family"]
-
-            member = None
-
-            try:  # EMAIL MATCHING
-                email_matches = User.objects.filter(email=email)
-                if len(email_matches) == 1: member = email_matches[0].member
-            except User.DoesNotExist:
-                pass
-
-            try:  # NAME MATCHING
-                name_matches = User.objects.filter(first_name=fname, last_name=lname)
-                if len(name_matches) == 1: member = name_matches[0].member
-            except User.DoesNotExist:
-                pass
-
-            if member is None:
-                print(fname, lname, email)
-
-            payer_name = fname
-            if lname != "": payer_name += " "+lname
-
-            PaidMembership.objects.create(
-                member=member,
-                family_count=family,
-                start_date=when_paid,
-                end_date=when_paid + relativedelta.relativedelta(months=1),  # TODO: Actual calc based on duration
-                payer_name=payer_name,
-                payer_email=email,
-                paid_by_member=amt_paid,
-                processing_fee=service_fee,
-                ctrlid=service_id,
-                payment_date=when_paid,
-                payment_method=PAYMENT_METHOD_STR2CODE[service]
-            )
-            return JsonResponse({'result':'success'})
-
-    else:  # If a GET (or any other method) we'll create a blank form.
-        form = Books_NotePaymentForm()
-
-    return render(request, 'members/books-note-payment.html', {'form': form})
+class PaidMembershipViewSet(viewsets.ModelViewSet):  # Django REST Framework
+    """
+    API endpoint that allows paid memberships to be viewed or edited.
+    """
+    queryset = PaidMembership.objects.all().order_by('-payment_date')
+    serializer_class = PaidMembershipSerializer
+    filter_fields = {'payment_method', 'ctrlid'}

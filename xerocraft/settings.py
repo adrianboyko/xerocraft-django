@@ -82,6 +82,8 @@ INSTALLED_APPS = (
     'djrill',
     'crispy_forms',
     'social.apps.django_app.default',
+    'rest_framework',
+    'rest_framework.authtoken',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -212,4 +214,18 @@ LOGGING = {
             'level': 'INFO',
         }
     }
+}
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAdminUser'
+    ],
+    'DEFAULT_FILTER_BACKENDS': [
+        'rest_framework.filters.DjangoFilterBackend',
+    ],
+
+    'PAGE_SIZE': 100
 }

@@ -4,6 +4,7 @@ from django.contrib.auth.models import User
 import base64
 import uuid
 import hashlib
+from nameparser import HumanName
 
 # TODO: Rework various validate() methods into Model.clean()? See Django's "model validation" docs.
 
@@ -355,6 +356,32 @@ class PaidMembership(models.Model):
 
     payment_date = models.DateField(null=True, blank=True,
         help_text="The date on which the payment was made. Can be blank if unknown.")
+
+    def link_to_member(self):
+
+        self.member = None
+
+        # Attempt to match by EMAIL
+        try:
+            email_matches = User.objects.filter(email=self.payer_email)
+            if len(email_matches) == 1:
+                self.member = email_matches[0].member
+        except User.DoesNotExist:
+            pass
+
+        # Attempt to match by NAME
+        nameobj = HumanName(self.payer_name)
+        fname = nameobj.first
+        lname = nameobj.last
+        try:
+            name_matches = User.objects.filter(first_name=fname, last_name=lname)
+            if len(name_matches) == 1:
+                self.member = name_matches[0].member
+        except User.DoesNotExist:
+            pass
+
+    class Meta:
+        unique_together = ('payment_method', 'ctrlid')
 
 
 class PaymentAKA(models.Model):

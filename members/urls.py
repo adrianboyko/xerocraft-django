@@ -1,6 +1,9 @@
-from django.conf.urls import url
-
+from django.conf.urls import url, include
 from . import views
+from rest_framework import routers
+
+router = routers.DefaultRouter()
+router.register(r'paidmemberships', views.PaidMembershipViewSet)
 
 urlpatterns = [
 
@@ -24,9 +27,9 @@ urlpatterns = [
     url(r'^api/member-details-pub/(?P<member_card_str>[-_a-zA-Z0-9]{32})/$', views.api_member_details_pub, name="api-member-details-pub"),
     url(r'^api/visit-event/(?P<member_card_str>[-_a-zA-Z0-9]{32})_(?P<event_type>[APD])/$', views.api_log_visit_event, name="api-visit-event"),
 
-    # For accounting/books:
-    # Not sure where this will ultimately end up. It's here until I decide.
-    url(r'^books/note-payment/$', views.books_note_payment, name="books-note-payment"),
+    # DJANGO REST FRAMEWORK API
+    url(r'^', include(router.urls)),
+    url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework'))
 
 ]
 
