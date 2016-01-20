@@ -325,6 +325,9 @@ class PaidMembership(models.Model):
     payer_email = models.EmailField(max_length=40, blank=True,
         help_text="No need to provide this if member was linked above.")
 
+    payer_notes = models.CharField(max_length=1024, blank=True,
+        help_text="Any notes provided by the member.")
+
     PAID_BY_CASH   = "$"
     PAID_BY_CHECK  = "C"
     PAID_BY_SQUARE = "S"
@@ -351,11 +354,14 @@ class PaidMembership(models.Model):
         help_text="Payment processor's fee, regardless of whether it was paid by the member or Xerocraft.")
     processing_fee.verbose_name = "Amt of Processing Fee"
 
-    ctrlid = models.CharField(max_length=20, null=True, blank=False,
+    ctrlid = models.CharField(max_length=40, null=True, blank=False,
         help_text="Payment processor's id for this payment.")
 
     payment_date = models.DateField(null=True, blank=True,
         help_text="The date on which the payment was made. Can be blank if unknown.")
+
+    protected = models.BooleanField(default=False,
+        help_text="Protect against further auto processing by ETL, etc. Prevents overwrites of manually enetered data.")
 
     def link_to_member(self):
 
@@ -374,9 +380,10 @@ class PaidMembership(models.Model):
         fname = nameobj.first
         lname = nameobj.last
         try:
-            name_matches = User.objects.filter(first_name=fname, last_name=lname)
+            name_matches = User.objects.filter(first_name__iexact=fname, last_name__iexact=lname)
             if len(name_matches) == 1:
                 self.member = name_matches[0].member
+            # TODO: Else log WARNING (or maybe just INFO)
         except User.DoesNotExist:
             pass
 

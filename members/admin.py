@@ -146,11 +146,13 @@ class PaidMembershipAdmin(admin.ModelAdmin):
         ('Payment Details', {'fields': [
             'payer_name',
             'payer_email',
+            'payer_notes',
             'paid_by_member',
             'processing_fee',
             'payment_date',
             'payment_method',
             'ctrlid',
+            'protected',
         ]}),
     ]
 

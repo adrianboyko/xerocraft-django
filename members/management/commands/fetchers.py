@@ -7,6 +7,7 @@ from dateutil import parser
 from datetime import date
 import time
 import requests
+import lxml.html
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -16,10 +17,14 @@ class Fetcher(object):  # The "ET" in "ETL"
     __metalass__ = abc.ABCMeta
 
     @abc.abstractmethod
-    def generate_payments(self):
+    def generate_paid_memberships(self):
         """Yields an unsaved PaidMembership instance"""
         return
 
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+# TODO: MOVE XEROCRAFT-SPECIFIC FETCHERS, BELOW, INTO xerocraft.fetchers
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
@@ -80,7 +85,7 @@ class TwoCheckoutFetcher(Fetcher):
                 pm.payer_name  = namestr
                 yield pm
 
-    def generate_payments(self):
+    def generate_paid_memberships(self):
         userid = input("2CO userid: ")
         password = input("2CO password: ")
         twocheckout.Api.credentials({'username': userid, 'password': password})
@@ -142,14 +147,14 @@ class WePayFetcher(Fetcher):
             pm.payer_email = checkout['payer_email']
             pm.payer_name = checkout['payer_name']
             pm.family_count = family
-            pm.payment_date = date.fromtimestamp(int(checkout['create_time']))
+            pm.payment_date = date.fromtimestamp(int(checkout['create_time']))  # TODO: This is UTC timezone.
             pm.start_date = pm.payment_date
             pm.end_date = pm.start_date + relativedelta(months=months, days=-1)
             pm.paid_by_member = Decimal(checkout['gross'])  # Docs: "The total dollar amount paid by the payer"
             pm.processing_fee = Decimal(checkout['fee']) + Decimal(checkout['app_fee'])
             yield pm
 
-    def generate_payments(self):
+    def generate_paid_memberships(self):
         accounts = input("WePay Accounts: ").split()
         rest_token = input("WePay Token: ")  # So far, same token works for all accts.
         auth_headers = {'Authorization': "Bearer " + rest_token}
@@ -171,3 +176,122 @@ class WePayFetcher(Fetcher):
                 checkouts = response.json()
                 for pm in self.generate_from_checkouts(checkouts):
                     yield pm
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+class SquareFetcher(Fetcher):
+
+    session = requests.Session()
+
+    uninteresting = [
+        "Donation",
+        "Workshop Fee",
+        "Custom Amount",  # I believe this is a donation.
+        "Refill Soda Account",
+        "Holiday Gift Card (6 months)",
+        "Bumper Sticker",
+        "Medium Sticker",
+    ]
+
+    def generate_from_itemizations(self, itemizations, payment_id, payment_date, payment_total, payment_fee):
+        for item in itemizations:
+            if item['name'] in self.uninteresting: continue
+            elif item['name'] == "One Month Membership":
+                months = 1
+                short_item_code = "1MM"
+                membership_type = PaidMembership.MT_REGULAR
+            elif item['name'] in ["Work-Trade Fee", "Work-Trade Dues"]:
+                months = 1
+                short_item_code = "WT"
+                membership_type = PaidMembership.MT_WORKTRADE
+            else:
+                print("Didn't recognize item name: "+item['name'])
+                continue
+
+            family_count = None
+            for modifier in item["modifiers"]:
+                if modifier["name"] == "Just myself": family_count = 0
+                elif modifier["name"] == "1 add'l family member": family_count = 1
+                elif modifier["name"] == "2 add'l family members": family_count = 2
+                elif modifier["name"] == "3 add'l family members": family_count = 3
+                elif modifier["name"] == "4 add'l family members": family_count = 4
+                elif modifier["name"] == "5 add'l family members": family_count = 5
+            if family_count is None:
+                print("Couldn't determine family count for {}:{}".format(payment_id, short_item_code))
+
+            quantity = int(float(item['quantity']))
+            for n in range(1, quantity+1):
+                pm = PaidMembership()
+                pm.membership_type = membership_type
+                pm.payment_method = PaidMembership.PAID_BY_SQUARE
+                pm.ctrlid = "{}:{}:{}".format(payment_id, short_item_code, str(n))
+                pm.payer_email = ""  # Annoyingly, not provided by Square.
+                pm.payer_name = ""  # Annoyingly, not provided by Square.
+                pm.payer_notes = item.get("notes", "")
+                pm.payment_date = payment_date
+                pm.start_date = pm.payment_date
+                if pm.membership_type == PaidMembership.MT_WORKTRADE:
+                    # This is a guess, but it will usually be right.
+                    # TODO: Add better logic once people start choosing month modifier.
+                    pm.start_date = pm.start_date.replace(day=1)
+                pm.end_date = pm.start_date + relativedelta(months=months, days=-1)
+                pm.family_count = family_count
+                pm.paid_by_member = float(item['gross_sales_money']['amount']) / (quantity * 100.0)
+                pm.processing_fee = pm.paid_by_member/payment_total * payment_fee  # Fee is divided among items.
+
+                yield pm
+
+    def get_name_from_receipt(self, url):
+        response = self.session.get(url)
+        parsed_page = lxml.html.fromstring(response.text)
+        if parsed_page is None: raise AssertionError("Couldn't parse receipts page")
+        names = parsed_page.xpath("//div[contains(@class,'name_on_card')]/text()")
+        return names[0] if len(names)>0 else ""
+
+    def generate_from_payment(self, payments):
+        for payment in payments:
+            payment_id = payment["id"]
+            payment_date = parser.parse(payment["created_at"]).date()
+            payment_fee = -1.0 * float(payment["processing_fee_money"]["amount"]) / 100.0
+            payment_total = float(payment["gross_sales_money"]["amount"]) / 100.0
+            receipt_name = None  # Only get it if we know we need it. We won't need it for every payment.
+            itemizations = payment['itemizations']
+            for pm in self.generate_from_itemizations(itemizations, payment_id, payment_date, payment_total, payment_fee):
+                pm.payer_email = ""  # Annoyingly, not provided by Square.
+                if receipt_name is None:  # We now know we need it, so get it.
+                    receipt_name = self.get_name_from_receipt(payment['receipt_url'])
+                pm.payer_name = receipt_name
+                yield pm
+
+    def generate_paid_memberships(self):
+
+        merchant_id = input("Square Merchant ID: ")
+        rest_token = input("Square Token: ")
+
+        get_headers = {
+            'Authorization': "Bearer " + rest_token,
+            'Accept': "application/json",
+        }
+
+        post_put_headers = {
+            'Authorization': "Bearer " + rest_token,
+            'Accept': "application/json",
+            'Content-Type': "application/json",
+        }
+
+        payments_url = "https://connect.squareup.com/v1/{}/payments".format(merchant_id)
+
+        window_start = date(2013, 12, 1)
+        while window_start < date.today():
+            window_start = window_start + relativedelta(months=+1)
+            window_end = window_start + relativedelta(months=+1)
+            get_data = {
+                'begin_time': window_start.isoformat(),
+                'end_time': window_end.isoformat(),
+                'limit': str(200)  # Max allowed by Square
+            }
+            response = self.session.get(payments_url, params=get_data, headers=get_headers)
+            payments = response.json()
+            for pm in self.generate_from_payment(payments):
+                yield pm

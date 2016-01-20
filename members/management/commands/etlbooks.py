@@ -1,10 +1,9 @@
 from django.core.management.base import BaseCommand, CommandError
 from members.models import PaidMembership
-from . fetchers import TwoCheckoutFetcher, WePayFetcher
+from . fetchers import TwoCheckoutFetcher, WePayFetcher, SquareFetcher
 from members.serializers import PaidMembershipSerializer
 import requests
 import logging
-import lxml.html
 import sys
 
 __author__ = 'adrian'
@@ -31,7 +30,7 @@ class Command(BaseCommand):
         session = requests.Session()
         dotcount = 0
 
-        for pm in fetcher.generate_payments():
+        for pm in fetcher.generate_paid_memberships():
 
             # See if the PaidMembership has previously been sent:
             get_params = {'payment_method': pm.payment_method, 'ctrlid': pm.ctrlid}
@@ -40,7 +39,8 @@ class Command(BaseCommand):
             if matchcount == 0:
                 id = None
             elif matchcount == 1:
-                id = int(response.json()['results'][0]['id'])
+                djangodata = response.json()['results'][0]
+                id = int(djangodata['id'])
             else:
                 # Else case is an assertion that matchcount is 0 or 1.
                 raise AssertionError("Too many matches for method %s ctrlid %s" % (pm.payment_method, pm.ctrlid))
@@ -52,16 +52,14 @@ class Command(BaseCommand):
                 response = session.post(self.URL, fetched_data, headers=self.auth_headers)
                 progchar = "+"  # Added
             else:
-                # Are all the items from 2checkout already on the website?
-                djangodata = response.json()['results'][0]
-                fetched_data['id'] = djangodata['id']  # So subset comparison can be made, below:
-                if is_subset_dict(djangodata, fetched_data):
-                    # Yes, so don't do anything with the 2checkout data.
-                    progchar = "="  # Equal so no add or update required.
+                fetched_data.update({'id': djangodata['id'], 'protected': False})  # So subset comparison can be made.
+                if djangodata['protected']:
+                    progchar = "P"  # Protected, so will leave it alone.
+                elif is_subset_dict(djangodata, fetched_data):
+                    progchar = "="  # Equal so no add or update required. Will leave it alone.
                 else:
-                    # No, so update the data on the website.
                     response = session.put("{}{}/".format(self.URL, id), fetched_data, headers=self.auth_headers)
-                    progchar = "U"  # Updated
+                    progchar = "U"  # Change detected so updated.
             if response.status_code >= 300:
                 progchar = "E"  # Error
 
@@ -79,7 +77,8 @@ class Command(BaseCommand):
         print("")
         self.auth_headers = {'Authorization': "Token " + rest_token}
 
-        fetchers = [WePayFetcher(), TwoCheckoutFetcher()]
+        # TODO: THE LIST OF FETCHERS SHOULD COME FROM THE SETTINGS FILE.
+        fetchers = [SquareFetcher(), WePayFetcher(), TwoCheckoutFetcher()]
         for fetcher in fetchers:
             self.handle_fetcher(fetcher)
 

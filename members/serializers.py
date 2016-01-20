@@ -14,10 +14,12 @@ class PaidMembershipSerializer(serializers.ModelSerializer):
             'end_date',
             'payer_name',
             'payer_email',
+            'payer_notes',
             'payment_method',
             'paid_by_member',
             'processing_fee',
             'payment_date',
             'ctrlid',
+            'protected',
         )
 

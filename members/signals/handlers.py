@@ -32,4 +32,6 @@ def email_for_saved_tagging(sender, **kwargs):
 @receiver(pre_save, sender=PaidMembership)
 def link_paidmembership_to_member(sender, **kwargs):
     if kwargs.get('created', True):
-        kwargs.get('instance').link_to_member()
+        pm = kwargs.get('instance')
+        if not pm.protected:
+            pm.link_to_member()
