@@ -93,7 +93,12 @@ class PaymentLinkedFilter(admin.SimpleListFilter):
 class PaidMembershipAdmin(admin.ModelAdmin):
 
     date_hierarchy = 'payment_date'
-    list_filter = [PaymentLinkedFilter, 'payment_method']
+    list_filter = [
+        PaymentLinkedFilter,
+        'payment_method',
+        'membership_type',
+        'protected',
+    ]
 
     def fam_fmt(self,obj): return obj.family_count
     fam_fmt.admin_order_field = 'family_count'
