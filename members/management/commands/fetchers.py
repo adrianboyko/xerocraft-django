@@ -30,7 +30,7 @@ class Fetcher(object):  # The "ET" in "ETL"
 
 class TwoCheckoutFetcher(Fetcher):
 
-    def generate_from_lineitems(self, lineitems):
+    def gen_from_lineitems(self, lineitems):
 
         if len(lineitems) > 1:
             print("WARNING: More than two line items in invoice.")
@@ -48,7 +48,7 @@ class TwoCheckoutFetcher(Fetcher):
             pm.family_count   = str(int((amt-50)/10))
             yield pm
 
-    def generate_from_invoices(self, invoices):
+    def gen_from_invoices(self, invoices):
         invoices_to_skip = ['105756939333']
         for invoice in invoices:
 
@@ -60,7 +60,7 @@ class TwoCheckoutFetcher(Fetcher):
                 # See http://help.2checkout.com/articles/Knowledge_Article/Payout-Status
                 continue
 
-            for pm in self.generate_from_lineitems(invoice.lineitems):
+            for pm in self.gen_from_lineitems(invoice.lineitems):
                 pm.processing_fee = Decimal(invoice.fees_2co)
                 pm.payment_date   = parser.parse(invoice.date_placed).date()
                 pm.start_date     = pm.payment_date  # Inclusive
@@ -69,11 +69,11 @@ class TwoCheckoutFetcher(Fetcher):
                 pm.ctrlid         = invoice.invoice_id
                 yield pm
 
-    def generate_from_sales(self, sales):
+    def gen_from_sales(self, sales):
         for sale in sales:  # sale summary
             sale = twocheckout.Sale.find({'sale_id': sale.sale_id})  # sale detail
 
-            for pm in self.generate_from_invoices(sale.invoices):
+            for pm in self.gen_from_invoices(sale.invoices):
                 nameparts = [
                     sale.customer.first_name,
                     sale.customer.middle_initial,
@@ -95,7 +95,7 @@ class TwoCheckoutFetcher(Fetcher):
             # opts = {'cur_page':page_num, 'pagesize':100, 'customer_name':"Glen Olson"}
             opts = {'cur_page': page_num, 'pagesize': 100}
             page_info, sales_on_page = twocheckout.Sale.list(opts)
-            for pm in self.generate_from_sales(sales_on_page):
+            for pm in self.gen_from_sales(sales_on_page):
                 yield pm
             max_page_num = page_info.last_page
             page_num += 1
@@ -110,10 +110,11 @@ def date2timestamp(date):
 class WePayFetcher(Fetcher):
 
     session = requests.Session()
+    auth_headers = None
 
     limit = 1000  # The max number of checkins returned per find.
 
-    def generate_from_checkouts(self, checkouts):
+    def gen_from_checkouts(self, checkouts):
         assert len(checkouts) < self.limit
         for checkout in checkouts:
 
@@ -154,11 +155,7 @@ class WePayFetcher(Fetcher):
             pm.processing_fee = Decimal(checkout['fee']) + Decimal(checkout['app_fee'])
             yield pm
 
-    def generate_paid_memberships(self):
-        accounts = input("WePay Accounts: ").split()
-        rest_token = input("WePay Token: ")  # So far, same token works for all accts.
-        auth_headers = {'Authorization': "Bearer " + rest_token}
-
+    def gen_from_account_charges(self, accounts):
         for account in accounts:
             URL = "https://wepayapi.com/v2/checkout/find"
 
@@ -172,11 +169,62 @@ class WePayFetcher(Fetcher):
                     'end_time': str(date2timestamp(window_end)),
                     'limit': str(self.limit)
                 }
-                response = self.session.post(URL, post_data, headers=auth_headers)
+                response = self.session.post(URL, post_data, headers=self.auth_headers)
                 checkouts = response.json()
-                for pm in self.generate_from_checkouts(checkouts):
+                for pm in self.gen_from_checkouts(checkouts):
                     yield pm
 
+    def gen_from_subscription_charges(self, charges):
+
+        for charge in charges:
+            pm = PaidMembership()
+            yield pm
+
+    def gen_from_plan_subscriptions(self, subscriptions):
+        for subscription in subscriptions:
+
+            # POST https://wepayapi.com/v2/subscription_charge/find
+            # Arg subscription_id, e.g. 1370897469
+            # Gives list of charges
+            charges = None
+
+            for pm in self.gen_from_plan_subscriptions(subscriptions):
+                yield pm
+
+    def gen_from_subscription_plans(self, plans):
+        for plan in plans:
+
+            if plan["number_of_subscriptions"] == 0: continue
+            # POST https://wepayapi.com/v2/subscription/find
+            # Arg subscription_plan_id, e.g. 681408808
+            # Gives subscription_ids, e.g. 1370897469
+            subscriptions = None
+
+            for pm in self.gen_from_plan_subscriptions(subscriptions):
+                yield pm
+
+    def gen_from_account_subscriptions(self, accounts):
+        for account in accounts:
+
+            # GET https://wepayapi.com/v2/subscription_plan/find
+            # Gives subscription_plan_ids, e.g. 681408808
+            plans = None
+
+            for pm in self.gen_from_subscription_plans(plans):
+                yield pm
+
+    def generate_paid_memberships(self):
+        accounts = input("WePay Accounts: ").split()
+        rest_token = input("WePay Token: ")  # So far, same token works for all accts.
+        self.auth_headers = {'Authorization': "Bearer " + rest_token}
+
+        # Process the regular one-time checkouts.
+        for pm in self.gen_from_account_charges(accounts):
+            yield pm
+
+        # Process subscriptions and associated charges.
+        #for pm in self.gen_from_account_subscriptions(accounts):
+        #    yield pm
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
@@ -194,7 +242,7 @@ class SquareFetcher(Fetcher):
         "Medium Sticker",
     ]
 
-    def generate_from_itemizations(self, itemizations, payment_id, payment_date, payment_total, payment_fee):
+    def gen_from_itemizations(self, itemizations, payment_id, payment_date, payment_total, payment_fee):
         for item in itemizations:
             if item['name'] in self.uninteresting: continue
             elif item['name'] == "One Month Membership":
@@ -249,7 +297,7 @@ class SquareFetcher(Fetcher):
         names = parsed_page.xpath("//div[contains(@class,'name_on_card')]/text()")
         return names[0] if len(names)>0 else ""
 
-    def generate_from_payment(self, payments):
+    def gen_from_payment(self, payments):
         for payment in payments:
             payment_id = payment["id"]
             payment_date = parser.parse(payment["created_at"]).date()
@@ -257,7 +305,7 @@ class SquareFetcher(Fetcher):
             payment_total = float(payment["gross_sales_money"]["amount"]) / 100.0
             receipt_name = None  # Only get it if we know we need it. We won't need it for every payment.
             itemizations = payment['itemizations']
-            for pm in self.generate_from_itemizations(itemizations, payment_id, payment_date, payment_total, payment_fee):
+            for pm in self.gen_from_itemizations(itemizations, payment_id, payment_date, payment_total, payment_fee):
                 pm.payer_email = ""  # Annoyingly, not provided by Square.
                 if receipt_name is None:  # We now know we need it, so get it.
                     receipt_name = self.get_name_from_receipt(payment['receipt_url'])
@@ -293,5 +341,5 @@ class SquareFetcher(Fetcher):
             }
             response = self.session.get(payments_url, params=get_data, headers=get_headers)
             payments = response.json()
-            for pm in self.generate_from_payment(payments):
+            for pm in self.gen_from_payment(payments):
                 yield pm
