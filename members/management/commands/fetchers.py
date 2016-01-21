@@ -175,41 +175,71 @@ class WePayFetcher(Fetcher):
                     yield pm
 
     def gen_from_subscription_charges(self, charges):
-
         for charge in charges:
+
+            if not charge["state"].startswith("captured"):
+                if not charge["state"] == "failed": print(charge["state"])
+                continue
+
             pm = PaidMembership()
+
+            pm.payment_method = PaidMembership.PAID_BY_WEPAY
+            pm.ctrlid = charge['subscription_charge_id']
+
+            pm.payment_date = date.fromtimestamp(int(charge['create_time']))  # TODO: This is UTC timezone.
+            pm.start_date = pm.payment_date
+            pm.end_date = pm.start_date + relativedelta(months=1, days=-1)  # REVIEW: Use "end_time" instead?
+
+            pm.paid_by_member = charge["amount"]
+            pm.processing_fee = charge["fee"]
+
             yield pm
 
     def gen_from_plan_subscriptions(self, subscriptions):
         for subscription in subscriptions:
-
-            # POST https://wepayapi.com/v2/subscription_charge/find
-            # Arg subscription_id, e.g. 1370897469
-            # Gives list of charges
-            charges = None
-
-            for pm in self.gen_from_plan_subscriptions(subscriptions):
+            response = self.session.post(
+                "https://wepayapi.com/v2/subscription_charge/find",  # subscription_id --> list of charges
+                {'subscription_id': subscription['subscription_id']},
+                headers = self.auth_headers)
+            charges = response.json()
+            for pm in self.gen_from_subscription_charges(charges):
+                pm.payer_name = subscription['payer_name']
+                pm.payer_email = subscription['payer_email']
+                pm.payer_notes = ""
+                if subscription['fee_payer'] == "payer":
+                    print("Fee is paid by payer. Situation has not yet been analyzed.")
                 yield pm
 
     def gen_from_subscription_plans(self, plans):
         for plan in plans:
 
             if plan["number_of_subscriptions"] == 0: continue
-            # POST https://wepayapi.com/v2/subscription/find
-            # Arg subscription_plan_id, e.g. 681408808
-            # Gives subscription_ids, e.g. 1370897469
-            subscriptions = None
 
+            if not plan['name'].startswith("Membership"):
+                print("Unexpected subscription plan: " + plan['name'])
+                continue
+
+            if plan['name'] == "Membership":
+                family_count = 0
+            else:
+                countstr = plan['name'].replace("Membership +", "")
+                family_count = int(countstr)
+
+            response = self.session.post(
+                "https://wepayapi.com/v2/subscription/find",  # subscription_plan_id --> list of subscriptions
+                {'subscription_plan_id': plan["subscription_plan_id"]},
+                headers = self.auth_headers)
+            subscriptions = response.json()
             for pm in self.gen_from_plan_subscriptions(subscriptions):
+                pm.family_count = family_count
                 yield pm
 
     def gen_from_account_subscriptions(self, accounts):
         for account in accounts:
-
-            # GET https://wepayapi.com/v2/subscription_plan/find
-            # Gives subscription_plan_ids, e.g. 681408808
-            plans = None
-
+            response = self.session.get(
+                "https://wepayapi.com/v2/subscription_plan/find",  # No args --> list of all subscription plans
+                headers=self.auth_headers)
+            plans = response.json()
             for pm in self.gen_from_subscription_plans(plans):
                 yield pm
 
@@ -218,13 +248,14 @@ class WePayFetcher(Fetcher):
         rest_token = input("WePay Token: ")  # So far, same token works for all accts.
         self.auth_headers = {'Authorization': "Bearer " + rest_token}
 
+        # Process subscriptions and associated charges.
+        for pm in self.gen_from_account_subscriptions(accounts):
+            yield pm
+
         # Process the regular one-time checkouts.
         for pm in self.gen_from_account_charges(accounts):
             yield pm
 
-        # Process subscriptions and associated charges.
-        #for pm in self.gen_from_account_subscriptions(accounts):
-        #    yield pm
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
