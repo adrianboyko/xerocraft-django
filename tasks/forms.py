@@ -1,14 +1,19 @@
 from django import forms
 from django.forms.widgets import TextInput
-from django.core.validators import MaxValueValidator
+from django.core.validators import ValidationError
 from django.contrib.auth import authenticate
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Submit, HTML, Div
-from datetime import datetime
+from datetime import datetime, date
 
 
 class NumberInput(TextInput):
     input_type = 'number'
+
+
+def is_today_or_earlier_date_validator(value):
+    if value > date.today():
+        raise ValidationError("{0} is a future date.".format(value))
 
 
 class Desktop_TimeSheetForm(forms.Form):
@@ -21,7 +26,7 @@ class Desktop_TimeSheetForm(forms.Form):
     work_date = forms.DateField(
         widget=forms.TextInput(attrs={'class': 'datepicker', 'placeholder':'MM/DD/YYYY'}),
         label="Date on which work was done: ",
-        validators=[MaxValueValidator(datetime.today().date())], # Don't allow future dates
+        validators=[is_today_or_earlier_date_validator]
     )
 
     work_time = forms.TimeField(
