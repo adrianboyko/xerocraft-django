@@ -140,6 +140,8 @@ class PaidMembershipAdmin(admin.ModelAdmin):
         'how_fmt',
     ]
 
+    readonly_fields = ['ctrlid']
+
     fieldsets = [
         ('Membership Details', {'fields': [
             'member',
@@ -156,6 +158,8 @@ class PaidMembershipAdmin(admin.ModelAdmin):
             'processing_fee',
             'payment_date',
             'payment_method',
+        ]}),
+        ('Other', {'fields': [
             'ctrlid',
             'protected',
         ]}),

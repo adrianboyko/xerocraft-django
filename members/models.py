@@ -285,6 +285,16 @@ class VisitEvent(models.Model):
         unique_together = ('who', 'when')
 
 
+def next_paidmembership_ctrlid():
+    '''Provides an arbitrary default value for the ctrlid field, necessary when check or cash data is being entered manually.'''
+    # REVIEW: There is a nonzero probability that default ctrlids will collide when two users are doing manual data entry at the same time.
+    #         This isn't considered a significant problem since we'll be lucky to get ONE person to do data entry.
+    #         If it does become a problem, the probability could be reduced by using random numbers.
+    physical_pay_methods = [PaidMembership.PAID_BY_CASH, PaidMembership.PAID_BY_CHECK]
+    latest_pm = PaidMembership.objects.filter(payment_method__in=physical_pay_methods).latest('ctrlid')
+    return str(int(latest_pm.ctrlid)+1).zfill(6)
+
+
 class PaidMembership(models.Model):
 
     member = models.ForeignKey(Member, related_name='terms',
@@ -354,7 +364,7 @@ class PaidMembership(models.Model):
         help_text="Payment processor's fee, regardless of whether it was paid by the member or Xerocraft.")
     processing_fee.verbose_name = "Amt of Processing Fee"
 
-    ctrlid = models.CharField(max_length=40, null=True, blank=False,
+    ctrlid = models.CharField(max_length=40, null=True, blank=False, default=next_paidmembership_ctrlid,
         help_text="Payment processor's id for this payment.")
 
     payment_date = models.DateField(null=True, blank=True,
