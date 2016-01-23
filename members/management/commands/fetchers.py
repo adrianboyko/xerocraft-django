@@ -5,6 +5,7 @@ from members.models import PaidMembership
 from dateutil.relativedelta import relativedelta
 from dateutil import parser
 from datetime import date
+from hashlib import md5
 import time
 import requests
 import lxml.html
@@ -122,7 +123,16 @@ class WePayFetcher(Fetcher):
                 continue
 
             desc = checkout['short_description']
-            if desc.startswith("One Month Membership"): months = 1
+            if checkout['checkout_id'] in [1877931854, 390559320]:
+                # These are membership purchases that were erroneously entered as donations.
+                months = 6
+            elif checkout['amount'] == 20 \
+             and desc == "Recurring Payment to Donation" \
+             and md5(checkout['payer_name'].encode('utf-8')).hexdigest() == "95c53a5e254c1847ad8526b625862294":
+                # Dale says that this recurring donation should be treated as a grandfathered membership.
+                # I'm checking against md5 of the payer-name so I don't have personal info in source.
+                months = 1
+            elif desc.startswith("One Month Membership"): months = 1
             elif desc.startswith("Three Month Membership"): months = 3
             elif desc.startswith("Six Month Membership"): months = 6
             elif desc.startswith("Recurring Payment to Dues-Paying Member"): months = 1
@@ -275,7 +285,18 @@ class SquareFetcher(Fetcher):
 
     def gen_from_itemizations(self, itemizations, payment_id, payment_date, payment_total, payment_fee):
         for item in itemizations:
-            if item['name'] in self.uninteresting: continue
+
+            family_count = None
+
+            if payment_id == '0JFN0loJ0kcy8DXCvuDVwwMF':
+                # This is a work trade payment that was erroneously entered as a custom payment.
+                # So we do this special processing to ingest it as a 1 month Work Trade membership.
+                family_count = 0
+                months = 1
+                short_item_code = "WT"
+                membership_type = PaidMembership.MT_WORKTRADE
+            elif item['name'] in self.uninteresting:
+                continue
             elif item['name'] == "One Month Membership":
                 months = 1
                 short_item_code = "1MM"
@@ -288,7 +309,6 @@ class SquareFetcher(Fetcher):
                 print("Didn't recognize item name: "+item['name'])
                 continue
 
-            family_count = None
             for modifier in item["modifiers"]:
                 if modifier["name"] == "Just myself": family_count = 0
                 elif modifier["name"] == "1 add'l family member": family_count = 1
