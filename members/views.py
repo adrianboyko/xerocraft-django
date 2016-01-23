@@ -16,8 +16,10 @@ from reportlab.graphics.barcode.qr import QrCodeWidget
 from reportlab.graphics import renderPDF
 from reportlab.lib.units import inch, mm
 from reportlab.lib.pagesizes import letter
-from dateutil import relativedelta
+from dateutil.relativedelta import relativedelta
 from logging import getLogger
+from collections import Counter
+from time import mktime
 
 logger = getLogger("members")
 
@@ -361,3 +363,26 @@ class PaidMembershipViewSet(viewsets.ModelViewSet):  # Django REST Framework
     queryset = PaidMembership.objects.all().order_by('-payment_date')
     serializer_class = PaidMembershipSerializer
     filter_fields = {'payment_method', 'ctrlid'}
+
+
+def desktop_member_count_vs_date(request):
+    work_trade_data = Counter()
+    regular_data = Counter()
+    paid_memberships = PaidMembership.objects.all()
+    for pm in paid_memberships:
+        wt = pm.membership_type == pm.MT_WORKTRADE
+        wt_inc = 1 if wt else 0
+        regular_inc = 0 if wt else 1
+        day = pm.start_date
+        while day <= pm.end_date:
+            if day >= date(2015,1,1) and day <= date(2015,12,31):
+                js_time_milliseconds = int(mktime(day.timetuple())) * 1000
+                work_trade_data.update({js_time_milliseconds: wt_inc})
+                regular_data.update({js_time_milliseconds: regular_inc})
+            day += relativedelta(days=1)
+
+    js_times = sorted(regular_data)  # Gets keys
+    regular_counts = [regular_data[k] for k in js_times]
+    work_trade_counts = [work_trade_data[k] for k in js_times]
+    data = list(zip(js_times, regular_counts, work_trade_counts))
+    return render(request, 'members/desktop-member-count-vs-date.html', {'data': data})

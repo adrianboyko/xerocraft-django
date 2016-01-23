@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Members vs Date</title>
+
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript">
+      google.charts.load('current', {'packages':['corechart']});
+      google.charts.setOnLoadCallback(drawChart);
+
+      function drawChart() {
+        var data = google.visualization.arrayToDataTable([
+          ['Date', 'Regular', "Work-Trade"],
+          {% for theDate, otherCount, wtCount in data %}
+            [new Date({{theDate}}),{{otherCount}},{% if wtCount %}{{wtCount}}{% else %}null{% endif %}],
+          {% endfor %}
+        ]);
+
+        var options = {
+          title: 'Members vs Date',
+          legend: { position: 'bottom' },
+          vAxis: {
+            minValue: 0
+          },
+          isStacked: true
+        };
+
+        var chart = new google.visualization.SteppedAreaChart(document.getElementById('the_chart'));
+
+        chart.draw(data, options);
+      }
+    </script>
+
+</head>
+<body>
+    <div id="the_chart" style="width: 900px; height: 500px"></div>
+</body>
+</html>

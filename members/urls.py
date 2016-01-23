@@ -12,6 +12,7 @@ urlpatterns = [
     url(r'^create-card-download/$', views.create_card_download, name='create-card-download'),
     url(r'^desktop/member-tags/$', views.member_tags, name='desktop-member-tags'),
     url(r'^desktop/member-tags/(?P<member_pk>[0-9]+)(?P<op>[+-])(?P<tag_pk>[0-9]+)/$', views.member_tags, name='desktop-member-tags'),
+    url(r'^desktop/member-count-vs-date/$', views.desktop_member_count_vs_date, name='desktop-member-count-vs-date'),
 
     # For kiosk:
     url(r'^kiosk/waiting/$', views.kiosk_waiting),
