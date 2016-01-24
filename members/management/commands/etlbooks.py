@@ -28,8 +28,9 @@ class Command(BaseCommand):
     def handle_fetcher(self, fetcher):
 
         session = requests.Session()
-        dotcount = 0
+        progcount = 0
 
+        print("")
         for pm in fetcher.generate_paid_memberships():
 
             # See if the PaidMembership has previously been sent:
@@ -64,21 +65,21 @@ class Command(BaseCommand):
                 progchar = "E"  # Error
 
             print(progchar, end='')  # Progress indicator
-            dotcount += 1
-            if dotcount % 50 == 0:
-                print(" {}".format(dotcount))
+            progcount += 1
+            if progcount % 50 == 0:
+                print(" {}".format(progcount))
             sys.stdout.flush()
-        print("")
+        if progcount % 50 != 0: print("")
 
     def handle(self, *args, **options):
 
         print("Will push data to {}".format(self.URL))
         rest_token = input("REST API token: ")
-        print("")
         self.auth_headers = {'Authorization': "Token " + rest_token}
 
         # TODO: THE LIST OF FETCHERS SHOULD COME FROM THE SETTINGS FILE.
-        fetchers = [SquareFetcher(), WePayFetcher(), TwoCheckoutFetcher()]
+        fetchers = [WePayFetcher(), SquareFetcher(), TwoCheckoutFetcher()]
         for fetcher in fetchers:
             self.handle_fetcher(fetcher)
 
+        print("")

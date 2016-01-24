@@ -10,7 +10,6 @@ import time
 import requests
 import lxml.html
 
-
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 class Fetcher(object):  # The "ET" in "ETL"
@@ -87,8 +86,8 @@ class TwoCheckoutFetcher(Fetcher):
                 yield pm
 
     def generate_paid_memberships(self):
-        userid = input("2CO userid: ")
-        password = input("2CO password: ")
+        userid = input("2Checkout userid: ")
+        password = input("2Checkout password: ")
         twocheckout.Api.credentials({'username': userid, 'password': password})
         max_page_num = 99
         page_num = 1
