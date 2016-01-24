@@ -329,6 +329,7 @@ def kiosk_main_menu(request, member_card_str):
     }
     return render(request, 'members/kiosk-main-menu.html', params)
 
+
 def kiosk_staff_menu(request, member_card_str):
 
     member = Member.get_by_card_str(member_card_str)
@@ -340,6 +341,7 @@ def kiosk_staff_menu(request, member_card_str):
         "memb_card_str" : member_card_str
     }
     return render(request, 'members/kiosk-staff-menu.html', params)
+
 
 def kiosk_identify_subject(request, staff_card_str, next_url):
 
@@ -365,7 +367,11 @@ class PaidMembershipViewSet(viewsets.ModelViewSet):  # Django REST Framework
     filter_fields = {'payment_method', 'ctrlid'}
 
 
+@login_required()
 def desktop_member_count_vs_date(request):
+    if not request.user.member.is_tagged_with("Director"):
+        return HttpResponse("This page is for Directors only.")
+
     work_trade_data = Counter()
     regular_data = Counter()
     paid_memberships = PaidMembership.objects.all()
@@ -373,12 +379,11 @@ def desktop_member_count_vs_date(request):
         wt = pm.membership_type == pm.MT_WORKTRADE
         wt_inc = 1 if wt else 0
         regular_inc = 0 if wt else 1
-        day = pm.start_date
-        while day <= pm.end_date:
-            if day >= date(2015,1,1) and day <= date(2015,12,31):
-                js_time_milliseconds = int(mktime(day.timetuple())) * 1000
-                work_trade_data.update({js_time_milliseconds: wt_inc})
-                regular_data.update({js_time_milliseconds: regular_inc})
+        day = max(pm.start_date, date(2015,1,1))
+        while day <= min(pm.end_date, date(2015,12,31)):
+            js_time_milliseconds = int(mktime(day.timetuple())) * 1000
+            work_trade_data.update({js_time_milliseconds: wt_inc})
+            regular_data.update({js_time_milliseconds: regular_inc})
             day += relativedelta(days=1)
 
     js_times = sorted(regular_data)  # Gets keys
@@ -386,3 +391,22 @@ def desktop_member_count_vs_date(request):
     work_trade_counts = [work_trade_data[k] for k in js_times]
     data = list(zip(js_times, regular_counts, work_trade_counts))
     return render(request, 'members/desktop-member-count-vs-date.html', {'data': data})
+
+
+@login_required()
+def desktop_paid_percent(request):
+    if not request.user.member.is_tagged_with("Director"):
+        return HttpResponse("This page is for Directors only.")
+
+    paid_days = Counter()
+    paid_memberships = PaidMembership.objects.all()
+    for pm in paid_memberships:
+        day = max(pm.start_date, date(2015,1,1))
+        while day <= min(pm.end_date, date(2015,12,31)):
+            if pm.member is not None:
+                paid_days.update({pm.member: 1})
+            day += relativedelta(days=1)
+
+    members = list(paid_days)  # Gets keys
+    data = [(k.username, int(100.0*v/365.0)) for k,v in paid_days.items()]
+    return render(request, 'members/desktop-paid-percent.html', {'data': data})

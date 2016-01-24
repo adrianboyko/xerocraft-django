@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Member Commitment</title>
+
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript">
+      google.charts.load('current', {'packages':['corechart']});
+      google.charts.setOnLoadCallback(drawChart);
+
+      function drawChart() {
+        var data = google.visualization.arrayToDataTable([
+          ["Member", "Paid %"],
+          {% for username, paid_count in data %}
+            ['{{username}}',{{paid_count}}],
+          {% endfor %}
+        ]);
+
+        var options = {
+          legend: 'none',
+          vAxis: { format:'decimal', gridlines: {count:7}},
+          hAxis: { format:'decimal'},
+          width: 1280-200,
+          height: 768-200,
+          chartArea: {width: '90%', height: '90%'},
+        };
+
+        var chart = new google.visualization.Histogram(document.getElementById('the_chart'));
+
+        chart.draw(data, options);
+      }
+    </script>
+
+</head>
+<body style="font-family:Tahoma, Geneva, sans-serif">
+<h1>Commitment to Monetary Support (2015)</h1>
+    <div id="intro_text" style="width:750px">
+        <p>
+            The following histogram indicates the degree to which members are committed to supporting Xerocraft
+            through paid membership. Each block represents a member and appears in a bin indicating the percent
+            of the year that the member had had a paid membership. This analysis includes Work-Traders.
+        </p>
+    </div>
+    <div id="the_chart" style="width:1280; height:768px; margin-left:50px; text-align:center;"></div>
+</body>
+</html>
