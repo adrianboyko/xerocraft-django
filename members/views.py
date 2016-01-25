@@ -5,6 +5,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.views.generic import View
+from django.db.models import Count
 from members.models import Member, Tag, Tagging, VisitEvent, PaidMembership
 from members.forms import Desktop_ChooseUserForm, Books_NotePaymentForm
 from rest_framework import viewsets
@@ -401,12 +402,31 @@ def desktop_paid_percent(request):
     paid_days = Counter()
     paid_memberships = PaidMembership.objects.all()
     for pm in paid_memberships:
-        day = max(pm.start_date, date(2015,1,1))
-        while day <= min(pm.end_date, date(2015,12,31)):
+        day = max(pm.start_date, date(2015, 1, 1))
+        while day <= min(pm.end_date, date(2015, 12, 31)):
             if pm.member is not None:
                 paid_days.update({pm.member: 1})
             day += relativedelta(days=1)
-
     members = list(paid_days)  # Gets keys
     data = [(k.username, int(100.0*v/365.0)) for k,v in paid_days.items()]
-    return render(request, 'members/desktop-paid-percent.html', {'data': data})
+
+    # Count the number of members that paid for the ENTIRE year.
+    fully_paid_member_count = 0
+    partially_paid_member_count = 0
+    for k,v in paid_days.items():
+        if v >= 365: fully_paid_member_count += 1
+        if v < 365: partially_paid_member_count += 1
+
+    total_visitors = VisitEvent.objects\
+        .filter(when__range=['2015-01-01','2015-12-31'])\
+        .aggregate(Count('who', distinct=True))
+    total_visitors = total_visitors['who__count']
+
+    opts = {
+        'data': data,
+        'total_visitors': total_visitors,
+        'fully_paid_count': fully_paid_member_count,
+        'partially_paid_count': partially_paid_member_count,
+        'year': 2015,
+    }
+    return render(request, 'members/desktop-paid-percent.html', opts)

@@ -11,7 +11,7 @@
 
       function drawChart() {
         var data = google.visualization.arrayToDataTable([
-          ["Member", "Paid %"],
+          ["Member", "Percent"],
           {% for username, paid_count in data %}
             ['{{username}}',{{paid_count}}],
           {% endfor %}
@@ -33,15 +33,28 @@
     </script>
 
 </head>
-<body style="font-family:Tahoma, Geneva, sans-serif">
-<h1>Commitment to Monetary Support (2015)</h1>
+<body style="padding-left:50px; font-family:Tahoma, Geneva, sans-serif">
+<h1>Support through Memberships ({{year}})</h1>
     <div id="intro_text" style="width:750px">
         <p>
-            The following histogram indicates the degree to which members are committed to supporting Xerocraft
-            through paid membership. Each block represents a member and appears in a bin indicating the percent
-            of the year that the member had had a paid membership. This analysis includes Work-Traders.
+            In the following histogram, each block represents a member and the block appears in a bin
+            indicating the portion (%) of the year that the member had a paid membership.
+            This analysis includes Work-Traders.
         </p>
     </div>
-    <div id="the_chart" style="width:1280; height:768px; margin-left:50px; text-align:center;"></div>
+    <div id="the_chart" style="width:1000px; height:95%; padding-left:50px; text-align:center;"></div>
+    <div style="width:750px">
+        <br/>{{year}} Summary:
+        <ul>
+            <li>There were {{total_visitors}} unique visitors.
+            <li>
+                {{partially_paid_count}} ({% widthratio partially_paid_count total_visitors 100.0 %}%)
+                of them paid for <b>some of</b> the year.
+            <li>
+                {{fully_paid_count}} ({% widthratio fully_paid_count total_visitors 100.0 %}%)
+                of them paid for <b>the entire</b> year.
+            </li>
+        </ul>
+    </div>
 </body>
 </html>
