@@ -1,13 +1,23 @@
 from django.shortcuts import render, render_to_response
 from django.contrib import auth
+from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, HttpResponseRedirect
 from django.template import RequestContext
+from members.models import Member
 
 __author__ = 'Adrian'
 
 
 def index(request):
     return render(request, 'xerocraft/xerocraft-home.html',{})
+
+
+@login_required
+def director_menu(request):
+    if not request.user.member.is_tagged_with("Director"):
+        return HttpResponse("This page is for Directors only.")
+    else:
+        return render(request, 'xerocraft/director-menu.html',{})
 
 
 # Based on code from http://www.tangowithdjango.com/book/chapters/login.html

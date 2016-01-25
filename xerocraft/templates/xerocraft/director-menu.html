@@ -1,0 +1,44 @@
+
+{% load staticfiles %}
+
+<head>
+    <title>BoD</title>
+
+    <style>
+        body { margin-left:20pt; margin-right:20pt; }
+        h1 { font-family:Arial; font-size:22pt; margin-top:50px; }
+        h2 { font-family:Arial; font-size:14pt; margin-top:20px; }
+        ul { font-family:Arial; font-size:10pt; }
+        img { width:40; margin-right:0pt; }
+        td { vertical-align:center; text-align:center; width:50%; }
+        span { font-size:10pt; font-weight:normal; }
+        span.exp { color:red; }
+    </style>
+
+</head>
+
+<body style="text-align:center">
+
+    <h1><img src="{% static 'xerocraft/Big Bold X.png' %}" alt="Xerocraft Logo"/>erocraft<br/>Internal Systems</h1>
+
+<table style="width:35%;" align="center">
+    <tr>
+        <td><h2><a href="/members/desktop/member-count-vs-date/">Member<br/>Count vs Date</a></h2></td>
+        <td><h2><a href="/members/desktop/paid-percent/">Member<br/>Commitment</a></h2></td>
+    </tr>
+    <tr>
+        <td colspan="2"><h2><a href="/">Main Menu</a></h2></td>
+    </tr>
+
+</table>
+
+    {% if user.is_authenticated %}
+        <h2 style="display:inline-block; padding:10px; padding-bottom:10px; background-color:#ffb3b3">
+            <a href="/logout/">Logout {{ request.user }}</a>
+        </h2>
+    {% endif %}
+
+</body>
+
+
+
