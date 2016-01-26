@@ -33,16 +33,12 @@ class Desktop_RequestPermitForm(forms.Form):
             (1,"Go ahead and carefully move it."),
             (0,"Try to contact you before moving it.")))
 
-    paying_member = forms.TypedChoiceField(widget=forms.RadioSelect,
-        coerce=int,
-        label="My membership status is: ",
-        choices=(
-            (1, 'Paying member with dues up-to-date.'),
-            (0, 'Open Hack participant, guest, visitor, or other.')))
-
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('request', None).user
-        self.base_fields['id_verify'].label = "I am %s %s." % (user.first_name, user.last_name)
+        most_formal_name = user.username
+        if user.first_name is not None and user.last_name is not None:
+            most_formal_name = "{} {}".format(user.first_name, user.last_name)
+        self.base_fields['id_verify'].label = "I am {}".format(most_formal_name)
         self.base_fields['owner_email'].initial = "" if user.email is None else user.email
         self.helper = FormHelper()
         self.helper.layout = Layout(

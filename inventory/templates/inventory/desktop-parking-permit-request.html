@@ -14,9 +14,15 @@
     <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/2.3.2/css/bootstrap.min.css" media='screen'/>
 
     <style>
-        #submit-id-submit:hover {
+        #submit-id-submit:focus, #submit-id-submit:hover {
             background: #fff url(/static/admin/img/nav-bg.gif) bottom repeat-x;
             color: black;
+        }
+        #submit-id-submit {
+            float:right;
+        }
+        form {
+            overflow:hidden;
         }
         #branding h1 {
             margin: 0;
@@ -37,7 +43,8 @@
             float:right;
             font-size:10pt;
             line-height:12pt;
-            margin-top:0;
+            margin-top:3px;
+            margin-right:5px;
             margin-bottom:0;
             text-align:right;
         }
@@ -70,17 +77,16 @@
 
         <div id="container"> <!-- Container -->
             <div id="header"> <!-- Header -->
+                <a id="logout" href="/logout">logout<br>{{request.user}}</a>
                 <div id="branding">
                     <h1 id="site-name">Request a Parking Permit</h1>
                 </div>
             </div> <!-- END Header -->
 
             <div id="content" class="colM"> <!-- Content -->
-                <a id="logout" href="/logout">logout<br>{{request.user}}</a>
                 {% crispy form %}
             </div>
         </div>
-
 </body>
 
 

@@ -90,7 +90,6 @@ def _form_to_session(request, form):
     request.session["short_desc"] = form.cleaned_data["short_desc"]
     request.session["ok_to_move"] = form.cleaned_data["ok_to_move"]
     request.session["owner_email"] = form.cleaned_data["owner_email"]
-    request.session["paying_member"] = form.cleaned_data["paying_member"]
     request.session.modified = True
 
 
@@ -102,7 +101,6 @@ def _session_to_form(request, form):
     form.fields['short_desc'].initial = request.session.get('short_desc', "")
     form.fields['ok_to_move'].initial = request.session.get('ok_to_move', "")
     form.fields['owner_email'].initial = request.session.get('owner_email', request.user.email)
-    form.fields['paying_member'].initial = request.session.get('paying_member', "")
 
 
 def _clear_session(request):
@@ -113,7 +111,6 @@ def _clear_session(request):
     del request.session["short_desc"]
     del request.session["ok_to_move"]
     del request.session["owner_email"]
-    del request.session["paying_member"]
     del request.session["approving_member_username"]
     request.session.modified = True
 
@@ -125,7 +122,7 @@ def desktop_request_parking_permit(request):
         form = Desktop_RequestPermitForm(request.POST, request=request)
         if form.is_valid():
             _form_to_session(request, form)
-            if request.session.get("paying_member"):
+            if request.user.member.is_currently_paid():
                 return redirect('inv:desktop-verify-parking-permit')
             else:
                 return redirect('inv:desktop-approve-parking-permit')
