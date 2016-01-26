@@ -5,6 +5,7 @@ import base64
 import uuid
 import hashlib
 from nameparser import HumanName
+from datetime import datetime, date, timedelta
 
 # TODO: Rework various validate() methods into Model.clean()? See Django's "model validation" docs.
 
@@ -101,8 +102,17 @@ class Member(models.Model):
                 return tagging.can_tag
         return False
 
-    def is_domain_staff(self):
+    def is_domain_staff(self):  # Different than website staff.
         return self.is_tagged_with("Staff")
+
+    def is_currently_paid(self):
+        ''' Determine whether member is currently covered by a membership payment with a 7 day grace period.'''
+        now = datetime.now().date()
+        grace_period = timedelta(days=7)
+        pm = PaidMembership.objects.filter(
+            member=self,
+            start_date__lte=now, end_date__gte=now-grace_period)
+        return len(pm) > 0
 
     @property
     def first_name(self): return self.auth_user.first_name
@@ -396,6 +406,9 @@ class PaidMembership(models.Model):
             # TODO: Else log WARNING (or maybe just INFO)
         except User.DoesNotExist:
             pass
+
+    def __str__(self):
+        return "%s, %s, %s" % (self.member, self.start_date, self.end_date)
 
     class Meta:
         unique_together = ('payment_method', 'ctrlid')
