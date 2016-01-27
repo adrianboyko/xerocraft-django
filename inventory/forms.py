@@ -53,7 +53,6 @@ class Desktop_RequestPermitForm(forms.Form):
             'owner_email',
             'short_desc',
             'ok_to_move',
-            'paying_member',
             Submit('submit', 'Submit', css_class='button white'),
         )
         super(Desktop_RequestPermitForm, self).__init__(*args, **kwargs)
