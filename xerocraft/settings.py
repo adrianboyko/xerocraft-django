@@ -97,6 +97,11 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.security.SecurityMiddleware',
 )
 
+SESSION_COOKIE_AGE = 10*60
+SESSION_SECURITY_WARN_AFTER = 9*60
+SESSION_SAVE_EVERY_REQUEST = True
+
+
 AUTHENTICATION_BACKENDS = (
     'xerocraft.authenticators.CaseInsensitiveModelBackend',
     'xerocraft.authenticators.XerocraftBackend',
