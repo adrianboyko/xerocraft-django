@@ -296,13 +296,22 @@ class VisitEvent(models.Model):
 
 
 def next_paidmembership_ctrlid():
-    '''Provides an arbitrary default value for the ctrlid field, necessary when check or cash data is being entered manually.'''
+    '''Provides an arbitrary default value for the ctrlid field, necessary when check, cash, or gift-card data is being entered manually.'''
     # REVIEW: There is a nonzero probability that default ctrlids will collide when two users are doing manual data entry at the same time.
     #         This isn't considered a significant problem since we'll be lucky to get ONE person to do data entry.
     #         If it does become a problem, the probability could be reduced by using random numbers.
-    physical_pay_methods = [PaidMembership.PAID_BY_CASH, PaidMembership.PAID_BY_CHECK]
-    latest_pm = PaidMembership.objects.filter(payment_method__in=physical_pay_methods).latest('ctrlid')
-    return str(int(latest_pm.ctrlid)+1).zfill(6)
+    physical_pay_methods = [
+        PaidMembership.PAID_BY_CASH,
+        PaidMembership.PAID_BY_CHECK,
+        PaidMembership.PAID_BY_GIFT,
+    ]
+    physical_count = PaidMembership.objects.filter(payment_method__in=physical_pay_methods).count()
+    if physical_count > 0:
+        latest_pm = PaidMembership.objects.filter(payment_method__in=physical_pay_methods).latest('ctrlid')
+        return str(int(latest_pm.ctrlid)+1).zfill(6)
+    else:
+        # This only happens for a new database when there are no physical paid memberships.
+        return "0".zfill(6)
 
 
 class PaidMembership(models.Model):
