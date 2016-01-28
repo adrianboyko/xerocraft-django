@@ -350,6 +350,7 @@ class PaidMembership(models.Model):
 
     PAID_BY_CASH   = "$"
     PAID_BY_CHECK  = "C"
+    PAID_BY_GIFT   = "G"
     PAID_BY_SQUARE = "S"
     PAID_BY_2CO    = "2"
     PAID_BY_WEPAY  = "W"
@@ -357,6 +358,7 @@ class PaidMembership(models.Model):
     PAID_BY_CHOICES = [
         (PAID_BY_CASH,   "Cash"),
         (PAID_BY_CHECK,  "Check"),
+        (PAID_BY_GIFT,   "Gift Card"), # These entries are made when person redeems the gift card.
         (PAID_BY_SQUARE, "Square"),
         (PAID_BY_2CO,    "2Checkout"),
         (PAID_BY_WEPAY,  "WePay"),
@@ -374,7 +376,7 @@ class PaidMembership(models.Model):
         help_text="Payment processor's fee, regardless of whether it was paid by the member or Xerocraft.")
     processing_fee.verbose_name = "Amt of Processing Fee"
 
-    ctrlid = models.CharField(max_length=40, null=True, blank=False, default=next_paidmembership_ctrlid,
+    ctrlid = models.CharField(max_length=40, null=False, blank=False, default=next_paidmembership_ctrlid,
         help_text="Payment processor's id for this payment.")
 
     payment_date = models.DateField(null=True, blank=True,
