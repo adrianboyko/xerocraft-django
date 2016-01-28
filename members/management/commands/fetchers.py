@@ -278,6 +278,7 @@ class SquareFetcher(Fetcher):
         "Custom Amount",  # I believe this is a donation.
         "Refill Soda Account",
         "Holiday Gift Card (6 months)",
+        "Holiday Gift Card (3 months)",
         "Bumper Sticker",
         "Medium Sticker",
     ]
@@ -326,7 +327,7 @@ class SquareFetcher(Fetcher):
                 pm.ctrlid = "{}:{}:{}".format(payment_id, short_item_code, str(n))
                 pm.payer_email = ""  # Annoyingly, not provided by Square.
                 pm.payer_name = ""  # Annoyingly, not provided by Square.
-                pm.payer_notes = item.get("notes", "")
+                pm.payer_notes = item.get("notes", "").strip()
                 pm.payment_date = payment_date
                 pm.start_date = pm.payment_date
                 if pm.membership_type == PaidMembership.MT_WORKTRADE:
