@@ -92,6 +92,7 @@ class PaymentLinkedFilter(admin.SimpleListFilter):
 @admin.register(PaidMembership)
 class PaidMembershipAdmin(admin.ModelAdmin):
 
+    ordering = ['-start_date']
     date_hierarchy = 'start_date'
     list_filter = [
         PaymentLinkedFilter,
