@@ -283,6 +283,23 @@ class SquareFetcher(Fetcher):
         "Medium Sticker",
     ]
 
+    WORK_TRADE_ITEMS = [
+        "Work-Trade Fee",
+        "Work-Trade Dues",
+        "01 - January Dues",
+        "02 - February Dues",
+        "03 - March Dues",
+        "04 - April Dues",
+        "05 - May Dues",
+        "06 - June Dues",
+        "07 - July Dues",
+        "08 - August Dues",
+        "09 - September Dues",
+        "10 - October Dues",
+        "11 - November Dues",
+        "12 - December Dues",
+    ]
+
     def gen_from_itemizations(self, itemizations, payment_id, payment_date, payment_total, payment_fee):
         for item in itemizations:
 
@@ -301,7 +318,7 @@ class SquareFetcher(Fetcher):
                 months = 1
                 short_item_code = "1MM"
                 membership_type = PaidMembership.MT_REGULAR
-            elif item['name'] in ["Work-Trade Fee", "Work-Trade Dues"]:
+            elif item['name'] in self.WORK_TRADE_ITEMS:
                 months = 1
                 short_item_code = "WT"
                 membership_type = PaidMembership.MT_WORKTRADE
@@ -331,9 +348,20 @@ class SquareFetcher(Fetcher):
                 pm.payment_date = payment_date
                 pm.start_date = pm.payment_date
                 if pm.membership_type == PaidMembership.MT_WORKTRADE:
-                    # This is a guess, but it will usually be right.
-                    # TODO: Add better logic once people start choosing month modifier.
-                    pm.start_date = pm.start_date.replace(day=1)
+                    pm.start_date = pm.start_date.replace(day=1)  # WT always starts on the 1st.
+                    lname = item['name'].lower()
+                    if "january" in lname:     pm.start_date = pm.start_date.replace(month=1) # TODO: Payment for Jan year X+1 in Dec year X
+                    elif "february" in lname:  pm.start_date = pm.start_date.replace(month=2)
+                    elif "march" in lname:     pm.start_date = pm.start_date.replace(month=3)
+                    elif "april" in lname:     pm.start_date = pm.start_date.replace(month=4)
+                    elif "may" in lname:       pm.start_date = pm.start_date.replace(month=5)
+                    elif "june" in lname:      pm.start_date = pm.start_date.replace(month=6)
+                    elif "july" in lname:      pm.start_date = pm.start_date.replace(month=7)
+                    elif "august" in lname:    pm.start_date = pm.start_date.replace(month=8)
+                    elif "september" in lname: pm.start_date = pm.start_date.replace(month=9)
+                    elif "october" in lname:   pm.start_date = pm.start_date.replace(month=10)
+                    elif "november" in lname:  pm.start_date = pm.start_date.replace(month=11)
+                    elif "december" in lname:  pm.start_date = pm.start_date.replace(month=12) # TODO: Payment for Dec X-1 in Jan year X
                 pm.end_date = pm.start_date + relativedelta(months=months, days=-1)
                 pm.family_count = family_count
                 pm.paid_by_member = float(item['gross_sales_money']['amount']) / (quantity * 100.0)
