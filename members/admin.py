@@ -26,6 +26,7 @@ class TaggingAdmin(admin.ModelAdmin):
 
 @admin.register(VisitEvent)
 class VisitEventAdmin(admin.ModelAdmin):
+    ordering = ['-when']
     list_display = ['pk', 'when', 'who', 'event_type', 'method', 'sync1']
     readonly_fields = ['when', 'who', 'event_type', 'method', 'sync1']
     search_fields = [
