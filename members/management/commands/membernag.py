@@ -35,6 +35,8 @@ class Command(BaseCommand):
     logger = logging.getLogger("members")
     bad_visits = None
     most_recent_payment = None
+    tz = timezone.get_default_timezone()
+
 
     def note_bad_visit(self, visit, pm: PaidMembership):
 
@@ -85,7 +87,8 @@ class Command(BaseCommand):
         time_leeway = timedelta(hours=1)
         date_leeway = timedelta(days=14)
 
-        today = timezone.make_aware(datetime.now(),timezone.get_default_timezone())
+        today = datetime.now().replace(hour=0,minute=0,second=0,microsecond=0)
+        today = timezone.make_aware(today, timezone.get_default_timezone())
         yesterday = today - timedelta(days=1)
 
         yesterdays_visits = VisitEvent.objects.filter(when__range=[yesterday, today])
@@ -93,8 +96,11 @@ class Command(BaseCommand):
 
             # Ignore the visit if it was during open hacks because all open hack visits are OK.
             for (hack_dow, hack_start, hack_end) in OPENHACKS:
-                if visit.when.date().weekday() == hack_dow:
-                    if hack_start-time_leeway <= visit.when.time() <= hack_end+time_leeway:
+                visit_dow = timezone.localtime(visit.when).weekday()
+                if visit_dow == hack_dow:
+                    hack_start = self.tz.localize(datetime.combine(yesterday, hack_start))
+                    hack_end = self.tz.localize(datetime.combine(yesterday, hack_end))
+                    if hack_start-time_leeway <= visit.when <= hack_end+time_leeway:
                         continue  # Because those are open hack hours
 
             # Ignore visits by directors (who have decided they don't need to pay)
