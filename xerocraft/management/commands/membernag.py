@@ -32,7 +32,7 @@ OPENHACKS = [
 class Command(BaseCommand):
 
     help = "Emails unpaid members who visit during paid member hours."
-    logger = logging.getLogger("members")
+    logger = logging.getLogger("xerocraft-django")
     bad_visits = None
     most_recent_payment = None
     tz = timezone.get_default_timezone()
