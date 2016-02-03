@@ -284,21 +284,39 @@ class SquareFetcher(Fetcher):
     ]
 
     WORK_TRADE_ITEMS = [
-        "Work-Trade Fee",
-        "Work-Trade Dues",
-        "01 - January Dues",
-        "02 - February Dues",
-        "03 - March Dues",
-        "04 - April Dues",
-        "05 - May Dues",
-        "06 - June Dues",
-        "07 - July Dues",
-        "08 - August Dues",
-        "09 - September Dues",
-        "10 - October Dues",
-        "11 - November Dues",
-        "12 - December Dues",
+        "Work-Trade Fee",       # Obsolete, but still necessary for backfills.
+        "Work-Trade Dues",      # ditto
+        "01 - January Dues",    # ditto
+        "02 - February Dues",   # ditto
+        "03 - March Dues",      # ditto
+        "04 - April Dues",      # ditto
+        "05 - May Dues",        # ditto
+        "06 - June Dues",       # ditto
+        "07 - July Dues",       # ditto
+        "08 - August Dues",     # ditto
+        "09 - September Dues",  # ditto
+        "10 - October Dues",    # ditto
+        "11 - November Dues",   # ditto
+        "12 - December Dues",   # ditto
+        "6hr Work-Trade Dues",  # Current
+        "9hr Work-Trade Dues",  # Current
     ]
+
+    def month_in_str(self, str):
+        str = str.lower()
+        if "january"     in str: return 1  # TODO: Payment for Jan year X+1 in Dec year X
+        elif "february"  in str: return 2
+        elif "march"     in str: return 3
+        elif "april"     in str: return 4
+        elif "may"       in str: return 5
+        elif "june"      in str: return 6
+        elif "july"      in str: return 7
+        elif "august"    in str: return 8
+        elif "september" in str: return 9
+        elif "october"   in str: return 10
+        elif "november"  in str: return 11
+        elif "december"  in str: return 12  # TODO: Payment for Dec X-1 in Jan year X
+        else: return None
 
     def gen_from_itemizations(self, itemizations, payment_id, payment_date, payment_total, payment_fee):
         for item in itemizations:
@@ -326,13 +344,19 @@ class SquareFetcher(Fetcher):
                 print("Didn't recognize item name: "+item['name'])
                 continue
 
+            month = self.month_in_str(item['name'])
+
             for modifier in item["modifiers"]:
-                if modifier["name"] == "Just myself": family_count = 0
-                elif modifier["name"] == "1 add'l family member": family_count = 1
-                elif modifier["name"] == "2 add'l family members": family_count = 2
-                elif modifier["name"] == "3 add'l family members": family_count = 3
-                elif modifier["name"] == "4 add'l family members": family_count = 4
-                elif modifier["name"] == "5 add'l family members": family_count = 5
+                lmod = modifier["name"].lower()
+                if lmod == "just myself": family_count = 0
+                elif lmod == "1 add'l family member":  family_count = 1
+                elif lmod == "2 add'l family members": family_count = 2
+                elif lmod == "3 add'l family members": family_count = 3
+                elif lmod == "4 add'l family members": family_count = 4
+                elif lmod == "5 add'l family members": family_count = 5
+                if membership_type == PaidMembership.MT_WORKTRADE and month is None:
+                    month = self.month_in_str(lmod)
+
             if family_count is None:
                 print("Couldn't determine family count for {}:{}".format(payment_id, short_item_code))
 
@@ -349,19 +373,8 @@ class SquareFetcher(Fetcher):
                 pm.start_date = pm.payment_date
                 if pm.membership_type == PaidMembership.MT_WORKTRADE:
                     pm.start_date = pm.start_date.replace(day=1)  # WT always starts on the 1st.
-                    lname = item['name'].lower()
-                    if "january" in lname:     pm.start_date = pm.start_date.replace(month=1) # TODO: Payment for Jan year X+1 in Dec year X
-                    elif "february" in lname:  pm.start_date = pm.start_date.replace(month=2)
-                    elif "march" in lname:     pm.start_date = pm.start_date.replace(month=3)
-                    elif "april" in lname:     pm.start_date = pm.start_date.replace(month=4)
-                    elif "may" in lname:       pm.start_date = pm.start_date.replace(month=5)
-                    elif "june" in lname:      pm.start_date = pm.start_date.replace(month=6)
-                    elif "july" in lname:      pm.start_date = pm.start_date.replace(month=7)
-                    elif "august" in lname:    pm.start_date = pm.start_date.replace(month=8)
-                    elif "september" in lname: pm.start_date = pm.start_date.replace(month=9)
-                    elif "october" in lname:   pm.start_date = pm.start_date.replace(month=10)
-                    elif "november" in lname:  pm.start_date = pm.start_date.replace(month=11)
-                    elif "december" in lname:  pm.start_date = pm.start_date.replace(month=12) # TODO: Payment for Dec X-1 in Jan year X
+                    if month is not None:  # Hopefully, the buyer specified the month.
+                        pm.start_date = pm.start_date.replace(month=month)
                 pm.end_date = pm.start_date + relativedelta(months=months, days=-1)
                 pm.family_count = family_count
                 pm.paid_by_member = float(item['gross_sales_money']['amount']) / (quantity * 100.0)
