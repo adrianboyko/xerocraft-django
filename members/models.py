@@ -324,16 +324,18 @@ class PaidMembership(models.Model):
         on_delete=models.PROTECT,  # Don't delete payment info nor the member linked to it.
         help_text="The member who made the payment.")
 
-    # REVIEW: Membership type is somewhat redundant with "Work-Trade" tag. Eliminate tag?
-    # Note: Strictly speaking, memberships have types, not members.
+    # Note: Strictly speaking, memberships have types, and members don't.
     # Note: If there's no membership term covering some period, member has an "unpaid" membership during that time.
-    MT_REGULAR     = "R"  # E.g. members who pay $50/mo
-    MT_WORKTRADE   = "W"  # E.g. members who work 9 hrs/mo and pay reduced $10/mo
-    MT_SCHOLARSHIP = "S"  # The so-called "full membership", i.e. $0/mo. These function as paid memberships.
+    # REVIEW: Should Scholarship collapse into Complimentary?
+    MT_REGULAR       = "R"  # E.g. members who pay $50/mo
+    MT_WORKTRADE     = "W"  # E.g. members who work 9 hrs/mo and pay reduced $10/mo
+    MT_SCHOLARSHIP   = "S"  # The so-called "full scholarship", i.e. $0/mo. These function as paid memberships.
+    MT_COMPLIMENTARY = "C"  # E.g. for directors, certain sponsors, etc. These function as paid memberships.
     MEMBERSHIP_TYPE_CHOICES = [
-        (MT_REGULAR,     "Regular"),
-        (MT_WORKTRADE,   "Work-Trade"),
-        (MT_SCHOLARSHIP, "Scholarship")
+        (MT_REGULAR,       "Regular"),
+        (MT_WORKTRADE,     "Work-Trade"),
+        (MT_SCHOLARSHIP,   "Scholarship"),
+        (MT_COMPLIMENTARY, "Complimentary"),
     ]
     membership_type = models.CharField(max_length=1, choices=MEMBERSHIP_TYPE_CHOICES,
         null=False, blank=False, default=MT_REGULAR,
