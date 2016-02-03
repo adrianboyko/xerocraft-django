@@ -16,6 +16,8 @@ from reportlab.graphics import renderPDF
 from reportlab.lib.units import inch
 from reportlab.rl_config import defaultPageSize
 
+from datetime import timedelta
+
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 def respond_with_permit_pdf(permit):
@@ -122,7 +124,8 @@ def desktop_request_parking_permit(request):
         form = Desktop_RequestPermitForm(request.POST, request=request)
         if form.is_valid():
             _form_to_session(request, form)
-            if request.user.member.is_currently_paid():
+            grace_period = timedelta(days=7)
+            if request.user.member.is_currently_paid(grace_period):
                 return redirect('inv:desktop-verify-parking-permit')
             else:
                 return redirect('inv:desktop-approve-parking-permit')

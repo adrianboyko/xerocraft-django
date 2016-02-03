@@ -105,10 +105,9 @@ class Member(models.Model):
     def is_domain_staff(self):  # Different than website staff.
         return self.is_tagged_with("Staff")
 
-    def is_currently_paid(self):
+    def is_currently_paid(self, grace_period=timedelta(0)):
         ''' Determine whether member is currently covered by a membership payment with a 7 day grace period.'''
         now = datetime.now().date()
-        grace_period = timedelta(days=7)
         pm = PaidMembership.objects.filter(
             member=self,
             start_date__lte=now, end_date__gte=now-grace_period)
@@ -301,6 +300,7 @@ def next_paidmembership_ctrlid():
     #         This isn't considered a significant problem since we'll be lucky to get ONE person to do data entry.
     #         If it does become a problem, the probability could be reduced by using random numbers.
     physical_pay_methods = [
+        PaidMembership.PAID_BY_NA,  # This is the "physical" payment method in the case of complimentary memberships.
         PaidMembership.PAID_BY_CASH,
         PaidMembership.PAID_BY_CHECK,
         PaidMembership.PAID_BY_GIFT,
@@ -359,6 +359,7 @@ class PaidMembership(models.Model):
     payer_notes = models.CharField(max_length=1024, blank=True,
         help_text="Any notes provided by the member.")
 
+    PAID_BY_NA     = "0"
     PAID_BY_CASH   = "$"
     PAID_BY_CHECK  = "C"
     PAID_BY_GIFT   = "G"
@@ -367,9 +368,10 @@ class PaidMembership(models.Model):
     PAID_BY_WEPAY  = "W"
     PAID_BY_PAYPAL = "P"
     PAID_BY_CHOICES = [
+        (PAID_BY_NA,     "N/A"),  # E.g. complimentary "paid" memberships have no payment method.
         (PAID_BY_CASH,   "Cash"),
         (PAID_BY_CHECK,  "Check"),
-        (PAID_BY_GIFT,   "Gift Card"), # These entries are made when person redeems the gift card.
+        (PAID_BY_GIFT,   "Gift Card"),  # These entries are made when person redeems the gift card.
         (PAID_BY_SQUARE, "Square"),
         (PAID_BY_2CO,    "2Checkout"),
         (PAID_BY_WEPAY,  "WePay"),
