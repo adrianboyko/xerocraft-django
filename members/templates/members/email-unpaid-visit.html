@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+    </head>
+
+    <body style='font-family:Arial; font-color:black'>
+        <p>Hi {{member.first_name}},</p>
+        <p>
+            Thanks for visiting Xerocraft on {{bad_visit | date:"D M d"}} at
+            {{bad_visit | time:"g:iA"}}! But, unfortunately, you visited during paid member hours
+            without an active paid membership.
+            {% if paid_membership %}
+            Your most recent paid membership ended on {{paid_membership.end_date | date:"D M d, Y"}}.
+            {% endif %}
+        </p>
+        <p>{% comment %}TODO: Create vs renew logic. Regular member vs Work-Trade logic.{% endcomment %}
+            To renew your membership, please visit the <a href="http://xerocraft.org/membership.php">Xerocraft Membership</a> page.
+        </p>
+        <p>
+            If you believe any of this information is in error, please reply to this email with details.
+        </p>
+        <p>
+            Thanks!<br/>
+            Xerocraft
+        </p>
+
+
+
+    </body>
+
+</html>

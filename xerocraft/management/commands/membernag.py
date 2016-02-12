@@ -34,9 +34,8 @@ class Command(BaseCommand):
     help = "Emails unpaid members who visit during paid member hours."
     logger = logging.getLogger("xerocraft-django")
     bad_visits = None
-    most_recent_payment = None
+    bad_visitors = None
     tz = timezone.get_default_timezone()
-
 
     def note_bad_visit(self, visit, pm: PaidMembership):
 
@@ -45,44 +44,40 @@ class Command(BaseCommand):
         else:
             self.bad_visits[visit.who] = [visit]
 
-        if visit.who not in self.most_recent_payment:
-            self.most_recent_payment[visit.who] = pm
+        if visit.who not in self.bad_visitors:
+            self.bad_visitors[visit.who] = pm
 
     def process_bad_visits(self):
-        for member, pm in self.most_recent_payment.items():
-            self.logger.info("%s %s (%s), last paid membership: %s to %s",
-                member.first_name,
-                member.last_name,
-                member.username,
-                pm.start_date if pm is not None else "-",
-                pm.end_date if pm is not None else "-"
-            )
-            for visit in self.bad_visits[member]:
-                when = timezone.localtime(visit.when)
-                when = when.strftime("%a, %b %d, %I:%M %p")
-                self.logger.info("visited: %s", when)
+        for member, pm in self.bad_visitors.items():
 
-        '''
-        # Send email messages:
-        text_content_template = get_template('member/unpaid_visit_nag.txt')
-        html_content_template = get_template('member/unpaid_visit_nag.html')
+            # Send email messages:
+            text_content_template = get_template('members/email-unpaid-visit.txt')
+            html_content_template = get_template('members/email-unpaid-visit.html')
 
-        for visit in []:
+            visits = self.bad_visits[member]
+            visits = [timezone.localtime(v.when) for v in visits]
 
-            subject = 'Your Xerocraft Membership'
+            d = Context({
+                'member': member,
+                'paid_membership': pm,
+                'bad_visit': visits[0],
+            })
+
+            subject = 'Time to Renew your Xerocraft Membership'
             from_email = 'Volunteer Coordinator <volunteer@xerocraft.org>'
-            to = member.email
+            to = "adrianboyko@gmail.com" # TODO: This is for testing only.
             text_content = text_content_template.render(d)
             html_content = html_content_template.render(d)
             msg = EmailMultiAlternatives(subject, text_content, from_email, [to])
             msg.attach_alternative(html_content, "text/html")
             msg.send()
-        '''
+
+            self.logger.info("Email sent to %s re bad visit.", member.username)
 
     def nag_for_unpaid_visits(self):
 
         self.bad_visits = {}
-        self.most_recent_payment = {}
+        self.bad_visitors = {}
 
         time_leeway = timedelta(hours=1)
         date_leeway = timedelta(days=14)

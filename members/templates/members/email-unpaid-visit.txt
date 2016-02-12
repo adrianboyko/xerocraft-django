@@ -1,0 +1,12 @@
+Hi {{member.first_name}},
+
+Thanks for visiting Xerocraft on {{bad_visit | date:"D M d"}} at {{bad_visit | time:"g:iA"}}! But, unfortunately, you visited during paid member hours without an active paid membership.
+
+{% if paid_membership %}Your most recent paid membership ended on {{paid_membership.end_date | date:"D M d, Y"}}.{% endif %}
+
+To renew your membership, please visit http://xerocraft.org/membership.php
+
+If you believe any of this information is in error, please reply to this email with details.
+
+Thanks!
+Xerocraft
