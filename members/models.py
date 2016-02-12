@@ -322,7 +322,7 @@ class PaidMembership(models.Model):
         # For two reasons listed above, we allow nulls in next line.
         default=None, null=True, blank=True,
         on_delete=models.PROTECT,  # Don't delete payment info nor the member linked to it.
-        help_text="The member who made the payment.")
+        help_text="The member to whom this paid membership applies.")
 
     # Note: Strictly speaking, memberships have types, and members don't.
     # Note: If there's no membership term covering some period, member has an "unpaid" membership during that time.
@@ -351,10 +351,10 @@ class PaidMembership(models.Model):
         help_text="The last day on which the membership is valid.")
 
     payer_name = models.CharField(max_length=40, blank=True,
-        help_text="No need to provide this if member was linked above.")
+        help_text="Name of person who made the payment.")
 
     payer_email = models.EmailField(max_length=40, blank=True,
-        help_text="No need to provide this if member was linked above.")
+        help_text="Email address of person who made the payment.")
 
     payer_notes = models.CharField(max_length=1024, blank=True,
         help_text="Any notes provided by the member.")
