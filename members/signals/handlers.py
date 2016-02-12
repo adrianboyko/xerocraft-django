@@ -1,8 +1,9 @@
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, user_logged_in
 from django.core.exceptions import ObjectDoesNotExist
-from members.models import Member, Tag, Tagging, PaidMembership
+from members.models import Member, Tag, Tagging, PaidMembership, MemberLogin
+import logging
 
 __author__ = 'Adrian'
 
@@ -35,3 +36,21 @@ def link_paidmembership_to_member(sender, **kwargs):
         pm = kwargs.get('instance')
         if not pm.protected:
             pm.link_to_member()
+
+
+def get_ip_address(request):
+    """ Get client machine's IP address from request """
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0]
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip
+
+
+@receiver(user_logged_in)
+def note_login(sender, user, request, **kwargs):
+    ip = get_ip_address(request)
+    logger = logging.getLogger("members")
+    logger.info("Login: %s at %s" % (user, ip))
+    MemberLogin.objects.create(member=user.member, ip=ip)
