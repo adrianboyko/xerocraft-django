@@ -148,6 +148,8 @@ class Fetcher(AbstractFetcher):
     def generate_paid_memberships(self):
 
         merchant_id = input("Square Merchant ID: ")
+        if merchant_id == "skip": return
+
         rest_token = input("Square Token: ")
 
         get_headers = {
