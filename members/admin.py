@@ -1,5 +1,5 @@
 from django.contrib import admin
-from members.models import Member, Tag, Tagging, VisitEvent, PaidMembership, PaymentAKA
+from members.models import Member, Tag, Tagging, VisitEvent, PaidMembership, PaymentAKA, PaymentReminder, MemberLogin
 from django.utils.translation import ugettext_lazy as _
 
 
@@ -181,3 +181,17 @@ class PaidMembershipAdmin(admin.ModelAdmin):
 class MemberAKAAdmin(admin.ModelAdmin):
     list_display = ['pk', 'member', 'aka']
     raw_id_fields = ['member']
+
+
+@admin.register(PaymentReminder)
+class PaymentReminder(admin.ModelAdmin):
+    list_display = ['pk', 'member', 'when']
+    raw_id_fields = ['member']
+    ordering = ['-when']
+
+
+@admin.register(MemberLogin)
+class MemberLogin(admin.ModelAdmin):
+    list_display = ['pk', 'member', 'when', 'ip']
+    raw_id_fields = ['member']
+    ordering = ['-when']

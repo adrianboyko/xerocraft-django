@@ -429,15 +429,40 @@ class PaidMembership(models.Model):
         unique_together = ('payment_method', 'ctrlid')
 
 
+class PaymentReminder(models.Model):
+    """ Records the fact that we reminded somebody that they should renew their paid membership """
+
+    member = models.ForeignKey(Member, null=False, blank=False, on_delete=models.CASCADE,
+        help_text="The member we reminded.")
+
+    when = models.DateField(null=False, blank=False, default=timezone.now,
+        help_text="Date on which the member was reminded.")
+
+
 class PaymentAKA(models.Model):
     """ Intended primarily to record name variations that are used in payments, etc. """
 
-    member = models.ForeignKey(Member, related_name='akas',
-        null=False, blank=False, on_delete=models.CASCADE,
-        help_text="The member who has an AKA.")
+    member = models.ForeignKey(Member, null=False, blank=False, on_delete=models.CASCADE,
+        help_text="The member who has payments under another name.")
 
     aka = models.CharField(max_length=50, null=False, blank=False,
-        help_text="The AKA (probably a simple variation on their name).")
+        help_text="The AKA, probably their spouse's name or a simple variation on their own name.")
 
     class Meta:
         verbose_name = "Membership AKA"
+
+
+class MemberLogin(models.Model):
+    """ Record member, datetime, ip for each login. """
+
+    member = models.ForeignKey(Member,
+        null=True, blank=True,  # Might log IPs for unauthenticated users.
+        on_delete=models.SET_NULL,  # Keep this info even if member is deleted.
+        help_text="The member who logged in.")
+
+    when = models.DateTimeField(null=False, blank=False, default=timezone.now,
+        help_text="Date/time member logged in.")
+
+    ip = models.GenericIPAddressField(null=False, blank=False,
+        help_text="IP address from which member logged in.")
+
