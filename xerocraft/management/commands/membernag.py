@@ -36,6 +36,8 @@ class Command(BaseCommand):
     bad_visits = None
     bad_visitors = None
     tz = timezone.get_default_timezone()
+    today = None
+    yesterday = None
 
     def note_bad_visit(self, visit, pm: PaidMembership):
 
@@ -74,29 +76,30 @@ class Command(BaseCommand):
 
             self.logger.info("Email sent to %s re bad visit.", member.username)
 
+    def during_open_hack(self, visit):
+        assert timezone.localtime(visit.when).date() == self.yesterday.date()
+        time_leeway = timedelta(hours=1)
+        for (hack_dow, hack_start, hack_end) in OPENHACKS:
+            visit_dow = timezone.localtime(visit.when).weekday()
+            if visit_dow == hack_dow:
+                hack_start = self.tz.localize(datetime.combine(self.yesterday, hack_start))
+                hack_end = self.tz.localize(datetime.combine(self.yesterday, hack_end))
+                if hack_start-time_leeway <= visit.when <= hack_end+time_leeway:
+                    return True
+        return False
+
     def nag_for_unpaid_visits(self):
 
         self.bad_visits = {}
         self.bad_visitors = {}
 
-        time_leeway = timedelta(hours=1)
         date_leeway = timedelta(days=14)
 
-        today = datetime.now().replace(hour=0,minute=0,second=0,microsecond=0)
-        today = timezone.make_aware(today, timezone.get_default_timezone())
-        yesterday = today - timedelta(days=1)
-
-        yesterdays_visits = VisitEvent.objects.filter(when__range=[yesterday, today])
+        yesterdays_visits = VisitEvent.objects.filter(when__range=[self.yesterday, self.today])
         for visit in yesterdays_visits:
 
             # Ignore the visit if it was during open hacks because all open hack visits are OK.
-            for (hack_dow, hack_start, hack_end) in OPENHACKS:
-                visit_dow = timezone.localtime(visit.when).weekday()
-                if visit_dow == hack_dow:
-                    hack_start = self.tz.localize(datetime.combine(yesterday, hack_start))
-                    hack_end = self.tz.localize(datetime.combine(yesterday, hack_end))
-                    if hack_start-time_leeway <= visit.when <= hack_end+time_leeway:
-                        continue  # Because those are open hack hours
+            if self.during_open_hack(visit): continue
 
             # Ignore visits by directors (who have decided they don't need to pay)
             if visit.who.is_tagged_with("Director"): continue
@@ -110,13 +113,13 @@ class Command(BaseCommand):
                 #  2) The member is hopeless and will never pay.
                 continue
 
-            if pm.start_date > yesterday.date():
+            if pm.start_date > self.yesterday.date():
                 # Don't nag because there is a future paid membership.
                 continue
-            elif pm.start_date <= yesterday.date() <= pm.end_date:
+            elif pm.start_date <= self.yesterday.date() <= pm.end_date:
                 # Don't nag because the latest paid membership covers the visit.
                 continue
-            elif yesterday.date() <= pm.end_date+date_leeway:
+            elif self.yesterday.date() <= pm.end_date+date_leeway:
                 # Don't nag yet because we're giving the member some leeway to renew.
                 continue
             else:
@@ -127,6 +130,10 @@ class Command(BaseCommand):
         return
 
     def handle(self, *args, **options):
+
+        self.today = datetime.now().replace(hour=0,minute=0,second=0,microsecond=0)
+        self.today = timezone.make_aware(self.today, timezone.get_default_timezone())
+        self.yesterday = self.today - timedelta(days=1)
 
         self.nag_for_unpaid_visits()
         # There may be other sorts of nags here, in the future.
