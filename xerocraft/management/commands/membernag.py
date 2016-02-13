@@ -3,7 +3,7 @@ from django.core.mail import EmailMultiAlternatives
 from django.template.loader import get_template
 from django.template import Context
 from django.utils import timezone
-from members.models import Member, PaidMembership, VisitEvent
+from members.models import Member, PaidMembership, VisitEvent, PaymentReminder
 from tasks.models import Work
 from datetime import datetime, timedelta, time
 from decimal import Decimal
@@ -29,6 +29,8 @@ OPENHACKS = [
 ]
 
 
+# TODO: Combine this command with the login scraper so it sends email shortly after person arrives?
+# TODO: Should send an alert to staff members' Xerocraft apps.
 class Command(BaseCommand):
 
     help = "Emails unpaid members who visit during paid member hours."
@@ -51,6 +53,10 @@ class Command(BaseCommand):
 
     def process_bad_visits(self):
         for member, pm in self.bad_visitors.items():
+
+            if member.email in [None, ""]:
+                self.logger.info("Bad visit by %s but they haven't provided an email address.", member.username)
+                continue
 
             # Send email messages:
             text_content_template = get_template('members/email-unpaid-visit.txt')
@@ -75,6 +81,7 @@ class Command(BaseCommand):
             msg.send()
 
             self.logger.info("Email sent to %s re bad visit.", member.username)
+            PaymentReminder.objects.create(member=member)
 
     def during_open_hack(self, visit):
         assert timezone.localtime(visit.when).date() == self.yesterday.date()
