@@ -373,24 +373,28 @@ def desktop_member_count_vs_date(request):
     if not request.user.member.is_tagged_with("Director"):
         return HttpResponse("This page is for Directors only.")
 
-    work_trade_data = Counter()
-    regular_data = Counter()
+    end_date = date.today()  # .replace(day=1)  # - relativedelta(days=1)
+    wt_data = Counter()
+    reg_data = Counter()
+    comp_data = Counter()
     paid_memberships = PaidMembership.objects.all()
     for pm in paid_memberships:
-        wt = pm.membership_type == pm.MT_WORKTRADE
-        wt_inc = 1 if wt else 0
-        regular_inc = 0 if wt else 1
+        wt_inc = 1 if pm.membership_type == pm.MT_WORKTRADE else 0
+        reg_inc = 1 if pm.membership_type == pm.MT_REGULAR else 0
+        comp_inc = 1 if pm.membership_type == pm.MT_COMPLIMENTARY else 0
         day = max(pm.start_date, date(2015,1,1))
-        while day <= min(pm.end_date, date(2015,12,31)):
+        while day <= min(pm.end_date, end_date):
             js_time_milliseconds = int(mktime(day.timetuple())) * 1000
-            work_trade_data.update({js_time_milliseconds: wt_inc})
-            regular_data.update({js_time_milliseconds: regular_inc})
+            wt_data.update({js_time_milliseconds: wt_inc})
+            reg_data.update({js_time_milliseconds: reg_inc})
+            comp_data.update({js_time_milliseconds: comp_inc})
             day += relativedelta(days=1)
 
-    js_times = sorted(regular_data)  # Gets keys
-    regular_counts = [regular_data[k] for k in js_times]
-    work_trade_counts = [work_trade_data[k] for k in js_times]
-    data = list(zip(js_times, regular_counts, work_trade_counts))
+    js_times = sorted(reg_data)  # Gets keys
+    reg_counts = [reg_data[k] for k in js_times]
+    wt_counts = [wt_data[k] for k in js_times]
+    comp_counts = [comp_data[k] for k in js_times]
+    data = list(zip(js_times, reg_counts, wt_counts, comp_counts))
     return render(request, 'members/desktop-member-count-vs-date.html', {'data': data})
 
 
