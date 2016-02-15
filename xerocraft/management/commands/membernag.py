@@ -3,7 +3,7 @@ from django.core.mail import EmailMultiAlternatives
 from django.template.loader import get_template
 from django.template import Context
 from django.utils import timezone
-from members.models import Member, PaidMembership, VisitEvent, PaymentReminder
+from members.models import Member, PaidMembership, VisitEvent, PaidMembershipNudge
 from tasks.models import Work
 from datetime import datetime, timedelta, time
 from decimal import Decimal
@@ -81,7 +81,7 @@ class Command(BaseCommand):
             msg.send()
 
             self.logger.info("Email sent to %s re bad visit.", member.username)
-            PaymentReminder.objects.create(member=member)
+            PaidMembershipNudge.objects.create(member=member)
 
     def during_open_hack(self, visit):
         assert timezone.localtime(visit.when).date() == self.yesterday.date()

@@ -294,6 +294,21 @@ class VisitEvent(models.Model):
         unique_together = ('who', 'when')
 
 
+class MemberLogin(models.Model):
+    """ Record member, datetime, ip for each login. """
+
+    member = models.ForeignKey(Member,
+        null=True, blank=True,  # Might log IPs for unauthenticated users.
+        on_delete=models.SET_NULL,  # Keep this info even if member is deleted.
+        help_text="The member who logged in.")
+
+    when = models.DateTimeField(null=False, blank=False, default=timezone.now,
+        help_text="Date/time member logged in.")
+
+    ip = models.GenericIPAddressField(null=False, blank=False,
+        help_text="IP address from which member logged in.")
+
+
 def next_paidmembership_ctrlid():
     '''Provides an arbitrary default value for the ctrlid field, necessary when check, cash, or gift-card data is being entered manually.'''
     # REVIEW: There is a nonzero probability that default ctrlids will collide when two users are doing manual data entry at the same time.
@@ -429,7 +444,7 @@ class PaidMembership(models.Model):
         unique_together = ('payment_method', 'ctrlid')
 
 
-class PaymentReminder(models.Model):
+class PaidMembershipNudge(models.Model):
     """ Records the fact that we reminded somebody that they should renew their paid membership """
 
     member = models.ForeignKey(Member, null=False, blank=False, on_delete=models.CASCADE,
@@ -452,17 +467,108 @@ class PaymentAKA(models.Model):
         verbose_name = "Membership AKA"
 
 
-class MemberLogin(models.Model):
-    """ Record member, datetime, ip for each login. """
+def next_payment_ctrlid():
+    '''Provides an arbitrary default value for the ctrlid field, necessary when check, cash, or gift-card data is being entered manually.'''
+    # REVIEW: There is a nonzero probability that default ctrlids will collide when two users are doing manual data entry at the same time.
+    #         This isn't considered a significant problem since we'll be lucky to get ONE person to do data entry.
+    #         If it does become a problem, the probability could be reduced by using random numbers.
+    physical_pay_methods = [
+        Purchase.PAID_BY_CASH,
+        Purchase.PAID_BY_CHECK,
+    ]
+    physical_count = Purchase.objects.filter(payment_method__in=physical_pay_methods).count()
+    if physical_count > 0:
+        latest_pm = Purchase.objects.filter(payment_method__in=physical_pay_methods).latest('ctrlid')
+        return str(int(latest_pm.ctrlid)+1).zfill(6)
+    else:
+        # This only happens for a new database when there are no physical paid memberships.
+        return "0".zfill(6)
 
-    member = models.ForeignKey(Member,
-        null=True, blank=True,  # Might log IPs for unauthenticated users.
-        on_delete=models.SET_NULL,  # Keep this info even if member is deleted.
-        help_text="The member who logged in.")
 
-    when = models.DateTimeField(null=False, blank=False, default=timezone.now,
-        help_text="Date/time member logged in.")
+# NOTE: "Purchase" is a copy of the Payment fields in PaidMembership.
+# Planning to remove it from PaidMembership but will try it out in MembershipGiftCard first.
+class Purchase(models.Model):
 
-    ip = models.GenericIPAddressField(null=False, blank=False,
-        help_text="IP address from which member logged in.")
+    payment_date = models.DateField(null=False, blank=False, default=timezone.now,
+        help_text="The date on which the payment was made. Best guess if exact date not known.")
 
+    payer_name = models.CharField(max_length=40, blank=True,
+        help_text="Name of person who made the payment.")
+
+    payer_email = models.EmailField(max_length=40, blank=True,
+        help_text="Email address of person who made the payment.")
+
+    PAID_BY_CASH   = "$"
+    PAID_BY_CHECK  = "C"
+    PAID_BY_GIFT   = "G"
+    PAID_BY_SQUARE = "S"
+    PAID_BY_2CO    = "2"
+    PAID_BY_WEPAY  = "W"
+    PAID_BY_PAYPAL = "P"
+    PAID_BY_CHOICES = [
+        (PAID_BY_CASH,   "Cash"),
+        (PAID_BY_CHECK,  "Check"),
+        (PAID_BY_SQUARE, "Square"),
+        (PAID_BY_2CO,    "2Checkout"),
+        (PAID_BY_WEPAY,  "WePay"),
+        (PAID_BY_PAYPAL, "PayPal"),
+    ]
+    payment_method = models.CharField(max_length=1, choices=PAID_BY_CHOICES,
+        null=False, blank=False, default=PAID_BY_CASH,
+        help_text="The payment method used.")
+
+    total_paid_by_customer = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
+        help_text="The full amount paid by the person, including payment processing fee IF CUSTOMER PAID IT.")
+    total_paid_by_customer.verbose_name = "Total Paid by Person"
+
+    processing_fee = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False, default=0,
+        help_text="Payment processor's fee, REGARDLESS OF WHO PAID FOR IT. Zero for cash/check.")
+    processing_fee.verbose_name = "Amt of Processing Fee"
+
+    ctrlid = models.CharField(max_length=40, null=False, blank=False, default=next_payment_ctrlid,
+        help_text="Payment processor's id for this payment.")
+
+
+class MembershipGiftCard(models.Model):
+
+    redemption_code = models.CharField(max_length=20, unique=True, null=False, blank=False,
+        help_text="A random string printed on the card, used during card redemption / membership activation.")
+
+    date_created = models.DateField(null=False, blank=False, default=timezone.now,
+        help_text="The date on which the gift card was created.")
+
+    price = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
+        help_text="The price to buy this gift card.")
+
+    month_duration = models.IntegerField(null=False, blank=False,
+        help_text="The number of months of membership this gift card grants when redeemed.")
+
+    def __str__(self):
+        return "{}, {} months for ${}".format(self.redemption_code, self.month_duration, self.price)
+
+    # NOTE: Card is sold if it points to a payment via "payment" field.
+    # NOTE: Card is redeemed if a PaidMembership points to it via FK.
+
+
+class MembershipGiftCardLineItem(models.Model):
+
+    purchase = models.ForeignKey(Purchase, null=False, blank=False,
+        on_delete=models.PROTECT,  # Don't delete accounting info.
+        help_text="The payment that includes this gift card as a line item.")
+
+    card = models.OneToOneField(MembershipGiftCard, null=False, blank=False,
+        on_delete=models.PROTECT,  # Don't delete accounting info.
+        help_text="The membership gift card that was purchased.")
+
+
+class DonationLineItem(models.Model):
+
+    purchase = models.ForeignKey(Purchase, null=True, blank=True,
+        on_delete=models.PROTECT,  # Don't delete accounting info.
+        help_text="If donation is monetary, this is the payment that includes it as a line item. Else blank.")
+
+    value = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
+        help_text="The amount for a monetary donation or the assessed value for physical item(s) donated.")
+
+    description = models.TextField(max_length=2048, null=True, blank=True,
+        help_text="Description, if physical items are being donated. Blank for monetary donation.")

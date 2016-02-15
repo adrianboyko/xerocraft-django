@@ -1,5 +1,5 @@
 from django.contrib import admin
-from members.models import Member, Tag, Tagging, VisitEvent, PaidMembership, PaymentAKA, PaymentReminder, MemberLogin
+from members.models import *
 from django.utils.translation import ugettext_lazy as _
 
 
@@ -183,8 +183,8 @@ class MemberAKAAdmin(admin.ModelAdmin):
     raw_id_fields = ['member']
 
 
-@admin.register(PaymentReminder)
-class PaymentReminder(admin.ModelAdmin):
+@admin.register(PaidMembershipNudge)
+class PaidMembershipNudgeAdmin(admin.ModelAdmin):
     list_display = ['pk', 'member', 'when']
     raw_id_fields = ['member']
     ordering = ['-when']
@@ -195,3 +195,48 @@ class MemberLogin(admin.ModelAdmin):
     list_display = ['pk', 'member', 'when', 'ip']
     raw_id_fields = ['member']
     ordering = ['-when']
+
+
+@admin.register(MembershipGiftCard)
+class MembershipGiftCardAdmin(admin.ModelAdmin):
+    list_display = [
+        'pk',
+        'redemption_code',
+        'date_created',
+        'price',
+        'month_duration',
+    ]
+    search_fields = [
+        'redemption_code',
+    ]
+    list_filter = ['month_duration', 'price']
+    ordering = ['redemption_code']
+
+
+class DonationLineItemInline(admin.StackedInline):
+    model = DonationLineItem
+    extra = 0
+
+
+class MembershipGiftCardLineItemInline(admin.StackedInline):
+    model = MembershipGiftCardLineItem
+    extra = 0
+    raw_id_fields = ['card']
+
+
+@admin.register(Purchase)
+class Payment(admin.ModelAdmin):
+    list_display = [
+        'pk',
+        'payment_date',
+        'payment_method',
+        'payer_name',
+        'payer_email',
+        'total_paid_by_customer',
+        'processing_fee',
+    ]
+    list_display_links = ['pk']
+    ordering = ['-payment_date']
+    inlines = [DonationLineItemInline, MembershipGiftCardLineItemInline]
+    readonly_fields = ['ctrlid']
+
