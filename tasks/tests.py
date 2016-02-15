@@ -390,7 +390,7 @@ class RunSchedAndNagCmds(TestCase):
 
     def setUp(self):
         self.user = User.objects.create_superuser(username='admin', password='123', email='test@example.com')
-        member = Member.objects.first()
+        member = self.user.member
         member.worker.should_nag = True
         member.worker.save()
 
@@ -402,7 +402,8 @@ class RunSchedAndNagCmds(TestCase):
             work_duration=timedelta(2),
             start_date=date.today(),
             repeat_interval=1,
-            should_nag=True)
+            should_nag=True,
+        )
         self.rt.full_clean()
         self.rt.eligible_claimants.add(member)
 
