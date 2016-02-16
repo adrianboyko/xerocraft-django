@@ -544,7 +544,7 @@ class MembershipGiftCard(models.Model):
         help_text="The number of months of membership this gift card grants when redeemed.")
 
     def __str__(self):
-        return "{}, {} months for ${}".format(self.redemption_code, self.month_duration, self.price)
+        return "{} months for ${}, code: {}".format(self.month_duration, self.price, self.redemption_code)
 
     # NOTE: Card is sold if it points to a payment via "payment" field.
     # NOTE: Card is redeemed if a PaidMembership points to it via FK.
@@ -565,10 +565,7 @@ class DonationLineItem(models.Model):
 
     purchase = models.ForeignKey(Purchase, null=True, blank=True,
         on_delete=models.PROTECT,  # Don't delete accounting info.
-        help_text="If donation is monetary, this is the payment that includes it as a line item. Else blank.")
+        help_text="The payment that includes this donation as a line item.")
 
-    value = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
-        help_text="The amount for a monetary donation or the assessed value for physical item(s) donated.")
-
-    description = models.TextField(max_length=2048, null=True, blank=True,
-        help_text="Description, if physical items are being donated. Blank for monetary donation.")
+    amount = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
+        help_text="The amount donated.")
