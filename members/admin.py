@@ -209,6 +209,7 @@ class MembershipGiftCardAdmin(admin.ModelAdmin):
     search_fields = [
         'redemption_code',
     ]
+    list_display_links = ['pk', 'redemption_code']
     list_filter = ['month_duration', 'price']
     ordering = ['redemption_code']
 
