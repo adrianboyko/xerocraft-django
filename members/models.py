@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from django.contrib.auth.models import User
+from books.models import SaleLineItem
 import base64
 import uuid
 import hashlib
@@ -308,6 +309,13 @@ class MemberLogin(models.Model):
     ip = models.GenericIPAddressField(null=False, blank=False,
         help_text="IP address from which member logged in.")
 
+    class Meta:
+        verbose_name="Login"
+
+
+def next_payment_ctrlid():
+    return next_paidmembership_ctrlid()
+
 
 def next_paidmembership_ctrlid():
     '''Provides an arbitrary default value for the ctrlid field, necessary when check, cash, or gift-card data is being entered manually.'''
@@ -453,80 +461,8 @@ class PaidMembershipNudge(models.Model):
     when = models.DateField(null=False, blank=False, default=timezone.now,
         help_text="Date on which the member was reminded.")
 
-
-class PaymentAKA(models.Model):
-    """ Intended primarily to record name variations that are used in payments, etc. """
-
-    member = models.ForeignKey(Member, null=False, blank=False, on_delete=models.CASCADE,
-        help_text="The member who has payments under another name.")
-
-    aka = models.CharField(max_length=50, null=False, blank=False,
-        help_text="The AKA, probably their spouse's name or a simple variation on their own name.")
-
     class Meta:
-        verbose_name = "Membership AKA"
-
-
-def next_payment_ctrlid():
-    '''Provides an arbitrary default value for the ctrlid field, necessary when check, cash, or gift-card data is being entered manually.'''
-    # REVIEW: There is a nonzero probability that default ctrlids will collide when two users are doing manual data entry at the same time.
-    #         This isn't considered a significant problem since we'll be lucky to get ONE person to do data entry.
-    #         If it does become a problem, the probability could be reduced by using random numbers.
-    physical_pay_methods = [
-        Purchase.PAID_BY_CASH,
-        Purchase.PAID_BY_CHECK,
-    ]
-    physical_count = Purchase.objects.filter(payment_method__in=physical_pay_methods).count()
-    if physical_count > 0:
-        latest_pm = Purchase.objects.filter(payment_method__in=physical_pay_methods).latest('ctrlid')
-        return str(int(latest_pm.ctrlid)+1).zfill(6)
-    else:
-        # This only happens for a new database when there are no physical paid memberships.
-        return "0".zfill(6)
-
-
-# NOTE: "Purchase" is a copy of the Payment fields in PaidMembership.
-# Planning to remove it from PaidMembership but will try it out in MembershipGiftCard first.
-class Purchase(models.Model):
-
-    payment_date = models.DateField(null=False, blank=False, default=timezone.now,
-        help_text="The date on which the payment was made. Best guess if exact date not known.")
-
-    payer_name = models.CharField(max_length=40, blank=True,
-        help_text="Name of person who made the payment.")
-
-    payer_email = models.EmailField(max_length=40, blank=True,
-        help_text="Email address of person who made the payment.")
-
-    PAID_BY_CASH   = "$"
-    PAID_BY_CHECK  = "C"
-    PAID_BY_GIFT   = "G"
-    PAID_BY_SQUARE = "S"
-    PAID_BY_2CO    = "2"
-    PAID_BY_WEPAY  = "W"
-    PAID_BY_PAYPAL = "P"
-    PAID_BY_CHOICES = [
-        (PAID_BY_CASH,   "Cash"),
-        (PAID_BY_CHECK,  "Check"),
-        (PAID_BY_SQUARE, "Square"),
-        (PAID_BY_2CO,    "2Checkout"),
-        (PAID_BY_WEPAY,  "WePay"),
-        (PAID_BY_PAYPAL, "PayPal"),
-    ]
-    payment_method = models.CharField(max_length=1, choices=PAID_BY_CHOICES,
-        null=False, blank=False, default=PAID_BY_CASH,
-        help_text="The payment method used.")
-
-    total_paid_by_customer = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
-        help_text="The full amount paid by the person, including payment processing fee IF CUSTOMER PAID IT.")
-    total_paid_by_customer.verbose_name = "Total Paid by Person"
-
-    processing_fee = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False, default=0,
-        help_text="Payment processor's fee, REGARDLESS OF WHO PAID FOR IT. Zero for cash/check.")
-    processing_fee.verbose_name = "Amt of Processing Fee"
-
-    ctrlid = models.CharField(max_length=40, null=False, blank=False, default=next_payment_ctrlid,
-        help_text="Payment processor's id for this payment.")
+        verbose_name="Renewal reminder"
 
 
 class MembershipGiftCard(models.Model):
@@ -546,26 +482,113 @@ class MembershipGiftCard(models.Model):
     def __str__(self):
         return "{} months for ${}, code: {}".format(self.month_duration, self.price, self.redemption_code)
 
-    # NOTE: Card is sold if it points to a payment via "payment" field.
-    # NOTE: Card is redeemed if a PaidMembership points to it via FK.
+    class Meta:
+        verbose_name="Gift card"
 
 
-class MembershipGiftCardLineItem(models.Model):
+class MembershipGiftCardRedemption(models.Model):
 
-    purchase = models.ForeignKey(Purchase, null=False, blank=False,
-        on_delete=models.PROTECT,  # Don't delete accounting info.
-        help_text="The payment that includes this gift card as a line item.")
+    redemption_date = models.DateField(null=False, blank=False, default=timezone.now,
+        help_text="The date on which the gift card was redeemed.")
 
     card = models.OneToOneField(MembershipGiftCard, null=False, blank=False,
         on_delete=models.PROTECT,  # Don't delete accounting info.
-        help_text="The membership gift card that was purchased.")
+        help_text="The membership gift card that was redeemed.")
+
+    def __str__(self):
+        return "{}, code: {}".format(
+            str(self.membershiplineitem_set.first()),
+            self.card.redemption_code
+        )
+
+    class Meta:
+        verbose_name="Gift card redemption"
 
 
-class DonationLineItem(models.Model):
+# Along with Purchase, the following class will eventually replace PaidMembership.
+# PaidMembership is being kept until the switch-over is complete.
+class Membership(SaleLineItem):
 
-    purchase = models.ForeignKey(Purchase, null=True, blank=True,
+    redemption = models.ForeignKey(MembershipGiftCardRedemption, null=True, blank=True,
         on_delete=models.PROTECT,  # Don't delete accounting info.
-        help_text="The payment that includes this donation as a line item.")
+        help_text="The associated membership gift card redemption, if any. Usually none.")
 
-    amount = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
-        help_text="The amount donated.")
+    member = models.ForeignKey(Member,
+        # There are records of payments which no longer seem to have an associated account.
+        # Name used when paying may be different enough to prevent auto-linking.
+        # For two reasons listed above, we allow nulls in next line.
+        default=None, null=True, blank=True,
+        on_delete=models.PROTECT,  # Don't delete payment info nor the member linked to it.
+        help_text="The member to whom this membership applies.")
+
+    # Note: Strictly speaking, memberships have types, and members don't.
+    # Note: If there's no membership term covering some period, member has an "unpaid" membership during that time.
+    # REVIEW: Should Scholarship collapse into Complimentary?
+    MT_REGULAR       = "R"  # E.g. members who pay $50/mo
+    MT_WORKTRADE     = "W"  # E.g. members who work 9 hrs/mo and pay reduced $10/mo
+    MT_SCHOLARSHIP   = "S"  # The so-called "full scholarship", i.e. $0/mo. These function as paid memberships.
+    MT_COMPLIMENTARY = "C"  # E.g. for directors, certain sponsors, etc. These function as paid memberships.
+    MEMBERSHIP_TYPE_CHOICES = [
+        (MT_REGULAR,       "Regular"),
+        (MT_WORKTRADE,     "Work-Trade"),
+        (MT_SCHOLARSHIP,   "Scholarship"),
+        (MT_COMPLIMENTARY, "Complimentary"),
+    ]
+    membership_type = models.CharField(max_length=1, choices=MEMBERSHIP_TYPE_CHOICES,
+        null=False, blank=False, default=MT_REGULAR,
+        help_text="The type of membership.")
+
+    family_count = models.IntegerField(default=0, null=False, blank=False,
+        help_text="The number of ADDITIONAL family members included in this membership. Usually zero.")
+
+    start_date = models.DateField(null=False, blank=False,
+        help_text="The frist day on which the membership is valid.")
+
+    end_date = models.DateField(null=False, blank=False,
+        help_text="The last day on which the membership is valid.")
+
+    protected = models.BooleanField(default=False,
+        help_text="Protect against further auto processing by ETL, etc. Prevents overwrites of manually enetered data.")
+
+    def link_to_member(self):
+
+        self.member = None
+
+        # Attempt to match by EMAIL
+        try:
+            email_matches = User.objects.filter(email=self.payer_email)
+            if len(email_matches) == 1:
+                self.member = email_matches[0].member
+        except User.DoesNotExist:
+            pass
+
+        # Attempt to match by NAME
+        nameobj = HumanName(self.payer_name)
+        fname = nameobj.first
+        lname = nameobj.last
+        try:
+            name_matches = User.objects.filter(first_name__iexact=fname, last_name__iexact=lname)
+            if len(name_matches) == 1:
+                self.member = name_matches[0].member
+            # TODO: Else log WARNING (or maybe just INFO)
+        except User.DoesNotExist:
+            pass
+
+    def __str__(self):
+        return "%s, %s to %s" % (self.member, self.start_date, self.end_date)
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# Additional Line-Item Models for SaleAdmin in Books app.
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+# NOTE: Making MembershipGiftCard a LineItem results in user needing to create the card info at time of sale.
+# Adding this MembershipGiftCardReference class lets the user select an existing MembershipGiftCard instead.
+
+class MembershipGiftCardReference(SaleLineItem):
+    card = models.ForeignKey(MembershipGiftCard, null=False, blank=False,
+        on_delete=models.PROTECT,  # Don't delete accounting info.
+        help_text="The membership gift card being sold.")
+
+    class Meta:
+        verbose_name = "Membership gift card"

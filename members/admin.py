@@ -1,5 +1,6 @@
 from django.contrib import admin
 from members.models import *
+from books.admin import Sellable
 from django.utils.translation import ugettext_lazy as _
 
 
@@ -177,10 +178,10 @@ class PaidMembershipAdmin(admin.ModelAdmin):
     ]
 
 
-@admin.register(PaymentAKA)
-class MemberAKAAdmin(admin.ModelAdmin):
-    list_display = ['pk', 'member', 'aka']
-    raw_id_fields = ['member']
+# @admin.register(PaymentAKA)
+# class MemberAKAAdmin(admin.ModelAdmin):
+#     list_display = ['pk', 'member', 'aka']
+#     raw_id_fields = ['member']
 
 
 @admin.register(PaidMembershipNudge)
@@ -214,30 +215,91 @@ class MembershipGiftCardAdmin(admin.ModelAdmin):
     ordering = ['redemption_code']
 
 
-class DonationLineItemInline(admin.StackedInline):
-    model = DonationLineItem
+# This is an Inline for MembershipGiftCardRedemptionAdmin
+class MembershipInline(admin.StackedInline):
+    model = Membership
     extra = 0
+    fields = [
+        'member',
+        'membership_type',
+        'family_count',
+        'start_date',
+        'end_date',
+    ]
+    raw_id_fields = ['member']
 
 
-class MembershipGiftCardLineItemInline(admin.StackedInline):
-    model = MembershipGiftCardLineItem
+@admin.register(MembershipGiftCardRedemption)
+class MembershipGiftCardRedemptionAdmin(admin.ModelAdmin):
+    def members(self, obj):
+        return ",".join([str(mli.member) for mli in obj.membershiplineitem_set.all()])
+
+    list_display = ['pk', 'members', 'card']
+    search_fields = ['card__redemption_code']
+    inlines = [
+        MembershipInline,
+    ]
+    raw_id_fields = ['card']
+
+
+@admin.register(Membership)
+class MembershipAdmin(admin.ModelAdmin):
+    ordering = ['-start_date']
+    date_hierarchy = 'start_date'
+    list_filter = [
+        'membership_type',
+    ]
+
+    def fam_fmt(self,obj): return obj.family_count
+    fam_fmt.admin_order_field = 'family_count'
+    fam_fmt.short_description = 'fam'
+
+    def type_fmt(self,obj): return MEMBERSHIP_TYPE_CODE2STR[obj.membership_type]
+    type_fmt.admin_order_field = 'membership_type'
+    type_fmt.short_description = 'type'
+
+    list_display = [
+        'pk',
+        'member',
+        'type_fmt',
+        'fam_fmt',
+        'start_date',
+        'end_date',
+    ]
+
+    fields = [
+        'member',
+        'membership_type',
+        'family_count',
+        'start_date',
+        'end_date',
+    ]
+
+    raw_id_fields = ['member']
+    search_fields = [
+        '^member__auth_user__first_name',
+        '^member__auth_user__last_name',
+        '^member__auth_user__username',
+    ]
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# Line-Item Inlines for SaleAdmin in Books app.
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+@Sellable(MembershipGiftCardReference)
+class MembershipGiftCardLineItem(admin.StackedInline):
     extra = 0
     raw_id_fields = ['card']
 
 
-@admin.register(Purchase)
-class Payment(admin.ModelAdmin):
-    list_display = [
-        'pk',
-        'payment_date',
-        'payment_method',
-        'payer_name',
-        'payer_email',
-        'total_paid_by_customer',
-        'processing_fee',
+@Sellable(Membership)
+class MembershipLineItem(admin.StackedInline):
+    extra = 0
+    fields = [
+        'member',
+        'membership_type',
+        'family_count',
+        'start_date',
+        'end_date',
     ]
-    list_display_links = ['pk']
-    ordering = ['-payment_date']
-    inlines = [DonationLineItemInline, MembershipGiftCardLineItemInline]
-    readonly_fields = ['ctrlid']
-
+    raw_id_fields = ['member']

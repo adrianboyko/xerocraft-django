@@ -84,6 +84,7 @@ INSTALLED_APPS = (
     'social.apps.django_app.default',
     'rest_framework',
     'rest_framework.authtoken',
+    'books',
 )
 
 MIDDLEWARE_CLASSES = (
