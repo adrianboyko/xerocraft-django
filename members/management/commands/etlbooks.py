@@ -1,9 +1,7 @@
 from django.core.management.base import BaseCommand, CommandError
 from members.models import PaidMembership
-from . fetchers import TwoCheckoutFetcher, WePayFetcher, SquareFetcher
 from members.serializers import PaidMembershipSerializer
 import requests
-import logging
 import sys
 
 __author__ = 'adrian'
@@ -74,11 +72,15 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
 
         print("Will push data to {}".format(self.URL))
+
+        fetchers = input("Fetchers: ").split()
+        fetchers = [__import__(x, fromlist=["Fetcher"]) for x in fetchers]
+        fetchers = [getattr(x, 'Fetcher') for x in fetchers]
+        fetchers = [x() for x in fetchers]
+
         rest_token = input("REST API token: ")
         self.auth_headers = {'Authorization': "Token " + rest_token}
 
-        # TODO: THE LIST OF FETCHERS SHOULD COME FROM THE SETTINGS FILE.
-        fetchers = [WePayFetcher(), SquareFetcher(), TwoCheckoutFetcher()]
         for fetcher in fetchers:
             self.handle_fetcher(fetcher)
 
