@@ -200,12 +200,29 @@ class MemberLogin(admin.ModelAdmin):
 
 @admin.register(MembershipGiftCard)
 class MembershipGiftCardAdmin(admin.ModelAdmin):
+
+    def sold(self, obj):
+        refs = obj.membershipgiftcardreference_set.all()
+        if len(refs) == 1:
+            ref = refs[0]
+            return ref.sale.sale_date
+        return None
+
+    def created(self, obj):
+        return obj.date_created
+
+    def redeemed(self, obj):
+        redemp = obj.membershipgiftcardredemption
+        return redemp.redemption_date
+
     list_display = [
         'pk',
         'redemption_code',
-        'date_created',
         'price',
         'month_duration',
+        'created',
+        'sold',
+        'redeemed',
     ]
     search_fields = [
         'redemption_code',
