@@ -232,7 +232,7 @@ class MembershipInline(admin.StackedInline):
 @admin.register(MembershipGiftCardRedemption)
 class MembershipGiftCardRedemptionAdmin(admin.ModelAdmin):
     def members(self, obj):
-        return ",".join([str(mli.member) for mli in obj.membershiplineitem_set.all()])
+        return ",".join([str(mli.member) for mli in obj.membership_set.all()])
 
     list_display = ['pk', 'members', 'card']
     search_fields = ['card__redemption_code']
@@ -282,6 +282,7 @@ class MembershipAdmin(admin.ModelAdmin):
         '^member__auth_user__username',
     ]
 
+
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # Line-Item Inlines for SaleAdmin in Books app.
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -303,3 +304,8 @@ class MembershipLineItem(admin.StackedInline):
         'end_date',
     ]
     raw_id_fields = ['member']
+
+
+@Sellable(GroupMembership)
+class GroupMembershipLineItem(admin.StackedInline):
+    extra = 0

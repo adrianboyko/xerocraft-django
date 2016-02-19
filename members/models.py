@@ -337,6 +337,22 @@ def next_paidmembership_ctrlid():
         return "0".zfill(6)
 
 
+class GroupMembership(SaleLineItem):
+
+    group_tag = models.ForeignKey(Tag, null=False, blank=False,
+        on_delete=models.PROTECT,  # Don't delete accounting info.
+        help_text="The group to which this membership applies, defined by a tag.")
+
+    start_date = models.DateField(null=False, blank=False,
+        help_text="The frist day on which the membership is valid.")
+
+    end_date = models.DateField(null=False, blank=False,
+        help_text="The last day on which the membership is valid.")
+
+    max_members = models.IntegerField(default=None, null=True, blank=True,
+        help_text="The maximum number of members to which this group membership can be applied. Blank if no limit.")
+
+
 class PaidMembership(models.Model):
 
     member = models.ForeignKey(Member, related_name='terms',
@@ -497,7 +513,7 @@ class MembershipGiftCardRedemption(models.Model):
 
     def __str__(self):
         return "{}, code: {}".format(
-            str(self.membershiplineitem_set.first()),
+            str(self.membership_set.first()),
             self.card.redemption_code
         )
 
@@ -512,6 +528,10 @@ class Membership(SaleLineItem):
     redemption = models.ForeignKey(MembershipGiftCardRedemption, null=True, blank=True,
         on_delete=models.PROTECT,  # Don't delete accounting info.
         help_text="The associated membership gift card redemption, if any. Usually none.")
+
+    group = models.ForeignKey(GroupMembership, null=True, blank=True,
+        on_delete=models.PROTECT,  # Don't delete accounting info.
+        help_text="The associated group membership, if any. Usually none.")
 
     member = models.ForeignKey(Member,
         # There are records of payments which no longer seem to have an associated account.
@@ -528,11 +548,13 @@ class Membership(SaleLineItem):
     MT_WORKTRADE     = "W"  # E.g. members who work 9 hrs/mo and pay reduced $10/mo
     MT_SCHOLARSHIP   = "S"  # The so-called "full scholarship", i.e. $0/mo. These function as paid memberships.
     MT_COMPLIMENTARY = "C"  # E.g. for directors, certain sponsors, etc. These function as paid memberships.
+    MT_GROUP         = "G"  # E.g. Bit Buckets, Pima Engineering Club, JobPath
     MEMBERSHIP_TYPE_CHOICES = [
         (MT_REGULAR,       "Regular"),
         (MT_WORKTRADE,     "Work-Trade"),
         (MT_SCHOLARSHIP,   "Scholarship"),
         (MT_COMPLIMENTARY, "Complimentary"),
+        (MT_GROUP,         "Group"),
     ]
     membership_type = models.CharField(max_length=1, choices=MEMBERSHIP_TYPE_CHOICES,
         null=False, blank=False, default=MT_REGULAR,
@@ -586,6 +608,7 @@ class Membership(SaleLineItem):
 # Adding this MembershipGiftCardReference class lets the user select an existing MembershipGiftCard instead.
 
 class MembershipGiftCardReference(SaleLineItem):
+
     card = models.ForeignKey(MembershipGiftCard, null=False, blank=False,
         on_delete=models.PROTECT,  # Don't delete accounting info.
         help_text="The membership gift card being sold.")
