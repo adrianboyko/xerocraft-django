@@ -31,4 +31,8 @@ urlpatterns = [
     url(r'^tasks/', include('tasks.urls', namespace="task")),
     url(r'^inventory/', include('inventory.urls', namespace="inv")),
     url('', include('social.apps.django_app.urls', namespace='social')),
+
+    # DJANGO REST FRAMEWORK API
+    url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework'))
+
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
