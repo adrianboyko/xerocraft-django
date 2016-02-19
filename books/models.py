@@ -96,7 +96,7 @@ class SaleNote(models.Model):
 
 class SaleLineItem(models.Model):
 
-    purchase = models.ForeignKey(Sale, null=True, blank=True,
+    sale = models.ForeignKey(Sale, null=True, blank=True,
         on_delete=models.PROTECT,  # Don't delete accounting info.
         help_text="The sale that includes this line item.")
 
