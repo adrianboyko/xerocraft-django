@@ -280,6 +280,8 @@ class MembershipAdmin(admin.ModelAdmin):
         '^member__auth_user__first_name',
         '^member__auth_user__last_name',
         '^member__auth_user__username',
+        'sale__payer_name',
+        'sale__payer_email',
     ]
 
 
