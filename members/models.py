@@ -352,6 +352,41 @@ class GroupMembership(SaleLineItem):
     max_members = models.IntegerField(default=None, null=True, blank=True,
         help_text="The maximum number of members to which this group membership can be applied. Blank if no limit.")
 
+    def matches(self, membership):
+        if membership.start_date   != self.start_date: return False
+        if membership.end_date     != self.end_date: return False
+        if membership.family_count != 0: return False
+        if membership.type         != membership.MT_GROUP: return False
+        return True
+
+    def copy_to(self, membership):
+        membership.start_date      = self.start_date
+        membership.end_date        = self.end_date
+        membership.family_count    = 0  # Don't anticipate group memberships allowing additional family members.
+        membership.membership_type = Membership.MT_GROUP
+        membership.save()
+
+    def get_or_create_membership_for(self, member):
+        """Get or create a membership and ensure that it matches the group membership's parameters."""
+
+        defaults = {
+            'start_date':      self.start_date,
+            'end_date':        self.end_date,
+            'family_count':    0,  # Don't anticipate group memberships allowing additional family members.
+            'membership_type': Membership.MT_GROUP
+        }
+        membership, created = Membership.objects.get_or_create(member=member, group=self, defaults=defaults)
+        if created or not self.matches(membership): self.copy_to(membership)
+        return membership
+
+    def sync_memberships(self):
+        # Create or update the membership for each person in the group:
+        for member in self.group_tag.members.all():
+            # Following ensures that the membership is synched
+            self.get_or_create_membership_for(member)
+        # Deletion of memberships for people who are no longer in the group will be handled in
+            # a signal handler for Tagging deletions.
+
 
 class PaidMembership(models.Model):
 
@@ -370,11 +405,13 @@ class PaidMembership(models.Model):
     MT_WORKTRADE     = "W"  # E.g. members who work 9 hrs/mo and pay reduced $10/mo
     MT_SCHOLARSHIP   = "S"  # The so-called "full scholarship", i.e. $0/mo. These function as paid memberships.
     MT_COMPLIMENTARY = "C"  # E.g. for directors, certain sponsors, etc. These function as paid memberships.
+    MT_GROUP         = "G"  # E.g. for directors, certain sponsors, etc. These function as paid memberships.
     MEMBERSHIP_TYPE_CHOICES = [
         (MT_REGULAR,       "Regular"),
         (MT_WORKTRADE,     "Work-Trade"),
         (MT_SCHOLARSHIP,   "Scholarship"),
         (MT_COMPLIMENTARY, "Complimentary"),
+        (MT_GROUP,         "Group"),
     ]
     membership_type = models.CharField(max_length=1, choices=MEMBERSHIP_TYPE_CHOICES,
         null=False, blank=False, default=MT_REGULAR,

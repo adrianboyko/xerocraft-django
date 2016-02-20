@@ -6,7 +6,7 @@ from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.views.generic import View
 from django.db.models import Count
-from members.models import Member, Tag, Tagging, VisitEvent, PaidMembership
+from members.models import Member, Tag, Tagging, VisitEvent, PaidMembership, Membership
 from members.forms import Desktop_ChooseUserForm, Books_NotePaymentForm
 from rest_framework import viewsets
 from .serializers import PaidMembershipSerializer
@@ -377,24 +377,42 @@ def desktop_member_count_vs_date(request):
     wt_data = Counter()
     reg_data = Counter()
     comp_data = Counter()
+    group_data = Counter()
     paid_memberships = PaidMembership.objects.all()
     for pm in paid_memberships:
         wt_inc = 1 if pm.membership_type == pm.MT_WORKTRADE else 0
         reg_inc = 1 if pm.membership_type == pm.MT_REGULAR else 0
         comp_inc = 1 if pm.membership_type == pm.MT_COMPLIMENTARY else 0
+        group_inc = 1 if pm.membership_type == pm.MT_GROUP else 0
         day = max(pm.start_date, date(2015,1,1))
         while day <= min(pm.end_date, end_date):
             js_time_milliseconds = int(mktime(day.timetuple())) * 1000
             wt_data.update({js_time_milliseconds: wt_inc})
             reg_data.update({js_time_milliseconds: reg_inc})
             comp_data.update({js_time_milliseconds: comp_inc})
+            group_data.update({js_time_milliseconds: group_inc})
+            day += relativedelta(days=1)
+    memberships = Membership.objects.all()
+    for pm in memberships:
+        wt_inc = 1 if pm.membership_type == pm.MT_WORKTRADE else 0
+        reg_inc = 1 if pm.membership_type == pm.MT_REGULAR else 0
+        comp_inc = 1 if pm.membership_type == pm.MT_COMPLIMENTARY else 0
+        group_inc = 1 if pm.membership_type == pm.MT_GROUP else 0
+        day = max(pm.start_date, date(2015,1,1))
+        while day <= min(pm.end_date, end_date):
+            js_time_milliseconds = int(mktime(day.timetuple())) * 1000
+            wt_data.update({js_time_milliseconds: wt_inc})
+            reg_data.update({js_time_milliseconds: reg_inc})
+            comp_data.update({js_time_milliseconds: comp_inc})
+            group_data.update({js_time_milliseconds: group_inc})
             day += relativedelta(days=1)
 
     js_times = sorted(reg_data)  # Gets keys
     reg_counts = [reg_data[k] for k in js_times]
     wt_counts = [wt_data[k] for k in js_times]
     comp_counts = [comp_data[k] for k in js_times]
-    data = list(zip(js_times, reg_counts, wt_counts, comp_counts))
+    group_counts = [group_data[k] for k in js_times]
+    data = list(zip(js_times, reg_counts, wt_counts, group_counts, comp_counts))
     return render(request, 'members/desktop-member-count-vs-date.html', {'data': data})
 
 
