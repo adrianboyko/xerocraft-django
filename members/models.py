@@ -572,11 +572,11 @@ class MembershipGiftCardRedemption(models.Model):
 # PaidMembership is being kept until the switch-over is complete.
 class Membership(SaleLineItem):
 
-    redemption = models.ForeignKey(MembershipGiftCardRedemption, null=True, blank=True,
+    redemption = models.ForeignKey(MembershipGiftCardRedemption, null=True, blank=True, default=None,
         on_delete=models.PROTECT,  # Don't delete accounting info.
         help_text="The associated membership gift card redemption, if any. Usually none.")
 
-    group = models.ForeignKey(GroupMembership, null=True, blank=True,
+    group = models.ForeignKey(GroupMembership, null=True, blank=True, default=None,
         on_delete=models.PROTECT,  # Don't delete accounting info.
         help_text="The associated group membership, if any. Usually none.")
 

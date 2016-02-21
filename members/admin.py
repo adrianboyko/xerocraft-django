@@ -275,6 +275,13 @@ class MembershipAdmin(admin.ModelAdmin):
     type_fmt.admin_order_field = 'membership_type'
     type_fmt.short_description = 'type'
 
+    def src_fmt(self,obj):
+        if obj.sale is not None: return "{} sale to {}".format(obj.sale.sale_date,obj.sale.payer_name)
+        if obj.redemption is not None: return "Gift card "+obj.redemption.card.redemption_code
+        if obj.group is not None: return "Member of {} group".format(obj.group.group_tag)
+        else: return None
+    src_fmt.short_description = 'source'
+
     list_display = [
         'pk',
         'member',
@@ -282,6 +289,7 @@ class MembershipAdmin(admin.ModelAdmin):
         'fam_fmt',
         'start_date',
         'end_date',
+        'src_fmt',
     ]
 
     fields = [
@@ -293,6 +301,7 @@ class MembershipAdmin(admin.ModelAdmin):
     ]
 
     raw_id_fields = ['member']
+
     search_fields = [
         '^member__auth_user__first_name',
         '^member__auth_user__last_name',
