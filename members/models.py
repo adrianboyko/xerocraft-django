@@ -109,10 +109,20 @@ class Member(models.Model):
     def is_currently_paid(self, grace_period=timedelta(0)):
         ''' Determine whether member is currently covered by a membership payment with a 7 day grace period.'''
         now = datetime.now().date()
+
         pm = PaidMembership.objects.filter(
             member=self,
             start_date__lte=now, end_date__gte=now-grace_period)
-        return len(pm) > 0
+        if len(pm) > 0:
+            return True
+
+        m = Membership.objects.filter(
+            member=self,
+            start_date__lte=now, end_date__gte=now-grace_period)
+        if len(m) > 0:
+            return True
+
+        return False
 
     @property
     def first_name(self): return self.auth_user.first_name
@@ -646,7 +656,7 @@ class Membership(SaleLineItem):
 
 class MembershipGiftCardReference(SaleLineItem):
 
-    card = models.ForeignKey(MembershipGiftCard, null=False, blank=False,
+    card = models.OneToOneField(MembershipGiftCard, null=False, blank=False,
         on_delete=models.PROTECT,  # Don't delete accounting info.
         help_text="The membership gift card being sold.")
 
