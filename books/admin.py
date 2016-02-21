@@ -35,9 +35,17 @@ class SaleAdmin(admin.ModelAdmin):
     list_display = [
         'pk',
         'sale_date',
-        'payment_method',
         'payer_name',
         'payer_email',
+        'payment_method',
+        'method_detail',
+        'total_paid_by_customer',
+        'processing_fee',
+    ]
+    fields = [
+        'sale_date',
+        ('payer_name', 'payer_email'),
+        ('payment_method','payment_detail'),
         'total_paid_by_customer',
         'processing_fee',
     ]
@@ -45,10 +53,9 @@ class SaleAdmin(admin.ModelAdmin):
     ordering = ['-sale_date']
     inlines = [SaleNoteInline]
     readonly_fields = ['ctrlid']
-    search_fields = [
-        'payer_name',
-        'payer_email',
-    ]
+    search_fields = ['payer_name','payer_email',]
+    list_filter = ['payment_method', 'sale_date']
+    date_hierarchy = 'sale_date'
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =

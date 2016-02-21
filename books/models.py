@@ -65,6 +65,9 @@ class Sale(models.Model):
         help_text="The payment method used.")
     payment_method.verbose_name = "Method"
 
+    method_detail = models.CharField(max_length=40, blank=True,
+        help_text="Optional detail specific to the payment method. Check# for check payments.")
+
     total_paid_by_customer = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
         help_text="The full amount paid by the person, including payment processing fee IF CUSTOMER PAID IT.")
     total_paid_by_customer.verbose_name = "Total Paid"
