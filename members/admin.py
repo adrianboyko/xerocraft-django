@@ -202,17 +202,16 @@ class MemberLogin(admin.ModelAdmin):
 class MembershipGiftCardAdmin(admin.ModelAdmin):
 
     def sold(self, obj):
-        refs = obj.membershipgiftcardreference_set.all()
-        if len(refs) == 1:
-            ref = refs[0]
-            return ref.sale.sale_date
-        return None
+        ref = obj.membershipgiftcardreference
+        if ref is None: return None
+        return ref.sale.sale_date
 
     def created(self, obj):
         return obj.date_created
 
     def redeemed(self, obj):
         redemp = obj.membershipgiftcardredemption
+        if redemp is None: return None
         return redemp.redemption_date
 
     list_display = [
