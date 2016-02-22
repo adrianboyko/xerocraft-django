@@ -45,9 +45,10 @@ class SaleAdmin(admin.ModelAdmin):
     fields = [
         'sale_date',
         ('payer_name', 'payer_email'),
-        ('payment_method','payment_detail'),
+        ('payment_method','method_detail'),
         'total_paid_by_customer',
         'processing_fee',
+        'ctrlid'
     ]
     list_display_links = ['pk']
     ordering = ['-sale_date']
