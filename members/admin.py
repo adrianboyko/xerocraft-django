@@ -240,8 +240,7 @@ class MembershipInline(admin.StackedInline):
         'member',
         'membership_type',
         'family_count',
-        'start_date',
-        'end_date',
+        ('start_date', 'end_date'),
     ]
     raw_id_fields = ['member']
 
@@ -296,8 +295,7 @@ class MembershipAdmin(admin.ModelAdmin):
         'member',
         'membership_type',
         'family_count',
-        'start_date',
-        'end_date',
+        ('start_date', 'end_date'),
     ]
 
     raw_id_fields = ['member']
@@ -328,8 +326,7 @@ class MembershipLineItem(admin.StackedInline):
         'member',
         'membership_type',
         'family_count',
-        'start_date',
-        'end_date',
+        ('start_date', 'end_date'),
     ]
     raw_id_fields = ['member']
 
@@ -337,3 +334,8 @@ class MembershipLineItem(admin.StackedInline):
 @Sellable(GroupMembership)
 class GroupMembershipLineItem(admin.StackedInline):
     extra = 0
+    fields = [
+        'group_tag',
+        ('start_date', 'end_date'),
+        'max_members',
+    ]
