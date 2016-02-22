@@ -67,6 +67,7 @@ class Sale(models.Model):
 
     method_detail = models.CharField(max_length=40, blank=True,
         help_text="Optional detail specific to the payment method. Check# for check payments.")
+    method_detail.verbose_name = "Detail"
 
     total_paid_by_customer = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
         help_text="The full amount paid by the person, including payment processing fee IF CUSTOMER PAID IT.")
@@ -93,14 +94,15 @@ class SaleNote(models.Model):
     content = models.TextField(max_length=2048,
         help_text="Anything you want to say about the sale.")
 
-    purchase = models.ForeignKey(Sale,
-        on_delete=models.PROTECT)  # Don't want accounting-related info deleted
+    sale = models.ForeignKey(Sale,
+        on_delete=models.CASCADE,  # No point in keeping the note if the sale is gone.
+        help_text="The sale to which the note pertains.")
 
 
 class SaleLineItem(models.Model):
 
     sale = models.ForeignKey(Sale, null=True, blank=True,
-        on_delete=models.PROTECT,  # Don't delete accounting info.
+        on_delete=models.CASCADE,  # Line items are parts of the sale so they should be deleted.
         help_text="The sale that includes this line item.")
 
     class Meta:
@@ -124,7 +126,7 @@ class Donation(models.Model):
 
 class DonationNote(models.Model):
 
-    # Note will become anonymous if author is deleted or author is blank.
+    # Note will be anonymous if author is deleted or author is blank.
     author = models.ForeignKey(User, null=True, blank=True,
         on_delete=models.SET_NULL,  # Keep the note even if the member is deleted.
         help_text="The member who wrote this note.")
@@ -133,13 +135,14 @@ class DonationNote(models.Model):
         help_text="Anything you want to say about the sale.")
 
     donation = models.ForeignKey(Donation,
-        on_delete=models.PROTECT)  # Don't want accounting-related info deleted
+        on_delete=models.CASCADE,  # No point in keeping the note if the donation is deleted.
+        help_text="The donation to which this note applies.")
 
 
 class DonationLineItem(models.Model):
 
     donation = models.ForeignKey(Donation, null=True, blank=True,
-        on_delete=models.PROTECT,  # Don't delete accounting info.
+        on_delete=models.CASCADE,  # Line items are parts of the donation so delete them.
         help_text="The donation that includes this line item.")
 
     class Meta:

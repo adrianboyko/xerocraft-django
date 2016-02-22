@@ -209,16 +209,19 @@ class Member(models.Model):
 class Tagging(models.Model):
     """ Intermediate table representing the many-tomany relation between Member and Tag
     """
-    tagged_member = models.ForeignKey(Member, on_delete=models.CASCADE, related_name='taggings',
+    tagged_member = models.ForeignKey(Member, related_name='taggings',
+        on_delete=models.CASCADE,  # If a member is deleted, it doesn't make sense to keep their taggings.
         help_text="The member tagged.")
 
     date_tagged = models.DateTimeField(null=False, blank=False, auto_now_add=True,
         help_text="Date/time on which the member was tagged.")
 
-    tag = models.ForeignKey(Tag, on_delete=models.CASCADE,
+    tag = models.ForeignKey(Tag,
+        on_delete=models.CASCADE,  # If a tag is deleted, it doesn't make sense to keep the associated taggings.
         help_text="The tag assigned to the member.")
 
-    authorizing_member = models.ForeignKey(Member, null=True, blank=False, on_delete=models.SET_NULL, related_name='authorized_taggings',
+    authorizing_member = models.ForeignKey(Member, null=True, blank=False, related_name='authorized_taggings',
+        on_delete=models.SET_NULL,  # If the member who created the tagging is deleted, the tagging should remain.
         help_text="The member that authorized that the member be tagged.")
         # Note: If authorizing member is deleted, his/her Taggings shouldn't be. Hence on_delete=SET_NULL.
         # However, blank=False because somebody using admin really should provide the authorizing member info.
@@ -253,17 +256,23 @@ class Tagging(models.Model):
 
 class MemberNote(models.Model):
 
-    # Note will become anonymous if author is deleted or author is blank.
-    author = models.ForeignKey(Member, null=True, blank=True, on_delete=models.SET_NULL, related_name="member_notes_authored",
+    # Note will be anonymous if author is deleted or author is blank.
+    author = models.ForeignKey(Member, null=True, blank=True, related_name="member_notes_authored",
+        on_delete=models.SET_NULL,  # If the person who wrote the note is deleted, the note should be kept.
         help_text="The member who wrote this note.")
+
     content = models.TextField(max_length=2048,
         help_text="For staff. Anything you want to say about the member.")
-    task = models.ForeignKey(Member, on_delete=models.CASCADE)
+
+    member = models.ForeignKey(Member,
+        on_delete=models.CASCADE,  # If a member is deleted, any notes concerning them should be deleted.
+        help_text="The member to which this note pertains.")
 
 
 class VisitEvent(models.Model):
 
-    who = models.ForeignKey(Member, on_delete=models.PROTECT,
+    who = models.ForeignKey(Member,
+        on_delete=models.PROTECT,  # Visit info is too valuable to be deleted or detached from member info.
         help_text="The member who's visiting or visited.")
 
     when = models.DateTimeField(null=False, blank=False, default=timezone.now,
@@ -310,7 +319,7 @@ class MemberLogin(models.Model):
 
     member = models.ForeignKey(Member,
         null=True, blank=True,  # Might log IPs for unauthenticated users.
-        on_delete=models.SET_NULL,  # Keep this info even if member is deleted.
+        on_delete=models.SET_NULL,  # Keep login even if member is deleted, since IP info could be useful.
         help_text="The member who logged in.")
 
     when = models.DateTimeField(null=False, blank=False, default=timezone.now,
@@ -350,7 +359,7 @@ def next_paidmembership_ctrlid():
 class GroupMembership(SaleLineItem):
 
     group_tag = models.ForeignKey(Tag, null=False, blank=False,
-        on_delete=models.PROTECT,  # Don't delete accounting info.
+        on_delete=models.PROTECT,  # A group membership's tag should be changed before deleting the unwanted tag.
         help_text="The group to which this membership applies, defined by a tag.")
 
     start_date = models.DateField(null=False, blank=False,
@@ -518,7 +527,8 @@ class PaidMembership(models.Model):
 class PaidMembershipNudge(models.Model):
     """ Records the fact that we reminded somebody that they should renew their paid membership """
 
-    member = models.ForeignKey(Member, null=False, blank=False, on_delete=models.CASCADE,
+    member = models.ForeignKey(Member, null=False, blank=False,
+        on_delete=models.CASCADE,  # If a member is deleted, we don't care that we've nudged him to pay.
         help_text="The member we reminded.")
 
     when = models.DateField(null=False, blank=False, default=timezone.now,
@@ -555,7 +565,7 @@ class MembershipGiftCardRedemption(models.Model):
         help_text="The date on which the gift card was redeemed.")
 
     card = models.OneToOneField(MembershipGiftCard, null=False, blank=False,
-        on_delete=models.PROTECT,  # Don't delete accounting info.
+        on_delete=models.PROTECT,  # It's nonsensical to delete a gift card after it's redeemed.
         help_text="The membership gift card that was redeemed.")
 
     def __str__(self):
@@ -573,11 +583,11 @@ class MembershipGiftCardRedemption(models.Model):
 class Membership(SaleLineItem):
 
     redemption = models.ForeignKey(MembershipGiftCardRedemption, null=True, blank=True, default=None,
-        on_delete=models.PROTECT,  # Don't delete accounting info.
+        on_delete=models.CASCADE,  # If the redemption is deleted, this membership is meaningless.
         help_text="The associated membership gift card redemption, if any. Usually none.")
 
     group = models.ForeignKey(GroupMembership, null=True, blank=True, default=None,
-        on_delete=models.PROTECT,  # Don't delete accounting info.
+        on_delete=models.CASCADE,  # This membership is part of the group membership, so it should also go.
         help_text="The associated group membership, if any. Usually none.")
 
     member = models.ForeignKey(Member,
@@ -585,7 +595,7 @@ class Membership(SaleLineItem):
         # Name used when paying may be different enough to prevent auto-linking.
         # For two reasons listed above, we allow nulls in next line.
         default=None, null=True, blank=True,
-        on_delete=models.PROTECT,  # Don't delete payment info nor the member linked to it.
+        on_delete=models.SET_NULL,  # If the member is deleted, this membership info is still useful for stats.
         help_text="The member to whom this membership applies.")
 
     # Note: Strictly speaking, memberships have types, and members don't.
@@ -657,7 +667,7 @@ class Membership(SaleLineItem):
 class MembershipGiftCardReference(SaleLineItem):
 
     card = models.OneToOneField(MembershipGiftCard, null=False, blank=False,
-        on_delete=models.PROTECT,  # Don't delete accounting info.
+        on_delete=models.PROTECT,  # It doesn't make sense to delete a gift card if it's sold.
         help_text="The membership gift card being sold.")
 
     class Meta:
