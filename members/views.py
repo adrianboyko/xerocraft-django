@@ -378,20 +378,7 @@ def desktop_member_count_vs_date(request):
     reg_data = Counter()
     comp_data = Counter()
     group_data = Counter()
-    paid_memberships = PaidMembership.objects.all()
-    for pm in paid_memberships:
-        wt_inc = 1 if pm.membership_type == pm.MT_WORKTRADE else 0
-        reg_inc = 1 if pm.membership_type == pm.MT_REGULAR else 0
-        comp_inc = 1 if pm.membership_type == pm.MT_COMPLIMENTARY else 0
-        group_inc = 1 if pm.membership_type == pm.MT_GROUP else 0
-        day = max(pm.start_date, date(2015,1,1))
-        while day <= min(pm.end_date, end_date):
-            js_time_milliseconds = int(mktime(day.timetuple())) * 1000
-            wt_data.update({js_time_milliseconds: wt_inc})
-            reg_data.update({js_time_milliseconds: reg_inc})
-            comp_data.update({js_time_milliseconds: comp_inc})
-            group_data.update({js_time_milliseconds: group_inc})
-            day += relativedelta(days=1)
+
     memberships = Membership.objects.all()
     for pm in memberships:
         wt_inc = 1 if pm.membership_type == pm.MT_WORKTRADE else 0
