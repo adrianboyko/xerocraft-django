@@ -657,6 +657,16 @@ class Membership(SaleLineItem):
         return "%s, %s to %s" % (self.member, self.start_date, self.end_date)
 
 
+class DiscoveryMethod(models.Model):
+    """Different ways that members learn about us. E.g. 'Tucson Meet Yourself', 'Radio', 'TV', 'Website', etc """
+
+    name = models.CharField(max_length=30, unique=True, null=False, blank=False,
+        help_text="The name of some means by which people learn about our organization.")
+
+    order = models.IntegerField(default=None, unique=True, null=False, blank=False,
+        help_text="These values define the order in which the discovery methods should be presented to users.")
+
+
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # Additional Line-Item Models for SaleAdmin in Books app.
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =

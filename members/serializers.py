@@ -1,5 +1,5 @@
 
-from .models import PaidMembership
+from .models import PaidMembership, Membership, DiscoveryMethod
 from rest_framework import serializers
 
 
@@ -21,5 +21,29 @@ class PaidMembershipSerializer(serializers.ModelSerializer):
             'payment_date',
             'ctrlid',
             'protected',
+        )
+
+
+class MembershipSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Membership
+        fields = (
+            'id',
+            'member',
+            'membership_type',
+            'family_count',
+            'start_date',
+            'end_date',
+            'protected',
+        )
+
+
+class DiscoveryMethodSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DiscoveryMethod
+        fields = (
+            'id',
+            'name',
+            'order',
         )
 

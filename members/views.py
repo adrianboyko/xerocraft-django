@@ -6,10 +6,10 @@ from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.views.generic import View
 from django.db.models import Count
-from members.models import Member, Tag, Tagging, VisitEvent, PaidMembership, Membership
+from members.models import Member, Tag, Tagging, VisitEvent, PaidMembership, Membership, DiscoveryMethod
 from members.forms import Desktop_ChooseUserForm, Books_NotePaymentForm
 from rest_framework import viewsets
-from .serializers import PaidMembershipSerializer
+from .serializers import PaidMembershipSerializer, MembershipSerializer, DiscoveryMethodSerializer
 from datetime import date
 from reportlab.pdfgen import canvas
 from reportlab.graphics.shapes import Drawing
@@ -357,7 +357,7 @@ def kiosk_identify_subject(request, staff_card_str, next_url):
     return render(request, 'members/kiosk-identify-subject.html', params)
 
 
-# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = BOOKS
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = REST API
 
 class PaidMembershipViewSet(viewsets.ModelViewSet):  # Django REST Framework
     """
@@ -367,6 +367,24 @@ class PaidMembershipViewSet(viewsets.ModelViewSet):  # Django REST Framework
     serializer_class = PaidMembershipSerializer
     filter_fields = {'payment_method', 'ctrlid'}
 
+
+class MembershipViewSet(viewsets.ModelViewSet):  # Django REST Framework
+    """
+    API endpoint that allows memberships to be viewed or edited.
+    """
+    queryset = Membership.objects.all().order_by('-start_date')
+    serializer_class = MembershipSerializer
+    #filter_fields = {'ctrlid'}
+
+
+class DiscoveryMethodViewSet(viewsets.ModelViewSet):  # Django REST Framework
+    """
+    API endpoint that allows discovery methods to be viewed or edited.
+    """
+    queryset = DiscoveryMethod.objects.all().order_by('order')
+    serializer_class = DiscoveryMethodSerializer
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = REPORTS
 
 @login_required()
 def desktop_member_count_vs_date(request):

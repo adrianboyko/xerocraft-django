@@ -308,6 +308,12 @@ class MembershipAdmin(admin.ModelAdmin):
     ]
 
 
+@admin.register(DiscoveryMethod)
+class DiscoveryMethodAdmin(admin.ModelAdmin):
+    list_display = ['pk', 'order', 'name']
+    ordering = ['order']
+
+
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # Line-Item Inlines for SaleAdmin in Books app.
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
