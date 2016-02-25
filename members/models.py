@@ -1,7 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from django.contrib.auth.models import User
-from books.models import SaleLineItem
+from books.models import Sale, ExpenseClaim
 import base64
 import uuid
 import hashlib
@@ -356,7 +356,11 @@ def next_paidmembership_ctrlid():
         return "0".zfill(6)
 
 
-class GroupMembership(SaleLineItem):
+class GroupMembership(models.Model):
+
+    sale = models.ForeignKey(Sale, null=False, blank=False,
+        on_delete=models.CASCADE,  # Line items are parts of the sale so they should be deleted.
+        help_text="The sale on which this group membership appears as a line item, if any.")
 
     group_tag = models.ForeignKey(Tag, null=False, blank=False,
         on_delete=models.PROTECT,  # A group membership's tag should be changed before deleting the unwanted tag.
@@ -370,6 +374,9 @@ class GroupMembership(SaleLineItem):
 
     max_members = models.IntegerField(default=None, null=True, blank=True,
         help_text="The maximum number of members to which this group membership can be applied. Blank if no limit.")
+
+    def __str__(self):
+        return "{}, {} to {}".format(self.group_tag, self.start_date, self.end_date)
 
     def matches(self, membership):
         if membership.start_date   != self.start_date: return False
@@ -580,15 +587,27 @@ class MembershipGiftCardRedemption(models.Model):
 
 # Along with Purchase, the following class will eventually replace PaidMembership.
 # PaidMembership is being kept until the switch-over is complete.
-class Membership(SaleLineItem):
+class Membership(models.Model):
 
+    # A membership can arise from redemption of a gift card.
     redemption = models.ForeignKey(MembershipGiftCardRedemption, null=True, blank=True, default=None,
         on_delete=models.CASCADE,  # If the redemption is deleted, this membership is meaningless.
         help_text="The associated membership gift card redemption, if any. Usually none.")
 
+    # A membership can be part of a group membership
     group = models.ForeignKey(GroupMembership, null=True, blank=True, default=None,
         on_delete=models.CASCADE,  # This membership is part of the group membership, so it should also go.
         help_text="The associated group membership, if any. Usually none.")
+
+    # A membership can be sold.
+    sale = models.ForeignKey(Sale, null=True, blank=True,
+        on_delete=models.CASCADE,  # Line items are parts of the sale so they should be deleted.
+        help_text="The sale that includes this line item, if any. E.g. comp memberships don't have a corresponding sale.")
+
+    # A membership can be used as reimbursement in an expense claim.  AMB doesn't like this.
+    claim = models.ForeignKey(ExpenseClaim, null=True, blank=True,
+        on_delete=models.CASCADE,  # Line items are parts of the larger claim, so delete if claim is deleted.
+        help_text="The claim on which this membership appears as a reimbursement.")
 
     member = models.ForeignKey(Member,
         # There are records of payments which no longer seem to have an associated account.
@@ -674,11 +693,18 @@ class DiscoveryMethod(models.Model):
 # NOTE: Making MembershipGiftCard a LineItem results in user needing to create the card info at time of sale.
 # Adding this MembershipGiftCardReference class lets the user select an existing MembershipGiftCard instead.
 
-class MembershipGiftCardReference(SaleLineItem):
+class MembershipGiftCardReference(models.Model):
 
     card = models.OneToOneField(MembershipGiftCard, null=False, blank=False,
         on_delete=models.PROTECT,  # It doesn't make sense to delete a gift card if it's sold.
         help_text="The membership gift card being sold.")
+
+    sale = models.ForeignKey(Sale, null=True, blank=True,
+        on_delete=models.CASCADE,  # Line items are parts of the sale so they should be deleted.
+        help_text="The sale that includes the card as a line item.")
+
+    def __str__(self):
+        return "Ref to gift card {}, NOT the gift card itself.".format(self.card.redemption_code)
 
     class Meta:
         verbose_name = "Membership gift card"
