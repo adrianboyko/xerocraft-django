@@ -1,6 +1,6 @@
 from django.contrib import admin
 from members.models import *
-from books.admin import Sellable, MeansOfReimbursement
+from books.admin import Sellable
 from django.utils.translation import ugettext_lazy as _
 
 
@@ -344,26 +344,5 @@ class GroupMembershipLineItem(admin.StackedInline):
         ('start_date', 'end_date'),
         'max_members',
     ]
-
-
-# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-# Line-Item Inlines for ExpenseClaim in Books app.
-# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-
-# This proxy exists so that Membership can have a different name when it appears as a reimbursement.
-class MembershipReimbursement(Membership):
-    class Meta:
-        proxy = True
-
-@MeansOfReimbursement(MembershipReimbursement)
-class MembershipLineItem(admin.StackedInline):
-    extra = 0
-    fields = [
-        'member',
-        'membership_type',
-        'family_count',
-        ('start_date', 'end_date'),
-    ]
-    raw_id_fields = ['member']
 
 

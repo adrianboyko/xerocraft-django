@@ -141,19 +141,6 @@ class ExpenseClaimLineItemInline(admin.StackedInline):
     extra = 0
 
 
-# This proxy class exists only for presentation purposes.
-# It gives MonetaryDonation a different name to be used in the context of reimbursement.
-class MonetaryDonationReimbursement(MonetaryDonation):
-    class Meta:
-        proxy = True
-
-
-class MonetaryDonationReimbursementInline(admin.StackedInline):
-    model = MonetaryDonationReimbursement
-    extra = 0
-    fields = ['amount']
-
-
 @admin.register(ExpenseClaim)
 class ExpenseClaimAdmin(admin.ModelAdmin):
     list_display = [
@@ -166,7 +153,6 @@ class ExpenseClaimAdmin(admin.ModelAdmin):
         ExpenseClaimNoteInline,
         ExpenseClaimLineItemInline,
         MonetaryReimbursementInline,
-        MonetaryDonationReimbursementInline,
     ]
     search_fields = [
         '^claimant__first_name',
@@ -197,21 +183,4 @@ class Sellable:
         if not issubclass(inline_cls, admin.StackedInline):
             raise ValueError('Wrapped class must subclass django.contrib.admin.StackedInline.')
         admin.site._registry[Sale].inlines.append(inline_cls)
-        return inline_cls
-
-
-class MeansOfReimbursement:
-    """ Indicates that the decorated inline should appear in ExpenseClaimAdmin. """
-    model_cls = None
-
-    def __init__(self, model_cls):
-        if not issubclass(model_cls, models.Model):
-            raise ValueError('Wrapped class must subclass django.db.models.Model.')
-        self.model_cls = model_cls
-
-    def __call__(self, inline_cls):
-        inline_cls.model = self.model_cls
-        if not issubclass(inline_cls, admin.StackedInline):
-            raise ValueError('Wrapped class must subclass django.contrib.admin.StackedInline.')
-        admin.site._registry[ExpenseClaim].inlines.append(inline_cls)
         return inline_cls

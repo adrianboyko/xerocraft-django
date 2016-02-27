@@ -208,10 +208,6 @@ class MonetaryDonation(models.Model):
         on_delete=models.CASCADE,  # Line items are parts of the donation so delete them.
         help_text="The donation that includes this line item.")
 
-    claim = models.ForeignKey('ExpenseClaim', null=True, blank=True,
-        on_delete=models.CASCADE,  # Line items are parts of the larger claim, so delete if claim is deleted.
-        help_text="The claim on which this reimbursement appears.")
-
     sale = models.ForeignKey(Sale, null=True, blank=True,
         on_delete=models.CASCADE,  # Line items are parts of the sale so they should be deleted.
         help_text="The sale that includes this line item.")
@@ -232,6 +228,7 @@ class MonetaryDonation(models.Model):
 
     def __str__(self):
         return str("$"+str(self.amount))
+
 
 class PhysicalDonation(models.Model):
 
@@ -294,15 +291,6 @@ class ExpenseClaimLineItem(models.Model):
 
     def __str__(self):
         return "${} on {}".format(self.amount, self.expense_date)
-
-# class ExpenseReimbursementLineItem(models.Model):
-#
-#     claim = models.ForeignKey(ExpenseClaim, null=False, blank=False,
-#         on_delete=models.CASCADE,  # Line items are parts of the larger claim, so delete if claim is deleted.
-#         help_text="The claim on which this reimbursement appears.")
-#
-#     class Meta:
-#         abstract = True
 
 
 class MonetaryReimbursement(models.Model):
