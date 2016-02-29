@@ -107,14 +107,14 @@ class Member(models.Model):
         return self.is_tagged_with("Staff")
 
     def is_currently_paid(self, grace_period=timedelta(0)):
-        ''' Determine whether member is currently covered by a membership payment with a 7 day grace period.'''
+        ''' Determine whether member is currently covered by a membership with a given grace period.'''
         now = datetime.now().date()
 
-        pm = PaidMembership.objects.filter(
-            member=self,
-            start_date__lte=now, end_date__gte=now-grace_period)
-        if len(pm) > 0:
-            return True
+        # pm = PaidMembership.objects.filter(
+        #     member=self,
+        #     start_date__lte=now, end_date__gte=now-grace_period)
+        # if len(pm) > 0:
+        #     return True
 
         m = Membership.objects.filter(
             member=self,

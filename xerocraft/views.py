@@ -1,9 +1,11 @@
 from django.shortcuts import render, render_to_response
 from django.contrib import auth
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.template import RequestContext
-from members.models import Member
+from members.models import Membership
+from social.apps.django_app.default.models import UserSocialAuth
+from rest_framework.authtoken.models import Token
 
 __author__ = 'Adrian'
 
@@ -67,3 +69,63 @@ def login(request):
 def logout(request):
     auth.logout(request)
     return HttpResponseRedirect("/")
+
+
+def api_get_membership_info(request, provider: str, id: str) -> HttpResponse:
+    """
+    :param request: The http request
+    :param provider: Some value from social_auth_usersocialauth's provider column.
+    :param id: Some value from social_auth_usersocialauth's uid column.
+    :return: JSON dict or 401 or 403. JSON dict will include 'current':T/F on success else 'error':<msg>.
+    """
+
+    try:
+        token_str = request.META['HTTP_AUTHORIZATION'].strip()
+    except KeyError:
+        return HttpResponse('Authentication failed', status=401)
+    if token_str is None or len(token_str) == 0:
+        return HttpResponse('Authentication failed', status=401)
+    if not token_str.startswith("Token "):
+        return HttpResponse('Authentication failed', status=401)
+
+    token_key = token_str.replace("Token ","")
+    try:
+        token_row = Token.objects.get(key=token_key)
+    except Token.DoesNotExist:
+        return HttpResponse('Authentication failed', status=401)
+    if (not token_row.user.is_staff) or (not token_row.user.is_active):
+        return HttpResponse('User not authorized', status=403)
+
+    social_auth = UserSocialAuth.objects.get_social_auth(provider, id)
+    if social_auth is None:
+        return JsonResponse({
+            'provider': provider,
+            'id': id,
+            'error': "{}/{} does not exist.".format(provider, id)
+        })
+
+    member = social_auth.user.member
+
+    # The following is only meaningful for 'xerocraft.org' provider.
+    # I don't anticipate this view being called for other providers.
+    # If this view IS called for other providers, username will be None.
+    username = social_auth.extra_data.get("User name", None)  # This will be None for some providers.
+
+    try:
+        latest_pm = Membership.objects.filter(member=member).latest('start_date')
+        json = {
+            'provider': provider,
+            'id': id,
+            'username': username,
+            'current': member.is_currently_paid(),
+            'start-date': latest_pm.start_date,
+            'end-date': latest_pm.end_date,
+        }
+    except Membership.DoesNotExist:
+        json = {
+            'provider': provider,
+            'id': id,
+            'current': False,
+        }
+    return JsonResponse(json)
+
