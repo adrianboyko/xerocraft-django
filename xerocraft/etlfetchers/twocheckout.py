@@ -1,5 +1,4 @@
-
-from members.management.commands.fetchers import AbstractFetcher
+from xerocraft.etlfetchers.abstractfetcher import AbstractFetcher
 from members.models import PaidMembership
 from dateutil.relativedelta import relativedelta
 from dateutil.parser import parse
@@ -29,7 +28,10 @@ class Fetcher(AbstractFetcher):
             yield pm
 
     def gen_from_invoices(self, invoices):
-        invoices_to_skip = ['105756939333']
+        invoices_to_skip = [
+            '105756939333',
+            '205811359970',  # Adrian refunded this. Code to handle refunds is not yet written.
+        ]
         for invoice in invoices:
 
             # if invoice.invoice_id in invoices_to_skip: continue

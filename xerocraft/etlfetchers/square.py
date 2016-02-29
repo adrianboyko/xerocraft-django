@@ -1,4 +1,4 @@
-from members.management.commands.fetchers import AbstractFetcher
+from xerocraft.etlfetchers.abstractfetcher import AbstractFetcher
 from members.models import PaidMembership
 from datetime import date
 from dateutil.parser import parse

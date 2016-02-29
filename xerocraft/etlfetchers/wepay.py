@@ -1,5 +1,5 @@
 
-from members.management.commands.fetchers import AbstractFetcher
+from xerocraft.etlfetchers.abstractfetcher import AbstractFetcher
 from members.models import PaidMembership
 from hashlib import md5
 from datetime import date
