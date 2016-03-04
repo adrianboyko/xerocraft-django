@@ -1,5 +1,5 @@
-
-from .models import PaidMembership, Membership, DiscoveryMethod
+from members.models import PaidMembership, Membership, DiscoveryMethod
+from books.models import Sale
 from rest_framework import serializers
 
 
@@ -25,15 +25,18 @@ class PaidMembershipSerializer(serializers.ModelSerializer):
 
 
 class MembershipSerializer(serializers.ModelSerializer):
+
     class Meta:
         model = Membership
         fields = (
             'id',
+            'sale',
             'member',
             'membership_type',
             'family_count',
             'start_date',
             'end_date',
+            'ctrlid',
             'protected',
         )
 

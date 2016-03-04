@@ -374,7 +374,7 @@ class MembershipViewSet(viewsets.ModelViewSet):  # Django REST Framework
     """
     queryset = Membership.objects.all().order_by('-start_date')
     serializer_class = MembershipSerializer
-    #filter_fields = {'ctrlid'}
+    filter_fields = {'ctrlid'}
 
 
 class DiscoveryMethodViewSet(viewsets.ModelViewSet):  # Django REST Framework

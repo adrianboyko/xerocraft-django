@@ -2,7 +2,7 @@ from django.db.models.signals import post_save, pre_save, pre_delete
 from django.dispatch import receiver
 from django.contrib.auth.models import User, user_logged_in
 from django.core.exceptions import ObjectDoesNotExist
-from members.models import Member, Tag, Tagging, PaidMembership, MemberLogin, GroupMembership
+from members.models import Member, Tag, Tagging, PaidMembership, MemberLogin, GroupMembership, Membership
 import logging
 
 __author__ = 'Adrian'
@@ -58,13 +58,13 @@ def link_paidmembership_to_member(sender, **kwargs):
         if not pm.protected:
             pm.link_to_member()
 
-# TODO: Attempt to auto-link based on name/email in sale. Only for WePay, 2Checkout, Square?
-# @receiver(pre_save, sender=Membership)
-# def link_paidmembership_to_member(sender, **kwargs):
-#     if kwargs.get('created', True):
-#         pm = kwargs.get('instance')
-#         if not pm.protected:
-#             pm.link_to_member()
+#TODO: Attempt to auto-link based on name/email in sale. Only for WePay, 2Checkout, Square?
+@receiver(pre_save, sender=Membership)
+def link_membership_to_member(sender, **kwargs):
+    if kwargs.get('created', True):
+        mship = kwargs.get('instance')
+        if not mship.protected:
+            mship.link_to_member()
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

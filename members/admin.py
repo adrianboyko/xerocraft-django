@@ -263,6 +263,7 @@ class MembershipAdmin(admin.ModelAdmin):
     date_hierarchy = 'start_date'
     list_filter = [
         'membership_type',
+        'protected',
     ]
 
     def fam_fmt(self,obj): return obj.family_count
@@ -295,8 +296,11 @@ class MembershipAdmin(admin.ModelAdmin):
         'membership_type',
         'family_count',
         ('start_date', 'end_date'),
+        'protected',
+        'ctrlid',
     ]
 
+    readonly_fields = ['ctrlid']
     raw_id_fields = ['member']
 
     search_fields = [

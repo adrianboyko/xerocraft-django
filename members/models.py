@@ -602,13 +602,13 @@ def next_membership_ctrlid():
 
     GEN_CTRLID_PFX = "GEN:"  # The prefix for generated ctrlids.
 
-    # try:
-    #    latest_mship = Membership.objects.filter(ctrlid__startswith=GEN_CTRLID_PFX).latest('ctrlid')
-    #    latest_ctrlid_num = int(latest_mship.ctrlid.replace(GEN_CTRLID_PFX,""))
-    #    return GEN_CTRLID_PFX+str(latest_ctrlid_num+1).zfill(6)
-    # except Membership.DoesNotExist:
-    #     # This only happens for a new database when there are no physical paid memberships.
-    #     return GEN_CTRLID_PFX+("0".zfill(6))
+    try:
+       latest_mship = Membership.objects.filter(ctrlid__startswith=GEN_CTRLID_PFX).latest('ctrlid')
+       latest_ctrlid_num = int(latest_mship.ctrlid.replace(GEN_CTRLID_PFX,""))
+       return GEN_CTRLID_PFX+str(latest_ctrlid_num+1).zfill(6)
+    except Membership.DoesNotExist:
+        # This only happens for a new database when there are no physical paid memberships.
+        return GEN_CTRLID_PFX+("0".zfill(6))
 
 
 class Membership(models.Model):
