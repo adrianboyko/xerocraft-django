@@ -332,10 +332,6 @@ class MemberLogin(models.Model):
         verbose_name="Login"
 
 
-def next_payment_ctrlid():
-    return next_paidmembership_ctrlid()
-
-
 def next_paidmembership_ctrlid():
     '''Provides an arbitrary default value for the ctrlid field, necessary when check, cash, or gift-card data is being entered manually.'''
     # REVIEW: There is a nonzero probability that default ctrlids will collide when two users are doing manual data entry at the same time.
@@ -584,9 +580,37 @@ class MembershipGiftCardRedemption(models.Model):
     class Meta:
         verbose_name="Gift card redemption"
 
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# MEMBERSHIP
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-# Along with Purchase, the following class will eventually replace PaidMembership.
+# Along with Sale (in "books" app), the following class will eventually replace PaidMembership.
 # PaidMembership is being kept until the switch-over is complete.
+
+
+def next_payment_ctrlid():
+    raise NotImplementedError("This method is referenced by 0025_auto_20160215_1529.py but shouldn't be called.")
+
+
+def next_membership_ctrlid():
+
+    """Provides an arbitrary default value for the ctrlid field, necessary when data is being entered manually."""
+
+    # REVIEW: There is a nonzero probability that default ctrlids will collide when two users are doing manual data
+    # entry at the same time.  This isn't considered a significant problem since we'll be lucky to get ONE person to
+    # do data entry. If it does become a problem, the probability could be reduced by using random numbers.
+
+    GEN_CTRLID_PFX = "GEN:"  # The prefix for generated ctrlids.
+
+    # try:
+    #    latest_mship = Membership.objects.filter(ctrlid__startswith=GEN_CTRLID_PFX).latest('ctrlid')
+    #    latest_ctrlid_num = int(latest_mship.ctrlid.replace(GEN_CTRLID_PFX,""))
+    #    return GEN_CTRLID_PFX+str(latest_ctrlid_num+1).zfill(6)
+    # except Membership.DoesNotExist:
+    #     # This only happens for a new database when there are no physical paid memberships.
+    #     return GEN_CTRLID_PFX+("0".zfill(6))
+
+
 class Membership(models.Model):
 
     # A membership can arise from redemption of a gift card.
@@ -645,23 +669,30 @@ class Membership(models.Model):
     end_date = models.DateField(null=False, blank=False,
         help_text="The last day on which the membership is valid.")
 
+    ctrlid = models.CharField(max_length=40, null=False, blank=False, unique=True,
+        default=next_membership_ctrlid,
+        help_text="Payment processor's id for this membership if it was part of an online purchase.")
+
     protected = models.BooleanField(default=False,
-        help_text="Protect against further auto processing by ETL, etc. Prevents overwrites of manually enetered data.")
+        help_text="Protect against further auto processing by ETL, etc. Prevents overwrites of manually entered data.")
 
     def link_to_member(self):
+
+        if self.sale is None:
+            return
 
         self.member = None
 
         # Attempt to match by EMAIL
         try:
-            email_matches = User.objects.filter(email=self.payer_email)
+            email_matches = User.objects.filter(email=self.sale.payer_email)
             if len(email_matches) == 1:
                 self.member = email_matches[0].member
         except User.DoesNotExist:
             pass
 
         # Attempt to match by NAME
-        nameobj = HumanName(self.payer_name)
+        nameobj = HumanName(self.sale.payer_name)
         fname = nameobj.first
         lname = nameobj.last
         try:
