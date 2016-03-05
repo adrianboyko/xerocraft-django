@@ -111,7 +111,8 @@ class SaleAdmin(admin.ModelAdmin):
         ('payment_method','method_detail'),
         'total_paid_by_customer',
         'processing_fee',
-        'ctrlid'
+        'protected',
+        'ctrlid',
     ]
     raw_id_fields = ['payer_acct']
     list_display_links = ['pk']

@@ -1,4 +1,3 @@
-
 from .models import Sale, SaleNote
 from .models import Donation, DonationNote, MonetaryDonation, PhysicalDonation
 from rest_framework import serializers
@@ -17,6 +16,7 @@ class SaleSerializer(serializers.ModelSerializer):
             'total_paid_by_customer',
             'processing_fee',
             'ctrlid',
+            'protected',
         )
 
 

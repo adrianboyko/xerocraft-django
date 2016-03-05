@@ -111,7 +111,7 @@ class Sale(models.Model):
     sale_date = models.DateField(null=False, blank=False, default=timezone.now,
         help_text="The date on which the sale was made. Best guess if exact date not known.")
 
-    payer_acct = models.ForeignKey(User, null=True, blank=True,
+    payer_acct = models.ForeignKey(User, null=True, blank=True, default=None,
         on_delete=models.SET_NULL,  # Keep the note even if the user is deleted.
         help_text="It's preferable, but not necessary, to refer to the customer's account.")
 
@@ -154,6 +154,9 @@ class Sale(models.Model):
 
     ctrlid = models.CharField(max_length=40, null=False, blank=False, default=next_sale_ctrlid,
         help_text="Payment processor's id for this payment.")
+
+    protected = models.BooleanField(default=False,
+        help_text="Protect against further auto processing by ETL, etc. Prevents overwrites of manually enetered data.")
 
     class Meta:
         unique_together = ('payment_method', 'ctrlid')

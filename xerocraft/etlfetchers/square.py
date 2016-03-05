@@ -1,27 +1,37 @@
 from xerocraft.etlfetchers.abstractfetcher import AbstractFetcher
-from members.models import PaidMembership
+from members.models import Membership, Member
+from books.models import Sale, MonetaryDonation
 from datetime import date
 from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
 import requests
 import lxml
 import lxml.html
+from decimal import Decimal
 
 
 # Note: This class must be named Fetcher in order for dynamic load to find it.
 class Fetcher(AbstractFetcher):
 
-    session = requests.Session()
+    squaresession = requests.Session()
 
-    uninteresting = [
-        "Donation",
+    UNINTERESTING = [
         "Workshop Fee",
-        "Custom Amount",  # I believe this is a donation.
         "Refill Soda Account",
-        "Holiday Gift Card (6 months)",
-        "Holiday Gift Card (3 months)",
         "Bumper Sticker",
         "Medium Sticker",
+        "Soda",
+    ]
+
+    DONATION_ITEMS = [
+        "Donation",
+        "Custom Amount",  # I believe this is a donation.
+    ]
+
+    GIFT_CARD_ITEMS = [
+        "Holiday Gift Card (6 months)",
+        "Holiday Gift Card (3 months)",
+        "3 Month Gift Card",
     ]
 
     WORK_TRADE_ITEMS = [
@@ -59,93 +69,153 @@ class Fetcher(AbstractFetcher):
         elif "december"  in str: return 12  # TODO: Payment for Dec X-1 in Jan year X
         else: return None
 
-    def gen_from_itemizations(self, itemizations, payment_id, payment_date, payment_total, payment_fee):
-        for item in itemizations:
+    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    # PROCESS MEMBERSHIP ITEM
+    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
+    def _process_membership_item(self, sale, item, item_num, membership_type, months):
+        month = self.month_in_str(item['name'])
+
+        for modifier in item["modifiers"]:
+            lmod = modifier["name"].lower()
+            if lmod == "just myself": family_count = 0
+            elif lmod == "1 add'l family member":  family_count = 1
+            elif lmod == "2 add'l family members": family_count = 2
+            elif lmod == "3 add'l family members": family_count = 3
+            elif lmod == "4 add'l family members": family_count = 4
+            elif lmod == "5 add'l family members": family_count = 5
+            if membership_type == Membership.MT_WORKTRADE and month is None:
+                month = self.month_in_str(lmod)
+
+        if family_count is None:
+            print("Couldn't determine family count for {}:{}".format(sale['ctrlid'], item_num))
+
+        quantity = int(float(item['quantity']))
+        for n in range(1, quantity+1):
+            mship = Membership()
+            mship.sale = Sale(id=sale['id'])
+            mship.membership_type = membership_type
+            mship.ctrlid = "{}:{}:{}".format(sale['ctrlid'], item_num, n)
+            mship.start_date = parse(sale['sale_date']).date()
+            if mship.membership_type == Membership.MT_WORKTRADE:
+                mship.start_date = mship.start_date.replace(day=1)  # WT always starts on the 1st.
+                if month is not None:  # Hopefully, the buyer specified the month.
+                    mship.start_date = mship.start_date.replace(month=month)
+            mship.end_date = mship.start_date + relativedelta(months=months, days=-1)
+            mship.family_count = family_count
+            #mship.amount = Decimal(item['gross_sales_money']['amount']) / (quantity * 100.0)
+            self.upsert(mship)
+
+    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    # PROCESS DONATION ITEM
+    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+    def _process_donation_item(self, sale, item, item_num):
+
+        quantity = int(float(item['quantity']))
+        for n in range(1, quantity+1):
+            don = MonetaryDonation()
+            don.sale = Sale(id=sale['id'])
+            don.amount = Decimal(item["net_sales_money"]["amount"]) / Decimal(100)
+            self.upsert(don)
+
+    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    # PROCESS ITEMS
+    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+    def _process_itemizations(self, itemizations: list, sale: dict):
+        item_num = 0
+        for item in itemizations:
+            item_num += 1
             family_count = None
 
-            if payment_id == '0JFN0loJ0kcy8DXCvuDVwwMF':
-                # This is a work trade payment that was erroneously entered as a custom payment.
-                # So we do this special processing to ingest it as a 1 month Work Trade membership.
-                family_count = 0
-                months = 1
-                short_item_code = "WT"
-                membership_type = PaidMembership.MT_WORKTRADE
-            elif item['name'] in self.uninteresting:
+            if item['name'] in self.UNINTERESTING:
                 continue
+
+            elif item['name'] in self.DONATION_ITEMS:
+                continue
+                #self._process_donation_item(sale, item, item_num)
+
+            elif item['name'] in self.GIFT_CARD_ITEMS:
+                continue
+
             elif item['name'] == "One Month Membership":
-                months = 1
-                short_item_code = "1MM"
-                membership_type = PaidMembership.MT_REGULAR
+                self._process_membership_item(sale, item, item_num, Membership.MT_REGULAR, 1)
+
             elif item['name'] in self.WORK_TRADE_ITEMS:
-                months = 1
-                short_item_code = "WT"
-                membership_type = PaidMembership.MT_WORKTRADE
+                self._process_membership_item(sale, item, item_num, Membership.MT_WORKTRADE, 1)
+
             else:
                 print("Didn't recognize item name: "+item['name'])
                 continue
 
-            month = self.month_in_str(item['name'])
-
-            for modifier in item["modifiers"]:
-                lmod = modifier["name"].lower()
-                if lmod == "just myself": family_count = 0
-                elif lmod == "1 add'l family member":  family_count = 1
-                elif lmod == "2 add'l family members": family_count = 2
-                elif lmod == "3 add'l family members": family_count = 3
-                elif lmod == "4 add'l family members": family_count = 4
-                elif lmod == "5 add'l family members": family_count = 5
-                if membership_type == PaidMembership.MT_WORKTRADE and month is None:
-                    month = self.month_in_str(lmod)
-
-            if family_count is None:
-                print("Couldn't determine family count for {}:{}".format(payment_id, short_item_code))
-
-            quantity = int(float(item['quantity']))
-            for n in range(1, quantity+1):
-                pm = PaidMembership()
-                pm.membership_type = membership_type
-                pm.payment_method = PaidMembership.PAID_BY_SQUARE
-                pm.ctrlid = "{}:{}:{}".format(payment_id, short_item_code, str(n))
-                pm.payer_email = ""  # Annoyingly, not provided by Square.
-                pm.payer_name = ""  # Annoyingly, not provided by Square.
-                pm.payer_notes = item.get("notes", "").strip()
-                pm.payment_date = payment_date
-                pm.start_date = pm.payment_date
-                if pm.membership_type == PaidMembership.MT_WORKTRADE:
-                    pm.start_date = pm.start_date.replace(day=1)  # WT always starts on the 1st.
-                    if month is not None:  # Hopefully, the buyer specified the month.
-                        pm.start_date = pm.start_date.replace(month=month)
-                pm.end_date = pm.start_date + relativedelta(months=months, days=-1)
-                pm.family_count = family_count
-                pm.paid_by_member = float(item['gross_sales_money']['amount']) / (quantity * 100.0)
-                pm.processing_fee = pm.paid_by_member/payment_total * payment_fee  # Fee is divided among items.
-
-                yield pm
+    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    # PROCESS PAYMENTS
+    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
     def get_name_from_receipt(self, url):
-        response = self.session.get(url)
+        response = self.squaresession.get(url)
         parsed_page = lxml.html.fromstring(response.text)
         if parsed_page is None: raise AssertionError("Couldn't parse receipts page")
         names = parsed_page.xpath("//div[contains(@class,'name_on_card')]/text()")
         return names[0] if len(names)>0 else ""
 
-    def gen_from_payment(self, payments):
-        for payment in payments:
-            payment_id = payment["id"]
-            payment_date = parse(payment["created_at"]).date()
-            payment_fee = -1.0 * float(payment["processing_fee_money"]["amount"]) / 100.0
-            payment_total = float(payment["gross_sales_money"]["amount"]) / 100.0
-            receipt_name = None  # Only get it if we know we need it. We won't need it for every payment.
-            itemizations = payment['itemizations']
-            for pm in self.gen_from_itemizations(itemizations, payment_id, payment_date, payment_total, payment_fee):
-                pm.payer_email = ""  # Annoyingly, not provided by Square.
-                if receipt_name is None:  # We now know we need it, so get it.
-                    receipt_name = self.get_name_from_receipt(payment['receipt_url'])
-                pm.payer_name = receipt_name
-                yield pm
+    def _get_tender_type(self, payment) -> str:
+        xform = {"VISA":"Visa", "MASTER_CARD":"MC", "AMERICAN_EXPRESS":"AMEX"}
+        type = payment["tender"][0].get("card_brand", "")
+        if type=="": type = payment["tender"][0].get("name", "?")
+        if type in xform: type = xform[type]
+        return type
 
-    def generate_paid_memberships(self):
+    def _special_case_0JFN0loJ0kcy8DXCvuDVwwMF(self, sale):
+        mship = Membership()
+        mship.sale = Sale(id=sale['id'])
+        mship.member = Member(id=19)  # Lookup by name would be better but I don't want to have names in the code.
+        mship.membership_type = Membership.MT_WORKTRADE
+        mship.ctrlid = "{}:1:1".format(sale['ctrlid'])
+        mship.start_date = date(2015,12,1)
+        mship.end_date = date(2015,12,31)
+        mship.family_count = 0
+        self.upsert(mship)
+
+    def _process_payments(self, payments):
+
+        for payment in payments:
+
+            if payment['id'] == "8J4ZaFUnIU5e2NlEn2UkKQB":
+                continue  # This was fully refunded
+
+            if len(payment["tender"]) != 1:
+                print("Code doesn't handle multiple tenders as in {}. Skipping.".format(payment['id']))
+                continue
+
+            sale = Sale()
+            sale.sale_date = parse(payment["created_at"]).date()
+            sale.payer_name = self.get_name_from_receipt(payment['receipt_url'])
+            sale.payer_email = ""  # Annoyingly, not provided by Square.
+            sale.payment_method = Sale.PAID_BY_SQUARE
+            sale.method_detail = self._get_tender_type(payment)
+            sale.total_paid_by_customer = Decimal(payment["tender"][0]["total_money"]["amount"]) / Decimal(100)
+            sale.processing_fee = abs(Decimal(payment["processing_fee_money"]["amount"])) / Decimal(100)
+            sale.ctrlid = "SQ:" + payment["id"]
+            #sale.payer_notes = payment.get("notes", "").strip()
+
+            django_sale = self.upsert(sale)
+
+            if payment['id'] == "0JFN0loJ0kcy8DXCvuDVwwMF":
+                # This is a work trade payment that was erroneously entered as a custom payment.
+                # So we do this special processing to ingest it as a 1 month Work Trade membership.
+                self._special_case_0JFN0loJ0kcy8DXCvuDVwwMF(django_sale)
+
+            else:
+                itemizations = payment['itemizations']
+                self._process_itemizations(itemizations, django_sale)
+
+    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    # FETCH
+    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+    def fetch(self):
 
         merchant_id = input("Square Merchant ID: ")
         if merchant_id == "skip": return
@@ -177,10 +247,9 @@ class Fetcher(AbstractFetcher):
             response = None
             while response is None:
                 try:
-                    response = self.session.get(payments_url, params=get_data, headers=get_headers)
+                    response = self.squaresession.get(payments_url, params=get_data, headers=get_headers)
                 except ConnectionError:
                     print("!", end='')
 
             payments = response.json()
-            for pm in self.gen_from_payment(payments):
-                yield pm
+            self._process_payments(payments)
