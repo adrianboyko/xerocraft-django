@@ -15,44 +15,6 @@ class Fetcher(AbstractFetcher):
 
     squaresession = requests.Session()
 
-    UNINTERESTING = [
-        "Workshop Fee",
-        "Refill Soda Account",
-        "Bumper Sticker",
-        "Medium Sticker",
-        "Soda",
-    ]
-
-    DONATION_ITEMS = [
-        "Donation",
-        "Custom Amount",  # I believe this is a donation.
-    ]
-
-    GIFT_CARD_ITEMS = [
-        "Holiday Gift Card (6 months)",
-        "Holiday Gift Card (3 months)",
-        "3 Month Gift Card",
-    ]
-
-    WORK_TRADE_ITEMS = [
-        "Work-Trade Fee",       # Obsolete, but still necessary for backfills.
-        "Work-Trade Dues",      # ditto
-        "01 - January Dues",    # ditto
-        "02 - February Dues",   # ditto
-        "03 - March Dues",      # ditto
-        "04 - April Dues",      # ditto
-        "05 - May Dues",        # ditto
-        "06 - June Dues",       # ditto
-        "07 - July Dues",       # ditto
-        "08 - August Dues",     # ditto
-        "09 - September Dues",  # ditto
-        "10 - October Dues",    # ditto
-        "11 - November Dues",   # ditto
-        "12 - December Dues",   # ditto
-        "6hr Work-Trade Dues",  # Current
-        "9hr Work-Trade Dues",  # Current
-    ]
-
     def month_in_str(self, str):
         str = str.lower()
         if "january"     in str: return 1  # TODO: Payment for Jan year X+1 in Dec year X
@@ -115,6 +77,7 @@ class Fetcher(AbstractFetcher):
         quantity = int(float(item['quantity']))
         for n in range(1, quantity+1):
             don = MonetaryDonation()
+            don.ctrlid = "{}:{}:{}".format(sale['ctrlid'], item_num, n)
             don.sale = Sale(id=sale['id'])
             don.amount = Decimal(item["net_sales_money"]["amount"]) / Decimal(100)
             self.upsert(don)
@@ -123,21 +86,65 @@ class Fetcher(AbstractFetcher):
     # PROCESS ITEMS
     # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
+    UNINTERESTING_ITEMS = [
+        "Refill Soda Account",
+    ]
+
+    GOODS_ITEMS = [
+        "Bumper Sticker",
+        "Medium Sticker",
+        "Soda",
+    ]
+
+    SERVICE_ITEMS = [
+        "Workshop Fee",  # REVIEW: Is this intended to represent a donation?
+    ]
+
+    DONATION_ITEMS = [
+        "Donation",
+        "Custom Amount",  # I believe this is a donation.
+    ]
+
+    GIFT_CARD_ITEMS = [
+        "Holiday Gift Card (6 months)",
+        "Holiday Gift Card (3 months)",
+        "3 Month Gift Card",
+    ]
+
+    WORK_TRADE_ITEMS = [
+        "Work-Trade Fee",       # Obsolete, but still necessary for backfills.
+        "Work-Trade Dues",      # ditto
+        "01 - January Dues",    # ditto
+        "02 - February Dues",   # ditto
+        "03 - March Dues",      # ditto
+        "04 - April Dues",      # ditto
+        "05 - May Dues",        # ditto
+        "06 - June Dues",       # ditto
+        "07 - July Dues",       # ditto
+        "08 - August Dues",     # ditto
+        "09 - September Dues",  # ditto
+        "10 - October Dues",    # ditto
+        "11 - November Dues",   # ditto
+        "12 - December Dues",   # ditto
+        "6hr Work-Trade Dues",  # Current
+        "9hr Work-Trade Dues",  # Current
+    ]
+
     def _process_itemizations(self, itemizations: list, sale: dict):
         item_num = 0
         for item in itemizations:
             item_num += 1
             family_count = None
 
-            if item['name'] in self.UNINTERESTING:
-                continue
+            if item['name'] in self.UNINTERESTING_ITEMS:
+                pass
 
             elif item['name'] in self.DONATION_ITEMS:
-                continue
-                #self._process_donation_item(sale, item, item_num)
+                self._process_donation_item(sale, item, item_num)
 
             elif item['name'] in self.GIFT_CARD_ITEMS:
-                continue
+                pass
+                #self._process_giftcard_item(sale, item, item_num)
 
             elif item['name'] == "One Month Membership":
                 self._process_membership_item(sale, item, item_num, Membership.MT_REGULAR, 1)
@@ -181,6 +188,9 @@ class Fetcher(AbstractFetcher):
     def _process_payments(self, payments):
 
         for payment in payments:
+
+            if payment['tender'][0]['type'] == "NO SALE":
+                continue
 
             if payment['id'] == "8J4ZaFUnIU5e2NlEn2UkKQB":
                 continue  # This was fully refunded

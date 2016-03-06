@@ -7,7 +7,7 @@ from .serializers import *
 
 class SaleViewSet(viewsets.ModelViewSet):  # Django REST Framework
     """
-    API endpoint that allows paid memberships to be viewed or edited.
+    API endpoint that allows paid sales to be viewed or edited.
     """
     queryset = Sale.objects.all().order_by('-sale_date')
     serializer_class = SaleSerializer
@@ -16,7 +16,7 @@ class SaleViewSet(viewsets.ModelViewSet):  # Django REST Framework
 
 class SaleNoteViewSet(viewsets.ModelViewSet):  # Django REST Framework
     """
-    API endpoint that allows memberships to be viewed or edited.
+    API endpoint that allows sale notes to be viewed or edited.
     """
     queryset = SaleNote.objects.all().order_by('-sale')
     serializer_class = SaleNoteSerializer
@@ -26,7 +26,7 @@ class SaleNoteViewSet(viewsets.ModelViewSet):  # Django REST Framework
 
 class DonationViewSet(viewsets.ModelViewSet):  # Django REST Framework
     """
-    API endpoint that allows paid memberships to be viewed or edited.
+    API endpoint that allows paid donations to be viewed or edited.
     """
     queryset = Donation.objects.all().order_by('-donation_date')
     serializer_class = DonationSerializer
@@ -35,7 +35,7 @@ class DonationViewSet(viewsets.ModelViewSet):  # Django REST Framework
 
 class DonationNoteViewSet(viewsets.ModelViewSet):  # Django REST Framework
     """
-    API endpoint that allows memberships to be viewed or edited.
+    API endpoint that allows donation notes to be viewed or edited.
     """
     queryset = DonationNote.objects.all().order_by('-donation')
     serializer_class = DonationNoteSerializer
@@ -43,7 +43,7 @@ class DonationNoteViewSet(viewsets.ModelViewSet):  # Django REST Framework
 
 class PhysicalDonationViewSet(viewsets.ModelViewSet):  # Django REST Framework
     """
-    API endpoint that allows memberships to be viewed or edited.
+    API endpoint that allows physical donations to be viewed or edited.
     """
     queryset = PhysicalDonation.objects.all().order_by('-donation')
     serializer_class = PhysicalDonationSerializer
@@ -51,8 +51,9 @@ class PhysicalDonationViewSet(viewsets.ModelViewSet):  # Django REST Framework
 
 class MonetaryDonationViewSet(viewsets.ModelViewSet):  # Django REST Framework
     """
-    API endpoint that allows memberships to be viewed or edited.
+    API endpoint that allows monetary donations to be viewed or edited.
     """
     queryset = MonetaryDonation.objects.all().order_by('-donation')
     serializer_class = MonetaryDonationSerializer
+    filter_fields = {'ctrlid'}
 

@@ -83,6 +83,11 @@ class DonationAdmin(admin.ModelAdmin):
     ]
 
 
+@admin.register(MonetaryDonation)
+class MonetaryDonationAdmin(admin.ModelAdmin):
+    pass
+
+
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # SALES
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =

@@ -19,6 +19,49 @@ from django.utils.translation import ugettext_lazy as _
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# CTRLID UTILITIES
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+# REVIEW: Is there a way to make a generic next_ctrlid(models.Model)?
+
+def next_monetarydonation_ctrlid() -> str:
+
+    """Provides an arbitrary default value for the ctrlid field, necessary when data is being entered manually."""
+
+    # REVIEW: There is a nonzero probability that default ctrlids will collide when two users are doing manual data
+    # entry at the same time.  This isn't considered a significant problem since we'll be lucky to get ONE person to
+    # do data entry. If it does become a problem, the probability could be reduced by using random numbers.
+
+    GEN_CTRLID_PFX = "GEN:"  # The prefix for generated ctrlids.
+
+    # try:
+    #    latest_mship = MonetaryDonation.objects.filter(ctrlid__startswith=GEN_CTRLID_PFX).latest('ctrlid')
+    #    latest_ctrlid_num = int(latest_mship.ctrlid.replace(GEN_CTRLID_PFX,""))
+    #    return GEN_CTRLID_PFX+str(latest_ctrlid_num+1).zfill(6)
+    # except MonetaryDonation.DoesNotExist:
+    #     # This only happens for a new database when there are no monetary donations with generated ctrlids.
+    #     return GEN_CTRLID_PFX+("0".zfill(6))
+
+
+def next_sale_ctrlid():
+    '''Provides an arbitrary default value for the ctrlid field, necessary when check, cash, or gift-card data is being entered manually.'''
+    # REVIEW: There is a nonzero probability that default ctrlids will collide when two users are doing manual data entry at the same time.
+    #         This isn't considered a significant problem since we'll be lucky to get ONE person to do data entry.
+    #         If it does become a problem, the probability could be reduced by using random numbers.
+    physical_pay_methods = [
+        Sale.PAID_BY_CASH,
+        Sale.PAID_BY_CHECK,
+    ]
+    physical_count = Sale.objects.filter(payment_method__in=physical_pay_methods).count()
+    if physical_count > 0:
+        latest_pm = Sale.objects.filter(payment_method__in=physical_pay_methods).latest('ctrlid')
+        return str(int(latest_pm.ctrlid)+1).zfill(6)
+    else:
+        # This only happens for a new database when there are no sales with physical payment methods.
+        return "0".zfill(6)
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # Note
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
@@ -87,24 +130,6 @@ class Account(models.Model):
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # SALE
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-
-def next_sale_ctrlid():
-    '''Provides an arbitrary default value for the ctrlid field, necessary when check, cash, or gift-card data is being entered manually.'''
-    # REVIEW: There is a nonzero probability that default ctrlids will collide when two users are doing manual data entry at the same time.
-    #         This isn't considered a significant problem since we'll be lucky to get ONE person to do data entry.
-    #         If it does become a problem, the probability could be reduced by using random numbers.
-    physical_pay_methods = [
-        Sale.PAID_BY_CASH,
-        Sale.PAID_BY_CHECK,
-    ]
-    physical_count = Sale.objects.filter(payment_method__in=physical_pay_methods).count()
-    if physical_count > 0:
-        latest_pm = Sale.objects.filter(payment_method__in=physical_pay_methods).latest('ctrlid')
-        return str(int(latest_pm.ctrlid)+1).zfill(6)
-    else:
-        # This only happens for a new database when there are no physical paid memberships.
-        return "0".zfill(6)
-
 
 class Sale(models.Model):
 
@@ -217,6 +242,13 @@ class MonetaryDonation(models.Model):
 
     amount = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
         help_text="The amount donated.")
+
+    ctrlid = models.CharField(max_length=40, null=False, blank=False, unique=True,
+        default=next_monetarydonation_ctrlid,
+        help_text="Payment processor's id for this donation, if any.")
+
+    protected = models.BooleanField(default=False,
+        help_text="Protect against further auto processing by ETL, etc. Prevents overwrites of manually entered data.")
 
     def clean(self):
         link_count = 0
