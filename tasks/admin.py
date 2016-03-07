@@ -393,6 +393,8 @@ class TaskAdmin(TemplateAndTaskBase):
         }),
     ]
     inlines = [TaskNoteInline, ClaimInline]
+    raw_id_fields = ['owner', 'eligible_claimants', 'uninterested', 'reviewer']
+
 
 
 @admin.register(Claim)
@@ -438,6 +440,7 @@ class ClaimAdmin(admin.ModelAdmin):
             ]
         }),
     ]
+    raw_id_fields = ['claimed_task', 'claiming_member']
 
 
 @admin.register(Nag)
@@ -507,6 +510,8 @@ class WorkerAdmin(admin.ModelAdmin):
 
     list_filter = [WorkerTypeFilter, 'should_include_alarms', 'should_nag', 'should_report_work_mtd']
 
+    raw_id_fields = ['member']
+
     search_fields = [
         '^member__auth_user__first_name',
         '^member__auth_user__last_name',
@@ -522,3 +527,4 @@ class TaskNoteAdmin(admin.ModelAdmin):
 @admin.register(WorkNote)
 class WorkNoteAdmin(admin.ModelAdmin):
     list_display = ['pk', 'work', 'author', 'content']
+    raw_id_fields = ['author']
