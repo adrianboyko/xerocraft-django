@@ -28,7 +28,7 @@ class Command(BaseCommand):
     def nag_for_workers():
         oneday, today, tomorrow, todayplus1w, todayplus2w = times()
 
-        # Find out who's doing what over the next 2 weekw. Who's already scheduled to work and who's heavily scheduled?
+        # Find out who's doing what over the next 2 weeks. Who's already scheduled to work and who's heavily scheduled?
         ppl_already_scheduled = Claim.sum_in_period(today, todayplus2w)
         ppl_heavily_scheduled = set([member for member,dur in ppl_already_scheduled.items() if dur >= datetime.timedelta(hours=6.0)])
 
