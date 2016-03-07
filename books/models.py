@@ -34,13 +34,13 @@ def next_monetarydonation_ctrlid() -> str:
 
     GEN_CTRLID_PFX = "GEN:"  # The prefix for generated ctrlids.
 
-    # try:
-    #    latest_mship = MonetaryDonation.objects.filter(ctrlid__startswith=GEN_CTRLID_PFX).latest('ctrlid')
-    #    latest_ctrlid_num = int(latest_mship.ctrlid.replace(GEN_CTRLID_PFX,""))
-    #    return GEN_CTRLID_PFX+str(latest_ctrlid_num+1).zfill(6)
-    # except MonetaryDonation.DoesNotExist:
-    #     # This only happens for a new database when there are no monetary donations with generated ctrlids.
-    #     return GEN_CTRLID_PFX+("0".zfill(6))
+    try:
+       latest_mship = MonetaryDonation.objects.filter(ctrlid__startswith=GEN_CTRLID_PFX).latest('ctrlid')
+       latest_ctrlid_num = int(latest_mship.ctrlid.replace(GEN_CTRLID_PFX,""))
+       return GEN_CTRLID_PFX+str(latest_ctrlid_num+1).zfill(6)
+    except MonetaryDonation.DoesNotExist:
+        # This only happens for a new database when there are no monetary donations with generated ctrlids.
+        return GEN_CTRLID_PFX+("0".zfill(6))
 
 
 def next_sale_ctrlid():
