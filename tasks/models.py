@@ -361,6 +361,7 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
                         work_start_time         =self.work_start_time,
                         work_duration           =self.work_duration,
                         should_nag              =self.should_nag,
+                        priority                =self.priority,
                     )
 
                     # Many-to-many fields:
