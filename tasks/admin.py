@@ -11,6 +11,44 @@ from tasks.templatetags.tasks_extras import duration_str2
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
+def get_DayOfWeekListFilter_class(date_field_name):
+
+    class DayOfWeekListFilter(admin.SimpleListFilter):
+        title = date_field_name.replace("_", " ")
+        parameter_name = 'day of week'
+
+        def lookups(self, request, model_admin):
+            return (
+                ('Mon', _('Monday')),
+                ('Tue', _('Tuesday')),
+                ('Wed', _('Wednesday')),
+                ('Thu', _('Thursday')),
+                ('Fri', _('Friday')),
+                ('Sat', _('Saturday')),
+                ('Sun', _('Sunday')),
+            )
+
+        def queryset(self, request, queryset):
+            if self.value() == 'Mon':
+                return queryset.filter(**{"{}__week_day".format(date_field_name): 2})
+            if self.value() == 'Tue':
+                return queryset.filter(**{"{}__week_day".format(date_field_name): 3})
+            if self.value() == 'Wed':
+                return queryset.filter(**{"{}__week_day".format(date_field_name): 4})
+            if self.value() == 'Thu':
+                return queryset.filter(**{"{}__week_day".format(date_field_name): 5})
+            if self.value() == 'Fri':
+                return queryset.filter(**{"{}__week_day".format(date_field_name): 6})
+            if self.value() == 'Sat':
+                return queryset.filter(**{"{}__week_day".format(date_field_name): 7})
+            if self.value() == 'Sun':
+                return queryset.filter(**{"{}__week_day".format(date_field_name): 1})
+
+    return DayOfWeekListFilter
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
 def duration_fmt(dur:datetime.timedelta):
     if dur is None: return
     return duration_str2(dur)
@@ -156,7 +194,7 @@ class RecurringTaskTemplateAdmin(TemplateAndTaskBase):
         }
 
     filter_horizontal = ['eligible_claimants', 'eligible_tags', 'uninterested']
-
+    raw_id_fields = ['owner', 'default_claimant', 'eligible_claimants', 'uninterested', 'reviewer']
     fieldsets = [
 
         (None, {'fields': [
@@ -313,7 +351,13 @@ class TaskAdmin(TemplateAndTaskBase):
         '^owner__auth_user__username',
 
     ]
-    list_filter = [get_ScheduledDateListFilter_class('scheduled_date'), 'priority', 'status']
+    list_filter = [
+        get_ScheduledDateListFilter_class('scheduled_date'),
+        get_DayOfWeekListFilter_class('scheduled_date'),
+        'priority',
+        'status',
+        'should_nag',
+    ]
     date_hierarchy = 'scheduled_date'
     fieldsets = [
 
