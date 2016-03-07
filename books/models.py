@@ -1,9 +1,11 @@
 from django.db import models
+from django.db.migrations.recorder import MigrationRecorder
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
-
+import django.db.utils
+import uuid
 
 # class PayerAKA(models.Model):
 #     """ Intended primarily to record name variations that are used in payments, etc. """
@@ -34,9 +36,14 @@ def next_monetarydonation_ctrlid() -> str:
 
     GEN_CTRLID_PFX = "GEN:"  # The prefix for generated ctrlids.
 
+    # This method can't calc a ctrlid before ctrlid col is in db, i.e. before migration 0015.
+    # Returning an arbitrary string guards against failure during creation of new database, e.g. during tests.
+    migs = MigrationRecorder.Migration.objects.filter(app='books', name="0015_auto_20160304_2237")
+    if len(migs) == 0: return "arbitrarystring"
+
     try:
-       latest_mship = MonetaryDonation.objects.filter(ctrlid__startswith=GEN_CTRLID_PFX).latest('ctrlid')
-       latest_ctrlid_num = int(latest_mship.ctrlid.replace(GEN_CTRLID_PFX,""))
+       latest_md = MonetaryDonation.objects.filter(ctrlid__startswith=GEN_CTRLID_PFX).latest('ctrlid')
+       latest_ctrlid_num = int(latest_md.ctrlid.replace(GEN_CTRLID_PFX,""))
        return GEN_CTRLID_PFX+str(latest_ctrlid_num+1).zfill(6)
     except MonetaryDonation.DoesNotExist:
         # This only happens for a new database when there are no monetary donations with generated ctrlids.
@@ -253,7 +260,6 @@ class MonetaryDonation(models.Model):
     def clean(self):
         link_count = 0
         if self.donation is not None: link_count += 1
-        if self.claim    is not None: link_count += 1
         if self.sale     is not None: link_count += 1
         # Unfortunately, this check doesn't work because of when the admin module links vs calls clean.
         # if link_count == 0:

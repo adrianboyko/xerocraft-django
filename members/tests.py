@@ -6,7 +6,7 @@ from django.contrib.auth.models import User
 #import factory
 #from django.db.models import signals
 
-from .models import Tag, Tagging, VisitEvent
+from .models import Tag, Tagging, VisitEvent, Membership
 
 """ TODO: The following test is complicated by my signal processing.
     Specifically, when loading a fixture there's no need for the handler that creates a member for each user.
@@ -91,3 +91,10 @@ class TestCardsAndApi(TestCase):
         response = c.get(path)
         json_response = json.loads(response.content.decode())
         self.assertTrue(json_response['error'])
+
+
+class TestMembership(TestCase):
+
+    def test_membership_ctrlid_generation(self):
+        mship = Membership.objects.create()
+        self.assertTrue(mship.ctrlid.startswith("GEN"))

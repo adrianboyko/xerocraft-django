@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.migrations.recorder import MigrationRecorder
 from django.utils import timezone
 from django.contrib.auth.models import User
 from books.models import Sale, ExpenseClaim
@@ -602,10 +603,15 @@ def next_membership_ctrlid():
 
     GEN_CTRLID_PFX = "GEN:"  # The prefix for generated ctrlids.
 
+    # This method can't calc a ctrlid before ctrlid col is in db, i.e. before migration 0042.
+    # Returning an arbitrary string guards against failure during creation of new database, e.g. during tests.
+    migs = MigrationRecorder.Migration.objects.filter(app='members', name="0042_auto_20160303_1717")
+    if len(migs) == 0: return "arbitrarystring"
+
     try:
-       latest_mship = Membership.objects.filter(ctrlid__startswith=GEN_CTRLID_PFX).latest('ctrlid')
-       latest_ctrlid_num = int(latest_mship.ctrlid.replace(GEN_CTRLID_PFX,""))
-       return GEN_CTRLID_PFX+str(latest_ctrlid_num+1).zfill(6)
+        latest_mship = Membership.objects.filter(ctrlid__startswith=GEN_CTRLID_PFX).latest('ctrlid')
+        latest_ctrlid_num = int(latest_mship.ctrlid.replace(GEN_CTRLID_PFX,""))
+        return GEN_CTRLID_PFX+str(latest_ctrlid_num+1).zfill(6)
     except Membership.DoesNotExist:
         # This only happens for a new database when there are no physical paid memberships.
         return GEN_CTRLID_PFX+("0".zfill(6))
@@ -624,14 +630,9 @@ class Membership(models.Model):
         help_text="The associated group membership, if any. Usually none.")
 
     # A membership can be sold.
-    sale = models.ForeignKey(Sale, null=True, blank=True,
+    sale = models.ForeignKey(Sale, null=True, blank=True, default=None,
         on_delete=models.CASCADE,  # Line items are parts of the sale so they should be deleted.
         help_text="The sale that includes this line item, if any. E.g. comp memberships don't have a corresponding sale.")
-
-    # A membership can be used as reimbursement in an expense claim.  AMB doesn't like this.
-    claim = models.ForeignKey(ExpenseClaim, null=True, blank=True,
-        on_delete=models.CASCADE,  # Line items are parts of the larger claim, so delete if claim is deleted.
-        help_text="The claim on which this membership appears as a reimbursement.")
 
     member = models.ForeignKey(Member,
         # There are records of payments which no longer seem to have an associated account.
@@ -663,10 +664,10 @@ class Membership(models.Model):
     family_count = models.IntegerField(default=0, null=False, blank=False,
         help_text="The number of ADDITIONAL family members included in this membership. Usually zero.")
 
-    start_date = models.DateField(null=False, blank=False,
+    start_date = models.DateField(null=False, blank=False, default=date.today,
         help_text="The frist day on which the membership is valid.")
 
-    end_date = models.DateField(null=False, blank=False,
+    end_date = models.DateField(null=False, blank=False, default=date.today,
         help_text="The last day on which the membership is valid.")
 
     ctrlid = models.CharField(max_length=40, null=False, blank=False, unique=True,
