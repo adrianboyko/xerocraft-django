@@ -54,7 +54,7 @@
         {% if claims %}
             Currently planning to work this task:
             {% for claim in claims %}
-                <br/>{{claim.member}}{% if task.work_duration %}, {{claim.work_duration|duration_str}} hrs{% endif %}
+                <br/>{{claim.claiming_member}}{% if task.work_duration %}, {{claim.claimed_duration|duration_str}}{% endif %}
             {% endfor %}
         {% else %}
             Nobody is helping with this task, yet.
