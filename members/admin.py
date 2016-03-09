@@ -326,6 +326,7 @@ class DiscoveryMethodAdmin(admin.ModelAdmin):
 class MembershipGiftCardLineItem(admin.StackedInline):
     extra = 0
     raw_id_fields = ['card']
+    readonly_fields = ['ctrlid']
 
 
 @Sellable(Membership)

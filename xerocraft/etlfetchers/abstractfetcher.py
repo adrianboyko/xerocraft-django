@@ -1,9 +1,9 @@
 import abc
 from django.db.models import Model
-from books.models import Sale, MonetaryDonation
-from books.serializers import SaleSerializer, MonetaryDonationSerializer
-from members.models import Membership
-from members.serializers import MembershipSerializer
+import books.models as bm
+import books.serializers as bs
+import members.models as mm
+import members.serializers as ms
 from requests import Session
 import sys
 
@@ -24,14 +24,17 @@ class AbstractFetcher(object):
     URLBASE = "http://localhost:8000/"  # IMPORTANT: Set URL back to production
 
     URLS = {
-        Sale:             "books/sales/",
-        MonetaryDonation: "books/monetary-donations/",
-        Membership:       "members/memberships/",
+        bm.Sale:                        "books/sales/",
+        bm.MonetaryDonation:            "books/monetary-donations/",
+        mm.Membership:                  "members/memberships/",
+        mm.MembershipGiftCardReference: "members/gift-card-refs/",
     }
     SERIALIZERS = {
-        Sale:             SaleSerializer,
-        MonetaryDonation: MonetaryDonationSerializer,
-        Membership:       MembershipSerializer,
+        bm.Sale:                        bs.SaleSerializer,
+        bm.MonetaryDonation:            bs.MonetaryDonationSerializer,
+        mm.Membership:                  ms.MembershipSerializer,
+        mm.MembershipGiftCardReference: ms.MembershipGiftCardReferenceSerializer,
+
     }
 
     djangosession = Session()

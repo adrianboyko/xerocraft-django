@@ -6,10 +6,10 @@ from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.views.generic import View
 from django.db.models import Count
-from members.models import Member, Tag, Tagging, VisitEvent, PaidMembership, Membership, DiscoveryMethod
+from members.models import Member, Tag, Tagging, VisitEvent, PaidMembership, Membership, DiscoveryMethod, MembershipGiftCardReference
 from members.forms import Desktop_ChooseUserForm, Books_NotePaymentForm
 from rest_framework import viewsets
-from .serializers import PaidMembershipSerializer, MembershipSerializer, DiscoveryMethodSerializer
+import members.serializers as ser
 from datetime import date
 from reportlab.pdfgen import canvas
 from reportlab.graphics.shapes import Drawing
@@ -364,7 +364,7 @@ class PaidMembershipViewSet(viewsets.ModelViewSet):  # Django REST Framework
     API endpoint that allows paid memberships to be viewed or edited.
     """
     queryset = PaidMembership.objects.all().order_by('-payment_date')
-    serializer_class = PaidMembershipSerializer
+    serializer_class = ser.PaidMembershipSerializer
     filter_fields = {'payment_method', 'ctrlid'}
 
 
@@ -373,7 +373,7 @@ class MembershipViewSet(viewsets.ModelViewSet):  # Django REST Framework
     API endpoint that allows memberships to be viewed or edited.
     """
     queryset = Membership.objects.all().order_by('-start_date')
-    serializer_class = MembershipSerializer
+    serializer_class = ser.MembershipSerializer
     filter_fields = {'ctrlid'}
 
 
@@ -382,7 +382,16 @@ class DiscoveryMethodViewSet(viewsets.ModelViewSet):  # Django REST Framework
     API endpoint that allows discovery methods to be viewed or edited.
     """
     queryset = DiscoveryMethod.objects.all().order_by('order')
-    serializer_class = DiscoveryMethodSerializer
+    serializer_class = ser.DiscoveryMethodSerializer
+
+
+class MembershipGiftCardReferenceViewSet(viewsets.ModelViewSet):  # Django REST Framework
+    """
+    API endpoint that allows memberships to be viewed or edited.
+    """
+    queryset = MembershipGiftCardReference.objects.all()
+    serializer_class = ser.MembershipGiftCardReferenceSerializer
+    filter_fields = {'ctrlid'}
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = REPORTS
 

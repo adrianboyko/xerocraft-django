@@ -96,5 +96,5 @@ class TestCardsAndApi(TestCase):
 class TestMembership(TestCase):
 
     def test_membership_ctrlid_generation(self):
-        mship = Membership.objects.create()
+        mship = Membership.objects.create(sale_price=0)
         self.assertTrue(mship.ctrlid.startswith("GEN"))

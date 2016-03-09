@@ -9,12 +9,63 @@ import hashlib
 from nameparser import HumanName
 from datetime import datetime, date, timedelta
 
-# TODO: Rework various validate() methods into Model.clean()? See Django's "model validation" docs.
 
-# TODO: class MetaTag?  E.g. Tag instructor tags with "instructor" meta-tag?
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# CTRLID Functions
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-# TODO: Import various *Field classes and remove "models."?
+# REVIEW: There is a nonzero probability that default ctrlids will collide when two users are doing manual data
+# entry at the same time.  This isn't considered a significant problem since we'll be lucky to get ONE person to
+# do data entry. If it does become a problem, the probability could be reduced by using random numbers.
 
+GEN_CTRLID_PFX = "GEN:"  # The prefix for generated ctrlids.
+
+
+def next_payment_ctrlid():
+    raise NotImplementedError("This method is referenced by 0025_auto_20160215_1529.py but shouldn't be called.")
+
+
+def next_membership_ctrlid():
+
+    """Provides an arbitrary default value for the ctrlid field, necessary when data is being entered manually."""
+
+    # This method can't calc a ctrlid before ctrlid col is in db, i.e. before migration 0042.
+    # Returning an arbitrary string guards against failure during creation of new database, e.g. during tests.
+    migs = MigrationRecorder.Migration.objects.filter(app='members', name="0042_auto_20160303_1717")
+    if len(migs) == 0: return "arbitrarystring"
+
+    try:
+        latest_mship = Membership.objects.filter(ctrlid__startswith=GEN_CTRLID_PFX).latest('ctrlid')
+        latest_ctrlid_num = int(latest_mship.ctrlid.replace(GEN_CTRLID_PFX,""))
+        return GEN_CTRLID_PFX+str(latest_ctrlid_num+1).zfill(6)
+    except Membership.DoesNotExist:
+        # This only happens for a new database when there are no physical paid memberships.
+        return GEN_CTRLID_PFX+("0".zfill(6))
+
+
+def next_giftcardref_ctrlid():
+
+    """Provides an arbitrary default value for the ctrlid field, necessary when data is being entered manually."""
+
+    # This method can't refer to MGCR before the new cols are in db. I.e. before migration 0043.
+    # Shorting out guards against failure during creation of new database, e.g. during tests.
+    migs = MigrationRecorder.Migration.objects.filter(app='members', name="0043_auto_20160309_1455")
+    if len(migs) == 0: return
+
+    try:
+        # NOTE: This version uses prev created PKs instead of prev created ctrlids.
+        # This elminates the need for complicated three-part migrations and MigrationRecorder checks.
+        # This may have problems if PKs are reused but they're not in Django + PostgreSQL.
+        latest_gcr = MembershipGiftCardReference.objects.latest('id')
+        return GEN_CTRLID_PFX+str(int(latest_gcr.id)+1).zfill(6)
+    except MembershipGiftCardReference.DoesNotExist:
+        # This only happens for a new database when there are no physical paid memberships.
+        return GEN_CTRLID_PFX+("0".zfill(6))
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# Models
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 # class MetaTag(models.Model):
 #
@@ -364,7 +415,7 @@ class GroupMembership(models.Model):
         help_text="The group to which this membership applies, defined by a tag.")
 
     start_date = models.DateField(null=False, blank=False,
-        help_text="The frist day on which the membership is valid.")
+        help_text="The first day on which the membership is valid.")
 
     end_date = models.DateField(null=False, blank=False,
         help_text="The last day on which the membership is valid.")
@@ -444,7 +495,7 @@ class PaidMembership(models.Model):
         help_text="The number of ADDITIONAL family members included in this membership. Usually zero.")
 
     start_date = models.DateField(null=False, blank=False,
-        help_text="The frist day on which the membership is valid.")
+        help_text="The first day on which the membership is valid.")
 
     end_date = models.DateField(null=False, blank=False,
         help_text="The last day on which the membership is valid.")
@@ -588,35 +639,6 @@ class MembershipGiftCardRedemption(models.Model):
 # Along with Sale (in "books" app), the following class will eventually replace PaidMembership.
 # PaidMembership is being kept until the switch-over is complete.
 
-
-def next_payment_ctrlid():
-    raise NotImplementedError("This method is referenced by 0025_auto_20160215_1529.py but shouldn't be called.")
-
-
-def next_membership_ctrlid():
-
-    """Provides an arbitrary default value for the ctrlid field, necessary when data is being entered manually."""
-
-    # REVIEW: There is a nonzero probability that default ctrlids will collide when two users are doing manual data
-    # entry at the same time.  This isn't considered a significant problem since we'll be lucky to get ONE person to
-    # do data entry. If it does become a problem, the probability could be reduced by using random numbers.
-
-    GEN_CTRLID_PFX = "GEN:"  # The prefix for generated ctrlids.
-
-    # This method can't calc a ctrlid before ctrlid col is in db, i.e. before migration 0042.
-    # Returning an arbitrary string guards against failure during creation of new database, e.g. during tests.
-    migs = MigrationRecorder.Migration.objects.filter(app='members', name="0042_auto_20160303_1717")
-    if len(migs) == 0: return "arbitrarystring"
-
-    try:
-        latest_mship = Membership.objects.filter(ctrlid__startswith=GEN_CTRLID_PFX).latest('ctrlid')
-        latest_ctrlid_num = int(latest_mship.ctrlid.replace(GEN_CTRLID_PFX,""))
-        return GEN_CTRLID_PFX+str(latest_ctrlid_num+1).zfill(6)
-    except Membership.DoesNotExist:
-        # This only happens for a new database when there are no physical paid memberships.
-        return GEN_CTRLID_PFX+("0".zfill(6))
-
-
 class Membership(models.Model):
 
     # A membership can arise from redemption of a gift card.
@@ -628,11 +650,6 @@ class Membership(models.Model):
     group = models.ForeignKey(GroupMembership, null=True, blank=True, default=None,
         on_delete=models.CASCADE,  # This membership is part of the group membership, so it should also go.
         help_text="The associated group membership, if any. Usually none.")
-
-    # A membership can be sold.
-    sale = models.ForeignKey(Sale, null=True, blank=True, default=None,
-        on_delete=models.CASCADE,  # Line items are parts of the sale so they should be deleted.
-        help_text="The sale that includes this line item, if any. E.g. comp memberships don't have a corresponding sale.")
 
     member = models.ForeignKey(Member,
         # There are records of payments which no longer seem to have an associated account.
@@ -665,10 +682,21 @@ class Membership(models.Model):
         help_text="The number of ADDITIONAL family members included in this membership. Usually zero.")
 
     start_date = models.DateField(null=False, blank=False, default=date.today,
-        help_text="The frist day on which the membership is valid.")
+        help_text="The first day on which the membership is valid.")
 
     end_date = models.DateField(null=False, blank=False, default=date.today,
         help_text="The last day on which the membership is valid.")
+
+    # A membership can be sold. Sale related fields: sale, sale_price
+
+    sale = models.ForeignKey(Sale, null=True, blank=True, default=None,
+        on_delete=models.CASCADE,  # Line items are parts of the sale so they should be deleted.
+        help_text="The sale that includes this line item, if any. E.g. comp memberships don't have a corresponding sale.")
+
+    sale_price = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
+        help_text="The price at which this item sold.")
+
+    # ETL related fields: ctrlid, protected
 
     ctrlid = models.CharField(max_length=40, null=False, blank=False, unique=True,
         default=next_membership_ctrlid,
@@ -727,16 +755,32 @@ class DiscoveryMethod(models.Model):
 
 class MembershipGiftCardReference(models.Model):
 
-    card = models.OneToOneField(MembershipGiftCard, null=False, blank=False,
+    # NOTE: Cards have been sold online without any info about which card was sold.
+    # That situation will be mapped to a card value of None and should be rectified manually.
+    card = models.OneToOneField(MembershipGiftCard, null=True, blank=True,
         on_delete=models.PROTECT,  # It doesn't make sense to delete a gift card if it's sold.
         help_text="The membership gift card being sold.")
+
+    # Membership gift cards can be sold. Sales related fields: sale, sale_price
 
     sale = models.ForeignKey(Sale, null=True, blank=True,
         on_delete=models.CASCADE,  # Line items are parts of the sale so they should be deleted.
         help_text="The sale that includes the card as a line item.")
 
+    sale_price = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
+        help_text="The price at which this item sold.")
+
+    # ETL related fields: ctrlid, protected
+
+    ctrlid = models.CharField(max_length=40, null=False, blank=False, unique=True,
+        default=next_giftcardref_ctrlid,
+        help_text="Payment processor's id if this was part of an online purchase.")
+
+    protected = models.BooleanField(default=False,
+        help_text="Protect against further auto processing by ETL, etc. Prevents overwrites of manually entered data.")
+
     def __str__(self):
-        return "Ref to gift card {}, NOT the gift card itself.".format(self.card.redemption_code)
+        return "CARD NOT YET SPECIFIED!" if self.card is None else self.card.redemption_code
 
     class Meta:
         verbose_name = "Membership gift card"

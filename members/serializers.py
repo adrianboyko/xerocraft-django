@@ -1,11 +1,11 @@
-from members.models import PaidMembership, Membership, DiscoveryMethod
+import members.models as models
 from books.models import Sale
 from rest_framework import serializers
 
 
 class PaidMembershipSerializer(serializers.ModelSerializer):
     class Meta:
-        model = PaidMembership
+        model = models.PaidMembership
         fields = (
             'id',
             'membership_type',
@@ -27,23 +27,41 @@ class PaidMembershipSerializer(serializers.ModelSerializer):
 class MembershipSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = Membership
+        model = models.Membership
         fields = (
             'id',
-            'sale',
             'member',
             'membership_type',
             'family_count',
             'start_date',
             'end_date',
+            # Sale related fields
+            'sale',
+            'sale_price',
+            # ETL related fields
             'ctrlid',
             'protected',
         )
 
 
+class MembershipGiftCardReferenceSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = models.MembershipGiftCardReference
+        fields = (
+            'id',
+            'card',
+            # Sale related fields
+            'sale',
+            'sale_price',
+            # ETL related fields
+            'ctrlid',
+            'protected',
+        )
+
 class DiscoveryMethodSerializer(serializers.ModelSerializer):
     class Meta:
-        model = DiscoveryMethod
+        model = models.DiscoveryMethod
         fields = (
             'id',
             'name',

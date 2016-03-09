@@ -1,5 +1,5 @@
 from xerocraft.etlfetchers.abstractfetcher import AbstractFetcher
-from members.models import Membership, Member
+from members.models import Membership, Member, MembershipGiftCardReference
 from books.models import Sale, MonetaryDonation
 from datetime import date
 from dateutil.parser import parse
@@ -65,7 +65,7 @@ class Fetcher(AbstractFetcher):
                     mship.start_date = mship.start_date.replace(month=month)
             mship.end_date = mship.start_date + relativedelta(months=months, days=-1)
             mship.family_count = family_count
-            #mship.amount = Decimal(item['gross_sales_money']['amount']) / (quantity * 100.0)
+            mship.sale_price = Decimal(item['gross_sales_money']['amount']) / Decimal(quantity * 100.0)
             self.upsert(mship)
 
     # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -81,6 +81,20 @@ class Fetcher(AbstractFetcher):
             don.sale = Sale(id=sale['id'])
             don.amount = Decimal(item["net_sales_money"]["amount"]) / Decimal(100)
             self.upsert(don)
+
+    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    # PROCESS GIFTCARD ITEM
+    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+    def _process_giftcard_item(self, sale, item, item_num):
+
+        quantity = int(float(item['quantity']))
+        for n in range(1, quantity+1):
+            cardref = MembershipGiftCardReference()
+            cardref.ctrlid = "{}:{}:{}".format(sale['ctrlid'], item_num, n)
+            cardref.sale = Sale(id=sale['id'])
+            cardref.sale_price = Decimal(item["net_sales_money"]["amount"]) / Decimal(100)
+            self.upsert(cardref)
 
     # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     # PROCESS ITEMS
@@ -143,8 +157,7 @@ class Fetcher(AbstractFetcher):
                 self._process_donation_item(sale, item, item_num)
 
             elif item['name'] in self.GIFT_CARD_ITEMS:
-                pass
-                #self._process_giftcard_item(sale, item, item_num)
+                self._process_giftcard_item(sale, item, item_num)
 
             elif item['name'] == "One Month Membership":
                 self._process_membership_item(sale, item, item_num, Membership.MT_REGULAR, 1)
@@ -168,7 +181,12 @@ class Fetcher(AbstractFetcher):
         return names[0] if len(names)>0 else ""
 
     def _get_tender_type(self, payment) -> str:
-        xform = {"VISA":"Visa", "MASTER_CARD":"MC", "AMERICAN_EXPRESS":"AMEX"}
+        xform = {
+            "VISA":"Visa",
+            "MASTER_CARD":"MC",
+            "AMERICAN_EXPRESS":"AMEX",
+            "DISCOVER": "Disc"
+        }
         type = payment["tender"][0].get("card_brand", "")
         if type=="": type = payment["tender"][0].get("name", "?")
         if type in xform: type = xform[type]
@@ -183,6 +201,7 @@ class Fetcher(AbstractFetcher):
         mship.start_date = date(2015,12,1)
         mship.end_date = date(2015,12,31)
         mship.family_count = 0
+        mship.sale_price = 10.00
         self.upsert(mship)
 
     def _process_payments(self, payments):
