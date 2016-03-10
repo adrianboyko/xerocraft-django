@@ -85,9 +85,12 @@ INSTALLED_APPS = (
     'rest_framework',
     'rest_framework.authtoken',
     'books',
+    'reversion',
+    #'guardian',
 )
 
 MIDDLEWARE_CLASSES = (
+    'reversion.middleware.RevisionMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -109,7 +112,10 @@ AUTHENTICATION_BACKENDS = (
     'social.backends.facebook.FacebookOAuth2',
     'social.backends.google.GoogleOAuth2',
     'social.backends.twitter.TwitterOAuth',
+    #'guardian.backends.ObjectPermissionBackend',
 )
+
+ANONYMOUS_USER_ID = -1
 
 ROOT_URLCONF = 'xerocraft.urls'
 

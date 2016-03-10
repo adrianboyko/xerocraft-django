@@ -7,6 +7,7 @@ import datetime
 from tasks.models import RecurringTaskTemplate, Task, TaskNote, Claim, Work, Nag, Worker, WorkNote
 from nptime import nptime
 from tasks.templatetags.tasks_extras import duration_str2
+from reversion.admin import VersionAdmin
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -133,7 +134,7 @@ def set_nag_on_for_instances(model_admin, request, query_set):
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-class TemplateAndTaskBase(admin.ModelAdmin):
+class TemplateAndTaskBase(VersionAdmin):
 
     def time_window_fmt(self, obj):
         return time_window_fmt(obj.work_start_time, obj.work_duration)
@@ -398,7 +399,7 @@ class TaskAdmin(TemplateAndTaskBase):
 
 
 @admin.register(Claim)
-class ClaimAdmin(admin.ModelAdmin):
+class ClaimAdmin(admin.ModelAdmin):  # No need to version these
 
     def temp_mtd_hours_rollup(self, obj):
         """This is a temporary measure to help audit work trade data entry. Will be moved to a new model, eventually. """
@@ -444,13 +445,13 @@ class ClaimAdmin(admin.ModelAdmin):
 
 
 @admin.register(Nag)
-class NagAdmin(admin.ModelAdmin):
+class NagAdmin(admin.ModelAdmin):  # No need to version these
     list_display = ['pk', 'who', 'task_count', 'when', 'auth_token_md5']
     readonly_fields = ['who','auth_token_md5','tasks']
 
 
 @admin.register(Work)
-class WorkAdmin(admin.ModelAdmin):
+class WorkAdmin(VersionAdmin):
     list_display = ['pk', 'claim', 'work_date', 'work_duration']
     list_filter = [get_ScheduledDateListFilter_class('work_date')]
     date_hierarchy = 'work_date'
@@ -481,7 +482,7 @@ class WorkerTypeFilter(admin.SimpleListFilter):
 
 
 @admin.register(Worker)
-class WorkerAdmin(admin.ModelAdmin):
+class WorkerAdmin(VersionAdmin):
 
     def alarm(self, obj): return obj.should_include_alarms
     def nag(self, obj): return obj.should_nag
@@ -520,11 +521,11 @@ class WorkerAdmin(admin.ModelAdmin):
 
 
 @admin.register(TaskNote)
-class TaskNoteAdmin(admin.ModelAdmin):
+class TaskNoteAdmin(VersionAdmin):
     list_display = ['pk', 'task', 'author', 'content']
 
 
 @admin.register(WorkNote)
-class WorkNoteAdmin(admin.ModelAdmin):
+class WorkNoteAdmin(VersionAdmin):
     list_display = ['pk', 'work', 'author', 'content']
     raw_id_fields = ['author']

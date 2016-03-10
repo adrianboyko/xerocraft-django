@@ -2,15 +2,16 @@ from django.contrib import admin
 from members.models import *
 from books.admin import Sellable
 from django.utils.translation import ugettext_lazy as _
+from reversion.admin import VersionAdmin
 
 
 @admin.register(Tag)
-class TagAdmin(admin.ModelAdmin):
+class TagAdmin(VersionAdmin):
     fields = ['name','meaning']
 
 
 @admin.register(Tagging)
-class TaggingAdmin(admin.ModelAdmin):
+class TaggingAdmin(VersionAdmin):
 
     def members_username(self, object):
         return object.tagged_member.username
@@ -26,7 +27,7 @@ class TaggingAdmin(admin.ModelAdmin):
 
 
 @admin.register(VisitEvent)
-class VisitEventAdmin(admin.ModelAdmin):
+class VisitEventAdmin(admin.ModelAdmin):  # No need to version events.
     ordering = ['-when']
     list_display = ['pk', 'when', 'who', 'event_type', 'method', 'sync1']
     readonly_fields = ['when', 'who', 'event_type', 'method', 'sync1']
@@ -57,7 +58,7 @@ class MemberTypeFilter(admin.SimpleListFilter):
 
 
 @admin.register(Member)
-class MemberAdmin(admin.ModelAdmin):
+class MemberAdmin(VersionAdmin):
 
     list_display = ['pk', '__str__', 'auth_user', 'membership_card_when', 'membership_card_md5']
 
@@ -92,7 +93,7 @@ class PaymentLinkedFilter(admin.SimpleListFilter):
 
 
 @admin.register(PaidMembership)
-class PaidMembershipAdmin(admin.ModelAdmin):
+class PaidMembershipAdmin(admin.ModelAdmin):  # Not versioning this since it will be deleted soon.
 
     ordering = ['-start_date']
     date_hierarchy = 'start_date'
@@ -179,27 +180,27 @@ class PaidMembershipAdmin(admin.ModelAdmin):
 
 
 # @admin.register(PaymentAKA)
-# class MemberAKAAdmin(admin.ModelAdmin):
+# class MemberAKAAdmin(VersionAdmin):
 #     list_display = ['pk', 'member', 'aka']
 #     raw_id_fields = ['member']
 
 
 @admin.register(PaidMembershipNudge)
-class PaidMembershipNudgeAdmin(admin.ModelAdmin):
+class PaidMembershipNudgeAdmin(admin.ModelAdmin):  # No need to version these
     list_display = ['pk', 'member', 'when']
     raw_id_fields = ['member']
     ordering = ['-when']
 
 
 @admin.register(MemberLogin)
-class MemberLogin(admin.ModelAdmin):
+class MemberLogin(VersionAdmin):
     list_display = ['pk', 'member', 'when', 'ip']
     raw_id_fields = ['member']
     ordering = ['-when']
 
 
 @admin.register(MembershipGiftCard)
-class MembershipGiftCardAdmin(admin.ModelAdmin):
+class MembershipGiftCardAdmin(VersionAdmin):
 
     def sold(self, obj):
         ref = obj.membershipgiftcardreference
@@ -245,7 +246,7 @@ class MembershipInline(admin.StackedInline):
 
 
 @admin.register(MembershipGiftCardRedemption)
-class MembershipGiftCardRedemptionAdmin(admin.ModelAdmin):
+class MembershipGiftCardRedemptionAdmin(VersionAdmin):
     def members(self, obj):
         return ",".join([str(mli.member) for mli in obj.membership_set.all()])
 
@@ -258,7 +259,7 @@ class MembershipGiftCardRedemptionAdmin(admin.ModelAdmin):
 
 
 @admin.register(Membership)
-class MembershipAdmin(admin.ModelAdmin):
+class MembershipAdmin(VersionAdmin):
     ordering = ['-start_date']
     date_hierarchy = 'start_date'
     list_filter = [
@@ -313,7 +314,7 @@ class MembershipAdmin(admin.ModelAdmin):
 
 
 @admin.register(DiscoveryMethod)
-class DiscoveryMethodAdmin(admin.ModelAdmin):
+class DiscoveryMethodAdmin(VersionAdmin):
     list_display = ['pk', 'order', 'name']
     ordering = ['order']
 

@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.db import models
 from books.models import *
+from reversion.admin import VersionAdmin
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -24,7 +25,7 @@ class NoteInline(admin.StackedInline):
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 @admin.register(Account)
-class AccountAdmin(admin.ModelAdmin):
+class AccountAdmin(VersionAdmin):
     list_display = [
         'pk',
         'name',
@@ -61,7 +62,7 @@ class PhysicalDonationInline(admin.StackedInline):
 
 
 @admin.register(Donation)
-class DonationAdmin(admin.ModelAdmin):
+class DonationAdmin(VersionAdmin):
     list_display = [
         'pk',
         'donation_date',
@@ -84,7 +85,7 @@ class DonationAdmin(admin.ModelAdmin):
 
 
 @admin.register(MonetaryDonation)
-class MonetaryDonationAdmin(admin.ModelAdmin):
+class MonetaryDonationAdmin(VersionAdmin):
     pass
 
 
@@ -97,7 +98,7 @@ class SaleNoteInline(NoteInline):
 
 
 @admin.register(Sale)
-class SaleAdmin(admin.ModelAdmin):
+class SaleAdmin(VersionAdmin):
     list_display = [
         'pk',
         'sale_date',
@@ -148,7 +149,7 @@ class ExpenseClaimLineItemInline(admin.StackedInline):
 
 
 @admin.register(ExpenseClaim)
-class ExpenseClaimAdmin(admin.ModelAdmin):
+class ExpenseClaimAdmin(VersionAdmin):
     list_display = [
         'pk',
         'claim_date',
