@@ -41,7 +41,7 @@ DEBUG = False  # IMPORTANT: Set to False before commit.
 
 ALLOWED_HOSTS = [
     'xerocraft-django.herokuapp.com',
-    'xis.internal-xerocraft.org',
+    'xis.xerocraft.us',
 ]
 
 LOGIN_URL = "/login/"
