@@ -193,6 +193,11 @@ class Sale(models.Model):
     class Meta:
         unique_together = ('payment_method', 'ctrlid')
 
+    def __str__(self):
+        if self.payer_name is not "": return "{} sale to {}".format(self.sale_date, self.payer_name)
+        elif self.payer_acct is not None: return "{} sale to {}".format(self.sale_date, self.payer_acct)
+        elif self.payer_email is not None: return "{} sale to {}".format(self.sale_date, self.payer_email)
+        else: return "{} sale".format(self.sale_date)
 
 class SaleNote(Note):
 

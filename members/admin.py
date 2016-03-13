@@ -276,7 +276,7 @@ class MembershipAdmin(VersionAdmin):
     type_fmt.short_description = 'type'
 
     def src_fmt(self,obj):
-        if obj.sale is not None: return "{} sale to {}".format(obj.sale.sale_date,obj.sale.payer_name)
+        if obj.sale is not None: return str(obj.sale)
         if obj.redemption is not None: return "Gift card "+obj.redemption.card.redemption_code
         if obj.group is not None: return "Member of {} group".format(obj.group.group_tag)
         else: return None

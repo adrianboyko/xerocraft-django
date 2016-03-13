@@ -715,13 +715,17 @@ class Membership(models.Model):
         if self.sale is None:
             return
 
-        self.member = None
+        # If payer's acct was specified in sale, link to it.
+        if self.sale.payer_acct is not None:
+            self.member = self.sale.payer_acct.member
+            return
 
         # Attempt to match by EMAIL
         try:
             email_matches = User.objects.filter(email=self.sale.payer_email)
             if len(email_matches) == 1:
                 self.member = email_matches[0].member
+                return
         except User.DoesNotExist:
             pass
 
@@ -733,7 +737,9 @@ class Membership(models.Model):
             name_matches = User.objects.filter(first_name__iexact=fname, last_name__iexact=lname)
             if len(name_matches) == 1:
                 self.member = name_matches[0].member
-            # TODO: Else log WARNING (or maybe just INFO)
+                return
+            else:
+                pass  # TODO: Log WARNING (or maybe just INFO)
         except User.DoesNotExist:
             pass
 
