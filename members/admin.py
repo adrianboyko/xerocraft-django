@@ -325,15 +325,19 @@ class DiscoveryMethodAdmin(VersionAdmin):
 
 @Sellable(MembershipGiftCardReference)
 class MembershipGiftCardLineItem(admin.StackedInline):
+    fields = [
+        'sale_price',
+        'card',
+    ]
     extra = 0
     raw_id_fields = ['card']
-    readonly_fields = ['ctrlid']
 
 
 @Sellable(Membership)
 class MembershipLineItem(admin.StackedInline):
     extra = 0
     fields = [
+        'sale_price',
         'member',
         'membership_type',
         'family_count',
@@ -346,6 +350,7 @@ class MembershipLineItem(admin.StackedInline):
 class GroupMembershipLineItem(admin.StackedInline):
     extra = 0
     fields = [
+        'sale_price',
         'group_tag',
         ('start_date', 'end_date'),
         'max_members',

@@ -406,10 +406,6 @@ def next_paidmembership_ctrlid():
 
 class GroupMembership(models.Model):
 
-    sale = models.ForeignKey(Sale, null=False, blank=False,
-        on_delete=models.CASCADE,  # Line items are parts of the sale so they should be deleted.
-        help_text="The sale on which this group membership appears as a line item, if any.")
-
     group_tag = models.ForeignKey(Tag, null=False, blank=False,
         on_delete=models.PROTECT,  # A group membership's tag should be changed before deleting the unwanted tag.
         help_text="The group to which this membership applies, defined by a tag.")
@@ -422,6 +418,15 @@ class GroupMembership(models.Model):
 
     max_members = models.IntegerField(default=None, null=True, blank=True,
         help_text="The maximum number of members to which this group membership can be applied. Blank if no limit.")
+
+    # A membership can be sold. Sale related fields: sale, sale_price
+
+    sale = models.ForeignKey(Sale, null=False, blank=False,
+        on_delete=models.CASCADE,  # Line items are parts of the sale so they should be deleted.
+        help_text="The sale on which this group membership appears as a line item, if any.")
+
+    sale_price = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
+        help_text="The price at which this item sold.")
 
     def __str__(self):
         return "{}, {} to {}".format(self.group_tag, self.start_date, self.end_date)
