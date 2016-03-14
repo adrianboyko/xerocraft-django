@@ -8,6 +8,7 @@ djrill==1.4.0
 gunicorn==19.3.0
 icalendar==3.9.1
 -e git+https://github.com/tgs/nptime.git@d8866bd76e0fcabc45674c69cee30380731d4acd#egg=nptime
+https://bitbucket.org/IanLewis/django-ical/get/tip.zip#egg=django-ical
 lxml==3.5.0
 nameparser==0.3.11
 oauthlib==1.0.3
