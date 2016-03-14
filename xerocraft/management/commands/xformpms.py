@@ -49,6 +49,11 @@ class Command(BaseCommand):
                 start_date=pm.start_date,
                 end_date=pm.end_date,
                 protected=pm.protected,
+
+                # Not correct, but it'll have to suffice for now.
+                # The paid_by_member value is potentially off by the fee paid.
+                # New version of ETL has correct value.
+                sale_price=pm.paid_by_member,
             )
 
     def handle(self, *args, **options):
