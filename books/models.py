@@ -4,6 +4,7 @@ from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
+from datetime import date
 import django.db.utils
 import uuid
 
@@ -140,7 +141,7 @@ class Account(models.Model):
 
 class Sale(models.Model):
 
-    sale_date = models.DateField(null=False, blank=False, default=timezone.now,
+    sale_date = models.DateField(null=False, blank=False, default=date.today,
         help_text="The date on which the sale was made. Best guess if exact date not known.")
 
     payer_acct = models.ForeignKey(User, null=True, blank=True, default=None,
@@ -255,7 +256,7 @@ class OtherItem(models.Model):
 
 class Donation(models.Model):
 
-    donation_date = models.DateField(null=False, blank=False, default=timezone.now,
+    donation_date = models.DateField(null=False, blank=False, default=date.today,
         help_text="The date on which the donation was made. Best guess if exact date not known.")
 
     donator_acct = models.ForeignKey(User, null=True, blank=True,
@@ -270,9 +271,9 @@ class Donation(models.Model):
 
     def __str__(self):
         name = "Anonymous"
-        if len(self.donator_name) > 0: name = self.donator_name
+        if len(str(self.donator_name)) > 0: name = self.donator_name
         elif self.donator_acct is not None: name = str(self.donator_acct)
-        elif len(self.donator_email) > 0: name = self.donator_email
+        elif len(str(self.donator_email)) > 0: name = self.donator_email
         return "{} on {}".format(name, self.donation_date)
 
 
@@ -341,7 +342,7 @@ class PhysicalDonation(models.Model):
 
 class ExpenseClaim(models.Model):
 
-    claim_date = models.DateField(null=False, blank=False, default=timezone.now,
+    claim_date = models.DateField(null=False, blank=False, default=date.today,
         help_text="The date on which the claim was filed. Best guess if exact date not known.")
 
     claimant = models.ForeignKey(User, null=True, blank=True,
