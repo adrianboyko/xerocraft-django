@@ -432,10 +432,10 @@ class GroupMembership(models.Model):
         return "{}, {} to {}".format(self.group_tag, self.start_date, self.end_date)
 
     def matches(self, membership):
-        if membership.start_date   != self.start_date: return False
-        if membership.end_date     != self.end_date: return False
-        if membership.family_count != 0: return False
-        if membership.type         != membership.MT_GROUP: return False
+        if membership.start_date      != self.start_date: return False
+        if membership.end_date        != self.end_date: return False
+        if membership.family_count    != 0: return False
+        if membership.membership_type != membership.MT_GROUP: return False
         return True
 
     def copy_to(self, membership):
