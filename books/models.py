@@ -199,11 +199,54 @@ class Sale(models.Model):
         elif self.payer_email is not None: return "{} sale to {}".format(self.sale_date, self.payer_email)
         else: return "{} sale".format(self.sale_date)
 
+
 class SaleNote(Note):
 
     sale = models.ForeignKey(Sale,
         on_delete=models.CASCADE,  # No point in keeping the note if the sale is gone.
         help_text="The sale to which the note pertains.")
+
+
+class OtherItemType(models.Model):
+    """Cans of soda, bumper stickers, materials, etc."""
+
+    name = models.CharField(max_length=40, unique=True,
+        help_text="A short name for the item.")
+
+    description = models.TextField(max_length=1024,
+        help_text="A description of the item.")
+
+    def __str__(self):
+        return self.name
+
+
+class OtherItem(models.Model):
+
+    type = models.ForeignKey(OtherItemType, null=False, blank=False, default=None,
+        on_delete=models.PROTECT,  # Don't allow deletion of an item type that appears in a sale.
+        help_text="The type of item sold.")
+
+    # Sale related fields: sale, sale_price, qty_sol
+    sale = models.ForeignKey(Sale,
+        on_delete=models.CASCADE,  # No point in keeping the line item if the sale is gone.
+        help_text="The sale for which this is a line item.")
+
+    sale_price = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
+        help_text="The UNIT price at which this/these item(s) sold.")
+
+    qty_sold = models.IntegerField(null=False, blank=False, default=1,
+        help_text="The quantity of the item sold.")
+
+    # ETL related fields: sale, sale_price, qty_sol
+    ctrlid = models.CharField(max_length=40, null=False, blank=False, unique=True,
+        default=next_monetarydonation_ctrlid,
+        help_text="Payment processor's id for this donation, if any.")
+
+    protected = models.BooleanField(default=False,
+        help_text="Protect against further auto processing by ETL, etc. Prevents overwrites of manually entered data.")
+
+    def __str__(self):
+        return self.type.name
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =

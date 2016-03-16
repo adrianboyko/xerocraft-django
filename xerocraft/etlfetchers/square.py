@@ -1,6 +1,6 @@
 from xerocraft.etlfetchers.abstractfetcher import AbstractFetcher
 from members.models import Membership, Member, MembershipGiftCardReference
-from books.models import Sale, MonetaryDonation
+from books.models import Sale, MonetaryDonation, OtherItem, OtherItemType
 from datetime import date
 from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
@@ -79,7 +79,7 @@ class Fetcher(AbstractFetcher):
             don = MonetaryDonation()
             don.ctrlid = "{}:{}:{}".format(sale['ctrlid'], item_num, n)
             don.sale = Sale(id=sale['id'])
-            don.amount = Decimal(item["net_sales_money"]["amount"]) / Decimal(100)
+            don.amount = Decimal(item["gross_sales_money"]["amount"]) / Decimal(quantity * 100.0)
             self.upsert(don)
 
     # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -93,25 +93,51 @@ class Fetcher(AbstractFetcher):
             cardref = MembershipGiftCardReference()
             cardref.ctrlid = "{}:{}:{}".format(sale['ctrlid'], item_num, n)
             cardref.sale = Sale(id=sale['id'])
-            cardref.sale_price = Decimal(item["net_sales_money"]["amount"]) / Decimal(100)
+            cardref.sale_price = Decimal(item["net_sales_money"]["amount"]) / Decimal(quantity * 100.0)
             self.upsert(cardref)
+
+    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    # PROCESS OTHER ITEM
+    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+    OTHER_ITEM_TYPE_MAP = {
+        "Workshop Fee": "Workshop Fee",
+        "Bumper Sticker": "Sticker",
+        "Medium Sticker": "Sticker",
+        "Soda": "Soda",
+        "Refill Soda Account": "Refill Soda Account",
+    }
+
+    def _process_other_item(self, sale, item, item_num):
+
+        quantity = int(float(item['quantity']))
+        for n in range(1, quantity+1):
+
+            if item['name'] not in self.OTHER_ITEM_TYPE_MAP:
+                print("Fetcher does not map: "+item['name'])
+                return
+
+            mappedname = self.OTHER_ITEM_TYPE_MAP[item['name']]
+            typepk = self._get_id(self.URLS[OtherItemType], {'name': mappedname})
+            if typepk is None:
+                print("Server does not have other item type: "+mappedname)
+                return
+
+            other = OtherItem()
+
+            other.type = OtherItemType(id=typepk)
+            other.sale = Sale(id=sale['id'])
+            other.sale_price = Decimal(item["net_sales_money"]["amount"]) / Decimal(quantity * 100.0)
+            other.qty_sold = int(float(item['quantity']))
+            other.ctrlid = "{}:{}:{}".format(sale['ctrlid'], item_num, n)
+
+            self.upsert(other)
 
     # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     # PROCESS ITEMS
     # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
     UNINTERESTING_ITEMS = [
-        "Refill Soda Account",
-    ]
-
-    GOODS_ITEMS = [
-        "Bumper Sticker",
-        "Medium Sticker",
-        "Soda",
-    ]
-
-    SERVICE_ITEMS = [
-        "Workshop Fee",  # REVIEW: Is this intended to represent a donation?
     ]
 
     DONATION_ITEMS = [
@@ -153,6 +179,18 @@ class Fetcher(AbstractFetcher):
             if item['name'] in self.UNINTERESTING_ITEMS:
                 pass
 
+            elif item['name'] == "Workshop Fee":
+                # Before 15 March 2016, these were mostly (entirely?) donations.
+                # After 15 March 2016, these should only be cost-covering fees (NOT donations)
+                sale_date = parse(sale["sale_date"]).date()
+                if sale_date < date(2016,3,15):
+                    self._process_donation_item(sale, item, item_num)
+                else:
+                    self._process_other_item(sale, item, item_num)
+
+            elif item['name'] in self.OTHER_ITEM_TYPE_MAP:
+                self._process_other_item(sale, item, item_num)
+
             elif item['name'] in self.DONATION_ITEMS:
                 self._process_donation_item(sale, item, item_num)
 
@@ -184,13 +222,24 @@ class Fetcher(AbstractFetcher):
         xform = {
             "VISA":"Visa",
             "MASTER_CARD":"MC",
-            "AMERICAN_EXPRESS":"AMEX",
+            "AMERICAN_EXPRESS":"Amex",
             "DISCOVER": "Disc"
         }
         type = payment["tender"][0].get("card_brand", "")
-        if type=="": type = payment["tender"][0].get("name", "?")
+        if type == "": type = payment["tender"][0].get("name", "?")
         if type in xform: type = xform[type]
         return type
+
+    def _special_case_ixStxgstn56QI8jnJtcCtzMF(self, sale):
+        mship = Membership()
+        mship.sale = Sale(id=sale['id'])
+        mship.membership_type = Membership.MT_REGULAR
+        mship.ctrlid = "{}:1:1".format(sale['ctrlid'])
+        mship.start_date = date(2014, 12, 12)
+        mship.end_date = date(2015, 6, 11)
+        mship.family_count = 0
+        mship.sale_price = 225.00
+        self.upsert(mship)
 
     def _special_case_0JFN0loJ0kcy8DXCvuDVwwMF(self, sale):
         mship = Membership()
@@ -198,21 +247,26 @@ class Fetcher(AbstractFetcher):
         mship.member = Member(id=19)  # Lookup by name would be better but I don't want to have names in the code.
         mship.membership_type = Membership.MT_WORKTRADE
         mship.ctrlid = "{}:1:1".format(sale['ctrlid'])
-        mship.start_date = date(2015,12,1)
-        mship.end_date = date(2015,12,31)
+        mship.start_date = date(2015, 12, 1)
+        mship.end_date = date(2015, 12, 31)
         mship.family_count = 0
         mship.sale_price = 10.00
         self.upsert(mship)
+
+    SALES_TO_SKIP = [
+        "A8CAHHFZZFBK3",            # $0, no items
+        "8J4ZaFUnIU5e2NlEn2UkKQB",  # Cash sale, fully refunded. Customer did subsequent credit card sale.
+        "U3dZYqFP1rKtjJImyYuNfvMF",  # This was a 'Refill Soda Account' test, fully refunded.
+    ]
 
     def _process_payments(self, payments):
 
         for payment in payments:
 
-            if payment['tender'][0]['type'] == "NO SALE":
+            if payment['tender'][0]['type'] == "NO_SALE":
                 continue
 
-            if payment['id'] == "8J4ZaFUnIU5e2NlEn2UkKQB":
-                continue  # This was fully refunded
+            if payment['id'] in self.SALES_TO_SKIP: continue
 
             if len(payment["tender"]) != 1:
                 print("Code doesn't handle multiple tenders as in {}. Skipping.".format(payment['id']))
@@ -229,12 +283,20 @@ class Fetcher(AbstractFetcher):
             sale.ctrlid = "SQ:" + payment["id"]
             #sale.payer_notes = payment.get("notes", "").strip()
 
+            if payment['id'] == "ixStxgstn56QI8jnJtcCtzMF":
+                sale.payer_name = sale.payer_name.replace("M ", "MIKE ")
+
             django_sale = self.upsert(sale)
 
             if payment['id'] == "0JFN0loJ0kcy8DXCvuDVwwMF":
                 # This is a work trade payment that was erroneously entered as a custom payment.
                 # So we do this special processing to ingest it as a 1 month Work Trade membership.
                 self._special_case_0JFN0loJ0kcy8DXCvuDVwwMF(django_sale)
+
+            if payment['id'] == "ixStxgstn56QI8jnJtcCtzMF":
+                # This is a six month membership that was erroneously entered as a custom payment.
+                # So we do this special processing to ingest it as a 6 month membership.
+                self._special_case_ixStxgstn56QI8jnJtcCtzMF(django_sale)
 
             else:
                 itemizations = payment['itemizations']

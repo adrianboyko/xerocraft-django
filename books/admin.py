@@ -97,6 +97,20 @@ class SaleNoteInline(NoteInline):
     model = SaleNote
 
 
+class OtherItemInline(admin.StackedInline):
+    model = OtherItem
+    extra = 0
+
+
+@admin.register(OtherItemType)
+class OtherItemTypeAdmin(VersionAdmin):
+    list_display = [
+        'pk',
+        'name',
+        'description',
+    ]
+
+
 @admin.register(Sale)
 class SaleAdmin(VersionAdmin):
     list_display = [
@@ -123,7 +137,7 @@ class SaleAdmin(VersionAdmin):
     raw_id_fields = ['payer_acct']
     list_display_links = ['pk']
     ordering = ['-sale_date']
-    inlines = [SaleNoteInline, MonetaryDonationInline]
+    inlines = [SaleNoteInline, MonetaryDonationInline, OtherItemInline]
     readonly_fields = ['ctrlid']
     search_fields = ['payer_name','payer_email',]
     list_filter = ['payment_method', 'sale_date']

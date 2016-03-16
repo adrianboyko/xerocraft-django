@@ -9,6 +9,8 @@ router.register(r'donations', views.DonationViewSet)
 router.register(r'donation-notes', views.DonationNoteViewSet)
 router.register(r'physical-donations', views.PhysicalDonationViewSet)
 router.register(r'monetary-donations', views.MonetaryDonationViewSet)
+router.register(r'other-items', views.OtherItemViewSet)
+router.register(r'other-item-types', views.OtherItemTypeViewSet)
 
 urlpatterns = [
 

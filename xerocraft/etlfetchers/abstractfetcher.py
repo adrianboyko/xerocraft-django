@@ -26,15 +26,17 @@ class AbstractFetcher(object):
     URLS = {
         bm.Sale:                        "books/sales/",
         bm.MonetaryDonation:            "books/monetary-donations/",
+        bm.OtherItem:                   "books/other-items/",
+        bm.OtherItemType:               "books/other-item-types/",
         mm.Membership:                  "members/memberships/",
         mm.MembershipGiftCardReference: "members/gift-card-refs/",
     }
     SERIALIZERS = {
         bm.Sale:                        bs.SaleSerializer,
         bm.MonetaryDonation:            bs.MonetaryDonationSerializer,
+        bm.OtherItem:                   bs.OtherItemSerializer,
         mm.Membership:                  ms.MembershipSerializer,
         mm.MembershipGiftCardReference: ms.MembershipGiftCardReferenceSerializer,
-
     }
 
     djangosession = Session()
@@ -96,3 +98,18 @@ class AbstractFetcher(object):
         sys.stdout.flush()
 
         return djangodata
+
+    def _get_id(self, url: str, filter: dict) -> dict:
+        response = self.djangosession.get(self.URLBASE+url, params=filter, headers=self.django_auth_headers)
+        if response.status_code >= 300:
+            raise AssertionError("Unexpected status code from Django: "+str(response.status_code))
+        matchcount = int(response.json()['count'])
+        if matchcount == 0:
+            id = None
+        elif matchcount == 1:
+            djangodata = response.json()['results'][0]
+            id = int(djangodata['id'])
+        else:
+            # Else case is an assertion that matchcount is 0 or 1.
+            raise AssertionError("Too many matches searching for {} with {}".format(url, filter))
+        return id

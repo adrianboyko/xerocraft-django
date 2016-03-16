@@ -1,5 +1,4 @@
-from .models import Sale, SaleNote
-from .models import Donation, DonationNote, MonetaryDonation, PhysicalDonation
+from .models import *
 from rest_framework import serializers
 
 
@@ -73,5 +72,29 @@ class PhysicalDonationSerializer(serializers.ModelSerializer):
             'id',
             'donation',
             'value',
+            'description',
+        )
+
+
+class OtherItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OtherItem
+        fields = (
+            'id',
+            'type',
+            'sale',
+            'sale_price',
+            'qty_sold',
+            'ctrlid',
+            'protected',
+        )
+
+
+class OtherItemTypeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OtherItemType
+        fields = (
+            'id',
+            'name',
             'description',
         )
