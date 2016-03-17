@@ -7,6 +7,7 @@ from django.utils.translation import ugettext_lazy as _
 from datetime import date
 import django.db.utils
 import uuid
+from nameparser import HumanName
 
 # class PayerAKA(models.Model):
 #     """ Intended primarily to record name variations that are used in payments, etc. """
@@ -190,6 +191,30 @@ class Sale(models.Model):
 
     protected = models.BooleanField(default=False,
         help_text="Protect against further auto processing by ETL, etc. Prevents overwrites of manually enetered data.")
+
+    def link_to_user(self):
+
+        self.payer_acct = None
+
+        # Attempt to match by EMAIL
+        try:
+            email_matches = User.objects.filter(email=self.payer_email)
+            if len(email_matches) == 1:
+                self.payer_acct = email_matches[0]
+        except User.DoesNotExist:
+            pass
+
+        # Attempt to match by NAME
+        nameobj = HumanName(self.payer_name)
+        fname = nameobj.first
+        lname = nameobj.last
+        try:
+            name_matches = User.objects.filter(first_name__iexact=fname, last_name__iexact=lname)
+            if len(name_matches) == 1:
+                self.payer_acct = name_matches[0]
+            # TODO: Else log WARNING (or maybe just INFO)
+        except User.DoesNotExist:
+            pass
 
     class Meta:
         unique_together = ('payment_method', 'ctrlid')
