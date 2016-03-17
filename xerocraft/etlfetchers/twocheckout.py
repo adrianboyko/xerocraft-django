@@ -1,5 +1,6 @@
 from xerocraft.etlfetchers.abstractfetcher import AbstractFetcher
-from members.models import PaidMembership
+from members.models import Membership
+from books.models import Sale
 from dateutil.relativedelta import relativedelta
 from dateutil.parser import parse
 import twocheckout
@@ -9,11 +10,10 @@ from decimal import Decimal
 # Note: This class must be named Fetcher in order for dynamic load to find it.
 class Fetcher(AbstractFetcher):
 
-    def gen_from_lineitems(self, lineitems):
+    def _process_lineitems(self, djgo_sale, lineitems):
 
         if len(lineitems) > 1:
             print("WARNING: More than two line items in invoice.")
-            return
 
         for lineitem in lineitems:
             amt = Decimal(lineitem.customer_amount)
@@ -22,19 +22,25 @@ class Fetcher(AbstractFetcher):
             assert len(lineitem.options) <= 1
             assert lineitem.status in ["bill", "refund"]
 
-            pm = PaidMembership()
-            pm.paid_by_member = amt
-            pm.family_count   = str(int((amt-50)/10))
-            yield pm
+            memb = Membership()
 
-    def gen_from_invoices(self, invoices):
+            memb.sale = Sale(id=djgo_sale['id'])
+            memb.start_date    = parse(djgo_sale['sale_date']).date()  # Inclusive
+            memb.end_date      = memb.start_date + relativedelta(months=+1, days=-1)  # Inclusive
+            memb.sale_price    = amt
+            memb.family_count  = str(int((amt-50)/10))
+            memb.ctrlid        = "2CO:{}:{}".format(lineitem.invoice_id, lineitem.lineitem_id)
+            self.upsert(memb)
+
+    def _process_invoices(self, invoices):
         invoices_to_skip = [
-            '105756939333',
+            '105756939333',  # Jeremy's initial test.
             '205811359970',  # Adrian refunded this. Code to handle refunds is not yet written.
         ]
         for invoice in invoices:
 
-            # if invoice.invoice_id in invoices_to_skip: continue
+            if invoice.invoice_id in invoices_to_skip:
+                continue
 
             paid_status = invoice.payout_status.startswith("Paid")
             captured_status = invoice.payout_status.startswith("Captured")
@@ -42,43 +48,43 @@ class Fetcher(AbstractFetcher):
                 # See http://help.2checkout.com/articles/Knowledge_Article/Payout-Status
                 continue
 
-            for pm in self.gen_from_lineitems(invoice.lineitems):
-                pm.processing_fee = Decimal(invoice.fees_2co)
-                pm.payment_date   = parse(invoice.date_placed).date()
-                pm.start_date     = pm.payment_date  # Inclusive
-                pm.end_date       = pm.start_date + relativedelta(months=+1, days=-1)  # Inclusive
-                pm.payment_method = PaidMembership.PAID_BY_2CO
-                pm.ctrlid         = invoice.invoice_id
-                yield pm
+            new_sale = Sale()
 
-    def gen_from_sales(self, sales):
-        for sale in sales:  # sale summary
-            sale = twocheckout.Sale.find({'sale_id': sale.sale_id})  # sale detail
+            new_sale.payer_name             = self.payer_name
+            new_sale.payer_email            = self.payer_email
+            new_sale.processing_fee         = Decimal(invoice.fees_2co)
+            new_sale.sale_date              = parse(invoice.date_placed).date()
+            new_sale.payment_method         = Sale.PAID_BY_2CO
+            new_sale.method_detail          = self.method_detail
+            new_sale.ctrlid                 = "2CO:"+invoice.invoice_id
+            new_sale.total_paid_by_customer = invoice.customer_total
+            djgo_sale = self.upsert(new_sale)
+            self._process_lineitems(djgo_sale, invoice.lineitems)
 
-            for pm in self.gen_from_invoices(sale.invoices):
-                nameparts = [
-                    sale.customer.first_name,
-                    sale.customer.middle_initial,
-                    sale.customer.last_name
-                ]
-                nameparts = [part for part in nameparts if part is not None and len(part)>0]
-                namestr = " ".join(nameparts)
-                pm.payer_email = sale.customer.email_address
-                pm.payer_name  = namestr
-                yield pm
+    def _process_sales(self, sales):
+        for tco_sale_summary in sales:  # sale summary
+            tco_sale = twocheckout.Sale.find({'sale_id': tco_sale_summary.sale_id})  # sale detail
+            nameparts = [
+                tco_sale.customer.first_name,
+                tco_sale.customer.middle_initial,
+                tco_sale.customer.last_name
+            ]
+            nameparts = [part for part in nameparts if part is not None and len(part)>0]
+            self.payer_name = " ".join(nameparts)
+            self.payer_email = tco_sale.customer.email_address
+            self.method_detail = self.card_type(tco_sale.customer.pay_method.first_six_digits)
+            self._process_invoices(tco_sale.invoices)
 
-    def generate_paid_memberships(self):
+    def fetch(self):
         userid = input("2Checkout userid: ")
         password = input("2Checkout password: ")
         twocheckout.Api.credentials({'username': userid, 'password': password})
         max_page_num = 99
         page_num = 1
         while page_num <= max_page_num:
-            # opts = {'cur_page':page_num, 'pagesize':100, 'customer_name':"Glen Olson"}
             opts = {'cur_page': page_num, 'pagesize': 100}
             page_info, sales_on_page = twocheckout.Sale.list(opts)
-            for pm in self.gen_from_sales(sales_on_page):
-                yield pm
+            self._process_sales(sales_on_page)
             max_page_num = page_info.last_page
             page_num += 1
 
