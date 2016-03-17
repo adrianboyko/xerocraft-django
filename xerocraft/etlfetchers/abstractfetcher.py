@@ -8,12 +8,13 @@ from requests import Session
 import sys
 
 
-def is_subset_dict(larger, smaller):
-    for key, value in smaller.items():
-        if key in ['id', 'protected']: continue
-        if not key in larger: return False
-        elif larger[key] != smaller[key]: return False
-    return True
+def has_new_data(older, newer):
+    for newkey, newval in newer.items():
+        if newkey in ['id', 'protected']: continue
+        if newval is None: continue
+        if newkey not in older: return True
+        elif older[newkey] != newer[newkey]: return True
+    return False
 
 
 class AbstractFetcher(object):
@@ -82,12 +83,12 @@ class AbstractFetcher(object):
             #srcdata.update({'id': djangodata['id'], 'protected': False})  # So subset comparison can be made.
             if djangodata['protected']:
                 progchar = "P"  # Protected, so will leave it alone.
-            elif is_subset_dict(djangodata, srcdata):
-                progchar = "="  # Equal so no add or update required. Will leave it alone.
-            else:
+            elif has_new_data(djangodata, srcdata):
                 update_url = "{}{}/".format(url, id)
                 response = self.djangosession.put(update_url, srcdata, headers=self.django_auth_headers)
                 progchar = "U"  # Change detected so updated.
+            else:
+                progchar = "="  # Equal so no add or update required. Will leave it alone.
         if response.status_code >= 300:
             progchar = "E"  # Error
 
@@ -113,3 +114,14 @@ class AbstractFetcher(object):
             # Else case is an assertion that matchcount is 0 or 1.
             raise AssertionError("Too many matches searching for {} with {}".format(url, filter))
         return id
+
+    def card_type(self, number: str) -> str:
+        if number is None: return None
+        if number[:1] == "4": cardtype = "Visa"
+        if int(number[:2]) >= 51 and int(number[:2]) <= 55: return "MC"
+        if number[:2] == "34" or number[:2] == "37": return "Amex"
+        if number[:4] == "6011": return "Disc"
+        if number[:4] == "3528" or number[:4] == "3529": return "JCB"
+        if int(number[:3]) >= 353 and int(number[:3]) <= 359: return "JCB"
+        if number[:2] == "36": return "Dine"
+        if int(number[:3]) >= 300 and int(number[:3]) <= 305: return "Dine"
