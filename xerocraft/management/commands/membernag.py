@@ -3,7 +3,7 @@ from django.core.mail import EmailMultiAlternatives
 from django.template.loader import get_template
 from django.template import Context
 from django.utils import timezone
-from members.models import Member, PaidMembership, VisitEvent, PaidMembershipNudge
+from members.models import Member, Membership, VisitEvent, PaidMembershipNudge
 from tasks.models import Work
 from datetime import datetime, timedelta, time
 from decimal import Decimal
@@ -41,7 +41,7 @@ class Command(BaseCommand):
     today = None
     yesterday = None
 
-    def note_bad_visit(self, visit, pm: PaidMembership):
+    def note_bad_visit(self, visit, pm: Membership):
 
         if visit.who in self.bad_visits:
             self.bad_visits[visit.who].append(visit)
@@ -111,10 +111,10 @@ class Command(BaseCommand):
             # Ignore visits by directors (who have decided they don't need to pay)
             if visit.who.is_tagged_with("Director"): continue
 
-            # Get most recent membership payment for visitor.
+            # Get most recent membership for visitor.
             try:
-                pm = PaidMembership.objects.filter(member=visit.who).latest('start_date')
-            except PaidMembership.DoesNotExist:
+                pm = Membership.objects.filter(member=visit.who).latest('start_date')
+            except Membership.DoesNotExist:
                 # Don't nag people that have NEVER paid because either:
                 #  1) It's too soon to bother the member.
                 #  2) The member is hopeless and will never pay.
