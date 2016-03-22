@@ -434,14 +434,12 @@ class GroupMembership(models.Model):
     def matches(self, membership):
         if membership.start_date      != self.start_date: return False
         if membership.end_date        != self.end_date: return False
-        if membership.family_count    != 0: return False
         if membership.membership_type != membership.MT_GROUP: return False
         return True
 
     def copy_to(self, membership):
         membership.start_date      = self.start_date
         membership.end_date        = self.end_date
-        membership.family_count    = 0  # Don't anticipate group memberships allowing additional family members.
         membership.membership_type = Membership.MT_GROUP
         membership.save()
 
@@ -451,7 +449,6 @@ class GroupMembership(models.Model):
         defaults = {
             'start_date':      self.start_date,
             'end_date':        self.end_date,
-            'family_count':    0,  # Don't anticipate group memberships allowing additional family members.
             'membership_type': Membership.MT_GROUP
         }
         membership, created = Membership.objects.get_or_create(member=member, group=self, defaults=defaults)
@@ -637,6 +634,7 @@ class MembershipGiftCardRedemption(models.Model):
     class Meta:
         verbose_name="Gift card redemption"
 
+
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # MEMBERSHIP
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -672,19 +670,18 @@ class Membership(models.Model):
     MT_SCHOLARSHIP   = "S"  # The so-called "full scholarship", i.e. $0/mo. These function as paid memberships.
     MT_COMPLIMENTARY = "C"  # E.g. for directors, certain sponsors, etc. These function as paid memberships.
     MT_GROUP         = "G"  # E.g. Bit Buckets, Pima Engineering Club, JobPath
+    MT_FAMILY        = "F"  # An add-on family membership associated with a regular or work-trade membership.
     MEMBERSHIP_TYPE_CHOICES = [
         (MT_REGULAR,       "Regular"),
         (MT_WORKTRADE,     "Work-Trade"),
         (MT_SCHOLARSHIP,   "Scholarship"),
         (MT_COMPLIMENTARY, "Complimentary"),
         (MT_GROUP,         "Group"),
+        (MT_FAMILY,        "Family"),
     ]
     membership_type = models.CharField(max_length=1, choices=MEMBERSHIP_TYPE_CHOICES,
         null=False, blank=False, default=MT_REGULAR,
         help_text="The type of membership.")
-
-    family_count = models.IntegerField(default=0, null=False, blank=False,
-        help_text="The number of ADDITIONAL family members included in this membership. Usually zero.")
 
     start_date = models.DateField(null=False, blank=False, default=date.today,
         help_text="The first day on which the membership is valid.")

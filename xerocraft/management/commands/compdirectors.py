@@ -28,7 +28,6 @@ class Command(BaseCommand):
             member=member,
             protected=True,  # Otherwise it will attempt to reset member automatically
             membership_type=Membership.MT_COMPLIMENTARY,
-            family_count=0,
             start_date=start,
             end_date=end,
         )

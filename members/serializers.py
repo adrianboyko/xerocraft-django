@@ -32,7 +32,6 @@ class MembershipSerializer(serializers.ModelSerializer):
             'id',
             'member',
             'membership_type',
-            'family_count',
             'start_date',
             'end_date',
             # Sale related fields

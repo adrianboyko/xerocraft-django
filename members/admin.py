@@ -74,7 +74,8 @@ class MemberAdmin(VersionAdmin):
 
 
 PAYMENT_METHOD_CODE2STR = {code: str for (code, str) in PaidMembership.PAID_BY_CHOICES}
-MEMBERSHIP_TYPE_CODE2STR = {code: str for (code, str) in PaidMembership.MEMBERSHIP_TYPE_CHOICES}
+PAIDMEMBERSHIP_TYPE_CODE2STR = {code: str for (code, str) in PaidMembership.MEMBERSHIP_TYPE_CHOICES}
+MEMBERSHIP_TYPE_CODE2STR = {code: str for (code, str) in Membership.MEMBERSHIP_TYPE_CHOICES}
 
 
 class PaymentLinkedFilter(admin.SimpleListFilter):
@@ -116,7 +117,7 @@ class PaidMembershipAdmin(admin.ModelAdmin):  # Not versioning this since it wil
     fee_fmt.admin_order_field = 'processing_fee'
     fee_fmt.short_description = 'fee'
 
-    def type_fmt(self,obj): return MEMBERSHIP_TYPE_CODE2STR[obj.membership_type]
+    def type_fmt(self,obj): return PAIDMEMBERSHIP_TYPE_CODE2STR[obj.membership_type]
     type_fmt.admin_order_field = 'membership_type'
     type_fmt.short_description = 'type'
 
@@ -193,7 +194,7 @@ class PaidMembershipNudgeAdmin(admin.ModelAdmin):  # No need to version these
 
 
 @admin.register(MemberLogin)
-class MemberLogin(VersionAdmin):
+class MemberLoginAdmin(VersionAdmin):
     list_display = ['pk', 'member', 'when', 'ip']
     raw_id_fields = ['member']
     ordering = ['-when']
@@ -239,7 +240,6 @@ class MembershipInline(admin.StackedInline):
     fields = [
         'member',
         'membership_type',
-        'family_count',
         ('start_date', 'end_date'),
     ]
     raw_id_fields = ['member']
@@ -267,10 +267,6 @@ class MembershipAdmin(VersionAdmin):
         'protected',
     ]
 
-    def fam_fmt(self,obj): return obj.family_count
-    fam_fmt.admin_order_field = 'family_count'
-    fam_fmt.short_description = 'fam'
-
     def type_fmt(self,obj): return MEMBERSHIP_TYPE_CODE2STR[obj.membership_type]
     type_fmt.admin_order_field = 'membership_type'
     type_fmt.short_description = 'type'
@@ -286,7 +282,6 @@ class MembershipAdmin(VersionAdmin):
         'pk',
         'member',
         'type_fmt',
-        'fam_fmt',
         'start_date',
         'end_date',
         'src_fmt',
@@ -295,7 +290,6 @@ class MembershipAdmin(VersionAdmin):
     fields = [
         'member',
         'membership_type',
-        'family_count',
         ('start_date', 'end_date'),
         'protected',
         'ctrlid',
@@ -340,7 +334,6 @@ class MembershipLineItem(admin.StackedInline):
         'sale_price',
         'member',
         'membership_type',
-        'family_count',
         ('start_date', 'end_date'),
     ]
     raw_id_fields = ['member']

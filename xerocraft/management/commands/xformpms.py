@@ -45,16 +45,25 @@ class Command(BaseCommand):
                 sale=sale,
                 member=pm.member,
                 membership_type=pm.membership_type,
-                family_count=pm.family_count,
                 start_date=pm.start_date,
                 end_date=pm.end_date,
                 protected=pm.protected,
-
                 # Not correct, but it'll have to suffice for now.
                 # The paid_by_member value is potentially off by the fee paid.
                 # New version of ETL has correct value.
                 sale_price=pm.paid_by_member,
             )
+
+            for n in range(pm.family_count):
+                Membership.objects.create(
+                    sale=sale,
+                    member=pm.member,  # A placeholder because we don't know who the member wants to assign this family membership to.
+                    membership_type=Membership.MT_FAMILY,
+                    start_date=pm.start_date,
+                    end_date=pm.end_date,
+                    protected=pm.protected,
+                    sale_price=10.00,
+                )
 
     def handle(self, *args, **options):
 

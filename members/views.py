@@ -393,7 +393,12 @@ class MembershipGiftCardReferenceViewSet(viewsets.ModelViewSet):  # Django REST 
     serializer_class = ser.MembershipGiftCardReferenceSerializer
     filter_fields = {'ctrlid'}
 
+
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = REPORTS
+
+def zero_to_null(somelist: list) -> list:
+    return ["null" if x == 0 else x for x in somelist]
+
 
 @login_required()
 def desktop_member_count_vs_date(request):
@@ -405,6 +410,7 @@ def desktop_member_count_vs_date(request):
     reg_data = Counter()
     comp_data = Counter()
     group_data = Counter()
+    fam_data = Counter()
 
     memberships = Membership.objects.all()
     for pm in memberships:
@@ -412,6 +418,7 @@ def desktop_member_count_vs_date(request):
         reg_inc = 1 if pm.membership_type == pm.MT_REGULAR else 0
         comp_inc = 1 if pm.membership_type == pm.MT_COMPLIMENTARY else 0
         group_inc = 1 if pm.membership_type == pm.MT_GROUP else 0
+        fam_inc = 1 if pm.membership_type == pm.MT_FAMILY else 0
         day = max(pm.start_date, date(2015,1,1))
         while day <= min(pm.end_date, end_date):
             js_time_milliseconds = int(mktime(day.timetuple())) * 1000
@@ -419,14 +426,17 @@ def desktop_member_count_vs_date(request):
             reg_data.update({js_time_milliseconds: reg_inc})
             comp_data.update({js_time_milliseconds: comp_inc})
             group_data.update({js_time_milliseconds: group_inc})
+            fam_data.update({js_time_milliseconds: fam_inc})
             day += relativedelta(days=1)
 
     js_times = sorted(reg_data)  # Gets keys
-    reg_counts = [reg_data[k] for k in js_times]
-    wt_counts = [wt_data[k] for k in js_times]
-    comp_counts = [comp_data[k] for k in js_times]
-    group_counts = [group_data[k] for k in js_times]
-    data = list(zip(js_times, reg_counts, wt_counts, group_counts, comp_counts))
+    reg_counts = zero_to_null([reg_data[k] for k in js_times])
+    wt_counts = zero_to_null([wt_data[k] for k in js_times])
+    comp_counts = zero_to_null([comp_data[k] for k in js_times])
+    group_counts = zero_to_null([group_data[k] for k in js_times])
+    fam_counts = zero_to_null([fam_data[k] for k in js_times])
+
+    data = list(zip(js_times, reg_counts, wt_counts, fam_counts, group_counts, comp_counts))
     return render(request, 'members/desktop-member-count-vs-date.html', {'data': data})
 
 

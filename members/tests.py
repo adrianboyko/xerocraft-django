@@ -2,11 +2,93 @@ import json
 from django.test import Client
 from django.test import TestCase
 from django.contrib.auth.models import User
+from pydoc import locate  # for loading classes
 
 #import factory
 #from django.db.models import signals
 
 from .models import Tag, Tagging, VisitEvent, Membership
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =]
+# TODO: Generalize this so that it can be reused in multiple apps.
+# TODO: Need a way to test Inlines. Maybe list Admin classes instead of model classes.
+
+model_classnames = [
+    # "MembershipInline",
+    # "MembershipLineItem",
+    "DiscoveryMethod",
+    "MembershipGiftCardRedemption",
+    "MembershipGiftCard",
+    "MemberLogin",
+    "Member",
+    "Membership",
+    "PaidMembership",
+    "PaidMembershipNudge",
+    "Tagging",
+    "Tag",
+    "VisitEvent",
+]
+
+admin_fieldname_lists = [
+    'fields',
+    'exclude',
+    'readonly_fields',
+    'list_display',
+    'list_display_links',
+    'search_fields',
+    'filter_horizontal',
+    'filter_vertical',
+    'list_filter',
+    'raw_id_fields',
+]
+
+admin_fieldname_singles = [
+    'date_hierarchy',
+]
+
+class TestAdminConfig(TestCase):
+
+    def test_admin_fieldname_lists(self):
+
+        def check_fieldname(fieldname, model_class, admin_class):
+            if not isinstance(fieldname, str): return
+            fieldname = fieldname.replace("^", "")
+            print("       field: %s" % fieldname)
+            if fieldname in dir(model_class): return
+            if fieldname in dir(admin_class): return
+            model_class.objects.filter(**{fieldname:None})
+
+        for model_classname in model_classnames:
+            model_class = locate("members.models.%s" % model_classname)
+            admin_class = locate("members.admin.%sAdmin" % model_classname)
+            print("classes: %s, %s" % (model_class.__name__, admin_class.__name__))
+
+            # Check lists of field names
+            for list_name in admin_fieldname_lists:
+                list_of_fieldnames = getattr(admin_class, list_name)
+                if list_of_fieldnames is None: continue
+                print("    list: %s" % list_name)
+                for fieldname in list_of_fieldnames:
+                    check_fieldname(fieldname, model_class, admin_class)
+
+            # Check individual field names
+            for single_name in admin_fieldname_singles:
+                print("    single: %s" % single_name)
+                fieldname = getattr(admin_class, single_name)
+                check_fieldname(fieldname, model_class, admin_class)
+
+            # Check fieldsets, which is a special case.
+            fieldsets = getattr(admin_class, 'fieldsets')
+            if fieldsets is not None:
+                for fieldset_name, field_options in fieldsets:
+                    print("    fieldset: %s" % fieldset_name)
+                    fields = field_options["fields"]
+                    for fieldname in fields:
+                        check_fieldname(fieldname, model_class, admin_class)
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =]
+
 
 """ TODO: The following test is complicated by my signal processing.
     Specifically, when loading a fixture there's no need for the handler that creates a member for each user.
