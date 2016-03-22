@@ -397,6 +397,9 @@ class MembershipGiftCardReferenceViewSet(viewsets.ModelViewSet):  # Django REST 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = REPORTS
 
 def zero_to_null(somelist: list) -> list:
+    if sum(somelist) == 0:
+        # Google chart deals with all 0s better than all nulls.
+        return somelist
     return ["null" if x == 0 else x for x in somelist]
 
 
