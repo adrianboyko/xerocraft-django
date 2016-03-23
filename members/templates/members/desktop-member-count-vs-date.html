@@ -11,9 +11,9 @@
 
       function drawChart() {
         var data = google.visualization.arrayToDataTable([
-          ['Date', 'Regular', "Work-Trade", "Family", "Groups", "Comp"],
-          {% for theDate, regCount, wtCount, famCount, grpCount, compCount in data %}
-            [new Date({{theDate}}),{{regCount}},{{wtCount}},{{famCount}},{{grpCount}},{{compCount}}],
+          ["Date", "Regular", "Family", "Work-Trade", "Groups", "Comp"],
+          {% for theDate, regCount, famCount, wtCount, grpCount, compCount in data %}
+            [new Date({{theDate}}),{{regCount}},{{famCount}},{{wtCount}},{{grpCount}},{{compCount}}],
           {% endfor %}
         ]);
 

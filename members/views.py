@@ -439,7 +439,7 @@ def desktop_member_count_vs_date(request):
     group_counts = zero_to_null([group_data[k] for k in js_times])
     fam_counts = zero_to_null([fam_data[k] for k in js_times])
 
-    data = list(zip(js_times, reg_counts, wt_counts, fam_counts, group_counts, comp_counts))
+    data = list(zip(js_times, reg_counts, fam_counts, wt_counts, group_counts, comp_counts))
     return render(request, 'members/desktop-member-count-vs-date.html', {'data': data})
 
 
