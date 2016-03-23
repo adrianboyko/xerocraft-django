@@ -1,6 +1,7 @@
 
 from xerocraft.etlfetchers.abstractfetcher import AbstractFetcher
-from members.models import PaidMembership
+from members.models import Membership
+from books.models import Sale, SaleNote
 from hashlib import md5
 from datetime import date
 from dateutil.relativedelta import relativedelta
@@ -9,19 +10,18 @@ import requests
 import time
 
 
-def date2timestamp(date):
-    return int(time.mktime((date.year, date.month, date.day, 0, 0, 0, 0, 0, 0)))
+def date2timestamp(datex: date) -> int:
+    return int(time.mktime((datex.year, datex.month, datex.day, 0, 0, 0, 0, 0, 0)))
 
 
 # Note: This class must be named Fetcher in order for dynamic load to find it.
 class Fetcher(AbstractFetcher):
 
-    session = requests.Session()
-    auth_headers = None
+    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    # ONE-TIME CHARGES
+    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-    limit = 1000  # The max number of checkins returned per find.
-
-    def gen_from_checkouts(self, checkouts):
+    def _process_checkouts(self, checkouts):
         assert len(checkouts) < self.limit
         for checkout in checkouts:
 
@@ -44,10 +44,11 @@ class Fetcher(AbstractFetcher):
             elif desc.startswith("Recurring Payment to Dues-Paying Member"): months = 1
             elif desc.startswith("Payment to Dues-Paying Member ONE-TIME"): months = 1
             else:
+                # TODO: Process these!
                 if desc.endswith("Event Payment"): continue
                 if desc.startswith("Recurring Payment to Donation"): continue
                 if desc.startswith("Payment to Donation at"): continue
-                print(desc)
+                print("Didn't recognize: "+desc)
                 continue
 
             if desc.endswith("+ 1 family member"): family = 1
@@ -58,78 +59,110 @@ class Fetcher(AbstractFetcher):
             elif desc.endswith("+ 6 family member"): family = 6
             else: family = 0
 
-            pm = PaidMembership()
-            pm.payment_method = PaidMembership.PAID_BY_WEPAY
-            pm.ctrlid = checkout['checkout_id']
-            pm.payer_email = checkout['payer_email']
-            pm.payer_name = checkout['payer_name']
-            pm.family_count = family
-            pm.payment_date = date.fromtimestamp(int(checkout['create_time']))  # TODO: This is UTC timezone.
-            pm.start_date = pm.payment_date
-            pm.end_date = pm.start_date + relativedelta(months=months, days=-1)
-            pm.paid_by_member = Decimal(checkout['gross'])  # Docs: "The total dollar amount paid by the payer"
-            pm.processing_fee = Decimal(checkout['fee']) + Decimal(checkout['app_fee'])
-            yield pm
+            sale = Sale()
+            sale.payment_method = Sale.PAID_BY_WEPAY
+            sale.payer_email = checkout['payer_email']
+            sale.payer_name = checkout['payer_name']
+            sale.sale_date = date.fromtimestamp(int(checkout['create_time']))  # TODO: This is UTC timezone.
+            sale.total_paid_by_customer = Decimal(checkout['gross'])  # Docs: "The total dollar amount paid by the payer"
+            sale.processing_fee = Decimal(checkout['fee']) + Decimal(checkout['app_fee'])
+            sale.ctrlid = "{}:{}".format(self.CTRLID_PREFIX, checkout['checkout_id'])
+            django_sale = self.upsert(sale)
 
-    def gen_from_account_charges(self, accounts):
-        for account in accounts:
-            URL = "https://wepayapi.com/v2/checkout/find"
+            mship = Membership()
+            mship.sale = Sale(id=django_sale['id'])
+            mship.sale_price = sale.total_paid_by_customer
+            if checkout['fee_payer'] == 'payer': mship.sale_price -= sale.processing_fee
+            if family > 0: mship.sale_price -= Decimal(10.00) * Decimal(family)
+            mship.ctrlid = checkout['checkout_id']
+            mship.start_date = sale.sale_date
+            mship.end_date = mship.start_date + relativedelta(months=months, days=-1)
+            self.upsert(mship)
 
-            window_start = date(2013, 12, 1)
-            while window_start < date.today():
-                window_start = window_start + relativedelta(months=+1)
-                window_end = window_start + relativedelta(months=+1)
-                post_data = {
-                    'account_id': account,
-                    'start_time': str(date2timestamp(window_start)),
-                    'end_time': str(date2timestamp(window_end)),
-                    'limit': str(self.limit)
-                }
-                response = self.session.post(URL, post_data, headers=self.auth_headers)
-                checkouts = response.json()
-                for pm in self.gen_from_checkouts(checkouts):
-                    yield pm
+            for n in range(family):
+                fam = Membership()
+                fam.sale            = mship.sale
+                fam.sale_price      = 10.00
+                fam.membership_type = Membership.MT_FAMILY
+                fam.start_date      = mship.start_date
+                fam.end_date        = mship.end_date
+                fam.ctrlid          = "{}:{}".format(mship.ctrlid, n)
+                self.upsert(fam)
 
-    def gen_from_subscription_charges(self, charges):
+    def _process_checkout_data(self, account):
+        URL = "https://wepayapi.com/v2/checkout/find"
+
+        window_start = date(2013, 12, 1)
+        while window_start < date.today():
+            window_start = window_start + relativedelta(months=+1)
+            window_end = window_start + relativedelta(months=+1)
+            post_data = {
+                'account_id': account,
+                'start_time': str(date2timestamp(window_start)),
+                'end_time': str(date2timestamp(window_end)),
+                'limit': str(self.limit)
+            }
+            response = self.session.post(URL, post_data, headers=self.auth_headers)
+            checkouts = response.json()
+            self._process_checkouts(checkouts)
+
+    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    # SUBSCRIPTION-RELATED CHARGES
+    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+    def _process_subscription_charges(self, charges, subscription, family):
         for charge in charges:
 
             if not charge["state"].startswith("captured"):
                 if not charge["state"] == "failed": print(charge["state"])
                 continue
 
-            pm = PaidMembership()
+            sale = Sale()
+            sale.payer_name = subscription['payer_name']
+            sale.payer_email = subscription['payer_email']
+            if subscription['fee_payer'] == "payer":
+                print("Fee is paid by payer. Situation has not yet been analyzed.")
+            sale.payment_method = Sale.PAID_BY_WEPAY
+            sale.sale_date = date.fromtimestamp(int(charge['create_time']))  # TODO: This is UTC timezone.
+            sale.total_paid_by_customer = charge["amount"]
+            sale.processing_fee = charge["fee"]
+            sale.ctrlid = "{}:{}".format(self.CTRLID_PREFIX, charge['subscription_charge_id'])
+            django_sale = self.upsert(sale)
 
-            pm.payment_method = PaidMembership.PAID_BY_WEPAY
-            pm.ctrlid = charge['subscription_charge_id']
+            mship = Membership()
+            mship.sale = Sale(id=django_sale['id'])
+            mship.sale_price = sale.total_paid_by_customer
+            if subscription['fee_payer'] == 'payer': mship.sale_price -= sale.processing_fee
+            if family > 0: mship.sale_price -= Decimal(10.00) * Decimal(family)
+            mship.ctrlid = "{}:{}".format(self.CTRLID_PREFIX, charge['subscription_charge_id'])
+            mship.start_date = sale.sale_date
+            mship.end_date = mship.start_date + relativedelta(months=1, days=-1)
+            self.upsert(mship)
 
-            pm.payment_date = date.fromtimestamp(int(charge['create_time']))  # TODO: This is UTC timezone.
-            pm.start_date = pm.payment_date
-            pm.end_date = pm.start_date + relativedelta(months=1, days=-1)  # REVIEW: Use "end_time" instead?
+            for n in range(family):
+                fam = Membership()
+                fam.sale            = mship.sale
+                fam.sale_price      = 10.00
+                fam.membership_type = Membership.MT_FAMILY
+                fam.start_date      = mship.start_date
+                fam.end_date        = mship.end_date
+                fam.ctrlid          = "{}:{}".format(mship.ctrlid, n)
+                self.upsert(fam)
 
-            pm.paid_by_member = charge["amount"]
-            pm.processing_fee = charge["fee"]
-
-            yield pm
-
-    def gen_from_plan_subscriptions(self, subscriptions):
+    def _process_subscriptions(self, subscriptions, family_count):
         for subscription in subscriptions:
             response = self.session.post(
                 "https://wepayapi.com/v2/subscription_charge/find",  # subscription_id --> list of charges
                 {'subscription_id': subscription['subscription_id']},
                 headers = self.auth_headers)
             charges = response.json()
-            for pm in self.gen_from_subscription_charges(charges):
-                pm.payer_name = subscription['payer_name']
-                pm.payer_email = subscription['payer_email']
-                pm.payer_notes = ""
-                if subscription['fee_payer'] == "payer":
-                    print("Fee is paid by payer. Situation has not yet been analyzed.")
-                yield pm
+            self._process_subscription_charges(charges, subscription, family_count)
 
-    def gen_from_subscription_plans(self, plans):
+    def _process_plans(self, plans):
         for plan in plans:
 
-            if plan["number_of_subscriptions"] == 0: continue
+            if plan["number_of_subscriptions"] == 0:
+                continue
 
             if not plan['name'].startswith("Membership"):
                 print("Unexpected subscription plan: " + plan['name'])
@@ -146,29 +179,37 @@ class Fetcher(AbstractFetcher):
                 {'subscription_plan_id': plan["subscription_plan_id"]},
                 headers = self.auth_headers)
             subscriptions = response.json()
-            for pm in self.gen_from_plan_subscriptions(subscriptions):
-                pm.family_count = family_count
-                yield pm
+            self._process_subscriptions(subscriptions, family_count)
 
-    def gen_from_account_subscriptions(self, accounts):
-        for account in accounts:
-            response = self.session.get(
-                "https://wepayapi.com/v2/subscription_plan/find",  # No args --> list of all subscription plans
-                headers=self.auth_headers)
-            plans = response.json()
-            for pm in self.gen_from_subscription_plans(plans):
-                yield pm
+    def _process_subscription_data(self):
+        response = self.session.get(
+            "https://wepayapi.com/v2/subscription_plan/find",  # No args --> list of all subscription plans
+            headers=self.auth_headers)
+        plans = response.json()
+        self._process_plans(plans)
 
-    def generate_paid_memberships(self):
+    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    # INIT & ABSTRACT METHODS
+    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+    def __init__(self):
+
+        self.session = requests.Session()
+        self.limit = 1000  # The max number of checkouts returned per find.
+        self.CTRLID_PREFIX = "WE"
+
         accounts = input("WePay Accounts: ").split()
         rest_token = input("WePay Token: ")  # So far, same token works for all accts.
-        self.auth_headers = {'Authorization': "Bearer " + rest_token}
 
-        # Process subscriptions and associated charges.
-        for pm in self.gen_from_account_subscriptions(accounts):
-            yield pm
+        if len(accounts)+len(rest_token) == 0:
+            self.skip = True
+        else:
+            self.skip = False
+            self.accounts = accounts
+            self.auth_headers = {'Authorization': "Bearer " + rest_token}
 
-        # Process the regular one-time checkouts.
-        for pm in self.gen_from_account_charges(accounts):
-            yield pm
+    def fetch(self):
 
+        self._process_subscription_data()
+        for account in self.accounts: self._process_checkout_data(account)
+        self._fetch_complete()

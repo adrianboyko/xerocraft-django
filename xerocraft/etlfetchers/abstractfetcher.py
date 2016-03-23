@@ -43,14 +43,19 @@ class AbstractFetcher(object):
     djangosession = Session()
 
     progress_count = 0
+    progress_per_row = 50
 
-    def __init__(self, django_auth_headers: dict):
-        self.django_auth_headers = django_auth_headers
+    django_auth_headers = None
 
     @abc.abstractmethod
     def fetch(self):
         """Extract, transform, and load data."""
         raise NotImplementedError("fetch() is not implemented")
+
+
+    def _fetch_complete(self):
+        if self.progress_count % self.progress_per_row != 0:
+            print("")
 
     def upsert(self, item: Model) -> dict:
 
@@ -94,7 +99,7 @@ class AbstractFetcher(object):
 
         print(progchar, end='')  # Progress indicator
         self.progress_count += 1
-        if self.progress_count % 50 == 0:
+        if self.progress_count % self.progress_per_row == 0:
             print(" {}".format(self.progress_count))
         sys.stdout.flush()
 

@@ -16,16 +16,18 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
 
+        print("")
         fetchers = input("Fetchers: ").split()
         rest_token = input("REST API token: ")
 
-
-        django_auth_headers = {'Authorization': "Token " + rest_token}
         fetchers = [__import__(x, fromlist=["Fetcher"]) for x in fetchers]
         fetchers = [getattr(x, 'Fetcher') for x in fetchers]
-        fetchers = [x(django_auth_headers) for x in fetchers]
-
+        fetchers = [x() for x in fetchers]
 
         for fetcher in fetchers:
-            fetcher.fetch()
-            print("")
+            if fetcher.skip:
+                print("\nSkipping {}".format(str(fetcher)))
+            else:
+                print("\nProcessing {}".format(str(fetcher)))
+                fetcher.django_auth_headers = {'Authorization': "Token " + rest_token}
+                fetcher.fetch()

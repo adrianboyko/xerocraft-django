@@ -5,6 +5,7 @@ from datetime import date
 from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
 import requests
+import requests.exceptions
 import lxml
 import lxml.html
 from decimal import Decimal
@@ -38,19 +39,21 @@ class Fetcher(AbstractFetcher):
     def _process_membership_item(self, sale, item, item_num, membership_type, months):
         month = self.month_in_str(item['name'])
 
+        family = None
         for modifier in item["modifiers"]:
             lmod = modifier["name"].lower()
-            if lmod == "just myself": family_count = 0
-            elif lmod == "1 add'l family member":  family_count = 1
-            elif lmod == "2 add'l family members": family_count = 2
-            elif lmod == "3 add'l family members": family_count = 3
-            elif lmod == "4 add'l family members": family_count = 4
-            elif lmod == "5 add'l family members": family_count = 5
+            if lmod == "just myself": family = 0
+            elif lmod == "1 add'l family member":  family = 1
+            elif lmod == "2 add'l family members": family = 2
+            elif lmod == "3 add'l family members": family = 3
+            elif lmod == "4 add'l family members": family = 4
+            elif lmod == "5 add'l family members": family = 5
             if membership_type == Membership.MT_WORKTRADE and month is None:
                 month = self.month_in_str(lmod)
 
-        if family_count is None:
+        if family is None:
             print("Couldn't determine family count for {}:{}".format(sale['ctrlid'], item_num))
+            family = 0
 
         quantity = int(float(item['quantity']))
         for n in range(1, quantity+1):
@@ -64,9 +67,19 @@ class Fetcher(AbstractFetcher):
                 if month is not None:  # Hopefully, the buyer specified the month.
                     mship.start_date = mship.start_date.replace(month=month)
             mship.end_date = mship.start_date + relativedelta(months=months, days=-1)
-            mship.family_count = family_count
             mship.sale_price = Decimal(item['gross_sales_money']['amount']) / Decimal(quantity * 100.0)
+            mship.sale_price -= Decimal(10.00) * Decimal(family)
             self.upsert(mship)
+
+            for f in range(family):
+                fam = Membership()
+                fam.sale            = mship.sale
+                fam.sale_price      = 10
+                fam.membership_type = Membership.MT_FAMILY
+                fam.start_date      = mship.start_date
+                fam.end_date        = mship.end_date
+                fam.ctrlid          = "{}:{}".format(mship.ctrlid, f)
+                self.upsert(fam)
 
     # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     # PROCESS DONATION ITEM
@@ -212,11 +225,16 @@ class Fetcher(AbstractFetcher):
     # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
     def get_name_from_receipt(self, url):
-        response = self.squaresession.get(url)
-        parsed_page = lxml.html.fromstring(response.text)
-        if parsed_page is None: raise AssertionError("Couldn't parse receipts page")
-        names = parsed_page.xpath("//div[contains(@class,'name_on_card')]/text()")
-        return names[0] if len(names)>0 else ""
+        while True:
+            try:
+                response = self.squaresession.get(url)
+                parsed_page = lxml.html.fromstring(response.text)
+                if parsed_page is None: raise AssertionError("Couldn't parse receipts page")
+                names = parsed_page.xpath("//div[contains(@class,'name_on_card')]/text()")
+                return names[0] if len(names)>0 else ""
+            except requests.exceptions.ConnectionError:
+                print("?", end='')
+                pass
 
     def _get_tender_type(self, payment) -> str:
         xform = {
@@ -237,7 +255,6 @@ class Fetcher(AbstractFetcher):
         mship.ctrlid = "{}:1:1".format(sale['ctrlid'])
         mship.start_date = date(2014, 12, 12)
         mship.end_date = date(2015, 6, 11)
-        mship.family_count = 0
         mship.sale_price = 225.00
         self.upsert(mship)
 
@@ -249,7 +266,6 @@ class Fetcher(AbstractFetcher):
         mship.ctrlid = "{}:1:1".format(sale['ctrlid'])
         mship.start_date = date(2015, 12, 1)
         mship.end_date = date(2015, 12, 31)
-        mship.family_count = 0
         mship.sale_price = 10.00
         self.upsert(mship)
 
@@ -303,28 +319,33 @@ class Fetcher(AbstractFetcher):
                 self._process_itemizations(itemizations, django_sale)
 
     # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-    # FETCH
+    # INIT & ABSTRACT METHODS
     # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+    def __init__(self):
+        merchant_id = input("Square Merchant ID: ")
+        rest_token = input("Square Token: ")
+        if len(merchant_id) + len(rest_token) == 0:
+            self.skip = True
+        else:
+            self.skip = False
+            self.merchant_id = merchant_id
+            self.rest_token = rest_token
 
     def fetch(self):
 
-        merchant_id = input("Square Merchant ID: ")
-        if merchant_id == "skip": return
-
-        rest_token = input("Square Token: ")
-
         get_headers = {
-            'Authorization': "Bearer " + rest_token,
+            'Authorization': "Bearer " + self.rest_token,
             'Accept': "application/json",
         }
 
         post_put_headers = {
-            'Authorization': "Bearer " + rest_token,
+            'Authorization': "Bearer " + self.rest_token,
             'Accept': "application/json",
             'Content-Type': "application/json",
         }
 
-        payments_url = "https://connect.squareup.com/v1/{}/payments".format(merchant_id)
+        payments_url = "https://connect.squareup.com/v1/{}/payments".format(self.merchant_id)
 
         window_start = date(2013, 12, 1)
         while window_start < date.today():
@@ -344,3 +365,4 @@ class Fetcher(AbstractFetcher):
 
             payments = response.json()
             self._process_payments(payments)
+        self._fetch_complete()

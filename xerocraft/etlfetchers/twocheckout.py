@@ -22,15 +22,25 @@ class Fetcher(AbstractFetcher):
             assert len(lineitem.options) <= 1
             assert lineitem.status in ["bill", "refund"]
 
-            memb = Membership()
+            mship = Membership()
 
-            memb.sale = Sale(id=djgo_sale['id'])
-            memb.start_date    = parse(djgo_sale['sale_date']).date()  # Inclusive
-            memb.end_date      = memb.start_date + relativedelta(months=+1, days=-1)  # Inclusive
-            memb.sale_price    = amt
-            memb.family_count  = str(int((amt-50)/10))
-            memb.ctrlid        = "2CO:{}:{}".format(lineitem.invoice_id, lineitem.lineitem_id)
-            self.upsert(memb)
+            mship.sale = Sale(id=djgo_sale['id'])
+            mship.start_date    = parse(djgo_sale['sale_date']).date()  # Inclusive
+            mship.end_date      = mship.start_date + relativedelta(months=+1, days=-1)  # Inclusive
+            mship.sale_price    = amt
+            mship.ctrlid        = "2CO:{}:{}".format(lineitem.invoice_id, lineitem.lineitem_id)
+            self.upsert(mship)
+
+            family = int((amt-50)/10)
+            for n in range(family):
+                fam = Membership()
+                fam.sale            = mship.sale
+                fam.sale_price      = 10
+                fam.membership_type = Membership.MT_FAMILY
+                fam.start_date      = mship.start_date
+                fam.end_date        = mship.end_date
+                fam.ctrlid          = "{}:{}".format(mship.ctrlid, n)
+                self.upsert(fam)
 
     def _process_invoices(self, invoices):
         invoices_to_skip = [
@@ -75,10 +85,21 @@ class Fetcher(AbstractFetcher):
             self.method_detail = self.card_type(tco_sale.customer.pay_method.first_six_digits)
             self._process_invoices(tco_sale.invoices)
 
-    def fetch(self):
+    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    # INIT & ABSTRACT METHODS
+    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+    def __init__(self):
         userid = input("2Checkout userid: ")
         password = input("2Checkout password: ")
-        twocheckout.Api.credentials({'username': userid, 'password': password})
+        if len(userid)+len(password) == 0:
+            self.skip = True
+        else:
+            twocheckout.Api.credentials({'username': userid, 'password': password})
+            self.skip = False
+
+    def fetch(self):
+
         max_page_num = 99
         page_num = 1
         while page_num <= max_page_num:
@@ -88,3 +109,4 @@ class Fetcher(AbstractFetcher):
             max_page_num = page_info.last_page
             page_num += 1
 
+        self._fetch_complete()
