@@ -28,24 +28,6 @@ class OtherItemTypeViewSet(viewsets.ModelViewSet):  # Django REST Framework
     filter_fields = {'name'}
 
 
-# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = DONATION REST API
-
-class DonationViewSet(viewsets.ModelViewSet):  # Django REST Framework
-    queryset = Donation.objects.all().order_by('-donation_date')
-    serializer_class = DonationSerializer
-    #filter_fields = {'ctrlid'}
-
-
-class DonationNoteViewSet(viewsets.ModelViewSet):  # Django REST Framework
-    queryset = DonationNote.objects.all().order_by('-donation')
-    serializer_class = DonationNoteSerializer
-
-
-class PhysicalDonationViewSet(viewsets.ModelViewSet):  # Django REST Framework
-    queryset = PhysicalDonation.objects.all().order_by('-donation')
-    serializer_class = PhysicalDonationSerializer
-
-
 class MonetaryDonationViewSet(viewsets.ModelViewSet):  # Django REST Framework
     """
     API endpoint that allows monetary donations to be viewed or edited.
@@ -53,4 +35,5 @@ class MonetaryDonationViewSet(viewsets.ModelViewSet):  # Django REST Framework
     queryset = MonetaryDonation.objects.all().order_by('-donation')
     serializer_class = MonetaryDonationSerializer
     filter_fields = {'ctrlid'}
+
 

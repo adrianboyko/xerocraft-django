@@ -56,8 +56,8 @@ class MonetaryDonationInline(admin.StackedInline):
     extra = 0
 
 
-class PhysicalDonationInline(admin.StackedInline):
-    model = PhysicalDonation
+class DonatedItemInline(admin.StackedInline):
+    model = DonatedItem
     extra = 0
 
 
@@ -77,16 +77,11 @@ class DonationAdmin(VersionAdmin):
     ]
     raw_id_fields = ['donator_acct']
     ordering = ['-donation_date']
-    inlines = [DonationNoteInline, MonetaryDonationInline, PhysicalDonationInline]
+    inlines = [DonationNoteInline, DonatedItemInline]
     search_fields = [
         'donator_name',
         'donator_email',
     ]
-
-
-@admin.register(MonetaryDonation)
-class MonetaryDonationAdmin(VersionAdmin):
-    pass
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -145,20 +140,21 @@ class SaleAdmin(VersionAdmin):
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-# EXPENSE CLAIMS & REIMBURSEMENT
+# EXPENSE CLAIMS
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 class ExpenseClaimNoteInline(NoteInline):
     model = ExpenseClaimNote
 
 
-class MonetaryReimbursementInline(admin.StackedInline):
-    model = MonetaryReimbursement
-    extra = 0
-
-
-class ExpenseClaimLineItemInline(admin.StackedInline):
-    model = ExpenseClaimLineItem
+class ExpenseLineItemInline(admin.StackedInline):
+    model = ExpenseLineItem
+    fields = [
+        'description',
+        'expense_date',
+        'amount',
+        'account',
+    ]
     extra = 0
 
 
@@ -167,13 +163,13 @@ class ExpenseClaimAdmin(VersionAdmin):
     list_display = [
         'pk',
         'claim_date',
+        'amount',
         'claimant',
     ]
     ordering = ['-claim_date']
     inlines = [
         ExpenseClaimNoteInline,
-        ExpenseClaimLineItemInline,
-        MonetaryReimbursementInline,
+        ExpenseLineItemInline,
     ]
     search_fields = [
         '^claimant__first_name',
@@ -181,6 +177,42 @@ class ExpenseClaimAdmin(VersionAdmin):
         '^claimant__username',
     ]
     raw_id_fields = ['claimant']
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# EXPENSE TRANSACTIONS
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+class ExpenseClaimReferenceInline(admin.StackedInline):
+    model = ExpenseClaimReference
+    extra = 0
+    raw_id_fields = ['claim']
+
+
+@admin.register(ExpenseTransaction)
+class ExpenseTransactionAdmin(VersionAdmin):
+    list_display = [
+        'pk',
+        'payment_date',
+        'recipient_acct',
+        'recipient_name',
+        'recipient_email',
+        'amount_paid',
+        'payment_method',
+        'method_detail'
+    ]
+
+    fields = [
+        'amount_paid',
+        'payment_date',
+        ('payment_method', 'method_detail'),
+        'recipient_acct',
+        ('recipient_name', 'recipient_email')
+    ]
+
+    inlines = [ExpenseLineItemInline, ExpenseClaimReferenceInline]
+
+    raw_id_fields = ['recipient_acct']
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =

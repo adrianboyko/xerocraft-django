@@ -65,17 +65,6 @@ class MonetaryDonationSerializer(serializers.ModelSerializer):
         )
 
 
-class PhysicalDonationSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = MonetaryDonation
-        fields = (
-            'id',
-            'donation',
-            'value',
-            'description',
-        )
-
-
 class OtherItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = OtherItem

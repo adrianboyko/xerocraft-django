@@ -1,13 +1,15 @@
 from django.test import TestCase
-from books.models import MonetaryDonation
+from books.models import MonetaryDonation, Sale
 from pydoc import locate  # for loading classes
+
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =]
 
 class TestMonetaryDonation(TestCase):
 
     def test_monetarydonation_ctrlid_generation(self):
-        mdon = MonetaryDonation.objects.create(amount=100)
+        sale = Sale.objects.create(total_paid_by_customer=100)
+        mdon = MonetaryDonation.objects.create(sale=sale, amount=100)
         self.assertTrue(mdon.ctrlid.startswith("GEN"))
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =]
@@ -16,7 +18,8 @@ model_classnames = [
     "Account",
     "Donation",
     "ExpenseClaim",
-    "MonetaryDonation",
+    "ExpenseTransaction",
+    "Donation",
     "OtherItemType",
     "Sale",
 ]

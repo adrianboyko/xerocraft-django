@@ -28,15 +28,15 @@ from nameparser import HumanName
 
 # REVIEW: Is there a way to make a generic next_ctrlid(models.Model)?
 
+# REVIEW: There is a nonzero probability that default ctrlids will collide when two users are doing manual data
+# entry at the same time.  This isn't considered a significant problem since we'll be lucky to get ONE person to
+# do data entry. If it does become a problem, the probability could be reduced by using random numbers.
+
+GEN_CTRLID_PFX = "GEN:"  # The prefix for generated ctrlids.
+
 def next_monetarydonation_ctrlid() -> str:
 
     """Provides an arbitrary default value for the ctrlid field, necessary when data is being entered manually."""
-
-    # REVIEW: There is a nonzero probability that default ctrlids will collide when two users are doing manual data
-    # entry at the same time.  This isn't considered a significant problem since we'll be lucky to get ONE person to
-    # do data entry. If it does become a problem, the probability could be reduced by using random numbers.
-
-    GEN_CTRLID_PFX = "GEN:"  # The prefix for generated ctrlids.
 
     # This method can't calc a ctrlid before ctrlid col is in db, i.e. before migration 0015.
     # Returning an arbitrary string guards against failure during creation of new database, e.g. during tests.
@@ -52,7 +52,7 @@ def next_monetarydonation_ctrlid() -> str:
         return GEN_CTRLID_PFX+("0".zfill(6))
 
 
-def next_sale_ctrlid():
+def next_sale_ctrlid() -> str:
     '''Provides an arbitrary default value for the ctrlid field, necessary when check, cash, or gift-card data is being entered manually.'''
     # REVIEW: There is a nonzero probability that default ctrlids will collide when two users are doing manual data entry at the same time.
     #         This isn't considered a significant problem since we'll be lucky to get ONE person to do data entry.
@@ -68,6 +68,21 @@ def next_sale_ctrlid():
     else:
         # This only happens for a new database when there are no sales with physical payment methods.
         return "0".zfill(6)
+
+
+def next_otheritem_ctrlid() -> str:
+
+    """Provides an arbitrary default value for the ctrlid field, necessary when data is being entered manually."""
+
+    try:
+        # NOTE: This version uses prev created PKs instead of prev created ctrlids.
+        # This elminates the need for complicated three-part migrations and MigrationRecorder checks.
+        # This may have problems if PKs are reused but they're not in Django + PostgreSQL.
+        latest_gcr = OtherItem.objects.latest('id')
+        return GEN_CTRLID_PFX+str(int(latest_gcr.id)+1).zfill(6)
+    except OtherItem.DoesNotExist:
+        # This only happens for a new database when there are no physical paid memberships.
+        return GEN_CTRLID_PFX+("0".zfill(6))
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -205,7 +220,7 @@ class Sale(models.Model):
             pass
 
         # Attempt to match by NAME
-        nameobj = HumanName(self.payer_name)
+        nameobj = HumanName(str(self.payer_name))
         fname = nameobj.first
         lname = nameobj.last
         try:
@@ -218,6 +233,7 @@ class Sale(models.Model):
 
     class Meta:
         unique_together = ('payment_method', 'ctrlid')
+        verbose_name = "Income transaction"
 
     def __str__(self):
         if self.payer_name is not "": return "{} sale to {}".format(self.sale_date, self.payer_name)
@@ -265,7 +281,7 @@ class OtherItem(models.Model):
 
     # ETL related fields: sale, sale_price, qty_sol
     ctrlid = models.CharField(max_length=40, null=False, blank=False, unique=True,
-        default=next_monetarydonation_ctrlid,
+        default=next_otheritem_ctrlid,
         help_text="Payment processor's id for this donation, if any.")
 
     protected = models.BooleanField(default=False,
@@ -275,8 +291,30 @@ class OtherItem(models.Model):
         return self.type.name
 
 
+class MonetaryDonation(models.Model):
+
+    # NOTE: A monetary donation can ONLY appear on a Sale.
+
+    sale = models.ForeignKey(Sale, null=False, blank=False,
+        on_delete=models.CASCADE,  # Line items are parts of the sale so they should be deleted.
+        help_text="The sale that includes this line item.")
+
+    amount = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
+        help_text="The amount donated.")
+
+    ctrlid = models.CharField(max_length=40, null=False, blank=False, unique=True,
+        default=next_monetarydonation_ctrlid,
+        help_text="Payment processor's id for this donation, if any.")
+
+    protected = models.BooleanField(default=False,
+        help_text="Protect against further auto processing by ETL, etc. Prevents overwrites of manually entered data.")
+
+    def __str__(self):
+        return str("$"+str(self.amount))
+
+
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-# DONATIONS
+# PHYSICAL (NOT MONETARY) DONATIONS
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 class Donation(models.Model):
@@ -301,6 +339,9 @@ class Donation(models.Model):
         elif len(str(self.donator_email)) > 0: name = self.donator_email
         return "{} on {}".format(name, self.donation_date)
 
+    class Meta:
+        verbose_name = "Physical donation"
+
 
 class DonationNote(Note):
 
@@ -309,43 +350,7 @@ class DonationNote(Note):
         help_text="The donation to which this note applies.")
 
 
-class MonetaryDonation(models.Model):
-
-    # NOTE: A monetary donation can appear on a Donation XOR an Expense Claim XOR a Sale.
-
-    donation = models.ForeignKey(Donation, null=True, blank=True,
-        on_delete=models.CASCADE,  # Line items are parts of the donation so delete them.
-        help_text="The donation that includes this line item.")
-
-    sale = models.ForeignKey(Sale, null=True, blank=True,
-        on_delete=models.CASCADE,  # Line items are parts of the sale so they should be deleted.
-        help_text="The sale that includes this line item.")
-
-    amount = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
-        help_text="The amount donated.")
-
-    ctrlid = models.CharField(max_length=40, null=False, blank=False, unique=True,
-        default=next_monetarydonation_ctrlid,
-        help_text="Payment processor's id for this donation, if any.")
-
-    protected = models.BooleanField(default=False,
-        help_text="Protect against further auto processing by ETL, etc. Prevents overwrites of manually entered data.")
-
-    def clean(self):
-        link_count = 0
-        if self.donation is not None: link_count += 1
-        if self.sale     is not None: link_count += 1
-        # Unfortunately, this check doesn't work because of when the admin module links vs calls clean.
-        # if link_count == 0:
-        #     raise ValidationError(_("A monetary donation cannot stand alone. It must be linked into a transaction."))
-        if link_count > 1:
-            raise ValidationError(_("A given monetary donation cannot be part of several transactions."))
-
-    def __str__(self):
-        return str("$"+str(self.amount))
-
-
-class PhysicalDonation(models.Model):
+class DonatedItem(models.Model):
 
     donation = models.ForeignKey(Donation, null=False, blank=False,
         on_delete=models.CASCADE,  # Line items are parts of the donation so delete them.
@@ -362,7 +367,7 @@ class PhysicalDonation(models.Model):
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-# EXPENSE CLAIMS & REIMBURSEMENT
+# EXPENSE CLAIMS
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 class ExpenseClaim(models.Model):
@@ -374,8 +379,11 @@ class ExpenseClaim(models.Model):
         on_delete=models.SET_NULL,  # Keep the claim for accounting purposes, even if the user is deleted.
         help_text="The member who wrote this note.")
 
+    amount = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
+        help_text="The dollar amount for the entire claim.")
+
     def __str__(self):
-        return "{} {}".format(self.claimant, self.claim_date)
+        return "${} by {} on {}".format(self.amount, self.claimant, self.claim_date)
 
 
 class ExpenseClaimNote(Note):
@@ -385,37 +393,27 @@ class ExpenseClaimNote(Note):
         help_text="The claim to which the note pertains.")
 
 
-class ExpenseClaimLineItem(models.Model):
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# EXPENSE TRANSACTION
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-    claim = models.ForeignKey(ExpenseClaim, null=False, blank=False,
-        on_delete=models.CASCADE,  # Line items are parts of the larger claim, so delete if claim is deleted.
-        help_text="The claim on which this line item appears.")
+class ExpenseTransaction(models.Model):
 
-    description = models.CharField(max_length=80, blank=True,
-        help_text="A brief description of this line item.")
+    payment_date = models.DateField(null=False, blank=False, default=date.today,
+        help_text="The date on which the expense was paid. Best guess if exact date not known.")
 
-    expense_date = models.DateField(null=False, blank=False,
-        help_text="The date on which the expense was incurred, from the receipt.")
+    recipient_acct = models.ForeignKey(User, null=True, blank=True, default=None,
+        on_delete=models.SET_NULL,  # Keep the note even if the user is deleted.
+        help_text="If payment was made to a member, specify them here.")
 
-    amount = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
-        help_text="The dollar amount for this line item, from the receipt.")
+    recipient_name = models.CharField(max_length=40, blank=True,
+        help_text="Name of person/organization paid. Not req'd if account was linked, above.")
 
-    account = models.ForeignKey(Account, null=False, blank=False,
-        on_delete=models.CASCADE,  # Line items are parts of the larger claim, so delete if claim is deleted.
-        help_text="The account against which this line item is claimed, e.g. 'Wood Shop', '3D Printers'.")
+    recipient_email = models.EmailField(max_length=40, blank=True,
+        help_text="Email address of person/organization paid.")
 
-    def __str__(self):
-        return "${} on {}".format(self.amount, self.expense_date)
-
-
-class MonetaryReimbursement(models.Model):
-
-    claim = models.ForeignKey(ExpenseClaim, null=False, blank=False,
-        on_delete=models.CASCADE,  # Line items are parts of the larger claim, so delete if claim is deleted.
-        help_text="The claim on which this reimbursement appears.")
-
-    amount = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
-        help_text="The dollar amount reimbursed.")
+    amount_paid = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
+        help_text="The dollar amount of the payment.")
 
     PAID_BY_CASH   = "$"
     PAID_BY_CHECK  = "C"
@@ -433,7 +431,51 @@ class MonetaryReimbursement(models.Model):
     method_detail.verbose_name = "Detail"
 
     def payment_method_verbose(self):
-        return dict(MonetaryReimbursement.PAID_BY_CHOICES)[self.payment_method]
+        return dict(ExpenseTransaction.PAID_BY_CHOICES)[self.payment_method]
 
     def __str__(self):
-        return "${} by {}".format(self.amount, self.payment_method_verbose())
+        return "${} by {}".format(self.amount_paid, self.payment_method_verbose())
+
+
+class ExpenseClaimReference(models.Model):
+
+    exp = models.ForeignKey(ExpenseTransaction, null=False, blank=False,
+        on_delete=models.CASCADE,  # Delete this relation if the expense transaction is deleted.
+        help_text="The expense transaction that pays the claim.")
+
+    claim = models.OneToOneField(ExpenseClaim, null=False, blank=False,
+        on_delete=models.CASCADE,  # Delete this relation if the claim is deleted.
+        help_text="The claim that is paid by the expense transaction.")
+
+
+class ExpenseLineItem(models.Model):
+
+    # An expense line item can appear in an ExpenseClaim or in an ExpenseTransaction
+
+    claim = models.ForeignKey(ExpenseClaim, null=True,
+        on_delete=models.CASCADE,  # Line items are parts of the larger claim, so delete if claim is deleted.
+        help_text="The claim on which this line item appears.")
+
+    exp = models.ForeignKey(ExpenseTransaction, null=True,
+        on_delete=models.CASCADE,  # Line items are parts of the larger transaction, so delete if transaction is deleted.
+        help_text="The claim on which this line item appears.")
+
+    description = models.CharField(max_length=80, blank=False,
+        help_text="A brief description of this line item.")
+
+    expense_date = models.DateField(null=False, blank=False,
+        help_text="The date on which the expense was incurred.")
+
+    amount = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
+        help_text="The dollar amount for this line item.")
+
+    account = models.ForeignKey(Account, null=False, blank=False,
+        on_delete=models.CASCADE,  # Line items are parts of the larger claim, so delete if claim is deleted.
+        help_text="The account against which this line item is claimed, e.g. 'Wood Shop', '3D Printers'.")
+
+    def __str__(self):
+        return "${} on {}".format(self.amount, self.expense_date)
+
+    def clean(self):
+        if self.claim is not None and self.exp is None:
+            raise ValidationError(_("Expense line item must be part of a clam or transaction."))
