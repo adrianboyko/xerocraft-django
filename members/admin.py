@@ -284,6 +284,7 @@ class MembershipAdmin(VersionAdmin):
         'type_fmt',
         'start_date',
         'end_date',
+        'sale_price',
         'src_fmt',
     ]
 
@@ -291,6 +292,7 @@ class MembershipAdmin(VersionAdmin):
         'member',
         'membership_type',
         ('start_date', 'end_date'),
+        'sale_price',
         'protected',
         'ctrlid',
     ]
