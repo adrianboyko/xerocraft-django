@@ -57,7 +57,6 @@ class MonetaryDonationSerializer(serializers.ModelSerializer):
         model = MonetaryDonation
         fields = (
             'id',
-            'donation',
             'sale',
             'amount',
             'ctrlid',

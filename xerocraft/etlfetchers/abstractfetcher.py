@@ -52,12 +52,17 @@ class AbstractFetcher(object):
         """Extract, transform, and load data."""
         raise NotImplementedError("fetch() is not implemented")
 
-
     def _fetch_complete(self):
         if self.progress_count % self.progress_per_row != 0:
             print("")
 
+    def _massage_sale(self, sale):
+        if len(sale.payer_email) > 40:
+            sale.payer_email = ""
+
     def upsert(self, item: Model) -> dict:
+
+        if type(item) == bm.Sale: self._massage_sale(item)
 
         url = self.URLBASE + self.URLS[type(item)]
         serializer = self.SERIALIZERS[type(item)]

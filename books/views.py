@@ -32,7 +32,7 @@ class MonetaryDonationViewSet(viewsets.ModelViewSet):  # Django REST Framework
     """
     API endpoint that allows monetary donations to be viewed or edited.
     """
-    queryset = MonetaryDonation.objects.all().order_by('-donation')
+    queryset = MonetaryDonation.objects.all().order_by('-sale')
     serializer_class = MonetaryDonationSerializer
     filter_fields = {'ctrlid'}
 

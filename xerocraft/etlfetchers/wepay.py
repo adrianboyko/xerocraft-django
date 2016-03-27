@@ -21,27 +21,23 @@ class Fetcher(AbstractFetcher):
     # ONE-TIME CHARGES
     # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-    def _process_donation(self, checkout):
-        pass
+    def _process_donation(self, sale, checkout):
 
-    def _process_membership_sale(self, checkout, months, family):
+        don = MonetaryDonation()
+        don.ctrlid = "{}:{}".format(self.CTRLID_PREFIX, checkout['checkout_id'])
+        don.sale = Sale(id=sale.id)
+        don.amount = sale.total_paid_by_customer
+        if checkout['fee_payer'] == 'payer': don.amount -= sale.processing_fee
+        self.upsert(don)
 
-        sale = Sale()
-        sale.payment_method = Sale.PAID_BY_WEPAY
-        sale.payer_email = checkout['payer_email']
-        sale.payer_name = checkout['payer_name']
-        sale.sale_date = date.fromtimestamp(int(checkout['create_time']))  # TODO: This is UTC timezone.
-        sale.total_paid_by_customer = Decimal(checkout['gross'])  # Docs: "The total dollar amount paid by the payer"
-        sale.processing_fee = Decimal(checkout['fee']) + Decimal(checkout['app_fee'])
-        sale.ctrlid = "{}:{}".format(self.CTRLID_PREFIX, checkout['checkout_id'])
-        django_sale = self.upsert(sale)
+    def _process_membership_sale(self, sale, checkout, months, family):
 
         mship = Membership()
-        mship.sale = Sale(id=django_sale['id'])
+        mship.sale = Sale(id=sale.id)
         mship.sale_price = sale.total_paid_by_customer
         if checkout['fee_payer'] == 'payer': mship.sale_price -= sale.processing_fee
         if family > 0: mship.sale_price -= Decimal(10.00) * Decimal(family)
-        mship.ctrlid = checkout['checkout_id']
+        mship.ctrlid = "{}:{}".format(self.CTRLID_PREFIX, checkout['checkout_id'])
         mship.start_date = sale.sale_date
         mship.end_date = mship.start_date + relativedelta(months=months, days=-1)
         self.upsert(mship)
@@ -53,29 +49,44 @@ class Fetcher(AbstractFetcher):
             fam.membership_type = Membership.MT_FAMILY
             fam.start_date      = mship.start_date
             fam.end_date        = mship.end_date
-            fam.ctrlid          = "{}:{}".format(mship.ctrlid, n)
+            fam.ctrlid          = "{}:{}:{}".format(self.CTRLID_PREFIX, mship.ctrlid, n)
             self.upsert(fam)
 
     def _process_checkouts(self, checkouts):
         assert len(checkouts) < self.limit
         for checkout in checkouts:
 
+            # Filter out questionable checkouts
+
             if not checkout['state'].startswith("captured"):
                 continue
 
-            if checkout['checkout_id'] in [1877931854, 390559320]:
-                # These are membership purchases that were erroneously entered as donations.
-                self._process_membership_sale(checkout, 6, 0)
-                continue
+            # At this point we know we'll be creating an IncomeTransaction (currently called Sale)
+
+            sale = Sale()
+            sale.payment_method = Sale.PAID_BY_WEPAY
+            sale.payer_email = checkout['payer_email']
+            sale.payer_name = checkout['payer_name']
+            sale.sale_date = date.fromtimestamp(int(checkout['create_time']))  # TODO: This is UTC timezone.
+            sale.total_paid_by_customer = Decimal(checkout['gross'])  # Docs: "The total dollar amount paid by the payer"
+            sale.processing_fee = Decimal(checkout['fee']) + Decimal(checkout['app_fee'])
+            sale.ctrlid = "{}:{}".format(self.CTRLID_PREFIX, checkout['checkout_id'])
+            django_sale = self.upsert(sale)
+            sale.id = django_sale['id']
 
             desc = checkout['short_description']
+
+            if checkout['checkout_id'] in [1877931854, 390559320]:
+                # These are membership purchases that were erroneously entered as donations.
+                self._process_membership_sale(sale, checkout, 6, 0)
+                continue
 
             if checkout['amount'] == 20 \
              and desc == "Recurring Payment to Donation" \
              and md5(checkout['payer_name'].encode('utf-8')).hexdigest() == "95c53a5e254c1847ad8526b625862294":
                 # Dale says that this recurring donation should be treated as a grandfathered membership.
                 # I'm checking against md5 of the payer-name so I don't have personal info in source.
-                self._process_membership_sale(checkout, 1, 0)
+                self._process_membership_sale(sale, checkout, 1, 0)
                 continue
 
             months = None
@@ -92,13 +103,13 @@ class Fetcher(AbstractFetcher):
                 elif desc.endswith("+ 5 family member"): family = 5
                 elif desc.endswith("+ 6 family member"): family = 6
                 else: family = 0
-                self._process_membership_sale(checkout, months, family)
+                self._process_membership_sale(sale, checkout, months, family)
                 continue
 
             if desc.endswith("Event Payment") \
              or desc.startswith("Recurring Payment to Donation") \
              or desc.startswith("Payment to Donation at"):
-                self._process_donation(checkout)
+                self._process_donation(sale, checkout)
                 continue
 
             print("Didn't recognize: "+desc)
@@ -160,7 +171,7 @@ class Fetcher(AbstractFetcher):
                 fam.membership_type = Membership.MT_FAMILY
                 fam.start_date      = mship.start_date
                 fam.end_date        = mship.end_date
-                fam.ctrlid          = "{}:{}".format(mship.ctrlid, n)
+                fam.ctrlid          = "{}:{}:{}".format(self.CTRLID_PREFIX, mship.ctrlid, n)
                 self.upsert(fam)
 
     def _process_subscriptions(self, subscriptions, family_count):
