@@ -477,5 +477,5 @@ class ExpenseLineItem(models.Model):
         return "${} on {}".format(self.amount, self.expense_date)
 
     def clean(self):
-        if self.claim is not None and self.exp is None:
-            raise ValidationError(_("Expense line item must be part of a clam or transaction."))
+        if self.claim is None and self.exp is None:
+            raise ValidationError(_("Expense line item must be part of a claim or transaction."))
