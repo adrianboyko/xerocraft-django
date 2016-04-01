@@ -8,7 +8,7 @@ import uuid
 import hashlib
 from nameparser import HumanName
 from datetime import datetime, date, timedelta
-
+from decimal import Decimal
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # CTRLID Functions
@@ -696,6 +696,9 @@ class Membership(models.Model):
         help_text="The sale that includes this line item, if any. E.g. comp memberships don't have a corresponding sale.")
 
     sale_price = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
+        # In the gift-card redemption context I don't want to confuse admin users by requiring them to provide
+        # a sale price of $0. So I'll let this default to zero even though it must be non-zero in other contexts.
+        default=Decimal(0.0),
         help_text="The price at which this item sold.")
 
     # ETL related fields: ctrlid, protected
