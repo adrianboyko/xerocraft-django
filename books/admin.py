@@ -203,11 +203,11 @@ class ExpenseTransactionAdmin(VersionAdmin):
     ]
 
     fields = [
-        'amount_paid',
         'payment_date',
-        ('payment_method', 'method_detail'),
         'recipient_acct',
-        ('recipient_name', 'recipient_email')
+        ('recipient_name', 'recipient_email'),
+        ('payment_method', 'method_detail'),
+        'amount_paid',
     ]
 
     inlines = [ExpenseLineItemInline, ExpenseClaimReferenceInline]
