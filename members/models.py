@@ -712,36 +712,15 @@ class Membership(models.Model):
 
     def link_to_member(self):
 
-        if self.sale is None:
-            return
+        if self.protected: return
+
+        if self.sale is None: return
+        else: self.sale.link_to_user()
 
         # If payer's acct was specified in sale, link to it.
         if self.sale.payer_acct is not None:
             self.member = self.sale.payer_acct.member
             return
-
-        # Attempt to match by EMAIL
-        try:
-            email_matches = User.objects.filter(email=self.sale.payer_email)
-            if len(email_matches) == 1:
-                self.member = email_matches[0].member
-                return
-        except User.DoesNotExist:
-            pass
-
-        # Attempt to match by NAME
-        nameobj = HumanName(self.sale.payer_name)
-        fname = nameobj.first
-        lname = nameobj.last
-        try:
-            name_matches = User.objects.filter(first_name__iexact=fname, last_name__iexact=lname)
-            if len(name_matches) == 1:
-                self.member = name_matches[0].member
-                return
-            else:
-                pass  # TODO: Log WARNING (or maybe just INFO)
-        except User.DoesNotExist:
-            pass
 
     def __str__(self):
         return "%s, %s to %s" % (self.member, self.start_date, self.end_date)

@@ -209,7 +209,8 @@ class Sale(models.Model):
 
     def link_to_user(self):
 
-        self.payer_acct = None
+        if self.protected:
+            return
 
         # Attempt to match by EMAIL
         try:
