@@ -715,7 +715,9 @@ class Membership(models.Model):
         if self.protected: return
 
         if self.sale is None: return
-        else: self.sale.link_to_user()
+        else:
+            self.sale.link_to_user()
+            self.sale.save()
 
         # If payer's acct was specified in sale, link to it.
         if self.sale.payer_acct is not None:
