@@ -36,7 +36,7 @@ class Fetcher(AbstractFetcher):
     # PROCESS MEMBERSHIP ITEM
     # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-    def _process_membership_item(self, sale, item, item_num, membership_type, months):
+    def _process_membership_item(self, sale, item, item_num, membership_type, dur_amt, dur_unit):
         month = self.month_in_str(item['name'])
 
         family = None
@@ -66,7 +66,7 @@ class Fetcher(AbstractFetcher):
                 mship.start_date = mship.start_date.replace(day=1)  # WT always starts on the 1st.
                 if month is not None:  # Hopefully, the buyer specified the month.
                     mship.start_date = mship.start_date.replace(month=month)
-            mship.end_date = mship.start_date + relativedelta(months=months, days=-1)
+            mship.end_date = mship.start_date + relativedelta(**{dur_unit:dur_amt, "days":-1})
             mship.sale_price = Decimal(item['gross_sales_money']['amount']) / Decimal(quantity * 100.0)
             mship.sale_price -= Decimal(10.00) * Decimal(family)
             self.upsert(mship)
@@ -118,6 +118,7 @@ class Fetcher(AbstractFetcher):
         "Bumper Sticker": "Sticker",
         "Medium Sticker": "Sticker",
         "Soda": "Soda",
+        "Can of Soda": "Soda",
         "Refill Soda Account": "Refill Soda Account",
     }
 
@@ -210,11 +211,14 @@ class Fetcher(AbstractFetcher):
             elif item['name'] in self.GIFT_CARD_ITEMS:
                 self._process_giftcard_item(sale, item, item_num)
 
+            elif item['name'] == "Two Week membership":
+                self._process_membership_item(sale, item, item_num, Membership.MT_REGULAR, 1, "weeks")
+
             elif item['name'] == "One Month Membership":
-                self._process_membership_item(sale, item, item_num, Membership.MT_REGULAR, 1)
+                self._process_membership_item(sale, item, item_num, Membership.MT_REGULAR, 1, "months")
 
             elif item['name'] in self.WORK_TRADE_ITEMS:
-                self._process_membership_item(sale, item, item_num, Membership.MT_WORKTRADE, 1)
+                self._process_membership_item(sale, item, item_num, Membership.MT_WORKTRADE, 1, "months")
 
             else:
                 print("Didn't recognize item name: "+item['name'])
@@ -269,6 +273,17 @@ class Fetcher(AbstractFetcher):
         mship.sale_price = 10.00
         self.upsert(mship)
 
+    def _special_case_7cQ69ctaeYok1Ry3KOTFbyMF(self, sale):
+        mship = Membership()
+        mship.sale = Sale(id=sale['id'])
+        mship.membership_type = Membership.MT_REGULAR
+        mship.ctrlid = "{}:1:1".format(sale['ctrlid'])
+        mship.start_date = date(2016, 4, 5)
+        mship.end_date = date(2015, 4, 18)
+        mship.sale_price = 25.00
+        self.upsert(mship)
+
+
     SALES_TO_SKIP = [
         "A8CAHHFZZFBK3",            # $0, no items
         "8J4ZaFUnIU5e2NlEn2UkKQB",  # Cash sale, fully refunded. Customer did subsequent credit card sale.
@@ -304,12 +319,18 @@ class Fetcher(AbstractFetcher):
 
             django_sale = self.upsert(sale)
 
-            if payment['id'] == "0JFN0loJ0kcy8DXCvuDVwwMF":
+            if payment['id'] == "7cQ69ctaeYok1Ry3KOTFbyMF":
+                # Person wanted to pay for two weeks while he was in town.
+                # I added an item for this but don't like the way it worked out.
+                # So I'm treating this as a special case.
+                self._special_case_7cQ69ctaeYok1Ry3KOTFbyMF(django_sale)
+
+            elif payment['id'] == "0JFN0loJ0kcy8DXCvuDVwwMF":
                 # This is a work trade payment that was erroneously entered as a custom payment.
                 # So we do this special processing to ingest it as a 1 month Work Trade membership.
                 self._special_case_0JFN0loJ0kcy8DXCvuDVwwMF(django_sale)
 
-            if payment['id'] == "ixStxgstn56QI8jnJtcCtzMF":
+            elif payment['id'] == "ixStxgstn56QI8jnJtcCtzMF":
                 # This is a six month membership that was erroneously entered as a custom payment.
                 # So we do this special processing to ingest it as a 6 month membership.
                 self._special_case_ixStxgstn56QI8jnJtcCtzMF(django_sale)

@@ -19,10 +19,10 @@ def has_new_data(older, newer):
 
 class AbstractFetcher(object):
 
-    __metalass__ = abc.ABCMeta
+    __metaclass__ = abc.ABCMeta
 
-    #URLBASE = "http://xerocraft-django.herokuapp.com/"
-    URLBASE = "http://localhost:8000/"  # IMPORTANT: Set URL back to production
+    URLBASE = "http://xerocraft-django.herokuapp.com/"
+    #URLBASE = "http://localhost:8000/"  # IMPORTANT: Set URL back to production
 
     URLS = {
         bm.Sale:                        "books/sales/",
