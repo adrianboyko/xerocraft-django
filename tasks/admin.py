@@ -507,6 +507,7 @@ class NagAdmin(admin.ModelAdmin):  # No need to version these
 
 @admin.register(Work)
 class WorkAdmin(VersionAdmin):
+    raw_id_fields = ['claim']
     list_display = ['pk', 'claim', 'work_date', 'work_duration']
     list_filter = [get_ScheduledDateListFilter_class('work_date')]
     date_hierarchy = 'work_date'
@@ -578,6 +579,7 @@ class WorkerAdmin(VersionAdmin):
 @admin.register(TaskNote)
 class TaskNoteAdmin(VersionAdmin):
     list_display = ['pk', 'task', 'author', 'content']
+    raw_id_fields = ['author']
 
 
 @admin.register(WorkNote)
