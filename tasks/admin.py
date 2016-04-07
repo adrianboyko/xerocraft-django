@@ -3,6 +3,7 @@ from django.contrib.admin.views import main
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
 from django.utils.translation import ugettext_lazy as _
+from django.db.models import Model
 import datetime
 from tasks.models import RecurringTaskTemplate, Task, TaskNote, Claim, Work, Nag, Worker, WorkNote
 from nptime import nptime
@@ -153,6 +154,42 @@ class TemplateAndTaskBase(VersionAdmin):
         abstract = True
 
 
+class EligibleTagForTemplate_Inline(admin.StackedInline):
+    # Using proxy to give the "through" class a better name
+    class EligibleTagForTemplate(RecurringTaskTemplate.eligible_tags.through):
+        def __str__(self):
+            return "" if self.tag is None else str(self.tag)
+        class Meta:
+            proxy = True
+    model = EligibleTagForTemplate
+    raw_id_fields = ['tag']
+    extra = 0
+
+
+class EligibleClaimantForTemplate_Inline(admin.StackedInline):
+    # Using proxy to give the "through" class a better name
+    class EligibleClaimantForTemplate(RecurringTaskTemplate.eligible_claimants.through):
+        def __str__(self):
+            return "" if self.member is None else str(self.member)
+        class Meta:
+            proxy = True
+    model = EligibleClaimantForTemplate
+    raw_id_fields = ['member']
+    extra = 0
+
+
+class UninterestedForTemplate_Inline(admin.StackedInline):
+    # Using proxy to give the "through" class a better name
+    class Uninterested(RecurringTaskTemplate.uninterested.through):
+        def __str__(self):
+            return "" if self.member is None else str(self.member)
+        class Meta:
+            proxy = True
+    model = Uninterested
+    raw_id_fields = ['member']
+    extra = 0
+
+
 class RecurringTaskTemplateAdmin(TemplateAndTaskBase):
 
     # save_as = True   There are complications w.r.t. Task instances.
@@ -186,16 +223,16 @@ class RecurringTaskTemplateAdmin(TemplateAndTaskBase):
         '^owner__auth_user__first_name',
         '^owner__auth_user__last_name',
         '^owner__auth_user__username',
-
+        # TODO: Add eligibles, claimants, etc, here?
     ]
 
-    class Media:
-        css = {
-            "all": ("tasks/recurring_task_template_admin.css",)
-        }
+    inlines = [
+        EligibleClaimantForTemplate_Inline,
+        EligibleTagForTemplate_Inline,
+        UninterestedForTemplate_Inline,
+    ]
 
-    filter_horizontal = ['eligible_claimants', 'eligible_tags', 'uninterested']
-    raw_id_fields = ['owner', 'default_claimant', 'eligible_claimants', 'uninterested', 'reviewer']
+    raw_id_fields = ['owner', 'default_claimant', 'reviewer']
     fieldsets = [
 
         (None, {'fields': [
@@ -226,9 +263,6 @@ class RecurringTaskTemplateAdmin(TemplateAndTaskBase):
         ("People", {'fields': [
             'owner',
             'default_claimant',
-            'eligible_claimants',
-            'uninterested',
-            'eligible_tags',
             'reviewer',
         ]}),
         ("Recur by Day-of-Week and Position-in-Month", {
@@ -283,6 +317,7 @@ admin.site.register(RecurringTaskTemplate, RecurringTaskTemplateAdmin)
 
 
 class TaskNoteInline(admin.StackedInline):
+    raw_id_fields = ['author']
     model = TaskNote
     extra = 0
 
@@ -324,13 +359,32 @@ def get_ScheduledDateListFilter_class(date_field_name):
     return ScheduledDateListFilter
 
 
+class EligibleTagForTask_Inline(admin.StackedInline):
+    # Using proxy to give the "through" class a better name
+    class EligibleTag(Task.eligible_tags.through):
+        def __str__(self):
+            return "" if self.tag is None else str(self.tag)
+        class Meta:
+            proxy = True
+    model = EligibleTag
+    raw_id_fields = ['tag']
+    extra = 0
+
+
+class EligibleClaimantForTask_Inline(admin.StackedInline):
+    # Using proxy to give the "through" class a better name
+    class EligibleClaimant(Task.eligible_claimants.through):
+        def __str__(self):
+            return "" if self.member is None else str(self.member)
+        class Meta:
+            proxy = True
+    model = EligibleClaimant
+    raw_id_fields = ['member']
+    extra = 0
+
+
 @admin.register(Task)
 class TaskAdmin(TemplateAndTaskBase):
-
-    class Media:
-        css = {
-            "all": ("tasks/task_admin.css",)
-        }
 
     actions = [
         set_nag_on,
@@ -339,7 +393,6 @@ class TaskAdmin(TemplateAndTaskBase):
         set_priority_med,
         set_priority_high,
     ]
-    filter_horizontal = ['eligible_claimants', 'eligible_tags']
     list_display = [
         'pk', 'short_desc', 'scheduled_weekday', 'scheduled_date',
         'time_window_fmt', 'work_and_workers_fmt',
@@ -350,7 +403,7 @@ class TaskAdmin(TemplateAndTaskBase):
         '^owner__auth_user__first_name',
         '^owner__auth_user__last_name',
         '^owner__auth_user__username',
-
+        # TODO: Add eligibles, claimants, etc, here?
     ]
     list_filter = [
         get_ScheduledDateListFilter_class('scheduled_date'),
@@ -381,8 +434,6 @@ class TaskAdmin(TemplateAndTaskBase):
 
         ("People", {'fields': [
             'owner',
-            'eligible_claimants',
-            'eligible_tags',
             'reviewer',
         ]}),
 
@@ -393,7 +444,11 @@ class TaskAdmin(TemplateAndTaskBase):
             ]
         }),
     ]
-    inlines = [TaskNoteInline, ClaimInline]
+    inlines = [
+        EligibleClaimantForTask_Inline,
+        EligibleTagForTask_Inline,
+        TaskNoteInline,
+    ]
     raw_id_fields = ['owner', 'eligible_claimants', 'uninterested', 'reviewer']
 
 
