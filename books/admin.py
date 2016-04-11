@@ -81,6 +81,10 @@ class DonationAdmin(VersionAdmin):
     search_fields = [
         'donator_name',
         'donator_email',
+        '^donator_acct__first_name',
+        '^donator_acct__last_name',
+        '^donator_acct__username',
+        'donator_acct__email',
     ]
 
 
@@ -134,7 +138,14 @@ class SaleAdmin(VersionAdmin):
     ordering = ['-sale_date']
     inlines = [SaleNoteInline, MonetaryDonationInline, OtherItemInline]
     readonly_fields = ['ctrlid']
-    search_fields = ['payer_name','payer_email',]
+    search_fields = [
+        'payer_name',
+        'payer_email',
+        '^payer_acct__first_name',
+        '^payer_acct__last_name',
+        '^payer_acct__username',
+        'payer_acct__email',
+    ]
     list_filter = ['payment_method', 'sale_date']
     date_hierarchy = 'sale_date'
 
@@ -175,6 +186,7 @@ class ExpenseClaimAdmin(VersionAdmin):
         '^claimant__first_name',
         '^claimant__last_name',
         '^claimant__username',
+        'claimant__email',
     ]
     raw_id_fields = ['claimant']
 
