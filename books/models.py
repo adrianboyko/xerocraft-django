@@ -459,7 +459,7 @@ class ExpenseLineItem(models.Model):
 
     exp = models.ForeignKey(ExpenseTransaction, null=True,
         on_delete=models.CASCADE,  # Line items are parts of the larger transaction, so delete if transaction is deleted.
-        help_text="The claim on which this line item appears.")
+        help_text="The expense transaction on which this line item appears.")
 
     description = models.CharField(max_length=80, blank=False,
         help_text="A brief description of this line item.")
@@ -477,6 +477,7 @@ class ExpenseLineItem(models.Model):
     def __str__(self):
         return "${} on {}".format(self.amount, self.expense_date)
 
-    def clean(self):
+    def dbcheck(self):
+        # Relationships can't be checked in clean but can be checked later in a "db check" operation.
         if self.claim is None and self.exp is None:
             raise ValidationError(_("Expense line item must be part of a claim or transaction."))
