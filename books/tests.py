@@ -28,6 +28,7 @@ admin_fieldname_lists = [
     'fields',
     'exclude',
     'readonly_fields',
+    'raw_fields',
     'list_display',
     'list_display_links',
     'search_fields',
