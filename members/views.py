@@ -21,6 +21,10 @@ from dateutil.relativedelta import relativedelta
 from logging import getLogger
 from collections import Counter
 from time import mktime
+import csv
+from decimal import Decimal
+from members.models import GroupMembership
+
 
 logger = getLogger("members")
 
@@ -441,6 +445,62 @@ def desktop_member_count_vs_date(request):
 
     data = list(zip(js_times, reg_counts, fam_counts, wt_counts, group_counts, comp_counts))
     return render(request, 'members/desktop-member-count-vs-date.html', {'data': data})
+
+
+@login_required()
+def csv_monthly_accrued_membership(request):
+    if not request.user.member.is_tagged_with("Director"):
+        return HttpResponse("This page is for Directors only.")
+
+    params = {'download_url': reverse('memb:csv-monthly-accrued-membership_download')}
+    return render(request, 'members/util-will-download.html', params)
+
+
+@login_required()
+def csv_monthly_accrued_membership_download(request):
+    if not request.user.member.is_tagged_with("Director"):
+        return HttpResponse("This page is for Directors only.")
+
+    end_date = date.today()  # .replace(day=1)  # - relativedelta(days=1)
+    data = Counter()
+
+    for pm in Membership.objects.all():
+
+        if pm.membership_type not in [pm.MT_GROUP, pm.MT_COMPLIMENTARY]:
+            if pm.sale_price == 0.0:
+                logger.warning("$0 membership #%s: %s", pm.pk, str(pm))
+
+        duration = pm.end_date - pm.start_date
+        days = duration.total_seconds() / (60.0*60.0*24.0)
+        amt_per_day = pm.sale_price / Decimal(days)
+        day = max(pm.start_date, date(2015,1,1))
+        while day <= min(pm.end_date, end_date):
+            data.update({(day.year, day.month): amt_per_day})
+            day += relativedelta(days=1)
+
+    for gm in GroupMembership.objects.all():
+        if gm.sale_price == 0.0:
+            logger.warning("$0 group membership #%s: %s", gm.pk, str(gm))
+
+        duration = gm.end_date - gm.start_date
+        days = duration.total_seconds() / (60.0*60.0*24.0)
+        amt_per_day = gm.sale_price / Decimal(days)
+        day = max(gm.start_date, date(2015,1,1))
+        while day <= min(gm.end_date, end_date):
+            data.update({(day.year, day.month): amt_per_day})
+            day += relativedelta(days=1)
+
+    data = sorted(data.items())
+
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="monthly-accrued-membership.csv"'
+
+    writer = csv.writer(response)
+    TWOPLACES = Decimal('0.01')
+    for (year,month),value in data:
+        writer.writerow([year, month, value.quantize(TWOPLACES)])
+
+    return response
 
 
 @login_required()

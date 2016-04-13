@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Accrued</title>
+    <script type="text/javascript">
+        function downloadAccruedCSV() {
+            window.location.href = "{{download_url}}";
+        }
+    </script>
+
+    <style type="text/css">
+
+        html, body {
+            height: 100%;
+        }
+
+        html {
+            display: table;
+            margin: auto;
+        }
+
+        body {
+            display: table-cell;
+            vertical-align: middle;
+            font-family: Helvetica, Arial;
+            font-size: 22px;
+        }
+
+        div {
+            padding: 10px;
+            display: table-cell;
+            background-color:#338BC7;
+            width: 270px;
+            height: 125px;
+            -moz-border-radius: 6px;
+            -webkit-border-radius: 6px;
+            border-radius: 6px;
+            color: white;
+            vertical-align: middle;
+            text-align: center;
+        }
+
+    </style>
+</head>
+
+<body onload="downloadAccruedCSV()">
+    <div>
+        File will automatically download once calculation is complete.
+    </div>
+</body>
+
+</html>

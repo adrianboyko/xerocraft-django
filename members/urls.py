@@ -34,5 +34,10 @@ urlpatterns = [
 
     # DJANGO REST FRAMEWORK API
     url(r'^', include(router.urls)),
+
+    # OTHER
+    url(r'^csv/monthly-accrued-membership/$', views.csv_monthly_accrued_membership, name='csv-monthly-accrued-membership'),
+    url(r'^csv/monthly-accrued-membership-download/$', views.csv_monthly_accrued_membership_download, name='csv-monthly-accrued-membership_download'),
+
 ]
 
