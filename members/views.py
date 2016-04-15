@@ -456,10 +456,7 @@ def csv_monthly_accrued_membership(request):
     return render(request, 'members/util-will-download.html', params)
 
 
-@login_required()
-def csv_monthly_accrued_membership_download(request):
-    if not request.user.member.is_tagged_with("Director"):
-        return HttpResponse("This page is for Directors only.")
+def _calculate_accrued_membership_revenue():
 
     end_date = date.today()  # .replace(day=1)  # - relativedelta(days=1)
     data = Counter()
@@ -491,6 +488,15 @@ def csv_monthly_accrued_membership_download(request):
             day += relativedelta(days=1)
 
     data = sorted(data.items())
+    return data
+
+
+@login_required()
+def csv_monthly_accrued_membership_download(request):
+    if not request.user.member.is_tagged_with("Director"):
+        return HttpResponse("This page is for Directors only.")
+
+    data = _calculate_accrued_membership_revenue()
 
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="monthly-accrued-membership.csv"'
@@ -501,6 +507,17 @@ def csv_monthly_accrued_membership_download(request):
         writer.writerow([year, month, value.quantize(TWOPLACES)])
 
     return response
+
+
+@login_required()
+def desktop_earned_membership_revenue(request):
+    if not request.user.member.is_tagged_with("Director"):
+        return HttpResponse("This page is for Directors only.")
+
+    data = _calculate_accrued_membership_revenue()
+    data = [[y,m,earned] for (y,m),earned in data]
+    del data[-1]  # Don't show current month.
+    return render(request, 'members/desktop-earned-mship-rev.html', {'data': data})
 
 
 @login_required()
