@@ -12,12 +12,14 @@ __author__ = 'adrian'
 
 def times():
     oneday = datetime.timedelta(days=1)
+    threedays = datetime.timedelta(days=3)
     oneweek = datetime.timedelta(weeks=1)
     today = datetime.date.today()
     tomorrow = today + oneday
+    todayplus3d = today + threedays
     todayplus1w = today + oneweek
     todayplus2w = today + oneweek + oneweek
-    return oneday, today, tomorrow, todayplus1w, todayplus2w
+    return oneday, today, tomorrow, todayplus3d, todayplus1w, todayplus2w
 
 
 class Command(BaseCommand):
@@ -26,7 +28,7 @@ class Command(BaseCommand):
 
     @staticmethod
     def nag_for_workers():
-        oneday, today, tomorrow, todayplus1w, todayplus2w = times()
+        oneday, today, tomorrow, todayplus3d, todayplus1w, todayplus2w = times()
 
         # Find out who's doing what over the next 2 weeks. Who's already scheduled to work and who's heavily scheduled?
         ppl_already_scheduled = Claim.sum_in_period(today, todayplus2w)
@@ -38,9 +40,9 @@ class Command(BaseCommand):
         ppl_excluded |= set(Member.objects.filter(auth_user__email=""))
         ppl_excluded |= set(Member.objects.filter(auth_user__is_active=False))
 
-        # Cycle through the next week's NAGGING tasks to see which need workers and who should be nagged.
+        # Cycle through future days' NAGGING tasks to see which need workers and who should be nagged.
         nag_lists = {}
-        for task in Task.objects.filter(scheduled_date__gte=today, scheduled_date__lt=todayplus1w, should_nag=True):
+        for task in Task.objects.filter(scheduled_date__gte=today, scheduled_date__lt=todayplus3d, should_nag=True):
 
             # No need to nag if task is fully claimed or not workable.
             if (not task.status == Task.STAT_ACTIVE) or task.is_fully_claimed():
