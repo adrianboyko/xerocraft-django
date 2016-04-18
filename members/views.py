@@ -459,7 +459,8 @@ def csv_monthly_accrued_membership(request):
 def _calculate_accrued_membership_revenue():
 
     end_date = date.today()  # .replace(day=1)  # - relativedelta(days=1)
-    data = Counter()
+    indi_data = Counter()
+    grp_data = Counter()
 
     for pm in Membership.objects.all():
 
@@ -472,7 +473,7 @@ def _calculate_accrued_membership_revenue():
         amt_per_day = pm.sale_price / Decimal(days)
         day = max(pm.start_date, date(2015,1,1))
         while day <= min(pm.end_date, end_date):
-            data.update({(day.year, day.month): amt_per_day})
+            indi_data.update({(day.year, day.month): amt_per_day})
             day += relativedelta(days=1)
 
     for gm in GroupMembership.objects.all():
@@ -484,10 +485,15 @@ def _calculate_accrued_membership_revenue():
         amt_per_day = gm.sale_price / Decimal(days)
         day = max(gm.start_date, date(2015,1,1))
         while day <= min(gm.end_date, end_date):
-            data.update({(day.year, day.month): amt_per_day})
+            grp_data.update({(day.year, day.month): amt_per_day})
             day += relativedelta(days=1)
 
-    data = sorted(data.items())
+    dates = sorted([x for x in indi_data])
+    indi_vals = [indi_data[k] for k in dates]
+    grp_vals = [grp_data[k] for k in dates]
+    indi_vals = [x if type(x)==Decimal else Decimal(x) for x in indi_vals]
+    grp_vals = [x if type(x)==Decimal else Decimal(x) for x in grp_vals]
+    data = list(zip(dates, indi_vals, grp_vals))
     return data
 
 
@@ -503,8 +509,10 @@ def csv_monthly_accrued_membership_download(request):
 
     writer = csv.writer(response)
     TWOPLACES = Decimal('0.01')
-    for (year,month),value in data:
-        writer.writerow([year, month, value.quantize(TWOPLACES)])
+    writer.writerow(["year", "month", "indi rev", "group rev"])
+
+    for (year,month), indi_val, grp_val in data:
+        writer.writerow([year, month, indi_val.quantize(TWOPLACES), grp_val.quantize(TWOPLACES)])
 
     return response
 
@@ -515,9 +523,14 @@ def desktop_earned_membership_revenue(request):
         return HttpResponse("This page is for Directors only.")
 
     data = _calculate_accrued_membership_revenue()
-    data = [[y,m,earned] for (y,m),earned in data]
-    del data[-1]  # Don't show current month.
-    return render(request, 'members/desktop-earned-mship-rev.html', {'data': data})
+    chart_data = []
+    for (y, m), indi_earned, grp_earned in list(data):
+        indi_earned = indi_earned if indi_earned != 0 else "null"
+        grp_earned = grp_earned if grp_earned != 0 else "null"
+        chart_data.append([y, m, indi_earned, grp_earned])
+
+    del chart_data[-1]  # Don't show current month.
+    return render(request, 'members/desktop-earned-mship-rev.html', {'data': chart_data})
 
 
 @login_required()

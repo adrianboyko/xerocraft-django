@@ -12,9 +12,9 @@
       daysInMonth = [31,28,31,30,31,30,31,31,30,31,30,31];
       function drawChart() {
         var data = google.visualization.arrayToDataTable([
-          ["Month", "Earned"],
-          {% for theYear, theMonth, amtEarned in data %}
-            [new Date({{theYear}}, {{theMonth}}-1, 1), {{amtEarned}}],
+          ["Month", "Individuals", "Groups"],
+          {% for theYear, theMonth, indiEarned, grpEarned in data %}
+            [new Date({{theYear}}, {{theMonth}}-1, 1), {{indiEarned}}, {{grpEarned}}],
           {% endfor %}
         ]);
 
