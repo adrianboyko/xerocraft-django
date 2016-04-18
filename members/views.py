@@ -469,7 +469,7 @@ def _calculate_accrued_membership_revenue():
                 logger.warning("$0 membership #%s: %s", pm.pk, str(pm))
 
         duration = pm.end_date - pm.start_date
-        days = duration.total_seconds() / (60.0*60.0*24.0)
+        days = 1.0 + duration.total_seconds() / (60.0*60.0*24.0)
         amt_per_day = pm.sale_price / Decimal(days)
         day = max(pm.start_date, date(2015,1,1))
         while day <= min(pm.end_date, end_date):
@@ -481,7 +481,7 @@ def _calculate_accrued_membership_revenue():
             logger.warning("$0 group membership #%s: %s", gm.pk, str(gm))
 
         duration = gm.end_date - gm.start_date
-        days = duration.total_seconds() / (60.0*60.0*24.0)
+        days = 1.0 + duration.total_seconds() / (60.0*60.0*24.0)
         amt_per_day = gm.sale_price / Decimal(days)
         day = max(gm.start_date, date(2015,1,1))
         while day <= min(gm.end_date, end_date):
