@@ -2,6 +2,7 @@ from django.db import models
 from django.db.migrations.recorder import MigrationRecorder
 from django.utils import timezone
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
 from books.models import Sale, ExpenseClaim
 import base64
 import uuid
@@ -723,6 +724,10 @@ class Membership(models.Model):
         if self.sale.payer_acct is not None:
             self.member = self.sale.payer_acct.member
             return
+
+    def clean(self):
+        if self.start_date >= self.end_date:
+            raise ValidationError(_("End date must be later than start date."))
 
     def __str__(self):
         return "%s, %s to %s" % (self.member, self.start_date, self.end_date)
