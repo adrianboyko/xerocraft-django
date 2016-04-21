@@ -5,38 +5,50 @@
     <title>XIS Home</title>
 
     <style>
-        body { margin-left:20pt; margin-right:20pt; }
-        h1 { font-family:Arial; font-size:22pt; margin-top:50px; }
+        body { margin-left:20pt; margin-right:20pt; text-align:center }
+        h1 { font-family:Arial; font-size:22pt; margin-top:70px; margin-bottom:50px}
         h2 { font-family:Arial; font-size:14pt; margin-top:20px; }
         ul { font-family:Arial; font-size:10pt; }
-        img { width:40; margin-right:0pt; }
+        img#x { width:40; margin-right:0pt; }
+        img.button { margin:10px 10px 10px 10px; }  /* Top right bottom left */
         td { vertical-align:center; text-align:center; width:50%; }
         span { font-size:10pt; font-weight:normal; }
         span.exp { color:red; }
+
+        .unselectable {
+           -moz-user-select: -moz-none;
+           -khtml-user-select: none;
+           -webkit-user-select: none;
+           -ms-user-select: none;
+           user-select: none;
+        }
+
     </style>
 
 </head>
 
-<body style="text-align:center">
+<body class='unselectable'>
 
-    <h1><img src="{% static 'xerocraft/Big Bold X.png' %}" alt="Xerocraft Logo"/>erocraft<br/>Internal Systems</h1>
+    <h1><img id="x" src="{% static 'xerocraft/Big Bold X.png' %}" alt="Xerocraft Logo"/>erocraft Internal Systems</h1>
 
-<table style="width:35%;" align="center">
-    <tr>
-        <td><h2><a href="/tasks/desktop-timesheet/">Work-Trade<br/>Timesheet</a><br/><span>(work-traders only)</span></h2></td>
-        <td><h2><a href="/director-menu">Reports For<br/>Directors</a><br/></h2></td>
-    </tr>
+    <div>
+        <a href="/members/desktop/member-tags">
+            <img class="button" src="{% static 'xerocraft/MemberTags.png' %}" alt="Tags"/></a>
 
-    <tr>
-        <td><h2><a href="/members/desktop/member-tags">View / Edit<br/>Member Tags</a></h2></td>
-        <td><h2><a href="/members/create-card/">Create<br/>Member Card</a><br/><span class="exp">(experimental)</span></h2></td>
-    </tr>
+        <a href="/tasks/desktop-timesheet/">
+            <img class="button" src="{% static 'xerocraft/TimeSheet.png' %}" alt="Timesheet"/></a>
 
-    <tr>
-        <td><h2><a href="/admin/">System<br/>Administration</a><br/><span>(authorized users only)</span></h2></td>
-        <td><h2><a href="/inventory/desktop/request-parking-permit">Request<br/>Parking Permit</a><br/><span class="exp">(experimental)</span></h2></td>
-    </tr>
-</table>
+        <a href="/inventory/desktop/request-parking-permit">
+            <img class="button" src="{% static 'xerocraft/ParkingPermit.png' %}" alt="Parking Permit"/></a>
+    </div>
+
+    <div>
+        <a href="/admin/">
+            <img class="button" src="{% static 'xerocraft/SystemAdmin.png' %}" alt="System Admin"/></a>
+
+        <a href="/director-menu">
+            <img class="button" src="{% static 'xerocraft/ReportsForDirectors.png' %}" alt="Reports"/></a>
+    </div>
 
     {% if user.is_authenticated %}
         <h2 style="display:inline-block; padding:10px; padding-bottom:10px; background-color:#ffb3b3">
