@@ -333,12 +333,28 @@ class Donation(models.Model):
     donator_email = models.EmailField(max_length=40, blank=True,
         help_text="Email address of person who made the donation.")
 
+    send_receipt = models.BooleanField(default=True,
+        help_text="(Re)send a receipt to the donor. Note: Will send at night.")
+
     def __str__(self):
         name = "Anonymous"
         if len(str(self.donator_name)) > 0: name = self.donator_name
         elif self.donator_acct is not None: name = str(self.donator_acct)
         elif len(str(self.donator_email)) > 0: name = self.donator_email
         return "{} on {}".format(name, self.donation_date)
+
+    def clean(self):
+        if self.send_receipt:
+            if self.donator_acct is None:
+                if self.donator_email=="":
+                    raise ValidationError(_("No email address for receipt. Link to acct or provide donator email."))
+            else:  # donator acct is specified
+                if self.donator_acct.email=="" and self.donator_email=="":
+                    raise ValidationError(_("No email address for receipt. Please fill the 'donator email' field."))
+
+    def dbcheck(self):
+        if len(self.donateditem_set.all()) < 1:
+            raise ValidationError(_("Every phyisical donation must include at least one line item."))
 
     class Meta:
         verbose_name = "Physical donation"

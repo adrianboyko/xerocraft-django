@@ -1,0 +1,18 @@
+{% if first_name %}
+Hi {{first_name}}!
+
+{% endif %}
+This is a receipt for physical items donated to Xerocraft by {{full_name}} on {{donation.donation_date}}.
+Associated monetary donations, if any, will be itemized on a separate receipt which you might already
+have received from one of our online payment processors (Square, 2Checkout, WePay, etc). A list of
+donated items follows:
+
+{% for item in items %}
+{{item.description}}: ${{item.value}}
+{% endfor %}
+
+Item values, above, were determined by the donor. Xerocraft Inc. is an Arizona non-profit
+corporation with federal 501(c)3 status and is eligible to receive tax-deductible donations.
+If you have any questions please contact treasurer@xerocraft.org
+
+Thanks for supporting Xerocraft with your donation!

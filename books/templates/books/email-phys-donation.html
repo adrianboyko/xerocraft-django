@@ -1,0 +1,103 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Receipt</title>
+<style type="text/css">
+@media(max-width:480px){
+  table[class=main_table],table[class=layout_table]{width:300px !important;}
+  table[class=layout_table] tbody tr td.header_image img{width:300px !important;height:auto !important;}
+}
+a{color:#37aadc}
+p{font-family:Arial, Helvetica, sans-serif;font-size:14px;line-height:22px;}
+span{font-family:Arial, Helvetica, sans-serif;font-size:14px;line-height:22px;}
+
+table#items{width:90%;border-collapse:collapse;margin:1em 0;}
+table#items th, table#items td{padding:.3em;border:2px solid #fff;}
+
+</style>
+</head>
+<body>
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tbody>
+<tr>
+<td align="center" valign="top">
+<!--  M A I N T A B L E  S T A R T  -->
+<table border="0" cellpadding="0" cellspacing="0" class="main_table" width="600">
+    <tbody>
+    <tr>
+    <td>
+      <!--  L A Y O U T _ T A B L E  S T A R T  -->
+    <table border="0" cellpadding="0" cellspacing="0" class="layout_table" style="border-collapse:collapse;border:1px solid #CCCCCC;" width="100%" >
+      <tbody>
+      <!--  H E A D E R R O W  S T A R T  -->
+      <tr>
+      <td align="left" class="header_image"><img height="120" src="http://wiki.xerocraft.org/images/9/98/Blueprint_Banner_Top_600x120.png" width="600" style="border:0;display:block;"></td>
+      </tr>
+      <!--  H E A D E R R O W  E N D  -->
+      <tr><td style="font-size:13px;line-height:13px;margin:0;padding:0;">&nbsp;</td></tr>
+      <!--  B O D Y R O W  S T A R T  -->
+      <tr>
+      <td align="center" valign="top">
+        <table align="center" border="0" cellpadding="0" cellspacing="0" width="85%">
+          <tbody>
+          <tr>
+          <td align="center">
+            <p>
+                {% if first_name %}
+                Hi {{first_name}}!
+                <br/><br/>
+                {% endif %}
+                This is a receipt for <u>physical</u> items donated to Xerocraft by <b>{{full_name}}</b>
+                on <b>{{donation.donation_date}}</b>. Associated <u>monetary</u> donations, if any, will be itemized
+                on a separate receipt which you might already have received from one of our online payment
+                processors (Square, 2Checkout, WePay, etc). A list of donated items follows:
+            </p>
+            <table id="items">
+                <tr>
+                    <th style="text-align:left;" bgcolor="#328aa4" color="#ffffff"><span>&nbsp;Description&nbsp;</span></th>
+                    <th style="text-align:right;" bgcolor="#328aa4" color="#ffffff"><span>&nbsp;Value&nbsp;</span></th>
+                </tr>
+                {% for item in items %}
+                <tr>
+                    <td style="text-align:left" bgcolor="#e5f1f4"><span>&nbsp;{{item.description}}&nbsp;</span></td>
+                    <td style="text-align:right" bgcolor="#e5f1f4"><span>&nbsp;${{item.value}}&nbsp;</span></td>
+                </tr>
+                {% endfor %}
+            </table>
+            <p>
+                Item values, above, were determined by the donor. Xerocraft Inc. is an Arizona non-profit
+                corporation with federal 501(c)3 status and is eligible to receive tax-deductible donations.
+                If you have any questions please contact
+                <a href="mailto:treasurer@xerocraft.org">treasurer@xerocraft.org</a>.
+            </p>
+            <p>Thanks for supporting Xerocraft with your donation!</p>
+          </td>
+          </tr>
+          </tbody>
+        </table>
+      </td>
+      </tr>
+      <!--  B O D Y R O W  E N D  -->
+      <tr><td style="font-size:13px;line-height:13px;margin:0;padding:0;">&nbsp;</td></tr>
+      <!--  F O O T E R R O W  S T A R T  -->
+      <tr>
+      <td align="left" class="header_image"><a href="http://www.xerocraft.org/"><img height="67" src="http://wiki.xerocraft.org/images/f/fd/Blueprint_Banner%2C_Bottom%2C_600x67.png" width="600" style="border:0;display:block;" alt="Sent via SparkPost"></a></td>
+      </tr>
+      <!--  F O O T E R R O W  E N D  -->
+      </tbody>
+    </table>
+    <!--  L A Y O U T _ T A B L E  E N D  -->
+    </td>
+    </tr>
+    </tbody>
+</table>
+<!--  M A I N _ T A B L E  E N D  -->
+</td>
+</tr>
+</tbody>
+</table>
+</body>
+</html>
+

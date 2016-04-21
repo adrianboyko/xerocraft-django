@@ -74,6 +74,7 @@ class DonationAdmin(VersionAdmin):
         'donation_date',
         'donator_acct',
         ('donator_name', 'donator_email'),
+        'send_receipt',
     ]
     raw_id_fields = ['donator_acct']
     ordering = ['-donation_date']
