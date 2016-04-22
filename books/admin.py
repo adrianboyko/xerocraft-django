@@ -93,6 +93,25 @@ class DonationAdmin(VersionAdmin):
 # SALES
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
+def sale_link(self, obj):
+    return "<a href='/admin/books/sale/{}/'>{}</a>".format(obj.sale.id, obj.sale)
+sale_link.allow_tags = True
+
+@admin.register(OtherItem)
+class OtherItemAdmin(VersionAdmin):
+
+    sale_link = sale_link
+    list_display = [
+        'pk',
+        'ctrlid',  # Temporary
+        'type',
+        'qty_sold',
+        'sale_price',
+        'sale_link',
+    ]
+    raw_id_fields = ['sale']
+
+
 class SaleNoteInline(NoteInline):
     model = SaleNote
 
