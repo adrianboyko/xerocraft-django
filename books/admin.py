@@ -97,10 +97,12 @@ def sale_link(self, obj):
     return "<a href='/admin/books/sale/{}/'>{}</a>".format(obj.sale.id, obj.sale)
 sale_link.allow_tags = True
 
-@admin.register(OtherItem)
+
+# @admin.register(OtherItem)  # I don't normally want this to appear since there's already an inline.
 class OtherItemAdmin(VersionAdmin):
 
     sale_link = sale_link
+
     list_display = [
         'pk',
         'ctrlid',  # Temporary
@@ -109,7 +111,9 @@ class OtherItemAdmin(VersionAdmin):
         'sale_price',
         'sale_link',
     ]
+
     raw_id_fields = ['sale']
+    readonly_fields = ['ctrlid']
 
 
 class SaleNoteInline(NoteInline):
