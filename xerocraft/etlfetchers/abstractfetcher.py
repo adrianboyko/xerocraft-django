@@ -21,7 +21,7 @@ class AbstractFetcher(object):
 
     __metaclass__ = abc.ABCMeta
 
-    URLBASE = "http://xerocraft-django.herokuapp.com/"
+    URLBASE = "https://xerocraft-django.herokuapp.com/"
     #URLBASE = "http://localhost:8000/"  # IMPORTANT: Set URL back to production
 
     URLS = {
