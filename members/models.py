@@ -10,6 +10,7 @@ import hashlib
 from nameparser import HumanName
 from datetime import datetime, date, timedelta
 from decimal import Decimal
+from django.utils.translation import ugettext_lazy as _
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # CTRLID Functions
@@ -713,12 +714,12 @@ class Membership(models.Model):
 
     def link_to_member(self):
 
-        if self.protected: return
-
+        if self.protected: return  # REVIEW: Should 'protected' checks only appear in ETL code?
+        if self.member is not None: return
         if self.sale is None: return
-        else:
-            self.sale.link_to_user()
-            self.sale.save()
+
+        self.sale.link_to_user()
+        self.sale.save()
 
         # If payer's acct was specified in sale, link to it.
         if self.sale.payer_acct is not None:
