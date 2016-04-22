@@ -237,7 +237,7 @@ class Fetcher(AbstractFetcher):
                 names = parsed_page.xpath("//div[contains(@class,'name_on_card')]/text()")
                 return names[0] if len(names)>0 else ""
             except requests.exceptions.ConnectionError:
-                print("?", end='')
+                print("!", end='')
                 pass
 
     def _get_tender_type(self, payment) -> str:
@@ -381,7 +381,7 @@ class Fetcher(AbstractFetcher):
             while response is None:
                 try:
                     response = self.squaresession.get(payments_url, params=get_data, headers=get_headers)
-                except ConnectionError:
+                except requests.exceptions.ConnectionError:
                     print("!", end='')
 
             payments = response.json()
