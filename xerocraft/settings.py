@@ -23,6 +23,7 @@ STATIC_ROOT = 'staticfiles'
 STATIC_URL = '/static/'
 STATICFILES_DIRS = (
     os.path.join(BASE_DIR, 'static'),
+#    os.path.join(BASE_DIR, 'assets'),
 )
 
 # Simplified static file serving.
@@ -40,6 +41,7 @@ SECRET_KEY = os.environ['XERO_DJANGO_SECRET_KEY']
 DEBUG = False  # IMPORTANT: Set to False before commit.
 
 ALLOWED_HOSTS = [
+#    'localhost',
     'xerocraft-django.herokuapp.com',
     'xis.xerocraft.us',
 ]
@@ -79,14 +81,15 @@ INSTALLED_APPS = (
     'members',
     'tasks',
     'inventory',
-    'djrill',
     'crispy_forms',
     'social.apps.django_app.default',
     'rest_framework',
     'rest_framework.authtoken',
     'books',
     'reversion',
-    #'guardian',
+    # 'webpack_loader',
+    # 'guardian',
+    #'debug_toolbar',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -179,10 +182,13 @@ en_formats.DATETIME_FORMAT = "m/d/y H:i:s"
 en_formats.DATE_FORMAT = "m/d/y"
 
 
-EMAIL_BACKEND = "djrill.mail.backends.djrill.DjrillBackend"
+#EMAIL_BACKEND = "djrill.mail.backends.djrill.DjrillBackend"
 #EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-MANDRILL_API_KEY = os.environ['MANDRILL_API_KEY']
-DEFAULT_FROM_EMAIL = "Volunteer Coordinator <volunteer@xerocraft.org>"
+#MANDRILL_API_KEY = os.environ['MANDRILL_API_KEY']
+
+EMAIL_BACKEND = "sparkpost.django.email_backend.SparkPostEmailBackend"
+SPARKPOST_API_KEY = os.environ['SPARKPOST_API_KEY']
+DEFAULT_FROM_EMAIL = "Xerocraft Systems <xis@xerocraft.org>"
 
 
 # Per http://stackoverflow.com/questions/18920428/django-logging-on-heroku
@@ -240,4 +246,11 @@ REST_FRAMEWORK = {
     ],
 
     'PAGE_SIZE': 100
+}
+
+WEBPACK_LOADER = {
+    'DEFAULT': {
+        'BUNDLE_DIR_NAME': 'bundles/',
+        'STATS_FILE': os.path.join(BASE_DIR, 'webpack-stats.json'),
+    }
 }
