@@ -125,27 +125,26 @@ class Fetcher(AbstractFetcher):
     def _process_other_item(self, sale, item, item_num):
 
         quantity = int(float(item['quantity']))
-        for n in range(1, quantity+1):
 
-            if item['name'] not in self.OTHER_ITEM_TYPE_MAP:
-                print("Fetcher does not map: "+item['name'])
-                return
+        if item['name'] not in self.OTHER_ITEM_TYPE_MAP:
+            print("Fetcher does not map: "+item['name'])
+            return
 
-            mappedname = self.OTHER_ITEM_TYPE_MAP[item['name']]
-            typepk = self._get_id(self.URLS[OtherItemType], {'name': mappedname})
-            if typepk is None:
-                print("Server does not have other item type: "+mappedname)
-                return
+        mappedname = self.OTHER_ITEM_TYPE_MAP[item['name']]
+        typepk = self._get_id(self.URLS[OtherItemType], {'name': mappedname})
+        if typepk is None:
+            print("Server does not have other item type: "+mappedname)
+            return
 
-            other = OtherItem()
+        other = OtherItem()
 
-            other.type = OtherItemType(id=typepk)
-            other.sale = Sale(id=sale['id'])
-            other.sale_price = Decimal(item["net_sales_money"]["amount"]) / Decimal(quantity * 100.0)
-            other.qty_sold = int(float(item['quantity']))
-            other.ctrlid = "{}:{}:{}".format(sale['ctrlid'], item_num, n)
+        other.type = OtherItemType(id=typepk)
+        other.sale = Sale(id=sale['id'])
+        other.sale_price = Decimal(item["net_sales_money"]["amount"]) / Decimal(quantity * 100.0)
+        other.qty_sold = int(float(item['quantity']))
+        other.ctrlid = "{}:{}".format(sale['ctrlid'], item_num)
 
-            self.upsert(other)
+        self.upsert(other)
 
     # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     # PROCESS ITEMS
@@ -287,12 +286,19 @@ class Fetcher(AbstractFetcher):
     SALES_TO_SKIP = [
         "A8CAHHFZZFBK3",            # $0, no items
         "8J4ZaFUnIU5e2NlEn2UkKQB",  # Cash sale, fully refunded. Customer did subsequent credit card sale.
-        "U3dZYqFP1rKtjJImyYuNfvMF",  # This was a 'Refill Soda Account' test, fully refunded.
+        "U3dZYqFP1rKtjJImyYuNfvMF", # This was a 'Refill Soda Account' test, fully refunded.
+        "CGvCOYS9VFEVgKlr6fP4KQB",  # Fully refunded. This was an accidental cash purchase. Redid it as credit.
     ]
 
     def _process_payments(self, payments):
 
         for payment in payments:
+
+            # TODO: Clean out any existing sale & line items in case of refund, and then skip.
+            # Refund sensing logic will be something like this:
+            #    if len(payment.refunds)>0
+            #      and payment.refunds[0].payment_id == payment.id
+            #      and payment.refunds[0].type == "FULL"
 
             if payment['tender'][0]['type'] == "NO_SALE":
                 continue
