@@ -10,6 +10,12 @@ class TagAdmin(VersionAdmin):
     fields = ['name','meaning']
 
 
+@admin.register(Pushover)
+class PushoverAdmin(VersionAdmin):
+    list_display = ['pk', 'who', 'key']
+    raw_id_fields = ['who']
+
+
 @admin.register(Tagging)
 class TaggingAdmin(VersionAdmin):
 

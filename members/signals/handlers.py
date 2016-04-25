@@ -2,10 +2,14 @@ from django.db.models.signals import post_save, pre_save, pre_delete
 from django.dispatch import receiver
 from django.contrib.auth.models import User, user_logged_in
 from django.core.exceptions import ObjectDoesNotExist
-from members.models import Member, Tag, Tagging, PaidMembership, MemberLogin, GroupMembership, Membership
+from members.models import Member, Tag, Tagging, PaidMembership, MemberLogin, GroupMembership, Membership, VisitEvent
+from datetime import timedelta
+import members.notifications as notifications
 import logging
 
 __author__ = 'Adrian'
+
+logger = logging.getLogger("members")
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -24,6 +28,48 @@ def create_default_member(sender, **kwargs):
             t = Tag.objects.create(name="Member", meaning="All members have this tag.")
 
         Tagging.objects.create(tagged_member=m, tag=t)
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# VISIT
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+@receiver(pre_save, sender=VisitEvent)  # Making this PRE-save because I want to get latest before save.
+def note_checkin(sender, **kwargs):
+    try:
+        if kwargs.get('created', True):
+            visit = kwargs.get('instance')
+
+            # We're only interested in arrivals
+            if visit.event_type != VisitEvent.EVT_ARRIVAL:
+                return
+
+            # TODO: Shouldn't have a hard-coded userid here. Make configurable, perhaps with tags.
+            recipient = Member.objects.get(auth_user__username='adrianb')
+            if visit.who == recipient:
+                # No need to inform the recipient that they're visiting
+                return
+
+            # RFID checkin systems may fire multiple times. Skip checkin if "too close" to the prev checkin time.
+            try:
+                recent_visit = VisitEvent.objects.filter(who=visit.who, event_type=VisitEvent.EVT_ARRIVAL).latest('when')
+                delta = visit.when - recent_visit.when
+            except VisitEvent.DoesNotExist:
+                delta = timedelta.max
+            if delta < timedelta(hours=1):
+                return
+
+            vname = "{} {}".format(visit.who.first_name, visit.who.last_name).strip()
+            vname = "Anonymous" if len(vname) == "" else vname
+            vstat = "Paid" if visit.who.is_currently_paid() else "Unpaid"
+
+            message = "{}\n{}\n{}".format(visit.who.username, vname, vstat)
+            notifications.notify(recipient, "Check-In", message)
+
+    except Exception as e:
+        # Makes sure that problems here do not prevent the visit event from being saved!
+        logger.error("Problem in note_checkin: %s", str(e))
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -58,7 +104,8 @@ def link_paidmembership_to_member(sender, **kwargs):
         if not pm.protected:
             pm.link_to_member()
 
-#TODO: Attempt to auto-link based on name/email in sale. Only for WePay, 2Checkout, Square?
+
+# TODO: Attempt to auto-link based on name/email in sale. Only for WePay, 2Checkout, Square?
 @receiver(pre_save, sender=Membership)
 def link_membership_to_member(sender, **kwargs):
     if kwargs.get('created', True):
@@ -83,10 +130,20 @@ def get_ip_address(request):
 
 @receiver(user_logged_in)
 def note_login(sender, user, request, **kwargs):
-    ip = get_ip_address(request)
-    logger = logging.getLogger("members")
-    logger.info("Login: %s at %s" % (user, ip))
-    MemberLogin.objects.create(member=user.member, ip=ip)
+    try:
+        ip = get_ip_address(request)
+        logger.info("Login: %s at %s" % (user, ip))
+        MemberLogin.objects.create(member=user.member, ip=ip)
+
+        # TODO: Shouldn't have a hard-coded userid here. Make configurable, perhaps with tags.
+        recipient = Member.objects.get(auth_user__username='adrianb')
+        if recipient.auth_user != user:
+            message = "{}\n{}".format(user.username, ip)
+            notifications.notify(recipient, "Log-In", message)
+
+    except Exception as e:
+        # Failures here should not prevent the login from completing normally.
+        logger.error("Problem in note_login: %s", str(e))
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

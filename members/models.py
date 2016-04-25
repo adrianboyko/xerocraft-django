@@ -260,6 +260,16 @@ class Member(models.Model):
         ordering = ['auth_user__first_name','auth_user__last_name']
 
 
+class Pushover(models.Model):
+
+    who = models.ForeignKey(Member,
+        on_delete=models.CASCADE,  # If a member is deleted, it doesn't make sense to keep their pushover info.
+        help_text="The member to whom this tagging info applies.")
+
+    key = models.CharField(max_length=30, null=False, blank=False,
+        help_text="The member's User Key on Pushover.com")
+
+
 class Tagging(models.Model):
     """ Intermediate table representing the many-tomany relation between Member and Tag
     """
