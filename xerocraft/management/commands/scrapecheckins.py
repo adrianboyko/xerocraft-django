@@ -27,9 +27,9 @@ CHECKIN_DJANGO_USERNAME_KEY = "Django Username"
 
 METHOD_CODES = {v: k for (k,v) in VisitEvent.VISIT_METHOD_CHOICES}
 
-class Command(Scraper, BaseCommand):
 
-    help = "Scrapes xerocraft.org/checkinanalytics.php and creates corresponding django accts, if not already created."
+class CheckinScraper(Scraper):
+    """ Scrape the admin checkin page on xerocraft.org"""
 
     def process_checkin(self, dict):
 
@@ -68,14 +68,14 @@ class Command(Scraper, BaseCommand):
         else:
             return given
 
-    def handle(self, *args, **options):
+    def start(self):
 
         if not self.login():
             # Problem is already logged in self.login
             return
 
         yesterday_str = (date.today() + relativedelta.relativedelta(days=-1)).isoformat()
-        yesterday_str = self.temp_backfill_datestr(yesterday_str)  # TODO: Remove when backfill is in place.
+        #yesterday_str = self.temp_backfill_datestr(yesterday_str)  # Backfill is done.
         today_str = date.today().isoformat()
         post_data = {"viewing": "Total", "Start": yesterday_str, "End": today_str, "submit": ""}
         response = self.session.post(SERVER+"checkinanalytics.php", data=post_data)
@@ -123,3 +123,12 @@ class Command(Scraper, BaseCommand):
                     str(exc_info[0]))
 
         self.logout()
+
+
+class Command(CheckinScraper, BaseCommand):
+
+    help = "Scrapes xerocraft.org/checkinanalytics.php and creates corresponding django accts, if not already created."
+
+    def handle(self, *args, **options):
+        self.start()
+

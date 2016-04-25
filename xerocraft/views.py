@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.template import RequestContext
 from members.models import Membership
+from xerocraft.management.commands.scrapecheckins import CheckinScraper
 from social.apps.django_app.default.models import UserSocialAuth
 from rest_framework.authtoken.models import Token
 
@@ -73,6 +74,7 @@ def logout(request):
 
 def api_get_membership_info(request, provider: str, id: str) -> HttpResponse:
     """
+    This allows the Xerocraft.org website to query Django's more-complete membership info.
     :param request: The http request
     :param provider: Some value from social_auth_usersocialauth's provider column.
     :param id: Some value from social_auth_usersocialauth's uid column.
@@ -129,3 +131,8 @@ def api_get_membership_info(request, provider: str, id: str) -> HttpResponse:
         }
     return JsonResponse(json)
 
+
+def scrape_xerocraft_org_checkins(request) -> JsonResponse:
+    ls = CheckinScraper()
+    ls.start()
+    return JsonResponse({'result': "success"})
