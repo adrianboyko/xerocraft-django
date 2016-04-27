@@ -1,5 +1,6 @@
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
+from django.db import IntegrityError, transaction
 from django.utils.timezone import get_default_timezone_name
 from members.models import VisitEvent
 from datetime import date, time, datetime
@@ -68,7 +69,7 @@ class CheckinScraper(Scraper):
         else:
             return given
 
-    def start(self):
+    def start_critical(self):
 
         if not self.login():
             # Problem is already logged in self.login
@@ -123,6 +124,12 @@ class CheckinScraper(Scraper):
                     str(exc_info[0]))
 
         self.logout()
+
+    def start(self):
+        # See: How to lock a critical section in Django: http://stackoverflow.com/questions/1123200/
+        with transaction.atomic():
+            VisitEvent.objects.select_for_update().earliest('when')
+            self.start_critical()
 
 
 class Command(CheckinScraper, BaseCommand):
