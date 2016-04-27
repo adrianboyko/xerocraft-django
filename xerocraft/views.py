@@ -7,6 +7,8 @@ from members.models import Membership
 from xerocraft.management.commands.scrapecheckins import CheckinScraper
 from social.apps.django_app.default.models import UserSocialAuth
 from rest_framework.authtoken.models import Token
+import threading
+import time
 
 __author__ = 'Adrian'
 
@@ -132,7 +134,17 @@ def api_get_membership_info(request, provider: str, id: str) -> HttpResponse:
     return JsonResponse(json)
 
 
+def postponed_scrapes():
+    for i in range(5):
+        cis = CheckinScraper()
+        cis.start()  # The start method uses database locks to protect the critical section.
+        time.sleep(5)
+
+
 def scrape_xerocraft_org_checkins(request) -> JsonResponse:
-    ls = CheckinScraper()
-    ls.start()
+    # See: Multithreading for Python Django at http://stackoverflow.com/questions/18420699/
+    # REVIEW: use a decorator on postponed_scrapes() instead?
+    thr = threading.Thread(target=postponed_scrapes, args=(), kwargs={})
+    thr.daemon = False
+    thr.start()
     return JsonResponse({'result': "success"})
