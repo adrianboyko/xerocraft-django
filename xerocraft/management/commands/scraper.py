@@ -42,8 +42,10 @@ def _djangofy_username(username):
 
 class Scraper(object):
 
-    logger = logging.getLogger("xerocraft-django")
-    session = requests.session()
+    def __init__(self):
+        super().__init__()
+        self.logger = logging.getLogger("xerocraft-django")
+        self.session = requests.session()
 
     # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
