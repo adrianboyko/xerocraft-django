@@ -148,3 +148,15 @@ def scrape_xerocraft_org_checkins(request) -> JsonResponse:
     thr.daemon = False
     thr.start()
     return JsonResponse({'result': "success"})
+
+
+def test(request) -> JsonResponse:
+    """Run various quick sanity tests for the uptime monitor."""
+
+    # This is an arbitrary database operation. It will throw an exception if the database
+    # is not running, database connection limit has been reached, etc.
+    try:
+        Membership.objects.latest('start_date')
+    except Membership.DoesNotExist:
+        pass
+    return JsonResponse({'result': "success"})
