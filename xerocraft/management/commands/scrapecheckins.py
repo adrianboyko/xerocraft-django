@@ -1,9 +1,7 @@
 from django.core.management.base import BaseCommand
-from django.contrib.auth.models import User
-from django.db import IntegrityError, transaction
 from django.utils.timezone import get_default_timezone_name
 from members.models import VisitEvent
-from datetime import date, time, datetime
+from datetime import date, datetime
 from dateutil import relativedelta
 from .scraper import *
 from nameparser import HumanName
