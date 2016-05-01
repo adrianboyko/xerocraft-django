@@ -10,6 +10,7 @@ from nameparser import HumanName
 import lxml.html
 import sys
 from pytz import timezone
+import threading
 
 __author__ = 'adrian'
 
@@ -27,6 +28,8 @@ CHECKIN_LASTNAME_KEY = "Last Name"  # Infered from real name using "nameparser"
 CHECKIN_DJANGO_USERNAME_KEY = "Django Username"
 
 METHOD_CODES = {v: k for (k,v) in VisitEvent.VISIT_METHOD_CHOICES}
+
+SCRAPE_LOCK = threading.Lock()
 
 
 class CheckinScraper(Scraper):
@@ -127,9 +130,10 @@ class CheckinScraper(Scraper):
 
     def start(self):
         # See: How to lock a critical section in Django: http://stackoverflow.com/questions/1123200/
-        with transaction.atomic():
-            VisitEvent.objects.select_for_update().earliest('when')
+        with SCRAPE_LOCK:
+            # print("IN: "+threading.current_thread().getName())
             self.start_critical()
+            # print("OUT: "+threading.current_thread().getName())
 
 
 class Command(CheckinScraper, BaseCommand):
