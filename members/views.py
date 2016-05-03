@@ -421,8 +421,9 @@ def desktop_member_count_vs_date(request):
 
     memberships = Membership.objects.all()
     for pm in memberships:
+        # Not enough gift card sales to call them out separately. Will include them in "Regular" count.
         wt_inc = 1 if pm.membership_type == pm.MT_WORKTRADE else 0
-        reg_inc = 1 if pm.membership_type == pm.MT_REGULAR else 0
+        reg_inc = 1 if pm.membership_type in [pm.MT_REGULAR, pm.MT_GIFT_CARD] else 0
         comp_inc = 1 if pm.membership_type == pm.MT_COMPLIMENTARY else 0
         group_inc = 1 if pm.membership_type == pm.MT_GROUP else 0
         fam_inc = 1 if pm.membership_type == pm.MT_FAMILY else 0
@@ -463,10 +464,6 @@ def _calculate_accrued_membership_revenue():
     grp_data = Counter()
 
     for pm in Membership.objects.all():
-
-        if pm.membership_type not in [pm.MT_GROUP, pm.MT_COMPLIMENTARY]:
-            if pm.sale_price == 0.0:
-                logger.warning("$0 membership #%s: %s", pm.pk, str(pm))
 
         duration = pm.end_date - pm.start_date
         days = 1.0 + duration.total_seconds() / (60.0*60.0*24.0)
