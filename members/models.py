@@ -683,6 +683,7 @@ class Membership(models.Model):
     MT_COMPLIMENTARY = "C"  # E.g. for directors, certain sponsors, etc. These function as paid memberships.
     MT_GROUP         = "G"  # E.g. Bit Buckets, Pima Engineering Club, JobPath
     MT_FAMILY        = "F"  # An add-on family membership associated with a regular or work-trade membership.
+    MT_GIFTCARD      = "K"  # A membership that was funded with a gift card, otherwise identical to REGULAR.
     MEMBERSHIP_TYPE_CHOICES = [
         (MT_REGULAR,       "Regular"),
         (MT_WORKTRADE,     "Work-Trade"),
@@ -690,6 +691,7 @@ class Membership(models.Model):
         (MT_COMPLIMENTARY, "Complimentary"),
         (MT_GROUP,         "Group"),
         (MT_FAMILY,        "Family"),
+        (MT_GIFTCARD,      "Gift Card"),
     ]
     membership_type = models.CharField(max_length=1, choices=MEMBERSHIP_TYPE_CHOICES,
         null=False, blank=False, default=MT_REGULAR,
@@ -736,9 +738,17 @@ class Membership(models.Model):
             self.member = self.sale.payer_acct.member
             return
 
+    def dbcheck(self):
+        if self.redemption is not None and self.membership_type != self.MT_GIFTCARD:
+            raise ValidationError(_("Memberships that result from gift card redemptions should have type 'Gift Card'."))
+
     def clean(self):
         if self.start_date >= self.end_date:
             raise ValidationError(_("End date must be later than start date."))
+        if self.membership_type not in (self.MT_GIFTCARD, self.MT_COMPLIMENTARY) and self.sale_price == 0:
+            raise ValidationError(_("This membership type requires a sale price greater than zero."))
+        if self.membership_type in (self.MT_GIFTCARD, self.MT_COMPLIMENTARY) and self.sale_price != 0:
+            raise ValidationError(_("Sale price should be $0 for this membership type."))
 
     def __str__(self):
         return "%s, %s to %s" % (self.member, self.start_date, self.end_date)
