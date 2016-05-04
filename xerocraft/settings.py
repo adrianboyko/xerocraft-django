@@ -13,8 +13,13 @@ https://docs.djangoproject.com/en/1.8/ref/settings/
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
 
+import uuid
+DEVHOSTS = [238402988951122]
+CURRHOST = uuid.getnode()
+ISDEVHOST = CURRHOST in DEVHOSTS
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-#BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.8/howto/static-files/
@@ -23,28 +28,31 @@ STATIC_ROOT = 'staticfiles'
 STATIC_URL = '/static/'
 STATICFILES_DIRS = (
     os.path.join(BASE_DIR, 'static'),
-#    os.path.join(BASE_DIR, 'assets'),
 )
+if ISDEVHOST:
+    STATICFILES_DIRS += (
+        os.path.join(BASE_DIR, 'assets'),
+    )
 
 # Simplified static file serving.
 # https://warehouse.python.org/project/whitenoise/
 STATICFILES_STORAGE = 'whitenoise.django.GzipManifestStaticFilesStorage'
 #STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/1.8/howto/deployment/checklist/
-
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ['XERO_DJANGO_SECRET_KEY']
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False  # IMPORTANT: Set to False before commit.
+DEBUG = True if ISDEVHOST else False
 
-ALLOWED_HOSTS = [
-#    'localhost',
+ALLOWED_HOSTS = (
     'xerocraft-django.herokuapp.com',
     'xis.xerocraft.us',
-]
+)
+if ISDEVHOST:
+    ALLOWED_HOSTS += (
+        'localhost',
+    )
 
 LOGIN_URL = "/login/"
 LOGIN_REDIRECT_URL = "/"
@@ -77,6 +85,19 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+)
+
+if ISDEVHOST:
+    # Django-Jenkins docs say to list it as soon as possible after django modules,
+    # So I'm putting all the development and WIP stuff here.
+    INSTALLED_APPS += (
+        'django_jenkins',
+        'webpack_loader',
+        'guardian',
+        'debug_toolbar',
+    )
+
+INSTALLED_APPS += (
     'xerocraft', # I'm including this for its /static folder. Any negative consequences? Use <proj>/static instead?
     'members',
     'tasks',
@@ -87,9 +108,6 @@ INSTALLED_APPS = (
     'rest_framework.authtoken',
     'books',
     'reversion',
-    # 'webpack_loader',
-    # 'guardian',
-    #'debug_toolbar',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -115,8 +133,11 @@ AUTHENTICATION_BACKENDS = (
     'social.backends.facebook.FacebookOAuth2',
     'social.backends.google.GoogleOAuth2',
     'social.backends.twitter.TwitterOAuth',
-    #'guardian.backends.ObjectPermissionBackend',
 )
+if ISDEVHOST:
+    AUTHENTICATION_BACKENDS += (
+        'guardian.backends.ObjectPermissionBackend',
+    )
 
 ANONYMOUS_USER_ID = -1
 
@@ -182,9 +203,9 @@ en_formats.DATETIME_FORMAT = "m/d/y H:i:s"
 en_formats.DATE_FORMAT = "m/d/y"
 
 
-#EMAIL_BACKEND = "djrill.mail.backends.djrill.DjrillBackend"
-#EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-#MANDRILL_API_KEY = os.environ['MANDRILL_API_KEY']
+# EMAIL_BACKEND = "djrill.mail.backends.djrill.DjrillBackend"
+# EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+# MANDRILL_API_KEY = os.environ['MANDRILL_API_KEY']
 
 EMAIL_BACKEND = "sparkpost.django.email_backend.SparkPostEmailBackend"
 SPARKPOST_API_KEY = os.environ['SPARKPOST_API_KEY']
