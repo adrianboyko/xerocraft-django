@@ -423,7 +423,7 @@ def desktop_member_count_vs_date(request):
     for pm in memberships:
         # Not enough gift card sales to call them out separately. Will include them in "Regular" count.
         wt_inc = 1 if pm.membership_type == pm.MT_WORKTRADE else 0
-        reg_inc = 1 if pm.membership_type in [pm.MT_REGULAR, pm.MT_GIFT_CARD] else 0
+        reg_inc = 1 if pm.membership_type in [pm.MT_REGULAR, pm.MT_GIFTCARD] else 0
         comp_inc = 1 if pm.membership_type == pm.MT_COMPLIMENTARY else 0
         group_inc = 1 if pm.membership_type == pm.MT_GROUP else 0
         fam_inc = 1 if pm.membership_type == pm.MT_FAMILY else 0
