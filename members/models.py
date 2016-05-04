@@ -284,7 +284,7 @@ class Tagging(models.Model):
         on_delete=models.CASCADE,  # If a tag is deleted, it doesn't make sense to keep the associated taggings.
         help_text="The tag assigned to the member.")
 
-    authorizing_member = models.ForeignKey(Member, null=True, blank=False, related_name='authorized_taggings',
+    authorizing_member = models.ForeignKey(Member, null=True, blank=True, related_name='authorized_taggings',
         on_delete=models.SET_NULL,  # If the member who created the tagging is deleted, the tagging should remain.
         help_text="The member that authorized that the member be tagged.")
         # Note: If authorizing member is deleted, his/her Taggings shouldn't be. Hence on_delete=SET_NULL.
@@ -740,14 +740,17 @@ class Membership(models.Model):
 
     def dbcheck(self):
         if self.redemption is not None and self.membership_type != self.MT_GIFTCARD:
-            raise ValidationError(_("Memberships that result from gift card redemptions should have type 'Gift Card'."))
+            raise ValidationError(_("Memberships that result from gift card redemptions should have type 'Gift Card'"))
+        if self.group is not None and self.membership_type != self.MT_GROUP:
+            raise ValidationError(_("Memberships that result from group purchases should have type 'Group'"))
 
     def clean(self):
+        zero_sale_price_types = [self.MT_GIFTCARD, self.MT_COMPLIMENTARY, self.MT_GROUP]
         if self.start_date >= self.end_date:
             raise ValidationError(_("End date must be later than start date."))
-        if self.membership_type not in (self.MT_GIFTCARD, self.MT_COMPLIMENTARY) and self.sale_price == 0:
+        if self.membership_type not in zero_sale_price_types and self.sale_price == 0:
             raise ValidationError(_("This membership type requires a sale price greater than zero."))
-        if self.membership_type in (self.MT_GIFTCARD, self.MT_COMPLIMENTARY) and self.sale_price != 0:
+        if self.membership_type in zero_sale_price_types and self.sale_price != 0:
             raise ValidationError(_("Sale price should be $0 for this membership type."))
 
     def __str__(self):

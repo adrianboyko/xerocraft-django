@@ -473,7 +473,7 @@ class ExpenseLineItem(models.Model):
         on_delete=models.CASCADE,  # Line items are parts of the larger claim, so delete if claim is deleted.
         help_text="The claim on which this line item appears.")
 
-    exp = models.ForeignKey(ExpenseTransaction, null=True,
+    exp = models.ForeignKey(ExpenseTransaction, null=True, blank=True,
         on_delete=models.CASCADE,  # Line items are parts of the larger transaction, so delete if transaction is deleted.
         help_text="The expense transaction on which this line item appears.")
 
