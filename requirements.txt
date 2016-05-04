@@ -1,4 +1,5 @@
 chump==1.5.1
+coverage==4.0.3
 defusedxml==0.4.1
 Django==1.8.4
 django-crispy-forms==1.5.2
@@ -15,6 +16,7 @@ nameparser==0.3.11
 oauthlib==1.0.3
 Pillow==2.9.0
 psycopg2==2.6.1
+pyflakes==1.2.0
 Pygments==2.0.2
 PyJWT==1.4.0
 python-dateutil==2.4.2
