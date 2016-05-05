@@ -7,9 +7,10 @@ from django.contrib.auth.models import User
 #from django.db.models import signals
 
 from .models import Tag, Tagging, VisitEvent, Membership
+from .views import _calculate_accrued_membership_revenue
 
 
-# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =]
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 """
 TODO: The following test is complicated by my signal processing.
@@ -103,3 +104,12 @@ class TestMembership(TestCase):
     def test_membership_ctrlid_generation(self):
         mship = Membership.objects.create(sale_price=0)
         self.assertTrue(mship.ctrlid.startswith("GEN"))
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# VIEWS
+
+class TestViews(TestCase):
+
+    def test_calculate_accrued_membership_revenue(self):
+        _calculate_accrued_membership_revenue()

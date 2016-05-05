@@ -492,8 +492,8 @@ def _calculate_accrued_membership_revenue():
     dates = sorted([x for x in indi_data])
     indi_vals = [indi_data[k] for k in dates]
     grp_vals = [grp_data[k] for k in dates]
-    indi_vals = [x if isinstance(x) == Decimal else Decimal(x) for x in indi_vals]
-    grp_vals = [x if isinstance(x) == Decimal else Decimal(x) for x in grp_vals]
+    indi_vals = [x if isinstance(x, Decimal) else Decimal(x) for x in indi_vals]
+    grp_vals = [x if isinstance(x, Decimal) else Decimal(x) for x in grp_vals]
     data = list(zip(dates, indi_vals, grp_vals))
     return data
 
