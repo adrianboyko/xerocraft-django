@@ -1,30 +1,34 @@
+# pylint: disable=C0321
+
+# Standard
+from datetime import date
+from dateutil.relativedelta import relativedelta
+from collections import Counter
+from time import mktime
+import csv
+from decimal import Decimal
+from logging import getLogger
+
+# Third party
 from django.shortcuts import render, redirect
 from django.http import HttpResponse, JsonResponse
 from django.core.urlresolvers import reverse
-from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
-from django.utils import timezone
 from django.views.generic import View
 from django.db.models import Count
-from members.models import Member, Tag, Tagging, VisitEvent, PaidMembership, Membership, DiscoveryMethod, MembershipGiftCardReference
-from members.forms import Desktop_ChooseUserForm, Books_NotePaymentForm
 from rest_framework import viewsets
-import members.serializers as ser
-from datetime import date
 from reportlab.pdfgen import canvas
 from reportlab.graphics.shapes import Drawing
 from reportlab.graphics.barcode.qr import QrCodeWidget
 from reportlab.graphics import renderPDF
 from reportlab.lib.units import inch, mm
 from reportlab.lib.pagesizes import letter
-from dateutil.relativedelta import relativedelta
-from logging import getLogger
-from collections import Counter
-from time import mktime
-import csv
-from decimal import Decimal
-from members.models import GroupMembership
 
+# Local
+from members.models import Member, Tag, Tagging, VisitEvent, PaidMembership, Membership, DiscoveryMethod, MembershipGiftCardReference
+from members.forms import Desktop_ChooseUserForm, Books_NotePaymentForm
+import members.serializers as ser
+from members.models import GroupMembership
 
 logger = getLogger("members")
 
@@ -39,7 +43,7 @@ def _inform_other_systems_of_checkin(member, event_type):
 # TODO: Move following to Event class?
 def _log_visit_event(member_card_str, event_type):
 
-    is_valid_evt = event_type in [x for (x,_) in VisitEvent.VISIT_EVENT_CHOICES]
+    is_valid_evt = event_type in [x for (x, _) in VisitEvent.VISIT_EVENT_CHOICES]
     if not is_valid_evt:
         return False, "Invalid event type."
 
@@ -61,9 +65,9 @@ def api_member_details(request, member_card_str, staff_card_str):
 
     if not success:
         error_msg = info
-        return JsonResponse({'error':error_msg})
+        return JsonResponse({'error': error_msg})
 
-    member, staff = info
+    member, _ = info  # type: Tuple[Member, Member]
     data = {
         'pk': member.pk,
         'is_active': member.is_active,
@@ -125,7 +129,7 @@ def create_card_download(request):
 
     # Produce PDF using ReportLab:
     p = canvas.Canvas(response, pagesize=letter)
-    pageW, pageH = letter
+    pageW, _ = letter
 
     # Business card size is 2" x 3"
     # Credit card size is 2.2125" x 3.370"
@@ -162,7 +166,7 @@ def create_card_download(request):
     bounds = qr.getBounds()
     qrW = bounds[2] - bounds[0]
     qrH = bounds[3] - bounds[1]
-    drawing = Drawing(1000,1000,transform=[qrSide/qrW, 0, 0, qrSide/qrH, 0, 0])
+    drawing = Drawing(1000, 1000, transform=[qrSide/qrW, 0, 0, qrSide/qrH, 0, 0])
     drawing.add(qr)
     renderPDF.draw(drawing, p, refX-qrSide/2, refY-0.19*inch)
 
@@ -226,7 +230,7 @@ def member_tags(request, tag_pk=None, member_pk=None, op=None):
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = KIOSK
 
 def kiosk_waiting(request):
-    return render(request, 'members/kiosk-waiting.html',{})
+    return render(request, 'members/kiosk-waiting.html', {})
 
 
 def kiosk_visitevent_contentprovider(f):
@@ -244,7 +248,7 @@ class Kiosk_LogVisitEvent(View):
 
         success, result = _log_visit_event(member_card_str, event_type)
         if success:
-            member = result
+            member = result  # type: Member
             actions = {
                 VisitEvent.EVT_ARRIVAL:   "checked in",
                 VisitEvent.EVT_DEPARTURE: "checked out",
@@ -257,8 +261,8 @@ class Kiosk_LogVisitEvent(View):
                 extra_content += f(member, member_card_str, event_type)
 
             params = {
-                "username" : member.username,
-                "action"   : actions.get(event_type),
+                "username"      : member.username,
+                "action"        : actions.get(event_type),
                 "extra_content" : extra_content
             }
             return render(request, 'members/kiosk-check-in-member.html', params)
@@ -275,14 +279,14 @@ def kiosk_member_details(request, member_card_str, staff_card_str):
     if not success:
         return render(request, 'members/kiosk-invalid-card.html', {}) #TODO: use kiosk-domain-error template?
 
-    member, staff = info
-    staff_can_tags = [ting.tag for ting in Tagging.objects.filter(can_tag=True,tagged_member=staff)]
+    member, staff = info  # type: Tuple[Member, Member]
+    staff_can_tags = [ting.tag for ting in Tagging.objects.filter(can_tag=True, tagged_member=staff)]
     # staff member can't add tags that member already has, so:
     for tag in member.tags.all():
         if tag in staff_can_tags:
             staff_can_tags.remove(tag)
 
-    return render(request, 'members/kiosk-member-details.html',{
+    return render(request, 'members/kiosk-member-details.html', {
         "staff_card_str" : staff_card_str,
         "staff_fname" : staff.first_name,
         "memb_fname" : member.first_name,
@@ -312,7 +316,7 @@ def kiosk_add_tag(request, member_card_str, staff_card_str, tag_pk):
     member, staff = info
 
     # The following can be considered an assertion that the given staff member is authorized to grant the given tag.
-    Tagging.objects.get(can_tag=True,tagged_member=staff,tag=tag)
+    Tagging.objects.get(can_tag=True, tagged_member=staff, tag=tag)
 
     # Create the new tagging and then go back to the member details view.
     Tagging.objects.create(tagged_member=member, authorizing_member=staff, tag=tag)
@@ -323,7 +327,7 @@ def kiosk_main_menu(request, member_card_str):
     member = Member.get_by_card_str(member_card_str)
 
     if member is None:
-        return render(request, 'members/kiosk-invalid-card.html',{}) #TODO: use kiosk-domain-error template?
+        return render(request, 'members/kiosk-invalid-card.html', {})  # TODO: use kiosk-domain-error template?
 
     params = {
         "memb_fname"    : member.first_name,
@@ -339,7 +343,7 @@ def kiosk_staff_menu(request, member_card_str):
 
     member = Member.get_by_card_str(member_card_str)
     if member is None or not member.is_domain_staff():
-        return render(request, 'members/kiosk-invalid-card.html',{}) #TODO: use kiosk-domain-error template?
+        return render(request, 'members/kiosk-invalid-card.html', {})  # TODO: use kiosk-domain-error template?
 
     params = {
         "memb_fname" : member.first_name,
@@ -352,7 +356,7 @@ def kiosk_identify_subject(request, staff_card_str, next_url):
 
     member = Member.get_by_card_str(staff_card_str)
     if member is None or not member.is_domain_staff():
-        return render(request, 'members/kiosk-invalid-card.html',{}) #TODO: use kiosk-domain-error template?
+        return render(request, 'members/kiosk-invalid-card.html', {})  # TODO: use kiosk-domain-error template?
 
     params = {
         "staff_card_str" : staff_card_str,
@@ -427,7 +431,7 @@ def desktop_member_count_vs_date(request):
         comp_inc = 1 if pm.membership_type == pm.MT_COMPLIMENTARY else 0
         group_inc = 1 if pm.membership_type == pm.MT_GROUP else 0
         fam_inc = 1 if pm.membership_type == pm.MT_FAMILY else 0
-        day = max(pm.start_date, date(2015,1,1))
+        day = max(pm.start_date, date(2015, 1, 1))
         while day <= min(pm.end_date, end_date):
             js_time_milliseconds = int(mktime(day.timetuple())) * 1000
             wt_data.update({js_time_milliseconds: wt_inc})
@@ -468,7 +472,7 @@ def _calculate_accrued_membership_revenue():
         duration = pm.end_date - pm.start_date
         days = 1.0 + duration.total_seconds() / (60.0*60.0*24.0)
         amt_per_day = pm.sale_price / Decimal(days)
-        day = max(pm.start_date, date(2015,1,1))
+        day = max(pm.start_date, date(2015, 1, 1))
         while day <= min(pm.end_date, end_date):
             indi_data.update({(day.year, day.month): amt_per_day})
             day += relativedelta(days=1)
@@ -488,8 +492,8 @@ def _calculate_accrued_membership_revenue():
     dates = sorted([x for x in indi_data])
     indi_vals = [indi_data[k] for k in dates]
     grp_vals = [grp_data[k] for k in dates]
-    indi_vals = [x if type(x)==Decimal else Decimal(x) for x in indi_vals]
-    grp_vals = [x if type(x)==Decimal else Decimal(x) for x in grp_vals]
+    indi_vals = [x if isinstance(x) == Decimal else Decimal(x) for x in indi_vals]
+    grp_vals = [x if isinstance(x) == Decimal else Decimal(x) for x in grp_vals]
     data = list(zip(dates, indi_vals, grp_vals))
     return data
 
@@ -508,7 +512,7 @@ def csv_monthly_accrued_membership_download(request):
     TWOPLACES = Decimal('0.01')
     writer.writerow(["year", "month", "indi rev", "group rev"])
 
-    for (year,month), indi_val, grp_val in data:
+    for (year, month), indi_val, grp_val in data:
         writer.writerow([year, month, indi_val.quantize(TWOPLACES), grp_val.quantize(TWOPLACES)])
 
     return response
@@ -543,18 +547,17 @@ def desktop_paid_percent(request):
             if pm.member is not None:
                 paid_days.update({pm.member: 1})
             day += relativedelta(days=1)
-    members = list(paid_days)  # Gets keys
-    data = [(k.username, int(100.0*v/365.0)) for k,v in paid_days.items()]
+    data = [(k.username, int(100.0*v/365.0)) for k, v in paid_days.items()]
 
     # Count the number of members that paid for the ENTIRE year.
     fully_paid_member_count = 0
     partially_paid_member_count = 0
-    for k,v in paid_days.items():
+    for _, v in paid_days.items():
         if v >= 365: fully_paid_member_count += 1
         if v < 365: partially_paid_member_count += 1
 
     total_visitors = VisitEvent.objects\
-        .filter(when__range=['2015-01-01','2015-12-31'])\
+        .filter(when__range=['2015-01-01', '2015-12-31'])\
         .aggregate(Count('who', distinct=True))
     total_visitors = total_visitors['who__count']
 
