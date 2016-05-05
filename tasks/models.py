@@ -630,6 +630,23 @@ class Task(make_TaskMixin("Tasks"), TimeWindowedObject):
                 result |= set([claim.claiming_member])
         return result
 
+    def all_future_instances(self):
+        """Find other instances of the same template which are scheduled later than this instance."""
+        all_future_instances = Task.objects.filter(
+            recurring_task_template=self.recurring_task_template,
+            scheduled_date__gt=self.scheduled_date,
+            status=Task.STAT_ACTIVE
+        )
+        return all_future_instances
+
+    def all_future_instances_same_dow(self):
+        """Find other instances of the same template which are scheduled later than this instance."""
+        future_instances_same_dow = []
+        for instance in self.all_future_instances():
+            if instance.scheduled_weekday() == self.scheduled_weekday():
+                future_instances_same_dow.append(instance)
+        return future_instances_same_dow
+
     # TODO: Move this to TaskAdmin?
     def scheduled_weekday(self):
         return self.scheduled_date.strftime('%A') if self.scheduled_date is not None else '-'
@@ -735,6 +752,16 @@ class Worker(models.Model):
 
     should_report_work_mtd = models.BooleanField(default=False,
         help_text="Controls whether reports should be sent to worker when work MTD changes.")
+
+    def populate_calendar_token(self):
+        "Creates a calendar token if none exists, else does nothing."
+        if self.calendar_token is None or len(self.calendar_token) == 0:
+            # I'm arbitrarily choosing md5str, below, but the fact that it came from md5 doesn't matter.
+            _, md5str = mm.Member.generate_auth_token_str(
+                lambda t: Worker.objects.filter(calendar_token=t).count() == 0  # uniqueness test
+            )
+            self.calendar_token = md5str
+            self.save()
 
     @property
     def first_name(self): return self.member.first_name
