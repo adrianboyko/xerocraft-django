@@ -1,3 +1,4 @@
+# pylint: disable=C0330
 from django.db import models
 from django.db.migrations.recorder import MigrationRecorder
 from django.utils import timezone
@@ -11,6 +12,7 @@ from nameparser import HumanName
 from datetime import datetime, date, timedelta
 from decimal import Decimal
 from django.utils.translation import ugettext_lazy as _
+from typing import Union, Tuple
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # CTRLID Functions
@@ -202,12 +204,13 @@ class Member(models.Model):
             return None
 
     @staticmethod
-    def get_for_staff(member_card_str, staff_card_str):
-        """ Given a member card string and a staff card string, return details for the member.
-            Returns (True, (member, staff)) on success
-            Returns (False, error_message) on failure
+    def get_for_staff(member_card_str: str, staff_card_str: str) -> Tuple[bool, Union[Tuple['Member', 'Member'], str]]:
         """
-
+        Given a member card string and a staff card string, return details for the member.
+        :param member_card_str: The token on a member's card
+        :param staff_card_str: The token on a staff member's card
+        :return: (True, (member, staff)) on success, (False, error_message) on failure
+        """
         # Look up the subject member and the staff member and report various possible errors:
         member = Member.get_by_card_str(member_card_str)
         if member is None: return False, "Invalid member card"

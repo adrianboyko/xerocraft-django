@@ -1,3 +1,4 @@
+# pylint: disable=C0330
 from django.db import models
 from django.core.exceptions import ValidationError
 from django.utils.translation import ugettext_lazy as _

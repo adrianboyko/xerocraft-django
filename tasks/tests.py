@@ -1,10 +1,8 @@
 from django.core import management, mail
 from django.core.urlresolvers import reverse
 from django.test import TestCase, TransactionTestCase, Client, RequestFactory
-from tasks.models import *
-from tasks.views import *
-from tasks.admin import *
-from members.models import Member, Tag
+from tasks.models import RecurringTaskTemplate, Task, TaskNote, Claim, Work, WorkNote, Nag
+from members.models import Member, Tag, VisitEvent
 from django.contrib.auth.models import User
 from django.contrib.admin import site
 from datetime import datetime, date, timedelta, time

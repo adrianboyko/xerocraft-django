@@ -1,3 +1,4 @@
+# pylint: disable=C0330
 from django.db import models
 from django.db.migrations.recorder import MigrationRecorder
 from django.core.exceptions import ValidationError

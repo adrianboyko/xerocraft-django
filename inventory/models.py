@@ -1,3 +1,4 @@
+# pylint: disable=C0330
 from django.db import models
 from members.models import Member
 from pytz import timezone
