@@ -276,6 +276,7 @@ WEBPACK_LOADER = {
     }
 }
 
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # JENKINS
 
 PROJECT_APPS = ('books', 'inventory', 'members', 'tasks', 'xerocraft')
@@ -288,3 +289,9 @@ JENKINS_TASKS = (
     # 'django_jenkins.tasks.run_csslint',
     'django_jenkins.tasks.run_sloccount'
 )
+
+PYLINT_LOAD_PLUGIN = (
+    'pylint_django',
+)
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
