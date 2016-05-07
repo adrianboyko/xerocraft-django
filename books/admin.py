@@ -220,6 +220,10 @@ class ExpenseClaimAdmin(VersionAdmin):
 # EXPENSE TRANSACTIONS
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
+class ExpenseTransactionNoteInline(NoteInline):
+    model = ExpenseTransactionNote
+
+
 class ExpenseClaimReferenceInline(admin.StackedInline):
     model = ExpenseClaimReference
     extra = 0
@@ -247,7 +251,11 @@ class ExpenseTransactionAdmin(VersionAdmin):
         'amount_paid',
     ]
 
-    inlines = [ExpenseLineItemInline, ExpenseClaimReferenceInline]
+    inlines = [
+        ExpenseTransactionNoteInline,
+        ExpenseLineItemInline,
+        ExpenseClaimReferenceInline,
+    ]
 
     raw_id_fields = ['recipient_acct']
 

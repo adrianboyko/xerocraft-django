@@ -501,3 +501,11 @@ class ExpenseLineItem(models.Model):
         # Relationships can't be checked in clean but can be checked later in a "db check" operation.
         if self.claim is None and self.exp is None:
             raise ValidationError(_("Expense line item must be part of a claim or transaction."))
+
+
+class ExpenseTransactionNote(Note):
+
+    exp = models.ForeignKey(ExpenseTransaction,
+        on_delete=models.CASCADE,  # No point in keeping the note if the transaction is gone.
+        help_text="The expense transaction to which the note pertains.")
+
