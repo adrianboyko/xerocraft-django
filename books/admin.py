@@ -1,7 +1,17 @@
+
+# Standard
+
+# Third Party
 from django.contrib import admin
 from django.db import models
-from books.models import *
 from reversion.admin import VersionAdmin
+
+# Local
+from books.models import \
+    Account, DonationNote, MonetaryDonation, DonatedItem, Donation, \
+    Sale, SaleNote, OtherItem, OtherItemType, ExpenseTransaction, \
+    ExpenseTransactionNote, ExpenseClaim, ExpenseClaimNote, \
+    ExpenseClaimReference, ExpenseLineItem
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
