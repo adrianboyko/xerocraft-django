@@ -182,13 +182,14 @@ class ExpenseClaimNoteInline(NoteInline):
     model = ExpenseClaimNote
 
 
-class ExpenseLineItemInline(admin.StackedInline):
+class ExpenseLineItemInline(admin.TabularInline):
     model = ExpenseLineItem
     fields = [
-        'description',
+        'receipt_num',
         'expense_date',
-        'amount',
+        'description',
         'account',
+        'amount',
     ]
     extra = 0
 

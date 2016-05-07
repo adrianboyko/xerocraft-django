@@ -491,6 +491,9 @@ class ExpenseLineItem(models.Model):
         on_delete=models.CASCADE,  # Line items are parts of the larger claim, so delete if claim is deleted.
         help_text="The account against which this line item is claimed, e.g. 'Wood Shop', '3D Printers'.")
 
+    receipt_num = models.IntegerField(null=True, blank=True,
+        help_text="The receipt number assigned by the treasurer and written on the receipt.")
+
     def __str__(self):
         return "${} on {}".format(self.amount, self.expense_date)
 
