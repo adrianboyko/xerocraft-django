@@ -1,14 +1,22 @@
 # pylint: disable=C0330
+
+# Standard
+from datetime import date
+import uuid
+from decimal import Decimal
+
+# Third party
 from django.db import models
 from django.db.migrations.recorder import MigrationRecorder
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
-from datetime import date
 import django.db.utils
-import uuid
 from nameparser import HumanName
+
+# Local
+
 
 # class PayerAKA(models.Model):
 #     """ Intended primarily to record name variations that are used in payments, etc. """
@@ -400,8 +408,29 @@ class ExpenseClaim(models.Model):
     amount = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
         help_text="The dollar amount for the entire claim.")
 
+    def checksum(self) -> Decimal:
+        """
+        :return: The sum total of all expense line items. Should match self.amount.
+        """
+        total = Decimal(0.0)
+        for lineitem in self.expenselineitem_set.all():
+            total += lineitem.amount
+        return total
+
+    # def is_reimbursed(self):
+    #     """
+    #     :return: True if claim has been reimbursed
+    #     """
+    #     return len(self.expenseclaimreference_set.all()) > 0
+    # is_reimbursed.boolean = True
+
     def __str__(self):
         return "${} by {} on {}".format(self.amount, self.claimant, self.claim_date)
+
+    def dbcheck(self):
+        if  self.amount != self.checksum():
+            raise ValidationError(_("Total of line items must match amount of claim."))
+
 
 
 class ExpenseClaimNote(Note):

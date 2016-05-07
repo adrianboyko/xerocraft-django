@@ -4,6 +4,7 @@
 # Third Party
 from django.contrib import admin
 from django.db import models
+from django.utils.html import format_html
 from reversion.admin import VersionAdmin
 
 # Local
@@ -206,11 +207,22 @@ class ExpenseLineItemInline(admin.TabularInline):
 
 @admin.register(ExpenseClaim)
 class ExpenseClaimAdmin(VersionAdmin):
+
+    # TODO: Filter by checksum, dates, account.
+
+    def checksum_fmt(self, obj):
+        sum = obj.checksum()
+        if sum == obj.amount: return "✔"
+        else: return format_html("<span style='color:red'>{}</span>".format(sum))
+    checksum_fmt.short_description = "checksum"
+
     list_display = [
         'pk',
         'claim_date',
-        'amount',
         'claimant',
+        'amount',
+        'checksum_fmt',
+        # 'is_reimbursed',
     ]
     ordering = ['-claim_date']
     inlines = [
