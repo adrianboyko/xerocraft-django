@@ -1,10 +1,16 @@
 
+# Standard
+
+# Third Party
 from django.test import TestCase, TransactionTestCase, Client, RequestFactory
 from django.contrib import admin
 from django.apps import apps
 from django.core.exceptions import ValidationError
-import sys
+from django.core.management import call_command
 
+# Local
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 ADMIN_FIELDNAME_LISTS = [
     'fields',
@@ -63,3 +69,9 @@ class TestAdminConfig(TestCase):
                     fields = field_options["fields"]
                     for fieldname in fields:
                         check_fieldname(fieldname, model_class, admin_obj)
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+class TestProductionDatabase(TestCase):
+    call_command('dbcheck')
