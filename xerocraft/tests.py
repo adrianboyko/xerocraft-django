@@ -74,4 +74,6 @@ class TestAdminConfig(TestCase):
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 class TestProductionDatabase(TestCase):
-    call_command('dbcheck')
+
+    def test_with_dbcheck_command(self):
+        call_command('dbcheck')
