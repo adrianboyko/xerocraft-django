@@ -1,18 +1,25 @@
 # pylint: disable=C0330
+
+# Standard
+import base64
+import uuid
+import hashlib
+from datetime import datetime, date, timedelta
+from decimal import Decimal
+from typing import Union, Tuple
+
+# Third Party
 from django.db import models
 from django.db.migrations.recorder import MigrationRecorder
 from django.utils import timezone
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
-from books.models import Sale, ExpenseClaim
-import base64
-import uuid
-import hashlib
-from nameparser import HumanName
-from datetime import datetime, date, timedelta
-from decimal import Decimal
 from django.utils.translation import ugettext_lazy as _
-from typing import Union, Tuple
+from nameparser import HumanName
+
+# Local
+from books.models import Sale
+
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # CTRLID Functions
@@ -131,7 +138,7 @@ class Member(models.Model):
         # Calculate md5 of the b64 and start over if there's a md5 collision
         md5 = hashlib.md5(b64.encode()).hexdigest()
         if is_unique(md5):
-            return b64,md5
+            return b64, md5
         else:
             # Collision detected, so try again.
             return Member.generate_auth_token_str(is_unique)
@@ -143,7 +150,7 @@ class Member(models.Model):
             assert md5_count <= 1 # Greater than 1 means collision checking has somehow failed in the past.
             return md5_count == 0
 
-        b64,md5 = Member.generate_auth_token_str(unique)
+        b64, md5 = Member.generate_auth_token_str(unique)
         # Save the the md5 of the base64 string in the member table.
         self.membership_card_md5 = md5
         self.membership_card_when = timezone.now()
@@ -260,7 +267,7 @@ class Member(models.Model):
             return self.username
 
     class Meta:
-        ordering = ['auth_user__first_name','auth_user__last_name']
+        ordering = ['auth_user__first_name', 'auth_user__last_name']
 
 
 class Pushover(models.Model):
@@ -396,7 +403,7 @@ class MemberLogin(models.Model):
         help_text="IP address from which member logged in.")
 
     class Meta:
-        verbose_name="Login"
+        verbose_name = "Login"
 
 
 def next_paidmembership_ctrlid():
@@ -607,7 +614,7 @@ class PaidMembershipNudge(models.Model):
         help_text="Date on which the member was reminded.")
 
     class Meta:
-        verbose_name="Renewal reminder"
+        verbose_name = "Renewal reminder"
 
 
 class MembershipGiftCard(models.Model):
@@ -628,7 +635,7 @@ class MembershipGiftCard(models.Model):
         return "{} months for ${}, code: {}".format(self.month_duration, self.price, self.redemption_code)
 
     class Meta:
-        verbose_name="Gift card"
+        verbose_name = "Gift card"
 
 
 class MembershipGiftCardRedemption(models.Model):
@@ -647,7 +654,7 @@ class MembershipGiftCardRedemption(models.Model):
         )
 
     class Meta:
-        verbose_name="Gift card redemption"
+        verbose_name = "Gift card redemption"
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =

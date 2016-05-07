@@ -1,9 +1,17 @@
+
+# Standard
+
+# Third Party
 from django.contrib import admin
-from members.models import *
-from books.admin import Sellable
 from django.utils.translation import ugettext_lazy as _
 from reversion.admin import VersionAdmin
 
+# Local
+from books.admin import Sellable
+from members.models import Tag, Pushover, Tagging, VisitEvent, \
+    Member, Membership, PaidMembership, PaidMembershipNudge, GroupMembership, \
+    MemberNote, MemberLogin, MembershipGiftCardRedemption, \
+    MembershipGiftCard, MembershipGiftCardReference, DiscoveryMethod
 
 @admin.register(Tag)
 class TagAdmin(VersionAdmin):
