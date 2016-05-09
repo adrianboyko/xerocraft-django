@@ -220,16 +220,18 @@ class ExpenseClaimAdmin(VersionAdmin):
 
     list_display = [
         'pk',
-        'claim_date',
         'claimant',
         'amount',
         'checksum_fmt',
+        'when_submitted',
         # 'is_reimbursed',
     ]
-    ordering = ['-claim_date']
-    list_filter = ['claim_date']
-    date_hierarchy = 'claim_date'
-
+    fields = [
+        'claimant',
+        'amount',
+        ('when_submitted', 'submit'),
+    ]
+    readonly_fields = ['when_submitted']
     inlines = [
         ExpenseClaimNoteInline,
         ExpenseLineItemInline,

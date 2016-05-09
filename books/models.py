@@ -401,15 +401,18 @@ class DonatedItem(models.Model):
 
 class ExpenseClaim(models.Model):
 
-    claim_date = models.DateField(null=False, blank=False, default=date.today,
-        help_text="The date on which the claim was filed. Best guess if exact date not known.")
-
     claimant = models.ForeignKey(User, null=True, blank=True,
         on_delete=models.SET_NULL,  # Keep the claim for accounting purposes, even if the user is deleted.
         help_text="The member who wrote this note.")
 
     amount = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
         help_text="The dollar amount for the entire claim.")
+
+    when_submitted = models.DateField(null=True, blank=True, default=None,
+        help_text="The date on which the claim was most recently (re)submitted for reimbursement.")
+
+    submit = models.BooleanField(default=False,
+        help_text="(Re)submit the claim for processing and reimbursement.")
 
     def checksum(self) -> Decimal:
         """
@@ -428,12 +431,11 @@ class ExpenseClaim(models.Model):
     # is_reimbursed.boolean = True
 
     def __str__(self):
-        return "${} by {} on {}".format(self.amount, self.claimant, self.claim_date)
+        return "${} for {}".format(self.amount, self.claimant)
 
     def dbcheck(self):
         if  self.amount != self.checksum():
             raise ValidationError(_("Total of line items must match amount of claim."))
-
 
 
 class ExpenseClaimNote(Note):
