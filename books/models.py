@@ -159,6 +159,9 @@ class Account(models.Model):
     def __str__(self):
         return self.name
 
+    class Meta:
+        ordering = ['name']
+
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # SALE
@@ -522,6 +525,9 @@ class ExpenseLineItem(models.Model):
 
     receipt_num = models.IntegerField(null=True, blank=True,
         help_text="The receipt number assigned by the treasurer and written on the receipt.")
+
+    approved_by = models.ForeignKey(User, null=True, blank=True, default=None,
+        help_text="Usually the shop/account manager. Leave blank if not yet approved.")
 
     def __str__(self):
         return "${} on {}".format(self.amount, self.expense_date)

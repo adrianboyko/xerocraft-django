@@ -201,7 +201,9 @@ class ExpenseLineItemInline(admin.TabularInline):
         'description',
         'account',
         'amount',
+        'approved_by',
     ]
+    raw_id_fields = ['approved_by']
     extra = 0
 
 
@@ -225,6 +227,9 @@ class ExpenseClaimAdmin(VersionAdmin):
         # 'is_reimbursed',
     ]
     ordering = ['-claim_date']
+    list_filter = ['claim_date']
+    date_hierarchy = 'claim_date'
+
     inlines = [
         ExpenseClaimNoteInline,
         ExpenseLineItemInline,
