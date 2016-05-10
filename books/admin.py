@@ -253,10 +253,18 @@ class ExpenseTransactionNoteInline(NoteInline):
     model = ExpenseTransactionNote
 
 
-class ExpenseClaimReferenceInline(admin.StackedInline):
+class ExpenseClaimReferenceInline(admin.TabularInline):
+
     model = ExpenseClaimReference
     extra = 0
+
+    def claim_link(self, obj):
+        # TODO: Use reverse as in the answer at http://stackoverflow.com/questions/2857001
+        url_str = "/admin/books/expenseclaim/{}".format(obj.claim.id)
+        return format_html("<a href='{}'>View Claim</a>", url_str)
+
     raw_id_fields = ['claim']
+    readonly_fields = ['claim_link']
 
 
 @admin.register(ExpenseTransaction)
