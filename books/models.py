@@ -271,8 +271,11 @@ class Sale(models.Model):
         return total
 
     def dbcheck(self):
-        if  self.total_paid_by_customer != self.checksum():
-            raise ValidationError(_("Total of line items must match amount of claim."))
+        sum = self.checksum()
+        checksum_matches = sum == self.total_paid_by_customer \
+         or sum == self.total_paid_by_customer - self.processing_fee
+        if not checksum_matches:
+            raise ValidationError(_("Total of line items must match amount transaction."))
 
     def __str__(self):
         if self.payer_name is not "": return "{} sale to {}".format(self.sale_date, self.payer_name)
@@ -530,7 +533,7 @@ class ExpenseLineItem(models.Model):
 
     # An expense line item can appear in an ExpenseClaim or in an ExpenseTransaction
 
-    claim = models.ForeignKey(ExpenseClaim, null=True,
+    claim = models.ForeignKey(ExpenseClaim, null=True, blank=True,
         on_delete=models.CASCADE,  # Line items are parts of the larger claim, so delete if claim is deleted.
         help_text="The claim on which this line item appears.")
 
