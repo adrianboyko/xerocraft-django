@@ -149,7 +149,7 @@ class OtherItemTypeAdmin(VersionAdmin):
 class SaleAdminForm(forms.ModelForm):
     # See http://stackoverflow.com/questions/4891506/django-faking-a-field-in-the-admin-interface
 
-    checksum = forms.DecimalField()  # Calculated field not saved in database
+    checksum = forms.DecimalField(required=False)  # Calculated field not saved in database
 
     def __init__(self, *args, **kwargs):
         obj = kwargs.get('instance')
@@ -182,18 +182,14 @@ class SaleAdmin(VersionAdmin):
         'total_paid_by_customer',
         'processing_fee',
     ]
-    fieldsets = [
-        ("Sale Info ", {'fields': [
-            'sale_date',
-            ('payer_acct', 'payer_name', 'payer_email'),
-            ('payment_method','method_detail'),
-            ('total_paid_by_customer', 'checksum'),
-            'processing_fee',
-        ]}),
-        ("ETL Info/Settings", {'fields': [
-            'protected',
-            'ctrlid',
-        ]}),
+    fields = [
+        'sale_date',
+        ('payer_acct', 'payer_name', 'payer_email'),
+        ('payment_method','method_detail'),
+        ('total_paid_by_customer', 'checksum'),
+        'processing_fee',
+        'protected',
+        'ctrlid',
     ]
     raw_id_fields = ['payer_acct']
     list_display_links = ['pk']
@@ -237,7 +233,7 @@ class ExpenseLineItemInline(admin.TabularInline):
 class ExpenseClaimAdminForm(forms.ModelForm):
     # See http://stackoverflow.com/questions/4891506/django-faking-a-field-in-the-admin-interface
 
-    checksum = forms.DecimalField()  # Calculated field not saved in database
+    checksum = forms.DecimalField(required=False)  # Calculated field not saved in database
 
     def __init__(self, *args, **kwargs):
         obj = kwargs.get('instance')
