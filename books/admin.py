@@ -6,6 +6,7 @@ from django.contrib import admin
 from django.db import models
 from django.utils.html import format_html
 from reversion.admin import VersionAdmin
+from django import forms
 
 # Local
 from books.models import \
@@ -145,8 +146,31 @@ class OtherItemTypeAdmin(VersionAdmin):
     ]
 
 
+class SaleAdminForm(forms.ModelForm):
+    # See http://stackoverflow.com/questions/4891506/django-faking-a-field-in-the-admin-interface
+
+    checksum = forms.DecimalField()  # Calculated field not saved in database
+
+    def __init__(self, *args, **kwargs):
+        obj = kwargs.get('instance')
+        if obj:  # Only change attributes if an instance is passed
+            sum = obj.checksum()
+            self.base_fields['checksum'].initial = sum
+            checksum_matches = sum == obj.total_paid_by_customer or sum == obj.total_paid_by_customer-obj.processing_fee
+            if not checksum_matches:
+                pass  # Is there anything that can be done? Can't style the read-only checksum.
+        forms.ModelForm.__init__(self, *args, **kwargs)
+
+    class Meta:
+        model = Sale
+        fields = "__all__"
+
+
 @admin.register(Sale)
 class SaleAdmin(VersionAdmin):
+
+    form = SaleAdminForm
+
     list_display = [
         'pk',
         'sale_date',
@@ -158,21 +182,24 @@ class SaleAdmin(VersionAdmin):
         'total_paid_by_customer',
         'processing_fee',
     ]
-    fields = [
-        'sale_date',
-        'payer_acct',
-        ('payer_name', 'payer_email'),
-        ('payment_method','method_detail'),
-        'total_paid_by_customer',
-        'processing_fee',
-        'protected',
-        'ctrlid',
+    fieldsets = [
+        ("Sale Info ", {'fields': [
+            'sale_date',
+            ('payer_acct', 'payer_name', 'payer_email'),
+            ('payment_method','method_detail'),
+            ('total_paid_by_customer', 'checksum'),
+            'processing_fee',
+        ]}),
+        ("ETL Info/Settings", {'fields': [
+            'protected',
+            'ctrlid',
+        ]}),
     ]
     raw_id_fields = ['payer_acct']
     list_display_links = ['pk']
     ordering = ['-sale_date']
     inlines = [SaleNoteInline, MonetaryDonationInline, OtherItemInline]
-    readonly_fields = ['ctrlid']
+    readonly_fields = ['ctrlid', 'checksum']
     search_fields = [
         'payer_name',
         'payer_email',
@@ -207,31 +234,47 @@ class ExpenseLineItemInline(admin.TabularInline):
     extra = 0
 
 
+class ExpenseClaimAdminForm(forms.ModelForm):
+    # See http://stackoverflow.com/questions/4891506/django-faking-a-field-in-the-admin-interface
+
+    checksum = forms.DecimalField()  # Calculated field not saved in database
+
+    def __init__(self, *args, **kwargs):
+        obj = kwargs.get('instance')
+        if obj:  # Only change attributes if an instance is passed
+            sum = obj.checksum()
+            self.base_fields['checksum'].initial = sum
+            checksum_matches = sum == obj.amount
+            if not checksum_matches:
+                pass  # Is there anything that can be done? Can't style the read-only checksum.
+        forms.ModelForm.__init__(self, *args, **kwargs)
+
+    class Meta:
+        model = ExpenseClaim
+        fields = "__all__"
+
+
 @admin.register(ExpenseClaim)
 class ExpenseClaimAdmin(VersionAdmin):
 
     # TODO: Filter by checksum, dates, account.
 
-    def checksum_fmt(self, obj):
-        sum = obj.checksum()
-        if sum == obj.amount: return "✔"
-        else: return format_html("<span style='color:red'>{}</span>".format(sum))
-    checksum_fmt.short_description = "checksum"
+    form = ExpenseClaimAdminForm
 
     list_display = [
         'pk',
         'claimant',
         'amount',
-        'checksum_fmt',
         'when_submitted',
         # 'is_reimbursed',
+        # 'checksum_fmt',  Too slow to include here.
     ]
     fields = [
         'claimant',
-        'amount',
+        ('amount', 'checksum'),
         ('when_submitted', 'submit'),
     ]
-    readonly_fields = ['when_submitted']
+    readonly_fields = ['when_submitted', 'checksum']
     inlines = [
         ExpenseClaimNoteInline,
         ExpenseLineItemInline,

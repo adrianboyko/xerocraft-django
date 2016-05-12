@@ -248,6 +248,32 @@ class Sale(models.Model):
         unique_together = ('payment_method', 'ctrlid')
         verbose_name = "Income transaction"
 
+    def checksum(self) -> Decimal:
+        """
+        :return: The sum total of all expense line items. Should match self.amount.
+        """
+        total = Decimal(0.0)
+
+        # This is coded generically because the 'books' app doesn't know which models in other
+        # apps will point back to a sale. So it looks for fields like "sale_price" and "qty_sold"
+        # in all related models.
+        link_names = [rel.get_accessor_name() for rel in self._meta.get_all_related_objects()]
+        for link_name in link_names:
+            if link_name in ['salenote_set']: continue
+            # TODO: Can a select_related or prefetch_related improve performance here?
+            line_items = getattr(self, link_name).all()
+            for line_item in line_items:
+                line_total = Decimal(0.0)
+                if hasattr(line_item, 'amount'): line_total += line_item.amount
+                elif hasattr(line_item, 'sale_price'): line_total += line_item.sale_price
+                if hasattr(line_item, 'qty_sold'): line_total *= line_item.qty_sold
+                total += line_total
+        return total
+
+    def dbcheck(self):
+        if  self.total_paid_by_customer != self.checksum():
+            raise ValidationError(_("Total of line items must match amount of claim."))
+
     def __str__(self):
         if self.payer_name is not "": return "{} sale to {}".format(self.sale_date, self.payer_name)
         elif self.payer_acct is not None: return "{} sale to {}".format(self.sale_date, self.payer_acct)
@@ -281,7 +307,7 @@ class OtherItem(models.Model):
         on_delete=models.PROTECT,  # Don't allow deletion of an item type that appears in a sale.
         help_text="The type of item sold.")
 
-    # Sale related fields: sale, sale_price, qty_sol
+    # Sale related fields: sale, sale_price, qty_sold
     sale = models.ForeignKey(Sale,
         on_delete=models.CASCADE,  # No point in keeping the line item if the sale is gone.
         help_text="The sale for which this is a line item.")
