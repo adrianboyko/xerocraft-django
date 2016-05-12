@@ -5,7 +5,7 @@ from dateutil.relativedelta import relativedelta
 from dateutil.parser import parse
 import twocheckout
 from decimal import Decimal
-
+from urllib.error import URLError
 
 # Note: This class must be named Fetcher in order for dynamic load to find it.
 class Fetcher(AbstractFetcher):
@@ -73,7 +73,14 @@ class Fetcher(AbstractFetcher):
 
     def _process_sales(self, sales):
         for tco_sale_summary in sales:  # sale summary
-            tco_sale = twocheckout.Sale.find({'sale_id': tco_sale_summary.sale_id})  # sale detail
+            while True:
+                try:
+                    tco_sale = twocheckout.Sale.find({'sale_id': tco_sale_summary.sale_id})  # sale detail
+                    break
+                except URLError as e:
+                    print("!", end='')
+                    continue
+
             nameparts = [
                 tco_sale.customer.first_name,
                 tco_sale.customer.middle_initial,
