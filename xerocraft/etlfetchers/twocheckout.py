@@ -27,7 +27,7 @@ class Fetcher(AbstractFetcher):
             mship.sale = Sale(id=djgo_sale['id'])
             mship.start_date    = parse(djgo_sale['sale_date']).date()  # Inclusive
             mship.end_date      = mship.start_date + relativedelta(months=+1, days=-1)  # Inclusive
-            mship.sale_price    = amt
+            mship.sale_price    = 50
             mship.ctrlid        = "2CO:{}:{}".format(lineitem.invoice_id, lineitem.lineitem_id)
             self.upsert(mship)
 
