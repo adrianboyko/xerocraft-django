@@ -1,8 +1,16 @@
+
+# Standard
+
+import unittest
+import sys
+
+# Third Party
 from django.core.management.base import NoArgsCommand
 from django.apps import apps
 from django.core.exceptions import ValidationError
-import unittest
-import sys
+
+# Local
+
 
 __author__ = 'adrian'
 
@@ -24,11 +32,17 @@ class DbCheck(unittest.TestCase):
             print(appname)
             app = apps.get_app_config(appname)
             for modelname, model in app.models.items():
-                print("   {} ({})".format(modelname, model.objects.count()))
+                print("   {} ({}) ".format(modelname, model.objects.count()), end="")
+                obj_count = 0
                 for obj in model.objects.all():
                     try:
                         obj.full_clean()
-                        if hasattr(obj, "dbcheck") : obj.dbcheck()
+                        if hasattr(obj, "dbcheck"): obj.dbcheck()
+                        obj_count += 1
+                        if obj_count % 100 == 0:
+                            print(".", end="")
+                            sys.stdout.flush()
                     except ValidationError as e:
                         print("      >>> {} {} {}".format(obj.pk, obj, e))
-        sys.stdout.flush()
+                        raise e
+                print("")
