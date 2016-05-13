@@ -524,7 +524,9 @@ class ExpenseClaimReference(models.Model):
         on_delete=models.CASCADE,  # Delete this relation if the expense transaction is deleted.
         help_text="The expense transaction that pays the claim.")
 
-    claim = models.OneToOneField(ExpenseClaim, null=False, blank=False,
+    # I wanted the following to be OneToOne but there is at least one case of multiple partial
+    # reimbursements for a single claim.
+    claim = models.ForeignKey(ExpenseClaim, null=False, blank=False,
         on_delete=models.CASCADE,  # Delete this relation if the claim is deleted.
         help_text="The claim that is paid by the expense transaction.")
 
