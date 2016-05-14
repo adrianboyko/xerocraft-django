@@ -17,6 +17,28 @@ from books.models import \
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# Checksum Admin Form
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+def get_ChecksumAdminForm(themodel):
+    class ChecksumAdminForm(forms.ModelForm):
+        # See http://stackoverflow.com/questions/4891506/django-faking-a-field-in-the-admin-interface
+
+        checksum = forms.DecimalField(required=False)  # Calculated field not saved in database
+
+        def __init__(self, *args, **kwargs):
+            obj = kwargs.get('instance')
+            if obj:  # Only change attributes if an instance is passed
+                self.base_fields['checksum'].initial = obj.checksum()
+            forms.ModelForm.__init__(self, *args, **kwargs)
+
+        class Meta:
+            model = themodel
+            fields = "__all__"
+
+    return ChecksumAdminForm
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # NOTES
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
@@ -146,30 +168,10 @@ class OtherItemTypeAdmin(VersionAdmin):
     ]
 
 
-class SaleAdminForm(forms.ModelForm):
-    # See http://stackoverflow.com/questions/4891506/django-faking-a-field-in-the-admin-interface
-
-    checksum = forms.DecimalField(required=False)  # Calculated field not saved in database
-
-    def __init__(self, *args, **kwargs):
-        obj = kwargs.get('instance')
-        if obj:  # Only change attributes if an instance is passed
-            sum = obj.checksum()
-            self.base_fields['checksum'].initial = sum
-            checksum_matches = sum == obj.total_paid_by_customer or sum == obj.total_paid_by_customer-obj.processing_fee
-            if not checksum_matches:
-                pass  # Is there anything that can be done? Can't style the read-only checksum.
-        forms.ModelForm.__init__(self, *args, **kwargs)
-
-    class Meta:
-        model = Sale
-        fields = "__all__"
-
-
 @admin.register(Sale)
 class SaleAdmin(VersionAdmin):
 
-    form = SaleAdminForm
+    form = get_ChecksumAdminForm(Sale)
 
     list_display = [
         'pk',
@@ -230,32 +232,12 @@ class ExpenseLineItemInline(admin.TabularInline):
     extra = 0
 
 
-class ExpenseClaimAdminForm(forms.ModelForm):
-    # See http://stackoverflow.com/questions/4891506/django-faking-a-field-in-the-admin-interface
-
-    checksum = forms.DecimalField(required=False)  # Calculated field not saved in database
-
-    def __init__(self, *args, **kwargs):
-        obj = kwargs.get('instance')
-        if obj:  # Only change attributes if an instance is passed
-            sum = obj.checksum()
-            self.base_fields['checksum'].initial = sum
-            checksum_matches = sum == obj.amount
-            if not checksum_matches:
-                pass  # Is there anything that can be done? Can't style the read-only checksum.
-        forms.ModelForm.__init__(self, *args, **kwargs)
-
-    class Meta:
-        model = ExpenseClaim
-        fields = "__all__"
-
-
 @admin.register(ExpenseClaim)
 class ExpenseClaimAdmin(VersionAdmin):
 
     # TODO: Filter by checksum, dates, account.
 
-    form = ExpenseClaimAdminForm
+    form = get_ChecksumAdminForm(ExpenseClaim)
 
     list_display = [
         'pk',
@@ -308,6 +290,9 @@ class ExpenseClaimReferenceInline(admin.TabularInline):
 
 @admin.register(ExpenseTransaction)
 class ExpenseTransactionAdmin(VersionAdmin):
+
+    form = get_ChecksumAdminForm(ExpenseTransaction)
+
     list_display = [
         'pk',
         'payment_date',
@@ -324,8 +309,10 @@ class ExpenseTransactionAdmin(VersionAdmin):
         'recipient_acct',
         ('recipient_name', 'recipient_email'),
         ('payment_method', 'method_detail'),
-        'amount_paid',
+        ('amount_paid', 'checksum'),
     ]
+
+    readonly_fields = ['checksum']
 
     inlines = [
         ExpenseTransactionNoteInline,

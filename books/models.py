@@ -514,6 +514,22 @@ class ExpenseTransaction(models.Model):
     def payment_method_verbose(self):
         return dict(ExpenseTransaction.PAID_BY_CHOICES)[self.payment_method]
 
+    def checksum(self) -> Decimal:
+        """
+        :return: The sum total of all line items. Should match self.amount_paid.
+        """
+        total = Decimal(0.0)
+        for lineitem in self.expenselineitem_set.all():
+            total += lineitem.amount
+        for claimref in self.expenseclaimreference_set.all():
+            total += claimref.portion if claimref.portion is not None else claimref.claim.amount
+        return total
+
+
+    def dbcheck(self):
+        if  self.amount_paid != self.checksum():
+            raise ValidationError(_("Total of line items must match amount of transaction."))
+
     def __str__(self):
         return "${} by {}".format(self.amount_paid, self.payment_method_verbose())
 
@@ -529,6 +545,9 @@ class ExpenseClaimReference(models.Model):
     claim = models.ForeignKey(ExpenseClaim, null=False, blank=False,
         on_delete=models.CASCADE,  # Delete this relation if the claim is deleted.
         help_text="The claim that is paid by the expense transaction.")
+
+    portion = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, default=None,
+        help_text="Leave blank unless you're only paying a portion of the claim.")
 
 
 class ExpenseLineItem(models.Model):
