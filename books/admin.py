@@ -293,6 +293,16 @@ class ExpenseTransactionAdmin(VersionAdmin):
 
     form = get_ChecksumAdminForm(ExpenseTransaction)
 
+    search_fields = [
+        '^recipient_acct__first_name',
+        '^recipient_acct__last_name',
+        '^recipient_acct__username',
+        'recipient_acct__email',
+        '^recipient_name',
+        'recipient_email',
+        'method_detail',
+    ]
+
     list_display = [
         'pk',
         'payment_date',
@@ -303,6 +313,8 @@ class ExpenseTransactionAdmin(VersionAdmin):
         'payment_method',
         'method_detail'
     ]
+    list_filter = ['payment_method', 'payment_date']
+    date_hierarchy = 'payment_date'
 
     fields = [
         'payment_date',
