@@ -480,8 +480,8 @@ class ExpenseClaimNote(Note):
 
 class ExpenseTransaction(models.Model):
 
-    payment_date = models.DateField(null=False, blank=False, default=date.today,
-        help_text="The date on which the expense was paid. Best guess if exact date not known.")
+    payment_date = models.DateField(null=True, blank=True, default=None,
+        help_text="The date on which the expense was paid (use bank statement date). Blank if not yet paid or statement not yet received. Best guess if paid but exact date not known.")
 
     recipient_acct = models.ForeignKey(User, null=True, blank=True, default=None,
         on_delete=models.SET_NULL,  # Keep the note even if the user is deleted.
