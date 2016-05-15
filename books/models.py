@@ -443,6 +443,18 @@ class ExpenseClaim(models.Model):
     submit = models.BooleanField(default=False,
         help_text="(Re)submit the claim for processing and reimbursement.")
 
+    def reimbursed(self) -> Decimal:
+        """
+        :return: The sum total of all reimbursements.
+        """
+        total = Decimal(0.0)
+        for ref in self.expenseclaimreference_set.all():
+            if ref.portion is not None:
+                total += ref.portion
+            else:
+                total += self.amount
+        return total
+
     def checksum(self) -> Decimal:
         """
         :return: The sum total of all expense line items. Should match self.amount.
