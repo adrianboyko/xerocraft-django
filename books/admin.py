@@ -38,6 +38,7 @@ def get_ChecksumAdminForm(themodel):
 
     return ChecksumAdminForm
 
+
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # NOTES
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -235,15 +236,21 @@ class ExpenseLineItemInline(admin.TabularInline):
 @admin.register(ExpenseClaim)
 class ExpenseClaimAdmin(VersionAdmin):
 
-    # TODO: Filter by checksum, dates, account.
-
     form = get_ChecksumAdminForm(ExpenseClaim)
+
+    def remaining(self, obj):
+        result = obj.amount - obj.reimbursed()
+        if result == 0:
+            return "-"
+        else:
+            return result
 
     list_display = [
         'pk',
         'claimant',
         'amount',
         'when_submitted',
+        'remaining',
         # 'is_reimbursed',
         # 'checksum_fmt',  Too slow to include here.
     ]
@@ -252,6 +259,7 @@ class ExpenseClaimAdmin(VersionAdmin):
         ('amount', 'checksum'),
         ('when_submitted', 'submit'),
     ]
+    ordering = ['-when_submitted']
     readonly_fields = ['when_submitted', 'checksum']
     inlines = [
         ExpenseClaimNoteInline,
@@ -308,13 +316,13 @@ class ExpenseTransactionAdmin(VersionAdmin):
         'payment_date',
         'recipient_acct',
         'recipient_name',
-        'recipient_email',
         'amount_paid',
         'payment_method',
         'method_detail'
     ]
     list_filter = ['payment_method', 'payment_date']
     date_hierarchy = 'payment_date'
+    ordering = ['-payment_date']
 
     fields = [
         'payment_date',
