@@ -498,9 +498,11 @@ class ExpenseTransaction(models.Model):
 
     PAID_BY_CASH   = "$"
     PAID_BY_CHECK  = "C"
+    PAID_BY_XFER   = "X"  # Electronic transfer
     PAID_BY_CHOICES = [
-        (PAID_BY_CASH,   "Cash"),
-        (PAID_BY_CHECK,  "Check"),
+        (PAID_BY_CASH,  "Cash"),
+        (PAID_BY_CHECK, "Check"),
+        (PAID_BY_XFER,  "Electronic"),
     ]
     payment_method = models.CharField(max_length=1, choices=PAID_BY_CHOICES,
         null=False, blank=False, default=PAID_BY_CASH,
