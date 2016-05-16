@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Net Income vs Date</title>
+
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript">
+      google.charts.load('current', {'packages':['corechart']});
+      google.charts.setOnLoadCallback(drawChart);
+
+      function drawChart() {
+        var data = google.visualization.arrayToDataTable([
+          ["Date", "Net"],
+          {% for theDate, theNet in data %}
+            [new Date('{{theDate}}'),{{theNet}}],
+          {% endfor %}
+        ]);
+
+        var options = {
+          title: 'Net Income vs Date',
+          legend: { position: 'bottom' },
+        };
+
+        var chart = new google.visualization.SteppedAreaChart(document.getElementById('the_chart'));
+
+        chart.draw(data, options);
+      }
+    </script>
+
+</head>
+<body>
+    <div id="the_chart" style="width:1280px; height:768px; text-align:center;"></div>
+</body>
+</html>
