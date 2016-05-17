@@ -186,7 +186,7 @@ class SaleAdmin(VersionAdmin):
         'processing_fee',
     ]
     fields = [
-        'sale_date',
+        ('sale_date', 'deposit_date'),
         ('payer_acct', 'payer_name', 'payer_email'),
         ('payment_method','method_detail'),
         ('total_paid_by_customer', 'checksum'),

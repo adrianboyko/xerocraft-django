@@ -172,6 +172,9 @@ class Sale(models.Model):
     sale_date = models.DateField(null=False, blank=False, default=date.today,
         help_text="The date on which the sale was made. Best guess if exact date not known.")
 
+    deposit_date = models.DateField(null=True, blank=True, default=None,
+        help_text="The date on which the income from this sale was (or will be) deposited.")
+
     payer_acct = models.ForeignKey(User, null=True, blank=True, default=None,
         on_delete=models.SET_NULL,  # Keep the note even if the user is deleted.
         help_text="It's preferable, but not necessary, to refer to the customer's account.")
@@ -269,6 +272,11 @@ class Sale(models.Model):
                 if hasattr(line_item, 'qty_sold'): line_total *= line_item.qty_sold
                 total += line_total
         return total
+
+    def clean(self):
+        if self.deposit_date is not None and self.sale_date is not None \
+         and self.deposit_date < self.sale_date:
+            raise ValidationError(_("Deposit date cannot be earlier than sale date."))
 
     def dbcheck(self):
         sum = self.checksum()
