@@ -127,11 +127,18 @@ class CheckinScraper(Scraper):
         self.logout()
 
     def start(self):
-        # See: How to lock a critical section in Django: http://stackoverflow.com/questions/1123200/
-        with SCRAPE_LOCK:
-            # print("IN: "+threading.current_thread().getName())
+
+        if not SCRAPE_LOCK.acquire(False):
+            # Some other thread is currently running a scrape.
+            # There's no point in this thread waiting to do the same.
+            #print("SKIP: "+threading.current_thread().getName())
+            return
+        try:
+            #print("IN: "+threading.current_thread().getName())
             self.start_critical()
-            # print("OUT: "+threading.current_thread().getName())
+            #print("OUT: "+threading.current_thread().getName())
+        finally:
+            SCRAPE_LOCK.release()
 
 
 class Command(CheckinScraper, BaseCommand):

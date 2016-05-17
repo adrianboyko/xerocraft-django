@@ -137,7 +137,7 @@ def api_get_membership_info(request, provider: str, id: str) -> HttpResponse:
 def postponed_scrapes():
     for i in range(5):
         cis = CheckinScraper()
-        cis.start()  # The start method uses database locks to protect the critical section.
+        cis.start()  # The start method uses a lock to protect the critical section.
         time.sleep(5)
 
 
