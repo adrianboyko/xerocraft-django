@@ -501,6 +501,10 @@ class ClaimAdmin(admin.ModelAdmin):  # No need to version these
 
 @admin.register(Nag)
 class NagAdmin(admin.ModelAdmin):  # No need to version these
+
+    def task_count(self, obj):
+        return obj.tasks.count()
+
     list_display = ['pk', 'who', 'task_count', 'when', 'auth_token_md5']
     readonly_fields = ['who','auth_token_md5','tasks']
 
