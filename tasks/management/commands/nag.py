@@ -1,9 +1,8 @@
 # Standard
 import datetime
-from decimal import Decimal
 
 # Third party
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import get_template
 from django.template import Context
@@ -36,7 +35,7 @@ class Command(BaseCommand):
 
         # Find out who's doing what over the next 2 weeks. Who's already scheduled to work and who's heavily scheduled?
         ppl_already_scheduled = Claim.sum_in_period(today, today+TWOWEEKS)
-        ppl_heavily_scheduled = set([member for member,dur in ppl_already_scheduled.items() if dur >= datetime.timedelta(hours=6.0)])
+        ppl_heavily_scheduled = set([member for member, dur in ppl_already_scheduled.items() if dur >= datetime.timedelta(hours=6.0)])
 
         # Rule out the following sets:
         ppl_excluded = set()
@@ -125,7 +124,7 @@ class Command(BaseCommand):
             # Send email messages:
             subject = 'Please verify your availability for this {}'.format(dow)
             from_email = 'Volunteer Coordinator <volunteer@xerocraft.org>'
-            to = claim.claimant.email
+            to = claim.claiming_member.email
             text_content = text_content_template.render(d)
             html_content = html_content_template.render(d)
             msg = EmailMultiAlternatives(subject, text_content, from_email, [to])
