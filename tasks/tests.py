@@ -1,12 +1,17 @@
+# Standard
+from datetime import datetime, date, timedelta, time
+from pydoc import locate  # for loading classes
+
+# Third Party
 from django.core import management, mail
 from django.core.urlresolvers import reverse
 from django.test import TestCase, TransactionTestCase, Client, RequestFactory
-from tasks.models import RecurringTaskTemplate, Task, TaskNote, Claim, Work, WorkNote, Nag
-from members.models import Member, Tag, VisitEvent
 from django.contrib.auth.models import User
 from django.contrib.admin import site
-from datetime import datetime, date, timedelta, time
-from pydoc import locate  # for loading classes
+
+# Local
+from tasks.models import RecurringTaskTemplate, Task, TaskNote, Claim, Work, WorkNote, Nag
+from members.models import Member, Tag, VisitEvent
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -33,7 +38,7 @@ class TestTemplateToInstanceCopy(TransactionTestCase):
         tag2 = Tag.objects.create(name="test2",meaning="bar")
         tag2.full_clean()
         self.rt = RecurringTaskTemplate.objects.create(
-            short_desc = "A test",
+            short_desc = "a test",
             max_work = timedelta(hours=1.5),
             start_date = date.today(),
             repeat_interval = 1,
@@ -65,7 +70,7 @@ class TestRecurringTaskTemplateCertainDays(TestCase):
 
     def setUp(self):
         self.rt = RecurringTaskTemplate.objects.create(
-            short_desc = "A test",
+            short_desc = "a test",
             max_work = timedelta(hours=1.5),
             start_date = date.today(),
             last = True,
@@ -91,7 +96,7 @@ class TestRecurringTaskTemplateIntervals(TransactionTestCase):
 
     def setUp(self):
         self.rt = RecurringTaskTemplate.objects.create(
-            short_desc = "A test",
+            short_desc = "a test",
             max_work = timedelta(hours=1.5),
             start_date = date.today(),
             repeat_interval = 28)
@@ -129,8 +134,11 @@ class TestViews(TestCase):
         self.rt = RecurringTaskTemplate.objects.create(
             short_desc="Test Task",
             max_work=timedelta(hours=1.5),
+            work_start_time=time(18, 00),
+            work_duration=timedelta(hours=1.5),
             start_date=date.today(),
-            repeat_interval=1)
+            repeat_interval=1,
+        )
         self.rt.full_clean()
         self.rt.eligible_claimants.add(self.member)
         self.rt.create_tasks(max_days_in_advance=3)
@@ -140,12 +148,15 @@ class TestViews(TestCase):
         self.nag = Nag.objects.create(who=self.member, auth_token_md5=self.arbitrary_token_md5)
         self.nag.full_clean()
         self.nag.tasks.add(self.task)
-        self.claim= Claim.objects.create(
+        self.claim = Claim.objects.create(
             status=Claim.STAT_CURRENT,
             claiming_member=self.member,
             claimed_task=self.task,
-            claimed_duration=timedelta(hours=1.5))
+            claimed_duration=timedelta(hours=1.5),
+            claimed_start_time=self.task.work_start_time,
+        )
         self.claim.full_clean()
+        self.nag.claims.add(self.claim)
         self.work = Work.objects.create(
             claim=self.claim,
             work_date=datetime.today(),
@@ -162,7 +173,7 @@ class TestViews(TestCase):
         self.assertNotEquals(self.user.member, None)
         self.assertNotEquals(self.member.worker, None)
 
-    def test_admin_views(self):
+    def test_admin_views(self):  # TODO: Generalize this and move it to xerocraft.tests
 
         for model_classname in model_classnames:
 
@@ -184,6 +195,30 @@ class TestViews(TestCase):
             request.user = self.user
             response = admin_inst.change_view(request, str(model_inst.pk))
             self.assertEqual(response.status_code, 200, "Admin view failure: %s" % url)
+
+    def test_verify_claim_view_YES(self):
+
+        self.work.delete()  # Not useful for this test
+        self.assertIsNone(self.claim.date_verified)
+        client = Client()
+        url = reverse('task:verify-claim', args=[str(self.claim.pk), 'Y', self.arbitrary_token_b64])
+        response = client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.claim.refresh_from_db()
+        self.assertIsNotNone(self.claim.date_verified)
+
+    def test_verify_claim_view_NO(self):
+
+        self.work.delete()  # Not useful for this test
+        self.assertEquals(self.task.uninterested.count(), 0)
+        self.assertIsNone(self.claim.date_verified)
+        client = Client()
+        url = reverse('task:verify-claim', args=[str(self.claim.pk), 'N', self.arbitrary_token_b64])
+        response = client.get(url)
+        self.assertEqual(response.status_code, 200)
+        with self.assertRaises(Claim.DoesNotExist):
+            Claim.objects.get(pk=self.claim.pk)
+        self.assertEquals(self.task.uninterested.count(), 1)
 
     def test_nag_offer_views(self):
         client = Client()
@@ -319,6 +354,7 @@ class TestViews(TestCase):
         response = client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "TCV")
+
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 

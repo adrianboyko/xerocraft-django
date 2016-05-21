@@ -1,0 +1,13 @@
+{% if claimant.first_name %}Hi {{claimant.first_name}}!{% endif %}
+
+You are currently the default assignee for the following upcoming task:
+
+{{task.short_desc}}
+{{dow}} @ {{claim.claimed_start_time}}
+
+If you will not be able to work this task, please reply to this email as soon as possible so that the Volunteer Coordinator will have time to find a substitute!
+
+Thanks,
+
+Volunteer Coordinator
+Xerocraft

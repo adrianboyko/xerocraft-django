@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>All Done!</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Roboto Condensed">
+
+        <style>
+
+        body { text-align: center; font-family:"Roboto Condensed"; padding-bottom:20px;}
+        a { font-size:14pt; }
+        .unselectable {
+           -moz-user-select: -moz-none;
+           -khtml-user-select: none;
+           -webkit-user-select: none;
+           -ms-user-select: none;
+           user-select: none;
+        }
+
+    </style>
+
+</head>
+
+<p class="unselectable">
+    <h1>OK, Got It!</h1>
+    <p>
+        If you haven't already done so, consider
+        <br/>subscribing to your Xerocraft calendar so
+        <br/>that your phone or computer can remind you
+        <br/>of upcoming tasks. A link to your calendar
+        <br/>(in "icalendar" format) appears below:
+    </p>
+
+    <!-- Following URL appears as http but webcal might be better. -->
+    <p><a href="{% url 'task:member-calendar' token=claimant.worker.calendar_token %}">{{claimant.first_name}}'s Calendar</a></p>
+
+</body>
+</html>

@@ -504,8 +504,13 @@ class NagAdmin(admin.ModelAdmin):  # No need to version these
 
     def task_count(self, obj):
         return obj.tasks.count()
+    task_count.short_description = "#tasks"
 
-    list_display = ['pk', 'who', 'task_count', 'when', 'auth_token_md5']
+    def claim_count(self, obj):
+        return obj.claims.count()
+    claim_count.short_description = "#claims"
+
+    list_display = ['pk', 'who', 'task_count', 'claim_count', 'when', 'auth_token_md5']
     readonly_fields = ['who','auth_token_md5','tasks']
 
 

@@ -714,8 +714,8 @@ class Nag(models.Model):
     tasks = models.ManyToManyField(Task,
         help_text="The task that the member was asked to work.")
 
-    # claims = models.ManyToManyField(Task,
-    #     help_text="The claim that the member was asked to verify.")
+    claims = models.ManyToManyField(Claim,
+        help_text="The claim that the member was asked to verify.")
 
     who = models.ForeignKey(mm.Member, null=True,
         on_delete=models.SET_NULL, # The member might still respond to the nag email, so don't delete.

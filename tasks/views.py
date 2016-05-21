@@ -1,3 +1,12 @@
+
+# Standard
+from hashlib import md5
+from datetime import date, datetime, timedelta
+from dateutil.parser import parse
+import logging
+import json
+
+# Third Party
 from django.core.urlresolvers import reverse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse, JsonResponse, Http404
@@ -5,14 +14,13 @@ from django.template import loader, Context, RequestContext
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
 from django.contrib.auth.decorators import login_required
+from icalendar import Calendar, Event
+
+# Local
 from tasks.forms import *
-from hashlib import md5
-from datetime import date, datetime, timedelta
-from dateutil.parser import parse
 from tasks.models import Task, Nag, Claim, Work, WorkNote, Worker, TimeWindowedObject
 from members.models import Member, VisitEvent
-from icalendar import Calendar, Event
-import logging
+from members.signals.handlers import note_login
 
 # = = = = = = = = = = = = = = = = = = = = KIOSK VISIT EVENT CONTENT PROVIDERS
 
@@ -99,6 +107,8 @@ def visitevent_departure_content(member, member_card_str, visit_event_type):
     return template.render(context)
 
 
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# Nag eligible workers to claim unclaimed tasks
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 def _get_task_and_nag(task_pk, auth_token):
@@ -200,18 +210,56 @@ def offers_done(request, auth_token):
     nag = get_object_or_404(Nag, auth_token_md5=md5str)
     member = nag.who
     worker = member.worker
-
-    if worker.calendar_token is None or len(worker.calendar_token) == 0:
-        # I'm arbitrarily choosing md5str, below, but the fact that it came from md5 doesn't matter.
-        _, md5str = Member.generate_auth_token_str(
-            lambda t: Worker.objects.filter(calendar_token=t).count() == 0  # uniqueness test
-        )
-        worker.calendar_token = md5str
-        worker.save()
+    worker.populate_calendar_token()  # Does nothing if already populated.
 
     # Return page with a link to the calendar:
     return render(request, 'tasks/offers_done.html', {"worker": worker})
 
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# Verify that worker will work auto-claimed task
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+def verify_claim(request, claim_pk, will_do, auth_token):
+
+    claim = get_object_or_404(Claim, pk=claim_pk)
+    claimant = claim.claiming_member
+    md5str = md5(auth_token.encode()).hexdigest()
+    nag = get_object_or_404(Nag, auth_token_md5=md5str)
+    assert(claim in nag.claims.all())
+    task = claim.claimed_task
+    params = {
+        'claimant': claimant,
+        'claim': claim,
+        'task': task,
+        'dow': task.scheduled_weekday(),
+        'auth_token': auth_token,
+    }
+
+    if will_do == "E":
+        return render(request, 'tasks/email-verify-claim.html', params)
+
+    # Can't do the following because error: 'User' object has no attribute 'backend'
+    # if not request.user.is_authenticated():
+    #     login(request, claimant.auth_user)
+    note_login(None, claimant, request)
+
+    claimant.worker.populate_calendar_token()
+
+    if will_do == "Y":  # The default claimant verifies they will do the work.
+        claim.date_verified = date.today()
+        claim.save()
+        return render(request, 'tasks/verify-claim-response.html', params)
+
+    if will_do == "N":  # The default claimant says they can't do the work, this time.
+        task.uninterested.add(claimant)
+        claim.delete()
+        return render(request, 'tasks/verify-claim-response.html', params)
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# Task details
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 def cal_task_details(request, task_pk):
     task = get_object_or_404(Task, pk=task_pk)
@@ -223,7 +271,70 @@ def kiosk_task_details(request, task_pk):
     return render(request, "tasks/kiosk_task_details.html", {'task': task, 'notes':task.notes.all()})
 
 
-# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = KIOSK = = = =
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# REACT VIEWS FOR NAG CLICKS (Experimental development)
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+def fname(m: Member):
+    if m.first_name is not None and m.first_name is not "":
+        return m.first_name
+    return m.username
+
+
+def offer_task_spa(request, task_pk=0, auth_token=""):
+    task, nag = _get_task_and_nag(task_pk, auth_token)
+
+    claims = task.claim_set.filter(status=Claim.STAT_CURRENT)
+    claims = [{"claim_id": x.pk, "who_claimed": fname(x.claiming_member)} for x in claims]
+
+    futures = task.all_future_instances_same_dow()
+    futures = [x for x in futures if len(x.claim_set.all())==0]
+    futures = [x for x in futures if nag.who in x.all_eligible_claimants()]
+    futures = sorted(futures, key=lambda x: x.scheduled_date)
+    futures = futures[0:4]
+
+    nag.who.worker.populate_calendar_token()
+
+    params = {
+        "task": {
+            "id": task.pk,
+            "desc": task.short_desc,
+            "date": task.scheduled_date.isoformat(),
+            "start_time": task.work_start_time.strftime("%I:%M %p"),
+            "work_duration": task.work_duration.total_seconds()/3600.0,
+        },
+        "user": {"id": nag.who.pk, "name": fname(nag.who)},
+        "claims": claims,
+        "max_hrs_to_claim": task.max_claimable_hours().total_seconds()/3600.0,
+        "auth_token": auth_token,
+        "futures": [{"date": x.scheduled_date.isoformat(), "id":x.pk} for x in futures],
+        "calendar_token": nag.who.worker.calendar_token,
+    }
+
+    params = json.dumps(params)
+    return render(request, "tasks/offer-task-spa.html", {"props": params})
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+def verify_claim_spa(request, claim_pk=0, auth_token=""):
+
+    claim = get_object_or_404(Claim, pk=claim_pk)
+    task = claim.claimed_task
+    who = claim.claiming_member
+
+    who.worker.populate_calendar_token()
+
+    params = {
+    }
+
+    params = json.dumps(params)
+    return render(request, "tasks/verify-claim-spa.html", {"props": params})
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# KIOSK (Experimental development)
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 def _get_task_and_member(task_pk, member_card_str):
 
@@ -329,6 +440,8 @@ def record_work(request, task_pk, member_card_str):
     return JsonResponse({"success": "The task has been marked as done.\nWe appreciate your help!"})
 
 
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# CALENDARS
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 AZ_TIMEZONE = '''BEGIN:VTIMEZONE
