@@ -81,13 +81,18 @@ class CheckinScraper(Scraper):
         today_str = date.today().isoformat()
         post_data = {"viewing": "Total", "Start": yesterday_str, "End": today_str, "submit": ""}
         response = self.session.post(SERVER+"checkinanalytics.php", data=post_data)
+        response.raise_for_status()
 
         page_parsed = lxml.html.fromstring(response.text)
         if page_parsed is None: raise AssertionError("Couldn't parse checkin page")
 
-        names =  page_parsed.xpath("//div[@id='checkintable']//table//tr[@class='topRow']/td/text()")
+        names = page_parsed.xpath("//div[@id='checkintable']//table//tr[@class='topRow']/td/text()")
         if len(names) != 8:
-            self.logger.warning("Format of check-in table has changed.")
+            names_str = " ".join(x.strip() for x in names)
+            self.logger.warning("Format of check-in table has changed: %s", names_str)
+            body_text = [x for x in page_parsed.xpath("//body//text()") if not x.isspace()][:10]
+            text_str = " ".join(x.strip() for x in body_text)
+            self.logger.warning("Body begins: %s", text_str)
 
         for checkin_row in page_parsed.xpath("//div[@id='checkintable']//table//tr[not(@class)]"):
 
