@@ -27,8 +27,6 @@ CHECKIN_DJANGO_USERNAME_KEY = "Django Username"
 
 METHOD_CODES = {v: k for (k,v) in VisitEvent.VISIT_METHOD_CHOICES}
 
-SCRAPE_LOCK = threading.Lock()
-
 
 class CheckinScraper(Scraper):
     """ Scrape the admin checkin page on xerocraft.org"""
@@ -70,7 +68,7 @@ class CheckinScraper(Scraper):
         else:
             return given
 
-    def start_critical(self):
+    def start(self):
 
         if not self.login():
             # Problem is already logged in self.login
@@ -130,20 +128,6 @@ class CheckinScraper(Scraper):
                     str(exc_info[0]))
 
         self.logout()
-
-    def start(self):
-
-        if not SCRAPE_LOCK.acquire(False):
-            # Some other thread is currently running a scrape.
-            # There's no point in this thread waiting to do the same.
-            #print("SKIP: "+threading.current_thread().getName())
-            return
-        try:
-            #print("IN: "+threading.current_thread().getName())
-            self.start_critical()
-            #print("OUT: "+threading.current_thread().getName())
-        finally:
-            SCRAPE_LOCK.release()
 
 
 class Command(CheckinScraper, BaseCommand):

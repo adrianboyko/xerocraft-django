@@ -134,11 +134,23 @@ def api_get_membership_info(request, provider: str, id: str) -> HttpResponse:
     return JsonResponse(json)
 
 
+SCRAPE_LOCK = threading.Lock()
+
+
 def postponed_scrapes():
     for i in range(5):
-        cis = CheckinScraper()
-        cis.start()  # The start method uses a lock to protect the critical section.
         time.sleep(5)
+        if not SCRAPE_LOCK.acquire(False):
+            # Some other thread is currently running a scrape.
+            # There's no point in this thread waiting to do the same.
+            print("SKIP: "+threading.current_thread().getName())
+            continue
+        try:
+            print("IN: "+threading.current_thread().getName())
+            CheckinScraper().start()
+            print("OUT: "+threading.current_thread().getName())
+        finally:
+            SCRAPE_LOCK.release()
 
 
 def scrape_xerocraft_org_checkins(request) -> JsonResponse:
