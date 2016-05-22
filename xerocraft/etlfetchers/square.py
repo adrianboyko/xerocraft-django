@@ -162,6 +162,7 @@ class Fetcher(AbstractFetcher):
         "Holiday Gift Card (6 months)",
         "Holiday Gift Card (3 months)",
         "3 Month Gift Card",
+        "1 Month Gift Card",
     ]
 
     WORK_TRADE_ITEMS = [
@@ -216,6 +217,9 @@ class Fetcher(AbstractFetcher):
             elif item['name'] == "One Month Membership":
                 self._process_membership_item(sale, item, item_num, Membership.MT_REGULAR, 1, "months")
 
+            elif item['name'] == "Six Month Membership":
+                self._process_membership_item(sale, item, item_num, Membership.MT_REGULAR, 6, "months")
+
             elif item['name'] in self.WORK_TRADE_ITEMS:
                 self._process_membership_item(sale, item, item_num, Membership.MT_WORKTRADE, 1, "months")
 
@@ -262,6 +266,7 @@ class Fetcher(AbstractFetcher):
         self.upsert(mship)
 
     def _special_case_0JFN0loJ0kcy8DXCvuDVwwMF(self, sale):
+        # Verify: This was erroneously entered as a donation but was really a work-trade payment.
         mship = Membership()
         mship.sale = Sale(id=sale['id'])
         mship.member = Member(id=19)  # Lookup by name would be better but I don't want to have names in the code.
