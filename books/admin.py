@@ -158,6 +158,7 @@ class SaleNoteInline(NoteInline):
 class OtherItemInline(admin.StackedInline):
     model = OtherItem
     extra = 0
+    readonly_fields = ['ctrlid']
 
 
 @admin.register(OtherItemType)
