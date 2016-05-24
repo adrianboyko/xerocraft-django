@@ -94,7 +94,7 @@ if ISDEVHOST:
         'django_jenkins',
         'webpack_loader',
         'guardian',
-        'debug_toolbar',
+        #'debug_toolbar',
     )
 
 INSTALLED_APPS += (
@@ -240,6 +240,10 @@ LOGGING = {
         }
     },
     'loggers': {
+        'modelmailer': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
         'tasks': {
             'handlers': ['console'],
             'level': 'INFO',
