@@ -283,7 +283,7 @@ WEBPACK_LOADER = {
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # JENKINS
 
-PROJECT_APPS = ('books', 'inventory', 'members', 'tasks', 'xerocraft')
+PROJECT_APPS = ('books', 'inventory', 'members', 'modelmailer', 'tasks', 'xerocraft')
 
 JENKINS_TASKS = (
     # 'django_jenkins.tasks.run_pep8',
