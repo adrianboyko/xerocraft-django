@@ -86,10 +86,11 @@ class TestRecurringTaskTemplateCertainDays(TestCase):
 
     def test_create_tasks(self):
         self.rt.create_tasks(max_days_in_advance=34)
-        self.assertEqual(len(Task.objects.all()),1)
+        count = len(Task.objects.all())
+        self.assertTrue(count in [1, 2])
         # create_tasks should be idempotent for a particular argument.
         self.rt.create_tasks(max_days_in_advance=34)
-        self.assertEqual(len(Task.objects.all()),1)
+        self.assertEqual(len(Task.objects.all()), count)
 
 
 class TestRecurringTaskTemplateIntervals(TransactionTestCase):
