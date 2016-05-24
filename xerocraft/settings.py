@@ -108,6 +108,7 @@ INSTALLED_APPS += (
     'rest_framework.authtoken',
     'books',
     'reversion',
+    'modelmailer',
 )
 
 MIDDLEWARE_CLASSES = (
