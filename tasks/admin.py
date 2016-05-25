@@ -1,14 +1,20 @@
+
+# Standard
+import datetime
+
+# Third Party
 from django.contrib import admin
 from django.contrib.admin.views import main
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
 from django.utils.translation import ugettext_lazy as _
 from django.db.models import Model
-import datetime
-from tasks.models import RecurringTaskTemplate, Task, TaskNote, Claim, Work, Nag, Worker, WorkNote
 from nptime import nptime
-from tasks.templatetags.tasks_extras import duration_str2
 from reversion.admin import VersionAdmin
+
+# Local
+from tasks.models import RecurringTaskTemplate, Task, TaskNote, Claim, Work, Nag, Worker, WorkNote
+from tasks.templatetags.tasks_extras import duration_str2
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
