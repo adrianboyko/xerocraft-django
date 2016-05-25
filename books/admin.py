@@ -5,8 +5,9 @@
 from django.contrib import admin
 from django.db import models
 from django.utils.html import format_html
-from reversion.admin import VersionAdmin
 from django import forms
+from django.utils.translation import ugettext_lazy as _
+from reversion.admin import VersionAdmin
 
 # Local
 from books.models import \
@@ -255,6 +256,7 @@ class ExpenseClaimAdmin(VersionAdmin):
         # 'is_reimbursed',
         # 'checksum_fmt',  Too slow to include here.
     ]
+    list_filter = [('claimant',admin.RelatedOnlyFieldListFilter)]
     fields = [
         'claimant',
         ('amount', 'checksum'),
@@ -265,12 +267,16 @@ class ExpenseClaimAdmin(VersionAdmin):
     inlines = [
         ExpenseClaimNoteInline,
         ExpenseLineItemInline,
+        # ReimbursementInline,
     ]
     search_fields = [
         '^claimant__first_name',
         '^claimant__last_name',
         '^claimant__username',
         'claimant__email',
+        'expenselineitem__receipt_num',
+        'expenselineitem__description',
+        'expenselineitem__account__name',
     ]
     raw_id_fields = ['claimant']
 
@@ -278,6 +284,24 @@ class ExpenseClaimAdmin(VersionAdmin):
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # EXPENSE TRANSACTIONS
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+# REVIEW: Following class is very similar to MemberTypeFilter. Can they be combined?
+class ExpenseTypeFilter(admin.SimpleListFilter):
+    title = "Type"
+    parameter_name = 'type'
+
+    def lookups(self, request, model_admin):
+        return (
+            ('claims', _('One or more claims')),
+            ('none', _('No claims')),
+        )
+
+    def queryset(self, request, queryset):
+        if self.value() == 'claims':
+            return queryset.filter(expenseclaimreference__isnull=False)
+        if self.value() == 'none':
+            return queryset.filter(expenseclaimreference__isnull=True)
+
 
 class ExpenseTransactionNoteInline(NoteInline):
     model = ExpenseTransactionNote
@@ -321,7 +345,7 @@ class ExpenseTransactionAdmin(VersionAdmin):
         'payment_method',
         'method_detail'
     ]
-    list_filter = ['payment_method', 'payment_date']
+    list_filter = ['payment_method', 'payment_date', ExpenseTypeFilter, ('recipient_acct',admin.RelatedOnlyFieldListFilter)]
     date_hierarchy = 'payment_date'
     ordering = ['-payment_date']
 
