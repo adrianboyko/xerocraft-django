@@ -8,12 +8,15 @@ from django.contrib import auth
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.template import RequestContext
+from django.core.management import call_command
 from social.apps.django_app.default.models import UserSocialAuth
 from rest_framework.authtoken.models import Token
+from rq import Queue
 
 # Local
 from members.models import Membership
-from xerocraft.management.commands.scrapecheckins import CheckinScraper
+#from xerocraft.management.commands.scrapecheckins import CheckinScraper
+from xerocraft.worker import conn
 
 __author__ = 'Adrian'
 
@@ -139,31 +142,17 @@ def api_get_membership_info(request, provider: str, id: str) -> HttpResponse:
     return JsonResponse(json)
 
 
-SCRAPE_LOCK = threading.Lock()
+q = Queue(connection=conn)
 
 
-def postponed_scrapes():
-    for i in range(5):
+def scrape_checkins():
+    for i in range(2):
+        call_command('scrapecheckins')
         time.sleep(5)
-        if not SCRAPE_LOCK.acquire(False):
-            # Some other thread is currently running a scrape.
-            # There's no point in this thread waiting to do the same.
-            print("SKIP: "+threading.current_thread().getName())
-            continue
-        try:
-            print("IN: "+threading.current_thread().getName())
-            CheckinScraper().start()
-            print("OUT: "+threading.current_thread().getName())
-        finally:
-            SCRAPE_LOCK.release()
 
 
 def scrape_xerocraft_org_checkins(request) -> JsonResponse:
-    # See: Multithreading for Python Django at http://stackoverflow.com/questions/18420699/
-    # REVIEW: use a decorator on postponed_scrapes() instead?
-    thr = threading.Thread(target=postponed_scrapes, args=(), kwargs={})
-    thr.daemon = False
-    thr.start()
+    result = q.enqueue(scrape_checkins)
     return JsonResponse({'result': "success"})
 
 
