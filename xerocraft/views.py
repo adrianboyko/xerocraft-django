@@ -1,14 +1,19 @@
+# Standard
+import threading
+import time
+
+# Third Party
 from django.shortcuts import render, render_to_response
 from django.contrib import auth
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.template import RequestContext
-from members.models import Membership
-from xerocraft.management.commands.scrapecheckins import CheckinScraper
 from social.apps.django_app.default.models import UserSocialAuth
 from rest_framework.authtoken.models import Token
-import threading
-import time
+
+# Local
+from members.models import Membership
+from xerocraft.management.commands.scrapecheckins import CheckinScraper
 
 __author__ = 'Adrian'
 
