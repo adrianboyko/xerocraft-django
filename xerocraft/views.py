@@ -1,6 +1,6 @@
 # Standard
-import threading
 import time
+from subprocess import call
 
 # Third Party
 from django.shortcuts import render, render_to_response
@@ -8,14 +8,12 @@ from django.contrib import auth
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.template import RequestContext
-from django.core.management import call_command
 from social.apps.django_app.default.models import UserSocialAuth
 from rest_framework.authtoken.models import Token
 from rq import Queue
 
 # Local
 from members.models import Membership
-#from xerocraft.management.commands.scrapecheckins import CheckinScraper
 from xerocraft.worker import conn
 
 __author__ = 'Adrian'
@@ -147,7 +145,7 @@ q = Queue(connection=conn)
 
 def scrape_checkins():
     for i in range(2):
-        call_command('scrapecheckins')
+        call(["scrapecheckins"])
         time.sleep(5)
 
 
