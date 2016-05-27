@@ -145,7 +145,7 @@ q = Queue(connection=conn)
 
 def scrape_checkins():
     for i in range(2):
-        call(["scrapecheckins"])
+        call(["python manage.py scrapecheckins"])
         time.sleep(5)
 
 
