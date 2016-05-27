@@ -145,7 +145,7 @@ q = Queue(connection=conn)
 
 def scrape_checkins():
     for i in range(2):
-        call(["python manage.py scrapecheckins"])
+        call(["/app/.heroku/python/bin/python manage.py scrapecheckins"])
         time.sleep(5)
 
 
