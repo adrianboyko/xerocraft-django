@@ -13,7 +13,7 @@ from nptime import nptime
 from reversion.admin import VersionAdmin
 
 # Local
-from tasks.models import RecurringTaskTemplate, Task, TaskNote, Claim, Work, Nag, Worker, WorkNote
+from tasks.models import RecurringTaskTemplate, Task, TaskNote, Claim, Work, Nag, Worker, WorkNote, UnavailableDates
 from tasks.templatetags.tasks_extras import duration_str2
 
 
@@ -552,6 +552,11 @@ class WorkerTypeFilter(admin.SimpleListFilter):
         if self.value() == 'scholar':   return queryset.filter(member__tags__name="Scholarship")
 
 
+class UnavailableDates_Inline(admin.TabularInline):
+    model = UnavailableDates
+    extra = 0
+
+
 @admin.register(Worker)
 class WorkerAdmin(VersionAdmin):
 
@@ -589,6 +594,7 @@ class WorkerAdmin(VersionAdmin):
         '^member__auth_user__last_name',
         '^member__auth_user__username',
     ]
+    inlines = [UnavailableDates_Inline]
 
 
 @admin.register(TaskNote)

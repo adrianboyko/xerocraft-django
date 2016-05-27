@@ -1,13 +1,19 @@
 # pylint: disable=C0330
+
+# Standard
+import logging
+import abc
+from decimal import Decimal
+from datetime import date, timedelta, datetime
+
+# Third party
 from django.db import models
 from django.core.exceptions import ValidationError
 from django.utils.translation import ugettext_lazy as _
-from datetime import date, timedelta, datetime
-from members import models as mm
-from decimal import Decimal
-import logging
-import abc
 import nptime
+
+# Local
+from members import models as mm
 
 
 class TimeWindowedObject(object):
@@ -799,3 +805,18 @@ class WorkNote(models.Model):
         help_text="Anything you want to say about the work done.")
 
     work = models.ForeignKey(Work, on_delete=models.CASCADE, related_name='notes')
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# UNAVAILABILITY
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+class UnavailableDates(models.Model):
+
+    who = models.ForeignKey(Worker, null=True, blank=True, on_delete=models.SET_NULL,
+        help_text="The member who wrote this note.")
+
+    start_date = models.DateField(
+        help_text="The first date (inclusive) on which the person will be unavailable.")
+
+    end_date = models.DateField(
+        help_text="The last date (inclusive) on which the person will be unavailable.")
