@@ -242,7 +242,7 @@ def verify_claim(request, claim_pk, will_do, auth_token):
     # Can't do the following because error: 'User' object has no attribute 'backend'
     # if not request.user.is_authenticated():
     #     login(request, claimant.auth_user)
-    note_login(None, claimant, request)
+    note_login(None, claimant.auth_user, request)
 
     claimant.worker.populate_calendar_token()
 

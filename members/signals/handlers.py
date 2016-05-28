@@ -134,7 +134,7 @@ def get_ip_address(request):
 
 
 @receiver(user_logged_in)
-def note_login(sender, user, request, **kwargs):
+def note_login(sender, user: User, request, **kwargs):
     try:
         ip = get_ip_address(request)
         logger.info("Login: %s at %s" % (user, ip))
