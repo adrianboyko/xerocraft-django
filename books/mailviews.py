@@ -13,7 +13,7 @@ TREASURER = "Xerocraft Treasurer <treasurer@xerocraft.org>"
 @register(Donation)
 class DonationMailView(MailView):
 
-    def get_email_spec(self, target):
+    def get_email_spec(self, target: Donation) -> dict:
         donation = target
         acct = donation.donator_acct
 
@@ -22,6 +22,9 @@ class DonationMailView(MailView):
             donor_email = donation.donator_email
         elif acct is not None and acct.email != "":
             donor_email = acct.email
+
+        if donor_email is None:
+            raise RuntimeWarning("Cannot determine donor's email addr for: %s", target)
 
         first_name = None
         if acct is not None:
