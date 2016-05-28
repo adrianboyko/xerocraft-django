@@ -1,23 +1,33 @@
 # pylint: disable=C0330
-from django.db import models
-from members.models import Member
+
+# Standard
 from pytz import timezone
-import datetime
+
+# Third Party
+from django.db import models
+
+# Local
+from members.models import Member
 
 
 class Location(models.Model):
 
     x = models.FloatField(null=True, blank=True,
         help_text="An ordinate in some coordinate system to help locate the location.")
+
     y = models.FloatField(null=True, blank=True,
         help_text="An ordinate in some coordinate system to help locate the location.")
+
     z = models.FloatField(null=True, blank=True,
         help_text="An ordinate in some coordinate system to help locate the location.")
+
     short_desc = models.CharField(max_length=40, null=True, blank=True,
         help_text="A short description/name for the location.")
+
     def __str__(self):
         sd = self.short_desc if self.short_desc is not None else "For future use."
         return "L%04d, %s" % (self.pk, sd)
+
     class Meta:
         ordering = ['pk']
 
