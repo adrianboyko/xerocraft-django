@@ -1,11 +1,16 @@
+# Standard
+from datetime import timedelta
+import logging
+
+# Third Party
 from django.db.models.signals import post_save, pre_save, pre_delete
 from django.dispatch import receiver
 from django.contrib.auth.models import User, user_logged_in
 from django.core.exceptions import ObjectDoesNotExist
+
+# Local
 from members.models import Member, Tag, Tagging, PaidMembership, MemberLogin, GroupMembership, Membership, VisitEvent
-from datetime import timedelta
 import members.notifications as notifications
-import logging
 
 __author__ = 'Adrian'
 
@@ -143,7 +148,10 @@ def note_login(sender, user, request, **kwargs):
 
     except Exception as e:
         # Failures here should not prevent the login from completing normally.
-        logger.error("Problem in note_login: %s", str(e))
+        try:
+            logger.error("Problem noting login of %s from %s: %s", str(user), str(ip), str(e))
+        except Exception as e2:
+            logger.error("Problem noting login exception: %s", str(e2))
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
