@@ -134,7 +134,7 @@ def get_ip_address(request):
 
 
 @receiver(user_logged_in)
-def note_login(sender, user: User, request, **kwargs):
+def note_login(sender, user, request, **kwargs):  # https://code.djangoproject.com/ticket/22111
     try:
         ip = get_ip_address(request)
         logger.info("Login: %s at %s" % (user, ip))
