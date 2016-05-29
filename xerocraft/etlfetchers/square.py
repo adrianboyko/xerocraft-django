@@ -120,6 +120,7 @@ class Fetcher(AbstractFetcher):
         "Soda": "Soda",
         "Can of Soda": "Soda",
         "Refill Soda Account": "Refill Soda Account",
+        "Bracelet, 3D Printed": "3D Print",
     }
 
     def _process_other_item(self, sale, item, item_num):
