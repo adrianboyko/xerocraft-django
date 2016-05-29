@@ -68,6 +68,11 @@ class Fetcher(AbstractFetcher):
             new_sale.method_detail          = self.method_detail
             new_sale.ctrlid                 = "2CO:"+invoice.invoice_id
             new_sale.total_paid_by_customer = invoice.customer_total
+
+            if invoice.payout_status.startswith("Paid "):
+                depdate = invoice.payout_status[5:]
+                new_sale.deposit_date = parse(depdate).date()
+
             djgo_sale = self.upsert(new_sale)
             self._process_lineitems(djgo_sale, invoice.lineitems)
 

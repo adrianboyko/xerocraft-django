@@ -186,6 +186,7 @@ class SaleAdmin(VersionAdmin):
         'method_detail',
         'total_paid_by_customer',
         'processing_fee',
+        'deposit_date',
     ]
     fields = [
         ('sale_date', 'deposit_date'),

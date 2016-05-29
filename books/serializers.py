@@ -8,6 +8,7 @@ class SaleSerializer(serializers.ModelSerializer):
         fields = (
             'id',
             'sale_date',
+            'deposit_date',
             'payer_name',
             'payer_email',
             'payment_method',
