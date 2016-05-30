@@ -333,7 +333,8 @@ class WorkInline(admin.TabularInline):
     extra = 0
 
 
-class ClaimInline(admin.StackedInline):
+class ClaimInline(admin.TabularInline):
+    raw_id_fields = ['claiming_member']
     model = Claim
     extra = 0
 
@@ -451,6 +452,7 @@ class TaskAdmin(TemplateAndTaskBase):
         }),
     ]
     inlines = [
+        ClaimInline,
         EligibleClaimantForTask_Inline,
         EligibleTagForTask_Inline,
         TaskNoteInline,
