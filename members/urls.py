@@ -7,6 +7,7 @@ router.register(r'paidmemberships', views.PaidMembershipViewSet)
 router.register(r'memberships', views.MembershipViewSet)
 router.register(r'discovery-methods', views.DiscoveryMethodViewSet)
 router.register(r'gift-card-refs', views.MembershipGiftCardReferenceViewSet)
+router.register(r'wifi-mac-detected', views.WifiMacDetectedViewSet)
 
 urlpatterns = [
 

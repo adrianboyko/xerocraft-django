@@ -25,7 +25,7 @@ from reportlab.lib.units import inch, mm
 from reportlab.lib.pagesizes import letter
 
 # Local
-from members.models import Member, Tag, Tagging, VisitEvent, PaidMembership, Membership, DiscoveryMethod, MembershipGiftCardReference
+from members.models import Member, Tag, Tagging, VisitEvent, PaidMembership, Membership, DiscoveryMethod, MembershipGiftCardReference, WifiMacDetected
 from members.forms import Desktop_ChooseUserForm, Books_NotePaymentForm
 import members.serializers as ser
 from members.models import GroupMembership
@@ -400,6 +400,14 @@ class MembershipGiftCardReferenceViewSet(viewsets.ModelViewSet):  # Django REST 
     queryset = MembershipGiftCardReference.objects.all()
     serializer_class = ser.MembershipGiftCardReferenceSerializer
     filter_fields = {'ctrlid'}
+
+
+class WifiMacDetectedViewSet(viewsets.ModelViewSet):  # Django REST Framework
+    """
+    API endpoint that allows WiFi MAC detections to be logged.
+    """
+    queryset = WifiMacDetected.objects.all()
+    serializer_class = ser.WifiMacDetectedSerializer
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = REPORTS

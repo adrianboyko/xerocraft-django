@@ -1,9 +1,16 @@
+
+# Standard
+
+# Third Party
+from rest_framework import serializers
+
+# Local
 import members.models as models
 from books.models import Sale
-from rest_framework import serializers
 
 
 class PaidMembershipSerializer(serializers.ModelSerializer):
+
     class Meta:
         model = models.PaidMembership
         fields = (
@@ -58,7 +65,9 @@ class MembershipGiftCardReferenceSerializer(serializers.ModelSerializer):
             'protected',
         )
 
+
 class DiscoveryMethodSerializer(serializers.ModelSerializer):
+
     class Meta:
         model = models.DiscoveryMethod
         fields = (
@@ -67,3 +76,12 @@ class DiscoveryMethodSerializer(serializers.ModelSerializer):
             'order',
         )
 
+
+class WifiMacDetectedSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = models.WifiMacDetected
+        fields = (
+            'when',
+            'mac',
+        )

@@ -388,6 +388,14 @@ class VisitEvent(models.Model):
         unique_together = ('who', 'when')
 
 
+class WifiMacDetected(models.Model):
+
+    when = models.DateTimeField(null=False, blank=False, default=timezone.now,
+        help_text="Date/time when MAC was noticed to be present.")
+
+    mac = models.CharField(max_length=12, null=False, blank=False,
+        help_text="A MAC address as 12 hex digits.")
+
 class MemberLogin(models.Model):
     """ Record member, datetime, ip for each login. """
 
