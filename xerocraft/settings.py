@@ -263,12 +263,12 @@ LOGGING = {
 if ISDEVHOST:
     auth_classes = [
         'rest_framework.authentication.SessionAuthentication',
-        'rest_framework.authentication.BasicAuthentication'
+        'rest_framework.authentication.BasicAuthentication',
     ]
 else:
     auth_classes = [
         'rest_framework.authentication.TokenAuthentication',
-    ],
+    ]
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES':
