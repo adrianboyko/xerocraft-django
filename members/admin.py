@@ -11,7 +11,8 @@ from books.admin import Sellable
 from members.models import Tag, Pushover, Tagging, VisitEvent, \
     Member, Membership, PaidMembership, PaidMembershipNudge, GroupMembership, \
     MemberNote, MemberLogin, MembershipGiftCardRedemption, \
-    MembershipGiftCard, MembershipGiftCardReference, DiscoveryMethod
+    MembershipGiftCard, MembershipGiftCardReference, DiscoveryMethod, WifiMacDetected
+
 
 @admin.register(Tag)
 class TagAdmin(VersionAdmin):
@@ -50,6 +51,13 @@ class VisitEventAdmin(admin.ModelAdmin):  # No need to version events.
         '^who__auth_user__last_name',
         '^who__auth_user__username',
     ]
+    list_filter = ['when']
+    date_hierarchy = 'when'
+
+
+@admin.register(WifiMacDetected)
+class WifiMacDetectedAdmin(admin.ModelAdmin):  # No need to version events.
+    list_display = ['pk', 'mac', 'when']
     list_filter = ['when']
     date_hierarchy = 'when'
 

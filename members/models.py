@@ -21,6 +21,9 @@ from nameparser import HumanName
 from books.models import Sale
 
 
+TZ = timezone.get_default_timezone()
+
+
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # CTRLID Functions
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -395,6 +398,15 @@ class WifiMacDetected(models.Model):
 
     mac = models.CharField(max_length=12, null=False, blank=False,
         help_text="A MAC address as 12 hex digits.")
+
+    def __str__(self):
+        localwhen = TZ.normalize(self.when)
+        return "{} @ {}".format(self.mac, localwhen)
+
+    class Meta:
+        verbose_name = "Wifi MAC detected"
+        verbose_name_plural = "Wifi MACs detected"
+
 
 class MemberLogin(models.Model):
     """ Record member, datetime, ip for each login. """
