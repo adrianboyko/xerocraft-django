@@ -6,6 +6,7 @@ from datetime import date
 from django.shortcuts import render
 from rest_framework import viewsets
 from django.http.response import HttpResponse
+from django.contrib.auth.decorators import login_required
 
 # Local
 from .serializers import *
@@ -13,9 +14,12 @@ from .serializers import *
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
+@login_required
 def net_income_vs_date_chart(request):
-    u = request.user
-    if u.is_anonymous() or not u.member.is_tagged_with("Director"):
+
+    # TODO: Turn this into a @directors_only decorator that uses @login_required
+    # REVIEW: This creates a dependency on "members". Review members/books relationship.
+    if not request.user.member.is_tagged_with("Director"):
         return HttpResponse("This page is for Directors only.")
 
     start = date(2016, 1, 1)
@@ -41,9 +45,10 @@ def net_income_vs_date_chart(request):
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
+@login_required
 def net_income_vs_date_chart_2(request):  # This is a temporary view
-    u = request.user
-    if u.is_anonymous() or not u.member.is_tagged_with("Director"):
+
+    if not request.user.member.is_tagged_with("Director"):
         return HttpResponse("This page is for Directors only.")
 
     start = date(2016, 1, 1)
