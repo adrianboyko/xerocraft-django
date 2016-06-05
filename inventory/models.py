@@ -32,6 +32,88 @@ class Location(models.Model):
         ordering = ['pk']
 
 
+class Shop(models.Model):
+
+    name = models.CharField(max_length=40, blank=False,
+        help_text="The name of the shop.")
+
+    manager = models.ForeignKey(Member, null=True, blank=True, related_name='shops_managed',
+        on_delete=models.SET_NULL,
+        help_text="The member that manages the shop.")
+
+    backup_manager = models.ForeignKey(Member, null=True, blank=True, related_name='shops_backed',
+        on_delete=models.SET_NULL,
+        help_text="The member that can carry out manager duties when the manager is not available.")
+
+    info_link = models.URLField(null=True, blank=True,
+        help_text="A link to some web-based info about the shop, e.g. a Wiki page.")
+
+    def __str__(self):
+        return self.name
+
+
+class Tool(models.Model):
+    """Represents a tool, machine, etc. Not consumable."""
+
+    name = models.CharField(max_length=40, blank=False,
+        help_text="The resource's name or a short description.")
+
+    shop = models.ForeignKey(Shop, null=True, blank=True,
+        on_delete=models.SET_NULL,
+        help_text="The shop that owns or stocks the resource.")
+
+    location = models.ForeignKey(Location, null=True, blank=True,
+        on_delete=models.SET_NULL,
+        help_text="The location of the resource.")
+
+    def __str__(self):
+        toolname = self.name if self.name != "" else "?"
+        shopname = self.shop.name if self.shop is not None and self.shop.name != "" else "?"
+        return "{} in {}".format(toolname, shopname)
+
+
+class ToolIssue(models.Model):
+
+    tool = models.ForeignKey(Tool, null=False, blank=False,
+        on_delete=models.CASCADE,
+        help_text="The member that reported the issue.")
+
+    reporter = models.ForeignKey(Member, null=True, blank=True,
+        on_delete=models.SET_NULL,
+        help_text="The member that reported the issue.")
+
+    short_desc = models.CharField(max_length=40, blank=False,
+        help_text="A short description of the issue. In depth description can go in a note.")
+
+    IT_NEW       = "N"  # The issue has been entered but no further action has been taken.
+    IT_VALIDATED = "V"  # The issue has been validated by the shop manager.
+    IT_CLOSED    = "C"  # The issue has been closed (either dealt with or rejected)
+    ISSUE_TYPE_CHOICES = [
+        (IT_NEW,       "New Issue"),
+        (IT_VALIDATED, "Validated"),
+        (IT_CLOSED,    "Closed"),
+    ]
+    status = models.CharField(max_length=1, choices=ISSUE_TYPE_CHOICES)
+
+
+class ToolIssueNote(models.Model):
+
+    toolIssue = models.ForeignKey(ToolIssue, null=False, blank=False,
+        on_delete=models.CASCADE,
+        help_text="Any kind of note about the tool issue.")
+
+    # Note will become anonymous if author is deleted or author is blank.
+    author = models.ForeignKey(Member, null=True, blank=True,
+        on_delete=models.SET_NULL,
+        help_text="The member who wrote this note.")
+
+    when_written = models.DateTimeField(null=False, auto_now_add=True,
+        help_text="The date and time when the note was written.")
+
+    content = models.TextField(max_length=2048,
+        help_text="Anything you want to say about the tool issue.")
+
+
 class ParkingPermit(models.Model):
 
     owner = models.ForeignKey(Member, null=False, blank=False, on_delete=models.PROTECT,
