@@ -57,11 +57,14 @@ class ToolInline(admin.TabularInline):
 
     model = Tool
     extra = 0
+
+    fields = ['status', 'name', 'location', 'more_info']
     readonly_fields = ['more_info']
 
 
 @admin.register(Shop)
 class ShopAdmin(VersionAdmin):
+
     list_display = ['pk', 'name', 'manager', 'backup_manager']
     list_display_links = ['pk', 'name']
     fields = [
@@ -71,6 +74,11 @@ class ShopAdmin(VersionAdmin):
     ]
     raw_id_fields = ['manager', 'backup_manager']
     inlines = [ToolInline]
+
+    class Media:
+        css = {
+            "all": ("inventory/inventory.css",)  # This hides "denormalized object descs", to use Wojciech's term.
+        }
 
 
 class ToolIssueInline(admin.TabularInline):
@@ -113,6 +121,11 @@ class ToolAdmin(VersionAdmin):
 
     inlines = [ToolIssueInline]
 
+    class Media:
+        css = {
+            "all": ("inventory/inventory.css",)  # This hides "denormalized object descs", to use Wojciech's term.
+        }
+
 
 class ToolIssueNoteInline(admin.StackedInline):
     model = ToolIssueNote
@@ -127,7 +140,13 @@ class ToolIssueNoteInline(admin.StackedInline):
 
 @admin.register(ToolIssue)
 class ToolIssueAdmin(VersionAdmin):
-    list_display = ['pk', 'tool', 'reporter', 'short_desc', 'status', ]
+
+    def shop(self, obj): # Req'd because can't use 'tool__shop' in list_display.
+        return obj.tool.shop
+
+    list_display = ['pk', 'tool', 'shop', 'reporter', 'short_desc', 'status', ]
+    list_filter = ['status', 'tool__shop']
+
     fields = [
         'tool',
         ('reporter', 'short_desc'),

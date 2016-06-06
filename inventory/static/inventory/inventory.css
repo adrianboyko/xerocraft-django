@@ -1,0 +1,8 @@
+
+tr.form-row td.original p {
+    display: none;
+}
+
+.inline-group .tabular tr.has_original td {
+    padding-top: 5px;
+}
