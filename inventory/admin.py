@@ -48,9 +48,12 @@ class PermitRenewalAdmin(VersionAdmin):
 class ToolInline(admin.TabularInline):
 
     def more_info(self, obj):
-        # TODO: Use reverse as in the answer at http://stackoverflow.com/questions/2857001
-        url_str = "/admin/inventory/tool/{}".format(obj.id)
-        return format_html("<a href='{}'>Tool Details</a>", url_str)
+        if obj.id is None:
+            return "n/a"
+        else:
+            # TODO: Use reverse as in the answer at http://stackoverflow.com/questions/2857001
+            url_str = "/admin/inventory/tool/{}".format(obj.id)
+            return format_html("<a href='{}'>Tool Details</a>", url_str)
 
     model = Tool
     extra = 0
@@ -61,6 +64,11 @@ class ToolInline(admin.TabularInline):
 class ShopAdmin(VersionAdmin):
     list_display = ['pk', 'name', 'manager', 'backup_manager']
     list_display_links = ['pk', 'name']
+    fields = [
+        'name',
+        ('manager', 'backup_manager'),
+        'public_info',
+    ]
     raw_id_fields = ['manager', 'backup_manager']
     inlines = [ToolInline]
 
@@ -70,9 +78,12 @@ class ToolIssueInline(admin.TabularInline):
     extra = 0
 
     def more_info(self, obj):
-        # TODO: Use reverse as in the answer at http://stackoverflow.com/questions/2857001
-        url_str = "/admin/inventory/toolissue/{}".format(obj.id)
-        return format_html("<a href='{}'>Issue Details</a>", url_str)
+        if obj.id is None:
+            return "n/a"
+        else:
+            # TODO: Use reverse as in the answer at http://stackoverflow.com/questions/2857001
+            url_str = "/admin/inventory/toolissue/{}".format(obj.id)
+            return format_html("<a href='{}'>Issue Details</a>", url_str)
 
     readonly_fields = ['more_info']
     raw_id_fields = ['reporter']
@@ -87,9 +98,18 @@ class ToolAdmin(VersionAdmin):
     def backup_mgr(self, obj):
         return obj.shop.backup_manager
 
-    list_display = ['pk', 'name', 'shop', 'manager', 'backup_mgr', 'location']
+    list_display = ['pk', 'name', 'status', 'shop', 'manager', 'backup_mgr', 'location']
 
     list_display_links = ['pk', 'name']
+
+    list_filter = ['status', 'shop']
+
+    fields = [
+        ('name', 'shop', 'status'),
+        ('public_info', 'location'),
+    ]
+
+    search_fields = ['name']
 
     inlines = [ToolIssueInline]
 
@@ -107,5 +127,11 @@ class ToolIssueNoteInline(admin.StackedInline):
 
 @admin.register(ToolIssue)
 class ToolIssueAdmin(VersionAdmin):
+    list_display = ['pk', 'tool', 'reporter', 'short_desc', 'status', ]
+    fields = [
+        'tool',
+        ('reporter', 'short_desc'),
+        'status',
+    ]
     inlines = [ToolIssueNoteInline]
     raw_id_fields = ['reporter']

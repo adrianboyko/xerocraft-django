@@ -45,8 +45,8 @@ class Shop(models.Model):
         on_delete=models.SET_NULL,
         help_text="The member that can carry out manager duties when the manager is not available.")
 
-    info_link = models.URLField(null=True, blank=True,
-        help_text="A link to some web-based info about the shop, e.g. a Wiki page.")
+    public_info = models.URLField(null=True, blank=True,
+        help_text="A link to the public wiki page about this shop.")
 
     def __str__(self):
         return self.name
@@ -62,9 +62,23 @@ class Tool(models.Model):
         on_delete=models.SET_NULL,
         help_text="The shop that owns or stocks the resource.")
 
+    public_info = models.URLField(null=True, blank=True,
+        help_text="A link to the public wiki page about this tool.")
+
     location = models.ForeignKey(Location, null=True, blank=True,
         on_delete=models.SET_NULL,
         help_text="The location of the resource.")
+
+    TS_GOOD     = "G"  # The tool is in good shape.
+    TS_DEGRADED = "D"  # The tool works but certain issues should be noted. See VALID ToolIssues.
+    TS_UNUSABLE = "U"  # The tool cannot or should not be used. See VALID ToolIssues.
+    TOOL_STATUS_CHOICES = [
+        (TS_GOOD,     "Good"),
+        (TS_DEGRADED, "Degraded"),
+        (TS_UNUSABLE, "Unusable"),
+    ]
+    status = models.CharField(max_length=1, choices=TOOL_STATUS_CHOICES, default=TS_GOOD,
+        help_text = "Status of the tool. If DEGRADED or UNUSABLE see Tool Issues.")
 
     def __str__(self):
         toolname = self.name if self.name != "" else "?"
@@ -93,7 +107,11 @@ class ToolIssue(models.Model):
         (IT_VALIDATED, "Validated"),
         (IT_CLOSED,    "Closed"),
     ]
-    status = models.CharField(max_length=1, choices=ISSUE_TYPE_CHOICES)
+    status = models.CharField(max_length=1, choices=ISSUE_TYPE_CHOICES, default=IT_NEW,
+        help_text = "Status of the issue. Set to CLOSED if issue is invalid or if the issue has been dealt with.")
+
+    def __str__(self):
+        return "{} issue #{}".format(self.tool.name, self.id)
 
 
 class ToolIssueNote(models.Model):
@@ -112,6 +130,9 @@ class ToolIssueNote(models.Model):
 
     content = models.TextField(max_length=2048,
         help_text="Anything you want to say about the tool issue.")
+
+    def __str__(self):
+        return "Issue note #{}".format(self.id)
 
 
 class ParkingPermit(models.Model):
