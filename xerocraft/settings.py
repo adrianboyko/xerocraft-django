@@ -98,6 +98,7 @@ if ISDEVHOST:
     )
 
 INSTALLED_APPS += (
+    'abutils',
     'xerocraft', # I'm including this for its /static folder. Any negative consequences? Use <proj>/static instead?
     'members',
     'tasks',

@@ -77,7 +77,7 @@ class ShopAdmin(VersionAdmin):
 
     class Media:
         css = {
-            "all": ("inventory/inventory.css",)  # This hides "denormalized object descs", to use Wojciech's term.
+            "all": ("abutils/admin-tabular-inline.css",)  # This hides "denormalized object descs", to use Wojciech's term.
         }
 
 
@@ -123,7 +123,7 @@ class ToolAdmin(VersionAdmin):
 
     class Media:
         css = {
-            "all": ("inventory/inventory.css",)  # This hides "denormalized object descs", to use Wojciech's term.
+            "all": ("abutils/admin-tabular-inline.css",)  # This hides "denormalized object descs", to use Wojciech's term.
         }
 
 

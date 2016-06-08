@@ -281,6 +281,10 @@ class ExpenseClaimAdmin(VersionAdmin):
     ]
     raw_id_fields = ['claimant']
 
+    class Media:
+        css = {
+            "all": ("abutils/admin-tabular-inline.css",)  # This hides "denormalized object descs", to use Wojciech's term.
+        }
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # EXPENSE TRANSACTIONS

@@ -506,6 +506,11 @@ class ClaimAdmin(admin.ModelAdmin):  # No need to version these
     ]
     raw_id_fields = ['claimed_task', 'claiming_member']
 
+    class Media:
+        css = {
+            "all": ("abutils/admin-tabular-inline.css",)  # This hides "denormalized object descs", to use Wojciech's term.
+        }
+
 
 @admin.register(Nag)
 class NagAdmin(admin.ModelAdmin):  # No need to version these
