@@ -3,11 +3,14 @@ import os
 import chump
 import logging
 
+# TODO: This was created before the "abutils" app. Move it there.
+
 pushover = chump.Application(os.environ['PUSHOVER_API_KEY'])
 assert pushover.is_authenticated
 logger = logging.getLogger("members")
 
 
+# REVIEW: This sometimes fails. Should it be an asynchronous task with retries?
 def notify(target_member: Member, title: str, message: str):
     try:
         target_key = Pushover.objects.get(who=target_member).key
