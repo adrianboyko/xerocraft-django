@@ -47,13 +47,13 @@ class DbCheck(unittest.TestCase):
                             sys.stdout.flush()
                     except ValidationError as e:
                         print("E", end="")
-                        problems.append(">>> {} {} {}".format(obj.pk, obj, e))
+                        problems.append("{} {} {}".format(obj.pk, obj, e))
                         count += 1
                         continue
                 print("")
 
         if count > 0:
+            print("DBCheck found the following issues:")
             for problem in problems:
-                print(problem)
+                print("   "+problem)
             sys.stdout.flush()
-            sys.exit(count)
