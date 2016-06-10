@@ -29,6 +29,7 @@ from members.models import Member, Tag, Tagging, VisitEvent, PaidMembership, Mem
 from members.forms import Desktop_ChooseUserForm, Books_NotePaymentForm
 import members.serializers as ser
 from members.models import GroupMembership
+from members.notifications import notify
 
 logger = getLogger("members")
 
@@ -408,6 +409,21 @@ class WifiMacDetectedViewSet(viewsets.ModelViewSet):  # Django REST Framework
     """
     queryset = WifiMacDetected.objects.all()
     serializer_class = ser.WifiMacDetectedSerializer
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# RFID CARDS
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+def rfid_entry_granted(request, rfid_cardnum_hashed):
+    return JsonResponse({'success': "Information noted."})
+
+
+def rfid_entry_denied(request, rfid_cardnum):
+    # TODO: Shouldn't have a hard-coded userid here. Make configurable, perhaps with tags.
+    recipient = Member.objects.get(auth_user__username='adrianb')
+    notify(recipient, "Entry Denied", rfid_cardnum)
+    return JsonResponse({'success': "Information noted."})
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = REPORTS

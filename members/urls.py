@@ -18,7 +18,6 @@ urlpatterns = [
     url(r'^desktop/member-tags/(?P<member_pk>[0-9]+)(?P<op>[+-])(?P<tag_pk>[0-9]+)/$', views.member_tags, name='desktop-member-tags'),
     url(r'^desktop/member-count-vs-date/$', views.desktop_member_count_vs_date, name='desktop-member-count-vs-date'),
     url(r'^desktop/earned-membership-revenue/$', views.desktop_earned_membership_revenue, name='earned-membership-revenue'),
-
     url(r'^desktop/paid-percent/$', views.desktop_paid_percent, name='desktop-paid-percent'),
 
     # For kiosk:
@@ -42,5 +41,7 @@ urlpatterns = [
     url(r'^csv/monthly-accrued-membership/$', views.csv_monthly_accrued_membership, name='csv-monthly-accrued-membership'),
     url(r'^csv/monthly-accrued-membership-download/$', views.csv_monthly_accrued_membership_download, name='csv-monthly-accrued-membership_download'),
 
+    # RFID cards
+    url(r'^rfid-entry-granted/(?P<rfid_cardnum_hash>[a-fA-f0-9]{32})/$', views.rfid_entry_granted, name='rfid-entry-granted'),
+    url(r'^rfid-entry-denied/(?P<rfid_cardnum>[0-9]+)/$', views.rfid_entry_denied, name='rfid-entry-denied'),
 ]
-
