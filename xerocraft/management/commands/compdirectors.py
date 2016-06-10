@@ -1,14 +1,14 @@
-from django.core.management.base import BaseCommand, CommandError
-from django.core.mail import EmailMultiAlternatives
-from django.template.loader import get_template
-from django.template import Context
-from django.utils import timezone
-from members.models import Member, Tag, Tagging, Membership
-from tasks.models import Work
-from datetime import datetime, timedelta, time
-from decimal import Decimal
-from dateutil.relativedelta import relativedelta
+# Standard
+from datetime import datetime
 import logging
+
+# Third Party
+from django.core.management.base import BaseCommand
+from django.utils import timezone
+
+# Local
+from members.models import Tag, Membership
+from dateutil.relativedelta import relativedelta
 
 __author__ = 'adrian'
 

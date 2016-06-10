@@ -1,13 +1,18 @@
 
+# Standard
+from datetime import date
+from decimal import Decimal
+import time
+from hashlib import md5
+
+# Third Party
+from dateutil.relativedelta import relativedelta
+import requests
+
+# Local
 from xerocraft.etlfetchers.abstractfetcher import AbstractFetcher
 from members.models import Membership
-from books.models import Sale, SaleNote, Donation, MonetaryDonation
-from hashlib import md5
-from datetime import date
-from dateutil.relativedelta import relativedelta
-from decimal import Decimal
-import requests
-import time
+from books.models import Sale, MonetaryDonation
 
 
 def date2timestamp(datex: date) -> int:

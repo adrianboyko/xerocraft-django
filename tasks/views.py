@@ -2,22 +2,21 @@
 # Standard
 from hashlib import md5
 from datetime import date, datetime, timedelta
-from dateutil.parser import parse
 import logging
 import json
 
 # Third Party
+from dateutil.parser import parse
 from django.core.urlresolvers import reverse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse, JsonResponse, Http404
-from django.template import loader, Context, RequestContext
-from django.contrib.auth.models import User
+from django.template import loader, Context
 from django.contrib.auth import authenticate
 from django.contrib.auth.decorators import login_required
 from icalendar import Calendar, Event
 
 # Local
-from tasks.forms import *
+from tasks.forms import Desktop_TimeSheetForm
 from tasks.models import Task, Nag, Claim, Work, WorkNote, Worker, TimeWindowedObject
 from members.models import Member, VisitEvent
 from members.signals.handlers import note_login

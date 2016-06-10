@@ -2,7 +2,6 @@
 
 # Standard
 from datetime import date
-from dateutil.relativedelta import relativedelta
 from collections import Counter
 from time import mktime
 import csv
@@ -10,6 +9,7 @@ from decimal import Decimal
 from logging import getLogger
 
 # Third party
+from dateutil.relativedelta import relativedelta
 from django.shortcuts import render, redirect
 from django.http import HttpResponse, JsonResponse
 from django.core.urlresolvers import reverse
@@ -26,7 +26,7 @@ from reportlab.lib.pagesizes import letter
 
 # Local
 from members.models import Member, Tag, Tagging, VisitEvent, PaidMembership, Membership, DiscoveryMethod, MembershipGiftCardReference, WifiMacDetected
-from members.forms import Desktop_ChooseUserForm, Books_NotePaymentForm
+from members.forms import Desktop_ChooseUserForm
 import members.serializers as ser
 from members.models import GroupMembership
 from members.notifications import notify

@@ -1,14 +1,20 @@
-from xerocraft.etlfetchers.abstractfetcher import AbstractFetcher
-from members.models import Membership, Member, MembershipGiftCardReference
-from books.models import Sale, MonetaryDonation, OtherItem, OtherItemType
+
+# Standard
+from decimal import Decimal
 from datetime import date
-from dateutil.parser import parse
-from dateutil.relativedelta import relativedelta
+
+# Third Party
 import requests
 import requests.exceptions
 import lxml
 import lxml.html
-from decimal import Decimal
+from dateutil.parser import parse
+from dateutil.relativedelta import relativedelta
+
+# Local
+from xerocraft.etlfetchers.abstractfetcher import AbstractFetcher
+from members.models import Membership, Member, MembershipGiftCardReference
+from books.models import Sale, MonetaryDonation, OtherItem, OtherItemType
 
 
 # Note: This class must be named Fetcher in order for dynamic load to find it.

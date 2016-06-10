@@ -1,11 +1,17 @@
-from django.core.management.base import BaseCommand, CommandError
+
+# Standard
+import datetime
+import logging
+
+# Third Party
+from django.core.management.base import BaseCommand
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import get_template
 from django.template import Context
-from tasks.models import Task, Claim, Nag, Worker, Work
 from dateutil import relativedelta
-import datetime
-import logging
+
+# Local
+from tasks.models import Task, Claim, Nag, Worker, Work
 
 __author__ = 'adrian'
 
