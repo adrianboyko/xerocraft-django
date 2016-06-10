@@ -28,6 +28,9 @@ class DbCheck(unittest.TestCase):
 
     def test_models(self):
 
+        count = 0
+        problems = []
+
         for appname in ['tasks', 'books', 'inventory', 'members', 'xerocraft']:
             print(appname)
             app = apps.get_app_config(appname)
@@ -43,6 +46,14 @@ class DbCheck(unittest.TestCase):
                             print(".", end="")
                             sys.stdout.flush()
                     except ValidationError as e:
-                        print("      >>> {} {} {}".format(obj.pk, obj, e))
-                        raise e
+                        print("E", end="")
+                        problems.append(">>> {} {} {}".format(obj.pk, obj, e))
+                        count += 1
+                        continue
                 print("")
+
+        if count > 0:
+            for problem in problems:
+                print(problem)
+            sys.stdout.flush()
+            sys.exit(count)
