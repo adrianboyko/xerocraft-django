@@ -1,8 +1,8 @@
 <html>
 <body style='font-family:Arial'>
     <p>Hi {{member.first_name}},</p>
-    <p>Xerocraft needs your help with the following tasks which are scheduled within the next 7 days but still need to be staffed:</p>
-    <ul>{% for task in tasks %}<li><a href="{{host}}{% url 'task:offer-task' task_pk=task.pk auth_token=token %}" mc:disable-tracking>{{task.full_desc}}</a></li>{% endfor %}</ul>
+    <p>Xerocraft needs your help with the following tasks which are scheduled within the next few days but still need to be staffed:</p>
+    <ul>{% for task in tasks %}<li><a href="{{host}}{% url 'task:offer-task' task_pk=task.pk auth_token=token %}">{{task.full_desc}}</a></li>{% endfor %}</ul>
     <!-- TODO: "If there are types of tasks that you don't want to work, or days of the week you can't work, ..." -->
 </body>
 </html>
