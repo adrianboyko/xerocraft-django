@@ -29,10 +29,6 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = (
     os.path.join(BASE_DIR, 'static'),
 )
-if ISDEVHOST:
-    STATICFILES_DIRS += (
-        os.path.join(BASE_DIR, 'assets'),
-    )
 
 # Simplified static file serving.
 # https://warehouse.python.org/project/whitenoise/
@@ -92,7 +88,6 @@ if ISDEVHOST:
     # So I'm putting all the development and WIP stuff here.
     INSTALLED_APPS += (
         'django_jenkins',
-        'webpack_loader',
         'guardian',
         #'debug_toolbar',
     )
@@ -212,7 +207,11 @@ en_formats.DATE_FORMAT = "m/d/y"
 EMAIL_BACKEND = "sparkpost.django.email_backend.SparkPostEmailBackend"
 SPARKPOST_API_KEY = os.environ['SPARKPOST_API_KEY']
 DEFAULT_FROM_EMAIL = "Xerocraft Systems <xis@xerocraft.org>"
-
+SPARKPOST_OPTIONS = {
+    'track_opens': False,
+    'track_clicks': False,
+    'transactional': True,
+}
 
 # Per http://stackoverflow.com/questions/18920428/django-logging-on-heroku
 
