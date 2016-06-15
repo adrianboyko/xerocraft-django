@@ -22,7 +22,7 @@ ONEWEEK = datetime.timedelta(weeks=1)
 TWOWEEKS = ONEWEEK + ONEWEEK
 
 # HOST = 'http://192.168.1.101:8000'
-HOST = 'http://xerocraft-django.herokuapp.com'
+HOST = 'https://xerocraft-django.herokuapp.com'
 
 
 class Command(BaseCommand):
