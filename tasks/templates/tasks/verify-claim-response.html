@@ -22,7 +22,7 @@
 
 </head>
 
-<p class="unselectable">
+<body class="unselectable">
     <h1>OK, Got It!</h1>
     <p>
         If you haven't already done so, consider
@@ -34,6 +34,5 @@
 
     <!-- Following URL appears as http but webcal might be better. -->
     <p><a href="{% url 'task:member-calendar' token=claimant.worker.calendar_token %}">{{claimant.first_name}}'s Calendar</a></p>
-
 </body>
 </html>
