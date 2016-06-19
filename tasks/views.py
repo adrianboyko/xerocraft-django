@@ -21,6 +21,10 @@ from tasks.models import Task, Nag, Claim, Work, WorkNote, Worker, TimeWindowedO
 from members.models import Member, VisitEvent
 from members.signals.handlers import note_login
 
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+_logger = logging.getLogger("tasks")
+
 # = = = = = = = = = = = = = = = = = = = = KIOSK VISIT EVENT CONTENT PROVIDERS
 
 from members.views import kiosk_visitevent_contentprovider
@@ -241,6 +245,7 @@ def verify_claim(request, claim_pk, will_do, auth_token):
     # Can't do the following because error: 'User' object has no attribute 'backend'
     # if not request.user.is_authenticated():
     #     login(request, claimant.auth_user)
+    # So do this instead:
     note_login(None, claimant.auth_user, request)
 
     claimant.worker.populate_calendar_token()
@@ -271,47 +276,61 @@ def kiosk_task_details(request, task_pk):
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-# REACT VIEWS FOR NAG CLICKS (Experimental development)
+# ELM VIEWS FOR NAG CLICKS (Experimental development)
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-
-def fname(m: Member):
-    if m.first_name is not None and m.first_name is not "":
-        return m.first_name
-    return m.username
 
 
 def offer_task_spa(request, task_pk=0, auth_token=""):
     task, nag = _get_task_and_nag(task_pk, auth_token)
 
     claims = task.claim_set.filter(status=Claim.STAT_CURRENT)
-    claims = [{"claim_id": x.pk, "who_claimed": fname(x.claiming_member)} for x in claims]
+
+    if len(claims) == 0:
+        claim = None
+    else:
+        claim = claims[0]
+
+    if len(claims) > 1:
+        # Now moving toward models where each task has exactly 0 or 1 claims.
+        # If somebody wants to make a partial claim, the leftover will result in a new unclaimed task.
+        # Note that I'm not going to offer partial claim functionality in this version of the view.
+        _logger.error("Task #{} has more than one claim.", task.pk)
+
+    # ---------------------------------------------------
+    # Bundle up info for the task offer
+    # ---------------------------------------------------
+
+    task_time_str = str(task.work_duration.total_seconds()/3600.0) + " hr"
+    task_time_str += "" if task_time_str == "1" else "s"
+    if task.work_start_time is not None:
+        task_time_str += " at " + task.work_start_time.strftime("%I:%M %p")
 
     futures = task.all_future_instances_same_dow()
-    futures = [x for x in futures if len(x.claim_set.all())==0]
+    futures = [x for x in futures if len(x.claim_set.all()) == 0]
     futures = [x for x in futures if nag.who in x.all_eligible_claimants()]
     futures = sorted(futures, key=lambda x: x.scheduled_date)
-    futures = futures[0:4]
+    futures = [x.scheduled_date.strftime("%A, %b %e") for x in futures]
 
     nag.who.worker.populate_calendar_token()
 
-    params = {
-        "task": {
-            "id": task.pk,
-            "desc": task.short_desc,
-            "date": task.scheduled_date.isoformat(),
-            "start_time": task.work_start_time.strftime("%I:%M %p"),
-            "work_duration": task.work_duration.total_seconds()/3600.0,
-        },
-        "user": {"id": nag.who.pk, "name": fname(nag.who)},
-        "claims": claims,
-        "max_hrs_to_claim": task.max_claimable_hours().total_seconds()/3600.0,
+    task_data = {
         "auth_token": auth_token,
-        "futures": [{"date": x.scheduled_date.isoformat(), "id":x.pk} for x in futures],
+        "nag_id": nag.pk,
+        "task_id": task.pk,
+        "user_friendly_name": nag.who.friendlyname,
+        "task_desc": task.short_desc,
+        "task_day_str": task.scheduled_date.strftime("%A, %b %e"),
+        "task_time_str": task_time_str,
+        "already_claimed_by": claim.claiming_member.friendlyname if claim is not None else "",
+        "future_dates": futures[0:4],
         "calendar_token": nag.who.worker.calendar_token,
     }
 
-    params = json.dumps(params)
-    return render(request, "tasks/offer-task-spa.html", {"props": params})
+    props = {
+        "task_data": json.dumps(task_data),
+    }
+
+    return render(request, "tasks/offer-task-spa.html", props)
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -337,24 +356,23 @@ def verify_claim_spa(request, claim_pk=0, auth_token=""):
 
 def _get_task_and_member(task_pk, member_card_str):
 
-    logger = logging.getLogger("tasks")
     try:
         task = Task.objects.get(pk=task_pk)
     except Task.DOES_NOT_EXIST:
         msg = "Info provided doesn't correspond to a task."
-        logger.error(msg)
+        _logger.error(msg)
         return None, None, JsonResponse({"error": msg})
 
     if task.work_start_time is None or task.work_duration is None:
         msg = "Expected a task with a specific time window."
-        logger.error(msg)
+        _logger.error(msg)
         return None, None, JsonResponse({"error": msg})
 
     member = Member.get_by_card_str(member_card_str)
     if member is None:
         # This might legitimately occur if an invalidated card is presented at the kiosk.
         msg = "Info provided doesn't correspond to a member."
-        logger.warning(msg)
+        _logger.warning(msg)
         return None, None, JsonResponse({"error": msg})
 
     return task, member, None
@@ -409,17 +427,15 @@ def record_work(request, task_pk, member_card_str):
     task, member, response = _get_task_and_member(task_pk, member_card_str)
     if response is not None: return response
 
-    logger = logging.getLogger("tasks")
-
     if member not in task.claimants.all():
         msg = "You are not working on this task."
-        logger.error(msg)
+        _logger.error(msg)
         return JsonResponse({"error": msg})
 
     claim = Claim.objects.get(claimed_task=task, claiming_member=member)
     if claim.status != Claim.STAT_WORKING:
         msg = "You are not working on this task."
-        logger.error(msg)
+        _logger.error(msg)
         return JsonResponse({msg})
 
     #TODO: Create a work entry. Should probably give worker a chance to edit hours.
