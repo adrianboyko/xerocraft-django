@@ -140,12 +140,13 @@ def api_get_membership_info(request, provider: str, id: str) -> HttpResponse:
     return JsonResponse(json)
 
 
+# REVIEW: What is the best place to create the queue?
 q = Queue(connection=conn)
 
 
 def scrape_checkins():
-    for i in range(2):
-        call(["/app/.heroku/python/bin/python", "manage.py", "scrapecheckins"])
+    for i in range(4):
+        call(["python", "manage.py", "scrapecheckins"])
         time.sleep(5)
 
 
