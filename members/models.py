@@ -119,10 +119,18 @@ class Member(models.Model):
 
     # Saving as MD5 provides some protection against read-only attacks.
     membership_card_md5 = models.CharField(max_length=MEMB_CARD_STR_LEN, null=True, blank=True,
-        help_text="MD5 checksum of the random urlsafe base64 string on the membership card.")
+        help_text="MD5 of the random urlsafe base64 string on the membership card.")
 
     membership_card_when = models.DateTimeField(null=True, blank=True,
         help_text="Date/time on which the membership card was created.")
+
+    # phone_mac_hash = models.CharField(max_length=32,
+    #     null=True, blank=True,  # MAC address tracking is opt-in
+    #     help_text="MAC address of member's phone.")
+    #
+    # rfid_has = models.CharField(max_length=32,
+    #     null=True, blank=True,  # RFIDs are issued to some members but not all
+    #     help_text="MD5 of member's RFID card number.")
 
     tags = models.ManyToManyField(Tag, blank=True, related_name="members",
         through='Tagging', through_fields=('tagged_member', 'tag'))
@@ -191,13 +199,24 @@ class Member(models.Model):
         return False
 
     @property
-    def first_name(self): return self.auth_user.first_name
+    def first_name(self)->str:
+        return self.auth_user.first_name
 
     @property
-    def last_name(self): return self.auth_user.last_name
+    def last_name(self)->str:
+        return self.auth_user.last_name
 
     @property
-    def username(self): return self.auth_user.username
+    def username(self)->str:
+        return self.auth_user.username
+
+    @property
+    def friendlyname(self)->str:
+        """ Friendly name is the members first name. If first name not available then it's the member's username. """
+        if self.first_name is not None and len(self.first_name) > 0:
+            return self.first_name
+        else:
+            return self.username
 
     @property
     def email(self): return self.auth_user.email
