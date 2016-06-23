@@ -13,8 +13,8 @@
       </h3>
     <p>
         Will you be able to complete the task?<br/>
-        <a href="{{host}}{% url 'task:verify-claim' claim.pk 'Y' auth_token %}">Yes, I'll be there!</a><br/>
-        <a href="{{host}}{% url 'task:verify-claim' claim.pk 'N' auth_token %}">No, I can't make it this time</a><br/>
+        <a id="Y" href="{{host}}{% url 'task:verify-claim' task.pk claim.pk 'Y' auth_token %}">Yes, I'll be there!</a><br/>
+        <a id="N" href="{{host}}{% url 'task:verify-claim' task.pk claim.pk 'N' auth_token %}">No, I can't make it this time</a><br/>
     </p>
     <p>
         If you have any questions or would like to adjust your schedule, please contact:<br/>

@@ -1,5 +1,6 @@
 # Standard
 import datetime
+import logging
 
 # Third party
 from django.core.management.base import BaseCommand
@@ -18,10 +19,12 @@ __author__ = 'adrian'
 ONEDAY = datetime.timedelta(days=1)
 TWODAYS = ONEDAY + ONEDAY
 THREEDAYS = TWODAYS + ONEDAY
+FOURDAYS = THREEDAYS + ONEDAY
 ONEWEEK = datetime.timedelta(weeks=1)
 TWOWEEKS = ONEWEEK + ONEWEEK
 
-# HOST = 'http://192.168.1.101:8000'
+#HOST = 'http://localhost:8081'  # LiveServerTestCase
+#HOST = 'http://192.168.1.101:8000'
 HOST = 'https://xerocraft-django.herokuapp.com'
 
 
@@ -94,6 +97,26 @@ class Command(BaseCommand):
             msg.send()
 
     @staticmethod
+    def abandon_suspect_claims():
+        """A default claim is 'suspect' if it's almost time to do the work but the claim is not verified."""
+
+        logger = logging.getLogger("tasks")
+        today = datetime.date.today()
+
+        for claim in Claim.objects.filter(
+          status = Claim.STAT_CURRENT,
+          claimed_task__scheduled_date__range=[today+ONEDAY, today+TWODAYS],
+          claiming_member=F('claimed_task__recurring_task_template__default_claimant'),
+          date_verified__isnull=True):
+            # If we get here, it means that we've asked default claimant to verify twice but haven't heard back.
+            if claim.claiming_member not in claim.claimed_task.eligible_claimants.all():
+                # It looks like person who set up the task forgot to make default claimant an eligible claimant.
+                # So let's add the default claimant to the list of eligible claimants.
+                claim.claimed_task.eligible_claimants.add(claim.claiming_member)
+            # Delete the default claimant's claim because we now want to nag to ALL eligible claimants.
+            claim.delete()
+
+    @staticmethod
     def verify_default_claims():
 
         text_content_template = get_template('tasks/email-verify-claim.txt')
@@ -101,7 +124,8 @@ class Command(BaseCommand):
 
         today = datetime.date.today()
         for claim in Claim.objects.filter(
-          claimed_task__scheduled_date__range=[today, today+TWODAYS],
+          status = Claim.STAT_CURRENT,
+          claimed_task__scheduled_date__range=[today+THREEDAYS, today+FOURDAYS],
           claiming_member=F('claimed_task__recurring_task_template__default_claimant'),
           date_verified__isnull=True):
             b64, md5 = Member.generate_auth_token_str(
@@ -109,6 +133,7 @@ class Command(BaseCommand):
 
             nag = Nag.objects.create(who=claim.claiming_member, auth_token_md5=md5)
             nag.claims.add(claim)
+            nag.tasks.add(claim.claimed_task)
 
             dow = claim.claimed_task.scheduled_weekday()
 
@@ -133,5 +158,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
 
-        self.nag_for_workers()
+        # Order is significant!
+        self.abandon_suspect_claims()
         self.verify_default_claims()
+        self.nag_for_workers()

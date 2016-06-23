@@ -211,7 +211,7 @@ class Member(models.Model):
         return self.auth_user.username
 
     @property
-    def friendlyname(self)->str:
+    def friendly_name(self)->str:
         """ Friendly name is the members first name. If first name not available then it's the member's username. """
         if self.first_name is not None and len(self.first_name) > 0:
             return self.first_name

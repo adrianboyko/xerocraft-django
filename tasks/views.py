@@ -223,24 +223,23 @@ def offers_done(request, auth_token):
 # Verify that worker will work auto-claimed task
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-def verify_claim(request, claim_pk, will_do, auth_token):
+def verify_claim(request, task_pk, claim_pk, will_do, auth_token):
+
+    task = get_object_or_404(Task, pk=task_pk)
+
+    md5str = md5(auth_token.encode()).hexdigest()
+    nag = get_object_or_404(Nag, auth_token_md5=md5str)
+    assert(task in nag.tasks.all())
+    who = nag.who
+
+    for uninterested in task.uninterested.all():
+        if uninterested == who:
+            return redirect('task:offer-task', task_pk=task_pk, auth_token=auth_token)
 
     claim = get_object_or_404(Claim, pk=claim_pk)
     claimant = claim.claiming_member
-    md5str = md5(auth_token.encode()).hexdigest()
-    nag = get_object_or_404(Nag, auth_token_md5=md5str)
-    assert(claim in nag.claims.all())
-    task = claim.claimed_task
-    params = {
-        'claimant': claimant,
-        'claim': claim,
-        'task': task,
-        'dow': task.scheduled_weekday(),
-        'auth_token': auth_token,
-    }
 
-    if will_do == "E":
-        return render(request, 'tasks/email-verify-claim.html', params)
+    assert(claim in nag.claims.all())
 
     # Can't do the following because error: 'User' object has no attribute 'backend'
     # if not request.user.is_authenticated():
@@ -248,17 +247,31 @@ def verify_claim(request, claim_pk, will_do, auth_token):
     # So do this instead:
     note_login(None, claimant.auth_user, request)
 
-    claimant.worker.populate_calendar_token()
-
     if will_do == "Y":  # The default claimant verifies they will do the work.
         claim.date_verified = date.today()
+        claim.status = Claim.STAT_CURRENT
         claim.save()
-        return render(request, 'tasks/verify-claim-response.html', params)
 
-    if will_do == "N":  # The default claimant says they can't do the work, this time.
+    elif will_do == "N":  # The default claimant says they can't do the work, this time.
         task.uninterested.add(claimant)
         claim.delete()
-        return render(request, 'tasks/verify-claim-response.html', params)
+
+    # At this point, claim.status might be something other than CURRENT (probably ABANDONED).
+    # Template will need to take status into account.  If status is ABANDONED it means that
+    # the default claimant took too long to verify and somebody else claimed in the meantime.
+
+    claimant.worker.populate_calendar_token()  # Idempotent
+
+    params = {
+        'claimant_friendly_name': claimant.friendly_name,
+        'claim': claim,
+        'task': task,
+        'dow': task.scheduled_weekday(),
+        'auth_token': auth_token,
+        'will_do': will_do,
+        'cal_token': claimant.worker.calendar_token,
+    }
+    return render(request, 'tasks/verify-claim-response.html', params)
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -317,11 +330,11 @@ def offer_task_spa(request, task_pk=0, auth_token=""):
         "auth_token": auth_token,
         "nag_id": nag.pk,
         "task_id": task.pk,
-        "user_friendly_name": nag.who.friendlyname,
+        "user_friendly_name": nag.who.friendly_name,
         "task_desc": task.short_desc,
         "task_day_str": task.scheduled_date.strftime("%A, %b %e"),
         "task_time_str": task_time_str,
-        "already_claimed_by": claim.claiming_member.friendlyname if claim is not None else "",
+        "already_claimed_by": claim.claiming_member.friendly_name if claim is not None else "",
         "future_dates": futures[0:4],
         "calendar_token": nag.who.worker.calendar_token,
     }

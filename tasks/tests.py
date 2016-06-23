@@ -1,31 +1,251 @@
 # Standard
 from datetime import datetime, date, timedelta, time
 from pydoc import locate  # for loading classes
+import os
 
 # Third Party
 from django.core import management, mail
 from django.core.urlresolvers import reverse
-from django.test import TestCase, TransactionTestCase, Client, RequestFactory
+from django.test import TestCase, TransactionTestCase, LiveServerTestCase, Client, RequestFactory
 from django.contrib.auth.models import User
 from django.contrib.admin import site
+from freezegun import freeze_time
+from selenium import webdriver
+import lxml.html
+import requests
 
 # Local
 from tasks.models import RecurringTaskTemplate, Task, TaskNote, Claim, Work, WorkNote, Nag
 from members.models import Member, Tag, VisitEvent
 
 
+ONEDAY = timedelta(days=1)
+TWODAYS   = 2 * ONEDAY
+THREEDAYS = 3 * ONEDAY
+FOURDAYS  = 4 * ONEDAY
+
+
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-model_classnames = [
-    "RecurringTaskTemplate",
-    "Task",
-    "Nag",
-    "Claim",
-    "Work",
-    "TaskNote",
-    "Worker",
-    "WorkNote",
-]
+class Test_VerifyClaim_Base(LiveServerTestCase):
+
+    SHORT_DESC = "Task With Default Claimant"
+    EMAIL1 = 'm1@example.com'
+    EMAIL2 = 'm2@example.com'
+    EMAIL3 = 'm3@example.com'
+
+    def testScenario(self):
+
+        self.memb1 = User.objects.create_superuser(username='m1', password='123', email=self.EMAIL1).member
+        self.memb2 = User.objects.create_superuser(username='m2', password='123', email=self.EMAIL2).member
+        self.memb3 = User.objects.create_superuser(username='m3', password='123', email=self.EMAIL3).member
+
+        self.memb1.worker.should_nag = True
+        self.memb2.worker.should_nag = True
+        self.memb3.worker.should_nag = True
+
+        self.memb1.worker.save()
+        self.memb2.worker.save()
+        self.memb3.worker.save()
+
+        rt = RecurringTaskTemplate.objects.create(
+            short_desc=self.SHORT_DESC,
+            max_work=timedelta(hours=1.0),
+            start_date=date.today(),
+            repeat_interval=1,
+            default_claimant=self.memb1,
+            should_nag=True,
+        )
+
+        rt.eligible_claimants.add(self.memb2)
+        rt.eligible_claimants.add(self.memb3)
+        rt.save()
+        rt.full_clean()
+
+        management.call_command("scheduletasks", "0")
+        self.task = rt.instances.all()[0]
+
+        CHROME_DRIVER = "/usr/lib/chromium-browser/chromedriver"
+        os.environ["webdriver.chrome.driver"] = CHROME_DRIVER
+        self.browser = webdriver.Chrome(CHROME_DRIVER)
+        try:
+            for offset in range(-4, 2):
+                with freeze_time(self.task.scheduled_date + offset*ONEDAY):
+                    self.assertEquals(self.task.scheduled_date + offset*ONEDAY, date.today())  # Testing the freeze
+                    management.call_command("nag")
+                    if offset < 0: sign_name = "minus"
+                    elif offset == 0: sign_name = ""
+                    else: sign_name = "plus"
+                    method_name = "do_day_{}{}".format(sign_name, str(abs(offset)))
+                    if hasattr(self, method_name):
+                        getattr(self, method_name)()
+        finally:
+            self.browser.quit()
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+
+class Test_VerifyClaim_Scenario1(Test_VerifyClaim_Base):
+
+    """ In this scenario, the default claimant ignores the first nag but responds affirmatively to the second."""
+
+    def do_day_minus4(self):
+        self.assertEqual(len(mail.outbox), 1)
+        (html, ctype) = mail.outbox[0].alternatives[0]
+        self.assertEquals(ctype, "text/html")
+
+    def do_day_minus3(self):
+        self.assertEqual(len(mail.outbox), 2)
+        (html, ctype) = mail.outbox[1].alternatives[0]
+        self.assertEquals(ctype, "text/html")
+        html_dom = lxml.html.fromstring(html)
+        yes_url = html_dom.xpath("//a[@id='Y']/@href")[0]
+        self.browser.get(yes_url)
+
+    def do_day_minus2(self):
+        claims = self.task.claim_set.all()
+        self.assertEqual(len(claims), 1)
+        self.assertEquals(claims[0].status, Claim.STAT_CURRENT)
+        self.assertEqual(len(mail.outbox), 2)
+
+    def do_day_minus1(self):
+        claims = self.task.claim_set.all()
+        self.assertEqual(len(claims), 1)
+        self.assertEquals(claims[0].status, Claim.STAT_CURRENT)
+        self.assertEqual(len(mail.outbox), 2)
+
+    def do_day_0(self):
+        claims = self.task.claim_set.all()
+        self.assertEqual(len(claims), 1)
+        self.assertEquals(claims[0].status, Claim.STAT_CURRENT)
+        self.assertEqual(len(mail.outbox), 2)
+
+    def do_day_plus1(self):
+        claims = self.task.claim_set.all()
+        self.assertEqual(len(claims), 1)
+        self.assertEquals(claims[0].status, Claim.STAT_CURRENT)
+        self.assertEqual(len(mail.outbox), 2)
+
+
+class Test_VerifyClaim_Scenario2(Test_VerifyClaim_Base):
+
+    """In this scenario, nobody responds to any of the generated email messages."""
+
+    def do_day_minus4(self):
+        self.assertEqual(len(mail.outbox), 1)
+        claims = self.task.claim_set.all()
+        self.assertEqual(len(claims), 1)
+        self.assertEquals(claims[0].status, Claim.STAT_CURRENT)
+
+    def do_day_minus3(self):
+        self.assertEqual(len(mail.outbox), 2)
+        claims = self.task.claim_set.all()
+        self.assertEqual(len(claims), 1)
+        self.assertEquals(claims[0].status, Claim.STAT_CURRENT)
+
+    def do_day_minus2(self):
+        claims = self.task.claim_set.all()
+        self.assertEqual(len(claims), 0)
+        self.assertEqual(len(mail.outbox), 5)
+
+    def do_day_minus1(self):
+        claims = self.task.claim_set.all()
+        self.assertEqual(len(claims), 0)
+        self.assertEqual(len(mail.outbox), 8)
+
+    def do_day_0(self):
+        claims = self.task.claim_set.all()
+        self.assertEqual(len(claims), 0)
+        self.assertEqual(len(mail.outbox), 11)
+
+    def do_day_plus1(self):
+        claims = self.task.claim_set.all()
+        self.assertEqual(len(claims), 0)
+        self.assertEqual(len(mail.outbox), 11)
+
+
+class Test_VerifyClaim_Scenario3(Test_VerifyClaim_Base):
+
+    """
+    In this scenario:
+        * The default assignee responds negatively on D-4
+        * A backup picks up the task on D-2
+        * The original default assignee decides to nonsensically respond affirmatively on D-1
+    """
+
+    def do_day_minus4(self):
+
+        # There is one claim on the task, for the default assignee
+        claims = self.task.claim_set.all()
+        self.assertEqual(len(claims), 1)
+        self.assertEqual(claims[0].status, Claim.STAT_CURRENT)
+
+        # Default assignee looks at the email message
+        self.assertEqual(len(mail.outbox), 1)
+        (html, ctype) = mail.outbox[0].alternatives[0]
+        self.assertEquals(ctype, "text/html")
+        html_dom = lxml.html.fromstring(html)
+
+        # And responds negatively
+        no_url = html_dom.xpath("//a[@id='N']/@href")[0]
+        self.browser.get(no_url)
+
+        # So, there are now zero claims and an "uninterested"
+        self.assertEqual(len(self.task.claim_set.all()), 0)
+        self.assertEqual(len(self.task.uninterested.all()), 1)
+        self.assertTrue(self.memb1 in self.task.uninterested.all())
+
+    def do_day_minus3(self):
+        # Nothing happens on this day in this scenario
+        self.assertEqual(len(mail.outbox), 1)
+
+    def do_day_minus2(self):
+
+        # Email went to two backups
+        self.assertEqual(len(mail.outbox), 3)
+
+        # One of the backups looks at the task info
+        (html, ctype) = mail.outbox[2].alternatives[0]
+        self.assertEquals(ctype, "text/html")
+        html_dom = lxml.html.fromstring(html)
+        task_url = html_dom.xpath("//a/@href")[0]
+        self.browser.get(task_url)
+
+        # And decides to take the task
+        self.browser.find_element_by_partial_link_text("Claim").click()
+
+        # There is now one claim for the task
+        claims = self.task.claim_set.all()
+        self.assertEqual(len(claims), 1)
+        self.assertEqual(claims[0].status, Claim.STAT_CURRENT)
+
+    def do_day_minus1(self):
+
+        # No email generated on this day
+        self.assertEqual(len(mail.outbox), 3)
+
+        # Default assignee looks at the original email message, again
+        (html, ctype) = mail.outbox[0].alternatives[0]
+        self.assertEquals(ctype, "text/html")
+        html_dom = lxml.html.fromstring(html)
+
+        # And responds affirmatively.
+        # But his original claim is gone so he's redirected to offer_task which tells him the task has been claimed.
+        yes_url = html_dom.xpath("//a[@id='Y']/@href")[0]
+        try:
+            response = requests.get(yes_url)
+            response.raise_for_status()
+            self.assertTrue("already staffed" in response.text)
+        except:
+            self.fail("Bad response to default assignee's nonsensical affirmative reply.")
+
+    def do_day_0(self):
+        # Nothing happens on this day in this scenario
+        self.assertEqual(len(mail.outbox), 3)
+
+    def do_day_plus1(self):
+        # Nothing happens on this day in this scenario
+        self.assertEqual(len(mail.outbox), 3)
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
@@ -52,7 +272,7 @@ class TestTemplateToInstanceCopy(TransactionTestCase):
         task = Task.objects.all()[:1].get()
         template = task.recurring_task_template
 
-        #REVIEW: Is there a way to dynamically discover and test mixin fields instead of hard-coding them?
+        # REVIEW: Is there a way to dynamically discover and test mixin fields instead of hard-coding them?
 
         self.assertEqual(task.owner, template.owner)
         self.assertEqual(task.instructions, template.instructions)
@@ -174,9 +394,20 @@ class TestViews(TestCase):
         self.assertNotEquals(self.user.member, None)
         self.assertNotEquals(self.member.worker, None)
 
+    _MODEL_CLASSNAMES = [
+        "RecurringTaskTemplate",
+        "Task",
+        "Nag",
+        "Claim",
+        "Work",
+        "TaskNote",
+        "Worker",
+        "WorkNote",
+    ]
+
     def test_admin_views(self):  # TODO: Generalize this and move it to xerocraft.tests
 
-        for model_classname in model_classnames:
+        for model_classname in self._MODEL_CLASSNAMES:
 
             model_cls = locate("tasks.models.%s" % model_classname)
             admin_cls = locate("tasks.admin.%sAdmin" % model_classname)
@@ -196,30 +427,6 @@ class TestViews(TestCase):
             request.user = self.user
             response = admin_inst.change_view(request, str(model_inst.pk))
             self.assertEqual(response.status_code, 200, "Admin view failure: %s" % url)
-
-    def test_verify_claim_view_YES(self):
-
-        self.work.delete()  # Not useful for this test
-        self.assertIsNone(self.claim.date_verified)
-        client = Client()
-        url = reverse('task:verify-claim', args=[str(self.claim.pk), 'Y', self.arbitrary_token_b64])
-        response = client.get(url)
-        self.assertEqual(response.status_code, 200)
-        self.claim.refresh_from_db()
-        self.assertIsNotNone(self.claim.date_verified)
-
-    def test_verify_claim_view_NO(self):
-
-        self.work.delete()  # Not useful for this test
-        self.assertEquals(self.task.uninterested.count(), 0)
-        self.assertIsNone(self.claim.date_verified)
-        client = Client()
-        url = reverse('task:verify-claim', args=[str(self.claim.pk), 'N', self.arbitrary_token_b64])
-        response = client.get(url)
-        self.assertEqual(response.status_code, 200)
-        with self.assertRaises(Claim.DoesNotExist):
-            Claim.objects.get(pk=self.claim.pk)
-        self.assertEquals(self.task.uninterested.count(), 1)
 
     def test_nag_offer_views(self):
         client = Client()
@@ -408,6 +615,7 @@ onehour = timedelta(hours=1)
 halfhour = timedelta(minutes=30)
 fourhours = timedelta(hours=4)
 zerodur = timedelta(0)
+
 
 class TestWindowedObject(TestCase):
 
