@@ -377,12 +377,19 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
                     t.eligible_tags      =self.eligible_tags.all()
 
                     if self.default_claimant is not None:
+
+                        duration = self.work_duration
+                        if duration is None:
+                            if self.max_workers!=1:
+                                raise RuntimeError("Not yet coded to deal with multiple workers.")
+                            else:
+                                duration = self.max_work
                         Claim.objects.create(
                             claiming_member=self.default_claimant,
                             status=Claim.STAT_CURRENT,
                             claimed_task=t,
                             claimed_start_time=self.work_start_time,
-                            claimed_duration=self.work_duration
+                            claimed_duration=duration
                         )
                     logger.info("Created %s on %s", self.short_desc, curr)
 
