@@ -17,10 +17,10 @@ urlpatterns = [
     url(r'^offers-done/(?P<auth_token>[-_a-zA-Z0-9]{32})/$', views.offers_done, name='offers-done'),
 
     # Verify auto claims:
-    url(r'^verify-claim/(?P<claim_pk>[0-9]+)_(?P<will_do>[YN])_(?P<auth_token>[-_a-zA-Z0-9]{32})/$', views.verify_claim, name='verify-claim'),
+    url(r'^verify-claim/(?P<task_pk>[0-9]+)_(?P<claim_pk>[0-9]+)_(?P<will_do>[YN])_(?P<auth_token>[-_a-zA-Z0-9]{32})/$', views.verify_claim, name='verify-claim'),
 
     # Experimenting with SPA/React versions of nag and verify
-    # url(r'^offer-task-spa/$', views.offer_task_spa, name='offer-task-spa'),
+    url(r'^offer-task-spa/(?P<task_pk>[0-9]+)_(?P<auth_token>[-_a-zA-Z0-9]{32})/$', views.offer_task_spa, name='offer-task-spa'),
     # url(r'^verify-claim-spa/$', views.verify_claim_spa, name='verify-claim-spa'),
 
     # Calendars
