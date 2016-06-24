@@ -67,10 +67,15 @@ class Test_VerifyClaim_Base(LiveServerTestCase):
 
         BROWSER = "/usr/lib/chromium-browser/chromium-browser"
         DRIVER = "/usr/lib/chromium-browser/chromedriver"
+        LOG_DIR = "/home/adrian/Documents"
         chrome_opts = webdriver.ChromeOptions()
         chrome_opts.binary_location = BROWSER
         os.environ["webdriver.chrome.driver"] = DRIVER
-        self.browser = webdriver.Chrome(DRIVER, chrome_options=chrome_opts)
+        self.browser = webdriver.Chrome(
+            DRIVER,
+            chrome_options=chrome_opts,
+            service_log_path="{}/chromedriver.log".format(LOG_DIR),
+            service_args=['--verbose'])
 
         try:
             for offset in range(-4, 2):
