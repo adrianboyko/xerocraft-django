@@ -65,9 +65,12 @@ class Test_VerifyClaim_Base(LiveServerTestCase):
         management.call_command("scheduletasks", "0")
         self.task = rt.instances.all()[0]
 
-        CHROME_DRIVER = "/usr/lib/chromium-browser/chromedriver"
-        os.environ["webdriver.chrome.driver"] = CHROME_DRIVER
-        self.browser = webdriver.Chrome(CHROME_DRIVER)
+        BROWSER = "/usr/lib/chromium-browser/chromium-browser"
+        DRIVER = "/usr/lib/chromium-browser/chromedriver"
+        chrome_opts = webdriver.ChromeOptions()
+        chrome_opts.binary_location = BROWSER
+        os.environ["webdriver.chrome.driver"] = DRIVER
+        self.browser = webdriver.Chrome(DRIVER, chrome_options=chrome_opts)
 
         try:
             for offset in range(-4, 2):
