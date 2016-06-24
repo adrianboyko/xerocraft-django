@@ -23,17 +23,16 @@ FOURDAYS = THREEDAYS + ONEDAY
 ONEWEEK = datetime.timedelta(weeks=1)
 TWOWEEKS = ONEWEEK + ONEWEEK
 
-#HOST = 'http://localhost:8081'  # LiveServerTestCase
-#HOST = 'http://192.168.1.101:8000'
-HOST = 'https://xerocraft-django.herokuapp.com'
-
 
 class Command(BaseCommand):
 
     help = "Emails members asking them to work tasks."
 
+    def add_arguments(self, parser):
+        parser.add_argument('--host', default="https://xerocraft-django.herokuapp.com")
+
     @staticmethod
-    def nag_for_workers():
+    def nag_for_workers(HOST):
         today = datetime.date.today()
 
         # Find out who's doing what over the next 2 weeks. Who's already scheduled to work and who's heavily scheduled?
@@ -117,7 +116,7 @@ class Command(BaseCommand):
             claim.delete()
 
     @staticmethod
-    def verify_default_claims():
+    def verify_default_claims(HOST):
 
         text_content_template = get_template('tasks/email-verify-claim.txt')
         html_content_template = get_template('tasks/email-verify-claim.html')
@@ -158,7 +157,9 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
 
+        HOST = options['host']
+
         # Order is significant!
         self.abandon_suspect_claims()
-        self.verify_default_claims()
-        self.nag_for_workers()
+        self.verify_default_claims(HOST)
+        self.nag_for_workers(HOST)

@@ -68,11 +68,12 @@ class Test_VerifyClaim_Base(LiveServerTestCase):
         CHROME_DRIVER = "/usr/lib/chromium-browser/chromedriver"
         os.environ["webdriver.chrome.driver"] = CHROME_DRIVER
         self.browser = webdriver.Chrome(CHROME_DRIVER)
+
         try:
             for offset in range(-4, 2):
                 with freeze_time(self.task.scheduled_date + offset*ONEDAY):
                     self.assertEquals(self.task.scheduled_date + offset*ONEDAY, date.today())  # Testing the freeze
-                    management.call_command("nag")
+                    management.call_command("nag", host="http://localhost:8081")
                     if offset < 0: sign_name = "minus"
                     elif offset == 0: sign_name = ""
                     else: sign_name = "plus"
