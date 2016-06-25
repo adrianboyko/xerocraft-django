@@ -1,13 +1,84 @@
+
+# Standard
+from datetime import date, timedelta
 import json
+
+# Third Party
 from django.test import Client
 from django.test import TestCase
 from django.contrib.auth.models import User
+from django.core import management, mail
+from django.utils import timezone
 
-#import factory
-#from django.db.models import signals
-
+# Local
 from .models import Tag, Tagging, VisitEvent, Membership
 from .views import _calculate_accrued_membership_revenue
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+class TestMemberNag(TestCase):
+
+    def setUp(self):
+
+        u = User.objects.create(
+            username='fake1',
+            first_name="Andrew", last_name="Baker",
+            password="fake1",
+            email="fake@example.com",
+        )
+        self.memb = u.member
+
+        visit = VisitEvent.objects.create(
+            who=self.memb,
+            when=timezone.now() - timedelta(days=1),  # membernag looks at previous day's visits.
+            method=VisitEvent.METHOD_RFID,
+            event_type=VisitEvent.EVT_ARRIVAL
+        )
+
+    def test_paid_visit(self):
+
+        # Create an CURRENT membership
+        mship = Membership.objects.create(
+            member=self.memb,
+            membership_type=Membership.MT_COMPLIMENTARY,
+            start_date=date.today()-timedelta(days=1),
+            end_date=date.today()+timedelta(days=1),
+        )
+        mship.clean()
+        mship.dbcheck()
+        management.call_command("membernag")
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_unpaid_visit(self):
+
+        # Create an OLD, EXPIRED membership
+        mship = Membership.objects.create(
+            member=self.memb,
+            membership_type=Membership.MT_COMPLIMENTARY,
+            # membernag gives member 14 days to pay, so make old membership older than that:
+            start_date=date.today()-timedelta(days=21),
+            end_date=date.today()-timedelta(days=20),
+        )
+        mship.clean()
+        mship.dbcheck()
+        management.call_command("membernag")
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_unpaid_visit_leeway(self):
+
+        # Create an NOT-VERY-OLD, EXPIRED membership
+        mship = Membership.objects.create(
+            member=self.memb,
+            membership_type=Membership.MT_COMPLIMENTARY,
+            # membernag gives member 14 days to pay, so make old membership inside the leeway:
+            start_date=date.today()-timedelta(days=11),
+            end_date=date.today()-timedelta(days=10),
+        )
+        mship.clean()
+        mship.dbcheck()
+        management.call_command("membernag")
+        self.assertEqual(len(mail.outbox), 0)
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =

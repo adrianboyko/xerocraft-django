@@ -1,13 +1,17 @@
-from django.core.management.base import BaseCommand, CommandError
+
+# Standard
+from datetime import datetime, timedelta, time
+import logging
+
+# Third Party
+from django.core.management.base import BaseCommand
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import get_template
 from django.template import Context
 from django.utils import timezone
-from members.models import Member, Membership, VisitEvent, PaidMembershipNudge
-from tasks.models import Work
-from datetime import datetime, timedelta, time
-from decimal import Decimal
-import logging
+
+# Local
+from members.models import Membership, VisitEvent, PaidMembershipNudge
 
 __author__ = 'adrian'
 
@@ -66,14 +70,14 @@ class Command(BaseCommand):
             visits = [timezone.localtime(v.when) for v in visits]
 
             d = Context({
-                'friendly_name': member.friendly_name(),
+                'friendly_name': member.friendly_name,
                 'paid_membership': pm,
                 'bad_visit': visits[0],
             })
 
             subject = 'Time to Renew your Xerocraft Membership'
-            from_email = 'Volunteer Coordinator <volunteer@xerocraft.org>'
-            to = "adrianboyko@gmail.com" # TODO: This is for testing only.
+            from_email = 'Xerocraft Internal Systems <xis@xerocraft.org>'
+            to = "adrianboyko@gmail.com"  # TODO: This is for testing only.
             text_content = text_content_template.render(d)
             html_content = html_content_template.render(d)
             msg = EmailMultiAlternatives(subject, text_content, from_email, [to])
