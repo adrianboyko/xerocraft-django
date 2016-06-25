@@ -60,6 +60,7 @@ class WifiMacDetectedAdmin(admin.ModelAdmin):  # No need to version events.
     list_display = ['pk', 'mac', 'when']
     list_filter = ['when']
     date_hierarchy = 'when'
+    search_fields = ['mac']
 
 
 class MemberTypeFilter(admin.SimpleListFilter):
