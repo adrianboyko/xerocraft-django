@@ -1,4 +1,4 @@
-Hi {{member.first_name}},
+Hi {{friendly_name}},
 
 Thanks for visiting Xerocraft on {{bad_visit | date:"D M d"}} at {{bad_visit | time:"g:iA"}}! But, unfortunately, you visited during paid member hours without an active paid membership.
 

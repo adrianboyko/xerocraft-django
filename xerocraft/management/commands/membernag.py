@@ -66,7 +66,7 @@ class Command(BaseCommand):
             visits = [timezone.localtime(v.when) for v in visits]
 
             d = Context({
-                'member': member,
+                'friendly_name': member.friendly_name(),
                 'paid_membership': pm,
                 'bad_visit': visits[0],
             })
