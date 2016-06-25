@@ -1,7 +1,10 @@
 
 # Standard
+from decimal import Decimal
 
 # Third Party
+from django.db.models import Case, When, Sum, F, Value
+from django.db.models.functions import Coalesce
 from django.contrib import admin
 from django.db import models
 from django.utils.html import format_html
@@ -236,28 +239,84 @@ class ExpenseLineItemInline(admin.TabularInline):
     extra = 0
 
 
+class ClaimStatusFilter(admin.SimpleListFilter):
+    title = "Claim Status"
+    parameter_name = 'status'
+
+    def lookups(self, request, model_admin):
+        return (
+            ('open', _('Open')),
+            ('submitted', _('Submitted')),
+            ('closed', _('Closed')),
+        )
+
+    def annotate_total_paid(self, queryset):
+        return queryset.annotate(
+            total_paid=Coalesce(
+                Sum(
+                    Case(
+                        When(expenseclaimreference__id__isnull=True, then=Value("0.00")),
+                        When(expenseclaimreference__portion__isnull=False, then=F('expenseclaimreference__portion')),
+                        When(expenseclaimreference__portion__isnull=True, then=F('amount')),
+                    )
+                ),
+                Value("0.00"),
+            )
+        )
+
+    def queryset(self, request, queryset):
+
+        # if self.remaining() == Decimal(0):
+        #     return "closed"
+        # if self.when_submitted is not None:
+        #     return "submitted"
+        # if self.remaining() > Decimal(0):
+        #     return "open"
+
+        if self.value() == 'open':
+            return self.annotate_total_paid(queryset).filter(total_paid__lt=F('amount'))
+
+        if self.value() == 'submitted':
+            return queryset.filter(when_submitted__isnull=False)
+
+        if self.value() == 'closed':
+            return self.annotate_total_paid(queryset).filter(total_paid=F('amount'))
+
+
 @admin.register(ExpenseClaim)
 class ExpenseClaimAdmin(VersionAdmin):
 
     form = get_ChecksumAdminForm(ExpenseClaim)
 
-    def remaining(self, obj):
-        result = obj.amount - obj.reimbursed()
-        if result == 0:
-            return "-"
-        else:
-            return result
+    def remaining_fmt(self, obj):
+        result = obj.remaining()
+        return result if result > 0 else "-"
+    remaining_fmt.short_description = "unpaid"
+
+    def paid_fmt(self, obj):
+        result = obj.reimbursed()
+        return result if result > 0 else "-"
+    paid_fmt.short_description = "paid"
+
+    def status_fmt(self, obj):
+        return obj.status_str()
+    status_fmt.short_description = "Status"
 
     list_display = [
         'pk',
         'claimant',
         'amount',
+        'paid_fmt',
+        'remaining_fmt',
         'when_submitted',
-        'remaining',
+        'status_fmt',
         # 'is_reimbursed',
         # 'checksum_fmt',  Too slow to include here.
     ]
-    list_filter = [('claimant',admin.RelatedOnlyFieldListFilter)]
+    list_filter = [
+        ClaimStatusFilter,
+        ('claimant',admin.RelatedOnlyFieldListFilter)
+    ]
     fields = [
         'claimant',
         ('amount', 'checksum'),
@@ -285,6 +344,7 @@ class ExpenseClaimAdmin(VersionAdmin):
         css = {
             "all": ("abutils/admin-tabular-inline.css",)  # This hides "denormalized object descs", to use Wojciech's term.
         }
+
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # EXPENSE TRANSACTIONS

@@ -2,7 +2,6 @@
 
 # Standard
 from datetime import date
-import uuid
 from decimal import Decimal
 
 # Third party
@@ -10,9 +9,7 @@ from django.db import models
 from django.db.migrations.recorder import MigrationRecorder
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
-from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
-import django.db.utils
 from nameparser import HumanName
 
 # Local
@@ -462,6 +459,18 @@ class ExpenseClaim(models.Model):
             else:
                 total += self.amount
         return total
+
+    def remaining(self) -> Decimal:
+        return self.amount - self.reimbursed()
+
+    def status_str(self) -> str:
+        if self.remaining() == Decimal(0):
+            return "closed"
+        if self.when_submitted is not None:
+            return "submitted"
+        if self.remaining() > Decimal(0):
+            return "open"
+        return "?"
 
     def checksum(self) -> Decimal:
         """
