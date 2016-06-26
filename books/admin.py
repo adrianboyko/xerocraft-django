@@ -266,20 +266,16 @@ class ClaimStatusFilter(admin.SimpleListFilter):
 
     def queryset(self, request, queryset):
 
-        # if self.remaining() == Decimal(0):
-        #     return "closed"
-        # if self.when_submitted is not None:
-        #     return "submitted"
-        # if self.remaining() > Decimal(0):
-        #     return "open"
-
         if self.value() == 'open':
+            # An claim with total paid < amount claimed is "open"
             return self.annotate_total_paid(queryset).filter(total_paid__lt=F('amount'))
 
         if self.value() == 'submitted':
-            return queryset.filter(when_submitted__isnull=False)
+            # "Submitted" is the same as "open" but also has a non-null submission date.
+            return self.annotate_total_paid(queryset).filter(total_paid__lt=F('amount'), when_submitted__isnull=False)
 
         if self.value() == 'closed':
+            # Anything that has been fully paid is "closed", whether submission date is null or not.
             return self.annotate_total_paid(queryset).filter(total_paid=F('amount'))
 
 
