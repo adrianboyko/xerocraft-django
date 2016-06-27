@@ -9,6 +9,7 @@ from django.core.mail import EmailMultiAlternatives
 from django.template.loader import get_template
 from django.template import Context
 from django.utils import timezone
+from freezegun import freeze_time
 
 # Local
 from members.models import Membership, VisitEvent, PaidMembershipNudge
@@ -44,6 +45,10 @@ class Command(BaseCommand):
     tz = timezone.get_default_timezone()
     today = None
     yesterday = None
+
+    def add_arguments(self, parser):
+        # Intended for test cases which will run on a specific date.
+        parser.add_argument('--date')
 
     def note_bad_visit(self, visit, pm: Membership):
 
@@ -142,9 +147,18 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
 
+        # The "date" option supports test cases that run on specific dates.
+        test_time = options['date']
+        if test_time is not None:
+            freezer = freeze_time(test_time)
+            freezer.start()
+
         self.today = datetime.now().replace(hour=0,minute=0,second=0,microsecond=0)
         self.today = timezone.make_aware(self.today, timezone.get_default_timezone())
         self.yesterday = self.today - timedelta(days=1)
 
         self.nag_for_unpaid_visits()
         # There may be other sorts of nags here, in the future.
+
+        if test_time is not None:
+            freezer.stop()
