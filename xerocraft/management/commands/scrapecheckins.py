@@ -3,12 +3,12 @@ from django.utils.timezone import get_default_timezone_name
 from members.models import VisitEvent
 from datetime import date, datetime
 from dateutil import relativedelta
-from .scraper import *
+from .scraper import Scraper, djangofy_username, SERVER, \
+    USERNAME_KEY, DJANGO_USERNAME_KEY, USERNUM_KEY, FIRSTNAME_KEY, LASTNAME_KEY, EMAIL_KEY
 from nameparser import HumanName
 import lxml.html
 import sys
 from pytz import timezone
-import threading
 
 __author__ = 'adrian'
 
