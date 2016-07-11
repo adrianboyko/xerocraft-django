@@ -136,7 +136,8 @@ def offer_task(request, task_pk, auth_token):
             claiming_member=nag.who,
             claimed_start_time=task.work_start_time,
             claimed_duration=timedelta(hours=t.hour, minutes=t.minute, seconds=t.second),
-            status=Claim.STAT_CURRENT
+            status=Claim.STAT_CURRENT,
+            date_verified=date.today(),
         )
         return redirect('task:offer-more-tasks', task_pk=task_pk, auth_token=auth_token)
 
@@ -175,6 +176,7 @@ def offer_more_tasks(request, task_pk, auth_token):
                 claimed_start_time=t.work_start_time,
                 claimed_duration=t.max_work,
                 status=Claim.STAT_CURRENT,
+                date_verified=date.today(),
             )
         return redirect('task:offers-done', auth_token=auth_token)
 
@@ -431,7 +433,9 @@ def will_work_now(request, task_pk, member_card_str):
         claiming_member=member,
         claimed_start_time=task.work_start_time,
         claimed_duration=task.work_duration,
-        status=Claim.STAT_WORKING)
+        status=Claim.STAT_WORKING,
+        date_verified=date.today(),
+    )
     return JsonResponse({"success": "A new claim was created and set to WORKING status."})
 
 
