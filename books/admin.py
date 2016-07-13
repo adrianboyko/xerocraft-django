@@ -314,12 +314,13 @@ class ExpenseClaimAdmin(VersionAdmin):
         ('claimant',admin.RelatedOnlyFieldListFilter)
     ]
     fields = [
+        'id',
         'claimant',
         ('amount', 'checksum'),
         ('when_submitted', 'submit'),
     ]
     ordering = ['-when_submitted']
-    readonly_fields = ['when_submitted', 'checksum']
+    readonly_fields = ['id', 'when_submitted', 'checksum']
     inlines = [
         ExpenseClaimNoteInline,
         ExpenseLineItemInline,
