@@ -19,6 +19,7 @@ from nameparser import HumanName
 
 # Local
 from books.models import Sale
+from abutils.utils import generate_ctrlid
 
 
 TZ = timezone.get_default_timezone()
@@ -28,53 +29,18 @@ TZ = timezone.get_default_timezone()
 # CTRLID Functions
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-# REVIEW: There is a nonzero probability that default ctrlids will collide when two users are doing manual data
-# entry at the same time.  This isn't considered a significant problem since we'll be lucky to get ONE person to
-# do data entry. If it does become a problem, the probability could be reduced by using random numbers.
-
-GEN_CTRLID_PFX = "GEN:"  # The prefix for generated ctrlids.
-
-
 def next_payment_ctrlid():
     raise NotImplementedError("This method is referenced by 0025_auto_20160215_1529.py but shouldn't be called.")
 
 
-def next_membership_ctrlid():
-
+def next_membership_ctrlid() -> str:
     """Provides an arbitrary default value for the ctrlid field, necessary when data is being entered manually."""
-
-    # This method can't calc a ctrlid before ctrlid col is in db, i.e. before migration 0042.
-    # Returning an arbitrary string guards against failure during creation of new database, e.g. during tests.
-    migs = MigrationRecorder.Migration.objects.filter(app='members', name="0042_auto_20160303_1717")
-    if len(migs) == 0: return "arbitrarystring"
-
-    try:
-        latest_mship = Membership.objects.filter(ctrlid__startswith=GEN_CTRLID_PFX).latest('ctrlid')
-        latest_ctrlid_num = int(latest_mship.ctrlid.replace(GEN_CTRLID_PFX,""))
-        return GEN_CTRLID_PFX+str(latest_ctrlid_num+1).zfill(6)
-    except Membership.DoesNotExist:
-        # This only happens for a new database when there are no physical paid memberships.
-        return GEN_CTRLID_PFX+("0".zfill(6))
+    return generate_ctrlid(Membership)
 
 
-def next_giftcardref_ctrlid():
-
+def next_giftcardref_ctrlid() -> str:
     """Provides an arbitrary default value for the ctrlid field, necessary when data is being entered manually."""
-
-    # This method can't refer to MGCR before the new cols are in db. I.e. before migration 0043.
-    # Shorting out guards against failure during creation of new database, e.g. during tests.
-    migs = MigrationRecorder.Migration.objects.filter(app='members', name="0043_auto_20160309_1455")
-    if len(migs) == 0: return
-
-    try:
-        # NOTE: This version uses prev created PKs instead of prev created ctrlids.
-        # This elminates the need for complicated three-part migrations and MigrationRecorder checks.
-        # This may have problems if PKs are reused but they're not in Django + PostgreSQL.
-        latest_gcr = MembershipGiftCardReference.objects.latest('id')
-        return GEN_CTRLID_PFX+str(int(latest_gcr.id)+1).zfill(6)
-    except MembershipGiftCardReference.DoesNotExist:
-        # This only happens for a new database when there are no physical paid memberships.
-        return GEN_CTRLID_PFX+("0".zfill(6))
+    return generate_ctrlid(MembershipGiftCardReference)
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -447,22 +413,7 @@ class MemberLogin(models.Model):
 
 def next_paidmembership_ctrlid():
     '''Provides an arbitrary default value for the ctrlid field, necessary when check, cash, or gift-card data is being entered manually.'''
-    # REVIEW: There is a nonzero probability that default ctrlids will collide when two users are doing manual data entry at the same time.
-    #         This isn't considered a significant problem since we'll be lucky to get ONE person to do data entry.
-    #         If it does become a problem, the probability could be reduced by using random numbers.
-    physical_pay_methods = [
-        PaidMembership.PAID_BY_NA,  # This is the "physical" payment method in the case of complimentary memberships.
-        PaidMembership.PAID_BY_CASH,
-        PaidMembership.PAID_BY_CHECK,
-        PaidMembership.PAID_BY_GIFT,
-    ]
-    physical_count = PaidMembership.objects.filter(payment_method__in=physical_pay_methods).count()
-    if physical_count > 0:
-        latest_pm = PaidMembership.objects.filter(payment_method__in=physical_pay_methods).latest('ctrlid')
-        return str(int(latest_pm.ctrlid)+1).zfill(6)
-    else:
-        # This only happens for a new database when there are no physical paid memberships.
-        return "0".zfill(6)
+    raise NotImplementedError("PaidMembership has been replaced iwth Membership.")
 
 
 class GroupMembership(models.Model):
@@ -524,6 +475,9 @@ class GroupMembership(models.Model):
         # Deletion of memberships for people who are no longer in the group will be handled in
             # a signal handler for Tagging deletions.
 
+    def clean(self):
+        if self.start_date >= self.end_date:
+            raise ValidationError(_("End date must be later than start date."))
 
 class PaidMembership(models.Model):
 

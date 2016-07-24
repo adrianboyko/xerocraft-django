@@ -13,6 +13,7 @@ from django.utils.translation import ugettext_lazy as _
 from nameparser import HumanName
 
 # Local
+from abutils.utils import generate_ctrlid
 
 
 # class PayerAKA(models.Model):
@@ -32,63 +33,20 @@ from nameparser import HumanName
 # CTRLID UTILITIES
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-# REVIEW: Is there a way to make a generic next_ctrlid(models.Model)?
-
-# REVIEW: There is a nonzero probability that default ctrlids will collide when two users are doing manual data
-# entry at the same time.  This isn't considered a significant problem since we'll be lucky to get ONE person to
-# do data entry. If it does become a problem, the probability could be reduced by using random numbers.
-
-GEN_CTRLID_PFX = "GEN:"  # The prefix for generated ctrlids.
 
 def next_monetarydonation_ctrlid() -> str:
-
     """Provides an arbitrary default value for the ctrlid field, necessary when data is being entered manually."""
-
-    # This method can't calc a ctrlid before ctrlid col is in db, i.e. before migration 0015.
-    # Returning an arbitrary string guards against failure during creation of new database, e.g. during tests.
-    migs = MigrationRecorder.Migration.objects.filter(app='books', name="0015_auto_20160304_2237")
-    if len(migs) == 0: return "arbitrarystring"
-
-    try:
-       latest_md = MonetaryDonation.objects.filter(ctrlid__startswith=GEN_CTRLID_PFX).latest('ctrlid')
-       latest_ctrlid_num = int(latest_md.ctrlid.replace(GEN_CTRLID_PFX,""))
-       return GEN_CTRLID_PFX+str(latest_ctrlid_num+1).zfill(6)
-    except MonetaryDonation.DoesNotExist:
-        # This only happens for a new database when there are no monetary donations with generated ctrlids.
-        return GEN_CTRLID_PFX+("0".zfill(6))
+    return generate_ctrlid(MonetaryDonation)
 
 
 def next_sale_ctrlid() -> str:
     '''Provides an arbitrary default value for the ctrlid field, necessary when check, cash, or gift-card data is being entered manually.'''
-    # REVIEW: There is a nonzero probability that default ctrlids will collide when two users are doing manual data entry at the same time.
-    #         This isn't considered a significant problem since we'll be lucky to get ONE person to do data entry.
-    #         If it does become a problem, the probability could be reduced by using random numbers.
-    physical_pay_methods = [
-        Sale.PAID_BY_CASH,
-        Sale.PAID_BY_CHECK,
-    ]
-    physical_count = Sale.objects.filter(payment_method__in=physical_pay_methods).count()
-    if physical_count > 0:
-        latest_pm = Sale.objects.filter(payment_method__in=physical_pay_methods).latest('ctrlid')
-        return str(int(latest_pm.ctrlid)+1).zfill(6)
-    else:
-        # This only happens for a new database when there are no sales with physical payment methods.
-        return "0".zfill(6)
+    return generate_ctrlid(Sale)
 
 
 def next_otheritem_ctrlid() -> str:
-
     """Provides an arbitrary default value for the ctrlid field, necessary when data is being entered manually."""
-
-    try:
-        # NOTE: This version uses prev created PKs instead of prev created ctrlids.
-        # This elminates the need for complicated three-part migrations and MigrationRecorder checks.
-        # This may have problems if PKs are reused but they're not in Django + PostgreSQL.
-        latest_gcr = OtherItem.objects.latest('id')
-        return GEN_CTRLID_PFX+str(int(latest_gcr.id)+1).zfill(6)
-    except OtherItem.DoesNotExist:
-        # This only happens for a new database when there are no physical paid memberships.
-        return GEN_CTRLID_PFX+("0".zfill(6))
+    return generate_ctrlid(OtherItem)
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
