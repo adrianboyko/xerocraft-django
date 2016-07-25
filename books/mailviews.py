@@ -8,6 +8,7 @@ from modelmailer.mailviews import MailView, register
 from .models import Donation
 
 TREASURER = "Xerocraft Treasurer <treasurer@xerocraft.org>"
+XIS = "Xerocraft Systems <xis@xerocraft.org>"
 
 
 @register(Donation)
@@ -42,8 +43,9 @@ class DonationMailView(MailView):
 
         spec = {
             'sender': "Xerocraft Systems <xis@xerocraft.org>",
-            'recipients': [TREASURER, donor_email],
+            'recipients': [donor_email],
             'subject': "Receipt for Donation to Xerocraft",
+            'bccs': [TREASURER, XIS],
             'template': "books/email-phys-donation",  # Name without .html or .txt extension
             'parameters': {
                 'first_name': first_name,

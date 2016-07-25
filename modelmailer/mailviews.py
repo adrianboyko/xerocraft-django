@@ -31,7 +31,8 @@ class MailView:
                 spec['subject'],     # Subject
                 text,                # Text content
                 spec['sender'],      # From
-                spec['recipients'],  # To
+                spec['recipients'],  # To list
+                spec['bccs'],        # BCC list
             )
             msg.attach_alternative(html, "text/html")
             msg.send()
