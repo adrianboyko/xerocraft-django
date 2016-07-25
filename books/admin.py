@@ -95,7 +95,7 @@ class MonetaryDonationInline(admin.StackedInline):
     extra = 0
 
 
-class DonatedItemInline(admin.StackedInline):
+class DonatedItemInline(admin.TabularInline):
     model = DonatedItem
     extra = 0
 
@@ -126,6 +126,11 @@ class DonationAdmin(VersionAdmin):
         '^donator_acct__username',
         'donator_acct__email',
     ]
+
+    class Media:
+        css = {
+            "all": ("abutils/admin-tabular-inline.css",)  # This hides "denormalized object descs", to use Wojciech's term.
+        }
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
