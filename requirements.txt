@@ -36,6 +36,7 @@ rq==0.6.0
 selenium==2.53.5
 six==1.9.0
 sparkpost==1.2.0
+-e git+https://github.com/adrianboyko/2checkout-python.git@3.x#egg=twocheckout
 typing==3.5.0.1
 wheel==0.24.0
 whitenoise==2.0.6
