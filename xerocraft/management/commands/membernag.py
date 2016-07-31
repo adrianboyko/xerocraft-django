@@ -16,6 +16,9 @@ from members.models import Membership, VisitEvent, PaidMembershipNudge
 
 __author__ = 'adrian'
 
+VC_EMAIL = "Volunteer Coordinator <volunteer@xerocraft.org>"
+XIS_EMAIL = "Xerocraft Internal Systems <xis@xerocraft.org>"
+
 # Why aren't these defined in datetime?
 MONDAY    = 0
 TUESDAY   = 1
@@ -81,11 +84,12 @@ class Command(BaseCommand):
             })
 
             subject = 'Time to Renew your Xerocraft Membership'
-            from_email = 'Xerocraft Internal Systems <xis@xerocraft.org>'
-            to = "adrianboyko@gmail.com"  # TODO: This is for testing only.
+            from_email = XIS_EMAIL
+            bcc_email = XIS_EMAIL
+            to = from_email  # TODO: Testing only. Not ready to send to actual members.
             text_content = text_content_template.render(d)
             html_content = html_content_template.render(d)
-            msg = EmailMultiAlternatives(subject, text_content, from_email, [to])
+            msg = EmailMultiAlternatives(subject, text_content, from_email, [to], [bcc_email])
             msg.attach_alternative(html_content, "text/html")
             msg.send()
 
