@@ -23,6 +23,9 @@ FOURDAYS = THREEDAYS + ONEDAY
 ONEWEEK = datetime.timedelta(weeks=1)
 TWOWEEKS = ONEWEEK + ONEWEEK
 
+VC_EMAIL = "Volunteer Coordinator <volunteer@xerocraft.org>"
+XIS_EMAIL = "Xerocraft Internal Systems <xis@xerocraft.org>"
+
 
 class Command(BaseCommand):
 
@@ -87,11 +90,12 @@ class Command(BaseCommand):
                 'host': HOST,
             })
             subject = 'Call for Volunteers, ' + datetime.date.today().strftime('%a %b %d')
-            from_email = 'Volunteer Coordinator <volunteer@xerocraft.org>'
+            from_email = VC_EMAIL
+            bcc_email = XIS_EMAIL
             to = member.email
             text_content = text_content_template.render(d)
             html_content = html_content_template.render(d)
-            msg = EmailMultiAlternatives(subject, text_content, from_email, [to])
+            msg = EmailMultiAlternatives(subject, text_content, from_email, [to], [bcc_email])
             msg.attach_alternative(html_content, "text/html")
             msg.send()
 
@@ -147,11 +151,12 @@ class Command(BaseCommand):
 
             # Send email messages:
             subject = 'Please verify your availability for this {}'.format(dow)
-            from_email = 'Volunteer Coordinator <volunteer@xerocraft.org>'
+            from_email = VC_EMAIL
+            bcc_email = XIS_EMAIL
             to = claim.claiming_member.email
             text_content = text_content_template.render(d)
             html_content = html_content_template.render(d)
-            msg = EmailMultiAlternatives(subject, text_content, from_email, [to])
+            msg = EmailMultiAlternatives(subject, text_content, from_email, [to], [bcc_email])
             msg.attach_alternative(html_content, "text/html")
             msg.send()
 

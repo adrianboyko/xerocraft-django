@@ -9,6 +9,7 @@ import logging
 
 __author__ = 'adrian'
 
+XIS_EMAIL = "Xerocraft Internal Systems <xis@xerocraft.org>"
 
 class Command(BaseCommand):
 
@@ -24,11 +25,12 @@ class Command(BaseCommand):
             'tagging_list': tagging_list,
         })
         subject = "New Taggings Report, " + datetime.date.today().strftime('%a %b %d')
-        from_email = 'Volunteer Coordinator <volunteer@xerocraft.org>'
+        from_email = XIS_EMAIL
+        bcc_email = XIS_EMAIL
         to = member.email
         text_content = text_content_template.render(d)
         html_content = html_content_template.render(d)
-        msg = EmailMultiAlternatives(subject, text_content, from_email, [to])
+        msg = EmailMultiAlternatives(subject, text_content, from_email, [to], [bcc_email])
         msg.attach_alternative(html_content, "text/html")
         msg.send()
 

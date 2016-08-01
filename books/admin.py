@@ -129,7 +129,10 @@ class DonationAdmin(VersionAdmin):
 
     class Media:
         css = {
-            "all": ("abutils/admin-tabular-inline.css",)  # This hides "denormalized object descs", to use Wojciech's term.
+            "all": (
+                "books/admin.css",  # Sizes "description" to a more reasonable height.
+                "abutils/admin-tabular-inline.css",  # Hides "denormalized obj descs", to use Woj's term.
+            )
         }
 
 
