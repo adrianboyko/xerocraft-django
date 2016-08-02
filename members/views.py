@@ -1,4 +1,3 @@
-# pylint: disable=C0321
 
 # Standard
 from datetime import date
@@ -16,6 +15,7 @@ from django.core.urlresolvers import reverse
 from django.contrib.auth.decorators import login_required
 from django.views.generic import View
 from django.db.models import Count
+from django.conf import settings
 from rest_framework import viewsets
 from reportlab.pdfgen import canvas
 from reportlab.graphics.shapes import Drawing
@@ -30,8 +30,12 @@ from members.forms import Desktop_ChooseUserForm
 import members.serializers as ser
 from members.models import GroupMembership
 from members.notifications import notify
+from abutils.utils import request_is_from_host
 
 logger = getLogger("members")
+
+ORG_NAME_POSSESSIVE = settings.INTSYS_ORG_NAME_POSSESSIVE
+FACILITY_PUBLIC_IP = settings.INTSYS_FACILITY_PUBLIC_IP
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = PRIVATE
 
@@ -98,6 +102,24 @@ def api_member_details_pub(request, member_card_str):
 
 
 def api_log_visit_event(request, member_card_str, event_type):
+
+    # If check in/out should be limited to people physically present at at the
+    # organization's facility, physical presence can be verified by checking that
+    # the person is connected to the facility's WiFi network.
+    #
+    # If the FACILITY_PUBLIC_IP environment variable is set, this code will check
+    # the IP address of the incoming request, compare to the facility's public IP
+    # address, and reject the request if the addresses are different. If the
+    # environment variable is not set, no checking is performed and people will
+    # be able to check in/out from anywhere.
+    #
+    # NOTE: This solution requires that this website is running *outside* the
+    # facility's network. This will be true for sites hosted on Heroku, etc.
+
+    if FACILITY_PUBLIC_IP is not None:
+        if not request_is_from_host(request, FACILITY_PUBLIC_IP):
+            msg = "Must be on {} WiFi to check in/out".format(ORG_NAME_POSSESSIVE)
+            return JsonResponse({'error': msg})
 
     success, result = _log_visit_event(member_card_str, event_type)
     if success:
