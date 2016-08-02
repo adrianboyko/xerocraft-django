@@ -326,4 +326,4 @@ INTSYS_ORG_NAME_POSSESSIVE = "Xerocraft's"
 # Set the INTSYS_FACILITY_PUBLIC_IP environment variable to either:
 #   (1) A DNS name that resolves to the facility's public IP
 #   (2) The facility's static IP address.
-INTSYS_FACILITY_PUBLIC_IP = getattr(os.environ, 'INTSYS_FACILITY_PUBLIC_IP', None)
+INTSYS_FACILITY_PUBLIC_IP = os.getenv('INTSYS_FACILITY_PUBLIC_IP', None)
