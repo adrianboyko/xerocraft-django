@@ -11,6 +11,7 @@ from django.core.exceptions import ObjectDoesNotExist
 # Local
 from members.models import Member, Tag, Tagging, PaidMembership, MemberLogin, GroupMembership, Membership, VisitEvent
 import members.notifications as notifications
+from abutils.utils import get_ip_address
 
 __author__ = 'Adrian'
 
@@ -122,16 +123,6 @@ def link_membership_to_member(sender, **kwargs):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # LOGIN
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-def get_ip_address(request):
-    """ Get client machine's IP address from request """
-    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-    if x_forwarded_for:
-        ip = x_forwarded_for.split(',')[0]
-    else:
-        ip = request.META.get('REMOTE_ADDR')
-    return ip
-
 
 @receiver(user_logged_in)
 def note_login(sender, user, request, **kwargs):  # https://code.djangoproject.com/ticket/22111
