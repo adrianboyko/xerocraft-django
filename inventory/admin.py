@@ -15,24 +15,43 @@ class PermitRenewalInline(admin.TabularInline):
     model = PermitRenewal
     extra = 0
 
+    class Media:
+        css = {
+            "all": ("abutils/admin-tabular-inline.css",)
+        }
+
 
 class PermitScanInline(admin.TabularInline):
     model = PermitScan
     extra = 0
+    raw_id_fields = ['who']
+
+    class Media:
+        css = {
+            "all": ("abutils/admin-tabular-inline.css",)
+        }
 
 
 @admin.register(ParkingPermit)
 class ParkingPermitAdmin(VersionAdmin):
-    list_display = ['short_desc', 'owner', 'created', 'ok_to_move', 'is_in_inventoried_space']
+    list_display = ['pk', 'short_desc', 'owner', 'created', 'ok_to_move', 'is_in_inventoried_space']
     fields = ['short_desc', 'owner', 'created', 'ok_to_move', 'is_in_inventoried_space']
     readonly_fields = ['created']
     inlines = [PermitRenewalInline, PermitScanInline]
     raw_id_fields = ['owner']
 
+    search_fields = [
+        '^owner__auth_user__first_name',
+        '^owner__auth_user__last_name',
+        '^owner__auth_user__username',
+        '^owner__auth_user__email',
+    ]
+
 
 @admin.register(PermitScan)
 class PermitScanAdmin(VersionAdmin):
     list_display = ['pk', 'when', 'permit', 'where']
+    raw_id_fields = ['who']
 
 
 @admin.register(Location)
