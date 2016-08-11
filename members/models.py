@@ -413,7 +413,11 @@ class MemberLogin(models.Model):
 
 def next_paidmembership_ctrlid():
     '''Provides an arbitrary default value for the ctrlid field, necessary when check, cash, or gift-card data is being entered manually.'''
-    raise NotImplementedError("PaidMembership has been replaced iwth Membership.")
+
+    # Can't raise this exception while old migrations exist and blank dbs will be initialized by others.
+    #raise NotImplementedError("PaidMembership has been replaced iwth Membership.")
+
+    return generate_ctrlid(PaidMembership)
 
 
 class GroupMembership(models.Model):

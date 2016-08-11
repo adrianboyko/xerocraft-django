@@ -23,7 +23,11 @@ def generate_ctrlid(model: Model) -> str:
     """Generate a unique ctrlid for the given model."""
     # TODO: Move this to ETL App if that refactorization is pursued.
     def is_unique(ctrlid: str) -> bool:
-        return model.objects.filter(ctrlid=ctrlid).count() == 0
+        if not hasattr(model, "ctrlid"):
+            # This is necessary to support initialization of new blank databases.
+            return True
+        else:
+            return model.objects.filter(ctrlid=ctrlid).count() == 0
     return "GEN:" + generate_hex_string(8, is_unique)
 
 
