@@ -14,11 +14,11 @@ freezegun==0.3.7
 gunicorn==19.3.0
 icalendar==3.9.1
 -e git+https://github.com/tgs/nptime.git@d8866bd76e0fcabc45674c69cee30380731d4acd#egg=nptime
-lxml==3.5.0
+lxml==3.6.1
 nameparser==0.3.11
 oauthlib==1.0.3
 Pillow==2.9.0
-psycopg2==2.6.1
+psycopg2==2.6.2
 pyflakes==1.1.0
 Pygments==2.0.2
 PyJWT==1.4.0
