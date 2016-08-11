@@ -14,7 +14,10 @@ https://docs.djangoproject.com/en/1.8/ref/settings/
 import os
 
 import uuid
-DEVHOSTS = [238402988951122]
+DEVHOSTS = [
+    238402988951122,  # Adrian Linux
+    220083055528387,  # Adrian Mac
+]
 CURRHOST = uuid.getnode()
 ISDEVHOST = CURRHOST in DEVHOSTS
 
