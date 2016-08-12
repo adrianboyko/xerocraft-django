@@ -268,6 +268,7 @@ if ISDEVHOST:
     auth_classes = [
         'rest_framework.authentication.SessionAuthentication',
         'rest_framework.authentication.BasicAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
     ]
 else:
     auth_classes = [
