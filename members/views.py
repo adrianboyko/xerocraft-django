@@ -25,7 +25,7 @@ from reportlab.lib.units import inch, mm
 from reportlab.lib.pagesizes import letter
 
 # Local
-from members.models import Member, Tag, Tagging, VisitEvent, PaidMembership, Membership, DiscoveryMethod, MembershipGiftCardReference, WifiMacDetected
+from members.models import Member, Tag, Tagging, VisitEvent, Membership, DiscoveryMethod, MembershipGiftCardReference, WifiMacDetected
 from members.forms import Desktop_ChooseUserForm
 import members.serializers as ser
 from members.models import GroupMembership
@@ -390,15 +390,6 @@ def kiosk_identify_subject(request, staff_card_str, next_url):
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = REST API
 
-class PaidMembershipViewSet(viewsets.ModelViewSet):  # Django REST Framework
-    """
-    API endpoint that allows paid memberships to be viewed or edited.
-    """
-    queryset = PaidMembership.objects.all().order_by('-payment_date')
-    serializer_class = ser.PaidMembershipSerializer
-    filter_fields = {'payment_method', 'ctrlid'}
-
-
 class MembershipViewSet(viewsets.ModelViewSet):  # Django REST Framework
     """
     API endpoint that allows memberships to be viewed or edited.
@@ -578,40 +569,3 @@ def desktop_earned_membership_revenue(request):
 
     del chart_data[-1]  # Don't show current month.
     return render(request, 'members/desktop-earned-mship-rev.html', {'data': chart_data})
-
-
-@login_required()
-def desktop_paid_percent(request):
-    if not request.user.member.is_tagged_with("Director"):
-        return HttpResponse("This page is for Directors only.")
-
-    paid_days = Counter()
-    paid_memberships = PaidMembership.objects.all()
-    for pm in paid_memberships:
-        day = max(pm.start_date, date(2015, 1, 1))
-        while day <= min(pm.end_date, date(2015, 12, 31)):
-            if pm.member is not None:
-                paid_days.update({pm.member: 1})
-            day += relativedelta(days=1)
-    data = [(k.username, int(100.0*v/365.0)) for k, v in paid_days.items()]
-
-    # Count the number of members that paid for the ENTIRE year.
-    fully_paid_member_count = 0
-    partially_paid_member_count = 0
-    for _, v in paid_days.items():
-        if v >= 365: fully_paid_member_count += 1
-        if v < 365: partially_paid_member_count += 1
-
-    total_visitors = VisitEvent.objects\
-        .filter(when__range=['2015-01-01', '2015-12-31'])\
-        .aggregate(Count('who', distinct=True))
-    total_visitors = total_visitors['who__count']
-
-    opts = {
-        'data': data,
-        'total_visitors': total_visitors,
-        'fully_paid_count': fully_paid_member_count,
-        'partially_paid_count': partially_paid_member_count,
-        'year': 2015,
-    }
-    return render(request, 'members/desktop-paid-percent.html', opts)

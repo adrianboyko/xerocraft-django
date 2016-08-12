@@ -9,7 +9,7 @@ from django.contrib.auth.models import User, user_logged_in
 from django.core.exceptions import ObjectDoesNotExist
 
 # Local
-from members.models import Member, Tag, Tagging, PaidMembership, MemberLogin, GroupMembership, Membership, VisitEvent
+from members.models import Member, Tag, Tagging, MemberLogin, GroupMembership, Membership, VisitEvent
 import members.notifications as notifications
 from abutils.utils import get_ip_address
 
@@ -99,17 +99,10 @@ def email_for_saved_tagging(sender, **kwargs):
 #     for membership in gm.membership_set.all():
 #         membership.delete()
 
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# PAID MEMBERSHIP
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-@receiver(pre_save, sender=PaidMembership)
-def link_paidmembership_to_member(sender, **kwargs):
-    if kwargs.get('created', True):
-        pm = kwargs.get('instance')
-        if not pm.protected:
-            pm.link_to_member()
-
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# MEMBERSHIP
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 # TODO: Attempt to auto-link based on name/email in sale. Only for WePay, 2Checkout, Square?
 @receiver(pre_save, sender=Membership)

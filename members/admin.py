@@ -9,7 +9,7 @@ from reversion.admin import VersionAdmin
 # Local
 from books.admin import Sellable
 from members.models import Tag, Pushover, Tagging, VisitEvent, \
-    Member, Membership, PaidMembership, PaidMembershipNudge, GroupMembership, \
+    Member, Membership, PaidMembershipNudge, GroupMembership, \
     MemberNote, MemberLogin, MembershipGiftCardRedemption, \
     MembershipGiftCard, MembershipGiftCardReference, DiscoveryMethod, WifiMacDetected
 
@@ -96,8 +96,6 @@ class MemberAdmin(VersionAdmin):
     list_filter = [MemberTypeFilter]
 
 
-PAYMENT_METHOD_CODE2STR = {code: str for (code, str) in PaidMembership.PAID_BY_CHOICES}
-PAIDMEMBERSHIP_TYPE_CODE2STR = {code: str for (code, str) in PaidMembership.MEMBERSHIP_TYPE_CHOICES}
 MEMBERSHIP_TYPE_CODE2STR = {code: str for (code, str) in Membership.MEMBERSHIP_TYPE_CHOICES}
 
 
@@ -114,93 +112,6 @@ class PaymentLinkedFilter(admin.SimpleListFilter):
     def queryset(self, request, queryset):
         if self.value() == 'yes': return queryset.filter(member__isnull=False)
         if self.value() == 'no':  return queryset.filter(member__isnull=True)
-
-
-@admin.register(PaidMembership)
-class PaidMembershipAdmin(admin.ModelAdmin):  # Not versioning this since it will be deleted soon.
-
-    ordering = ['-start_date']
-    date_hierarchy = 'start_date'
-    list_filter = [
-        PaymentLinkedFilter,
-        'payment_method',
-        'membership_type',
-        'protected',
-    ]
-
-    def fam_fmt(self,obj): return obj.family_count
-    fam_fmt.admin_order_field = 'family_count'
-    fam_fmt.short_description = 'fam'
-
-    def paid_fmt(self,obj): return obj.paid_by_member
-    paid_fmt.admin_order_field = 'paid_by_member'
-    paid_fmt.short_description = 'paid'
-
-    def fee_fmt(self,obj): return obj.processing_fee
-    fee_fmt.admin_order_field = 'processing_fee'
-    fee_fmt.short_description = 'fee'
-
-    def type_fmt(self,obj): return PAIDMEMBERSHIP_TYPE_CODE2STR[obj.membership_type]
-    type_fmt.admin_order_field = 'membership_type'
-    type_fmt.short_description = 'type'
-
-    def when_fmt(self,obj): return obj.payment_date
-    when_fmt.admin_order_field = 'payment_date'
-    when_fmt.short_description = 'when'
-
-    def how_fmt(self,obj): return PAYMENT_METHOD_CODE2STR[obj.payment_method]
-    how_fmt.admin_order_field = 'payment_method'
-    how_fmt.short_description = 'how'
-
-    list_display = [
-        'pk',
-        'member',
-        'type_fmt',
-        'fam_fmt',
-        'start_date',
-        'end_date',
-
-        'payer_name',
-        'payer_email',
-        'paid_fmt',
-        'fee_fmt',
-        'when_fmt',
-        'how_fmt',
-    ]
-
-    readonly_fields = ['ctrlid']
-
-    fieldsets = [
-        ('Membership Details', {'fields': [
-            'member',
-            'membership_type',
-            'family_count',
-            'start_date',
-            'end_date',
-        ]}),
-        ('Payment Details', {'fields': [
-            'payer_name',
-            'payer_email',
-            'payer_notes',
-            'paid_by_member',
-            'processing_fee',
-            'payment_date',
-            'payment_method',
-        ]}),
-        ('Other', {'fields': [
-            'ctrlid',
-            'protected',
-        ]}),
-    ]
-
-    raw_id_fields = ['member']
-    search_fields = [
-        '^member__auth_user__first_name',
-        '^member__auth_user__last_name',
-        '^member__auth_user__username',
-        'payer_name',
-        'payer_email',
-    ]
 
 
 # @admin.register(PaymentAKA)

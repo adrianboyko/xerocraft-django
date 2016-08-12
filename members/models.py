@@ -150,12 +150,6 @@ class Member(models.Model):
         ''' Determine whether member is currently covered by a membership with a given grace period.'''
         now = datetime.now().date()
 
-        # pm = PaidMembership.objects.filter(
-        #     member=self,
-        #     start_date__lte=now, end_date__gte=now-grace_period)
-        # if len(pm) > 0:
-        #     return True
-
         m = Membership.objects.filter(
             member=self,
             start_date__lte=now, end_date__gte=now-grace_period)
@@ -415,9 +409,9 @@ def next_paidmembership_ctrlid():
     '''Provides an arbitrary default value for the ctrlid field, necessary when check, cash, or gift-card data is being entered manually.'''
 
     # Can't raise this exception while old migrations exist and blank dbs will be initialized by others.
-    #raise NotImplementedError("PaidMembership has been replaced iwth Membership.")
+    #raise NotImplementedError("PaidMembership has been replaced with Membership.")
 
-    return generate_ctrlid(PaidMembership)
+    return "ERROR"
 
 
 class GroupMembership(models.Model):
@@ -483,122 +477,6 @@ class GroupMembership(models.Model):
         if self.start_date >= self.end_date:
             raise ValidationError(_("End date must be later than start date."))
 
-class PaidMembership(models.Model):
-
-    member = models.ForeignKey(Member, related_name='terms',
-        # There are records of payments which no longer seem to have an associated account.
-        # Name used when paying may be different enough to prevent auto-linking.
-        # For two reasons listed above, we allow nulls in next line.
-        default=None, null=True, blank=True,
-        on_delete=models.PROTECT,  # Don't delete payment info nor the member linked to it.
-        help_text="The member to whom this paid membership applies.")
-
-    # Note: Strictly speaking, memberships have types, and members don't.
-    # Note: If there's no membership term covering some period, member has an "unpaid" membership during that time.
-    # REVIEW: Should Scholarship collapse into Complimentary?
-    MT_REGULAR       = "R"  # E.g. members who pay $50/mo
-    MT_WORKTRADE     = "W"  # E.g. members who work 9 hrs/mo and pay reduced $10/mo
-    MT_SCHOLARSHIP   = "S"  # The so-called "full scholarship", i.e. $0/mo. These function as paid memberships.
-    MT_COMPLIMENTARY = "C"  # E.g. for directors, certain sponsors, etc. These function as paid memberships.
-    MT_GROUP         = "G"  # E.g. for directors, certain sponsors, etc. These function as paid memberships.
-    MEMBERSHIP_TYPE_CHOICES = [
-        (MT_REGULAR,       "Regular"),
-        (MT_WORKTRADE,     "Work-Trade"),
-        (MT_SCHOLARSHIP,   "Scholarship"),
-        (MT_COMPLIMENTARY, "Complimentary"),
-        (MT_GROUP,         "Group"),
-    ]
-    membership_type = models.CharField(max_length=1, choices=MEMBERSHIP_TYPE_CHOICES,
-        null=False, blank=False, default=MT_REGULAR,
-        help_text="The type of membership.")
-
-    family_count = models.IntegerField(default=0, null=False, blank=False,
-        help_text="The number of ADDITIONAL family members included in this membership. Usually zero.")
-
-    start_date = models.DateField(null=False, blank=False,
-        help_text="The first day on which the membership is valid.")
-
-    end_date = models.DateField(null=False, blank=False,
-        help_text="The last day on which the membership is valid.")
-
-    payer_name = models.CharField(max_length=40, blank=True,
-        help_text="Name of person who made the payment.")
-
-    payer_email = models.EmailField(max_length=40, blank=True,
-        help_text="Email address of person who made the payment.")
-
-    payer_notes = models.CharField(max_length=1024, blank=True,
-        help_text="Any notes provided by the member.")
-
-    PAID_BY_NA     = "0"
-    PAID_BY_CASH   = "$"
-    PAID_BY_CHECK  = "C"
-    PAID_BY_GIFT   = "G"
-    PAID_BY_SQUARE = "S"
-    PAID_BY_2CO    = "2"
-    PAID_BY_WEPAY  = "W"
-    PAID_BY_PAYPAL = "P"
-    PAID_BY_CHOICES = [
-        (PAID_BY_NA,     "N/A"),  # E.g. complimentary "paid" memberships have no payment method.
-        (PAID_BY_CASH,   "Cash"),
-        (PAID_BY_CHECK,  "Check"),
-        (PAID_BY_GIFT,   "Gift Card"),  # These entries are made when person redeems the gift card.
-        (PAID_BY_SQUARE, "Square"),
-        (PAID_BY_2CO,    "2Checkout"),
-        (PAID_BY_WEPAY,  "WePay"),
-        (PAID_BY_PAYPAL, "PayPal"),
-    ]
-    payment_method = models.CharField(max_length=1, choices=PAID_BY_CHOICES,
-        null=False, blank=False, default=PAID_BY_CASH,
-        help_text="The payment method used.")
-
-    paid_by_member = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
-        help_text="The full amount paid by the member, including payment processing fee IF THEY PAID IT.")
-    paid_by_member.verbose_name = "Amt Paid by Member"
-
-    processing_fee = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
-        help_text="Payment processor's fee, regardless of whether it was paid by the member or Xerocraft.")
-    processing_fee.verbose_name = "Amt of Processing Fee"
-
-    ctrlid = models.CharField(max_length=40, null=False, blank=False, default=next_paidmembership_ctrlid,
-        help_text="Payment processor's id for this payment.")
-
-    payment_date = models.DateField(null=True, blank=True,
-        help_text="The date on which the payment was made. Can be blank if unknown.")
-
-    protected = models.BooleanField(default=False,
-        help_text="Protect against further auto processing by ETL, etc. Prevents overwrites of manually enetered data.")
-
-    def link_to_member(self):
-
-        self.member = None
-
-        # Attempt to match by EMAIL
-        try:
-            email_matches = User.objects.filter(email=self.payer_email)
-            if len(email_matches) == 1:
-                self.member = email_matches[0].member
-        except User.DoesNotExist:
-            pass
-
-        # Attempt to match by NAME
-        nameobj = HumanName(self.payer_name)
-        fname = nameobj.first
-        lname = nameobj.last
-        try:
-            name_matches = User.objects.filter(first_name__iexact=fname, last_name__iexact=lname)
-            if len(name_matches) == 1:
-                self.member = name_matches[0].member
-            # TODO: Else log WARNING (or maybe just INFO)
-        except User.DoesNotExist:
-            pass
-
-    def __str__(self):
-        return "%s, %s, %s" % (self.member, self.start_date, self.end_date)
-
-    class Meta:
-        unique_together = ('payment_method', 'ctrlid')
-
 
 class PaidMembershipNudge(models.Model):
     """ Records the fact that we reminded somebody that they should renew their paid membership """
@@ -657,9 +535,6 @@ class MembershipGiftCardRedemption(models.Model):
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # MEMBERSHIP
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-
-# Along with Sale (in "books" app), the following class will eventually replace PaidMembership.
-# PaidMembership is being kept until the switch-over is complete.
 
 class Membership(models.Model):
 
