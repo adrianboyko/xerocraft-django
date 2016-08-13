@@ -44,7 +44,7 @@ class Command(BaseCommand):
         to = member.email
         text_content = text_content_template.render(d)
         html_content = html_content_template.render(d)
-        msg = EmailMultiAlternatives(subject, text_content, from_email, [to], [from_email], [bcc_email])
+        msg = EmailMultiAlternatives(subject, text_content, from_email, [to], [bcc_email])
         msg.attach_alternative(html_content, "text/html")
         msg.send()
 
