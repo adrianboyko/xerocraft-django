@@ -5,13 +5,22 @@ import logging
 
 # TODO: This was created before the "abutils" app. Move it there.
 
-pushover = chump.Application(os.environ['PUSHOVER_API_KEY'])
-assert pushover.is_authenticated
 logger = logging.getLogger("members")
+
+PUSHOVER_KEY = getattr(os.environ, 'PUSHOVER_API_KEY', None)
+if (PUSHOVER_KEY is not None):
+    pushover = chump.Application(os.environ['PUSHOVER_API_KEY'])
+    assert pushover.is_authenticated
+else:
+    pushover = None
+    logger.info("Pushover not configured. Alerts will not be sent.")
 
 
 # REVIEW: This sometimes fails. Should it be an asynchronous task with retries?
 def notify(target_member: Member, title: str, message: str):
+    if pushover is None:
+        return
+
     try:
         target_key = Pushover.objects.get(who=target_member).key
     except Pushover.DoesNotExist:

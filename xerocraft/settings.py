@@ -14,7 +14,10 @@ https://docs.djangoproject.com/en/1.8/ref/settings/
 import os
 
 import uuid
-DEVHOSTS = [238402988951122]
+DEVHOSTS = [
+    238402988951122,  # Adrian Linux
+    220083055528387,  # Adrian Mac
+]
 CURRHOST = uuid.getnode()
 ISDEVHOST = CURRHOST in DEVHOSTS
 
@@ -62,16 +65,17 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 # Social auth would work inside AND outside if we replace reverse proxy inside XC with Heroku's SSL.
 # That said, I'm not sure that access outside Xerocraft should be allowed at all.
 # BTW, one Stack Exchange comment blames Heroku: "This is because heroku fails to pass the headers"
-SOCIAL_AUTH_REDIRECT_IS_HTTPS = True
 
-SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = os.environ['GOOGLE_OAUTH2_KEY']
-SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = os.environ['GOOGLE_OAUTH2_SECRET']
+# SOCIAL_AUTH_REDIRECT_IS_HTTPS = True
 
-SOCIAL_AUTH_TWITTER_KEY = os.environ['TWITTER_KEY']
-SOCIAL_AUTH_TWITTER_SECRET = os.environ['TWITTER_SECRET']
+# SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = os.environ['GOOGLE_OAUTH2_KEY']
+# SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = os.environ['GOOGLE_OAUTH2_SECRET']
 
-SOCIAL_AUTH_FACEBOOK_KEY =  os.environ['FACEBOOK_KEY']
-SOCIAL_AUTH_FACEBOOK_SECRET =  os.environ['FACEBOOK_SECRET']
+# SOCIAL_AUTH_TWITTER_KEY = os.environ['TWITTER_KEY']
+# SOCIAL_AUTH_TWITTER_SECRET = os.environ['TWITTER_SECRET']
+
+# SOCIAL_AUTH_FACEBOOK_KEY =  os.environ['FACEBOOK_KEY']
+# SOCIAL_AUTH_FACEBOOK_SECRET =  os.environ['FACEBOOK_SECRET']
 
 # Application definition
 INSTALLED_APPS = (
@@ -127,9 +131,9 @@ SESSION_SAVE_EVERY_REQUEST = True
 AUTHENTICATION_BACKENDS = (
     'xerocraft.authenticators.CaseInsensitiveModelBackend',
     'xerocraft.authenticators.XerocraftBackend',
-    'social.backends.facebook.FacebookOAuth2',
-    'social.backends.google.GoogleOAuth2',
-    'social.backends.twitter.TwitterOAuth',
+    # 'social.backends.facebook.FacebookOAuth2',
+    # 'social.backends.google.GoogleOAuth2',
+    # 'social.backends.twitter.TwitterOAuth',
 )
 if ISDEVHOST:
     AUTHENTICATION_BACKENDS += (
@@ -158,8 +162,8 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'django.core.context_processors.request',
-                'social.apps.django_app.context_processors.backends',
-                'social.apps.django_app.context_processors.login_redirect',
+                # 'social.apps.django_app.context_processors.backends',
+                # 'social.apps.django_app.context_processors.login_redirect',
             ],
         },
     },
@@ -311,3 +315,19 @@ PYLINT_LOAD_PLUGIN = (
 )
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# IntSys Config
+#
+# Using "IntSys" as a generic non-Xerocraft-specific name for the project.
+# The system is called "Xerocraft Internal Systems" (XIS) at Xerocraft.
+#
+# Configuration of IntSys for Xerocraft follows. Change for your organization.
+
+INTSYS_SYS_NAME = "XIS"
+
+INTSYS_ORG_NAME = "Xerocraft"
+INTSYS_ORG_NAME_POSSESSIVE = "Xerocraft's"
+
+# Set the INTSYS_FACILITY_PUBLIC_IP environment variable to either:
+#   (1) A DNS name that resolves to the facility's public IP
+#   (2) The facility's static IP address.
+INTSYS_FACILITY_PUBLIC_IP = os.getenv('INTSYS_FACILITY_PUBLIC_IP', None)

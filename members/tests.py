@@ -165,7 +165,8 @@ class TestCardsAndApi(TestCase):
         path = "/members/api/visit-event/%s_%s/" % (self.str1, VisitEvent.EVT_ARRIVAL)
         response = c.get(path)
         json_response = json.loads(response.content.decode())
-        self.assertTrue(json_response['success'])
+        # This otherwise good test will fail because the test is run OUTSIDE the facility.
+        self.assertTrue(json_response['error'].startswith("Must be on"))  # Must be on {} WiFi to check in/out
 
     def test_visit_event_bad_evt_type(self):
         c = Client()
