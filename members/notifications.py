@@ -7,9 +7,9 @@ import logging
 
 logger = logging.getLogger("members")
 
-PUSHOVER_KEY = getattr(os.environ, 'PUSHOVER_API_KEY', None)
-if (PUSHOVER_KEY is not None):
-    pushover = chump.Application(os.environ['PUSHOVER_API_KEY'])
+key = os.getenv('PUSHOVER_API_KEY', None)
+if key is not None:
+    pushover = chump.Application(key)
     assert pushover.is_authenticated
 else:
     pushover = None
