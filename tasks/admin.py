@@ -5,10 +5,7 @@ import datetime
 # Third Party
 from django.contrib import admin
 from django.contrib.admin.views import main
-from django.contrib.auth.admin import UserAdmin
-from django.contrib.auth.models import User
 from django.utils.translation import ugettext_lazy as _
-from django.db.models import Model
 from nptime import nptime
 from reversion.admin import VersionAdmin
 
@@ -160,7 +157,7 @@ class TemplateAndTaskBase(VersionAdmin):
         abstract = True
 
 
-class EligibleTagForTemplate_Inline(admin.StackedInline):
+class EligibleTagForTemplate_Inline(admin.TabularInline):
     # Using proxy to give the "through" class a better name
     class EligibleTagForTemplate(RecurringTaskTemplate.eligible_tags.through):
         def __str__(self):
@@ -172,7 +169,7 @@ class EligibleTagForTemplate_Inline(admin.StackedInline):
     extra = 0
 
 
-class EligibleClaimantForTemplate_Inline(admin.StackedInline):
+class EligibleClaimantForTemplate_Inline(admin.TabularInline):
     # Using proxy to give the "through" class a better name
     class EligibleClaimantForTemplate(RecurringTaskTemplate.eligible_claimants.through):
         def __str__(self):
@@ -184,7 +181,7 @@ class EligibleClaimantForTemplate_Inline(admin.StackedInline):
     extra = 0
 
 
-class UninterestedForTemplate_Inline(admin.StackedInline):
+class UninterestedForTemplate_Inline(admin.TabularInline):
     # Using proxy to give the "through" class a better name
     class Uninterested(RecurringTaskTemplate.uninterested.through):
         def __str__(self):
@@ -318,6 +315,12 @@ class RecurringTaskTemplateAdmin(TemplateAndTaskBase):
 
     ]
 
+    class Media:
+        css = {
+            "all": ("abutils/admin-tabular-inline.css",)  # This hides "denormalized object descs", to use Wojciech's term.
+        }
+
+
 # TODO: Can't use @admin.register decorator for RTTA because of main.EMPTY_CHANGELIST_VALUE = '-' code.
 admin.site.register(RecurringTaskTemplate, RecurringTaskTemplateAdmin)
 
@@ -366,7 +369,7 @@ def get_ScheduledDateListFilter_class(date_field_name):
     return ScheduledDateListFilter
 
 
-class EligibleTagForTask_Inline(admin.StackedInline):
+class EligibleTagForTask_Inline(admin.TabularInline):
     # Using proxy to give the "through" class a better name
     class EligibleTag(Task.eligible_tags.through):
         def __str__(self):
@@ -378,7 +381,7 @@ class EligibleTagForTask_Inline(admin.StackedInline):
     extra = 0
 
 
-class EligibleClaimantForTask_Inline(admin.StackedInline):
+class EligibleClaimantForTask_Inline(admin.TabularInline):
     # Using proxy to give the "through" class a better name
     class EligibleClaimant(Task.eligible_claimants.through):
         def __str__(self):
@@ -386,6 +389,18 @@ class EligibleClaimantForTask_Inline(admin.StackedInline):
         class Meta:
             proxy = True
     model = EligibleClaimant
+    raw_id_fields = ['member']
+    extra = 0
+
+
+class UninterestedForTask_Inline(admin.TabularInline):
+    # Using proxy to give the "through" class a better name
+    class Uninterested(Task.uninterested.through):
+        def __str__(self):
+            return "" if self.member is None else str(self.member)
+        class Meta:
+            proxy = True
+    model = Uninterested
     raw_id_fields = ['member']
     extra = 0
 
@@ -455,10 +470,15 @@ class TaskAdmin(TemplateAndTaskBase):
         ClaimInline,
         EligibleClaimantForTask_Inline,
         EligibleTagForTask_Inline,
+        UninterestedForTask_Inline,
         TaskNoteInline,
     ]
     raw_id_fields = ['owner', 'eligible_claimants', 'uninterested', 'reviewer']
 
+    class Media:
+        css = {
+            "all": ("abutils/admin-tabular-inline.css",)  # This hides "denormalized object descs", to use Wojciech's term.
+        }
 
 
 @admin.register(Claim)
