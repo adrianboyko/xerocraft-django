@@ -137,6 +137,7 @@ def set_nag_on_for_instances(model_admin, request, query_set):
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# Base classes for both Template and Task
 
 class TemplateAndTaskBase(VersionAdmin):
 
@@ -157,38 +158,41 @@ class TemplateAndTaskBase(VersionAdmin):
         abstract = True
 
 
+class EligibleClaimant_Inline(admin.TabularInline):
+
+    def should_nag(self, obj):
+        return obj.member.worker.should_nag
+    should_nag.boolean = True
+
+    def edit_worker(self, obj):
+        return "<a href='/admin/tasks/worker/{}/'>{}</a>".format(obj.member.worker.id, obj.member.friendly_name)
+    edit_worker.allow_tags = True
+
+    fields = ["member", "should_nag", "edit_worker"]
+    readonly_fields = ["should_nag", "edit_worker"]
+    raw_id_fields = ['member']
+    extra = 0
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
 class EligibleTagForTemplate_Inline(admin.TabularInline):
-    # Using proxy to give the "through" class a better name
-    class EligibleTagForTemplate(RecurringTaskTemplate.eligible_tags.through):
-        def __str__(self):
-            return "" if self.tag is None else str(self.tag)
-        class Meta:
-            proxy = True
-    model = EligibleTagForTemplate
+    model = RecurringTaskTemplate.eligible_tags.through
+    model._meta.verbose_name = "Eligible Tag"
+    model._meta.verbose_name_plural = "Eligible Tags"
     raw_id_fields = ['tag']
     extra = 0
 
 
-class EligibleClaimantForTemplate_Inline(admin.TabularInline):
-    # Using proxy to give the "through" class a better name
-    class EligibleClaimantForTemplate(RecurringTaskTemplate.eligible_claimants.through):
-        def __str__(self):
-            return "" if self.member is None else str(self.member)
-        class Meta:
-            proxy = True
-    model = EligibleClaimantForTemplate
-    raw_id_fields = ['member']
-    extra = 0
+class EligibleClaimantForTemplate_Inline(EligibleClaimant_Inline):
+    model = RecurringTaskTemplate.eligible_claimants.through
+    model._meta.verbose_name = "Eligible Claimant"
+    model._meta.verbose_name_plural = "Eligible Claimants"
 
 
 class UninterestedForTemplate_Inline(admin.TabularInline):
-    # Using proxy to give the "through" class a better name
-    class Uninterested(RecurringTaskTemplate.uninterested.through):
-        def __str__(self):
-            return "" if self.member is None else str(self.member)
-        class Meta:
-            proxy = True
-    model = Uninterested
+    model = RecurringTaskTemplate.uninterested.through
+    model._meta.verbose_name = "Uninterested Member"
+    model._meta.verbose_name_plural = "Uninterested Members"
     raw_id_fields = ['member']
     extra = 0
 
@@ -370,37 +374,22 @@ def get_ScheduledDateListFilter_class(date_field_name):
 
 
 class EligibleTagForTask_Inline(admin.TabularInline):
-    # Using proxy to give the "through" class a better name
-    class EligibleTag(Task.eligible_tags.through):
-        def __str__(self):
-            return "" if self.tag is None else str(self.tag)
-        class Meta:
-            proxy = True
-    model = EligibleTag
+    model = Task.eligible_tags.through
+    model._meta.verbose_name = "Eligible Tag"
+    model._meta.verbose_name_plural = "Eligible Tags"
     raw_id_fields = ['tag']
     extra = 0
 
 
-class EligibleClaimantForTask_Inline(admin.TabularInline):
-    # Using proxy to give the "through" class a better name
-    class EligibleClaimant(Task.eligible_claimants.through):
-        def __str__(self):
-            return "" if self.member is None else str(self.member)
-        class Meta:
-            proxy = True
-    model = EligibleClaimant
-    raw_id_fields = ['member']
-    extra = 0
-
+class EligibleClaimantForTask_Inline(EligibleClaimant_Inline):
+    model = Task.eligible_claimants.through
+    model._meta.verbose_name = "Eligible Claimant"
+    model._meta.verbose_name_plural = "Eligible Claimants"
 
 class UninterestedForTask_Inline(admin.TabularInline):
-    # Using proxy to give the "through" class a better name
-    class Uninterested(Task.uninterested.through):
-        def __str__(self):
-            return "" if self.member is None else str(self.member)
-        class Meta:
-            proxy = True
-    model = Uninterested
+    model = Task.uninterested.through
+    model._meta.verbose_name = "Uninterested Member"
+    model._meta.verbose_name_plural = "Uninterested Members"
     raw_id_fields = ['member']
     extra = 0
 
