@@ -9,28 +9,6 @@ import members.models as models
 from books.models import Sale
 
 
-class PaidMembershipSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = models.PaidMembership
-        fields = (
-            'id',
-            'membership_type',
-            'family_count',
-            'start_date',
-            'end_date',
-            'payer_name',
-            'payer_email',
-            'payer_notes',
-            'payment_method',
-            'paid_by_member',
-            'processing_fee',
-            'payment_date',
-            'ctrlid',
-            'protected',
-        )
-
-
 class MembershipSerializer(serializers.ModelSerializer):
 
     class Meta:
