@@ -92,7 +92,6 @@ if ISDEVHOST:
     # So I'm putting all the development and WIP stuff here.
     INSTALLED_APPS += (
         'django_jenkins',
-        'guardian',
         #'debug_toolbar',
     )
 
@@ -137,7 +136,6 @@ AUTHENTICATION_BACKENDS = (
 )
 if ISDEVHOST:
     AUTHENTICATION_BACKENDS += (
-        'guardian.backends.ObjectPermissionBackend',
     )
 
 ANONYMOUS_USER_ID = -1
