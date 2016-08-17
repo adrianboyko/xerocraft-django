@@ -7,7 +7,10 @@ django-debug-toolbar==1.4
 django-filter==0.12.0
 django-guardian==1.4.1
 django-jenkins==0.18.1
-django-reversion==1.10.2
+
+# Must be 2.0.0 or greater because we're using Django 1.8
+django-reversion==2.0.6
+
 djangorestframework==3.3.2
 django-webpack-loader==0.3.0
 freezegun==0.3.7
