@@ -3,6 +3,7 @@ from . import views
 from rest_framework import routers
 
 router = routers.DefaultRouter()
+router.register(r'members', views.MemberViewSet)
 router.register(r'memberships', views.MembershipViewSet)
 router.register(r'discovery-methods', views.DiscoveryMethodViewSet)
 router.register(r'gift-card-refs', views.MembershipGiftCardReferenceViewSet)

@@ -390,6 +390,14 @@ def kiosk_identify_subject(request, staff_card_str, next_url):
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = REST API
 
+class MemberViewSet(viewsets.ModelViewSet):  # Django REST Framework
+    """
+    API endpoint that allows members to be viewed or edited.
+    """
+    queryset = Member.objects.all()
+    serializer_class = ser.MemberSerializer
+
+
 class MembershipViewSet(viewsets.ModelViewSet):  # Django REST Framework
     """
     API endpoint that allows memberships to be viewed or edited.

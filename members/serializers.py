@@ -9,6 +9,18 @@ import members.models as models
 from books.models import Sale
 
 
+class MemberSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = models.Member
+        fields = (
+            'id',
+            'username',
+            'friendly_name',
+            'is_active',
+        )
+
+
 class MembershipSerializer(serializers.ModelSerializer):
 
     class Meta:

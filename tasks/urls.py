@@ -1,6 +1,15 @@
-from django.conf.urls import url
+# Core
 
+# Third Party
+from django.conf.urls import url, include
+from rest_framework import routers
+
+# Local
 from . import views
+import tasks.restapi as api
+
+router = routers.DefaultRouter()
+router.register(r'tasks', api.TaskViewSet)
 
 urlpatterns = [
 
@@ -34,5 +43,8 @@ urlpatterns = [
     # Temporary Work Trade Checkout
     url(r'^desktop-timesheet/$', views.desktop_timesheet, name='desktop-timesheet'),
     url(r'^desktop-timesheet-verify/$', views.desktop_timesheet_verify, name='desktop-timesheet-verify'),
+
+    # DJANGO REST FRAMEWORK API
+    url(r'^api/', include(router.urls)),
 
 ]
