@@ -34,7 +34,7 @@ urlpatterns = [
     url(r'^api/visit-event/(?P<member_card_str>[-_a-zA-Z0-9]{32})_(?P<event_type>[APD])/$', views.api_log_visit_event, name="api-visit-event"),
 
     # DJANGO REST FRAMEWORK API
-    url(r'^', include(router.urls)),
+    url(r'^api/', include(router.urls)),
 
     # OTHER
     url(r'^csv/monthly-accrued-membership/$', views.csv_monthly_accrued_membership, name='csv-monthly-accrued-membership'),

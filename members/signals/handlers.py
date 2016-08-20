@@ -121,6 +121,10 @@ def link_membership_to_member(sender, **kwargs):
 def note_login(sender, user, request, **kwargs):  # https://code.djangoproject.com/ticket/22111
     try:
         ip = get_ip_address(request)
+        if ip is None:
+            # IP is none when connecting from Client in tests.
+            # TODO: Assert that this is a dev machine?
+            return
         logger.info("Login: %s at %s" % (user, ip))
         MemberLogin.objects.create(member=user.member, ip=ip)
 
