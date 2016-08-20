@@ -135,9 +135,11 @@ class Member(models.Model):
         return b64
 
     def is_tagged_with(self, tag_name):
+        '''Determine if member has a tag with the given tag-name.'''
         return True if tag_name in [x.name for x in self.tags.all()] else False
 
     def can_tag_with(self, tag):
+        '''Determine if member can tag others with tags having given tag-name.'''
         for tagging in self.taggings.all():
             if tagging.tag.name == tag.name:
                 return tagging.can_tag
