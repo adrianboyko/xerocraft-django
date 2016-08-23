@@ -97,7 +97,7 @@ class MemberAdmin(VersionAdmin):
         '^auth_user__first_name',
         '^auth_user__last_name',
         '^auth_user__username',
-        '^auth_user__email',
+        'auth_user__email',
     ]
 
     list_display_links = [
