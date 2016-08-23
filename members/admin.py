@@ -83,15 +83,30 @@ class MemberTypeFilter(admin.SimpleListFilter):
 @admin.register(Member)
 class MemberAdmin(VersionAdmin):
 
-    list_display = ['pk', '__str__', 'auth_user', 'membership_card_when', 'membership_card_md5']
+    list_display = [
+        'pk',
+        'username',
+        'first_name',
+        'last_name',
+        'email',
+        # 'membership_card_when',
+        # 'membership_card_md5'
+    ]
 
     search_fields = [
         '^auth_user__first_name',
         '^auth_user__last_name',
         '^auth_user__username',
+        '^auth_user__email',
     ]
 
-    list_display_links = ['pk', '__str__']
+    list_display_links = [
+        'pk',
+        'username',
+        'first_name',
+        'last_name',
+        'email',
+    ]
 
     list_filter = [MemberTypeFilter]
 
