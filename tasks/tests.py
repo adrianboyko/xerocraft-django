@@ -14,11 +14,13 @@ from selenium import webdriver
 import lxml.html
 import requests
 from pyvirtualdisplay import Display
+from rest_framework.test import APIRequestFactory
+from rest_framework.test import force_authenticate
 
 # Local
 from tasks.models import RecurringTaskTemplate, Task, TaskNote, Claim, Work, WorkNote, Nag
 from members.models import Member, Tag, VisitEvent
-
+import tasks.restapi as restapi
 
 ONEDAY = timedelta(days=1)
 TWODAYS   = 2 * ONEDAY
@@ -693,3 +695,99 @@ class TestWindowedObject(TestCase):
         self.assertEquals(claim.window_duration(), onehour)
         self.assertEquals(claim.window_sched_date(), self.t.scheduled_date)
         self.assertEquals(claim.window_deadline(), self.t.deadline)
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# TEST REST APIs
+
+
+class TestRestApi_Tasks(TestCase):
+
+    def setUp(self):
+
+        # Person who will make the REST API call
+        caller = User.objects.create(username='caller')
+        caller.set_password("pw4caller")
+        caller.save()
+        caller.clean()
+        caller.member.clean()
+        self.caller = caller.member
+
+        # Some other person who will create tasks
+        other = User.objects.create(username='other',first_name="fn4other", last_name="ln4other")
+        other.set_password("pw4other")
+        other.save()
+        other.clean()
+        other.member.clean()
+        self.other = other.member
+
+        # The caller's "browser"
+        self.factory = APIRequestFactory()
+        logged_in = self.client.login(username="caller", password="pw4caller")
+        self.assertTrue(logged_in)
+
+        # Data for a task
+        self.task_data = {
+            'short_desc': "Test Kiosk Views",
+            'max_work': timedelta(hours=2),
+            'max_workers': 1,
+            'work_start_time': datetime.now().time(),
+            'work_duration': timedelta(hours=2),
+            'scheduled_date': date.today(),
+            'orig_sched_date': date.today(),
+        }
+
+    def test_need_creds_to_create_task(self):
+        view = restapi.TaskViewSet.as_view({'post': 'create'})
+        uri = reverse("task:task-list")
+        request = self.factory.post(uri)
+        response = view(request)
+        self.assertEquals(response.status_code, 403)
+
+    def test_can_create_and_read_task(self):
+
+        view = restapi.TaskViewSet.as_view({'post': 'create'})
+        uri = reverse("task:task-list")
+        request = self.factory.post(uri, self.task_data)
+        force_authenticate(request, self.caller.auth_user)
+        response = view(request)
+        self.assertEqual(response.status_code, 201) # 201 = Created
+        pk = response.data['id']
+
+        uri = reverse("task:task-detail", args=[pk])
+        request = self.factory.get(uri)
+        force_authenticate(request, self.caller.auth_user)
+        view = restapi.TaskViewSet.as_view({'get': 'retrieve'})
+        response = view(request, pk=pk)
+        self.assertEqual(response.status_code, 200)
+
+    def test_list_only_my_tasks(self):
+
+        # Other person creates a task
+        self.task_data["owner"] = self.other
+        Task.objects.create(**self.task_data)
+
+        # "I" shouldn't see it on the API's list
+        uri = reverse("task:task-list")
+        request = self.factory.get(uri)
+        force_authenticate(request, self.caller.auth_user)
+        view = restapi.TaskViewSet.as_view({'get': 'list'})
+        response = view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data["results"]), 0)
+
+        # "I" create a task
+        self.task_data["owner"] = self.caller
+        self.task_data["short_desc"] = "Another task"
+        Task.objects.create(**self.task_data)
+
+        # There are now two tasks in the system
+        self.assertEqual(Task.objects.count(), 2)
+
+        # "I" should now see ONE task on the API's list
+        uri = reverse("task:task-list")
+        request = self.factory.get(uri)
+        force_authenticate(request, self.caller.auth_user)
+        view = restapi.TaskViewSet.as_view({'get': 'list'})
+        response = view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data["results"]), 1)
