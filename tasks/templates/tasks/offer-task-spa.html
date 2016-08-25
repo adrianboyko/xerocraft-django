@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+
+{% load staticfiles %}
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Help!</title>
+</head>
+<body>
+    <div id="myContainer"></div>
+    <script src="{% static 'tasks/OfferTask.js' %}"></script>
+    <script>
+        var task_data = {{task_data|safe}};
+        var myContainer = document.getElementById("myContainer");
+        var app = Elm.OfferTask.embed(myContainer, task_data);
+    </script>
+</body>
+</html>
