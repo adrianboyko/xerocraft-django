@@ -5,6 +5,7 @@ from rest_framework import serializers
 class ClaimSerializer(serializers.ModelSerializer):
     claimed_task = serializers.HyperlinkedRelatedField(read_only=True, view_name='task:task-detail')
     claiming_member = serializers.HyperlinkedRelatedField(read_only=True, view_name='memb:member-detail')
+    work_set = serializers.HyperlinkedRelatedField(read_only=True, many=True, view_name='task:work-detail')
 
     class Meta:
         model = tm.Claim
@@ -14,7 +15,9 @@ class ClaimSerializer(serializers.ModelSerializer):
             'claiming_member',
             'claimed_start_time',
             'claimed_duration',
+            'work_set',
         )
+
 
 class TaskSerializer(serializers.ModelSerializer):
 
@@ -50,5 +53,19 @@ class TaskSerializer(serializers.ModelSerializer):
             'claimants',
             'status',
             'claim_set',
+        )
+
+
+class WorkSerializer(serializers.ModelSerializer):
+
+    claim = serializers.HyperlinkedRelatedField(read_only=True, view_name='task:claim-detail')
+
+    class Meta:
+        model = tm.Work
+        fields = (
+            'id',
+            'claim',
+            'work_date',
+            'work_duration',
         )
 

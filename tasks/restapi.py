@@ -34,10 +34,10 @@ class IsOwnerOrReadOnly(permissions.BasePermission):
                 return self.has_object_permission(request, view, obj.claimed_task)
 
         if type(obj) is tm.Task:
-            if memb == obj.owner:
-                return True
-            else:
-                return False
+            return memb == obj.owner
+
+        if type(obj) is tm.Work:
+            return memb == obj.claim.claiming_member
 
 
 class ClaimViewSet(viewsets.ModelViewSet):
@@ -60,7 +60,6 @@ class TaskViewSet(viewsets.ModelViewSet):
     queryset = tm.Task.objects.all()
     serializer_class = ts.TaskSerializer
     permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
-    filter_fields = []
 
     def get_queryset(self):
         memb = self.request.user.member
@@ -71,3 +70,19 @@ class TaskViewSet(viewsets.ModelViewSet):
             return tm.Task.objects.filter(owner=memb, scheduled_date__gte=today)
         else:
             return tm.Task.objects.all()
+
+
+class WorkViewSet(viewsets.ModelViewSet):
+    queryset = tm.Work.objects.all()
+    serializer_class = ts.WorkSerializer
+    permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
+
+    def get_queryset(self):
+        memb = self.request.user.member
+
+        if self.action is "list":
+            # Filter to show only memb's work.
+            today = datetime.today()
+            return tm.Work.objects.filter(claim__claiming_member=memb)
+        else:
+            return tm.Work.objects.all()
