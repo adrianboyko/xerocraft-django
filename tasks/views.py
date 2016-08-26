@@ -339,6 +339,7 @@ def offer_task_spa(request, task_pk=0, auth_token=""):
         "already_claimed_by": claim.claiming_member.friendly_name if claim is not None else "",
         "future_dates": futures[0:4],
         "calendar_token": nag.who.worker.calendar_token,
+        "calendar_url": reverse('task:member-calendar', args=[nag.who.worker.calendar_token])
     }
 
     props = {
@@ -516,8 +517,8 @@ def _add_event(cal, task, request):
 def _ical_response(cal):
     ics = cal.to_ical()
     response = HttpResponse(ics, content_type='text/calendar')
+    response['Content-Disposition'] = 'attachment; filename="calendar.ics"'
     # TODO: No cache header?
-    # TODO: Add filename?
     return response
 
 

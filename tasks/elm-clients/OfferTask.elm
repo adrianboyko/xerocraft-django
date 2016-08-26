@@ -40,6 +40,7 @@ type alias Params =
   , already_claimed_by: String
   , future_dates: List String
   , calendar_token: String
+  , calendar_url: String
 }
 
 type alias Model =
@@ -59,43 +60,94 @@ init providedParams =
 
 type Msg
   = ClaimTask
-  | Unsubscribe
+  | DeclineTask
+  | OKItIsClaimed
+  | CreateClaimSuccess String
+  | CreateClaimFailure Http.Error
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update action model =
   case action of
+
     ClaimTask ->
-      (model, Cmd.none)
-    Unsubscribe ->
+      (model, createClaim model.params.task_id)
+
+    CreateClaimSuccess msg ->
       (model, Cmd.none)
 
+    CreateClaimFailure err ->
+      (model, Cmd.none)
+
+    DeclineTask ->
+      (model, Cmd.none)
+
+    OKItIsClaimed ->
+      ({model | step = Thanks}, Cmd.none)
+
+createClaim : Int -> Cmd Msg
+createClaim taskId =
+  let
+    url = "https://localhost:8000/tasks/api/claim/"
+  in
+    Cmd.none
+
 -----------------------------------------------------------------------------
--- VIEW
+-- STYLES
 -----------------------------------------------------------------------------
+
+unselectable = style
+  [ ("-moz-user-select", "-moz-none")
+  , ("-khtml-user-select", "none")
+  , ("-webkit-user-select", "none")
+  , ("-ms-user-select", "none")
+  , ("user-select", "none")
+  ]
 
 containerStyle = style
   [ ("text-align", "center")
   , ("padding", "10% 0")
-  , ("font-family", "Arial, Helvetica, sans-serif")
+  , ("font-family", "Roboto Condensed, Arial, Helvetica, sans-serif")
   ]
 
 taskCardStyle = style
   [ ("display", "inline-block")
-  , ("padding", "7pt 50pt 7pt")
-  , ("margin", "10pt")
+  , ("padding", "12px 12px") -- vert, horiz
+  , ("margin", "17px")
   , ("background-color", "#ffe4b2")
   , ("color", "black")
-  , ("border-radius", "6pt")
+  , ("border-radius", "8px")
   , ("border-style", "solid")
   , ("border-color", "black")
   , ("border-width", "1px")
   ]
 
 buttonStyle = style
-  [ ("font-size", "12pt")
-  , ("margin", "9pt 0 0 0")
-  , ("padding", "5pt 15pt")
+  [ ("font-size", "1.2em")
+  , ("margin", "12px 7px") -- vert, horiz
+  , ("padding", "7px 13px")
   ]
+
+greetingStyle = style
+  [ ("font-size", "2.5em")
+  , ("font-weight", "bold")
+  , ("margin", "0 0 0 0")
+  ]
+
+taskDescStyle = style
+  [ ("font-size", "1.25em")
+  , ("font-weight", "bold")
+  ]
+
+isClaimedStyle = style
+    [ ("display", "inline-block")
+    , ("background", "white")
+    , ("color", "black")
+    , ("margin", "0px")
+    ]
+
+-----------------------------------------------------------------------------
+-- VIEW
+-----------------------------------------------------------------------------
 
 view : Model -> Html Msg
 view {step, params} =
@@ -106,17 +158,7 @@ view {step, params} =
 
 offerTaskView : Params -> Html Msg
 offerTaskView params =
-  let
-    greetingStyle = style [("font-size", "24pt"), ("font-weight", "bold"), ("margin", "0 0 0pt 0")] -- TRBL
-    taskDescStyle = style [("font-size", "16pt"), ("font-weight", "bold")]
-    isClaimedStyle = style
-        [ ("display", "inline-block")
-        , ("background", "white")
-        , ("color", "black")
-        , ("margin", "0px") -- TRBL
-        ]
-  in
-  div [containerStyle]
+  div [containerStyle, unselectable]
     [ div [greetingStyle] [text ("Hi " ++ params.user_friendly_name++"!")]
     , div [] [text "You have clicked the following task:"]
     , div [taskCardStyle]
@@ -126,8 +168,10 @@ offerTaskView params =
         ]
     , if (String.isEmpty params.already_claimed_by) then
         div []
-          [ div [] [ text "Nobody is helping with this task. You can:" ]
-          , div [] [ button [buttonStyle, onClick ClaimTask] [text "Claim Task!"] ]
+          [ div [] [ text "Nobody is helping with this task." ]
+          , div [] [ text "Will you staff it?" ]
+          , button [buttonStyle, onClick ClaimTask] [text "Yes"]
+          , button [buttonStyle, onClick DeclineTask] [text "No"]
           ]
       else
         div []
@@ -136,7 +180,7 @@ offerTaskView params =
             , br [] []
             , text "has already claimed this task."
             ]
-          , div [] [button [buttonStyle, onClick Unsubscribe] [text "OK"]]
+          , div [] [button [buttonStyle, onClick OKItIsClaimed] [text "OK"]]
           ]
     ]
 
@@ -146,7 +190,19 @@ moreTasksView params =
 
 thanksView : Params -> Html Msg
 thanksView params =
-  div [containerStyle] [text "hi"]
+  div [containerStyle, unselectable]
+    [ div [greetingStyle] [text "All Done"]
+    , br [] []
+    , div []
+      [ text "If you haven't already done so, consider", br [] []
+      , text "subscribing to your Xerocraft calendar so", br [] []
+      , text "that your phone or computer can remind you", br [] []
+      , text "of upcoming tasks. A link to your calendar", br [] []
+      , text "(in 'icalendar' format) appears below:"
+      ]
+    , br [] []
+    , a [ href params.calendar_url ] [ text (params.user_friendly_name ++ "'s Calendar") ]
+    ]
 
 -----------------------------------------------------------------------------
 -- SUBSCRIPTIONS

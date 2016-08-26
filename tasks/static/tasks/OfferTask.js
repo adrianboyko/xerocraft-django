@@ -8029,22 +8029,43 @@ var _evancz$elm_http$Http$post = F3(
 var _user$project$OfferTask$subscriptions = function (model) {
 	return _elm_lang$core$Platform_Sub$none;
 };
+var _user$project$OfferTask$isClaimedStyle = _elm_lang$html$Html_Attributes$style(
+	_elm_lang$core$Native_List.fromArray(
+		[
+			{ctor: '_Tuple2', _0: 'display', _1: 'inline-block'},
+			{ctor: '_Tuple2', _0: 'background', _1: 'white'},
+			{ctor: '_Tuple2', _0: 'color', _1: 'black'},
+			{ctor: '_Tuple2', _0: 'margin', _1: '0px'}
+		]));
+var _user$project$OfferTask$taskDescStyle = _elm_lang$html$Html_Attributes$style(
+	_elm_lang$core$Native_List.fromArray(
+		[
+			{ctor: '_Tuple2', _0: 'font-size', _1: '1.25em'},
+			{ctor: '_Tuple2', _0: 'font-weight', _1: 'bold'}
+		]));
+var _user$project$OfferTask$greetingStyle = _elm_lang$html$Html_Attributes$style(
+	_elm_lang$core$Native_List.fromArray(
+		[
+			{ctor: '_Tuple2', _0: 'font-size', _1: '2.5em'},
+			{ctor: '_Tuple2', _0: 'font-weight', _1: 'bold'},
+			{ctor: '_Tuple2', _0: 'margin', _1: '0 0 0 0'}
+		]));
 var _user$project$OfferTask$buttonStyle = _elm_lang$html$Html_Attributes$style(
 	_elm_lang$core$Native_List.fromArray(
 		[
-			{ctor: '_Tuple2', _0: 'font-size', _1: '12pt'},
-			{ctor: '_Tuple2', _0: 'margin', _1: '9pt 0 0 0'},
-			{ctor: '_Tuple2', _0: 'padding', _1: '5pt 15pt'}
+			{ctor: '_Tuple2', _0: 'font-size', _1: '1.2em'},
+			{ctor: '_Tuple2', _0: 'margin', _1: '12px 7px'},
+			{ctor: '_Tuple2', _0: 'padding', _1: '7px 13px'}
 		]));
 var _user$project$OfferTask$taskCardStyle = _elm_lang$html$Html_Attributes$style(
 	_elm_lang$core$Native_List.fromArray(
 		[
 			{ctor: '_Tuple2', _0: 'display', _1: 'inline-block'},
-			{ctor: '_Tuple2', _0: 'padding', _1: '7pt 50pt 7pt'},
-			{ctor: '_Tuple2', _0: 'margin', _1: '10pt'},
+			{ctor: '_Tuple2', _0: 'padding', _1: '12px 12px'},
+			{ctor: '_Tuple2', _0: 'margin', _1: '17px'},
 			{ctor: '_Tuple2', _0: 'background-color', _1: '#ffe4b2'},
 			{ctor: '_Tuple2', _0: 'color', _1: 'black'},
-			{ctor: '_Tuple2', _0: 'border-radius', _1: '6pt'},
+			{ctor: '_Tuple2', _0: 'border-radius', _1: '8px'},
 			{ctor: '_Tuple2', _0: 'border-style', _1: 'solid'},
 			{ctor: '_Tuple2', _0: 'border-color', _1: 'black'},
 			{ctor: '_Tuple2', _0: 'border-width', _1: '1px'}
@@ -8054,7 +8075,7 @@ var _user$project$OfferTask$containerStyle = _elm_lang$html$Html_Attributes$styl
 		[
 			{ctor: '_Tuple2', _0: 'text-align', _1: 'center'},
 			{ctor: '_Tuple2', _0: 'padding', _1: '10% 0'},
-			{ctor: '_Tuple2', _0: 'font-family', _1: 'Arial, Helvetica, sans-serif'}
+			{ctor: '_Tuple2', _0: 'font-family', _1: 'Roboto Condensed, Arial, Helvetica, sans-serif'}
 		]));
 var _user$project$OfferTask$moreTasksView = function (params) {
 	return A2(
@@ -8066,25 +8087,95 @@ var _user$project$OfferTask$moreTasksView = function (params) {
 				_elm_lang$html$Html$text('hi')
 			]));
 };
+var _user$project$OfferTask$unselectable = _elm_lang$html$Html_Attributes$style(
+	_elm_lang$core$Native_List.fromArray(
+		[
+			{ctor: '_Tuple2', _0: '-moz-user-select', _1: '-moz-none'},
+			{ctor: '_Tuple2', _0: '-khtml-user-select', _1: 'none'},
+			{ctor: '_Tuple2', _0: '-webkit-user-select', _1: 'none'},
+			{ctor: '_Tuple2', _0: '-ms-user-select', _1: 'none'},
+			{ctor: '_Tuple2', _0: 'user-select', _1: 'none'}
+		]));
 var _user$project$OfferTask$thanksView = function (params) {
 	return A2(
 		_elm_lang$html$Html$div,
 		_elm_lang$core$Native_List.fromArray(
-			[_user$project$OfferTask$containerStyle]),
+			[_user$project$OfferTask$containerStyle, _user$project$OfferTask$unselectable]),
 		_elm_lang$core$Native_List.fromArray(
 			[
-				_elm_lang$html$Html$text('hi')
+				A2(
+				_elm_lang$html$Html$div,
+				_elm_lang$core$Native_List.fromArray(
+					[_user$project$OfferTask$greetingStyle]),
+				_elm_lang$core$Native_List.fromArray(
+					[
+						_elm_lang$html$Html$text('All Done')
+					])),
+				A2(
+				_elm_lang$html$Html$br,
+				_elm_lang$core$Native_List.fromArray(
+					[]),
+				_elm_lang$core$Native_List.fromArray(
+					[])),
+				A2(
+				_elm_lang$html$Html$div,
+				_elm_lang$core$Native_List.fromArray(
+					[]),
+				_elm_lang$core$Native_List.fromArray(
+					[
+						_elm_lang$html$Html$text('If you haven\'t already done so, consider'),
+						A2(
+						_elm_lang$html$Html$br,
+						_elm_lang$core$Native_List.fromArray(
+							[]),
+						_elm_lang$core$Native_List.fromArray(
+							[])),
+						_elm_lang$html$Html$text('subscribing to your Xerocraft calendar so'),
+						A2(
+						_elm_lang$html$Html$br,
+						_elm_lang$core$Native_List.fromArray(
+							[]),
+						_elm_lang$core$Native_List.fromArray(
+							[])),
+						_elm_lang$html$Html$text('that your phone or computer can remind you'),
+						A2(
+						_elm_lang$html$Html$br,
+						_elm_lang$core$Native_List.fromArray(
+							[]),
+						_elm_lang$core$Native_List.fromArray(
+							[])),
+						_elm_lang$html$Html$text('of upcoming tasks. A link to your calendar'),
+						A2(
+						_elm_lang$html$Html$br,
+						_elm_lang$core$Native_List.fromArray(
+							[]),
+						_elm_lang$core$Native_List.fromArray(
+							[])),
+						_elm_lang$html$Html$text('(in \'icalendar\' format) appears below:')
+					])),
+				A2(
+				_elm_lang$html$Html$br,
+				_elm_lang$core$Native_List.fromArray(
+					[]),
+				_elm_lang$core$Native_List.fromArray(
+					[])),
+				A2(
+				_elm_lang$html$Html$a,
+				_elm_lang$core$Native_List.fromArray(
+					[
+						_elm_lang$html$Html_Attributes$href(params.calendar_url)
+					]),
+				_elm_lang$core$Native_List.fromArray(
+					[
+						_elm_lang$html$Html$text(
+						A2(_elm_lang$core$Basics_ops['++'], params.user_friendly_name, '\'s Calendar'))
+					]))
 			]));
 };
-var _user$project$OfferTask$update = F2(
-	function (action, model) {
-		var _p0 = action;
-		if (_p0.ctor === 'ClaimTask') {
-			return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
-		} else {
-			return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
-		}
-	});
+var _user$project$OfferTask$createClaim = function (taskId) {
+	var url = 'https://localhost:8000/tasks/api/claim/';
+	return _elm_lang$core$Platform_Cmd$none;
+};
 var _user$project$OfferTask$Params = function (a) {
 	return function (b) {
 		return function (c) {
@@ -8095,7 +8186,9 @@ var _user$project$OfferTask$Params = function (a) {
 							return function (h) {
 								return function (i) {
 									return function (j) {
-										return {auth_token: a, nag_id: b, task_id: c, user_friendly_name: d, task_desc: e, task_day_str: f, task_time_str: g, already_claimed_by: h, future_dates: i, calendar_token: j};
+										return function (k) {
+											return {auth_token: a, nag_id: b, task_id: c, user_friendly_name: d, task_desc: e, task_day_str: f, task_time_str: g, already_claimed_by: h, future_dates: i, calendar_token: j, calendar_url: k};
+										};
 									};
 								};
 							};
@@ -8111,6 +8204,32 @@ var _user$project$OfferTask$Model = F2(
 		return {step: a, params: b};
 	});
 var _user$project$OfferTask$Thanks = {ctor: 'Thanks'};
+var _user$project$OfferTask$update = F2(
+	function (action, model) {
+		var _p0 = action;
+		switch (_p0.ctor) {
+			case 'ClaimTask':
+				return {
+					ctor: '_Tuple2',
+					_0: model,
+					_1: _user$project$OfferTask$createClaim(model.params.task_id)
+				};
+			case 'CreateClaimSuccess':
+				return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
+			case 'CreateClaimFailure':
+				return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
+			case 'DeclineTask':
+				return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
+			default:
+				return {
+					ctor: '_Tuple2',
+					_0: _elm_lang$core$Native_Utils.update(
+						model,
+						{step: _user$project$OfferTask$Thanks}),
+					_1: _elm_lang$core$Platform_Cmd$none
+				};
+		}
+	});
 var _user$project$OfferTask$MoreTasks = {ctor: 'MoreTasks'};
 var _user$project$OfferTask$OfferTask = {ctor: 'OfferTask'};
 var _user$project$OfferTask$init = function (providedParams) {
@@ -8125,46 +8244,32 @@ var _user$project$OfferTask$init = function (providedParams) {
 		return _elm_lang$core$Native_Utils.crashCase(
 			'OfferTask',
 			{
-				start: {line: 52, column: 5},
-				end: {line: 54, column: 74}
+				start: {line: 53, column: 5},
+				end: {line: 55, column: 74}
 			},
 			_p1)('Parameters MUST be provided by Javascript.');
 	}
 };
-var _user$project$OfferTask$Unsubscribe = {ctor: 'Unsubscribe'};
+var _user$project$OfferTask$CreateClaimFailure = function (a) {
+	return {ctor: 'CreateClaimFailure', _0: a};
+};
+var _user$project$OfferTask$CreateClaimSuccess = function (a) {
+	return {ctor: 'CreateClaimSuccess', _0: a};
+};
+var _user$project$OfferTask$OKItIsClaimed = {ctor: 'OKItIsClaimed'};
+var _user$project$OfferTask$DeclineTask = {ctor: 'DeclineTask'};
 var _user$project$OfferTask$ClaimTask = {ctor: 'ClaimTask'};
 var _user$project$OfferTask$offerTaskView = function (params) {
-	var isClaimedStyle = _elm_lang$html$Html_Attributes$style(
-		_elm_lang$core$Native_List.fromArray(
-			[
-				{ctor: '_Tuple2', _0: 'display', _1: 'inline-block'},
-				{ctor: '_Tuple2', _0: 'background', _1: 'white'},
-				{ctor: '_Tuple2', _0: 'color', _1: 'black'},
-				{ctor: '_Tuple2', _0: 'margin', _1: '0px'}
-			]));
-	var taskDescStyle = _elm_lang$html$Html_Attributes$style(
-		_elm_lang$core$Native_List.fromArray(
-			[
-				{ctor: '_Tuple2', _0: 'font-size', _1: '16pt'},
-				{ctor: '_Tuple2', _0: 'font-weight', _1: 'bold'}
-			]));
-	var greetingStyle = _elm_lang$html$Html_Attributes$style(
-		_elm_lang$core$Native_List.fromArray(
-			[
-				{ctor: '_Tuple2', _0: 'font-size', _1: '24pt'},
-				{ctor: '_Tuple2', _0: 'font-weight', _1: 'bold'},
-				{ctor: '_Tuple2', _0: 'margin', _1: '0 0 0pt 0'}
-			]));
 	return A2(
 		_elm_lang$html$Html$div,
 		_elm_lang$core$Native_List.fromArray(
-			[_user$project$OfferTask$containerStyle]),
+			[_user$project$OfferTask$containerStyle, _user$project$OfferTask$unselectable]),
 		_elm_lang$core$Native_List.fromArray(
 			[
 				A2(
 				_elm_lang$html$Html$div,
 				_elm_lang$core$Native_List.fromArray(
-					[greetingStyle]),
+					[_user$project$OfferTask$greetingStyle]),
 				_elm_lang$core$Native_List.fromArray(
 					[
 						_elm_lang$html$Html$text(
@@ -8190,7 +8295,7 @@ var _user$project$OfferTask$offerTaskView = function (params) {
 						A2(
 						_elm_lang$html$Html$div,
 						_elm_lang$core$Native_List.fromArray(
-							[taskDescStyle]),
+							[_user$project$OfferTask$taskDescStyle]),
 						_elm_lang$core$Native_List.fromArray(
 							[
 								_elm_lang$html$Html$text(params.task_desc)
@@ -8224,7 +8329,7 @@ var _user$project$OfferTask$offerTaskView = function (params) {
 							[]),
 						_elm_lang$core$Native_List.fromArray(
 							[
-								_elm_lang$html$Html$text('Nobody is helping with this task. You can:')
+								_elm_lang$html$Html$text('Nobody is helping with this task.')
 							])),
 						A2(
 						_elm_lang$html$Html$div,
@@ -8232,17 +8337,29 @@ var _user$project$OfferTask$offerTaskView = function (params) {
 							[]),
 						_elm_lang$core$Native_List.fromArray(
 							[
-								A2(
-								_elm_lang$html$Html$button,
-								_elm_lang$core$Native_List.fromArray(
-									[
-										_user$project$OfferTask$buttonStyle,
-										_elm_lang$html$Html_Events$onClick(_user$project$OfferTask$ClaimTask)
-									]),
-								_elm_lang$core$Native_List.fromArray(
-									[
-										_elm_lang$html$Html$text('Claim Task!')
-									]))
+								_elm_lang$html$Html$text('Will you staff it?')
+							])),
+						A2(
+						_elm_lang$html$Html$button,
+						_elm_lang$core$Native_List.fromArray(
+							[
+								_user$project$OfferTask$buttonStyle,
+								_elm_lang$html$Html_Events$onClick(_user$project$OfferTask$ClaimTask)
+							]),
+						_elm_lang$core$Native_List.fromArray(
+							[
+								_elm_lang$html$Html$text('Yes')
+							])),
+						A2(
+						_elm_lang$html$Html$button,
+						_elm_lang$core$Native_List.fromArray(
+							[
+								_user$project$OfferTask$buttonStyle,
+								_elm_lang$html$Html_Events$onClick(_user$project$OfferTask$DeclineTask)
+							]),
+						_elm_lang$core$Native_List.fromArray(
+							[
+								_elm_lang$html$Html$text('No')
 							]))
 					])) : A2(
 				_elm_lang$html$Html$div,
@@ -8253,7 +8370,7 @@ var _user$project$OfferTask$offerTaskView = function (params) {
 						A2(
 						_elm_lang$html$Html$div,
 						_elm_lang$core$Native_List.fromArray(
-							[isClaimedStyle]),
+							[_user$project$OfferTask$isClaimedStyle]),
 						_elm_lang$core$Native_List.fromArray(
 							[
 								_elm_lang$html$Html$text(
@@ -8277,7 +8394,7 @@ var _user$project$OfferTask$offerTaskView = function (params) {
 								_elm_lang$core$Native_List.fromArray(
 									[
 										_user$project$OfferTask$buttonStyle,
-										_elm_lang$html$Html_Events$onClick(_user$project$OfferTask$Unsubscribe)
+										_elm_lang$html$Html_Events$onClick(_user$project$OfferTask$OKItIsClaimed)
 									]),
 								_elm_lang$core$Native_List.fromArray(
 									[
@@ -8324,37 +8441,42 @@ var _user$project$OfferTask$main = {
 									function (calendar_token) {
 										return A2(
 											_elm_lang$core$Json_Decode$andThen,
-											A2(
-												_elm_lang$core$Json_Decode_ops[':='],
-												'future_dates',
-												_elm_lang$core$Json_Decode$list(_elm_lang$core$Json_Decode$string)),
-											function (future_dates) {
+											A2(_elm_lang$core$Json_Decode_ops[':='], 'calendar_url', _elm_lang$core$Json_Decode$string),
+											function (calendar_url) {
 												return A2(
 													_elm_lang$core$Json_Decode$andThen,
-													A2(_elm_lang$core$Json_Decode_ops[':='], 'nag_id', _elm_lang$core$Json_Decode$int),
-													function (nag_id) {
+													A2(
+														_elm_lang$core$Json_Decode_ops[':='],
+														'future_dates',
+														_elm_lang$core$Json_Decode$list(_elm_lang$core$Json_Decode$string)),
+													function (future_dates) {
 														return A2(
 															_elm_lang$core$Json_Decode$andThen,
-															A2(_elm_lang$core$Json_Decode_ops[':='], 'task_day_str', _elm_lang$core$Json_Decode$string),
-															function (task_day_str) {
+															A2(_elm_lang$core$Json_Decode_ops[':='], 'nag_id', _elm_lang$core$Json_Decode$int),
+															function (nag_id) {
 																return A2(
 																	_elm_lang$core$Json_Decode$andThen,
-																	A2(_elm_lang$core$Json_Decode_ops[':='], 'task_desc', _elm_lang$core$Json_Decode$string),
-																	function (task_desc) {
+																	A2(_elm_lang$core$Json_Decode_ops[':='], 'task_day_str', _elm_lang$core$Json_Decode$string),
+																	function (task_day_str) {
 																		return A2(
 																			_elm_lang$core$Json_Decode$andThen,
-																			A2(_elm_lang$core$Json_Decode_ops[':='], 'task_id', _elm_lang$core$Json_Decode$int),
-																			function (task_id) {
+																			A2(_elm_lang$core$Json_Decode_ops[':='], 'task_desc', _elm_lang$core$Json_Decode$string),
+																			function (task_desc) {
 																				return A2(
 																					_elm_lang$core$Json_Decode$andThen,
-																					A2(_elm_lang$core$Json_Decode_ops[':='], 'task_time_str', _elm_lang$core$Json_Decode$string),
-																					function (task_time_str) {
+																					A2(_elm_lang$core$Json_Decode_ops[':='], 'task_id', _elm_lang$core$Json_Decode$int),
+																					function (task_id) {
 																						return A2(
 																							_elm_lang$core$Json_Decode$andThen,
-																							A2(_elm_lang$core$Json_Decode_ops[':='], 'user_friendly_name', _elm_lang$core$Json_Decode$string),
-																							function (user_friendly_name) {
-																								return _elm_lang$core$Json_Decode$succeed(
-																									{already_claimed_by: already_claimed_by, auth_token: auth_token, calendar_token: calendar_token, future_dates: future_dates, nag_id: nag_id, task_day_str: task_day_str, task_desc: task_desc, task_id: task_id, task_time_str: task_time_str, user_friendly_name: user_friendly_name});
+																							A2(_elm_lang$core$Json_Decode_ops[':='], 'task_time_str', _elm_lang$core$Json_Decode$string),
+																							function (task_time_str) {
+																								return A2(
+																									_elm_lang$core$Json_Decode$andThen,
+																									A2(_elm_lang$core$Json_Decode_ops[':='], 'user_friendly_name', _elm_lang$core$Json_Decode$string),
+																									function (user_friendly_name) {
+																										return _elm_lang$core$Json_Decode$succeed(
+																											{already_claimed_by: already_claimed_by, auth_token: auth_token, calendar_token: calendar_token, calendar_url: calendar_url, future_dates: future_dates, nag_id: nag_id, task_day_str: task_day_str, task_desc: task_desc, task_id: task_id, task_time_str: task_time_str, user_friendly_name: user_friendly_name});
+																									});
 																							});
 																					});
 																			});
