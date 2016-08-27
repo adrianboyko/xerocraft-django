@@ -1,11 +1,31 @@
-import tasks.models as tm
+
+# Standard
+
+# Third Party
 from rest_framework import serializers
+
+# Local
+import tasks.models as tm
+import members.models as mm
 
 
 class ClaimSerializer(serializers.ModelSerializer):
-    claimed_task = serializers.HyperlinkedRelatedField(read_only=True, view_name='task:task-detail')
-    claiming_member = serializers.HyperlinkedRelatedField(read_only=True, view_name='memb:member-detail')
-    work_set = serializers.HyperlinkedRelatedField(read_only=True, many=True, view_name='task:work-detail')
+
+    claimed_task = serializers.HyperlinkedRelatedField(
+        view_name='task:task-detail',
+        queryset = tm.Task.objects.all()
+    )
+
+    claiming_member = serializers.HyperlinkedRelatedField(
+        view_name='memb:member-detail',
+        queryset = mm.Member.objects.all()
+    )
+
+    work_set = serializers.HyperlinkedRelatedField(
+        view_name='task:work-detail',
+        read_only=True,
+        many=True,
+    )
 
     class Meta:
         model = tm.Claim

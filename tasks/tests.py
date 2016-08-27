@@ -377,7 +377,7 @@ class TestViews(TestCase):
         self.nag.tasks.add(self.task)
         self.claim = Claim.objects.create(
             status=Claim.STAT_CURRENT,
-            claiming_member=self.member,
+            claiming_member=self.member.pk,
             claimed_task=self.task,
             claimed_duration=timedelta(hours=1.5),
             claimed_start_time=self.task.work_start_time,
@@ -704,6 +704,10 @@ class TestRestApi_Tasks(TestCase):
 
     def setUp(self):
 
+        self.claim_list_uri = reverse("task:claim-list")
+        self.task_list_uri = reverse("task:task-list")
+        self.member_list_uri = reverse("memb:member-list")
+
         # Person who will make the REST API call
         caller = User.objects.create(username='caller')
         caller.set_password("pw4caller")
@@ -727,7 +731,7 @@ class TestRestApi_Tasks(TestCase):
 
         # Data for a task
         self.task_data = {
-            'short_desc': "Test Kiosk Views",
+            'short_desc': "Test",
             'max_work': timedelta(hours=2),
             'max_workers': 1,
             'work_start_time': datetime.now().time(),
@@ -736,18 +740,24 @@ class TestRestApi_Tasks(TestCase):
             'orig_sched_date': date.today(),
         }
 
+        self.claim_data = {
+            "status": Claim.STAT_CURRENT,
+            "claiming_member": "{}{}/".format(self.member_list_uri, self.caller.pk),
+            "claimed_task": None,  # Must provide
+            "claimed_start_time": "19:00:00",
+            "claimed_duration": "02:00:00",
+        }
+
     def test_need_creds_to_create_task(self):
         view = restapi.TaskViewSet.as_view({'post': 'create'})
-        uri = reverse("task:task-list")
-        request = self.factory.post(uri)
+        request = self.factory.post(self.task_list_uri)
         response = view(request)
         self.assertEquals(response.status_code, 403)
 
     def test_can_create_and_read_task(self):
 
         view = restapi.TaskViewSet.as_view({'post': 'create'})
-        uri = reverse("task:task-list")
-        request = self.factory.post(uri, self.task_data)
+        request = self.factory.post(self.task_list_uri, self.task_data)
         force_authenticate(request, self.caller.auth_user)
         response = view(request)
         self.assertEqual(response.status_code, 201) # 201 = Created
@@ -767,8 +777,7 @@ class TestRestApi_Tasks(TestCase):
         Task.objects.create(**self.task_data)
 
         # "I" shouldn't see it on the API's list
-        uri = reverse("task:task-list")
-        request = self.factory.get(uri)
+        request = self.factory.get(self.task_list_uri)
         force_authenticate(request, self.caller.auth_user)
         view = restapi.TaskViewSet.as_view({'get': 'list'})
         response = view(request)
@@ -784,10 +793,37 @@ class TestRestApi_Tasks(TestCase):
         self.assertEqual(Task.objects.count(), 2)
 
         # "I" should now see ONE task on the API's list
-        uri = reverse("task:task-list")
-        request = self.factory.get(uri)
+        request = self.factory.get(self.task_list_uri)
         force_authenticate(request, self.caller.auth_user)
         view = restapi.TaskViewSet.as_view({'get': 'list'})
         response = view(request)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data["results"]), 1)
+
+    def test_can_claim_task_if_eligible(self):
+
+        # Somebody creates a task that caller is eligible to work:
+        t = Task.objects.create(**self.task_data)
+        t.eligible_claimants.add(self.caller)
+        t.save()
+        t.clean()
+
+        view = restapi.ClaimViewSet.as_view({'post': 'create'})
+        self.claim_data["claimed_task"] = "{}{}/".format(self.task_list_uri, t.pk)
+        request = self.factory.post(self.claim_list_uri, self.claim_data, format='json')
+        force_authenticate(request, self.caller.auth_user)
+        response = view(request)
+        self.assertEqual(response.status_code, 201)  # Created
+
+    def test_CANNOT_claim_task_if_NOT_eligible(self):
+
+        # Somebody creates a task that caller is eligible to work:
+        t = Task.objects.create(**self.task_data)
+        t.clean()
+
+        view = restapi.ClaimViewSet.as_view({'post': 'create'})
+        self.claim_data["claimed_task"] = "{}{}/".format(self.task_list_uri, t.pk)
+        request = self.factory.post(self.claim_list_uri, self.claim_data, format='json')
+        force_authenticate(request, self.caller.auth_user)
+        response = view(request)
+        self.assertEqual(response.status_code, 403)  # Forbidden

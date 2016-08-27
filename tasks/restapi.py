@@ -4,11 +4,12 @@ from datetime import datetime
 
 # Third Party
 from rest_framework import viewsets
-from django.shortcuts import get_object_or_404
-from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.request import Request
 from rest_framework.exceptions import PermissionDenied
 from rest_framework import permissions
+from django.shortcuts import get_object_or_404
 
 # Local
 import tasks.models as tm
@@ -16,7 +17,42 @@ import tasks.serializers as ts
 import members.models as mm
 
 
-class IsOwnerOrReadOnly(permissions.BasePermission):
+def getpk(uri: str) -> int:
+    assert(uri.endswith('/'))
+    return int(uri.split('/')[-2])
+
+
+# ---------------------------------------------------------------------------
+# CLAIMS
+# ---------------------------------------------------------------------------
+
+class ClaimPermission(permissions.BasePermission):
+
+    def has_permission(self, request: Request, view) -> bool:
+
+        if request.method in permissions.SAFE_METHODS:
+            return True
+
+        if request.method == "POST":
+            claimed_task_pk = getpk(request.data["claimed_task"])
+            claiming_member_pk = getpk(request.data["claiming_member"])
+            calling_member_pk = request.user.member.pk
+
+            if calling_member_pk != claiming_member_pk:
+                # Only allowing callers to create their own claims.
+                return False
+
+            claiming_member = mm.Member.objects.get(pk=claiming_member_pk)
+            claimed_task = tm.Task.objects.get(pk=claimed_task_pk)  # type: tm.Task
+
+            if claiming_member not in claimed_task.eligible_claimants.all():
+                # Don't allow non-eligible claimant.
+                return False
+
+            return True
+
+        else:
+            return False
 
     def has_object_permission(self, request, view, obj):
         memb = request.user.member  # type: mm.Member
@@ -24,26 +60,22 @@ class IsOwnerOrReadOnly(permissions.BasePermission):
         if request.method in permissions.SAFE_METHODS:
             return True
 
-        if type(obj) is tm.Claim:
-            if memb == obj.claiming_member:
-                # The claiming_member is the owner of a Claim.
-                return True
-            else:
-                # Otherwise, permission is the same as the permission on the claimed_task.
-                # Note that this means that owners of task T will be owners of Claims on T.
-                return self.has_object_permission(request, view, obj.claimed_task)
+        if request.method is "PUT":
+            pass
 
-        if type(obj) is tm.Task:
-            return memb == obj.owner
-
-        if type(obj) is tm.Work:
-            return memb == obj.claim.claiming_member
+        if memb == obj.claiming_member:
+            # The claiming_member is the owner of a Claim.
+            return True
+        else:
+            # Otherwise, permission is the same as the permission on the claimed_task.
+            # Note that this means that owners of task T will be owners of Claims on T.
+            return self.has_object_permission(request, view, obj.claimed_task)
 
 
 class ClaimViewSet(viewsets.ModelViewSet):
     queryset = tm.Claim.objects.all()
     serializer_class = ts.ClaimSerializer
-    permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
+    permission_classes = [IsAuthenticated, ClaimPermission]
 
     def get_queryset(self):
         memb = self.request.user.member
@@ -56,10 +88,25 @@ class ClaimViewSet(viewsets.ModelViewSet):
             return tm.Claim.objects.all()
 
 
+# ---------------------------------------------------------------------------
+# TASKS
+# ---------------------------------------------------------------------------
+
+class TaskPermission(permissions.BasePermission):
+
+    def has_object_permission(self, request, view, obj):
+        memb = request.user.member  # type: mm.Member
+
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        else:
+            return memb == obj.owner
+
+
 class TaskViewSet(viewsets.ModelViewSet):
     queryset = tm.Task.objects.all()
     serializer_class = ts.TaskSerializer
-    permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
+    permission_classes = [IsAuthenticated, TaskPermission]
 
     def get_queryset(self):
         memb = self.request.user.member
@@ -72,10 +119,26 @@ class TaskViewSet(viewsets.ModelViewSet):
             return tm.Task.objects.all()
 
 
+# ---------------------------------------------------------------------------
+# WORKS
+# ---------------------------------------------------------------------------
+
+class WorkPermission(permissions.BasePermission):
+
+    def has_object_permission(self, request, view, obj):
+        memb = request.user.member  # type: mm.Member
+
+        if request.method in permissions.SAFE_METHODS:
+            return True
+
+        if type(obj) is tm.Work:
+            return memb == obj.claim.claiming_member
+
+
 class WorkViewSet(viewsets.ModelViewSet):
     queryset = tm.Work.objects.all()
     serializer_class = ts.WorkSerializer
-    permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
+    permission_classes = [IsAuthenticated, WorkPermission]
 
     def get_queryset(self):
         memb = self.request.user.member
