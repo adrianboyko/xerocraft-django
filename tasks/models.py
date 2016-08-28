@@ -653,6 +653,21 @@ class Task(make_TaskMixin("Tasks"), TimeWindowedObject):
         )
         return all_future_instances
 
+    def resync_with_template(self):
+        templ = self.recurring_task_template
+        self.owner = templ.owner
+        self.instructions = templ.instructions
+        self.short_desc = templ.short_desc
+        self.reviewer = templ.reviewer
+        self.missed_date_action = templ.missed_date_action
+        self.max_work = templ.max_work
+        self.max_workers = templ.max_workers
+        self.work_start_time = templ.work_start_time
+        self.work_duration = templ.work_duration
+        self.should_nag = templ.should_nag
+        self.priority = templ.priority
+        self.save()
+
     def all_future_instances_same_dow(self):
         """Find other instances of the same template which are scheduled later than this instance."""
         future_instances_same_dow = []
@@ -691,7 +706,7 @@ class Task(make_TaskMixin("Tasks"), TimeWindowedObject):
         ordering = ['scheduled_date', 'work_start_time']
         # Intentionally using short_desc instead of recurringtasktemplate in constraint below.
         # In general, using short_desc will give a tighter constraint, crossing templates.
-        unique_together = ('scheduled_date', 'short_desc')
+        unique_together = ('scheduled_date', 'short_desc', 'work_start_time')
 
 
 class TaskNote(models.Model):
