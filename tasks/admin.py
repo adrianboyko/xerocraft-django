@@ -212,7 +212,7 @@ class RecurringTaskTemplateAdmin(TemplateAndTaskBase):
     list_display = [
         'short_desc', 'recurrence_str',
         'time_window_fmt', 'work_and_workers_fmt',
-        'priority_fmt', 'owner', 'reviewer', 'active', 'should_nag'
+        'priority_fmt', 'default_claimant', 'owner', 'reviewer', 'active', 'should_nag'
     ]
     actions = [
         set_nag_on,
