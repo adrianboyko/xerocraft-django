@@ -377,7 +377,7 @@ class TestViews(TestCase):
         self.nag.tasks.add(self.task)
         self.claim = Claim.objects.create(
             status=Claim.STAT_CURRENT,
-            claiming_member=self.member.pk,
+            claiming_member=self.member,
             claimed_task=self.task,
             claimed_duration=timedelta(hours=1.5),
             claimed_start_time=self.task.work_start_time,
