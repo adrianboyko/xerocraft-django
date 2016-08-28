@@ -169,6 +169,14 @@ def set_nag_on_for_instances(model_admin, request, query_set):
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+def update_future_instances(model_admin, request, query_set):
+    for template in query_set:
+        for task in template.instances.filter(scheduled_date__gte=datetime.date.today()):
+            task.resync_with_template()
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # Base classes for both Template and Task
 
 class TemplateAndTaskBase(VersionAdmin):
@@ -247,6 +255,7 @@ class RecurringTaskTemplateAdmin(TemplateAndTaskBase):
         'priority_fmt', 'default_claimant', 'owner', 'reviewer', 'active', 'should_nag'
     ]
     actions = [
+        update_future_instances,
         set_nag_on,
         set_nag_off,
         set_nag_on_for_instances,
