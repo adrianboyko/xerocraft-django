@@ -377,20 +377,8 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
                     t.eligible_tags      =self.eligible_tags.all()
 
                     if self.default_claimant is not None:
+                        t.create_default_claim()
 
-                        duration = self.work_duration
-                        if duration is None:
-                            if self.max_workers!=1:
-                                raise RuntimeError("Not yet coded to deal with multiple workers.")
-                            else:
-                                duration = self.max_work
-                        Claim.objects.create(
-                            claiming_member=self.default_claimant,
-                            status=Claim.STAT_CURRENT,
-                            claimed_task=t,
-                            claimed_start_time=self.work_start_time,
-                            claimed_duration=duration
-                        )
                     logger.info("Created %s on %s", self.short_desc, curr)
 
                 except Exception as e:
@@ -644,6 +632,22 @@ class Task(make_TaskMixin("Tasks"), TimeWindowedObject):
                 result |= set([claim.claiming_member])
         return result
 
+    def create_default_claim(self):
+        '''Create a claim assuming that other task info has already been initialized.'''
+        duration = self.work_duration
+        if duration is None:
+            if self.max_workers != 1:
+                raise RuntimeError("Not yet coded to deal with multiple workers.")
+            else:
+                duration = self.max_work
+        Claim.objects.create(
+            claiming_member=self.recurring_task_template.default_claimant,
+            status=Claim.STAT_CURRENT,
+            claimed_task=self,
+            claimed_start_time=self.work_start_time,
+            claimed_duration=duration
+        )
+
     def all_future_instances(self):
         """Find other instances of the same template which are scheduled later than this instance."""
         all_future_instances = Task.objects.filter(
@@ -655,6 +659,8 @@ class Task(make_TaskMixin("Tasks"), TimeWindowedObject):
 
     def resync_with_template(self):
         templ = self.recurring_task_template
+
+        # Values
         self.owner = templ.owner
         self.instructions = templ.instructions
         self.short_desc = templ.short_desc
@@ -666,6 +672,24 @@ class Task(make_TaskMixin("Tasks"), TimeWindowedObject):
         self.work_duration = templ.work_duration
         self.should_nag = templ.should_nag
         self.priority = templ.priority
+
+        # Sets
+        self.uninterested = templ.uninterested.all()
+        self.eligible_claimants = templ.eligible_claimants.all()
+        self.eligible_tags = templ.eligible_tags.all()
+
+        # TODO: Special handling of default_claimaint
+        for claim in self.current_claimants():
+            # Don't want to delete current VERIFIED claims.
+            if claim.date_verified is None:
+                claim.delete()
+            else:
+                # TODO: Send email to VERIFIED claimant to inform of changes to task?
+                pass
+
+        if len(self.current_claimants() == 0):
+            self.create_default_claim()
+
         self.save()
 
     def all_future_instances_same_dow(self):
