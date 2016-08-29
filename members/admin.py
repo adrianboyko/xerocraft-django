@@ -80,20 +80,51 @@ class MemberTypeFilter(admin.SimpleListFilter):
         if self.value() == 'scholar':   return queryset.filter(tags__name="Scholarship")
 
 
+class TaggingForMember(admin.TabularInline):
+    model = Tagging
+    fk_name = 'tagged_member'
+    raw_id_fields = ['authorizing_member']
+    # model._meta.verbose_name = "Tag"
+    # model._meta.verbose_name_plural = "Tags"
+    extra = 0
+
+
 @admin.register(Member)
 class MemberAdmin(VersionAdmin):
 
-    list_display = ['pk', '__str__', 'auth_user', 'membership_card_when', 'membership_card_md5']
+    list_display = [
+        'pk',
+        'username',
+        'first_name',
+        'last_name',
+        'email',
+        # 'membership_card_when',
+        # 'membership_card_md5'
+    ]
 
     search_fields = [
         '^auth_user__first_name',
         '^auth_user__last_name',
         '^auth_user__username',
+        'auth_user__email',
     ]
 
-    list_display_links = ['pk', '__str__']
+    list_display_links = [
+        'pk',
+        'username',
+        'first_name',
+        'last_name',
+        'email',
+    ]
 
     list_filter = [MemberTypeFilter]
+
+    inlines = [TaggingForMember]
+
+    class Media:
+        css = {
+            "all": ("abutils/admin-tabular-inline.css",)  # This hides "denormalized object descs", to use Wojciech's term.
+        }
 
 
 MEMBERSHIP_TYPE_CODE2STR = {code: str for (code, str) in Membership.MEMBERSHIP_TYPE_CHOICES}

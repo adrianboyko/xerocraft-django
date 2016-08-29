@@ -8,15 +8,17 @@ from decimal import Decimal
 from logging import getLogger
 
 # Third party
+from django.shortcuts import get_object_or_404
 from dateutil.relativedelta import relativedelta
 from django.shortcuts import render, redirect
 from django.http import HttpResponse, JsonResponse
 from django.core.urlresolvers import reverse
 from django.contrib.auth.decorators import login_required
 from django.views.generic import View
-from django.db.models import Count
 from django.conf import settings
 from rest_framework import viewsets
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
 from reportlab.pdfgen import canvas
 from reportlab.graphics.shapes import Drawing
 from reportlab.graphics.barcode.qr import QrCodeWidget
@@ -390,43 +392,57 @@ def kiosk_identify_subject(request, staff_card_str, next_url):
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = REST API
 
-class MemberViewSet(viewsets.ModelViewSet):  # Django REST Framework
+class MemberViewSet(viewsets.ModelViewSet):
     """
-    API endpoint that allows members to be viewed or edited.
+    REST API endpoint that allows members to be viewed or edited.
     """
     queryset = Member.objects.all()
-    serializer_class = ser.MemberSerializer
+    serializer_class = ser.get_MemberSerializer(True)  # Default to privacy.
+    permission_classes = [IsAuthenticated]
+
+    def retrieve(self, request, pk=None):
+        memb = get_object_or_404(self.queryset, pk=pk)
+
+        with_privacy = True
+        is_director = request.user.member.is_tagged_with("Director")
+        is_staff = request.user.member.is_tagged_with("Staff")
+        is_self = request.user.member.pk == memb.pk
+        if is_director or is_staff or is_self:
+            with_privacy = False
+
+        slizer = ser.get_MemberSerializer(with_privacy)(memb)
+        return Response(slizer.data)
 
 
-class MembershipViewSet(viewsets.ModelViewSet):  # Django REST Framework
+class MembershipViewSet(viewsets.ModelViewSet):
     """
-    API endpoint that allows memberships to be viewed or edited.
+    REST API endpoint that allows memberships to be viewed or edited.
     """
     queryset = Membership.objects.all().order_by('-start_date')
     serializer_class = ser.MembershipSerializer
     filter_fields = {'ctrlid'}
 
 
-class DiscoveryMethodViewSet(viewsets.ModelViewSet):  # Django REST Framework
+class DiscoveryMethodViewSet(viewsets.ModelViewSet):
     """
-    API endpoint that allows discovery methods to be viewed or edited.
+    REST API endpoint that allows discovery methods to be viewed or edited.
     """
     queryset = DiscoveryMethod.objects.all().order_by('order')
     serializer_class = ser.DiscoveryMethodSerializer
 
 
-class MembershipGiftCardReferenceViewSet(viewsets.ModelViewSet):  # Django REST Framework
+class MembershipGiftCardReferenceViewSet(viewsets.ModelViewSet):
     """
-    API endpoint that allows memberships to be viewed or edited.
+    REST API endpoint that allows memberships to be viewed or edited.
     """
     queryset = MembershipGiftCardReference.objects.all()
     serializer_class = ser.MembershipGiftCardReferenceSerializer
     filter_fields = {'ctrlid'}
 
 
-class WifiMacDetectedViewSet(viewsets.ModelViewSet):  # Django REST Framework
+class WifiMacDetectedViewSet(viewsets.ModelViewSet):
     """
-    API endpoint that allows WiFi MAC detections to be logged.
+    REST API endpoint that allows WiFi MAC detections to be logged.
     """
     queryset = WifiMacDetected.objects.all()
     serializer_class = ser.WifiMacDetectedSerializer

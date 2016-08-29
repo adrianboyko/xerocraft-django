@@ -9,6 +9,7 @@ from django.test import TestCase
 from django.contrib.auth.models import User
 from django.core import management, mail
 from django.utils import timezone
+from django.core.urlresolvers import reverse
 from freezegun import freeze_time
 
 # Local
@@ -196,3 +197,72 @@ class TestViews(TestCase):
 
     def test_calculate_accrued_membership_revenue(self):
         _calculate_accrued_membership_revenue()
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# TEST REST APIs
+
+class TestRestApi_Member(TestCase):
+
+    def setUp(self):
+
+        # Person who will make the REST API call
+        caller = User.objects.create(
+            username='caller',
+            first_name="fn4caller", last_name="ln4caller",
+            email="caller@example.com",
+        )
+        caller.set_password("pw4caller")
+        try:
+            caller.save()
+        except Exception as x:
+            print(x)
+        caller.clean()
+        caller.member.clean()
+        self.caller = caller.member
+
+        # The "Person of Interest" that the caller wants to learn about.
+        poi = User.objects.create(
+            username='poi',
+            first_name="fn4poi", last_name="ln4poi",
+            email="poi@example.com",
+        )
+        poi.set_password("pw4poi")
+        poi.clean()
+        poi.member.clean()
+        self.poi = poi.member
+
+        # The caller's "browser"
+        self.client = Client()
+        logged_in = self.client.login(username="caller", password="pw4caller")
+        self.assertTrue(logged_in)
+
+    def test_get_self(self):
+        urlstr = reverse("memb:member-detail", kwargs={'pk':self.caller.auth_user.pk})
+        response = self.client.get(urlstr)
+        # Any member should be able to see their own private fields:
+        self.assertContains(response, "caller@example.com")
+
+    def test_get_other_as_regular(self):
+        urlstr = reverse("memb:member-detail", kwargs={'pk':self.poi.auth_user.pk})
+        response = self.client.get(urlstr)
+        # Regular member should not be able to see private field of another member.
+        self.assertNotContains(response, "poi@example.com")
+
+    def test_get_as_director(self):
+        tag = Tag.objects.create(name="Director", meaning="spam")
+        Tagging.objects.create(tagged_member=self.caller, tag=tag)
+        urlstr = reverse("memb:member-detail", kwargs={'pk': self.poi.auth_user.pk})
+        response = self.client.get(urlstr)
+        # Director should be able to see private field of another member.
+        self.assertContains(response, "poi@example.com")
+
+    def test_get_as_staff(self):
+        tag = Tag.objects.create(name="Staff", meaning="spam")
+        Tagging.objects.create(tagged_member=self.caller, tag=tag)
+        urlstr = reverse("memb:member-detail", kwargs={'pk': self.poi.auth_user.pk})
+        response = self.client.get(urlstr)
+        # Staff should be able to see private field of another member.
+        self.assertContains(response, "poi@example.com")
+
+

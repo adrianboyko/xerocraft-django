@@ -52,6 +52,38 @@ def get_DayOfWeekListFilter_class(date_field_name):
     return DayOfWeekListFilter
 
 
+class DayOfWeekListFilterForTemplates(admin.SimpleListFilter):
+    title = "Day of Week"
+    parameter_name = 'day of week'
+
+    def lookups(self, request, model_admin):
+        return (
+            ('Mon', _('Monday')),
+            ('Tue', _('Tuesday')),
+            ('Wed', _('Wednesday')),
+            ('Thu', _('Thursday')),
+            ('Fri', _('Friday')),
+            ('Sat', _('Saturday')),
+            ('Sun', _('Sunday')),
+        )
+
+    def queryset(self, request, queryset):
+        if self.value() == 'Mon':
+            return queryset.filter(monday=True)
+        elif self.value() == 'Tue':
+            return queryset.filter(tuesday=True)
+        elif self.value() == 'Wed':
+            return queryset.filter(wednesday=True)
+        elif self.value() == 'Thu':
+            return queryset.filter(thursday=True)
+        elif self.value() == 'Fri':
+            return queryset.filter(friday=True)
+        elif self.value() == 'Sat':
+            return queryset.filter(saturday=True)
+        elif self.value() == 'Sun':
+            return queryset.filter(sunday=True)
+
+
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 def duration_fmt(dur:datetime.timedelta):
@@ -137,6 +169,14 @@ def set_nag_on_for_instances(model_admin, request, query_set):
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+def update_future_instances(model_admin, request, query_set):
+    for template in query_set:
+        for task in template.instances.filter(scheduled_date__gte=datetime.date.today()):
+            task.resync_with_template()
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # Base classes for both Template and Task
 
 class TemplateAndTaskBase(VersionAdmin):
@@ -207,14 +247,15 @@ class RecurringTaskTemplateAdmin(TemplateAndTaskBase):
         super(RecurringTaskTemplateAdmin, self).__init__(*args, **kwargs)
         main.EMPTY_CHANGELIST_VALUE = '-'
 
-    list_filter = ['priority', 'active', 'should_nag']
+    list_filter = ['priority', 'active', 'should_nag', DayOfWeekListFilterForTemplates]
 
     list_display = [
         'short_desc', 'recurrence_str',
         'time_window_fmt', 'work_and_workers_fmt',
-        'priority_fmt', 'owner', 'reviewer', 'active', 'should_nag'
+        'priority_fmt', 'default_claimant', 'owner', 'reviewer', 'active', 'should_nag'
     ]
     actions = [
+        update_future_instances,
         set_nag_on,
         set_nag_off,
         set_nag_on_for_instances,

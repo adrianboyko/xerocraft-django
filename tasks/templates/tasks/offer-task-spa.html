@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+
+{% load staticfiles %}
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Task Offer</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Roboto Condensed">
+</head>
+<body>
+    <div id="myContainer"></div>
+    <script src="{% static 'tasks/OfferTask.js' %}"></script>
+    <script>
+        var task_data = {{task_data|safe}};
+        var myContainer = document.getElementById("myContainer");
+        var app = Elm.OfferTask.embed(myContainer, task_data);
+    </script>
+</body>
+</html>

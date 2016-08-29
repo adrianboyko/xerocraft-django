@@ -9,19 +9,35 @@ import members.models as models
 from books.models import Sale
 
 
-class MemberSerializer(serializers.ModelSerializer):
+def get_MemberSerializer(respect_privacy: bool) -> serializers.ModelSerializer:
 
-    class Meta:
-        model = models.Member
-        fields = (
-            'id',
-            'username',
-            'friendly_name',
-            'is_active',
-        )
+    private_fields = (
+        'first_name',
+        'last_name',
+        'email',
+    )
+
+    if respect_privacy:
+        private_fields = ()
+
+    public_fields = (
+        'id',
+        'username',
+        'friendly_name',
+        'is_active',
+        'is_currently_paid'
+    )
+
+    class MemberSerializer(serializers.ModelSerializer):
+        class Meta:
+            model = models.Member
+            fields = private_fields + public_fields
+
+    return MemberSerializer
 
 
 class MembershipSerializer(serializers.ModelSerializer):
+    member = serializers.HyperlinkedRelatedField(read_only=True, view_name='memb:member-detail')
 
     class Meta:
         model = models.Membership
@@ -31,10 +47,10 @@ class MembershipSerializer(serializers.ModelSerializer):
             'membership_type',
             'start_date',
             'end_date',
-            # Sale related fields
+            # Sale related fields:
             'sale',
             'sale_price',
-            # ETL related fields
+            # ETL related fields:
             'ctrlid',
             'protected',
         )
@@ -47,10 +63,10 @@ class MembershipGiftCardReferenceSerializer(serializers.ModelSerializer):
         fields = (
             'id',
             'card',
-            # Sale related fields
+            # Sale related fields:
             'sale',
             'sale_price',
-            # ETL related fields
+            # ETL related fields:
             'ctrlid',
             'protected',
         )

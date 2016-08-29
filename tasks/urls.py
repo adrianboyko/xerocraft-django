@@ -10,6 +10,8 @@ import tasks.restapi as api
 
 router = routers.DefaultRouter()
 router.register(r'tasks', api.TaskViewSet)
+router.register(r'claims', api.ClaimViewSet)
+router.register(r'works', api.WorkViewSet)
 
 urlpatterns = [
 
