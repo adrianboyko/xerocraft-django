@@ -511,9 +511,10 @@ def _add_event(cal, task, request):
     # So we'll build a worker string and make it part of the event description.
     worker_str = ""
     for claim in task.claim_set.filter(status__in=[Claim.STAT_CURRENT, Claim.STAT_WORKING],):  # type: Claim\
-        if len(worker_str) > 0:
-            worker_str += ", "
+        worker_str += ", " if worker_str else ""
         worker_str += claim.claiming_member.friendly_name
+    if not worker_str:
+        worker_str = "Nobody has claimed this task."
 
     desc_str = task.instructions.replace("\r\n", "\\N")  # don't try \\n
 
