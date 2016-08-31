@@ -610,6 +610,9 @@ class Task(make_TaskMixin("Tasks"), TimeWindowedObject):
         unclaimed_hours = self.unclaimed_hours()
         return unclaimed_hours == timedelta(0)
 
+    def all_claims_verified(self):
+        return all(claim.date_verified is not None for claim in self.claim_set.all())
+
     def all_eligible_claimants(self):
         """
         Determine all eligible claimants whether they're directly eligible by name or indirectly by tag

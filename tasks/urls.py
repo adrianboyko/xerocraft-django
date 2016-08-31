@@ -34,12 +34,17 @@ urlpatterns = [
     url(r'^offer-task-spa/(?P<task_pk>[0-9]+)_(?P<auth_token>[-_a-zA-Z0-9]{32})/$', views.offer_task_spa, name='offer-task-spa'),
     # url(r'^verify-claim-spa/$', views.verify_claim_spa, name='verify-claim-spa'),
 
-    # Calendars
+    # Calendar for a given worker
     url(r'^member-calendar/(?P<token>[-_a-zA-Z0-9]{32})/$', views.member_calendar, name='member-calendar'),
+
     url(r'^resource-calendar/$', views.resource_calendar, name='resource-calendar'),
-    url(r'^xerocraft-calendar/$', views.xerocraft_calendar, name='xerocraft-calendar'),
-    url(r'^xerocraft-calendar/staffed/$', views.xerocraft_calendar_staffed, name='xerocraft-calendar-staffed'),
-    url(r'^xerocraft-calendar/unstaffed/$', views.xerocraft_calendar_unstaffed, name='xerocraft-calendar-unstaffed'),
+
+    # Operations calendar, i.e. various staffing tasks.
+    url(r'^ops-calendar/$', views.ops_calendar, name='ops-calendar'),
+    url(r'^ops-calendar/staffed/$', views.ops_calendar_staffed, name='ops-calendar-staffed'),
+    url(r'^ops-calendar/provisional/$', views.ops_calendar_provisional, name='ops-calendar-provisional'),
+    url(r'^ops-calendar/unstaffed/$', views.ops_calendar_unstaffed, name='ops-calendar-unstaffed'),
+
     url(r'^cal-task-details/(?P<task_pk>[0-9]+)/$', views.cal_task_details, name='cal-task-details'),
 
     # Temporary Work Trade Checkout

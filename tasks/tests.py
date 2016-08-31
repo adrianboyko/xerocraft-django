@@ -534,12 +534,12 @@ class TestViews(TestCase):
         expected_words = ["TCV","BEGIN","SUMMARY","DTSTART","DTEND","DTSTAMP","UID","DESCRIPTION","URL","END"]
 
         client = Client()
-        url = reverse('task:xerocraft-calendar')
+        url = reverse('task:ops-calendar')
         response = client.get(url)
         for word in expected_words:
             self.assertContains(response, word)
 
-        url = reverse('task:xerocraft-calendar-unstaffed')
+        url = reverse('task:ops-calendar-unstaffed')
         response = client.get(url)
         for word in expected_words:
             self.assertContains(response, word)
@@ -554,7 +554,16 @@ class TestViews(TestCase):
         c.full_clean()
         t.claim_set.add(c)
 
-        url = reverse('task:xerocraft-calendar-staffed')
+        url = reverse('task:ops-calendar-provisional')
+        response = client.get(url)
+        for word in expected_words:
+            self.assertContains(response, word)
+
+        # verifying the claim takes it from being "provisionally staffed" to "staffed"
+        c.date_verified = datetime.today()
+        c.save()
+
+        url = reverse('task:ops-calendar-staffed')
         response = client.get(url)
         for word in expected_words:
             self.assertContains(response, word)

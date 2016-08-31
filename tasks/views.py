@@ -6,13 +6,14 @@ import logging
 import json
 
 # Third Party
-from dateutil.parser import parse
+from dateutil.parser import parse  # python-dateutil in requirements.txt
 from django.core.urlresolvers import reverse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse, JsonResponse, Http404
 from django.template import loader, Context
 from django.contrib.auth import authenticate
 from django.contrib.auth.decorators import login_required
+from django.conf import settings
 from icalendar import Calendar, Event
 
 # Local
@@ -20,14 +21,16 @@ from tasks.forms import Desktop_TimeSheetForm
 from tasks.models import Task, Nag, Claim, Work, WorkNote, Worker, TimeWindowedObject
 from members.models import Member, VisitEvent
 from members.signals.handlers import note_login
+from members.views import kiosk_visitevent_contentprovider
+
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 _logger = logging.getLogger("tasks")
 
-# = = = = = = = = = = = = = = = = = = = = KIOSK VISIT EVENT CONTENT PROVIDERS
+_ORG_NAME_POSSESSIVE = settings.INTSYS_ORG_NAME_POSSESSIVE
 
-from members.views import kiosk_visitevent_contentprovider
+# = = = = = = = = = = = = = = = = = = = = KIOSK VISIT EVENT CONTENT PROVIDERS
 
 
 def task_button_text(obj):
@@ -559,25 +562,37 @@ def member_calendar(request, token):
     return _ical_response(cal)
 
 
-def xerocraft_calendar(request):
-    cal = _new_calendar("All Xerocraft Tasks")
+def ops_calendar(request):
+    cal = _new_calendar("All {} Tasks".format(_ORG_NAME_POSSESSIVE))
     for task in _gen_all_tasks():
         _add_event(cal, task, request)
         # Intentionally lacks ALARM
     return _ical_response(cal)
 
 
-def xerocraft_calendar_staffed(request):
-    cal = _new_calendar("Xerocraft Staffed Tasks")
+def ops_calendar_staffed(request) -> HttpResponse:
+    """A calendar containing tasks that have been verified as staffed."""
+    cal = _new_calendar("{} Staffed Tasks".format(_ORG_NAME_POSSESSIVE))
     for task in _gen_all_tasks():
-        if task.is_fully_claimed():
+        if task.is_fully_claimed() and task.all_claims_verified():
             _add_event(cal, task, request)
             # Intentionally lacks ALARM
     return _ical_response(cal)
 
 
-def xerocraft_calendar_unstaffed(request):
-    cal = _new_calendar("Xerocraft Unstaffed Tasks")
+def ops_calendar_provisional(request) -> HttpResponse:
+    """A calendar containing provisionally staffed (i.e. claims not yet verified) tasks."""
+    cal = _new_calendar("{} Provisionally Staffed Tasks".format(_ORG_NAME_POSSESSIVE))
+    for task in _gen_all_tasks():
+        if task.is_fully_claimed() and not task.all_claims_verified():
+            _add_event(cal, task, request)
+            # Intentionally lacks ALARM
+    return _ical_response(cal)
+
+
+def ops_calendar_unstaffed(request) -> HttpResponse:
+    """A calendar containing tasks that are not even provisionally staffed."""
+    cal = _new_calendar("{} Unstaffed Tasks".format(_ORG_NAME_POSSESSIVE))
     for task in _gen_all_tasks():
         if not task.is_fully_claimed():
             _add_event(cal, task, request)
