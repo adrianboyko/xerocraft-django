@@ -14,7 +14,7 @@ from django.template import loader, Context
 from django.contrib.auth import authenticate
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
-from icalendar import Calendar, Event
+from icalendar import Calendar, Event, vCalAddress, vText
 
 # Local
 from tasks.forms import Desktop_TimeSheetForm
@@ -492,6 +492,7 @@ END:STANDARD
 END:VTIMEZONE
 '''
 
+
 def _new_calendar(name):
     cal = Calendar()
     cal['x-wr-calname'] = name
@@ -504,13 +505,25 @@ def _new_calendar(name):
 
 
 def _add_event(cal, task, request):
+
+    # NOTE: We could add task workers as attendees, but the calendar format insists that these
+    # be email addresses and we don't want to expose personal information about the workers.
+    # So we'll build a worker string and make it part of the event description.
+    worker_str = ""
+    for claim in task.claim_set.filter(status__in=[Claim.STAT_CURRENT, Claim.STAT_WORKING],):  # type: Claim\
+        if len(worker_str) > 0:
+            worker_str += ", "
+        worker_str += claim.claiming_member.friendly_name
+
+    desc_str = task.instructions.replace("\r\n", "\\N")  # don't try \\n
+
     dtstart = datetime.combine(task.scheduled_date, task.work_start_time)
     relpath = reverse('task:cal-task-details', args=[task.pk])
     event = Event()
     event.add('uid',         task.pk)
     event.add('url',         request.build_absolute_uri(relpath))
     event.add('summary',     task.short_desc)
-    event.add('description', task.instructions.replace("\r\n", " "))
+    event.add('description', "Who: {}\\N\\N{}".format(worker_str, desc_str))
     event.add('dtstart',     dtstart)
     event.add('dtend',       dtstart + task.work_duration)
     event.add('dtstamp',     datetime.now())
@@ -526,14 +539,16 @@ def _ical_response(cal):
 
 
 def _gen_tasks_for(member):
-    for task in member.tasks_claimed.all():
+    """For the given member, generate all future tasks and past tasks in last 60 days"""
+    for task in member.tasks_claimed.filter(scheduled_date__gte=datetime.now()-timedelta(days=60)):
         if task.scheduled_date is None or task.work_start_time is None or task.work_duration is None:
             continue
         yield task
 
 
 def _gen_all_tasks():
-    for task in Task.objects.all():
+    """Generate all future tasks and past tasks in last 60 days"""
+    for task in Task.objects.filter(scheduled_date__gte=datetime.now()-timedelta(days=60)):
         if task.scheduled_date is None or task.work_start_time is None or task.work_duration is None:
             continue
         yield task
