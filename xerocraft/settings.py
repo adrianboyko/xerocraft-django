@@ -85,6 +85,8 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sites',  # Req'd by helpdesk
+    'django.contrib.humanize',  # Req'd by helpdesk
 )
 
 if ISDEVHOST:
@@ -108,6 +110,10 @@ INSTALLED_APPS += (
     'books',
     'reversion',
     'modelmailer',
+
+    'markdown_deux',  # for helpdesk
+    'bootstrapform',  # for helpdesk
+    'helpdesk',
 )
 
 MIDDLEWARE_CLASSES = (

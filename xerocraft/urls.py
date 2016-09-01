@@ -34,9 +34,12 @@ urlpatterns = [
     url(r'^books/', include('books.urls', namespace="book")),
     url(r'^tasks/', include('tasks.urls', namespace="task")),
     url(r'^inventory/', include('inventory.urls', namespace="inv")),
-    url('', include('social.apps.django_app.urls', namespace='social')),
+    #url('', include('social.apps.django_app.urls', namespace='social')),
 
     # DJANGO REST FRAMEWORK API
-    url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework'))
+    url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
+
+    # Why is this the only 3rd party app that requires this?
+    url(r'^helpdesk/', include('helpdesk.urls'))
 
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
