@@ -1,11 +1,17 @@
+# Standard
 import abc
+import sys
+
+# Third Party
 from django.db.models import Model
+from rest_framework.test import APIRequestFactory
+from requests import Session
+
+# Local
 import books.models as bm
 import books.serializers as bs
 import members.models as mm
 import members.serializers as ms
-from requests import Session
-import sys
 
 
 def has_new_data(older, newer):
@@ -21,16 +27,19 @@ class AbstractFetcher(object):
 
     __metaclass__ = abc.ABCMeta
 
-    URLBASE = "https://xerocraft-django.herokuapp.com/"
-    #URLBASE = "http://localhost:8000/"  # IMPORTANT: Set URL back to production
+    SERVERNAME = "xerocraft-django.herokuapp.com"
+    URLBASE = "https://{}/".format(SERVERNAME)
+
+    # SERVERNAME = "localhost:8000"  # IMPORTANT: Set URL back to production
+    # URLBASE = "http://{}/".format(SERVERNAME)
 
     URLS = {
         bm.Sale:                        "books/sales/",
         bm.MonetaryDonation:            "books/monetary-donations/",
         bm.OtherItem:                   "books/other-items/",
         bm.OtherItemType:               "books/other-item-types/",
-        mm.Membership:                  "members/memberships/",
-        mm.MembershipGiftCardReference: "members/gift-card-refs/",
+        mm.Membership:                  "members/api/memberships/",
+        mm.MembershipGiftCardReference: "members/api/gift-card-refs/",
     }
     SERIALIZERS = {
         bm.Sale:                        bs.SaleSerializer,
@@ -82,8 +91,13 @@ class AbstractFetcher(object):
             # Else case is an assertion that matchcount is 0 or 1.
             raise AssertionError("Too many matches for %s with ctrlid %s" % (str(type(item)), item.ctrlid))
 
+        # Creating srcdata is complicated by the fact that the API is now using HyperlinkedIdentityField
+        # It requires a Django or DjangoRestFramework "Request" as context.
+        # see http://stackoverflow.com/questions/10277748/how-to-get-request-object-in-django-unit-testing
+        context = {'request':APIRequestFactory().get('/', SERVER_NAME=self.SERVERNAME, secure=True)}
+        srcdata = serializer(item, context=context).data
+
         # Either POST or PUT depending on whether it already exists
-        srcdata = serializer(item).data
         if id is None:
             # The information is not yet on the website, so add it.
             response = self.djangosession.post(url, srcdata, headers=self.django_auth_headers)
