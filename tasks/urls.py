@@ -1,17 +1,17 @@
-# Core
+# Standard
 
 # Third Party
 from django.conf.urls import url, include
 from rest_framework import routers
 
 # Local
-from . import views
-import tasks.restapi as api
+import tasks.views as views
+import tasks.restapi.views as restviews
 
 router = routers.DefaultRouter()
-router.register(r'tasks', api.TaskViewSet)
-router.register(r'claims', api.ClaimViewSet)
-router.register(r'works', api.WorkViewSet)
+router.register(r'tasks', restviews.TaskViewSet)
+router.register(r'claims', restviews.ClaimViewSet)
+router.register(r'works', restviews.WorkViewSet)
 
 urlpatterns = [
 

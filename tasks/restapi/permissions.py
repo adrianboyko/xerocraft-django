@@ -1,20 +1,14 @@
 
-# Core
+# Standard
 from datetime import datetime
 
 # Third Party
-from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
-from rest_framework.request import Request
-from rest_framework.exceptions import PermissionDenied
 from rest_framework import permissions
-from django.shortcuts import get_object_or_404
+from rest_framework.request import Request
 
 # Local
-import tasks.models as tm
-import tasks.serializers as ts
 import members.models as mm
+import tasks.models as tm
 
 
 def getpk(uri: str) -> int:
@@ -72,22 +66,6 @@ class ClaimPermission(permissions.BasePermission):
             return self.has_object_permission(request, view, obj.claimed_task)
 
 
-class ClaimViewSet(viewsets.ModelViewSet):
-    queryset = tm.Claim.objects.all()
-    serializer_class = ts.ClaimSerializer
-    permission_classes = [IsAuthenticated, ClaimPermission]
-
-    def get_queryset(self):
-        memb = self.request.user.member
-
-        if self.action is "list":
-            # Filter to show only memb's current/future claims.
-            today = datetime.today()
-            return tm.Claim.objects.filter(claiming_member=memb, claimed_task__scheduled_date__gte=today)
-        else:
-            return tm.Claim.objects.all()
-
-
 # ---------------------------------------------------------------------------
 # TASKS
 # ---------------------------------------------------------------------------
@@ -101,22 +79,6 @@ class TaskPermission(permissions.BasePermission):
             return True
         else:
             return memb == obj.owner
-
-
-class TaskViewSet(viewsets.ModelViewSet):
-    queryset = tm.Task.objects.all()
-    serializer_class = ts.TaskSerializer
-    permission_classes = [IsAuthenticated, TaskPermission]
-
-    def get_queryset(self):
-        memb = self.request.user.member
-
-        if self.action is "list":
-            # Filter to show only memb's current/future tasks.
-            today = datetime.today()
-            return tm.Task.objects.filter(owner=memb, scheduled_date__gte=today)
-        else:
-            return tm.Task.objects.all()
 
 
 # ---------------------------------------------------------------------------
@@ -133,19 +95,3 @@ class WorkPermission(permissions.BasePermission):
 
         if type(obj) is tm.Work:
             return memb == obj.claim.claiming_member
-
-
-class WorkViewSet(viewsets.ModelViewSet):
-    queryset = tm.Work.objects.all()
-    serializer_class = ts.WorkSerializer
-    permission_classes = [IsAuthenticated, WorkPermission]
-
-    def get_queryset(self):
-        memb = self.request.user.member
-
-        if self.action is "list":
-            # Filter to show only memb's work.
-            today = datetime.today()
-            return tm.Work.objects.filter(claim__claiming_member=memb)
-        else:
-            return tm.Work.objects.all()

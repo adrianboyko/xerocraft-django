@@ -758,14 +758,14 @@ class TestRestApi_Tasks(TestCase):
         }
 
     def test_need_creds_to_create_task(self):
-        view = restapi.TaskViewSet.as_view({'post': 'create'})
+        view = restapi.views.TaskViewSet.as_view({'post': 'create'})
         request = self.factory.post(self.task_list_uri)
         response = view(request)
         self.assertEquals(response.status_code, 403)
 
     def test_can_create_and_read_task(self):
 
-        view = restapi.TaskViewSet.as_view({'post': 'create'})
+        view = restapi.views.TaskViewSet.as_view({'post': 'create'})
         request = self.factory.post(self.task_list_uri, self.task_data)
         force_authenticate(request, self.caller.auth_user)
         response = view(request)
@@ -775,7 +775,7 @@ class TestRestApi_Tasks(TestCase):
         uri = reverse("task:task-detail", args=[pk])
         request = self.factory.get(uri)
         force_authenticate(request, self.caller.auth_user)
-        view = restapi.TaskViewSet.as_view({'get': 'retrieve'})
+        view = restapi.views.TaskViewSet.as_view({'get': 'retrieve'})
         response = view(request, pk=pk)
         self.assertEqual(response.status_code, 200)
 
@@ -788,7 +788,7 @@ class TestRestApi_Tasks(TestCase):
         # "I" shouldn't see it on the API's list
         request = self.factory.get(self.task_list_uri)
         force_authenticate(request, self.caller.auth_user)
-        view = restapi.TaskViewSet.as_view({'get': 'list'})
+        view = restapi.views.TaskViewSet.as_view({'get': 'list'})
         response = view(request)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data["results"]), 0)
@@ -804,7 +804,7 @@ class TestRestApi_Tasks(TestCase):
         # "I" should now see ONE task on the API's list
         request = self.factory.get(self.task_list_uri)
         force_authenticate(request, self.caller.auth_user)
-        view = restapi.TaskViewSet.as_view({'get': 'list'})
+        view = restapi.views.TaskViewSet.as_view({'get': 'list'})
         response = view(request)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data["results"]), 1)
@@ -817,7 +817,7 @@ class TestRestApi_Tasks(TestCase):
         t.save()
         t.clean()
 
-        view = restapi.ClaimViewSet.as_view({'post': 'create'})
+        view = restapi.views.ClaimViewSet.as_view({'post': 'create'})
         self.claim_data["claimed_task"] = "{}{}/".format(self.task_list_uri, t.pk)
         request = self.factory.post(self.claim_list_uri, self.claim_data, format='json')
         force_authenticate(request, self.caller.auth_user)
@@ -830,7 +830,7 @@ class TestRestApi_Tasks(TestCase):
         t = Task.objects.create(**self.task_data)
         t.clean()
 
-        view = restapi.ClaimViewSet.as_view({'post': 'create'})
+        view = restapi.views.ClaimViewSet.as_view({'post': 'create'})
         self.claim_data["claimed_task"] = "{}{}/".format(self.task_list_uri, t.pk)
         request = self.factory.post(self.claim_list_uri, self.claim_data, format='json')
         force_authenticate(request, self.caller.auth_user)
