@@ -12,8 +12,8 @@ https://docs.djangoproject.com/en/1.8/ref/settings/
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
-
 import uuid
+
 DEVHOSTS = [
     238402988951122,  # Adrian Linux
     220083055528387,  # Adrian Mac
@@ -115,6 +115,8 @@ INSTALLED_APPS += (
     'bootstrapform',  # for helpdesk
     'helpdesk',
 )
+
+SITE_ID = 1  # For django.contrib.sites
 
 MIDDLEWARE_CLASSES = (
     'reversion.middleware.RevisionMiddleware',
