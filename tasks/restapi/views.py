@@ -5,6 +5,7 @@ from datetime import datetime
 # Third Party
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.settings import api_settings
 
 # Local
 import tasks.models as tm
@@ -21,7 +22,9 @@ class ClaimViewSet(viewsets.ModelViewSet):
     queryset = tm.Claim.objects.all()
     serializer_class = ts.ClaimSerializer
     permission_classes = [IsAuthenticated, tp.ClaimPermission]
-    authentication_classes = [ta.NagAuthentication]
+    authentication_classes = api_settings.DEFAULT_AUTHENTICATION_CLASSES + [
+        ta.NagAuthentication,
+    ]
 
     def get_queryset(self):
         memb = self.request.user.member
@@ -42,7 +45,9 @@ class TaskViewSet(viewsets.ModelViewSet):
     queryset = tm.Task.objects.all()
     serializer_class = ts.TaskSerializer
     permission_classes = [IsAuthenticated, tp.TaskPermission]
-    authentication_classes = [ta.NagAuthentication]
+    authentication_classes = api_settings.DEFAULT_AUTHENTICATION_CLASSES + [
+        ta.NagAuthentication,
+    ]
 
     def get_queryset(self):
         memb = self.request.user.member
