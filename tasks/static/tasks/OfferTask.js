@@ -8172,9 +8172,14 @@ var _user$project$OfferTask$thanksView = function (params) {
 					]))
 			]));
 };
-var _user$project$OfferTask$createClaim = function (taskId) {
-	var url = 'https://localhost:8000/tasks/api/claim/';
-	return _elm_lang$core$Platform_Cmd$none;
+var _user$project$OfferTask$toStr = function (v) {
+	var str = _elm_lang$core$Basics$toString(v);
+	return _elm_lang$core$Native_Utils.eq(
+		A2(_elm_lang$core$String$left, 1, str),
+		'\"') ? A2(
+		_elm_lang$core$String$dropRight,
+		1,
+		A2(_elm_lang$core$String$dropLeft, 1, str)) : str;
 };
 var _user$project$OfferTask$Params = function (a) {
 	return function (b) {
@@ -8187,7 +8192,11 @@ var _user$project$OfferTask$Params = function (a) {
 								return function (i) {
 									return function (j) {
 										return function (k) {
-											return {auth_token: a, nag_id: b, task_id: c, user_friendly_name: d, task_desc: e, task_day_str: f, task_time_str: g, already_claimed_by: h, future_dates: i, calendar_token: j, calendar_url: k};
+											return function (l) {
+												return function (m) {
+													return {auth_token: a, nag_id: b, task_id: c, user_friendly_name: d, nagged_member_id: e, task_desc: f, task_day_str: g, task_time_str: h, task_work_dur_str: i, already_claimed_by: j, future_task_ids: k, calendar_token: l, calendar_url: m};
+												};
+											};
 										};
 									};
 								};
@@ -8199,55 +8208,29 @@ var _user$project$OfferTask$Params = function (a) {
 		};
 	};
 };
-var _user$project$OfferTask$Model = F2(
-	function (a, b) {
-		return {step: a, params: b};
+var _user$project$OfferTask$Model = F4(
+	function (a, b, c, d) {
+		return {scene: a, params: b, probPt1: c, probPt2: d};
 	});
 var _user$project$OfferTask$Thanks = {ctor: 'Thanks'};
-var _user$project$OfferTask$update = F2(
-	function (action, model) {
-		var _p0 = action;
-		switch (_p0.ctor) {
-			case 'ClaimTask':
-				return {
-					ctor: '_Tuple2',
-					_0: model,
-					_1: _user$project$OfferTask$createClaim(model.params.task_id)
-				};
-			case 'CreateClaimSuccess':
-				return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
-			case 'CreateClaimFailure':
-				return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
-			case 'DeclineTask':
-				return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
-			default:
-				return {
-					ctor: '_Tuple2',
-					_0: _elm_lang$core$Native_Utils.update(
-						model,
-						{step: _user$project$OfferTask$Thanks}),
-					_1: _elm_lang$core$Platform_Cmd$none
-				};
-		}
-	});
 var _user$project$OfferTask$MoreTasks = {ctor: 'MoreTasks'};
 var _user$project$OfferTask$OfferTask = {ctor: 'OfferTask'};
 var _user$project$OfferTask$init = function (providedParams) {
-	var _p1 = providedParams;
-	if (_p1.ctor === 'Just') {
+	var _p0 = providedParams;
+	if (_p0.ctor === 'Just') {
 		return {
 			ctor: '_Tuple2',
-			_0: {step: _user$project$OfferTask$OfferTask, params: _p1._0},
+			_0: {scene: _user$project$OfferTask$OfferTask, params: _p0._0, probPt1: '', probPt2: ''},
 			_1: _elm_lang$core$Platform_Cmd$none
 		};
 	} else {
 		return _elm_lang$core$Native_Utils.crashCase(
 			'OfferTask',
 			{
-				start: {line: 53, column: 5},
-				end: {line: 55, column: 74}
+				start: {line: 75, column: 3},
+				end: {line: 77, column: 72}
 			},
-			_p1)('Parameters MUST be provided by Javascript.');
+			_p0)('Parameters MUST be provided by Javascript.');
 	}
 };
 var _user$project$OfferTask$CreateClaimFailure = function (a) {
@@ -8256,165 +8239,310 @@ var _user$project$OfferTask$CreateClaimFailure = function (a) {
 var _user$project$OfferTask$CreateClaimSuccess = function (a) {
 	return {ctor: 'CreateClaimSuccess', _0: a};
 };
-var _user$project$OfferTask$OKItIsClaimed = {ctor: 'OKItIsClaimed'};
+var _user$project$OfferTask$createClaim = F4(
+	function (taskId, memberId, authToken, claimedDuration) {
+		var taskUrl = 'http://localhost:8000/tasks/api/tasks/';
+		var memberUrl = 'http://localhost:8000/members/api/members/';
+		var newClaimBody = _evancz$elm_http$Http$string(
+			A2(
+				_elm_lang$core$Json_Encode$encode,
+				0,
+				_elm_lang$core$Json_Encode$object(
+					_elm_lang$core$Native_List.fromArray(
+						[
+							{
+							ctor: '_Tuple2',
+							_0: 'claiming_member',
+							_1: _elm_lang$core$Json_Encode$string(
+								A2(
+									_elm_lang$core$Basics_ops['++'],
+									memberUrl,
+									A2(
+										_elm_lang$core$Basics_ops['++'],
+										_elm_lang$core$Basics$toString(memberId),
+										'/')))
+						},
+							{
+							ctor: '_Tuple2',
+							_0: 'claimed_task',
+							_1: _elm_lang$core$Json_Encode$string(
+								A2(
+									_elm_lang$core$Basics_ops['++'],
+									taskUrl,
+									A2(
+										_elm_lang$core$Basics_ops['++'],
+										_elm_lang$core$Basics$toString(taskId),
+										'/')))
+						},
+							{
+							ctor: '_Tuple2',
+							_0: 'claimed_duration',
+							_1: _elm_lang$core$Json_Encode$string(claimedDuration)
+						},
+							{
+							ctor: '_Tuple2',
+							_0: 'status',
+							_1: _elm_lang$core$Json_Encode$string('C')
+						}
+						]))));
+		var claimUrl = 'http://localhost:8000/tasks/api/claims/';
+		return A3(
+			_elm_lang$core$Task$perform,
+			_user$project$OfferTask$CreateClaimFailure,
+			_user$project$OfferTask$CreateClaimSuccess,
+			A2(
+				_evancz$elm_http$Http$send,
+				_evancz$elm_http$Http$defaultSettings,
+				{
+					verb: 'POST',
+					headers: _elm_lang$core$Native_List.fromArray(
+						[
+							{
+							ctor: '_Tuple2',
+							_0: 'Authentication',
+							_1: A2(_elm_lang$core$Basics_ops['++'], 'Bearer ', authToken)
+						},
+							{ctor: '_Tuple2', _0: 'Content-Type', _1: 'application/json'}
+						]),
+					url: claimUrl,
+					body: newClaimBody
+				}));
+	});
+var _user$project$OfferTask$update = F2(
+	function (action, model) {
+		var _p2 = action;
+		switch (_p2.ctor) {
+			case 'ClaimTask':
+				var p = model.params;
+				return {
+					ctor: '_Tuple2',
+					_0: model,
+					_1: A4(_user$project$OfferTask$createClaim, p.task_id, p.nagged_member_id, p.auth_token, p.task_work_dur_str)
+				};
+			case 'CreateClaimSuccess':
+				var _p4 = _p2._0;
+				if (_elm_lang$core$Native_Utils.eq(_p4.status, 203)) {
+					return {
+						ctor: '_Tuple2',
+						_0: _elm_lang$core$Native_Utils.update(
+							model,
+							{scene: _user$project$OfferTask$MoreTasks}),
+						_1: _elm_lang$core$Platform_Cmd$none
+					};
+				} else {
+					var _p3 = _p4.value;
+					if (_p3.ctor === 'Text') {
+						return {
+							ctor: '_Tuple2',
+							_0: _elm_lang$core$Native_Utils.update(
+								model,
+								{probPt1: _p4.statusText, probPt2: _p3._0}),
+							_1: _elm_lang$core$Platform_Cmd$none
+						};
+					} else {
+						return {
+							ctor: '_Tuple2',
+							_0: _elm_lang$core$Native_Utils.update(
+								model,
+								{probPt1: _p4.statusText, probPt2: '<blob>'}),
+							_1: _elm_lang$core$Platform_Cmd$none
+						};
+					}
+				}
+			case 'CreateClaimFailure':
+				var _p5 = _p2._0;
+				if (_p5.ctor === 'RawTimeout') {
+					return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
+				} else {
+					return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
+				}
+			case 'DeclineTask':
+				return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
+			default:
+				return {
+					ctor: '_Tuple2',
+					_0: _elm_lang$core$Native_Utils.update(
+						model,
+						{scene: _user$project$OfferTask$Thanks}),
+					_1: _elm_lang$core$Platform_Cmd$none
+				};
+		}
+	});
+var _user$project$OfferTask$ThankUser = {ctor: 'ThankUser'};
 var _user$project$OfferTask$DeclineTask = {ctor: 'DeclineTask'};
 var _user$project$OfferTask$ClaimTask = {ctor: 'ClaimTask'};
-var _user$project$OfferTask$offerTaskView = function (params) {
-	return A2(
-		_elm_lang$html$Html$div,
-		_elm_lang$core$Native_List.fromArray(
-			[_user$project$OfferTask$containerStyle, _user$project$OfferTask$unselectable]),
-		_elm_lang$core$Native_List.fromArray(
-			[
-				A2(
-				_elm_lang$html$Html$div,
-				_elm_lang$core$Native_List.fromArray(
-					[_user$project$OfferTask$greetingStyle]),
-				_elm_lang$core$Native_List.fromArray(
-					[
-						_elm_lang$html$Html$text(
-						A2(
-							_elm_lang$core$Basics_ops['++'],
-							'Hi ',
-							A2(_elm_lang$core$Basics_ops['++'], params.user_friendly_name, '!')))
-					])),
-				A2(
-				_elm_lang$html$Html$div,
-				_elm_lang$core$Native_List.fromArray(
-					[]),
-				_elm_lang$core$Native_List.fromArray(
-					[
-						_elm_lang$html$Html$text('You have clicked the following task:')
-					])),
-				A2(
-				_elm_lang$html$Html$div,
-				_elm_lang$core$Native_List.fromArray(
-					[_user$project$OfferTask$taskCardStyle]),
-				_elm_lang$core$Native_List.fromArray(
-					[
-						A2(
-						_elm_lang$html$Html$div,
-						_elm_lang$core$Native_List.fromArray(
-							[_user$project$OfferTask$taskDescStyle]),
-						_elm_lang$core$Native_List.fromArray(
-							[
-								_elm_lang$html$Html$text(params.task_desc)
-							])),
-						A2(
-						_elm_lang$html$Html$div,
-						_elm_lang$core$Native_List.fromArray(
-							[]),
-						_elm_lang$core$Native_List.fromArray(
-							[
-								_elm_lang$html$Html$text(params.task_day_str)
-							])),
-						A2(
-						_elm_lang$html$Html$div,
-						_elm_lang$core$Native_List.fromArray(
-							[]),
-						_elm_lang$core$Native_List.fromArray(
-							[
-								_elm_lang$html$Html$text(params.task_time_str)
-							]))
-					])),
-				_elm_lang$core$String$isEmpty(params.already_claimed_by) ? A2(
-				_elm_lang$html$Html$div,
-				_elm_lang$core$Native_List.fromArray(
-					[]),
-				_elm_lang$core$Native_List.fromArray(
-					[
-						A2(
-						_elm_lang$html$Html$div,
-						_elm_lang$core$Native_List.fromArray(
-							[]),
-						_elm_lang$core$Native_List.fromArray(
-							[
-								_elm_lang$html$Html$text('Nobody is helping with this task.')
-							])),
-						A2(
-						_elm_lang$html$Html$div,
-						_elm_lang$core$Native_List.fromArray(
-							[]),
-						_elm_lang$core$Native_List.fromArray(
-							[
-								_elm_lang$html$Html$text('Will you staff it?')
-							])),
-						A2(
-						_elm_lang$html$Html$button,
-						_elm_lang$core$Native_List.fromArray(
-							[
-								_user$project$OfferTask$buttonStyle,
-								_elm_lang$html$Html_Events$onClick(_user$project$OfferTask$ClaimTask)
-							]),
-						_elm_lang$core$Native_List.fromArray(
-							[
-								_elm_lang$html$Html$text('Yes')
-							])),
-						A2(
-						_elm_lang$html$Html$button,
-						_elm_lang$core$Native_List.fromArray(
-							[
-								_user$project$OfferTask$buttonStyle,
-								_elm_lang$html$Html_Events$onClick(_user$project$OfferTask$DeclineTask)
-							]),
-						_elm_lang$core$Native_List.fromArray(
-							[
-								_elm_lang$html$Html$text('No')
-							]))
-					])) : A2(
-				_elm_lang$html$Html$div,
-				_elm_lang$core$Native_List.fromArray(
-					[]),
-				_elm_lang$core$Native_List.fromArray(
-					[
-						A2(
-						_elm_lang$html$Html$div,
-						_elm_lang$core$Native_List.fromArray(
-							[_user$project$OfferTask$isClaimedStyle]),
-						_elm_lang$core$Native_List.fromArray(
-							[
-								_elm_lang$html$Html$text(
-								A2(_elm_lang$core$Basics_ops['++'], 'Thanks for your interest, but ', params.already_claimed_by)),
-								A2(
-								_elm_lang$html$Html$br,
-								_elm_lang$core$Native_List.fromArray(
-									[]),
-								_elm_lang$core$Native_List.fromArray(
-									[])),
-								_elm_lang$html$Html$text('has already claimed this task.')
-							])),
-						A2(
-						_elm_lang$html$Html$div,
-						_elm_lang$core$Native_List.fromArray(
-							[]),
-						_elm_lang$core$Native_List.fromArray(
-							[
-								A2(
-								_elm_lang$html$Html$button,
-								_elm_lang$core$Native_List.fromArray(
-									[
-										_user$project$OfferTask$buttonStyle,
-										_elm_lang$html$Html_Events$onClick(_user$project$OfferTask$OKItIsClaimed)
-									]),
-								_elm_lang$core$Native_List.fromArray(
-									[
-										_elm_lang$html$Html$text('OK')
-									]))
-							]))
-					]))
-			]));
-};
-var _user$project$OfferTask$view = function (_p3) {
-	var _p4 = _p3;
-	var _p6 = _p4.params;
-	var _p5 = _p4.step;
-	switch (_p5.ctor) {
+var _user$project$OfferTask$offerTaskView = F3(
+	function (params, probPt1, probPt2) {
+		return A2(
+			_elm_lang$html$Html$div,
+			_elm_lang$core$Native_List.fromArray(
+				[_user$project$OfferTask$containerStyle, _user$project$OfferTask$unselectable]),
+			_elm_lang$core$Native_List.fromArray(
+				[
+					A2(
+					_elm_lang$html$Html$div,
+					_elm_lang$core$Native_List.fromArray(
+						[_user$project$OfferTask$greetingStyle]),
+					_elm_lang$core$Native_List.fromArray(
+						[
+							_elm_lang$html$Html$text(
+							A2(
+								_elm_lang$core$Basics_ops['++'],
+								'Hi ',
+								A2(_elm_lang$core$Basics_ops['++'], params.user_friendly_name, '!')))
+						])),
+					A2(
+					_elm_lang$html$Html$div,
+					_elm_lang$core$Native_List.fromArray(
+						[]),
+					_elm_lang$core$Native_List.fromArray(
+						[
+							_elm_lang$html$Html$text('You have clicked the following task:')
+						])),
+					A2(
+					_elm_lang$html$Html$div,
+					_elm_lang$core$Native_List.fromArray(
+						[_user$project$OfferTask$taskCardStyle]),
+					_elm_lang$core$Native_List.fromArray(
+						[
+							A2(
+							_elm_lang$html$Html$div,
+							_elm_lang$core$Native_List.fromArray(
+								[_user$project$OfferTask$taskDescStyle]),
+							_elm_lang$core$Native_List.fromArray(
+								[
+									_elm_lang$html$Html$text(params.task_desc)
+								])),
+							A2(
+							_elm_lang$html$Html$div,
+							_elm_lang$core$Native_List.fromArray(
+								[]),
+							_elm_lang$core$Native_List.fromArray(
+								[
+									_elm_lang$html$Html$text(params.task_day_str)
+								])),
+							A2(
+							_elm_lang$html$Html$div,
+							_elm_lang$core$Native_List.fromArray(
+								[]),
+							_elm_lang$core$Native_List.fromArray(
+								[
+									_elm_lang$html$Html$text(params.task_time_str)
+								]))
+						])),
+					_elm_lang$core$String$isEmpty(params.already_claimed_by) ? A2(
+					_elm_lang$html$Html$div,
+					_elm_lang$core$Native_List.fromArray(
+						[]),
+					_elm_lang$core$Native_List.fromArray(
+						[
+							A2(
+							_elm_lang$html$Html$div,
+							_elm_lang$core$Native_List.fromArray(
+								[]),
+							_elm_lang$core$Native_List.fromArray(
+								[
+									_elm_lang$html$Html$text('Nobody is helping with this task.')
+								])),
+							A2(
+							_elm_lang$html$Html$div,
+							_elm_lang$core$Native_List.fromArray(
+								[]),
+							_elm_lang$core$Native_List.fromArray(
+								[
+									_elm_lang$html$Html$text('Will you staff it?')
+								])),
+							A2(
+							_elm_lang$html$Html$button,
+							_elm_lang$core$Native_List.fromArray(
+								[
+									_user$project$OfferTask$buttonStyle,
+									_elm_lang$html$Html_Events$onClick(_user$project$OfferTask$ClaimTask)
+								]),
+							_elm_lang$core$Native_List.fromArray(
+								[
+									_elm_lang$html$Html$text('Yes')
+								])),
+							A2(
+							_elm_lang$html$Html$button,
+							_elm_lang$core$Native_List.fromArray(
+								[
+									_user$project$OfferTask$buttonStyle,
+									_elm_lang$html$Html_Events$onClick(_user$project$OfferTask$DeclineTask)
+								]),
+							_elm_lang$core$Native_List.fromArray(
+								[
+									_elm_lang$html$Html$text('No')
+								]))
+						])) : A2(
+					_elm_lang$html$Html$div,
+					_elm_lang$core$Native_List.fromArray(
+						[]),
+					_elm_lang$core$Native_List.fromArray(
+						[
+							A2(
+							_elm_lang$html$Html$div,
+							_elm_lang$core$Native_List.fromArray(
+								[_user$project$OfferTask$isClaimedStyle]),
+							_elm_lang$core$Native_List.fromArray(
+								[
+									_elm_lang$html$Html$text(
+									A2(_elm_lang$core$Basics_ops['++'], 'Thanks for your interest, but ', params.already_claimed_by)),
+									A2(
+									_elm_lang$html$Html$br,
+									_elm_lang$core$Native_List.fromArray(
+										[]),
+									_elm_lang$core$Native_List.fromArray(
+										[])),
+									_elm_lang$html$Html$text('has already claimed this task.')
+								])),
+							A2(
+							_elm_lang$html$Html$div,
+							_elm_lang$core$Native_List.fromArray(
+								[]),
+							_elm_lang$core$Native_List.fromArray(
+								[
+									A2(
+									_elm_lang$html$Html$button,
+									_elm_lang$core$Native_List.fromArray(
+										[
+											_user$project$OfferTask$buttonStyle,
+											_elm_lang$html$Html_Events$onClick(_user$project$OfferTask$ThankUser)
+										]),
+									_elm_lang$core$Native_List.fromArray(
+										[
+											_elm_lang$html$Html$text('OK')
+										]))
+								]))
+						])),
+					A2(
+					_elm_lang$html$Html$div,
+					_elm_lang$core$Native_List.fromArray(
+						[]),
+					_elm_lang$core$Native_List.fromArray(
+						[
+							_elm_lang$html$Html$text(probPt1),
+							A2(
+							_elm_lang$html$Html$br,
+							_elm_lang$core$Native_List.fromArray(
+								[]),
+							_elm_lang$core$Native_List.fromArray(
+								[])),
+							_elm_lang$html$Html$text(probPt2)
+						]))
+				]));
+	});
+var _user$project$OfferTask$view = function (_p6) {
+	var _p7 = _p6;
+	var _p9 = _p7.params;
+	var _p8 = _p7.scene;
+	switch (_p8.ctor) {
 		case 'OfferTask':
-			return _user$project$OfferTask$offerTaskView(_p6);
+			return A3(_user$project$OfferTask$offerTaskView, _p9, _p7.probPt1, _p7.probPt2);
 		case 'MoreTasks':
-			return _user$project$OfferTask$moreTasksView(_p6);
+			return _user$project$OfferTask$moreTasksView(_p9);
 		default:
-			return _user$project$OfferTask$thanksView(_p6);
+			return _user$project$OfferTask$thanksView(_p9);
 	}
 };
 var _user$project$OfferTask$main = {
@@ -8447,35 +8575,45 @@ var _user$project$OfferTask$main = {
 													_elm_lang$core$Json_Decode$andThen,
 													A2(
 														_elm_lang$core$Json_Decode_ops[':='],
-														'future_dates',
-														_elm_lang$core$Json_Decode$list(_elm_lang$core$Json_Decode$string)),
-													function (future_dates) {
+														'future_task_ids',
+														_elm_lang$core$Json_Decode$list(_elm_lang$core$Json_Decode$int)),
+													function (future_task_ids) {
 														return A2(
 															_elm_lang$core$Json_Decode$andThen,
 															A2(_elm_lang$core$Json_Decode_ops[':='], 'nag_id', _elm_lang$core$Json_Decode$int),
 															function (nag_id) {
 																return A2(
 																	_elm_lang$core$Json_Decode$andThen,
-																	A2(_elm_lang$core$Json_Decode_ops[':='], 'task_day_str', _elm_lang$core$Json_Decode$string),
-																	function (task_day_str) {
+																	A2(_elm_lang$core$Json_Decode_ops[':='], 'nagged_member_id', _elm_lang$core$Json_Decode$int),
+																	function (nagged_member_id) {
 																		return A2(
 																			_elm_lang$core$Json_Decode$andThen,
-																			A2(_elm_lang$core$Json_Decode_ops[':='], 'task_desc', _elm_lang$core$Json_Decode$string),
-																			function (task_desc) {
+																			A2(_elm_lang$core$Json_Decode_ops[':='], 'task_day_str', _elm_lang$core$Json_Decode$string),
+																			function (task_day_str) {
 																				return A2(
 																					_elm_lang$core$Json_Decode$andThen,
-																					A2(_elm_lang$core$Json_Decode_ops[':='], 'task_id', _elm_lang$core$Json_Decode$int),
-																					function (task_id) {
+																					A2(_elm_lang$core$Json_Decode_ops[':='], 'task_desc', _elm_lang$core$Json_Decode$string),
+																					function (task_desc) {
 																						return A2(
 																							_elm_lang$core$Json_Decode$andThen,
-																							A2(_elm_lang$core$Json_Decode_ops[':='], 'task_time_str', _elm_lang$core$Json_Decode$string),
-																							function (task_time_str) {
+																							A2(_elm_lang$core$Json_Decode_ops[':='], 'task_id', _elm_lang$core$Json_Decode$int),
+																							function (task_id) {
 																								return A2(
 																									_elm_lang$core$Json_Decode$andThen,
-																									A2(_elm_lang$core$Json_Decode_ops[':='], 'user_friendly_name', _elm_lang$core$Json_Decode$string),
-																									function (user_friendly_name) {
-																										return _elm_lang$core$Json_Decode$succeed(
-																											{already_claimed_by: already_claimed_by, auth_token: auth_token, calendar_token: calendar_token, calendar_url: calendar_url, future_dates: future_dates, nag_id: nag_id, task_day_str: task_day_str, task_desc: task_desc, task_id: task_id, task_time_str: task_time_str, user_friendly_name: user_friendly_name});
+																									A2(_elm_lang$core$Json_Decode_ops[':='], 'task_time_str', _elm_lang$core$Json_Decode$string),
+																									function (task_time_str) {
+																										return A2(
+																											_elm_lang$core$Json_Decode$andThen,
+																											A2(_elm_lang$core$Json_Decode_ops[':='], 'task_work_dur_str', _elm_lang$core$Json_Decode$string),
+																											function (task_work_dur_str) {
+																												return A2(
+																													_elm_lang$core$Json_Decode$andThen,
+																													A2(_elm_lang$core$Json_Decode_ops[':='], 'user_friendly_name', _elm_lang$core$Json_Decode$string),
+																													function (user_friendly_name) {
+																														return _elm_lang$core$Json_Decode$succeed(
+																															{already_claimed_by: already_claimed_by, auth_token: auth_token, calendar_token: calendar_token, calendar_url: calendar_url, future_task_ids: future_task_ids, nag_id: nag_id, nagged_member_id: nagged_member_id, task_day_str: task_day_str, task_desc: task_desc, task_id: task_id, task_time_str: task_time_str, task_work_dur_str: task_work_dur_str, user_friendly_name: user_friendly_name});
+																													});
+																											});
 																									});
 																							});
 																					});

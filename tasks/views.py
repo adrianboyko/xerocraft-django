@@ -309,8 +309,6 @@ def offer_task_spa(request, task_pk=0, auth_token=""):
         claim = claims[0]
 
     if len(claims) > 1:
-        # Now moving toward models where each task has exactly 0 or 1 claims.
-        # If somebody wants to make a partial claim, the leftover will result in a new unclaimed task.
         # Note that I'm not going to offer partial claim functionality in this version of the view.
         _logger.error("Task #{} has more than one claim.", task.pk)
 
@@ -327,7 +325,7 @@ def offer_task_spa(request, task_pk=0, auth_token=""):
     futures = [x for x in futures if len(x.claim_set.all()) == 0]
     futures = [x for x in futures if nag.who in x.all_eligible_claimants()]
     futures = sorted(futures, key=lambda x: x.scheduled_date)
-    futures = [x.scheduled_date.strftime("%A, %b %e") for x in futures]
+    futures = [x.pk for x in futures]
 
     nag.who.worker.populate_calendar_token()
 
@@ -336,11 +334,13 @@ def offer_task_spa(request, task_pk=0, auth_token=""):
         "nag_id": nag.pk,
         "task_id": task.pk,
         "user_friendly_name": nag.who.friendly_name,
+        "nagged_member_id": nag.who.pk,
         "task_desc": task.short_desc,
         "task_day_str": task.scheduled_date.strftime("%A, %b %e"),
         "task_time_str": task_time_str,
+        "task_work_dur_str": str(task.work_duration),
         "already_claimed_by": claim.claiming_member.friendly_name if claim is not None else "",
-        "future_dates": futures[0:4],
+        "future_task_ids": futures[0:4],
         "calendar_token": nag.who.worker.calendar_token,
         "calendar_url": reverse('task:member-calendar', args=[nag.who.worker.calendar_token])
     }
