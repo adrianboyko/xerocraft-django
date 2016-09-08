@@ -22,9 +22,9 @@ class ClaimViewSet(viewsets.ModelViewSet):
     queryset = tm.Claim.objects.all()
     serializer_class = ts.ClaimSerializer
     permission_classes = [IsAuthenticated, tp.ClaimPermission]
-    authentication_classes = api_settings.DEFAULT_AUTHENTICATION_CLASSES + [
+    authentication_classes = [
         ta.NagAuthentication,
-    ]
+    ] + api_settings.DEFAULT_AUTHENTICATION_CLASSES
 
     def get_queryset(self):
         memb = self.request.user.member
@@ -45,9 +45,9 @@ class TaskViewSet(viewsets.ModelViewSet):
     queryset = tm.Task.objects.all()
     serializer_class = ts.TaskSerializer
     permission_classes = [IsAuthenticated, tp.TaskPermission]
-    authentication_classes = api_settings.DEFAULT_AUTHENTICATION_CLASSES + [
+    authentication_classes = [
         ta.NagAuthentication,
-    ]
+    ] + api_settings.DEFAULT_AUTHENTICATION_CLASSES
 
     def get_queryset(self):
         memb = self.request.user.member
