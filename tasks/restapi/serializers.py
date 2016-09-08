@@ -31,6 +31,7 @@ class ClaimSerializer(serializers.ModelSerializer):
         model = tm.Claim
         fields = (
             'id',
+            'status',
             'claimed_task',
             'claiming_member',
             'claimed_start_time',
