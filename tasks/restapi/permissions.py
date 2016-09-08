@@ -9,6 +9,7 @@ from rest_framework.request import Request
 # Local
 import members.models as mm
 import tasks.models as tm
+import tasks.restapi.serializers as ts
 
 
 def getpk(uri: str) -> int:
@@ -28,6 +29,14 @@ class ClaimPermission(permissions.BasePermission):
             return True
 
         if request.method == "POST":
+
+            # Web interface to REST API sends POST with no body to determine if
+            # a read/write or read-only interface should be presented. In general,
+            # anybody can post a claim, so we'll return True for this case.
+            datalen = request.META.get('CONTENT_LENGTH')  # type: str
+            if datalen == '0' or datalen == '':
+                return True
+
             claimed_task_pk = getpk(request.data["claimed_task"])
             claiming_member_pk = getpk(request.data["claiming_member"])
             calling_member_pk = request.user.member.pk
