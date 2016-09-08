@@ -16,11 +16,15 @@ class NagAuthentication(authentication.BaseAuthentication):
 
     def authenticate(self, request):
 
-        nagtoken = request.META.get('HTTP_X_NAGTOKEN')  # type: str
+        authval = request.META.get('HTTP_AUTHENTICATION')  # type: str
 
-        # Was a token passed?
-        if not nagtoken:
+        if not authval:
             return None  # failure, no token.
+
+        if not authval.startswith("Bearer "):
+            return None  # failure, bad format
+
+        nagtoken = authval.replace("Bearer ", "")
 
         # Is it a real token?
         md5str = md5(nagtoken.encode()).hexdigest()
