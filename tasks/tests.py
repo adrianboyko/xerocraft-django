@@ -761,8 +761,8 @@ class TestRestApi_Tasks(TestCase):
         view = restapi.views.TaskViewSet.as_view({'post': 'create'})
         request = self.factory.post(self.task_list_uri)
         response = view(request)
-        # Why am I getting different status codes in dev vs jenkins?
-        self.assertGreater(response.status_code, [401, 403])
+        # Why am I getting different status codes in dev vs jenkins (401 vs 403)?
+        self.assertGreater(response.status_code, 400)
 
     def test_can_create_and_read_task(self):
 
