@@ -118,6 +118,23 @@ class Account(models.Model):
         ordering = ['name']
 
 
+class AccountGroup(models.Model):
+    name = models.CharField(max_length=40, blank=True,
+        help_text="Name of the group.")
+
+    description = models.TextField(max_length=1024,
+        help_text="The group's purpose, e.g. 'This acct group corresponds to a budget line item.'")
+
+    accounts = models.ManyToManyField(to=Account,
+        help_text="The accounts that are part of this group.")
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        ordering = ['name']
+
+
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # SALE
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
