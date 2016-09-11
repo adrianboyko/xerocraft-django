@@ -1,14 +1,15 @@
-# pylint: disable=C0330
 
 # Standard
 import logging
 import abc
 from decimal import Decimal
 from datetime import date, timedelta, datetime
+import re
 
 # Third party
 from django.db import models
 from django.core.exceptions import ValidationError
+from django.core.validators import RegexValidator
 from django.utils.translation import ugettext_lazy as _
 import nptime
 
@@ -876,11 +877,39 @@ class UnavailableDates(models.Model):
 
 class Snippet(models.Model):
 
+    snippet_name_regex = '^[-a-zA-Z0-1]+$'
+    snippet_ref_regex = r'\{\{[-a-zA-Z0-1]+\}\}'
+    BAD_SNIPPET_REF_STR = "BAD_SNIPPET_REF"
+
     name = models.CharField(max_length=40, blank=False,
-        help_text="The name of the snippet.")
+        help_text="The name of the snippet.",
+        validators=[
+            RegexValidator(snippet_name_regex,
+                message="Name must only contain letters, numbers, and dashes.",
+                code="invalid_name"
+            )
+        ]
+    )
 
     description = models.CharField(max_length=128, blank=False,
         help_text="Short description of what the snippet is about.")
 
     text = models.TextField(max_length=2048, blank=False,
         help_text="The full text content of the snippet.")
+
+    @staticmethod
+    def expand(instr: str) -> str:
+        while True:
+            searchresult = re.search(Snippet.snippet_ref_regex, instr, flags=0)
+            if searchresult is None:
+                return instr
+            snippet_ref = searchresult.group()
+            snippet_name = snippet_ref.strip("{}")
+            try:
+                snippet = Snippet.objects.get(name=snippet_name)
+                instr = instr.replace(snippet_ref, snippet.text)
+            except Snippet.DoesNotExist:
+                logger = logging.getLogger("tasks")
+                logger.warning("%s is a bad snippet reference.", snippet_ref)
+                instr = instr.replace(snippet_ref, Snippet.BAD_SNIPPET_REF_STR)
+

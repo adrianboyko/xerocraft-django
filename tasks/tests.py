@@ -18,7 +18,7 @@ from rest_framework.test import APIRequestFactory
 from rest_framework.test import force_authenticate
 
 # Local
-from tasks.models import RecurringTaskTemplate, Task, TaskNote, Claim, Work, WorkNote, Nag
+from tasks.models import RecurringTaskTemplate, Task, TaskNote, Claim, Work, WorkNote, Nag, Snippet
 from members.models import Member, Tag, VisitEvent
 import tasks.restapi as restapi
 
@@ -705,9 +705,9 @@ class TestWindowedObject(TestCase):
         self.assertEquals(claim.window_sched_date(), self.t.scheduled_date)
         self.assertEquals(claim.window_deadline(), self.t.deadline)
 
+
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # TEST REST APIs
-
 
 class TestRestApi_Tasks(TestCase):
 
@@ -837,3 +837,51 @@ class TestRestApi_Tasks(TestCase):
         force_authenticate(request, self.caller.auth_user)
         response = view(request)
         self.assertEqual(response.status_code, 403)  # Forbidden
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# Test Snippets
+
+class TestSnippets(TestCase):
+
+    snippet1_name = "foo"
+    snippet1_content = "foo foo foo"
+
+    snippet2_name = "bar"
+    snippet2_content = "bar bar bar"
+
+    def setUp(self):
+        Snippet.objects.create(
+            name=TestSnippets.snippet1_name,
+            description="for testing purposes",
+            text=TestSnippets.snippet1_content)
+        Snippet.objects.create(
+            name=TestSnippets.snippet2_name,
+            description="for testing purposes",
+            text=TestSnippets.snippet2_content)
+
+    def test_zero_refs(self):
+        test_string = "This is a test of expansion."
+        result = Snippet.expand(test_string)
+        self.assertEqual(result, test_string)
+
+    def test_one_ref(self):
+        test_string = "This is a test of %s expansion."
+        unexpanded = test_string % "{{%s}}" % TestSnippets.snippet1_name
+        expected_expansion = test_string % TestSnippets.snippet1_content
+        result = Snippet.expand(unexpanded)
+        self.assertEqual(result, expected_expansion)
+
+    def test_two_refs(self):
+        test_string = "This is a %s test of %s expansion."
+        unexpanded = test_string % ("{{%s}}", "{{%s}}") % (TestSnippets.snippet1_name, TestSnippets.snippet2_name)
+        expected_expansion = test_string % (TestSnippets.snippet1_content, TestSnippets.snippet2_content)
+        result = Snippet.expand(unexpanded)
+        self.assertEqual(result, expected_expansion)
+
+    def test_bad_ref(self):
+        test_string = "This is a test of %s expansion."
+        unexpanded = test_string % "{{%s}}" % "badname"
+        expected_expansion = test_string % Snippet.BAD_SNIPPET_REF_STR
+        result = Snippet.expand(unexpanded)
+        self.assertEqual(result, expected_expansion)
