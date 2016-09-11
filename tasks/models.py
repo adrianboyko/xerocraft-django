@@ -360,7 +360,7 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
                         orig_sched_date         =curr,
                         # Copy mixin fields from template to instance:
                         owner                   =self.owner,
-                        instructions            =self.instructions,
+                        instructions            =Snippet.expand(self.instructions),
                         short_desc              =self.short_desc,
                         reviewer                =self.reviewer,
                         missed_date_action      =self.missed_date_action,
@@ -666,7 +666,7 @@ class Task(make_TaskMixin("Tasks"), TimeWindowedObject):
 
         # Values
         self.owner = templ.owner
-        self.instructions = templ.instructions
+        self.instructions = Snippet.expand(templ.instructions)
         self.short_desc = templ.short_desc
         self.reviewer = templ.reviewer
         self.missed_date_action = templ.missed_date_action
