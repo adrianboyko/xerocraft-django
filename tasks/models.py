@@ -869,3 +869,18 @@ class UnavailableDates(models.Model):
 
     end_date = models.DateField(
         help_text="The last date (inclusive) on which the person will be unavailable.")
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Text Snippets
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+class Snippet(models.Model):
+
+    name = models.CharField(max_length=40, blank=False,
+        help_text="The name of the snippet.")
+
+    description = models.CharField(max_length=128, blank=False,
+        help_text="Short description of what the snippet is about.")
+
+    text = models.TextField(max_length=2048, blank=False,
+        help_text="The full text content of the snippet.")
