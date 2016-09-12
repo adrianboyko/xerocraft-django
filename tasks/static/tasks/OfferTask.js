@@ -8026,9 +8026,6 @@ var _evancz$elm_http$Http$post = F3(
 			A2(_evancz$elm_http$Http$send, _evancz$elm_http$Http$defaultSettings, request));
 	});
 
-var _user$project$OfferTask$subscriptions = function (model) {
-	return _elm_lang$core$Platform_Sub$none;
-};
 var _user$project$OfferTask$isClaimedStyle = _elm_lang$html$Html_Attributes$style(
 	_elm_lang$core$Native_List.fromArray(
 		[
@@ -8194,7 +8191,13 @@ var _user$project$OfferTask$Params = function (a) {
 										return function (k) {
 											return function (l) {
 												return function (m) {
-													return {auth_token: a, nag_id: b, task_id: c, user_friendly_name: d, nagged_member_id: e, task_desc: f, task_day_str: g, task_time_str: h, task_work_dur_str: i, already_claimed_by: j, future_task_ids: k, calendar_token: l, calendar_url: m};
+													return function (n) {
+														return function (o) {
+															return function (p) {
+																return {auth_token: a, task_id: b, user_friendly_name: c, nagged_member_id: d, task_desc: e, task_day_str: f, task_window_str: g, task_work_start_str: h, task_work_dur_str: i, already_claimed_by: j, future_task_ids: k, calendar_url: l, today_str: m, claim_list_uri: n, task_list_uri: o, member_list_uri: p};
+															};
+														};
+													};
 												};
 											};
 										};
@@ -8227,8 +8230,8 @@ var _user$project$OfferTask$init = function (providedParams) {
 		return _elm_lang$core$Native_Utils.crashCase(
 			'OfferTask',
 			{
-				start: {line: 75, column: 3},
-				end: {line: 77, column: 72}
+				start: {line: 79, column: 3},
+				end: {line: 81, column: 72}
 			},
 			_p0)('Parameters MUST be provided by Javascript.');
 	}
@@ -8239,8 +8242,8 @@ var _user$project$OfferTask$CreateClaimFailure = function (a) {
 var _user$project$OfferTask$CreateClaimSuccess = function (a) {
 	return {ctor: 'CreateClaimSuccess', _0: a};
 };
-var _user$project$OfferTask$createClaim = F4(
-	function (taskId, memberId, authToken, claimedDuration) {
+var _user$project$OfferTask$createClaim = F6(
+	function (taskId, memberId, authToken, claimedStartTime, claimedDuration, today) {
 		var taskUrl = 'http://localhost:8000/tasks/api/tasks/';
 		var memberUrl = 'http://localhost:8000/members/api/members/';
 		var newClaimBody = _evancz$elm_http$Http$string(
@@ -8276,6 +8279,11 @@ var _user$project$OfferTask$createClaim = F4(
 						},
 							{
 							ctor: '_Tuple2',
+							_0: 'claimed_start_time',
+							_1: _elm_lang$core$Json_Encode$string(claimedStartTime)
+						},
+							{
+							ctor: '_Tuple2',
 							_0: 'claimed_duration',
 							_1: _elm_lang$core$Json_Encode$string(claimedDuration)
 						},
@@ -8283,6 +8291,11 @@ var _user$project$OfferTask$createClaim = F4(
 							ctor: '_Tuple2',
 							_0: 'status',
 							_1: _elm_lang$core$Json_Encode$string('C')
+						},
+							{
+							ctor: '_Tuple2',
+							_0: 'date_verified',
+							_1: _elm_lang$core$Json_Encode$string(today)
 						}
 						]))));
 		var claimUrl = 'http://localhost:8000/tasks/api/claims/';
@@ -8317,16 +8330,16 @@ var _user$project$OfferTask$update = F2(
 				return {
 					ctor: '_Tuple2',
 					_0: model,
-					_1: A4(_user$project$OfferTask$createClaim, p.task_id, p.nagged_member_id, p.auth_token, p.task_work_dur_str)
+					_1: A6(_user$project$OfferTask$createClaim, p.task_id, p.nagged_member_id, p.auth_token, p.task_work_start_str, p.task_work_dur_str, p.today_str)
 				};
 			case 'CreateClaimSuccess':
 				var _p4 = _p2._0;
-				if (_elm_lang$core$Native_Utils.eq(_p4.status, 203)) {
+				if (_elm_lang$core$Native_Utils.eq(_p4.status, 201)) {
 					return {
 						ctor: '_Tuple2',
 						_0: _elm_lang$core$Native_Utils.update(
 							model,
-							{scene: _user$project$OfferTask$MoreTasks}),
+							{scene: _user$project$OfferTask$MoreTasks, probPt1: '', probPt2: ''}),
 						_1: _elm_lang$core$Platform_Cmd$none
 					};
 				} else {
@@ -8427,7 +8440,7 @@ var _user$project$OfferTask$offerTaskView = F3(
 								[]),
 							_elm_lang$core$Native_List.fromArray(
 								[
-									_elm_lang$html$Html$text(params.task_time_str)
+									_elm_lang$html$Html$text(params.task_window_str)
 								]))
 						])),
 					_elm_lang$core$String$isEmpty(params.already_claimed_by) ? A2(
@@ -8547,7 +8560,14 @@ var _user$project$OfferTask$view = function (_p6) {
 };
 var _user$project$OfferTask$main = {
 	main: _elm_lang$html$Html_App$programWithFlags(
-		{init: _user$project$OfferTask$init, view: _user$project$OfferTask$view, update: _user$project$OfferTask$update, subscriptions: _user$project$OfferTask$subscriptions}),
+		{
+			init: _user$project$OfferTask$init,
+			view: _user$project$OfferTask$view,
+			update: _user$project$OfferTask$update,
+			subscriptions: function (_p10) {
+				return _elm_lang$core$Platform_Sub$none;
+			}
+		}),
 	flags: _elm_lang$core$Json_Decode$oneOf(
 		_elm_lang$core$Native_List.fromArray(
 			[
@@ -8565,12 +8585,12 @@ var _user$project$OfferTask$main = {
 							function (auth_token) {
 								return A2(
 									_elm_lang$core$Json_Decode$andThen,
-									A2(_elm_lang$core$Json_Decode_ops[':='], 'calendar_token', _elm_lang$core$Json_Decode$string),
-									function (calendar_token) {
+									A2(_elm_lang$core$Json_Decode_ops[':='], 'calendar_url', _elm_lang$core$Json_Decode$string),
+									function (calendar_url) {
 										return A2(
 											_elm_lang$core$Json_Decode$andThen,
-											A2(_elm_lang$core$Json_Decode_ops[':='], 'calendar_url', _elm_lang$core$Json_Decode$string),
-											function (calendar_url) {
+											A2(_elm_lang$core$Json_Decode_ops[':='], 'claim_list_uri', _elm_lang$core$Json_Decode$string),
+											function (claim_list_uri) {
 												return A2(
 													_elm_lang$core$Json_Decode$andThen,
 													A2(
@@ -8580,8 +8600,8 @@ var _user$project$OfferTask$main = {
 													function (future_task_ids) {
 														return A2(
 															_elm_lang$core$Json_Decode$andThen,
-															A2(_elm_lang$core$Json_Decode_ops[':='], 'nag_id', _elm_lang$core$Json_Decode$int),
-															function (nag_id) {
+															A2(_elm_lang$core$Json_Decode_ops[':='], 'member_list_uri', _elm_lang$core$Json_Decode$string),
+															function (member_list_uri) {
 																return A2(
 																	_elm_lang$core$Json_Decode$andThen,
 																	A2(_elm_lang$core$Json_Decode_ops[':='], 'nagged_member_id', _elm_lang$core$Json_Decode$int),
@@ -8600,18 +8620,33 @@ var _user$project$OfferTask$main = {
 																							function (task_id) {
 																								return A2(
 																									_elm_lang$core$Json_Decode$andThen,
-																									A2(_elm_lang$core$Json_Decode_ops[':='], 'task_time_str', _elm_lang$core$Json_Decode$string),
-																									function (task_time_str) {
+																									A2(_elm_lang$core$Json_Decode_ops[':='], 'task_list_uri', _elm_lang$core$Json_Decode$string),
+																									function (task_list_uri) {
 																										return A2(
 																											_elm_lang$core$Json_Decode$andThen,
-																											A2(_elm_lang$core$Json_Decode_ops[':='], 'task_work_dur_str', _elm_lang$core$Json_Decode$string),
-																											function (task_work_dur_str) {
+																											A2(_elm_lang$core$Json_Decode_ops[':='], 'task_window_str', _elm_lang$core$Json_Decode$string),
+																											function (task_window_str) {
 																												return A2(
 																													_elm_lang$core$Json_Decode$andThen,
-																													A2(_elm_lang$core$Json_Decode_ops[':='], 'user_friendly_name', _elm_lang$core$Json_Decode$string),
-																													function (user_friendly_name) {
-																														return _elm_lang$core$Json_Decode$succeed(
-																															{already_claimed_by: already_claimed_by, auth_token: auth_token, calendar_token: calendar_token, calendar_url: calendar_url, future_task_ids: future_task_ids, nag_id: nag_id, nagged_member_id: nagged_member_id, task_day_str: task_day_str, task_desc: task_desc, task_id: task_id, task_time_str: task_time_str, task_work_dur_str: task_work_dur_str, user_friendly_name: user_friendly_name});
+																													A2(_elm_lang$core$Json_Decode_ops[':='], 'task_work_dur_str', _elm_lang$core$Json_Decode$string),
+																													function (task_work_dur_str) {
+																														return A2(
+																															_elm_lang$core$Json_Decode$andThen,
+																															A2(_elm_lang$core$Json_Decode_ops[':='], 'task_work_start_str', _elm_lang$core$Json_Decode$string),
+																															function (task_work_start_str) {
+																																return A2(
+																																	_elm_lang$core$Json_Decode$andThen,
+																																	A2(_elm_lang$core$Json_Decode_ops[':='], 'today_str', _elm_lang$core$Json_Decode$string),
+																																	function (today_str) {
+																																		return A2(
+																																			_elm_lang$core$Json_Decode$andThen,
+																																			A2(_elm_lang$core$Json_Decode_ops[':='], 'user_friendly_name', _elm_lang$core$Json_Decode$string),
+																																			function (user_friendly_name) {
+																																				return _elm_lang$core$Json_Decode$succeed(
+																																					{already_claimed_by: already_claimed_by, auth_token: auth_token, calendar_url: calendar_url, claim_list_uri: claim_list_uri, future_task_ids: future_task_ids, member_list_uri: member_list_uri, nagged_member_id: nagged_member_id, task_day_str: task_day_str, task_desc: task_desc, task_id: task_id, task_list_uri: task_list_uri, task_window_str: task_window_str, task_work_dur_str: task_work_dur_str, task_work_start_str: task_work_start_str, today_str: today_str, user_friendly_name: user_friendly_name});
+																																			});
+																																	});
+																															});
 																													});
 																											});
 																									});

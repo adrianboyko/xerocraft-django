@@ -36,6 +36,7 @@ class ClaimSerializer(serializers.ModelSerializer):
             'claiming_member',
             'claimed_start_time',
             'claimed_duration',
+            'date_verified',
             'work_set',
         )
 

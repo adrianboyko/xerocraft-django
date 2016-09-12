@@ -331,18 +331,25 @@ def offer_task_spa(request, task_pk=0, auth_token=""):
 
     task_data = {
         "auth_token": auth_token,
-        "nag_id": nag.pk,
         "task_id": task.pk,
         "user_friendly_name": nag.who.friendly_name,
         "nagged_member_id": nag.who.pk,
         "task_desc": task.short_desc,
         "task_day_str": task.scheduled_date.strftime("%A, %b %e"),
-        "task_time_str": task_time_str,
+        "task_window_str": task_time_str,
+
+        "task_work_start_str": str(task.work_start_time),
         "task_work_dur_str": str(task.work_duration),
+
         "already_claimed_by": claim.claiming_member.friendly_name if claim is not None else "",
         "future_task_ids": futures[0:4],
-        "calendar_token": nag.who.worker.calendar_token,
-        "calendar_url": reverse('task:member-calendar', args=[nag.who.worker.calendar_token])
+        "calendar_url": reverse('task:member-calendar', args=[nag.who.worker.calendar_token]),
+
+        "today_str": str(date.today()),
+
+        "claim_list_uri": reverse("task:claim-list"),
+        "task_list_uri": reverse("task:task-list"),
+        "member_list_uri": reverse("memb:member-list"),
     }
 
     props = {

@@ -32,7 +32,7 @@ main =
     { init = init
     , view = view
     , update = update
-    , subscriptions = subscriptions
+    , subscriptions = (\_ -> Sub.none)
     }
 
 -----------------------------------------------------------------------------
@@ -49,18 +49,22 @@ type Scene
 -- Many of these could be fetched via API, but might as well push them with the first request.
 type alias Params =
   { auth_token : String
-  , nag_id : Int
   , task_id : Int
   , user_friendly_name : String
   , nagged_member_id : Int
   , task_desc : String
   , task_day_str : String
-  , task_time_str: String
+  , task_window_str: String
+  , task_work_start_str: String
   , task_work_dur_str: String
   , already_claimed_by: String
   , future_task_ids: List Int
-  , calendar_token: String
   , calendar_url: String
+  , today_str: String
+  , claim_list_uri: String
+  , task_list_uri: String
+  , member_list_uri: String
+
 }
 
 type alias Model =
@@ -94,12 +98,18 @@ update action model =
     ClaimTask ->
       let p = model.params
       in
-        (model, createClaim p.task_id p.nagged_member_id p.auth_token p.task_work_dur_str)
+        (model, createClaim
+          p.task_id
+          p.nagged_member_id
+          p.auth_token
+          p.task_work_start_str
+          p.task_work_dur_str
+          p.today_str)
 
     CreateClaimSuccess response ->
-      if response.status == 203 then
+      if response.status == 201 then
         -- The claim was successfully created so go to next scene.
-        ({model|scene = MoreTasks}, Cmd.none)
+        ({model|scene = MoreTasks, probPt1 = "", probPt2 = ""}, Cmd.none)
       else
         -- It's possible for the request to succeed but for creation to fail.
         case response.value of
@@ -122,8 +132,8 @@ update action model =
       ({model | scene = Thanks}, Cmd.none)
 
 
-createClaim : Int -> Int -> String -> String -> Cmd Msg
-createClaim taskId memberId authToken claimedDuration =
+createClaim : Int -> Int -> String -> String -> String-> String -> Cmd Msg
+createClaim taskId memberId authToken claimedStartTime claimedDuration today =
   let
     -- TODO: These should be passed in from Django, not hard-coded here.
     claimUrl = "http://localhost:8000/tasks/api/claims/"
@@ -133,8 +143,10 @@ createClaim taskId memberId authToken claimedDuration =
     newClaimBody =
       [ ("claiming_member", Enc.string (memberUrl++(toString memberId)++"/"))
       , ("claimed_task", Enc.string (taskUrl++(toString taskId)++"/"))
+      , ("claimed_start_time", Enc.string claimedStartTime)
       , ("claimed_duration", Enc.string claimedDuration)
       , ("status", Enc.string "C") -- Current
+      , ("date_verified", Enc.string today)
       ]
         |> Enc.object
         |> Enc.encode 0
@@ -231,7 +243,7 @@ offerTaskView params probPt1 probPt2 =
     , div [taskCardStyle]
         [ div [taskDescStyle] [text params.task_desc]
         , div [] [text params.task_day_str]
-        , div [] [text params.task_time_str]
+        , div [] [text params.task_window_str]
         ]
     , if (String.isEmpty params.already_claimed_by) then
         div []
@@ -271,11 +283,3 @@ thanksView params =
     , br [] []
     , a [ href params.calendar_url ] [ text (params.user_friendly_name ++ "'s Calendar") ]
     ]
-
------------------------------------------------------------------------------
--- SUBSCRIPTIONS
------------------------------------------------------------------------------
-
-subscriptions : Model -> Sub Msg
-subscriptions model =
-  Sub.none
