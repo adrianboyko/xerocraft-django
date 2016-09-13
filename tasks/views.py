@@ -235,15 +235,11 @@ def verify_claim(request, task_pk, claim_pk, will_do, auth_token):
     md5str = md5(auth_token.encode()).hexdigest()
     nag = get_object_or_404(Nag, auth_token_md5=md5str)
     assert(task in nag.tasks.all())
-    who = nag.who
-
-    for uninterested in task.uninterested.all():
-        if uninterested == who:
-            return redirect('task:offer-task', task_pk=task_pk, auth_token=auth_token)
 
     claim = get_object_or_404(Claim, pk=claim_pk)
     claimant = claim.claiming_member
 
+    assert nag.who == claimant
     assert(claim in nag.claims.all())
 
     # Can't do the following because error: 'User' object has no attribute 'backend'
@@ -253,17 +249,30 @@ def verify_claim(request, task_pk, claim_pk, will_do, auth_token):
     note_login(None, claimant.auth_user, request)
 
     if will_do == "Y":  # The default claimant verifies they will do the work.
+        try:
+            # See if there's already a current claim on the task:
+            current_claim = Claim.objects.get(claimed_task=task, status=Claim.STAT_CURRENT)  # type: Claim
+            # There is a current claim. Does it belong to the user of this view (the person we nagged)?
+            if current_claim.claiming_member != nag.who:
+                # No, the current claim belongs to somebody else, so we tell the view user about it
+                # By redirecting to another view that does so.
+                return redirect('task:offer-task', task_pk=task_pk, auth_token=auth_token)
+
+        except Claim.DoesNotExist:
+            # There's no current claim, so nothing to worry about.
+            pass
+
         claim.date_verified = date.today()
         claim.status = Claim.STAT_CURRENT
         claim.save()
 
     elif will_do == "N":  # The default claimant says they can't do the work, this time.
-        task.uninterested.add(claimant)
-        claim.delete()
+        claim.date_verified = date.today()
+        claim.status = Claim.STAT_UNINTERESTED
+        claim.save()
 
-    # At this point, claim.status might be something other than CURRENT (probably ABANDONED).
-    # Template will need to take status into account.  If status is ABANDONED it means that
-    # the default claimant took too long to verify and somebody else claimed in the meantime.
+    else:
+        raise RuntimeError("Expected Y or N parameter.")
 
     claimant.worker.populate_calendar_token()  # Idempotent
 

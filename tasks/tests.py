@@ -196,10 +196,11 @@ class Test_VerifyClaim_Scenario3(Test_VerifyClaim_Base):
         no_url = html_dom.xpath("//a[@id='N']/@href")[0]
         self.browser.get(no_url)
 
-        # So, there are now zero claims and an "uninterested"
-        self.assertEqual(len(self.task.claim_set.all()), 0)
-        self.assertEqual(len(self.task.uninterested.all()), 1)
-        self.assertTrue(self.memb1 in self.task.uninterested.all())
+        # So, there is now exactly one claim and it's status is UNINTERESTED
+        self.assertEqual(len(self.task.claim_set.all()), 1)
+        self.assertEqual(len(self.task.claim_set.filter(status=Claim.STAT_UNINTERESTED)), 1)
+        claim = Claim.objects.filter(status=Claim.STAT_UNINTERESTED).all()[0]  # type: Claim
+        self.assertEqual(claim.claiming_member, self.memb1)
 
     def do_day_minus3(self):
         # Nothing happens on this day in this scenario
@@ -220,10 +221,10 @@ class Test_VerifyClaim_Scenario3(Test_VerifyClaim_Base):
         # And decides to take the task
         self.browser.find_element_by_partial_link_text("Claim").click()
 
-        # There is now one claim for the task
+        # There are now 2 claims for the task: 1 uninterested, 1 current.
         claims = self.task.claim_set.all()
-        self.assertEqual(len(claims), 1)
-        self.assertEqual(claims[0].status, Claim.STAT_CURRENT)
+        self.assertEqual(len(claims), 2)
+        self.assertTrue(self.task.is_fully_claimed)
 
     def do_day_minus1(self):
 
@@ -287,7 +288,6 @@ class TestTemplateToInstanceCopy(TransactionTestCase):
         self.assertEqual(task.reviewer, template.reviewer)
         self.assertEqual(task.max_work, template.max_work)
         self.assertTrue(len(task.eligible_tags.all())==2)
-        self.assertEqual(set(task.uninterested.all()), set(template.uninterested.all()))
         self.assertEqual(set(task.eligible_claimants.all()), set(template.eligible_claimants.all()))
         self.assertEqual(set(task.eligible_tags.all()), set(template.eligible_tags.all()))
 

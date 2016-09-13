@@ -216,6 +216,7 @@ class EligibleClaimant_Inline(admin.TabularInline):
     raw_id_fields = ['member']
     extra = 0
 
+
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 class EligibleTagForTemplate_Inline(admin.TabularInline):
@@ -230,14 +231,6 @@ class EligibleClaimantForTemplate_Inline(EligibleClaimant_Inline):
     model = RecurringTaskTemplate.eligible_claimants.through
     model._meta.verbose_name = "Eligible Claimant"
     model._meta.verbose_name_plural = "Eligible Claimants"
-
-
-class UninterestedForTemplate_Inline(admin.TabularInline):
-    model = RecurringTaskTemplate.uninterested.through
-    model._meta.verbose_name = "Uninterested Member"
-    model._meta.verbose_name_plural = "Uninterested Members"
-    raw_id_fields = ['member']
-    extra = 0
 
 
 class RecurringTaskTemplateAdmin(TemplateAndTaskBase):
@@ -280,7 +273,6 @@ class RecurringTaskTemplateAdmin(TemplateAndTaskBase):
     inlines = [
         EligibleClaimantForTemplate_Inline,
         EligibleTagForTemplate_Inline,
-        UninterestedForTemplate_Inline,
     ]
 
     raw_id_fields = ['owner', 'default_claimant', 'reviewer']
@@ -430,13 +422,6 @@ class EligibleClaimantForTask_Inline(EligibleClaimant_Inline):
     model._meta.verbose_name = "Eligible Claimant"
     model._meta.verbose_name_plural = "Eligible Claimants"
 
-class UninterestedForTask_Inline(admin.TabularInline):
-    model = Task.uninterested.through
-    model._meta.verbose_name = "Uninterested Member"
-    model._meta.verbose_name_plural = "Uninterested Members"
-    raw_id_fields = ['member']
-    extra = 0
-
 
 @admin.register(Task)
 class TaskAdmin(TemplateAndTaskBase):
@@ -503,10 +488,9 @@ class TaskAdmin(TemplateAndTaskBase):
         ClaimInline,
         EligibleClaimantForTask_Inline,
         EligibleTagForTask_Inline,
-        UninterestedForTask_Inline,
         TaskNoteInline,
     ]
-    raw_id_fields = ['owner', 'eligible_claimants', 'uninterested', 'reviewer']
+    raw_id_fields = ['owner', 'eligible_claimants', 'reviewer']
 
     class Media:
         css = {
@@ -577,7 +561,16 @@ class NagAdmin(admin.ModelAdmin):  # No need to version these
     claim_count.short_description = "#claims"
 
     list_display = ['pk', 'who', 'task_count', 'claim_count', 'when', 'auth_token_md5']
-    readonly_fields = ['who', 'auth_token_md5', 'tasks']
+
+    readonly_fields = ['who', 'auth_token_md5', 'tasks', 'claims']
+
+    fields = ['who', 'auth_token_md5', 'claims', 'tasks']
+
+    search_fields = [
+        '^who__auth_user__first_name',
+        '^who__auth_user__last_name',
+        '^who__auth_user__username',
+    ]
 
 
 @admin.register(Work)
