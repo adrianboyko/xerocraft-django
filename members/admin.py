@@ -302,6 +302,7 @@ class MembershipLineItem(admin.StackedInline):
         'member',
         'membership_type',
         ('start_date', 'end_date'),
+        'protected',
     ]
     raw_id_fields = ['member']
 
