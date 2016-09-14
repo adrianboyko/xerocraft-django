@@ -165,3 +165,8 @@ def test(request) -> JsonResponse:
     except Membership.DoesNotExist:
         pass
     return JsonResponse({'result': "success"})
+
+
+def paypal_webhook(request):
+    # Not yet sure what the proper response is. This "OK" response is for testing purposes.
+    return HttpResponse("OK")

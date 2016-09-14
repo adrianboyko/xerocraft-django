@@ -12,8 +12,8 @@ https://docs.djangoproject.com/en/1.8/ref/settings/
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
-
 import uuid
+
 DEVHOSTS = [
     238402988951122,  # Adrian Linux
     220083055528387,  # Adrian Mac
@@ -86,6 +86,8 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sites',  # Req'd by helpdesk
+    'django.contrib.humanize',  # Req'd by helpdesk
 )
 
 if ISDEVHOST:
@@ -109,7 +111,13 @@ INSTALLED_APPS += (
     'books',
     'reversion',
     'modelmailer',
+
+    'markdown_deux',  # for helpdesk
+    'bootstrapform',  # for helpdesk
+    'helpdesk',
 )
+
+SITE_ID = 1  # For django.contrib.sites
 
 MIDDLEWARE_CLASSES = (
     'reversion.middleware.RevisionMiddleware',
@@ -263,21 +271,11 @@ LOGGING = {
     }
 }
 
-if ISDEVHOST:
-    auth_classes = [
-        'rest_framework.authentication.SessionAuthentication',
-        'rest_framework.authentication.BasicAuthentication',
-        'rest_framework.authentication.TokenAuthentication',
-    ]
-else:
-    auth_classes = [
-        'rest_framework.authentication.SessionAuthentication',
-        'rest_framework.authentication.TokenAuthentication',
-    ]
-
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES':
-        auth_classes,
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ],
 
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAdminUser'

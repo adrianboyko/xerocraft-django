@@ -53,12 +53,12 @@ class Command(BaseCommand):
         for task in Task.objects.filter(scheduled_date__gte=today, scheduled_date__lt=today+THREEDAYS, should_nag=True):
 
             # No need to nag if task is fully claimed or not workable.
-            if (not task.status == Task.STAT_ACTIVE) or task.is_fully_claimed():
+            if (not task.is_active()) or task.is_fully_claimed():
                 continue
 
             potentials = task.all_eligible_claimants()
             potentials -= task.current_claimants()
-            potentials -= set(task.uninterested.all())
+            potentials -= task.uninterested_claimants()
             potentials -= ppl_excluded
 
             panic_situation = task.scheduled_date == today and task.priority == Task.PRIO_HIGH

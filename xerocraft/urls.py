@@ -26,6 +26,8 @@ urlpatterns = [
     url(r'^director-menu/$', views.director_menu),
     url(r'^membership-status/(?P<provider>[-_.a-zA-Z0-9]+)/(?P<id>[-@+._a-zA-Z0-9]+)/$', views.api_get_membership_info),
     url(r'^scrape-xerocraft-org-checkins/$', views.scrape_xerocraft_org_checkins),
+    url(r'^paypal-webhook', views.paypal_webhook, name="paypal-webhook"),
+
     url(r'^logout/$', views.logout),
     url(r'^admin/login/', views.login),  # This shadows admin's login. REVIEW: Any downside?
     url(r'^admin/logout/', views.logout),  # This shadows admin's logout. REVIEW: Any downside?
@@ -34,9 +36,11 @@ urlpatterns = [
     url(r'^books/', include('books.urls', namespace="book")),
     url(r'^tasks/', include('tasks.urls', namespace="task")),
     url(r'^inventory/', include('inventory.urls', namespace="inv")),
-    url('', include('social.apps.django_app.urls', namespace='social')),
+    #url('', include('social.apps.django_app.urls', namespace='social')),
 
     # DJANGO REST FRAMEWORK API
-    url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework'))
+    url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
+
+    url(r'^helpdesk/', include('helpdesk.urls'))
 
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

@@ -1,9 +1,4 @@
 from django.core.management.base import BaseCommand, CommandError
-from books.models import Sale, SaleNote
-from members.models import Membership
-from members.serializers import MembershipSerializer
-import requests
-import sys
 
 __author__ = 'adrian'
 

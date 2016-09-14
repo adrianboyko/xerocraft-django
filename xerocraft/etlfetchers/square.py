@@ -123,8 +123,9 @@ class Fetcher(AbstractFetcher):
         "Workshop Fee": "Workshop Fee",
         "Bumper Sticker": "Sticker",
         "Medium Sticker": "Sticker",
-        "Soda": "Soda",
-        "Can of Soda": "Soda",
+        "Soda": "Food/Drink",
+        "Can of Soda": "Food/Drink",
+        "Bag of Chips": "Food/Drink",
         "Refill Soda Account": "Refill Soda Account",
         "Bracelet, 3D Printed": "3D Print",
     }
@@ -241,7 +242,9 @@ class Fetcher(AbstractFetcher):
     def get_name_from_receipt(self, url):
         while True:
             try:
-                response = self.squaresession.get(url)
+                # Following get MUST be "text/html" and NOT the "*/*" default.
+                # WePay responds with 406 if Accept = */*
+                response = self.squaresession.get(url, headers={"Accept": "text/html"})
                 parsed_page = lxml.html.fromstring(response.text)
                 if parsed_page is None: raise AssertionError("Couldn't parse receipts page")
                 names = parsed_page.xpath("//div[contains(@class,'name_on_card')]/text()")

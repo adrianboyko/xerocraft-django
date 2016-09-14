@@ -2,6 +2,7 @@
 # Standard
 from datetime import date, timedelta
 import json
+import os
 
 # Third Party
 from django.test import Client
@@ -11,11 +12,12 @@ from django.core import management, mail
 from django.utils import timezone
 from django.core.urlresolvers import reverse
 from freezegun import freeze_time
+import members.notifications as notifications
 
 # Local
-from .models import Tag, Tagging, VisitEvent, Membership
-from .views import _calculate_accrued_membership_revenue
-
+from members.models import Tag, Tagging, VisitEvent, Membership, Pushover
+from members.views import _calculate_accrued_membership_revenue
+from members.notifications import pushover_available
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
@@ -27,7 +29,7 @@ class TestMemberNag(TestCase):
 
         with freeze_time(self.FREEZE_DATE_STR):
 
-            u = User.objects.create(
+            u = User.objects.create_user(
                 username='fake1',
                 first_name="Andrew", last_name="Baker",
                 password="fake1",
@@ -116,7 +118,7 @@ Specifically, when loading a fixture there's no need for the handler that create
 class TestMembers(TestCase):
 
     def setUp(self):
-        ab = User.objects.create(username='fake1', first_name="Andrew", last_name="Baker", password="fake1")
+        ab = User.objects.create_user(username='fake1', first_name="Andrew", last_name="Baker", password="fake1")
 
     #TODO: Remove this test if TestMemberValidity can be made to work.
     def test_member_validity(self):
@@ -138,8 +140,8 @@ class TestMembers(TestCase):
 class TestCardsAndApi(TestCase):
 
     def setUp(self):
-        u1 = User.objects.create(username='fake1', first_name="Andrew", last_name="Baker", password="fake1")
-        u2 = User.objects.create(username='fake2', first_name="Zhou", last_name="Yang", password="fake2")
+        u1 = User.objects.create_user(username='fake1', first_name="Andrew", last_name="Baker", password="fake1")
+        u2 = User.objects.create_user(username='fake2', first_name="Zhou", last_name="Yang", password="fake2")
         self.m1 = u1.member
         self.m2 = u2.member
         self.str1 = self.m1.generate_member_card_str()
@@ -207,7 +209,7 @@ class TestRestApi_Member(TestCase):
     def setUp(self):
 
         # Person who will make the REST API call
-        caller = User.objects.create(
+        caller = User.objects.create_user(
             username='caller',
             first_name="fn4caller", last_name="ln4caller",
             email="caller@example.com",
@@ -222,7 +224,7 @@ class TestRestApi_Member(TestCase):
         self.caller = caller.member
 
         # The "Person of Interest" that the caller wants to learn about.
-        poi = User.objects.create(
+        poi = User.objects.create_user(
             username='poi',
             first_name="fn4poi", last_name="ln4poi",
             email="poi@example.com",
@@ -266,3 +268,25 @@ class TestRestApi_Member(TestCase):
         self.assertContains(response, "poi@example.com")
 
 
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# NOTIFY
+
+class TestNotify(TestCase):
+
+    def setUp(self):
+        if pushover_available:
+            self.user_key = os.getenv('PUSHOVER_USER_KEY', None)
+            self.assertIsNotNone(self.user_key)
+            self.user = User.objects.create_user(
+                username='caller',
+                first_name="John", last_name="Doe",
+                email="jdoe@example.com",
+            )
+            Pushover.objects.create(
+                who=self.user.member,
+                key=self.user_key,
+            )
+
+    def test(self):
+        if pushover_available:
+            notifications.notify(self.user.member, "Testing Pushover", "This is a test.")

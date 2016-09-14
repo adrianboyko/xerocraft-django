@@ -17,7 +17,7 @@ from books.models import \
     Account, DonationNote, MonetaryDonation, DonatedItem, Donation, \
     Sale, SaleNote, OtherItem, OtherItemType, ExpenseTransaction, \
     ExpenseTransactionNote, ExpenseClaim, ExpenseClaimNote, \
-    ExpenseClaimReference, ExpenseLineItem
+    ExpenseClaimReference, ExpenseLineItem, AccountGroup
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -65,6 +65,9 @@ class NoteInline(admin.StackedInline):
 
 @admin.register(Account)
 class AccountAdmin(VersionAdmin):
+
+    search_fields = ['name']
+
     list_display = [
         'pk',
         'name',
@@ -79,6 +82,35 @@ class AccountAdmin(VersionAdmin):
         'description',
     ]
     raw_id_fields = ['manager']
+
+
+class AccountForAccountGroup_Inline(admin.TabularInline):
+
+    def acct_desc(self, obj):
+        return obj.account.description
+    acct_desc.short_description = "Account description"
+
+    model = AccountGroup.accounts.through
+    model._meta.verbose_name = "Account"
+    model._meta.verbose_name_plural = "Accounts"
+    extra = 0
+    fields = ["account", "acct_desc"]
+    readonly_fields = ["acct_desc"]
+    raw_id_fields = ["account"]
+
+
+@admin.register(AccountGroup)
+class AccountGroupAdmin(VersionAdmin):
+    list_display = ['pk', 'name', 'description']
+    fields = ['name', 'description']
+    inlines = [AccountForAccountGroup_Inline]
+
+    class Media:
+        css = {
+            "all": (
+                "abutils/admin-tabular-inline.css",  # Hides "denormalized obj descs", to use Woj's term.
+            )
+        }
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =

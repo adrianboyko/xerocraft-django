@@ -5,54 +5,80 @@ import Html.App as Html
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Http
-import Json.Decode as Json
+import Json.Decode as Dec
+import Json.Encode as Enc
 import Task
 import String
+
+-----------------------------------------------------------------------------
+-- UTILITIES
+-----------------------------------------------------------------------------
+
+toStr v =
+  let
+    str = toString v
+  in
+    if String.left 1 str == "\"" then
+      String.dropRight 1 (String.dropLeft 1 str)
+    else
+      str
+
+-----------------------------------------------------------------------------
+-- MAIN
+-----------------------------------------------------------------------------
 
 main =
   Html.programWithFlags
     { init = init
     , view = view
     , update = update
-    , subscriptions = subscriptions
+    , subscriptions = (\_ -> Sub.none)
     }
 
 -----------------------------------------------------------------------------
 -- MODEL
 -----------------------------------------------------------------------------
 
-type Step
+type Scene
   = OfferTask  -- Offer the task the user clicked on
   | MoreTasks  -- Offer future instances of the task
   | Thanks     -- Thank the user and remind them of calendar
 
 -- These are the parameters pushed into Elm's main when JS starts Elm.
--- They can't include the Step because Elm doesn't allow Union types to be pushed to main.
+-- They can't include the Scene because Elm doesn't allow Union types to be pushed to main.
 -- Many of these could be fetched via API, but might as well push them with the first request.
 type alias Params =
   { auth_token : String
-  , nag_id : Int
   , task_id : Int
   , user_friendly_name : String
+  , nagged_member_id : Int
   , task_desc : String
   , task_day_str : String
-  , task_time_str: String
+  , task_window_str: String
+  , task_work_start_str: String
+  , task_work_dur_str: String
   , already_claimed_by: String
-  , future_dates: List String
-  , calendar_token: String
+  , future_task_ids: List Int
   , calendar_url: String
+  , today_str: String
+  , claim_list_uri: String
+  , task_list_uri: String
+  , member_list_uri: String
+
 }
 
 type alias Model =
-  { step: Step
+  { scene: Scene
   , params: Params
+  , probPt1: String
+  , probPt2: String
   }
 
 init : Maybe Params -> (Model, Cmd Msg)
 init providedParams =
-    case providedParams of
-      Just pp -> ({step = OfferTask, params = pp}, Cmd.none)
-      Nothing -> Debug.crash "Parameters MUST be provided by Javascript."
+  case providedParams of
+    Just pp -> ({scene = OfferTask, params = pp, probPt1 = "", probPt2 = ""}, Cmd.none)
+    Nothing -> Debug.crash "Parameters MUST be provided by Javascript."
 
 -----------------------------------------------------------------------------
 -- UPDATE
@@ -61,35 +87,88 @@ init providedParams =
 type Msg
   = ClaimTask
   | DeclineTask
-  | OKItIsClaimed
-  | CreateClaimSuccess String
-  | CreateClaimFailure Http.Error
+  | ThankUser
+  | CreateClaimSuccess Http.Response
+  | CreateClaimFailure Http.RawError
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update action model =
   case action of
 
     ClaimTask ->
-      (model, createClaim model.params.task_id)
+      let p = model.params
+      in
+        (model, createClaim
+          p.task_id
+          p.nagged_member_id
+          p.auth_token
+          p.task_work_start_str
+          p.task_work_dur_str
+          p.today_str)
 
-    CreateClaimSuccess msg ->
-      (model, Cmd.none)
+    CreateClaimSuccess response ->
+      if response.status == 201 then
+        -- The claim was successfully created so go to next scene.
+        ({model|scene = MoreTasks, probPt1 = "", probPt2 = ""}, Cmd.none)
+      else
+        -- It's possible for the request to succeed but for creation to fail.
+        case response.value of
+          Http.Text someText ->
+            ({model|probPt1 = response.statusText, probPt2 = someText}, Cmd.none)
+          Http.Blob aBlob ->
+            ({model|probPt1 = response.statusText, probPt2 = "<blob>"}, Cmd.none)
 
     CreateClaimFailure err ->
-      (model, Cmd.none)
+      case err of
+        Http.RawTimeout ->
+          (model, Cmd.none)
+        Http.RawNetworkError ->
+          (model, Cmd.none)
 
     DeclineTask ->
       (model, Cmd.none)
 
-    OKItIsClaimed ->
-      ({model | step = Thanks}, Cmd.none)
+    ThankUser ->
+      ({model | scene = Thanks}, Cmd.none)
 
-createClaim : Int -> Cmd Msg
-createClaim taskId =
+
+createClaim : Int -> Int -> String -> String -> String-> String -> Cmd Msg
+createClaim taskId memberId authToken claimedStartTime claimedDuration today =
   let
-    url = "https://localhost:8000/tasks/api/claim/"
+    -- TODO: These should be passed in from Django, not hard-coded here.
+    claimUrl = "http://localhost:8000/tasks/api/claims/"
+    memberUrl = "http://localhost:8000/members/api/members/"
+    taskUrl = "http://localhost:8000/tasks/api/tasks/"
+
+    newClaimBody =
+      [ ("claiming_member", Enc.string (memberUrl++(toString memberId)++"/"))
+      , ("claimed_task", Enc.string (taskUrl++(toString taskId)++"/"))
+      , ("claimed_start_time", Enc.string claimedStartTime)
+      , ("claimed_duration", Enc.string claimedDuration)
+      , ("status", Enc.string "C") -- Current
+      , ("date_verified", Enc.string today)
+      ]
+        |> Enc.object
+        |> Enc.encode 0
+        |> Http.string
+
   in
-    Cmd.none
+    Task.perform
+      CreateClaimFailure
+      CreateClaimSuccess
+      (
+        Http.send
+          Http.defaultSettings
+          { verb = "POST"
+          , headers =
+            [ ("Authentication", "Bearer " ++ authToken)
+            , ("Content-Type", "application/json")
+            ]
+          , url = claimUrl
+          , body = newClaimBody
+          }
+      )
+
 
 -----------------------------------------------------------------------------
 -- STYLES
@@ -139,32 +218,32 @@ taskDescStyle = style
   ]
 
 isClaimedStyle = style
-    [ ("display", "inline-block")
-    , ("background", "white")
-    , ("color", "black")
-    , ("margin", "0px")
-    ]
+  [ ("display", "inline-block")
+  , ("background", "white")
+  , ("color", "black")
+  , ("margin", "0px")
+  ]
 
 -----------------------------------------------------------------------------
 -- VIEW
 -----------------------------------------------------------------------------
 
 view : Model -> Html Msg
-view {step, params} =
-  case step of
-    OfferTask -> offerTaskView params
+view {scene, params, probPt1, probPt2} =
+  case scene of
+    OfferTask -> offerTaskView params probPt1 probPt2
     MoreTasks -> moreTasksView params
     Thanks -> thanksView params
 
-offerTaskView : Params -> Html Msg
-offerTaskView params =
+offerTaskView : Params -> String -> String -> Html Msg
+offerTaskView params probPt1 probPt2 =
   div [containerStyle, unselectable]
     [ div [greetingStyle] [text ("Hi " ++ params.user_friendly_name++"!")]
     , div [] [text "You have clicked the following task:"]
     , div [taskCardStyle]
         [ div [taskDescStyle] [text params.task_desc]
         , div [] [text params.task_day_str]
-        , div [] [text params.task_time_str]
+        , div [] [text params.task_window_str]
         ]
     , if (String.isEmpty params.already_claimed_by) then
         div []
@@ -180,8 +259,9 @@ offerTaskView params =
             , br [] []
             , text "has already claimed this task."
             ]
-          , div [] [button [buttonStyle, onClick OKItIsClaimed] [text "OK"]]
+          , div [] [button [buttonStyle, onClick ThankUser] [text "OK"]]
           ]
+    , div [] [text probPt1, br [] [], text probPt2]
     ]
 
 moreTasksView : Params -> Html Msg
@@ -203,11 +283,3 @@ thanksView params =
     , br [] []
     , a [ href params.calendar_url ] [ text (params.user_friendly_name ++ "'s Calendar") ]
     ]
-
------------------------------------------------------------------------------
--- SUBSCRIPTIONS
------------------------------------------------------------------------------
-
-subscriptions : Model -> Sub Msg
-subscriptions model =
-  Sub.none

@@ -1,14 +1,15 @@
-# pylint: disable=C0330
 
 # Standard
 import logging
 import abc
 from decimal import Decimal
 from datetime import date, timedelta, datetime
+import re
 
 # Third party
 from django.db import models
 from django.core.exceptions import ValidationError
+from django.core.validators import RegexValidator
 from django.utils.translation import ugettext_lazy as _
 import nptime
 
@@ -117,9 +118,6 @@ def make_TaskMixin(dest_class_alias):
             help_text="The time at which work on the task must begin. If time doesn't matter, leave blank.")
         work_duration = models.DurationField(null=True, blank=True,
             help_text="Used with work_start_time to specify the time span over which work must occur. <br/>If work_start_time is blank then this should also be blank.")
-
-        uninterested = models.ManyToManyField(mm.Member, blank=True, related_name="uninteresting_"+dest_class_alias,
-            help_text="Members that are not interested in this item.")
 
         PRIO_HIGH = "H"
         PRIO_MED = "M"
@@ -359,7 +357,7 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
                         orig_sched_date         =curr,
                         # Copy mixin fields from template to instance:
                         owner                   =self.owner,
-                        instructions            =self.instructions,
+                        instructions            =Snippet.expand(self.instructions),
                         short_desc              =self.short_desc,
                         reviewer                =self.reviewer,
                         missed_date_action      =self.missed_date_action,
@@ -372,7 +370,6 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
                     )
 
                     # Many-to-many fields:
-                    t.uninterested       =self.uninterested.all()
                     t.eligible_claimants =self.eligible_claimants.all()
                     t.eligible_tags      =self.eligible_tags.all()
 
@@ -447,19 +444,21 @@ class Claim(models.Model, TimeWindowedObject):
 
     date_verified = models.DateField(null=True, blank=True)
 
-    STAT_CURRENT   = "C"  # Member has a current claim on the task.
-    STAT_EXPIRED   = "X"  # Member didn't finish the task while claimed, so member's claim has expired.
-    STAT_QUEUED    = "Q"  # Member is interested in claiming task but it is already fully claimed.
-    STAT_ABANDONED = "A"  # Member had a claim on task but had to abandon it.
-    STAT_WORKING   = "W"  # The member is currently working the task, prob determined by checkin @ kiosk.
-    STAT_DONE      = "D"  # The member has finished working the task, prob determined by checkout @ kiosk.
+    STAT_CURRENT      = "C"  # Member has a current claim on the task.
+    STAT_EXPIRED      = "X"  # Member didn't finish the task while claimed, so member's claim has expired.
+    STAT_QUEUED       = "Q"  # Member is interested in claiming task but it is already fully claimed.
+    STAT_ABANDONED    = "A"  # Member had a claim on task but had to abandon it.
+    STAT_WORKING      = "W"  # The member is currently working the task, prob determined by checkin @ kiosk.
+    STAT_DONE         = "D"  # The member has finished working the task, prob determined by checkout @ kiosk.
+    STAT_UNINTERESTED = "U"  # The member doesn't want to claim the task. AKA "uninterested"
     CLAIM_STATUS_CHOICES = [
-        (STAT_CURRENT,  "Current"),
-        (STAT_EXPIRED,  "Expired"),
-        (STAT_QUEUED,   "Queued"),
-        (STAT_ABANDONED,"Abandoned"),
-        (STAT_WORKING,  "Working"),
-        (STAT_DONE,     "Done"),
+        (STAT_CURRENT,      "Current"),
+        (STAT_EXPIRED,      "Expired"),
+        (STAT_QUEUED,       "Queued"),
+        (STAT_ABANDONED,    "Abandoned"),
+        (STAT_WORKING,      "Working"),
+        (STAT_DONE,         "Done"),
+        (STAT_UNINTERESTED, "Uninterested"),
     ]
     status = models.CharField(max_length=1, choices=CLAIM_STATUS_CHOICES, null=False, blank=False,
         help_text = "The status of this claim.")
@@ -472,6 +471,10 @@ class Claim(models.Model, TimeWindowedObject):
             raise ValidationError(_("Must specify the start time for this claim."))
         if task.work_start_time is None and claim.claimed_start_time is not None:
             pass  # REVIEW: I think this will be OK.
+
+    def dbcheck(self):
+        if False:  # TODO: Finish this check
+            raise ValidationError(_("Task has a time window so claim must have a start time."))
 
     @staticmethod
     def sum_in_period(startDate, endDate):
@@ -493,7 +496,11 @@ class Claim(models.Model, TimeWindowedObject):
     def window_deadline(self): return self.claimed_task.deadline
 
     def __str__(self):
-        return "%s, %s" % (self.claiming_member.first_name, self.claimed_task.short_desc)
+        return "%s, %s, %s" % (
+            self.claiming_member.friendly_name,
+            self.status,
+            self.claimed_task.short_desc
+        )
 
     class Meta:
         unique_together = ('claiming_member', 'claimed_task')
@@ -602,6 +609,9 @@ class Task(make_TaskMixin("Tasks"), TimeWindowedObject):
         else:
             return min(self.unclaimed_hours(), self.work_duration)
 
+    def is_active(self):
+        return self.status == self.STAT_ACTIVE
+
     def is_fully_claimed(self):
         """
         Determine whether all the hours estimated for a task have been claimed by one or more members.
@@ -609,6 +619,9 @@ class Task(make_TaskMixin("Tasks"), TimeWindowedObject):
         """
         unclaimed_hours = self.unclaimed_hours()
         return unclaimed_hours == timedelta(0)
+
+    def all_claims_verified(self):
+        return all(claim.date_verified is not None for claim in self.claim_set.all())
 
     def all_eligible_claimants(self):
         """
@@ -629,6 +642,17 @@ class Task(make_TaskMixin("Tasks"), TimeWindowedObject):
         result = set()
         for claim in self.claim_set.all():
             if claim.status == claim.STAT_CURRENT:
+                result |= set([claim.claiming_member])
+        return result
+
+    def uninterested_claimants(self):
+        """
+        Determine the set of uninterested claimants.
+        :return: A set of Members
+        """
+        result = set()
+        for claim in self.claim_set.all():
+            if claim.status == claim.STAT_UNINTERESTED:
                 result |= set([claim.claiming_member])
         return result
 
@@ -662,7 +686,7 @@ class Task(make_TaskMixin("Tasks"), TimeWindowedObject):
 
         # Values
         self.owner = templ.owner
-        self.instructions = templ.instructions
+        self.instructions = Snippet.expand(templ.instructions)
         self.short_desc = templ.short_desc
         self.reviewer = templ.reviewer
         self.missed_date_action = templ.missed_date_action
@@ -674,7 +698,6 @@ class Task(make_TaskMixin("Tasks"), TimeWindowedObject):
         self.priority = templ.priority
 
         # Sets
-        self.uninterested = templ.uninterested.all()
         self.eligible_claimants = templ.eligible_claimants.all()
         self.eligible_tags = templ.eligible_tags.all()
 
@@ -866,3 +889,46 @@ class UnavailableDates(models.Model):
 
     end_date = models.DateField(
         help_text="The last date (inclusive) on which the person will be unavailable.")
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Text Snippets
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+class Snippet(models.Model):
+
+    snippet_name_regex = '^[-a-zA-Z0-1]+$'
+    snippet_ref_regex = r'\{\{[-a-zA-Z0-1]+\}\}'
+    BAD_SNIPPET_REF_STR = "BAD_SNIPPET_REF"
+
+    name = models.CharField(max_length=40, blank=False,
+        help_text="The name of the snippet.",
+        validators=[
+            RegexValidator(snippet_name_regex,
+                message="Name must only contain letters, numbers, and dashes.",
+                code="invalid_name"
+            )
+        ]
+    )
+
+    description = models.CharField(max_length=128, blank=False,
+        help_text="Short description of what the snippet is about.")
+
+    text = models.TextField(max_length=2048, blank=False,
+        help_text="The full text content of the snippet.")
+
+    @staticmethod
+    def expand(instr: str) -> str:
+        while True:
+            searchresult = re.search(Snippet.snippet_ref_regex, instr, flags=0)
+            if searchresult is None:
+                return instr
+            snippet_ref = searchresult.group()
+            snippet_name = snippet_ref.strip("{}")
+            try:
+                snippet = Snippet.objects.get(name=snippet_name)
+                instr = instr.replace(snippet_ref, snippet.text)
+            except Snippet.DoesNotExist:
+                logger = logging.getLogger("tasks")
+                logger.warning("%s is a bad snippet reference.", snippet_ref)
+                instr = instr.replace(snippet_ref, Snippet.BAD_SNIPPET_REF_STR)
+

@@ -31,10 +31,12 @@ class ClaimSerializer(serializers.ModelSerializer):
         model = tm.Claim
         fields = (
             'id',
+            'status',
             'claimed_task',
             'claiming_member',
             'claimed_start_time',
             'claimed_duration',
+            'date_verified',
             'work_set',
         )
 
@@ -45,7 +47,6 @@ class TaskSerializer(serializers.ModelSerializer):
     owner = serializers.HyperlinkedRelatedField(read_only=True, view_name='memb:member-detail')
     reviewer = serializers.HyperlinkedRelatedField(read_only=True, view_name='memb:member-detail')
     eligible_claimants = serializers.HyperlinkedRelatedField(read_only=True, many=True, view_name='memb:member-detail')
-    uninterested = serializers.HyperlinkedRelatedField(read_only=True, many=True, view_name='memb:member-detail')
     claimants = serializers.HyperlinkedRelatedField(read_only=True, many=True, view_name='memb:member-detail')
     claim_set = serializers.HyperlinkedRelatedField(read_only=True, many=True, view_name='task:claim-detail')
 
@@ -64,7 +65,6 @@ class TaskSerializer(serializers.ModelSerializer):
             'reviewer',
             'work_start_time',
             'work_duration',
-            'uninterested',
             'priority',
             'should_nag',
             'creation_date',

@@ -6,28 +6,31 @@ import logging
 import json
 
 # Third Party
-from dateutil.parser import parse
+from dateutil.parser import parse  # python-dateutil in requirements.txt
 from django.core.urlresolvers import reverse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse, JsonResponse, Http404
 from django.template import loader, Context
 from django.contrib.auth import authenticate
 from django.contrib.auth.decorators import login_required
-from icalendar import Calendar, Event
+from django.conf import settings
+from icalendar import Calendar, Event, vCalAddress, vText
 
 # Local
 from tasks.forms import Desktop_TimeSheetForm
 from tasks.models import Task, Nag, Claim, Work, WorkNote, Worker, TimeWindowedObject
 from members.models import Member, VisitEvent
 from members.signals.handlers import note_login
+from members.views import kiosk_visitevent_contentprovider
+
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 _logger = logging.getLogger("tasks")
 
-# = = = = = = = = = = = = = = = = = = = = KIOSK VISIT EVENT CONTENT PROVIDERS
+_ORG_NAME_POSSESSIVE = settings.INTSYS_ORG_NAME_POSSESSIVE
 
-from members.views import kiosk_visitevent_contentprovider
+# = = = = = = = = = = = = = = = = = = = = KIOSK VISIT EVENT CONTENT PROVIDERS
 
 
 def task_button_text(obj):
@@ -232,15 +235,11 @@ def verify_claim(request, task_pk, claim_pk, will_do, auth_token):
     md5str = md5(auth_token.encode()).hexdigest()
     nag = get_object_or_404(Nag, auth_token_md5=md5str)
     assert(task in nag.tasks.all())
-    who = nag.who
-
-    for uninterested in task.uninterested.all():
-        if uninterested == who:
-            return redirect('task:offer-task', task_pk=task_pk, auth_token=auth_token)
 
     claim = get_object_or_404(Claim, pk=claim_pk)
     claimant = claim.claiming_member
 
+    assert nag.who == claimant
     assert(claim in nag.claims.all())
 
     # Can't do the following because error: 'User' object has no attribute 'backend'
@@ -250,17 +249,30 @@ def verify_claim(request, task_pk, claim_pk, will_do, auth_token):
     note_login(None, claimant.auth_user, request)
 
     if will_do == "Y":  # The default claimant verifies they will do the work.
+        try:
+            # See if there's already a current claim on the task:
+            current_claim = Claim.objects.get(claimed_task=task, status=Claim.STAT_CURRENT)  # type: Claim
+            # There is a current claim. Does it belong to the user of this view (the person we nagged)?
+            if current_claim.claiming_member != nag.who:
+                # No, the current claim belongs to somebody else, so we tell the view user about it
+                # By redirecting to another view that does so.
+                return redirect('task:offer-task', task_pk=task_pk, auth_token=auth_token)
+
+        except Claim.DoesNotExist:
+            # There's no current claim, so nothing to worry about.
+            pass
+
         claim.date_verified = date.today()
         claim.status = Claim.STAT_CURRENT
         claim.save()
 
     elif will_do == "N":  # The default claimant says they can't do the work, this time.
-        task.uninterested.add(claimant)
-        claim.delete()
+        claim.date_verified = date.today()
+        claim.status = Claim.STAT_UNINTERESTED
+        claim.save()
 
-    # At this point, claim.status might be something other than CURRENT (probably ABANDONED).
-    # Template will need to take status into account.  If status is ABANDONED it means that
-    # the default claimant took too long to verify and somebody else claimed in the meantime.
+    else:
+        raise RuntimeError("Expected Y or N parameter.")
 
     claimant.worker.populate_calendar_token()  # Idempotent
 
@@ -306,8 +318,6 @@ def offer_task_spa(request, task_pk=0, auth_token=""):
         claim = claims[0]
 
     if len(claims) > 1:
-        # Now moving toward models where each task has exactly 0 or 1 claims.
-        # If somebody wants to make a partial claim, the leftover will result in a new unclaimed task.
         # Note that I'm not going to offer partial claim functionality in this version of the view.
         _logger.error("Task #{} has more than one claim.", task.pk)
 
@@ -324,22 +334,31 @@ def offer_task_spa(request, task_pk=0, auth_token=""):
     futures = [x for x in futures if len(x.claim_set.all()) == 0]
     futures = [x for x in futures if nag.who in x.all_eligible_claimants()]
     futures = sorted(futures, key=lambda x: x.scheduled_date)
-    futures = [x.scheduled_date.strftime("%A, %b %e") for x in futures]
+    futures = [x.pk for x in futures]
 
     nag.who.worker.populate_calendar_token()
 
     task_data = {
         "auth_token": auth_token,
-        "nag_id": nag.pk,
         "task_id": task.pk,
         "user_friendly_name": nag.who.friendly_name,
+        "nagged_member_id": nag.who.pk,
         "task_desc": task.short_desc,
         "task_day_str": task.scheduled_date.strftime("%A, %b %e"),
-        "task_time_str": task_time_str,
+        "task_window_str": task_time_str,
+
+        "task_work_start_str": str(task.work_start_time),
+        "task_work_dur_str": str(task.work_duration),
+
         "already_claimed_by": claim.claiming_member.friendly_name if claim is not None else "",
-        "future_dates": futures[0:4],
-        "calendar_token": nag.who.worker.calendar_token,
-        "calendar_url": reverse('task:member-calendar', args=[nag.who.worker.calendar_token])
+        "future_task_ids": futures[0:4],
+        "calendar_url": reverse('task:member-calendar', args=[nag.who.worker.calendar_token]),
+
+        "today_str": str(date.today()),
+
+        "claim_list_uri": reverse("task:claim-list"),
+        "task_list_uri": reverse("task:task-list"),
+        "member_list_uri": reverse("memb:member-list"),
     }
 
     props = {
@@ -489,6 +508,7 @@ END:STANDARD
 END:VTIMEZONE
 '''
 
+
 def _new_calendar(name):
     cal = Calendar()
     cal['x-wr-calname'] = name
@@ -501,13 +521,26 @@ def _new_calendar(name):
 
 
 def _add_event(cal, task, request):
+
+    # NOTE: We could add task workers as attendees, but the calendar format insists that these
+    # be email addresses and we don't want to expose personal information about the workers.
+    # So we'll build a worker string and make it part of the event description.
+    worker_str = ""
+    for claim in task.claim_set.filter(status__in=[Claim.STAT_CURRENT, Claim.STAT_WORKING],):  # type: Claim\
+        worker_str += ", " if worker_str else ""
+        worker_str += claim.claiming_member.friendly_name
+    if not worker_str:
+        worker_str = "Nobody has claimed this task."
+
+    desc_str = task.instructions.replace("\r\n", "\\N")  # don't try \\n
+
     dtstart = datetime.combine(task.scheduled_date, task.work_start_time)
     relpath = reverse('task:cal-task-details', args=[task.pk])
     event = Event()
     event.add('uid',         task.pk)
     event.add('url',         request.build_absolute_uri(relpath))
     event.add('summary',     task.short_desc)
-    event.add('description', task.instructions.replace("\r\n", " "))
+    event.add('description', "Who: {}\\N\\N{}".format(worker_str, desc_str))
     event.add('dtstart',     dtstart)
     event.add('dtend',       dtstart + task.work_duration)
     event.add('dtstamp',     datetime.now())
@@ -523,14 +556,16 @@ def _ical_response(cal):
 
 
 def _gen_tasks_for(member):
-    for task in member.tasks_claimed.all():
+    """For the given member, generate all future tasks and past tasks in last 60 days"""
+    for task in member.tasks_claimed.filter(scheduled_date__gte=datetime.now()-timedelta(days=60)):
         if task.scheduled_date is None or task.work_start_time is None or task.work_duration is None:
             continue
         yield task
 
 
 def _gen_all_tasks():
-    for task in Task.objects.all():
+    """Generate all future tasks and past tasks in last 60 days"""
+    for task in Task.objects.filter(scheduled_date__gte=datetime.now()-timedelta(days=60)):
         if task.scheduled_date is None or task.work_start_time is None or task.work_duration is None:
             continue
         yield task
@@ -559,25 +594,37 @@ def member_calendar(request, token):
     return _ical_response(cal)
 
 
-def xerocraft_calendar(request):
-    cal = _new_calendar("All Xerocraft Tasks")
+def ops_calendar(request):
+    cal = _new_calendar("All {} Tasks".format(_ORG_NAME_POSSESSIVE))
     for task in _gen_all_tasks():
         _add_event(cal, task, request)
         # Intentionally lacks ALARM
     return _ical_response(cal)
 
 
-def xerocraft_calendar_staffed(request):
-    cal = _new_calendar("Xerocraft Staffed Tasks")
+def ops_calendar_staffed(request) -> HttpResponse:
+    """A calendar containing tasks that have been verified as staffed."""
+    cal = _new_calendar("{} Staffed Tasks".format(_ORG_NAME_POSSESSIVE))
     for task in _gen_all_tasks():
-        if task.is_fully_claimed():
+        if task.is_fully_claimed() and task.all_claims_verified():
             _add_event(cal, task, request)
             # Intentionally lacks ALARM
     return _ical_response(cal)
 
 
-def xerocraft_calendar_unstaffed(request):
-    cal = _new_calendar("Xerocraft Unstaffed Tasks")
+def ops_calendar_provisional(request) -> HttpResponse:
+    """A calendar containing provisionally staffed (i.e. claims not yet verified) tasks."""
+    cal = _new_calendar("{} Provisionally Staffed Tasks".format(_ORG_NAME_POSSESSIVE))
+    for task in _gen_all_tasks():
+        if task.is_fully_claimed() and not task.all_claims_verified():
+            _add_event(cal, task, request)
+            # Intentionally lacks ALARM
+    return _ical_response(cal)
+
+
+def ops_calendar_unstaffed(request) -> HttpResponse:
+    """A calendar containing tasks that are not even provisionally staffed."""
+    cal = _new_calendar("{} Unstaffed Tasks".format(_ORG_NAME_POSSESSIVE))
     for task in _gen_all_tasks():
         if not task.is_fully_claimed():
             _add_event(cal, task, request)
