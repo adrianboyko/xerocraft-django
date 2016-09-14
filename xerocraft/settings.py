@@ -17,6 +17,7 @@ import uuid
 DEVHOSTS = [
     238402988951122,  # Adrian Linux
     220083055528387,  # Adrian Mac
+    220356745681670,  # Steph Mac
 ]
 CURRHOST = uuid.getnode()
 ISDEVHOST = CURRHOST in DEVHOSTS
