@@ -357,6 +357,10 @@ class Fetcher(AbstractFetcher):
                 self._special_case_ixStxgstn56QI8jnJtcCtzMF(django_sale)
 
             else:
+                if django_sale["protected"] == True:
+                    # If the sale is protected then all details are also protected.
+                    # Otherwise there's no way to protect a deletion.
+                    return
                 itemizations = payment['itemizations']
                 self._process_itemizations(itemizations, django_sale)
 
