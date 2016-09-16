@@ -39,7 +39,7 @@ STATICFILES_STORAGE = 'whitenoise.django.GzipManifestStaticFilesStorage'
 #STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ['XERO_DJANGO_SECRET_KEY']
+SECRET_KEY = os.environ['XEROPS_DJANGO_SECRET_KEY']
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True if ISDEVHOST else False
@@ -184,11 +184,11 @@ WSGI_APPLICATION = 'xerocraft.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2', # or django.db.backends.mysql
-        'NAME': os.environ['DB_DATABASE_FOR_DJANGO'],
-        'USER': os.environ['DB_USER_FOR_DJANGO'],
-        'PASSWORD': os.environ['DB_PW_FOR_DJANGO'],
-        'HOST': os.environ['DB_HOST_FOR_DJANGO'],
-        'PORT': os.environ['DB_PORT_FOR_DJANGO']
+        'NAME': os.environ['XEROPS_DB_NAME'],
+        'USER': os.environ['XEROPS_DB_USER'],
+        'PASSWORD': os.environ['XEROPS_DB_PW'],
+        'HOST': os.environ['XEROPS_DB_HOST'],
+        'PORT': os.environ['XEROPS_DB_PORT']
     }
 }
 
@@ -313,19 +313,54 @@ PYLINT_LOAD_PLUGIN = (
 )
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-# IntSys Config
+# XerOps Config
 #
-# Using "IntSys" as a generic non-Xerocraft-specific name for the project.
+# Using "XerOps" as a generic non-Xerocraft-specific name for the project.
 # The system is called "Xerocraft Internal Systems" (XIS) at Xerocraft.
 #
-# Configuration of IntSys for Xerocraft follows. Change for your organization.
+# Configuration of XerOps for Xerocraft follows. Change for your organization.
 
-INTSYS_SYS_NAME = "XIS"
+XEROPS_SYS_NAME = "XIS"
 
-INTSYS_ORG_NAME = "Xerocraft"
-INTSYS_ORG_NAME_POSSESSIVE = "Xerocraft's"
+XEROPS_ORG_NAME = "Xerocraft"
+XEROPS_ORG_NAME_POSSESSIVE = "Xerocraft's"
 
-# Set the INTSYS_FACILITY_PUBLIC_IP environment variable to either:
+# Set the XEROPS_FACILITY_PUBLIC_IP environment variable to either:
 #   (1) A DNS name that resolves to the facility's public IP
 #   (2) The facility's static IP address.
-INTSYS_FACILITY_PUBLIC_IP = os.getenv('INTSYS_FACILITY_PUBLIC_IP', None)
+XEROPS_FACILITY_PUBLIC_IP = os.getenv('XEROPS_FACILITY_PUBLIC_IP', None)
+
+
+# TODO: Switch to the following format for XerOps config?
+# These are settings that can be used by any of the XerOps apps.
+# This information is not yet used by the apps.
+XEROPS_CONFIG = {
+
+    # The name people will use to refer to your XerOps instance:
+    'SYS_NAME': "XIS",
+
+    # The name of the organization that your XerOps instance serves:
+    'ORG_NAME': "Xerocraft",
+    'ORG_NAME_POSSESSIVE':"Xerocraft's",
+
+    # Set the XEROPS_FACILITY_PUBLIC_IP environment variable to either:
+    # (1) A DNS name that resolves to the facility's public IP
+    # (2) The facility's static IP address.
+    'FACILITY_PUBLIC_IP': os.getenv('XEROPS_FACILITY_PUBLIC_IP', None)
+}
+
+XEROPS_MEMBERS_CONFIG = {
+    # Configuration specific to the "members" app.
+}
+
+XEROPS_TASKS_CONFIG = {
+    # Configuration specific to the "tasks" app.
+}
+
+XEROPS_INVENTORY_CONFIG = {
+    # Configuration specific to the "inventory" app.
+}
+
+XEROPS_BOOKS_CONFIG = {
+    # Configuration specific to the "books" app.
+}

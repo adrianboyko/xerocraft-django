@@ -36,8 +36,8 @@ from abutils.utils import request_is_from_host
 
 logger = getLogger("members")
 
-ORG_NAME_POSSESSIVE = settings.INTSYS_ORG_NAME_POSSESSIVE
-FACILITY_PUBLIC_IP = settings.INTSYS_FACILITY_PUBLIC_IP
+ORG_NAME_POSSESSIVE = settings.XEROPS_ORG_NAME_POSSESSIVE
+FACILITY_PUBLIC_IP = settings.XEROPS_FACILITY_PUBLIC_IP
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = PRIVATE
 

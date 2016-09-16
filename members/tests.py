@@ -275,7 +275,7 @@ class TestNotify(TestCase):
 
     def setUp(self):
         if pushover_available:
-            self.user_key = os.getenv('PUSHOVER_USER_KEY', None)
+            self.user_key = os.getenv('XEROPS_PUSHOVER_USER_KEY', None)
             self.assertIsNotNone(self.user_key)
             self.user = User.objects.create_user(
                 username='caller',

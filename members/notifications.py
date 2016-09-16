@@ -7,7 +7,7 @@ logger = logging.getLogger("members")
 
 pushover_available = False
 
-api_token = os.getenv('PUSHOVER_API_KEY', None)
+api_token = os.getenv('XEROPS_PUSHOVER_API_KEY', None)
 
 if api_token is None:
     logger.info("Pushover not configured. Alerts will not be sent.")

@@ -28,7 +28,7 @@ from members.views import kiosk_visitevent_contentprovider
 
 _logger = logging.getLogger("tasks")
 
-_ORG_NAME_POSSESSIVE = settings.INTSYS_ORG_NAME_POSSESSIVE
+_ORG_NAME_POSSESSIVE = settings.XEROPS_ORG_NAME_POSSESSIVE
 
 # = = = = = = = = = = = = = = = = = = = = KIOSK VISIT EVENT CONTENT PROVIDERS
 
