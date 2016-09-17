@@ -27,7 +27,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.8/howto/static-files/
 
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # 'staticfiles'
+STATIC_ROOT = 'staticfiles'
 STATIC_URL = '/static/'
 STATICFILES_DIRS = (
     os.path.join(BASE_DIR, 'static'),
@@ -60,11 +60,6 @@ LOGIN_REDIRECT_URL = "/"
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-# Forcing social auth redirect to HTTPS fixes social auth inside Xerocraft, where HTTPS is used.
-# However, it breaks social auth outside Xerocraft, where HTTP is used.
-# Social auth would work inside AND outside if we replace reverse proxy inside XC with Heroku's SSL.
-# That said, I'm not sure that access outside Xerocraft should be allowed at all.
-# BTW, one Stack Exchange comment blames Heroku: "This is because heroku fails to pass the headers"
 
 # SOCIAL_AUTH_REDIRECT_IS_HTTPS = True
 
@@ -210,10 +205,7 @@ en_formats.DATETIME_FORMAT = "m/d/y H:i:s"
 en_formats.DATE_FORMAT = "m/d/y"
 
 
-# EMAIL_BACKEND = "djrill.mail.backends.djrill.DjrillBackend"
 # EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-# MANDRILL_API_KEY = os.environ['MANDRILL_API_KEY']
-
 EMAIL_BACKEND = "sparkpost.django.email_backend.SparkPostEmailBackend"
 SPARKPOST_API_KEY = os.environ['SPARKPOST_API_KEY']
 DEFAULT_FROM_EMAIL = "Xerocraft Systems <xis@xerocraft.org>"
