@@ -15,7 +15,7 @@ Including another URLconf
 """
 from django.conf.urls import include, url
 from django.contrib import admin
-from xerocraft import views
+from xerops import views
 from django.conf import settings
 from django.conf.urls.static import static
 

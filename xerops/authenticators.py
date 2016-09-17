@@ -4,7 +4,7 @@ import lxml.html
 from django.contrib.auth.backends import ModelBackend
 from django.contrib.auth.models import User
 from members.models import Member # REVIEW: I'd rather this were User from django.contrib.auth.models
-from xerocraft.management.commands.scraper import Scraper
+from xerops.management.commands.scraper import Scraper
 
 
 # From http://blog.shopfiber.com/?p=220.

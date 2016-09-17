@@ -31,7 +31,7 @@ class DbCheck(unittest.TestCase):
         count = 0
         problems = []
 
-        for appname in ['tasks', 'books', 'inventory', 'members', 'xerocraft']:
+        for appname in ['tasks', 'books', 'inventory', 'members', 'modelmailer', 'xerops']:
             print(appname)
             app = apps.get_app_config(appname)
             for modelname, model in app.models.items():

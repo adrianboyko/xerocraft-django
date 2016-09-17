@@ -12,7 +12,7 @@ from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
 
 # Local
-from xerocraft.etlfetchers.abstractfetcher import AbstractFetcher
+from xerops.etlfetchers.abstractfetcher import AbstractFetcher
 from members.models import Membership, Member, MembershipGiftCardReference
 from books.models import Sale, MonetaryDonation, OtherItem, OtherItemType
 

@@ -10,7 +10,7 @@ from dateutil.relativedelta import relativedelta
 import requests
 
 # Local
-from xerocraft.etlfetchers.abstractfetcher import AbstractFetcher
+from xerops.etlfetchers.abstractfetcher import AbstractFetcher
 from members.models import Membership
 from books.models import Sale, MonetaryDonation
 

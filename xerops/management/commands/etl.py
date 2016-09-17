@@ -13,6 +13,7 @@ class Command(BaseCommand):
 
         print("")
         fetchers = input("Fetchers: ").split()
+        # fetchers = ["xerops.etlfetchers.paypal"]
         rest_token = input("REST API token: ")
 
         fetchers = [__import__(x, fromlist=["Fetcher"]) for x in fetchers]

@@ -1,2 +1,2 @@
-web: gunicorn xerocraft.wsgi:application --log-file -
-worker: python xerocraft/worker.py
+web: gunicorn xerops.wsgi:application --log-file -
+worker: python xerops/worker.py
