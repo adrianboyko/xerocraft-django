@@ -1,1 +1,0 @@
-from xerops import settings
