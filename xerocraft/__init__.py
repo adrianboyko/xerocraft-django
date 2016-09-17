@@ -1,1 +1,1 @@
-from xerops import *
+from xerops import settings
