@@ -132,7 +132,7 @@ SESSION_SAVE_EVERY_REQUEST = True
 
 AUTHENTICATION_BACKENDS = (
     'xerops.authenticators.CaseInsensitiveModelBackend',
-    'xerops.authenticators.XerocraftBackend',
+    'xis.authenticators.XerocraftBackend',
     # 'social.backends.facebook.FacebookOAuth2',
     # 'social.backends.google.GoogleOAuth2',
     # 'social.backends.twitter.TwitterOAuth',
