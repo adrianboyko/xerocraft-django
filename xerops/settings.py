@@ -52,6 +52,7 @@ SECRET_KEY = os.environ['XEROPS_DJANGO_SECRET_KEY']
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True if ISDEVHOST else False
+DEBUG = True  # <======================================================= TEMPORARY! REMOVE ASAP!
 
 ALLOWED_HOSTS = (
     'xerocraft-django.herokuapp.com',
