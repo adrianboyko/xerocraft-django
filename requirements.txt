@@ -1,3 +1,8 @@
+
+# S3BotoStorage config in settings.py means we need boto.
+# If using a non-boto config or a different storage backend, this is not required.
+boto==2.42.0
+
 coverage==4.2
 defusedxml==0.4.1
 Django==1.8.5
