@@ -9,10 +9,10 @@
 void slow_print(char* s) {
   for (int i=0; i<strlen(s); i++) {
     Keyboard.print(s[i]);
-    delay(20); 
+    delay(30);
   }
   Keyboard.print("\n");
-  delay(500);
+  delay(700);
 }
 
 void setup() {
@@ -22,7 +22,7 @@ void loop() {
   delay(1000);
   Keyboard.begin();
 
-  slow_print("xerocraft.etlfetchers.square xerocraft.etlfetchers.twocheckout xerocraft.etlfetchers.wepay");
+  slow_print("xerops.etlfetchers.square xerops.etlfetchers.twocheckout xerops.etlfetchers.wepay");
   slow_print("");
 
   slow_print("");
@@ -33,8 +33,7 @@ void loop() {
 
   slow_print("");
   slow_print("");
-  
+
   Keyboard.end();
   while(true) delay(100);
 }
-
