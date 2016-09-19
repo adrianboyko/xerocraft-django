@@ -105,6 +105,7 @@ if ISDEVHOST:
 INSTALLED_APPS += (
     'abutils',
     'xerops', # I'm including this for its /static folder. Any negative consequences? Use <proj>/static instead?
+    'xis',
     'members',
     'tasks',
     'inventory',
