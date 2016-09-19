@@ -10,6 +10,7 @@ django-jenkins==0.18.1
 # Must be 2.0.0 or greater because we're using Django 1.8
 django-reversion==2.0.6
 
+django-storages==1.5.1
 djangorestframework==3.3.2
 django-webpack-loader==0.3.0
 freezegun==0.3.7

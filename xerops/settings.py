@@ -38,6 +38,15 @@ STATICFILES_DIRS = (
 STATICFILES_STORAGE = 'whitenoise.django.GzipManifestStaticFilesStorage'
 #STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
 
+# Storage for uploads from users
+DEFAULT_FILE_STORAGE = 'storages.backends.s3boto.S3BotoStorage'
+AWS_ACCESS_KEY_ID = os.environ['AWS_ACCESS_KEY_ID']
+AWS_SECRET_ACCESS_KEY = os.environ['AWS_SECRET_ACCESS_KEY']
+AWS_STORAGE_BUCKET_NAME = os.environ['AWS_S3_BUCKET_NAME']
+AWS_QUERYSTRING_AUTH = False
+AWS_HEADERS = {'Cache-Control': 'max-age=86400'}
+
+
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ['XEROPS_DJANGO_SECRET_KEY']
 
@@ -82,6 +91,7 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',
     'django.contrib.sites',  # Req'd by helpdesk
     'django.contrib.humanize',  # Req'd by helpdesk
+    'storages',  # For uploads from users, as in helpdesk and possibly other apps.
 )
 
 if ISDEVHOST:
@@ -289,7 +299,7 @@ WEBPACK_LOADER = {
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # JENKINS
 
-PROJECT_APPS = ('abutils', 'books', 'inventory', 'members', 'modelmailer', 'tasks', 'xerops')
+PROJECT_APPS = ('abutils', 'books', 'inventory', 'members', 'modelmailer', 'tasks', 'xerops', 'xis')
 
 JENKINS_TASKS = (
     # 'django_jenkins.tasks.run_pep8',
