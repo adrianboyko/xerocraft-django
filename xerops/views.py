@@ -23,6 +23,10 @@ def index(request):
     return render(request, 'xerops/xerocraft-home.html',{})
 
 
+def credits(request):
+    return render(request, 'xerops/credits.html',{})
+
+
 @login_required
 def director_menu(request):
     if not request.user.member.is_tagged_with("Director"):
