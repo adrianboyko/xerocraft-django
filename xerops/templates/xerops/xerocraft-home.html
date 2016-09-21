@@ -3,14 +3,40 @@
 
 <head>
     <title>XIS Home</title>
+    <link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=PT Sans Narrow">
 
     <style>
-        body { margin-left:20pt; margin-right:20pt; text-align:center }
-        h1 { font-family:Arial; font-size:22pt; margin-top:70px; margin-bottom:50px}
-        h2 { font-family:Arial; font-size:14pt; margin-top:20px; }
-        ul { font-family:Arial; font-size:10pt; }
-        img#x { width:40; margin-right:0pt; }
-        img.button { margin:10px 10px 10px 10px; }  /* Top right bottom left */
+
+        body {
+            margin-left:20pt;
+            margin-right:20pt;
+            text-align:center;
+            font-family: "PT Sans Narrow";
+        }
+
+        h1 { font-size:22pt; margin-top:30px; margin-bottom:30px}
+        h2 { font-size:14pt; margin-top:20px; }
+        ul { font-size:10pt; }
+
+        #x {
+            width: 140px;
+            margin-top: 8%;
+            margin-right: 0px;
+            margin-bottom: 35px;
+        }
+
+        img.button {
+            width:90px;
+            padding:5px;
+            margin:0px;
+            border: 1px solid black;
+            border-radius: 8px;
+        }
+
+        img.button:hover {
+            background-color: powderblue;
+        }
+
         td { vertical-align:center; text-align:center; width:50%; }
         span { font-size:10pt; font-weight:normal; }
         span.exp { color:red; }
@@ -23,35 +49,87 @@
            user-select: none;
         }
 
+        figure {
+            display:inline-block;
+            margin:15px;
+        }
+        figcaption {
+            font-size: 1.3em;
+            padding-top: 4px;
+            padding-left: 0px;
+            padding-right: 0px;
+        }
+
+        a {
+            color: black;
+            text-decoration: none;
+        }
+
+        #logout {
+            display: inline-block;
+            padding: 11px;
+            background-color: #ffb3b3;
+            border-radius: 8px;
+        }
+
     </style>
 
 </head>
 
 <body class='unselectable'>
 
-    <h1><img id="x" src="{% static 'xerops/Big Bold X.png' %}" alt="Xerocraft Logo"/>erocraft Internal Systems</h1>
+    <img id="x" src="{% static 'xerops/Big Bold X.png' %}" alt="Xerocraft Logo"/>
 
     <div>
         <a href="/members/desktop/member-tags">
-            <img class="button" src="{% static 'xerops/MemberTags.png' %}" alt="Tags"/></a>
+            <figure>
+                <img class="button" src="{% static 'xerops/Certifications.svg' %}" alt="Certification"/>
+                <figcaption>Certification</figcaption>
+            </figure></a>
 
         <a href="/tasks/desktop-timesheet/">
-            <img class="button" src="{% static 'xerops/TimeSheet.png' %}" alt="Timesheet"/></a>
+            <figure>
+                <img class="button" src="{% static 'xerops/WorkTrade.svg' %}" alt="Work Trade"/>
+                <figcaption>Work Trade</figcaption>
+            </figure></a>
 
         <a href="/inventory/desktop/request-parking-permit">
-            <img class="button" src="{% static 'xerops/ParkingPermit.png' %}" alt="Parking Permit"/></a>
+            <figure>
+                <img class="button" src="{% static 'xerops/Parking.svg' %}" alt="Parking"/>
+                <figcaption>Parking</figcaption>
+            </figure></a>
+
+        <a href="/helpdesk">
+            <figure>
+                <img class="button" src="{% static 'xerops/ToDo.svg' %}" alt="To Do"/>
+                <figcaption>To Do</figcaption>
+            </figure></a>
+
     </div>
 
     <div>
         <a href="/admin/">
-            <img class="button" src="{% static 'xerops/SystemAdmin.png' %}" alt="System Admin"/></a>
+            <figure>
+                <img class="button" src="{% static 'xerops/Admin.svg' %}" alt="System Admin"/>
+                <figcaption>Admin</figcaption>
+            </figure></a>
 
         <a href="/director-menu">
-            <img class="button" src="{% static 'xerops/ReportsForDirectors.png' %}" alt="Reports"/></a>
+            <figure>
+                <img class="button" src="{% static 'xerops/Reports.svg' %}" alt="Reports"/>
+                <figcaption>Reports</figcaption>
+            </figure></a>
+
+        <a href="/credits">
+            <figure>
+                <img class="button" src="{% static 'xerops/Credits.svg' %}" alt="Credits"/>
+                <figcaption>Credits</figcaption>
+            </figure></a>
     </div>
 
+
     {% if user.is_authenticated %}
-        <h2 style="display:inline-block; padding:10px; padding-bottom:10px; background-color:#ffb3b3">
+        <h2 id="logout">
             <a href="/logout/">Logout {{ request.user }}</a>
         </h2>
     {% endif %}

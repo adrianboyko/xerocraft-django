@@ -1,0 +1,83 @@
+
+{% load staticfiles %}
+
+<head>
+    <title>XIS Home</title>
+    <link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=PT Sans Narrow">
+
+    <style>
+        body {
+            margin-left:20pt;
+            margin-right:20pt;
+            text-align:center;
+            font-family: "PT Sans Narrow";
+            font-size: 1.2em;
+        }
+
+        #highfive {
+            width:140px;
+            margin-top:8%;
+            margin-right:0px;
+            margin-bottom:40px;
+        }
+
+        h2 { font-size:14pt; margin-top:20px; }
+
+        .unselectable {
+           -moz-user-select: -moz-none;
+           -khtml-user-select: none;
+           -webkit-user-select: none;
+           -ms-user-select: none;
+           user-select: none;
+        }
+
+
+        a {
+            color: blue;
+            text-decoration: none;
+        }
+
+        #logout {
+            display: inline-block;
+            padding: 11px;
+            background-color: #ffb3b3;
+            border-radius: 8px;
+            margin-top: 5%;
+        }
+
+        #logout a { color: black; }
+
+    </style>
+
+</head>
+
+<body class='unselectable'>
+
+    <img id="highfive" src="{% static 'xerops/Credits.svg' %}" alt="Credits"/>
+
+
+    <div>Icons from <a href="http://www.flaticon.com" title="Flaticon">Flaticon</a> are licensed under <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">"CC 3.0 BY"</a></div>
+
+    <!-- Check Mark -->
+    <div>Artist: <a href="http://www.flaticon.com/authors/icomoon" title="Icomoon">Icomoon</a></div>
+
+    <!--
+        Ribbon,
+        Tools,
+        Parking,
+        Gear Person,
+        Report,
+        High Five
+    -->
+    <div>Artist: <a href="http://www.freepik.com" title="Freepik">Freepik</a></div>
+
+    {% if user.is_authenticated %}
+        <h2 id="logout">
+            <a href="/logout/">Logout {{ request.user }}</a>
+        </h2>
+    {% endif %}
+
+</body>
+
+
+
