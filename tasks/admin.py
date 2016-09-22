@@ -267,6 +267,9 @@ class RecurringTaskTemplateAdmin(TemplateAndTaskBase):
         '^owner__auth_user__first_name',
         '^owner__auth_user__last_name',
         '^owner__auth_user__username',
+        '^default_claimant__auth_user__first_name',
+        '^default_claimant__auth_user__last_name',
+        '^default_claimant__auth_user__username',
         # TODO: Add eligibles, claimants, etc, here?
     ]
 
