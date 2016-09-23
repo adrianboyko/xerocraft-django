@@ -7,7 +7,6 @@ import logging
 from django.core.management.base import BaseCommand
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import get_template
-from django.template import Context
 from django.utils import timezone
 from freezegun import freeze_time
 
@@ -77,11 +76,11 @@ class Command(BaseCommand):
             visits = self.bad_visits[member]
             visits = [timezone.localtime(v.when) for v in visits]
 
-            d = Context({
+            d = {
                 'friendly_name': member.friendly_name,
                 'paid_membership': pm,
                 'bad_visit': visits[0],
-            })
+            }
 
             subject = 'Time to Renew your Xerocraft Membership'
             from_email = XIS_EMAIL

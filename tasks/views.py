@@ -80,14 +80,14 @@ def visitevent_arrival_content(member, member_card_str, visit_event_type):
             unclaimed_anytime.append((task, task_button_text(task)))
 
     template = loader.get_template('tasks/check_in_content.html')
-    context = Context({
+    d = {
         'working_today'     : working_today,
         'claimed_today'     : claimed_today,
         'unclaimed_today'   : unclaimed_today,
         'unclaimed_anytime' : unclaimed_anytime,
         'member_card_str'   : member_card_str,
-    })
-    return template.render(context)
+    }
+    return template.render(d)
 
 
 @kiosk_visitevent_contentprovider

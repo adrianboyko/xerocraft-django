@@ -1,12 +1,10 @@
 
 # Standard
 import logging
-from typing import Sequence
 
 # Third Party
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import get_template
-from django.template import Context
 
 # Local
 
@@ -24,7 +22,7 @@ class MailView:
     def send(self, obj):
         try:
             spec = self.get_email_spec(obj)
-            params = Context(spec['parameters'])
+            params = spec['parameters']
             text = get_template(spec['template']+'.txt').render(params)
             html = get_template(spec['template']+'.html').render(params)
             msg = EmailMultiAlternatives(

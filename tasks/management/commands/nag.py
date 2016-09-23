@@ -6,7 +6,6 @@ import logging
 from django.core.management.base import BaseCommand
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import get_template
-from django.template import Context
 from django.db.models import F
 
 # Local
@@ -83,12 +82,12 @@ class Command(BaseCommand):
             nag = Nag.objects.create(who=member, auth_token_md5=md5)
             nag.tasks.add(*tasks)
 
-            d = Context({
+            d = {
                 'token': b64,
                 'member': member,
                 'tasks': tasks,
                 'host': HOST,
-            })
+            }
             subject = 'Call for Volunteers, ' + datetime.date.today().strftime('%a %b %d')
             from_email = VC_EMAIL
             bcc_email = XIS_EMAIL
@@ -140,14 +139,14 @@ class Command(BaseCommand):
 
             dow = claim.claimed_task.scheduled_weekday()
 
-            d = Context({
+            d = {
                 'claimant': claim.claiming_member,
                 'claim': claim,
                 'task': claim.claimed_task,
                 'dow': dow,
                 'auth_token': b64,
                 'host': HOST,
-            })
+            }
 
             # Send email messages:
             subject = 'Please verify your availability for this {}'.format(dow)
