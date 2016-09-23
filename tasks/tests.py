@@ -77,7 +77,7 @@ class Test_VerifyClaim_Base(LiveServerTestCase):
         try:
             for offset in range(-4, 2):
                 with freeze_time(self.task.scheduled_date + offset*ONEDAY):
-                    self.assertEquals(self.task.scheduled_date + offset*ONEDAY, date.today())  # Testing the freeze
+                    self.assertEqual(self.task.scheduled_date + offset*ONEDAY, date.today())  # Testing the freeze
                     management.call_command("nag", host="http://localhost:8081")
                     if offset < 0: sign_name = "minus"
                     elif offset == 0: sign_name = ""
@@ -98,12 +98,12 @@ class Test_VerifyClaim_Scenario1(Test_VerifyClaim_Base):
     def do_day_minus4(self):
         self.assertEqual(len(mail.outbox), 1)
         (html, ctype) = mail.outbox[0].alternatives[0]
-        self.assertEquals(ctype, "text/html")
+        self.assertEqual(ctype, "text/html")
 
     def do_day_minus3(self):
         self.assertEqual(len(mail.outbox), 2)
         (html, ctype) = mail.outbox[1].alternatives[0]
-        self.assertEquals(ctype, "text/html")
+        self.assertEqual(ctype, "text/html")
         html_dom = lxml.html.fromstring(html)
         yes_url = html_dom.xpath("//a[@id='Y']/@href")[0]
         self.browser.get(yes_url)
@@ -111,25 +111,25 @@ class Test_VerifyClaim_Scenario1(Test_VerifyClaim_Base):
     def do_day_minus2(self):
         claims = self.task.claim_set.all()
         self.assertEqual(len(claims), 1)
-        self.assertEquals(claims[0].status, Claim.STAT_CURRENT)
+        self.assertEqual(claims[0].status, Claim.STAT_CURRENT)
         self.assertEqual(len(mail.outbox), 2)
 
     def do_day_minus1(self):
         claims = self.task.claim_set.all()
         self.assertEqual(len(claims), 1)
-        self.assertEquals(claims[0].status, Claim.STAT_CURRENT)
+        self.assertEqual(claims[0].status, Claim.STAT_CURRENT)
         self.assertEqual(len(mail.outbox), 2)
 
     def do_day_0(self):
         claims = self.task.claim_set.all()
         self.assertEqual(len(claims), 1)
-        self.assertEquals(claims[0].status, Claim.STAT_CURRENT)
+        self.assertEqual(claims[0].status, Claim.STAT_CURRENT)
         self.assertEqual(len(mail.outbox), 2)
 
     def do_day_plus1(self):
         claims = self.task.claim_set.all()
         self.assertEqual(len(claims), 1)
-        self.assertEquals(claims[0].status, Claim.STAT_CURRENT)
+        self.assertEqual(claims[0].status, Claim.STAT_CURRENT)
         self.assertEqual(len(mail.outbox), 2)
 
 
@@ -141,13 +141,13 @@ class Test_VerifyClaim_Scenario2(Test_VerifyClaim_Base):
         self.assertEqual(len(mail.outbox), 1)
         claims = self.task.claim_set.all()
         self.assertEqual(len(claims), 1)
-        self.assertEquals(claims[0].status, Claim.STAT_CURRENT)
+        self.assertEqual(claims[0].status, Claim.STAT_CURRENT)
 
     def do_day_minus3(self):
         self.assertEqual(len(mail.outbox), 2)
         claims = self.task.claim_set.all()
         self.assertEqual(len(claims), 1)
-        self.assertEquals(claims[0].status, Claim.STAT_CURRENT)
+        self.assertEqual(claims[0].status, Claim.STAT_CURRENT)
 
     def do_day_minus2(self):
         claims = self.task.claim_set.all()
@@ -189,7 +189,7 @@ class Test_VerifyClaim_Scenario3(Test_VerifyClaim_Base):
         # Default assignee looks at the email message
         self.assertEqual(len(mail.outbox), 1)
         (html, ctype) = mail.outbox[0].alternatives[0]
-        self.assertEquals(ctype, "text/html")
+        self.assertEqual(ctype, "text/html")
         html_dom = lxml.html.fromstring(html)
 
         # And responds negatively
@@ -213,7 +213,7 @@ class Test_VerifyClaim_Scenario3(Test_VerifyClaim_Base):
 
         # One of the backups looks at the task info
         (html, ctype) = mail.outbox[2].alternatives[0]
-        self.assertEquals(ctype, "text/html")
+        self.assertEqual(ctype, "text/html")
         html_dom = lxml.html.fromstring(html)
         task_url = html_dom.xpath("//a/@href")[0]
         self.browser.get(task_url)
@@ -233,7 +233,7 @@ class Test_VerifyClaim_Scenario3(Test_VerifyClaim_Base):
 
         # Default assignee looks at the original email message, again
         (html, ctype) = mail.outbox[0].alternatives[0]
-        self.assertEquals(ctype, "text/html")
+        self.assertEqual(ctype, "text/html")
         html_dom = lxml.html.fromstring(html)
 
         # And responds affirmatively.
@@ -514,9 +514,9 @@ class TestViews(TestCase):
         response = client.get(url)
         self.assertContains(response, "success", status_code=200)
         claims = Claim.objects.filter(claimed_task=t.pk)
-        self.assertEquals(len(claims),1)
+        self.assertEqual(len(claims),1)
         claim = claims.first()
-        self.assertEquals(claim.status, Claim.STAT_WORKING)
+        self.assertEqual(claim.status, Claim.STAT_WORKING)
 
     def test_calendar_views(self):
 
@@ -700,10 +700,10 @@ class TestWindowedObject(TestCase):
             claimed_duration=onehour)
         claim.full_clean()
 
-        self.assertEquals(claim.window_start_time(), now.time())
-        self.assertEquals(claim.window_duration(), onehour)
-        self.assertEquals(claim.window_sched_date(), self.t.scheduled_date)
-        self.assertEquals(claim.window_deadline(), self.t.deadline)
+        self.assertEqual(claim.window_start_time(), now.time())
+        self.assertEqual(claim.window_duration(), onehour)
+        self.assertEqual(claim.window_sched_date(), self.t.scheduled_date)
+        self.assertEqual(claim.window_deadline(), self.t.deadline)
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =

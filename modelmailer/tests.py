@@ -17,8 +17,8 @@ class DonationTests(TestCase):
         don = Donation.objects.create(donator_name="Frank", donator_email="frank@example.com")
         mv = DonationMailView()
         self.assertTrue(mv.send(don))
-        self.assertEquals(len(mail.outbox), 1)
-        self.assertEquals(registrations[Donation], DonationMailView)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(registrations[Donation], DonationMailView)
 
     def test_bad_input(self):
         mv = DonationMailView()
