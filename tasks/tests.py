@@ -398,8 +398,8 @@ class TestViews(TestCase):
         self.fact = RequestFactory()
 
     def test_worker(self):
-        self.assertNotEquals(self.user.member, None)
-        self.assertNotEquals(self.member.worker, None)
+        self.assertNotEqual(self.user.member, None)
+        self.assertNotEqual(self.member.worker, None)
 
     _MODEL_CLASSNAMES = [
         "RecurringTaskTemplate",
