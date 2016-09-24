@@ -9,6 +9,7 @@ from django.core.urlresolvers import reverse
 from django.test import TestCase, TransactionTestCase, LiveServerTestCase, Client, RequestFactory
 from django.contrib.auth.models import User
 from django.contrib.admin import site
+from django.core.management import call_command
 from freezegun import freeze_time
 from selenium import webdriver
 import lxml.html
@@ -885,3 +886,12 @@ class TestSnippets(TestCase):
         expected_expansion = test_string % Snippet.BAD_SNIPPET_REF_STR
         result = Snippet.expand(unexpanded)
         self.assertEqual(result, expected_expansion)
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# Miscellaneous
+
+    class TestMisc(TestCase):
+
+        def test_with_dbcheck_command(self):
+            call_command('addmissingworkers')
