@@ -5,7 +5,7 @@ import unittest
 import sys
 
 # Third Party
-from django.core.management.base import NoArgsCommand
+from django.core.management.base import BaseCommand
 from django.apps import apps
 from django.core.exceptions import ValidationError
 
@@ -15,11 +15,11 @@ from django.core.exceptions import ValidationError
 __author__ = 'adrian'
 
 
-class Command(NoArgsCommand):
+class Command(BaseCommand):
 
     help = "Runs validation for each model in the database."
 
-    def handle_noargs(self, **options):
+    def handle(self, **options):
         suite = unittest.TestLoader().loadTestsFromTestCase(DbCheck)
         unittest.TextTestRunner().run(suite)
 
