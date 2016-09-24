@@ -12,6 +12,10 @@ class TestMonetaryDonation(TestCase):
         mdon = MonetaryDonation.objects.create(sale=sale, amount=100)
         self.assertTrue(mdon.ctrlid.startswith("GEN"))
 
-# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =]
 
+    def test_monetarydonation_checksum(self):
+        sale = Sale.objects.create(total_paid_by_customer=100)
+        mdon = MonetaryDonation.objects.create(sale=sale, amount=100)
+        sum = sale.checksum()
+        self.assertTrue(sum, 100)
 
