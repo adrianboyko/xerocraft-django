@@ -220,7 +220,10 @@ class Test_VerifyClaim_Scenario3(Test_VerifyClaim_Base):
         self.browser.get(task_url)
 
         # And decides to take the task
+        # http://www.obeythetestinggoat.com/how-to-get-selenium-to-wait-for-page-load-after-a-click.html
+        self.browser.implicitly_wait(5)
         self.browser.find_element_by_partial_link_text("Claim").click()
+        self.browser.find_element_by_partial_link_text("Calendar")
 
         # There are now 2 claims for the task: 1 uninterested, 1 current.
         claims = self.task.claim_set.all()
