@@ -13,12 +13,13 @@ from django.utils.translation import ugettext_lazy as _
 from reversion.admin import VersionAdmin
 
 # Local
-from books.models import \
-    Account, DonationNote, MonetaryDonation, DonatedItem, Donation, \
-    Sale, SaleNote, OtherItem, OtherItemType, ExpenseTransaction, \
-    ExpenseTransactionNote, ExpenseClaim, ExpenseClaimNote, \
+from books.models import (
+    Account, DonationNote, MonetaryDonation, DonatedItem, Donation,
+    Sale, SaleNote, OtherItem, OtherItemType, ExpenseTransaction,
+    ExpenseTransactionNote, ExpenseClaim, ExpenseClaimNote,
     ExpenseClaimReference, ExpenseLineItem, AccountGroup
-
+)
+from modelmailer.admin import ModelMailerAdmin
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # Checksum Admin Form
@@ -133,7 +134,8 @@ class DonatedItemInline(admin.TabularInline):
 
 
 @admin.register(Donation)
-class DonationAdmin(VersionAdmin):
+class DonationAdmin(ModelMailerAdmin, VersionAdmin):
+
     list_display = [
         'pk',
         'donation_date',
