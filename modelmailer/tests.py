@@ -7,7 +7,7 @@ from django.core import mail
 # Local
 from books.mailviews import DonationMailView
 from books.models import Donation
-from modelmailer.mailviews import registrations
+from modelmailer.mailviews import MailView
 
 
 class DonationTests(TestCase):
@@ -18,7 +18,7 @@ class DonationTests(TestCase):
         mv = DonationMailView()
         self.assertTrue(mv.send(don))
         self.assertEqual(len(mail.outbox), 1)
-        self.assertEqual(registrations[Donation], DonationMailView)
+        self.assertEqual(MailView.for_model(Donation), DonationMailView)
 
     def test_bad_input(self):
         mv = DonationMailView()
