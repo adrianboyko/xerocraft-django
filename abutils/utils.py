@@ -1,10 +1,15 @@
 # Standard
 import uuid
 import socket
+import sys
+from imp import find_module  # TODO: imp is deprecated
+from importlib import import_module
 
 # Third Party
 from django.db.models import Model
 from django.http import HttpRequest
+from django.conf import settings
+
 
 # Local
 
@@ -45,3 +50,26 @@ def request_is_from_host(request: HttpRequest, hostname: str) -> bool:
     req_ip = get_ip_address(request)
     host_ip = socket.gethostbyname(hostname)
     return req_ip == host_ip
+
+
+# From https://djangosnippets.org/snippets/2404
+def generic_autodiscover(module_name):
+    """
+    Dynamically autodiscover a particular module_name in a django project's
+    INSTALLED_APPS directories, a-la django admin's autodiscover() method.
+
+    Usage:
+        generic_autodiscover('commands') <-- find all commands.py and load 'em
+    """
+    for app in settings.INSTALLED_APPS:
+        try:
+            import_module(app)
+            app_path = sys.modules[app].__path__
+        except AttributeError:
+            continue
+        try:
+            find_module(module_name, app_path)
+        except ImportError:
+            continue
+        import_module('%s.%s' % (app, module_name))
+        app_path = sys.modules['%s.%s' % (app, module_name)]
