@@ -103,6 +103,7 @@ if ISDEVHOST:
     )
 
 INSTALLED_APPS += (
+    'django_object_actions',
     'abutils',
     'xerops', # I'm including this for its /static folder. Any negative consequences? Use <proj>/static instead?
     'xis',

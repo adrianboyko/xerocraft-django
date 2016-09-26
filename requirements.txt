@@ -14,6 +14,7 @@ django-filter==0.12.0
 -e git+https://github.com/adrianboyko/django-helpdesk.git@maint_0.1.17#egg=django-helpdesk
 
 django-jenkins==0.110.0
+django-object-actions==0.8.2
 
 # Must be 2.0.0 or greater because we're using Django 1.8
 django-reversion==2.0.6
