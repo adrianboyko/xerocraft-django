@@ -31,12 +31,10 @@ def get_ChecksumAdminForm(themodel):
     class ChecksumAdminForm(forms.ModelForm):
         # See http://stackoverflow.com/questions/4891506/django-faking-a-field-in-the-admin-interface
 
-        checksum = forms.DecimalField(required=False)  # Calculated field not saved in database
-
         def __init__(self, *args, **kwargs):
             obj = kwargs.get('instance')
             if obj:  # Only change attributes if an instance is passed
-                self.base_fields['checksum'].initial = obj.checksum()
+                self.checksum = forms.DecimalField(required=False, initial=obj.checksum())  # Calculated field not saved in database
             forms.ModelForm.__init__(self, *args, **kwargs)
 
         class Meta:
