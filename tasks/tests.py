@@ -89,8 +89,8 @@ class Test_VerifyClaim_Base(LiveServerTestCase):
         finally:
             self.browser.quit()
 
-# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 class Test_VerifyClaim_Scenario1(Test_VerifyClaim_Base):
 
@@ -152,23 +152,27 @@ class Test_VerifyClaim_Scenario2(Test_VerifyClaim_Base):
 
     def do_day_minus2(self):
         claims = self.task.claim_set.all()
-        self.assertEqual(len(claims), 0)
-        self.assertEqual(len(mail.outbox), 5)
+        self.assertEqual(len(claims), 1)
+        self.assertEqual(claims[0].status, Claim.STAT_UNINTERESTED)
+        self.assertEqual(len(mail.outbox), 4)
 
     def do_day_minus1(self):
         claims = self.task.claim_set.all()
-        self.assertEqual(len(claims), 0)
-        self.assertEqual(len(mail.outbox), 8)
+        self.assertEqual(len(claims), 1)
+        self.assertEqual(claims[0].status, Claim.STAT_UNINTERESTED)
+        self.assertEqual(len(mail.outbox), 6)
 
     def do_day_0(self):
         claims = self.task.claim_set.all()
-        self.assertEqual(len(claims), 0)
-        self.assertEqual(len(mail.outbox), 11)
+        self.assertEqual(len(claims), 1)
+        self.assertEqual(claims[0].status, Claim.STAT_UNINTERESTED)
+        self.assertEqual(len(mail.outbox), 8)
 
     def do_day_plus1(self):
         claims = self.task.claim_set.all()
-        self.assertEqual(len(claims), 0)
-        self.assertEqual(len(mail.outbox), 11)
+        self.assertEqual(len(claims), 1)
+        self.assertEqual(claims[0].status, Claim.STAT_UNINTERESTED)
+        self.assertEqual(len(mail.outbox), 8)
 
 
 class Test_VerifyClaim_Scenario3(Test_VerifyClaim_Base):

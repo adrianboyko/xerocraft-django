@@ -115,8 +115,10 @@ class Command(BaseCommand):
                 # It looks like person who set up the task forgot to make default claimant an eligible claimant.
                 # So let's add the default claimant to the list of eligible claimants.
                 claim.claimed_task.eligible_claimants.add(claim.claiming_member)
-            # Delete the default claimant's claim because we now want to nag to ALL eligible claimants.
-            claim.delete()
+            # Change the default claimant's claim to (presumably) UNINTERESTED
+            # because we now want to nag to ALL eligible claimants.
+            claim.status = Claim.STAT_UNINTERESTED
+            claim.save()
 
     @staticmethod
     def verify_default_claims(HOST):
