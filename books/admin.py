@@ -3,6 +3,7 @@
 from decimal import Decimal
 
 # Third Party
+from django.contrib.auth.models import User
 from django.db.models import Case, When, Sum, F, Value
 from django.db.models.functions import Coalesce
 from django.contrib import admin
@@ -333,12 +334,34 @@ class SaleAdmin(VersionAdmin):
 
     form = get_ChecksumAdminForm(Sale)
 
+    #TODO: Move to Sale model?
+    def name_col(self, obj: Sale):
+        result = ""
+        if obj.payer_acct is not None:
+            u = obj.payer_acct  # type: User
+            n = " ".join(filter(None, [u.first_name, u.last_name]))
+            result = n if len(n) > len(result) else result
+        # TODO: Will have entity_account's name here, eventually
+        if obj.payer_name > "":
+            n = obj.payer_name
+            result = n if len(n) > len(result) else result
+        return result
+    name_col.short_description = "Payer"
+
+    #TODO: Move to Sale model?
+    def acct_type_col(self, obj: Sale):
+        if obj.payer_acct is not None:
+            return "U"
+        # TODO: Will have entity_account's name here, eventually
+        if obj.payer_name > "":
+            return "-"
+    acct_type_col.short_description = "T"
+
     list_display = [
         'pk',
         'sale_date',
-        'payer_acct',
-        'payer_name',
-        'payer_email',
+        'acct_type_col',
+        'name_col',
         'payment_method',
         'method_detail',
         'total_paid_by_customer',
@@ -347,7 +370,8 @@ class SaleAdmin(VersionAdmin):
     ]
     fields = [
         ('sale_date', 'deposit_date'),
-        ('payer_acct', 'payer_name', 'payer_email'),
+        'payer_acct',
+        ('payer_name', 'payer_email'),
         ('payment_method','method_detail'),
         ('total_paid_by_customer', 'checksum'),
         'processing_fee',
@@ -367,6 +391,7 @@ class SaleAdmin(VersionAdmin):
     search_fields = [
         'payer_name',
         'payer_email',
+        #TODO: 'entity_acct__name',
         '^payer_acct__first_name',
         '^payer_acct__last_name',
         '^payer_acct__username',
@@ -547,11 +572,40 @@ class ExpenseTransactionAdmin(VersionAdmin):
 
     form = get_ChecksumAdminForm(ExpenseTransaction)
 
+    #TODO: Move to ExpenseTransaction model?
+    def name_col(self, obj: ExpenseTransaction):
+        result = ""
+        if obj.recipient_acct is not None:
+            u = obj.recipient_acct  # type: User
+            n = " ".join(filter(None, [u.first_name, u.last_name]))
+            result = n if len(n) > len(result) else result
+        if obj.recipient_entity is not None:
+            e = obj.recipient_entity  # type: Entity
+            n = e.name
+            result = n if len(n) > len(result) else result
+        if obj.recipient_name > "":
+            n = obj.recipient_name
+            result = n if len(n) > len(result) else result
+        return result
+    name_col.short_description = "Recipient"
+
+    #TODO: Move to ExpenseTransaction model?
+    def acct_type_col(self, obj: ExpenseTransaction):
+        if obj.recipient_acct is not None:
+            return "U"
+        if obj.recipient_entity is not None:
+            return "E"
+        if obj.recipient_name > "":
+            return "-"
+    acct_type_col.short_description = "T"
+
+
     search_fields = [
         '^recipient_acct__first_name',
         '^recipient_acct__last_name',
         '^recipient_acct__username',
         'recipient_acct__email',
+        'recipient_entity__name',
         '^recipient_name',
         'recipient_email',
         'method_detail',
@@ -560,8 +614,8 @@ class ExpenseTransactionAdmin(VersionAdmin):
     list_display = [
         'pk',
         'payment_date',
-        'recipient_acct',
-        'recipient_name',
+        'acct_type_col',
+        'name_col',
         'amount_paid',
         'payment_method',
         'method_detail'
@@ -573,6 +627,7 @@ class ExpenseTransactionAdmin(VersionAdmin):
     fields = [
         'payment_date',
         'recipient_acct',
+        'recipient_entity',
         ('recipient_name', 'recipient_email'),
         ('payment_method', 'method_detail'),
         ('amount_paid', 'checksum'),
@@ -586,7 +641,7 @@ class ExpenseTransactionAdmin(VersionAdmin):
         ExpenseClaimReferenceInline,
     ]
 
-    raw_id_fields = ['recipient_acct']
+    raw_id_fields = ['recipient_acct', 'recipient_entity']
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
