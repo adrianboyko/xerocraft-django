@@ -232,7 +232,16 @@ class Sale(models.Model):
         # This is coded generically because the 'books' app doesn't know which models in other
         # apps will point back to a sale. So it looks for fields like "sale_price" and "qty_sold"
         # in all related models.
-        link_names = [rel.get_accessor_name() for rel in self._meta.get_all_related_objects()]
+
+        # This is the new way to get_all_related_objects
+        # per https://docs.djangoproject.com/en/1.10/ref/models/meta/
+        related_objects = [
+            f for f in self._meta.get_fields()
+              if (f.one_to_many or f.one_to_one)
+              and f.auto_created
+              and not f.concrete
+        ]
+        link_names = [rel.get_accessor_name() for rel in related_objects]
         for link_name in link_names:
             if link_name in ['salenote_set', 'invoicereference_set']: continue
             # TODO: Can a select_related or prefetch_related improve performance here?
@@ -248,9 +257,17 @@ class Sale(models.Model):
         return total
 
     def clean(self):
+
         if self.deposit_date is not None and self.sale_date is not None \
          and self.deposit_date < self.sale_date:
             raise ValidationError(_("Deposit date cannot be earlier than sale date."))
+
+        if self.payment_method == self.PAID_BY_CHECK \
+          and self.method_detail > "" and not self.method_detail.isnumeric():
+            raise ValidationError(_("Detail for check payments should only be the bare check number without # or other text."))
+
+        if self.payment_method == self.PAID_BY_CASH and self.method_detail > "":
+            raise ValidationError(_("Cash payments shouldn't have detail. Cash is cash."))
 
     def dbcheck(self):
         sum = self.checksum()
@@ -260,9 +277,9 @@ class Sale(models.Model):
             raise ValidationError(_("Total of line items must match amount transaction."))
 
     def __str__(self):
-        if self.payer_name is not "": return "{} sale to {}".format(self.sale_date, self.payer_name)
+        if self.payer_name > "": return "{} sale to {}".format(self.sale_date, self.payer_name)
         elif self.payer_acct is not None: return "{} sale to {}".format(self.sale_date, self.payer_acct)
-        elif self.payer_email is not None: return "{} sale to {}".format(self.sale_date, self.payer_email)
+        elif self.payer_email > "": return "{} sale to {}".format(self.sale_date, self.payer_email)
         else: return "{} sale".format(self.sale_date)
 
 
@@ -576,18 +593,21 @@ class ExpenseTransaction(models.Model):
 
     recipient_acct = models.ForeignKey(User, null=True, blank=True, default=None,
         on_delete=models.SET_NULL,  # Keep the transaction even if the user is deleted.
-        help_text="If payment was made to a member, specify them here.")
+        help_text="If payment was made to a user, speicfy them here.",
+        verbose_name="User acct paid")
 
     recipient_entity = models.ForeignKey(Entity, null=True, blank=True, default=None,
         on_delete=models.SET_NULL,
-        help_text="If some outside person/org is being invoiced, specify them here.")
+        help_text="If some outside person/org was paid, specify them here.",
+        verbose_name="Entity acct paid")
 
-    # TODO: Once recipient_name and recipient_email data is moved to entities,
-    # the two fields should be removed.
+    # TODO: Once recipient_name and recipient_email data is moved to entities, these two fields should be removed.
     recipient_name = models.CharField(max_length=40, blank=True,
-        help_text="Name of person/organization paid. Not req'd if account was linked, above.")
+        help_text="Name of person/org paid. Not req'd if an acct was linked, above.",
+        verbose_name="Name paid")
     recipient_email = models.EmailField(max_length=40, blank=True,
-        help_text="Email address of person/organization paid.")
+        help_text="Optional, sometimes useful ",
+        verbose_name="Optional email")
 
     amount_paid = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
         help_text="The dollar amount of the payment.")
@@ -614,14 +634,19 @@ class ExpenseTransaction(models.Model):
 
     def clean(self):
 
-        user_is_recipient = self.recipient_acct is not None
-        entity_is_recipient = self.recipient_entity is not None or self.recipient_name is not ""
+        recip_spec_count = 0
+        recip_spec_count += int(self.recipient_acct is not None)
+        recip_spec_count += int(self.recipient_entity is not None)
+        recip_spec_count += int(self.recipient_name > "")
+        if recip_spec_count != 1:
+            raise ValidationError(_("Recipient must be specified as EXACTLY ONE of user acct, entity acct, or name/email."))
 
-        if not user_is_recipient and not entity_is_recipient:
-            raise ValidationError(_("Either recipient user or recipient entity must be specified."))
+        if self.payment_method == self.PAID_BY_CHECK \
+          and self.method_detail > "" and not self.method_detail.isnumeric():
+            raise ValidationError(_("Detail for check payments should only be the bare check number without # or other text."))
 
-        if user_is_recipient and entity_is_recipient:
-            raise ValidationError(_("Only one of user invoiced or entity invoiced can be specified."))
+        if self.payment_method == self.PAID_BY_CASH and self.method_detail > "":
+            raise ValidationError(_("Cash payments shouldn't have detail. Cash is cash."))
 
     def checksum(self) -> Decimal:
         """
