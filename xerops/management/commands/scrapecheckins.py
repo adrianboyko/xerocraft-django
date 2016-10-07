@@ -1,14 +1,29 @@
+
+# Standard
+import sys
+from datetime import date, datetime
+
+# Third Party
 from django.core.management.base import BaseCommand
 from django.utils.timezone import get_default_timezone_name
-from members.models import VisitEvent
-from datetime import date, datetime
-from dateutil import relativedelta
-from .scraper import Scraper, djangofy_username, SERVER, \
-    USERNAME_KEY, DJANGO_USERNAME_KEY, USERNUM_KEY, FIRSTNAME_KEY, LASTNAME_KEY, EMAIL_KEY
-from nameparser import HumanName
 import lxml.html
-import sys
+from dateutil import relativedelta
+from nameparser import HumanName
 from pytz import timezone
+
+# Local
+from members.models import VisitEvent
+from .scraper import (
+    Scraper,
+    djangofy_username,
+    SERVER,
+    USERNAME_KEY,
+    DJANGO_USERNAME_KEY,
+    USERNUM_KEY,
+    FIRSTNAME_KEY,
+    LASTNAME_KEY,
+    EMAIL_KEY
+)
 
 __author__ = 'adrian'
 
@@ -60,22 +75,13 @@ class CheckinScraper(Scraper):
                 sync1=True,  # Because we're synching FROM xerocraft.org, it already has this event.
             )
 
-    def temp_backfill_datestr(self, given):
-        old_count = VisitEvent.objects.filter(when__year="2014", when__month="9").count()
-        if old_count == 0:
-            self.logger.info("Running checkin backfill.")
-            return "2014-09-13"
-        else:
-            return given
-
-    def start(self):
+    def start(self, days:int):
 
         if not self.login():
             # Problem is already logged in self.login
             return
 
-        yesterday_str = (date.today() + relativedelta.relativedelta(days=-1)).isoformat()
-        #yesterday_str = self.temp_backfill_datestr(yesterday_str)  # Backfill is done.
+        yesterday_str = (date.today() + relativedelta.relativedelta(days=-days)).isoformat()
         today_str = date.today().isoformat()
         post_data = {"viewing": "Total", "Start": yesterday_str, "End": today_str, "submit": ""}
         response = self.session.post(SERVER+"checkinanalytics.php", data=post_data)
@@ -134,6 +140,18 @@ class Command(CheckinScraper, BaseCommand):
 
     help = "Scrapes xerocraft.org/checkinanalytics.php and creates corresponding django accts, if not already created."
 
+    def add_arguments(self, parser):
+
+        # Named (optional) arguments
+        parser.add_argument(
+            '--days',
+            action='store',
+            dest='days',
+            default=1,
+            help='Scrape this many days of check-in history',
+        )
+
     def handle(self, *args, **options):
-        self.start()
+        days = int(options['days'])
+        self.start(days)
 
