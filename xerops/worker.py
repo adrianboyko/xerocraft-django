@@ -6,6 +6,9 @@ import os
 # Third Party
 import redis
 from rq import Worker, Queue, Connection
+import django
+
+django.setup()
 
 listen = ['high', 'default', 'low']
 

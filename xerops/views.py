@@ -1,8 +1,8 @@
 # Standard
 import time
-from subprocess import call
 
 # Third Party
+from django.core.management import call_command
 from django.shortcuts import render, render_to_response
 from django.contrib import auth
 from django.contrib.auth.decorators import login_required
@@ -150,7 +150,7 @@ q = Queue(connection=conn)
 
 def scrape_checkins():
     for i in range(4):
-        call(["python", "manage.py", "scrapecheckins"])
+        call_command("scrapecheckins")
         time.sleep(5)
 
 
