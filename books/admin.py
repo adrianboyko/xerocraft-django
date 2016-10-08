@@ -606,9 +606,11 @@ class ExpenseTransactionAdmin(VersionAdmin):
         '^recipient_acct__username',
         'recipient_acct__email',
         'recipient_entity__name',
-        '^recipient_name',
+        'recipient_name',
         'recipient_email',
-        'method_detail',
+        'method_detail', # For check numbers
+        #TODO: Add line item descriptions?
+        #TODO: Add expense claim line item descriptions?
     ]
 
     list_display = [
