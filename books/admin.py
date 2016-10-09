@@ -18,8 +18,10 @@ from books.models import (
     Account, DonationNote, MonetaryDonation, DonatedItem, Donation,
     Sale, SaleNote, OtherItem, OtherItemType, ExpenseTransaction,
     ExpenseTransactionNote, ExpenseClaim, ExpenseClaimNote,
-    ExpenseClaimReference, ExpenseLineItem, AccountGroup, Invoice,
-    Entity, EntityNote, InvoiceNote, InvoiceReference
+    ExpenseClaimReference, ExpenseLineItem, AccountGroup,
+    ReceivableInvoice, ReceivableInvoiceNote, ReceivableInvoiceReference,
+    PayableInvoice, PayableInvoiceNote, PayableInvoiceReference,
+    Entity, EntityNote,
 )
 from modelmailer.admin import ModelMailerAdmin
 
@@ -178,8 +180,10 @@ class DonationAdmin(ModelMailerAdmin, VersionAdmin):
 # ENTITY
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
+
 class EntityNoteInline(NoteInline):
     model = EntityNote
+
 
 @admin.register(Entity)
 class EntityAdmin(VersionAdmin):
@@ -187,96 +191,134 @@ class EntityAdmin(VersionAdmin):
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-# INVOICE
+# INVOICES
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-class InvoiceNoteInline(NoteInline):
-    model = InvoiceNote
+def make_InvoiceStatusFilter(invtype: str):
 
+    class InvoiceStatusFilter(admin.SimpleListFilter):
+        title = "Invoice Status"
+        parameter_name = 'status'
 
-class InvoiceStatusFilter(admin.SimpleListFilter):
-    title = "Invoice Status"
-    parameter_name = 'status'
-
-    def lookups(self, request, model_admin):
-        return (
-            ('open', _('Open')),
-            ('closed', _('Closed')),
-        )
-
-    def annotate_total_paid(self, queryset):
-        return queryset.annotate(
-            total_paid=Coalesce(
-                Sum(
-                    Case(
-                        When(invoicereference__id__isnull=True, then=Value("0.00")),
-                        When(invoicereference__portion__isnull=False, then=F('invoicereference__portion')),
-                        When(invoicereference__portion__isnull=True, then=F('amount')),
-                    )
-                ),
-                Value("0.00"),
+        def lookups(self, request, model_admin):
+            return (
+                ('open', _('Open')),
+                ('closed', _('Closed')),
             )
-        )
 
-    def queryset(self, request, queryset):
+        def annotate_total_paid(self, queryset):
+            invtype = "receivable"
+            return queryset.annotate(
+                total_paid=Coalesce(
+                    Sum(
+                        Case(
+                            When(**{
+                                invtype+'invoicereference__id__isnull': True,
+                                'then': Value("0.00")
+                            }),
+                            When(**{
+                                invtype+'invoicereference__portion__isnull': False,
+                                'then': F(invtype+'invoicereference__portion')
+                            }),
+                            When(**{
+                                invtype+'invoicereference__portion__isnull': True,
+                                'then': F('amount')
+                            }),
+                        )
+                    ),
+                    Value("0.00"),
+                )
+            )
 
-        if self.value() == 'open':
-            # An invoice with total paid < amount invoiceed is "open"
-            return self.annotate_total_paid(queryset).filter(total_paid__lt=F('amount'))
+        def queryset(self, request, queryset):
 
-        if self.value() == 'closed':
-            # Anything that has been fully paid is "closed"
-            return self.annotate_total_paid(queryset).filter(total_paid=F('amount'))
+            if self.value() == 'open':
+                # An invoice with total paid < amount invoiceed is "open"
+                return self.annotate_total_paid(queryset).filter(total_paid__lt=F('amount'))
+
+            if self.value() == 'closed':
+                # Anything that has been fully paid is "closed"
+                return self.annotate_total_paid(queryset).filter(total_paid=F('amount'))
+
+    return InvoiceStatusFilter
 
 
-@admin.register(Invoice)
+class ReceivableInvoiceNoteInline(NoteInline):
+    model = ReceivableInvoiceNote
+
+
+class PayableInvoiceNoteInline(NoteInline):
+    model = PayableInvoiceNote
+
+
 class InvoiceAdmin(VersionAdmin):
 
     list_display = [
         'id',
-        'date_invoiced',
-        'user_invoiced',
-        'entity_invoiced',
+        'invoice_date',
+        'user',
+        'entity',
         'amount',
         'account',
     ]
 
     fields = [
         'id',
-        'date_invoiced',
-        ('user_invoiced', 'entity_invoiced'),
+        'invoice_date',
+        ('user', 'entity'),
         'amount',
         'description',
         'account',
     ]
 
-    raw_id_fields = ['user_invoiced', 'entity_invoiced', 'account']
+    raw_id_fields = ['user', 'entity', 'account']
 
     readonly_fields = ['id']
 
-    date_hierarchy = 'date_invoiced'
-
-    inlines = [InvoiceNoteInline]
-
-    list_filter = [InvoiceStatusFilter]
+    date_hierarchy = 'invoice_date'
 
     search_fields = [
-        'entity_invoiced__name',
-        'entity_invoiced__email',
-        '^user_invoiced__first_name',
-        '^user_invoiced__last_name',
-        '^user_invoiced__username',
-        'user_invoiced__email',
+        'entity__name',
+        'entity__email',
+        '^user__first_name',
+        '^user__last_name',
+        '^user__username',
+        'user__email',
     ]
 
 
-class InvoiceReferenceInline(admin.StackedInline):
-    model = InvoiceReference
+@admin.register(ReceivableInvoice)
+class ReceivableInvoiceAdmin(InvoiceAdmin):
+    inlines = [ReceivableInvoiceNoteInline]
+    list_filter = [make_InvoiceStatusFilter('receivable')]
+
+
+@admin.register(PayableInvoice)
+class PayableInvoiceAdmin(InvoiceAdmin):
+    inlines = [PayableInvoiceNoteInline]
+    list_filter = [make_InvoiceStatusFilter('payable')]
+
+
+class ReceivableInvoiceReferenceInline(admin.StackedInline):
+    model = ReceivableInvoiceReference
     extra = 0
 
     def invoice_link(self, obj):
         # TODO: Use reverse as in the answer at http://stackoverflow.com/questions/2857001
-        url_str = "/admin/books/invoice/{}".format(obj.invoice.id)
+        url_str = "/admin/books/receivableinvoice/{}".format(obj.invoice.id)
+        return format_html("<a href='{}'>View Invoice</a>", url_str)
+
+    raw_id_fields = ['invoice']
+    readonly_fields = ['invoice_link']
+
+
+class PayableInvoiceReferenceInline(admin.StackedInline):
+    model = PayableInvoiceReference
+    extra = 0
+
+    def invoice_link(self, obj):
+        # TODO: Use reverse as in the answer at http://stackoverflow.com/questions/2857001
+        url_str = "/admin/books/payableinvoice/{}".format(obj.invoice.id)
         return format_html("<a href='{}'>View Invoice</a>", url_str)
 
     raw_id_fields = ['invoice']
@@ -385,7 +427,7 @@ class SaleAdmin(VersionAdmin):
         SaleNoteInline,
         MonetaryDonationInline,
         OtherItemInline,
-        InvoiceReferenceInline,
+        ReceivableInvoiceReferenceInline,
     ]
     readonly_fields = ['ctrlid', 'checksum']
     search_fields = [
@@ -641,6 +683,7 @@ class ExpenseTransactionAdmin(VersionAdmin):
         ExpenseTransactionNoteInline,
         ExpenseLineItemInline,
         ExpenseClaimReferenceInline,
+        PayableInvoiceReferenceInline,
     ]
 
     raw_id_fields = ['recipient_acct', 'recipient_entity']

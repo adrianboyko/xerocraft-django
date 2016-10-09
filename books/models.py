@@ -3,10 +3,10 @@
 # Standard
 from datetime import date
 from decimal import Decimal
+from typing import Dict
 
 # Third party
 from django.db import models
-from django.db.migrations.recorder import MigrationRecorder
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
 from django.utils.translation import ugettext_lazy as _
@@ -136,6 +136,158 @@ class AccountGroup(models.Model):
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# ENTITY - Any person or organization that is not a member.
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+class Entity(models.Model):
+
+    name = models.CharField(max_length=40, blank=False,
+        help_text="Name of person/organization.")
+
+    email = models.EmailField(max_length=40, blank=True,
+        help_text="Email address of person/organization.")
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = "Non-Member Entity"
+        verbose_name_plural = "Non-Member Entities"
+
+
+class EntityNote(Note):
+
+    entity = models.ForeignKey(Entity,
+        on_delete=models.CASCADE,  # No point in keeping the note if the entity is gone.
+        help_text="The entity to which the note pertains.")
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# INVOICES
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+def make_InvoiceBase(help: Dict[str, str]):
+
+    class InvoiceBase(models.Model):
+
+        invoice_date = models.DateField(null=False, blank=False, default=date.today,
+            help_text = help["invoice_date"])
+
+        user = models.ForeignKey(User, null=True, blank=True, default=None,
+            on_delete=models.SET_NULL,
+            help_text=help["user"])
+
+        entity = models.ForeignKey(Entity, null=True, blank=True, default=None,
+            on_delete=models.SET_NULL,
+            help_text = help["entity"])
+
+        amount = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
+            help_text=help["amount"])
+
+        # REVIEW: One could argue that description & account should be factored out into
+        # an InvoiceLineItem model but I don't see that being important for our purposes.
+        # If I'm proven wrong, a simple migration will be able to move to the factored form.
+
+        description = models.TextField(max_length=4096,
+            help_text = help["description"])
+
+        account = models.ForeignKey(Account, null=False, blank=False,
+            on_delete = models.PROTECT,  # Don't allow acct to be deleted if there are invoices pointing to it.
+            help_text=help["account"])
+
+        def name(self):
+            if self.entity is not None:
+                return self.entity.name
+            else:
+                return self.user.username
+
+        class Meta:
+            abstract = True
+
+    return InvoiceBase
+
+
+recv_invoice_help = {
+    "invoice_date": "The date on which the invoice was created.",
+    "user":         "If a user owes us, specify them here.",
+    "entity":       "If some outside person/org owes us, specify them here.",
+    "amount":       "The dollar amount we are invoicing them for.",
+    "description":  "Description of goods and/or services we delivered to them.",
+    "account":      "The revenue account associated with this invoice.",
+}
+
+
+class ReceivableInvoice(make_InvoiceBase(recv_invoice_help)):
+
+    def clean(self):
+
+        if self.user is None and self.entity is None:
+            raise ValidationError(_("Either user invoiced or entity invoiced must be specified."))
+
+        if self.user is not None and self.entity is not None:
+            raise ValidationError(_("Only one of user invoiced or entity invoiced can be specified."))
+
+        if self.account.category is not Account.CAT_REVENUE:
+             raise ValidationError(_("Account chosen must have category REVENUE."))
+
+        if self.account.type is not Account.TYPE_CREDIT:
+            raise ValidationError(_("Account chosen must have type CREDIT."))
+
+    def __str__(self):
+        return "${} owed to us by {} as of {}".format(
+            self.amount,
+            self.name(),
+            self.invoice_date)
+
+
+class ReceivableInvoiceNote(Note):
+
+    invoice = models.ForeignKey(ReceivableInvoice,
+        on_delete=models.CASCADE,  # No point in keeping the note if the invoice is gone.
+        help_text="The invoice to which the note pertains.")
+
+
+payable_invoice_help = {
+    "invoice_date": "The date of the invoice.",
+    "user":         "If we owe a user, specify them here.",
+    "entity":       "If we owe some outside person/org, specify them here.",
+    "amount":       "The dollar amount they invoiced.",
+    "description":  "Description of goods and/or services we received from them.",
+    "account":      "The expense account associated with this invoice.",
+}
+
+
+class PayableInvoice(make_InvoiceBase(payable_invoice_help)):
+
+    def clean(self):
+
+        if self.user is None and self.entity is None:
+            raise ValidationError(_("Either user or entity must be specified."))
+
+        if self.user is not None and self.entity is not None:
+            raise ValidationError(_("Only one of user or entity can be specified."))
+
+        if self.account.category is not Account.CAT_EXPENSE:
+             raise ValidationError(_("Account chosen must have category EXPENSE."))
+
+        if self.account.type is not Account.TYPE_DEBIT:
+            raise ValidationError(_("Account chosen must have type DEBIT."))
+
+    def __str__(self):
+        return "${} owed to {} as of {}".format(
+            self.amount,
+            self.name(),
+            self.invoice_date)
+
+
+class PayableInvoiceNote(Note):
+
+    invoice = models.ForeignKey(PayableInvoice,
+        on_delete=models.CASCADE,  # No point in keeping the note if the invoice is gone.
+        help_text="The invoice to which the note pertains.")
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # SALE
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
@@ -243,7 +395,7 @@ class Sale(models.Model):
         ]
         link_names = [rel.get_accessor_name() for rel in related_objects]
         for link_name in link_names:
-            if link_name in ['salenote_set', 'invoicereference_set']: continue
+            if link_name in ['salenote_set', 'receivableinvoicereference_set']: continue
             # TODO: Can a select_related or prefetch_related improve performance here?
             line_items = getattr(self, link_name).all()
             for line_item in line_items:
@@ -252,7 +404,7 @@ class Sale(models.Model):
                 elif hasattr(line_item, 'sale_price'): line_total += line_item.sale_price
                 if hasattr(line_item, 'qty_sold'): line_total *= line_item.qty_sold
                 total += line_total
-        for invref in self.invoicereference_set.all():
+        for invref in self.receivableinvoicereference_set.all():
             total += invref.portion if invref.portion is not None else invref.invoice.amount
         return total
 
@@ -352,6 +504,21 @@ class MonetaryDonation(models.Model):
 
     def __str__(self):
         return str("$"+str(self.amount))
+
+
+class ReceivableInvoiceReference(models.Model):
+    sale = models.ForeignKey(Sale, null=False, blank=False,
+        on_delete=models.CASCADE,  # Delete this relation if the income transaction is deleted.
+        help_text="The income transaction that pays the invoice.")
+
+    # I wanted the following to be OneToOne but there might be multiple partial payments
+    # toward a single invoice. I.e. I'm paralleling the ExpenseClaimReference case.
+    invoice = models.ForeignKey(ReceivableInvoice, null=False, blank=False,
+        on_delete=models.CASCADE,  # Delete this relation if the invoice is deleted.
+        help_text="The invoice that is paid by the income transaction.")
+
+    portion = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, default=None,
+        help_text="Leave blank unless they're only paying a portion of the invoice.")
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -499,90 +666,6 @@ class ExpenseClaimNote(Note):
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-# ENTITY - Any person or organization that is not a member.
-# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-
-class Entity(models.Model):
-
-    name = models.CharField(max_length=40, blank=False,
-        help_text="Name of person/organization.")
-
-    email = models.EmailField(max_length=40, blank=True,
-        help_text="Email address of person/organization.")
-
-    def __str__(self):
-        return self.name
-
-    class Meta:
-        verbose_name = "Non-Member Entity"
-        verbose_name_plural = "Non-Member Entities"
-
-
-class EntityNote(Note):
-
-    entity = models.ForeignKey(Entity,
-        on_delete=models.CASCADE,  # No point in keeping the note if the entity is gone.
-        help_text="The entity to which the note pertains.")
-
-
-# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-# INVOICE
-# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-
-class Invoice(models.Model):
-
-    date_invoiced = models.DateField(null=False, blank=False, default=date.today,
-        help_text="The date on which the invoice was created and presumably mailed.")
-
-    user_invoiced = models.ForeignKey(User, null=True, blank=True, default=None,
-        on_delete=models.SET_NULL,
-        help_text="If a user is being invoiced, specify them here.")
-
-    entity_invoiced = models.ForeignKey(Entity, null=True, blank=True, default=None,
-        on_delete=models.SET_NULL,
-        help_text="If some outside person/org is being invoiced, specify them here.")
-
-    amount = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
-        help_text="The dollar amount of the payment.")
-
-    # REVIEW: One could argue that description & account should be factored out into
-    # an InvoiceLineItem model but I don't see that being important for our purposes.
-    # If I'm proven wrong, a simple migration will be able to move to the factored form.
-
-    description = models.TextField(max_length=4096,
-        help_text="Description of goods and/or services delivered.")
-
-    account = models.ForeignKey(Account, null=False, blank=False,
-        on_delete=models.PROTECT,  # Don't allow acct to be deleted if there are invoices pointing to it.
-        help_text="The revenue account associated with this invoice.")
-
-    def clean(self):
-
-        if self.user_invoiced is None and self.entity_invoiced is None:
-            raise ValidationError(_("Either user invoiced or entity invoiced must be specified."))
-
-        if self.user_invoiced is not None and self.entity_invoiced is not None:
-            raise ValidationError(_("Only one of user invoiced or entity invoiced can be specified."))
-
-        if self.account.category is not Account.CAT_REVENUE:
-             raise ValidationError(_("Account chosen must have category REVENUE."))
-
-        if self.account.type is not Account.TYPE_CREDIT:
-            raise ValidationError(_("Account chosen must have type CREDIT."))
-
-    def __str__(self):
-        who_invoiced = self.entity_invoiced.name or self.user_invoiced.username
-        return "${} to {} on {}".format(self.amount, who_invoiced, self.date_invoiced)
-
-
-class InvoiceNote(Note):
-
-    invoice = models.ForeignKey(Invoice,
-        on_delete=models.CASCADE,  # No point in keeping the note if the invoice is gone.
-        help_text="The invoice to which the note pertains.")
-
-
-# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # EXPENSE TRANSACTION
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
@@ -684,22 +767,6 @@ class ExpenseClaimReference(models.Model):
         help_text="Leave blank unless you're only paying a portion of the claim.")
 
 
-class InvoiceReference(models.Model):
-
-    sale = models.ForeignKey(Sale, null=False, blank=False,
-        on_delete=models.CASCADE,  # Delete this relation if the income transaction is deleted.
-        help_text="The income transaction that pays the invoice.")
-
-    # I wanted the following to be OneToOne but there might be multiple partial payments
-    # toward a single invoice. I.e. I'm paralleling the ExpenseClaimReference case.
-    invoice = models.ForeignKey(Invoice, null=False, blank=False,
-        on_delete=models.CASCADE,  # Delete this relation if the invoice is deleted.
-        help_text="The invoice that is paid by the income transaction.")
-
-    portion = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, default=None,
-        help_text="Leave blank unless you're only paying a portion of the invoice.")
-
-
 class ExpenseLineItem(models.Model):
 
     # An expense line item can appear in an ExpenseClaim or in an ExpenseTransaction
@@ -746,3 +813,18 @@ class ExpenseTransactionNote(Note):
         on_delete=models.CASCADE,  # No point in keeping the note if the transaction is gone.
         help_text="The expense transaction to which the note pertains.")
 
+
+class PayableInvoiceReference(models.Model):
+
+    exp = models.ForeignKey(ExpenseTransaction, null=False, blank=False,
+        on_delete=models.CASCADE,  # Delete this relation if the expense transaction is deleted.
+        help_text="The expense transaction by which we pay the invoice.")
+
+    # I wanted the following to be OneToOne but there might be multiple partial payments
+    # toward a single invoice. I.e. I'm paralleling the ExpenseClaimReference case.
+    invoice = models.ForeignKey(PayableInvoice, null=False, blank=False,
+        on_delete=models.CASCADE,  # Delete this relation if the invoice is deleted.
+        help_text="The invoice that is paid by the expense transaction.")
+
+    portion = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, default=None,
+        help_text="Leave blank unless we're only paying a portion of the invoice.")
