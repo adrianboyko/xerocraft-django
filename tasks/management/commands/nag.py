@@ -123,15 +123,22 @@ class Command(BaseCommand):
     @staticmethod
     def verify_default_claims(HOST):
 
+        today = datetime.date.today()
+        claims = Claim.objects.filter(
+            status=Claim.STAT_CURRENT,
+            claimed_task__scheduled_date__range=[today+THREEDAYS, today+FOURDAYS],
+            # REVIEW: Is the following 'claiming_member' restriction actually required?
+            claiming_member=F('claimed_task__recurring_task_template__default_claimant'),
+            date_verified__isnull=True)
+
+        if len(claims) == 0:
+            # No default claims to process.
+            return
+
         text_content_template = get_template('tasks/email-verify-claim.txt')
         html_content_template = get_template('tasks/email-verify-claim.html')
 
-        today = datetime.date.today()
-        for claim in Claim.objects.filter(
-          status = Claim.STAT_CURRENT,
-          claimed_task__scheduled_date__range=[today+THREEDAYS, today+FOURDAYS],
-          claiming_member=F('claimed_task__recurring_task_template__default_claimant'),
-          date_verified__isnull=True):
+        for claim in claims:
             b64, md5 = Member.generate_auth_token_str(
                 lambda token: Nag.objects.filter(auth_token_md5=token).count() == 0)  # uniqueness test
 
