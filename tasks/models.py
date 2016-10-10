@@ -715,16 +715,12 @@ class Task(make_TaskMixin("Tasks"), TimeWindowedObject):
         self.eligible_claimants = templ.eligible_claimants.all()
         self.eligible_tags = templ.eligible_tags.all()
 
-        # TODO: Special handling of default_claimaint
-        for claim in self.current_claimants():
-            # Don't want to delete current VERIFIED claims.
-            if claim.date_verified is None:
-                claim.delete()
-            else:
-                # TODO: Send email to VERIFIED claimant to inform of changes to task?
-                pass
-
-        if len(self.current_claimants() == 0):
+        # Default claimant
+        # Only delete claims that are unverified.
+        unverified = self.claim_set.filter(status=Claim.STAT_CURRENT, date_verified__isnull=True)
+        unverified.delete()
+        # Then add a default claim if there aren't any left.
+        if len(self.current_claimants()) == 0:
             self.create_default_claim()
 
         self.save()
