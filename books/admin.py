@@ -19,12 +19,27 @@ from books.models import (
     Sale, SaleNote, OtherItem, OtherItemType, ExpenseTransaction,
     ExpenseTransactionNote, ExpenseClaim, ExpenseClaimNote,
     ExpenseClaimReference, ExpenseLineItem, AccountGroup,
-    ReceivableInvoice, ReceivableInvoiceNote, ReceivableInvoiceReference,
-    PayableInvoice, PayableInvoiceNote, PayableInvoiceReference,
+    ReceivableInvoice, ReceivableInvoiceNote, ReceivableInvoiceReference, ReceivableInvoiceLineItem,
+    PayableInvoice, PayableInvoiceNote, PayableInvoiceReference, PayableInvoiceLineItem,
     Entity, EntityNote,
 )
 from modelmailer.admin import ModelMailerAdmin
 
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# UTILITIES
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+# TODO: Move to models?
+def name_colfunc(user: User, ent: Entity):
+    result = ""
+    if user is not None:
+        n = " ".join(filter(None, [user.first_name, user.last_name]))
+        result = n if len(n) > len(result) else result
+    if ent is not None:
+        n = ent.name
+        result = n if len(n) > len(result) else result
+    return result
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # Checksum Admin Form
@@ -187,6 +202,7 @@ class EntityNoteInline(NoteInline):
 
 @admin.register(Entity)
 class EntityAdmin(VersionAdmin):
+    list_display = ['id', 'name']
     inlines = [EntityNoteInline]
 
 
@@ -251,15 +267,24 @@ class PayableInvoiceNoteInline(NoteInline):
     model = PayableInvoiceNote
 
 
+class ReceivableInvoiceLineItemAdmin(admin.TabularInline):
+    model = ReceivableInvoiceLineItem
+    raw_id_fields = ['account']
+
+
+class PayableInvoiceLineItemAdmin(admin.TabularInline):
+    model = PayableInvoiceLineItem
+    raw_id_fields = ['account']
+
+
 class InvoiceAdmin(VersionAdmin):
 
     list_display = [
         'id',
         'invoice_date',
-        'user',
-        'entity',
+        'name_col',
         'amount',
-        'account',
+        'description',
     ]
 
     fields = [
@@ -268,10 +293,9 @@ class InvoiceAdmin(VersionAdmin):
         ('user', 'entity'),
         'amount',
         'description',
-        'account',
     ]
 
-    raw_id_fields = ['user', 'entity', 'account']
+    raw_id_fields = ['user', 'entity']
 
     readonly_fields = ['id']
 
@@ -289,13 +313,23 @@ class InvoiceAdmin(VersionAdmin):
 
 @admin.register(ReceivableInvoice)
 class ReceivableInvoiceAdmin(InvoiceAdmin):
-    inlines = [ReceivableInvoiceNoteInline]
+
+    def name_col(self, obj:ReceivableInvoice):
+        return name_colfunc(obj.user, obj.entity)
+    name_col.short_description = "To"
+
+    inlines = [ReceivableInvoiceNoteInline, ReceivableInvoiceLineItemAdmin]
     list_filter = [make_InvoiceStatusFilter('receivable')]
 
 
 @admin.register(PayableInvoice)
 class PayableInvoiceAdmin(InvoiceAdmin):
-    inlines = [PayableInvoiceNoteInline]
+
+    def name_col(self, obj:ReceivableInvoice):
+        return name_colfunc(obj.user, obj.entity)
+    name_col.short_description = "From"
+
+    inlines = [PayableInvoiceNoteInline, PayableInvoiceLineItemAdmin]
     list_filter = [make_InvoiceStatusFilter('payable')]
 
 

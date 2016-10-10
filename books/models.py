@@ -184,16 +184,8 @@ def make_InvoiceBase(help: Dict[str, str]):
         amount = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
             help_text=help["amount"])
 
-        # REVIEW: One could argue that description & account should be factored out into
-        # an InvoiceLineItem model but I don't see that being important for our purposes.
-        # If I'm proven wrong, a simple migration will be able to move to the factored form.
-
-        description = models.TextField(max_length=4096,
+        description = models.TextField(max_length=1024,
             help_text = help["description"])
-
-        account = models.ForeignKey(Account, null=False, blank=False,
-            on_delete = models.PROTECT,  # Don't allow acct to be deleted if there are invoices pointing to it.
-            help_text=help["account"])
 
         def name(self):
             if self.entity is not None:
@@ -226,12 +218,6 @@ class ReceivableInvoice(make_InvoiceBase(recv_invoice_help)):
 
         if self.user is not None and self.entity is not None:
             raise ValidationError(_("Only one of user invoiced or entity invoiced can be specified."))
-
-        if self.account.category is not Account.CAT_REVENUE:
-             raise ValidationError(_("Account chosen must have category REVENUE."))
-
-        if self.account.type is not Account.TYPE_CREDIT:
-            raise ValidationError(_("Account chosen must have type CREDIT."))
 
     def __str__(self):
         return "${} owed to us by {} as of {}".format(
@@ -267,12 +253,6 @@ class PayableInvoice(make_InvoiceBase(payable_invoice_help)):
         if self.user is not None and self.entity is not None:
             raise ValidationError(_("Only one of user or entity can be specified."))
 
-        if self.account.category is not Account.CAT_EXPENSE:
-             raise ValidationError(_("Account chosen must have category EXPENSE."))
-
-        if self.account.type is not Account.TYPE_DEBIT:
-            raise ValidationError(_("Account chosen must have type DEBIT."))
-
     def __str__(self):
         return "${} owed to {} as of {}".format(
             self.amount,
@@ -285,6 +265,55 @@ class PayableInvoiceNote(Note):
     invoice = models.ForeignKey(PayableInvoice,
         on_delete=models.CASCADE,  # No point in keeping the note if the invoice is gone.
         help_text="The invoice to which the note pertains.")
+
+
+class InvoiceLineItem(models.Model):
+
+    description = models.CharField(max_length=128, blank=False,
+        help_text="A brief description of this line item.")
+
+    delivery_date = models.DateField(null=False, blank=False,
+        help_text="The date on which this line item was delivered.")
+
+    amount = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
+        help_text="The dollar amount for this line item.")
+
+    account = models.ForeignKey(Account, null=False, blank=False,
+        on_delete=models.PROTECT, # Don't allow acct to be deleted if there are invoices pointing to it.
+        help_text="The account associated with this line item.")
+
+    class Meta:
+        abstract = True
+
+
+class ReceivableInvoiceLineItem(InvoiceLineItem):
+
+    inv = models.ForeignKey(ReceivableInvoice, null=True, blank=True,
+        on_delete=models.CASCADE,  # Line items are parts of the larger invoice, so delete if invoice is deleted.
+        help_text="The receivable invoice on which this line item appears.")
+
+    def clean(self):
+
+        if self.account.category is not Account.CAT_REVENUE:
+             raise ValidationError(_("Account chosen must have category REVENUE."))
+
+        if self.account.type is not Account.TYPE_CREDIT:
+            raise ValidationError(_("Account chosen must have type CREDIT."))
+
+
+class PayableInvoiceLineItem(InvoiceLineItem):
+
+    inv = models.ForeignKey(PayableInvoice, null=True, blank=True,
+        on_delete=models.CASCADE,  # Line items are parts of the larger invoice, so delete if invoice is deleted.
+        help_text="The payable invoice on which this line item appears.")
+
+    def clean(self):
+
+        if self.account.category is not Account.CAT_EXPENSE:
+             raise ValidationError(_("Account chosen must have category EXPENSE."))
+
+        if self.account.type is not Account.TYPE_DEBIT:
+            raise ValidationError(_("Account chosen must have type DEBIT."))
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
