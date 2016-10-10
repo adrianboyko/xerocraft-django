@@ -291,13 +291,13 @@ class InvoiceAdmin(VersionAdmin):
         'id',
         'invoice_date',
         ('user', 'entity'),
-        'amount',
+        ('amount', 'checksum'),
         'description',
     ]
 
     raw_id_fields = ['user', 'entity']
 
-    readonly_fields = ['id']
+    readonly_fields = ['id', 'checksum']
 
     date_hierarchy = 'invoice_date'
 
@@ -318,6 +318,8 @@ class ReceivableInvoiceAdmin(InvoiceAdmin):
         return name_colfunc(obj.user, obj.entity)
     name_col.short_description = "To"
 
+    form = get_ChecksumAdminForm(ReceivableInvoice)
+
     inlines = [ReceivableInvoiceNoteInline, ReceivableInvoiceLineItemAdmin]
     list_filter = [make_InvoiceStatusFilter('receivable')]
 
@@ -328,6 +330,8 @@ class PayableInvoiceAdmin(InvoiceAdmin):
     def name_col(self, obj:ReceivableInvoice):
         return name_colfunc(obj.user, obj.entity)
     name_col.short_description = "From"
+
+    form = get_ChecksumAdminForm(PayableInvoice)
 
     inlines = [PayableInvoiceNoteInline, PayableInvoiceLineItemAdmin]
     list_filter = [make_InvoiceStatusFilter('payable')]

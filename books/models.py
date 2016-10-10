@@ -193,6 +193,18 @@ def make_InvoiceBase(help: Dict[str, str]):
             else:
                 return self.user.username
 
+        def clean(self):
+
+            if self.user is None and self.entity is None:
+                raise ValidationError(_("Either user or entity must be specified."))
+
+            if self.user is not None and self.entity is not None:
+                raise ValidationError(_("Only one of user or entity can be specified."))
+
+        def dbcheck(self):
+            if self.amount != self.checksum():
+                raise ValidationError(_("Total of line items must match amount of invoice."))
+
         class Meta:
             abstract = True
 
@@ -211,13 +223,14 @@ recv_invoice_help = {
 
 class ReceivableInvoice(make_InvoiceBase(recv_invoice_help)):
 
-    def clean(self):
-
-        if self.user is None and self.entity is None:
-            raise ValidationError(_("Either user invoiced or entity invoiced must be specified."))
-
-        if self.user is not None and self.entity is not None:
-            raise ValidationError(_("Only one of user invoiced or entity invoiced can be specified."))
+    def checksum(self) -> Decimal:
+        """
+        :return: The sum total of all line items. Should match self.amount.
+        """
+        total = Decimal(0.0)
+        for lineitem in self.receivableinvoicelineitem_set.all():
+            total += lineitem.amount
+        return total
 
     def __str__(self):
         return "${} owed to us by {} as of {}".format(
@@ -245,13 +258,14 @@ payable_invoice_help = {
 
 class PayableInvoice(make_InvoiceBase(payable_invoice_help)):
 
-    def clean(self):
-
-        if self.user is None and self.entity is None:
-            raise ValidationError(_("Either user or entity must be specified."))
-
-        if self.user is not None and self.entity is not None:
-            raise ValidationError(_("Only one of user or entity can be specified."))
+    def checksum(self) -> Decimal:
+        """
+        :return: The sum total of all line items. Should match self.amount.
+        """
+        total = Decimal(0.0)
+        for lineitem in self.payableinvoicelineitem_set.all():
+            total += lineitem.amount
+        return total
 
     def __str__(self):
         return "${} owed to {} as of {}".format(
