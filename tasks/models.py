@@ -612,7 +612,7 @@ class Task(make_TaskMixin("Tasks"), TimeWindowedObject):
     def is_active(self):
         return self.status == self.STAT_ACTIVE
 
-    def is_fully_claimed(self):
+    def is_fully_claimed(self) -> bool:
         """
         Determine whether all the hours estimated for a task have been claimed by one or more members.
         :return: True or False
@@ -620,8 +620,22 @@ class Task(make_TaskMixin("Tasks"), TimeWindowedObject):
         unclaimed_hours = self.unclaimed_hours()
         return unclaimed_hours == timedelta(0)
 
-    def all_claims_verified(self):
+    def all_claims_verified(self) -> bool:
         return all(claim.date_verified is not None for claim in self.claim_set.all())
+
+    STAFFING_STATUS_STAFFED     = "S"  # There is a verified current claim.
+    STAFFING_STATUS_UNSTAFFED   = "U"  # There is no current claim.
+    STAFFING_STATUS_PROVISIONAL = "P"  # There is an unverified current claim.
+
+    def staffing_status(self) -> str:
+        currClaims = self.claim_set.filter(status=Claim.STAT_CURRENT)
+        if self.is_fully_claimed():
+            for claim in currClaims:  # type: Claim
+                if claim.date_verified is None:
+                    return Task.STAFFING_STATUS_PROVISIONAL
+            return Task.STAFFING_STATUS_STAFFED
+        else:
+            return Task.STAFFING_STATUS_UNSTAFFED
 
     def all_eligible_claimants(self):
         """
