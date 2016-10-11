@@ -416,7 +416,6 @@ class TestViews(TestCase):
         "Work",
         "TaskNote",
         "Worker",
-        "WorkNote",
     ]
 
     def test_admin_views(self):  # TODO: Generalize this and move it to xerocraft.tests
