@@ -672,6 +672,15 @@ class Task(make_TaskMixin("Tasks"), TimeWindowedObject):
 
     def create_default_claim(self):
         '''Create a claim assuming that other task info has already been initialized.'''
+
+        # Short out if default claimant already has a claim.
+        def_claimant_claims = self.claim_set.filter(
+            claiming_member=self.recurring_task_template.default_claimant,
+        )
+        if len(def_claimant_claims) > 0:
+            return
+
+        # Otherwise, create a claim for default claimant.
         duration = self.work_duration
         if duration is None:
             if self.max_workers != 1:
