@@ -16,6 +16,18 @@ from tasks.models import (
 
 from tasks.templatetags.tasks_extras import duration_str2
 
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+class NoteInline(admin.StackedInline):
+
+    fields = ['author', 'content']
+
+    readonly_fields = ['author']
+
+    extra = 0
+
+    class Meta:
+        abstract = True
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
@@ -576,6 +588,10 @@ class NagAdmin(admin.ModelAdmin):  # No need to version these
     ]
 
 
+class WorkNoteInline(NoteInline):
+    model = WorkNote
+
+
 @admin.register(Work)
 class WorkAdmin(VersionAdmin):
     raw_id_fields = ['claim']
@@ -588,6 +604,7 @@ class WorkAdmin(VersionAdmin):
         '^claim__claiming_member__auth_user__username',
         'claim__claimed_task__short_desc',
     ]
+    inlines = [WorkNoteInline]
 
 
 # REVIEW: Following class is very similar to MemberTypeFilter. Can they be combined?
@@ -656,12 +673,6 @@ class WorkerAdmin(VersionAdmin):
 @admin.register(TaskNote)
 class TaskNoteAdmin(VersionAdmin):
     list_display = ['pk', 'task', 'author', 'content']
-    raw_id_fields = ['author']
-
-
-@admin.register(WorkNote)
-class WorkNoteAdmin(VersionAdmin):
-    list_display = ['pk', 'work', 'author', 'content']
     raw_id_fields = ['author']
 
 
