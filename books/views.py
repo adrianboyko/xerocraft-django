@@ -24,6 +24,16 @@ from .serializers import (
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
+def _acc(pts):
+    acc_vs_time = []
+    acc_to_date = 0.0
+    pts.sort(key=lambda pt: pt[0])
+    for x in pts:
+        acc_to_date += x[1]
+        acc_vs_time.append([x[0], acc_to_date])
+    return acc_vs_time
+
+
 @login_required
 def net_income_vs_date_chart(request):
 
@@ -33,24 +43,38 @@ def net_income_vs_date_chart(request):
         return HttpResponse("This page is for Directors only.")
 
     start = date(2016, 1, 1)
+
     data = []
+
+    exps = []
     for exp in ExpenseLineItem.objects.all():
         if exp.expense_date < start:
             continue
-        data.append([exp.expense_date.isoformat(), -1.0*float(exp.amount)])
+        pt = [exp.expense_date.isoformat(), -1.0 * float(exp.amount)]
+        exps.append(pt)
+        data.append(pt)
+
     incs = []
     for inc in Sale.objects.all():  # AKA IncomeTransactions
         if inc.sale_date <= start:
             continue
-        data.append([inc.sale_date.isoformat(), float(inc.total_paid_by_customer - inc.processing_fee)])
-    # http://stackoverflow.com/questions/464342/combining-two-sorted-lists-in-python
-    data.sort(key=lambda pt: pt[0])
-    acc_income_vs_time = []
-    acc_income_to_date = 0.0
-    for x in data:
-        acc_income_to_date += x[1]
-        acc_income_vs_time.append([x[0], acc_income_to_date])
-    return render(request, 'books/net-income-vs-date-chart.html', {'data': acc_income_vs_time})
+        # Bit Buckets "what if?"
+        # if inc.payer_name.lower().startswith("bit"):
+        #     continue
+        pt = [inc.sale_date.isoformat(), float(inc.total_paid_by_customer - inc.processing_fee)]
+        incs.append(pt)
+        data.append(pt)
+
+    acc_inc_vs_time = _acc(incs)
+    acc_exp_vs_time = _acc(exps)
+    acc_net_vs_time = _acc(data)
+
+    params = {
+        'net': acc_net_vs_time,
+        'inc': acc_inc_vs_time,
+        'exp': acc_exp_vs_time,
+    }
+    return render(request, 'books/net-income-vs-date-chart.html', params)
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =

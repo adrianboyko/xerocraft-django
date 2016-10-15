@@ -7,29 +7,50 @@
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     <script type="text/javascript">
       google.charts.load('current', {'packages':['corechart']});
-      google.charts.setOnLoadCallback(drawChart);
+      google.charts.setOnLoadCallback(drawCharts);
 
-      function drawChart() {
-        var data = google.visualization.arrayToDataTable([
-          ["Date", "Net"],
-          {% for theDate, theNet in data %}
-            [new Date('{{theDate}}'),{{theNet}}],
-          {% endfor %}
-        ]);
+      function drawChart(theDivId, title, pts) {
+        var data = google.visualization.arrayToDataTable(
+          [["Date", title]].concat(pts)
+        );
 
         var options = {
-          title: 'Cumulative Net Income vs Date',
+          title: title+' vs Date',
           legend: { position: 'none' },
+          trendlines: {
+            0: {
+              type: 'polynomial',
+              degree: 2,
+              color: 'red'
+            }
+          }
         };
 
-        var chart = new google.visualization.SteppedAreaChart(document.getElementById('the_chart'));
+        var chart = new google.visualization.SteppedAreaChart(document.getElementById(theDivId));
 
         chart.draw(data, options);
+      }
+
+      function drawCharts() {
+        drawChart(
+          "net_chart", "Net",
+          [{% for theDate, theNet in net %}[new Date('{{theDate}}'),{{theNet}}],{% endfor %}]
+        )
+        drawChart(
+          "inc_chart", "Income",
+          [{% for theDate, theInc in inc %}[new Date('{{theDate}}'),{{theInc}}],{% endfor %}]
+        )
+        drawChart(
+          "exp_chart", "Expenses",
+          [{% for theDate, theExp in exp %}[new Date('{{theDate}}'),{{theExp}}],{% endfor %}]
+        )
       }
     </script>
 
 </head>
 <body>
-    <div id="the_chart" style="width:1280px; height:768px; text-align:center;"></div>
+    <div id="inc_chart" style="width:1280px; height:768px; text-align:center;"></div>
+    <div id="exp_chart" style="width:1280px; height:768px; text-align:center;"></div>
+    <div id="net_chart" style="width:1280px; height:768px; text-align:center;"></div>
 </body>
 </html>
