@@ -44,13 +44,16 @@ def _fits(pts):
     xs = [parse(x).timestamp() for x in iso_dates]
     ys = cols[1]
 
+    # Index of the point on the poly fit at which the tangential linear comparison will be calculated
+    tan_ndx = 0  # int(len(xs)/2)
+
     # Polynomial fit
     [x2, x1, x0] = np.polyfit(xs, ys, 2)
-    poly_y0 = x2*xs[0]*xs[0] + x1*xs[0] + x0
+    tan_y = x2*xs[tan_ndx]*xs[tan_ndx] + x1*xs[tan_ndx] + x0
 
-    # Linear comparison
-    m = 2 * x2 * xs[0] + x1
-    lin_ys = [m*(x - xs[0]) + poly_y0 for x in xs]
+    # claculate the tangential linear comparison y values
+    m = 2 * x2 * xs[tan_ndx] + x1
+    lin_ys = [m*(x - xs[tan_ndx]) + tan_y for x in xs]
 
     return zip(iso_dates, ys, lin_ys)
 
