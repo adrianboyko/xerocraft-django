@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Cumulative vs Date</title>
+
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript">
+      google.charts.load('current', {'packages':['corechart']});
+      google.charts.setOnLoadCallback(drawCharts);
+
+      function drawChart(theDivId, title, columnNames, pts) {
+        var data = google.visualization.arrayToDataTable(
+          [columnNames].concat(pts)
+        );
+
+        var options = {
+          title: title,
+          legend: { position: 'none' },
+          series: {
+            1: {
+              lineDashStyle: [5, 5],
+              lineWidth: 3,
+              color: 'green'
+            }
+          },
+          trendlines: {
+            0: {
+              type: 'polynomial',
+              degree: 2,
+              lineWidth: 20,
+              opacity: 0.2,
+              color: 'gray'
+            }
+          }
+        };
+
+        var chart = new google.visualization.LineChart(document.getElementById(theDivId));
+        chart.draw(data, options);
+      }
+
+      function drawCharts() {
+        drawChart(
+          "net_chart", "Cumulative Net Income vs Date", ["Date", "Net"],
+          [{% for theDate, theNet in net %}
+              [ new Date('{{theDate}}'), {{theNet}} ],{% endfor %}
+          ]
+        );
+        drawChart(
+          "inc_chart", "Cumulative Income vs Date", ["Date", "Inc", "Line"],
+          [{% for theDate, theInc, theLine in inc %}
+              [ new Date('{{theDate}}'), {{theInc}}, {{theLine}} ],{% endfor %}
+          ]
+        );
+        drawChart(
+          "exp_chart", "Cumulative Expenses vs Date", ["Date", "Exp", "Line"],
+          [{% for theDate, theExp, theLine in exp %}
+              [ new Date('{{theDate}}'), {{theExp}}, {{theLine}} ],{% endfor %}
+          ]
+        );
+      }
+    </script>
+
+</head>
+<body>
+    <div id="inc_chart" style="width:1280px; height:768px; text-align:center;"></div>
+    <div id="exp_chart" style="width:1280px; height:768px; text-align:center;"></div>
+    <div id="net_chart" style="width:1280px; height:768px; text-align:center;"></div>
+</body>
+</html>

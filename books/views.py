@@ -1,12 +1,14 @@
 
 # Standard
-from datetime import date
+from datetime import date, datetime
 
 # Third Party
 from django.shortcuts import render
 from rest_framework import viewsets
 from django.http.response import HttpResponse
 from django.contrib.auth.decorators import login_required
+import numpy as np
+from dateutil.parser import parse
 
 # Local
 from .models import (
@@ -25,6 +27,7 @@ from .serializers import (
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 def _acc(pts):
+    """ Accumulates """
     acc_vs_time = []
     acc_to_date = 0.0
     pts.sort(key=lambda pt: pt[0])
@@ -34,8 +37,26 @@ def _acc(pts):
     return acc_vs_time
 
 
+def _fits(pts):
+
+    cols = list(zip(*pts))
+    iso_dates = cols[0]
+    xs = [parse(x).timestamp() for x in iso_dates]
+    ys = cols[1]
+
+    # Polynomial fit
+    [x2, x1, x0] = np.polyfit(xs, ys, 2)
+    poly_y0 = x2*xs[0]*xs[0] + x1*xs[0] + x0
+
+    # Linear comparison
+    m = 2 * x2 * xs[0] + x1
+    lin_ys = [m*(x - xs[0]) + poly_y0 for x in xs]
+
+    return zip(iso_dates, ys, lin_ys)
+
+
 @login_required
-def net_income_vs_date_chart(request):
+def cumulative_vs_date_chart(request):
 
     # TODO: Turn this into a @directors_only decorator that uses @login_required
     # REVIEW: This creates a dependency on "members". Review members/books relationship.
@@ -58,9 +79,12 @@ def net_income_vs_date_chart(request):
     for inc in Sale.objects.all():  # AKA IncomeTransactions
         if inc.sale_date <= start:
             continue
+
         # Bit Buckets "what if?"
-        # if inc.payer_name.lower().startswith("bit"):
-        #     continue
+        if request.path.endswith("/2/"):
+            if inc.payer_name.lower().startswith("bit"):
+                continue
+
         pt = [inc.sale_date.isoformat(), float(inc.total_paid_by_customer - inc.processing_fee)]
         incs.append(pt)
         data.append(pt)
@@ -69,43 +93,15 @@ def net_income_vs_date_chart(request):
     acc_exp_vs_time = _acc(exps)
     acc_net_vs_time = _acc(data)
 
+    acc_inc_vs_time = _fits(acc_inc_vs_time)
+    acc_exp_vs_time = _fits(acc_exp_vs_time)
+
     params = {
         'net': acc_net_vs_time,
         'inc': acc_inc_vs_time,
         'exp': acc_exp_vs_time,
     }
-    return render(request, 'books/net-income-vs-date-chart.html', params)
-
-
-# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-
-@login_required
-def net_income_vs_date_chart_2(request):  # This is a temporary view
-
-    if not request.user.member.is_tagged_with("Director"):
-        return HttpResponse("This page is for Directors only.")
-
-    start = date(2016, 1, 1)
-    data = []
-    for exp in ExpenseLineItem.objects.all():
-        if exp.expense_date < start:
-            continue
-        data.append([exp.expense_date.isoformat(), -1.0*float(exp.amount)])
-    incs = []
-    for inc in Sale.objects.all():  # AKA IncomeTransactions
-        if inc.sale_date <= start:
-            continue
-        if inc.payer_name.lower().startswith("bit"):
-            continue
-        data.append([inc.sale_date.isoformat(), float(inc.total_paid_by_customer - inc.processing_fee)])
-    # http://stackoverflow.com/questions/464342/combining-two-sorted-lists-in-python
-    data.sort(key=lambda pt: pt[0])
-    acc_income_vs_time = []
-    acc_income_to_date = 0.0
-    for x in data:
-        acc_income_to_date += x[1]
-        acc_income_vs_time.append([x[0], acc_income_to_date])
-    return render(request, 'books/net-income-vs-date-chart.html', {'data': acc_income_vs_time})
+    return render(request, 'books/cumulative-vs-date-chart.html', params)
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = SALE REST API

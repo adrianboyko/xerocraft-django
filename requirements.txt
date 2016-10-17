@@ -28,6 +28,7 @@ icalendar==3.9.1
 -e git+https://github.com/tgs/nptime.git@d8866bd76e0fcabc45674c69cee30380731d4acd#egg=nptime
 lxml==3.6.1
 nameparser==0.3.11
+numpy==1.11.2
 oauthlib==1.0.3
 paypalrestsdk==1.11.7
 Pillow==2.9.0
