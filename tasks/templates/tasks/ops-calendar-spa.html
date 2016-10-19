@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+
+{% load staticfiles %}
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Ops Calendar</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=PT Sans Narrow">
+</head>
+<body>
+    <div id="myContainer"></div>
+    <script src="{% static 'tasks/OpsCalendar.js' %}"></script>
+    <script>
+        var cal_data = {{cal_data|safe}};
+        var myContainer = document.getElementById("myContainer");
+        var app = Elm.OpsCalendar.embed(myContainer, cal_data);
+    </script>
+</body>
+</html>

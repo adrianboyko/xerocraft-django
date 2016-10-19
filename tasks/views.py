@@ -4,6 +4,8 @@ from hashlib import md5
 from datetime import date, datetime, timedelta
 import logging
 import json
+from typing import Generator
+import calendar
 
 # Third Party
 from dateutil.parser import parse  # python-dateutil in requirements.txt
@@ -526,7 +528,7 @@ def _add_event(cal, task, request):
     # be email addresses and we don't want to expose personal information about the workers.
     # So we'll build a worker string and make it part of the event description.
     worker_str = ""
-    for claim in task.claim_set.filter(status__in=[Claim.STAT_CURRENT, Claim.STAT_WORKING],):  # type: Claim\
+    for claim in task.claim_set.filter(status__in=[Claim.STAT_CURRENT, Claim.STAT_WORKING],):  # type: Claim
         worker_str += ", " if worker_str else ""
         worker_str += claim.claiming_member.friendly_name
     if not worker_str:
@@ -563,9 +565,14 @@ def _gen_tasks_for(member):
         yield task
 
 
-def _gen_all_tasks():
+def _gen_all_tasks() -> Generator[Task, None, None]:
     """Generate all future tasks and past tasks in last 60 days"""
-    for task in Task.objects.filter(scheduled_date__gte=datetime.now()-timedelta(days=60)):
+
+    qset = Task.objects\
+        .filter(scheduled_date__gte=datetime.now()-timedelta(days=60))\
+        .prefetch_related("claim_set")
+
+    for task in qset:
         if task.scheduled_date is None or task.work_start_time is None or task.work_duration is None:
             continue
         yield task
@@ -630,6 +637,45 @@ def ops_calendar_unstaffed(request) -> HttpResponse:
             _add_event(cal, task, request)
             # Intentionally lacks ALARM
     return _ical_response(cal)
+
+
+def _ops_calendar_json(request, year, month):
+
+    # Python standard libs include the ability to produce padded calendars for a month:
+    cal = calendar.Calendar(firstweekday=6)  # Sunday
+    calpage = cal.monthdatescalendar(year, month)
+    first_date = calpage[0][0]
+    last_date = calpage[-1][-1]
+    qset = Task.objects\
+        .filter(scheduled_date__gte=first_date, scheduled_date__lte=last_date)\
+        .prefetch_related("claim_set")
+    page_tasks = list(qset)
+
+    def task_json(task: Task) -> dict:
+        return {
+            "taskId": task.pk,
+            "shortDesc": task.short_desc,
+            "dayOfMonth": task.scheduled_date.day,
+            "startTime": 100000,
+            "endTime": 100000,
+            "instructions": task.instructions,
+            "staffingStatus": task.staffing_status(),
+        }
+
+    def tasks_on_date(x: date):
+        task_list_for_date = [t for t in page_tasks if t.scheduled_date == x]
+        return [task_json(t) for t in task_list_for_date]
+
+    return [list(tasks_on_date(day) for day in week) for week in calpage]
+
+
+def ops_calendar_spa(request, year, month) -> HttpResponse:
+    year = int(year)
+    month = int(month)
+    props = {
+        "cal_data": _ops_calendar_json(request, year, month),
+    }
+    return render(request, "tasks/ops-calendar-spa.html", props)
 
 
 def resource_calendar(request):
