@@ -352,19 +352,21 @@ class Sale(models.Model):
     payer_email = models.EmailField(max_length=40, blank=True,
         help_text="Email address of person who made the payment.")
 
-    PAID_BY_CASH   = "$"
-    PAID_BY_CHECK  = "C"
-    PAID_BY_SQUARE = "S"
-    PAID_BY_2CO    = "2"
-    PAID_BY_WEPAY  = "W"
-    PAID_BY_PAYPAL = "P"
+    PAID_BY_CASH     = "$"
+    PAID_BY_CHECK    = "C"
+    PAID_BY_SQUARE   = "S"
+    PAID_BY_2CO      = "2"
+    PAID_BY_WEPAY    = "W"
+    PAID_BY_PAYPAL   = "P"
+    PAID_BY_GOFUNDME = "G"
     PAID_BY_CHOICES = [
-        (PAID_BY_CASH,   "Cash"),
-        (PAID_BY_CHECK,  "Check"),
-        (PAID_BY_SQUARE, "Square"),
-        (PAID_BY_2CO,    "2Checkout"),
-        (PAID_BY_WEPAY,  "WePay"),
-        (PAID_BY_PAYPAL, "PayPal"),
+        (PAID_BY_CASH,     "Cash"),
+        (PAID_BY_CHECK,    "Check"),
+        (PAID_BY_SQUARE,   "Square"),
+        (PAID_BY_2CO,      "2Checkout"),
+        (PAID_BY_WEPAY,    "WePay"),
+        (PAID_BY_PAYPAL,   "PayPal"),
+        (PAID_BY_GOFUNDME, "GoFundMe"),
     ]
     payment_method = models.CharField(max_length=1, choices=PAID_BY_CHOICES,
         null=False, blank=False, default=PAID_BY_CASH,
@@ -537,6 +539,10 @@ class MonetaryDonation(models.Model):
 
     amount = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
         help_text="The amount donated.")
+
+    earmark = models.ForeignKey(Account, null=True, blank=True,
+        on_delete=models.SET_NULL,  # In the unlikely evt that acct vanishes, just point to null.
+        help_text="The account for which this donation is earmarked.")
 
     ctrlid = models.CharField(max_length=40, null=False, blank=False, unique=True,
         default=next_monetarydonation_ctrlid,

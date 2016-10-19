@@ -146,7 +146,11 @@ class DonationNoteInline(NoteInline):
 
 class MonetaryDonationInline(admin.StackedInline):
     model = MonetaryDonation
-    fields = ['amount']
+    fields = [
+        'amount',
+        'earmark',
+    ]
+    raw_id_fields = ['earmark']
     extra = 0
 
 
@@ -476,6 +480,7 @@ class SaleAdmin(VersionAdmin):
         '^payer_acct__last_name',
         '^payer_acct__username',
         'payer_acct__email',
+        'salenote__content',
     ]
     list_filter = ['payment_method', 'sale_date']
     date_hierarchy = 'sale_date'
@@ -689,6 +694,8 @@ class ExpenseTransactionAdmin(VersionAdmin):
         'recipient_name',
         'recipient_email',
         'method_detail', # For check numbers
+        'expensetransactionnote__content',
+
         #TODO: Add line item descriptions?
         #TODO: Add expense claim line item descriptions?
     ]
