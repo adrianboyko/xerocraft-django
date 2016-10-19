@@ -481,6 +481,7 @@ class SaleAdmin(VersionAdmin):
         '^payer_acct__username',
         'payer_acct__email',
         'salenote__content',
+        'monetarydonation__earmark__name'
     ]
     list_filter = ['payment_method', 'sale_date']
     date_hierarchy = 'sale_date'
