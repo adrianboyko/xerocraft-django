@@ -11,6 +11,7 @@ import Task
 import String
 import Time exposing (Time)
 import List
+import DynamicStyle exposing (hover, hover')
 
 -----------------------------------------------------------------------------
 -- UTILITIES
@@ -139,7 +140,12 @@ thStyle = style
   , ("font-size", "1.2em")
   ]
 
-taskNameStyle = style
+dayNumStyle = style
+  [ ("font-family", "Arial, Helvetica")
+  , ("font-size", "1.25em")
+  ]
+
+taskNameCss =
   [ ("font-family", "Roboto Condensed")
   , ("font-size", "0.9em")
   , ("margin", "2px")
@@ -149,14 +155,14 @@ taskNameStyle = style
   , ("width", "120px")
   ]
 
-dayNumStyle = style
-  [ ("font-family", "Arial, Helvetica")
-  , ("font-size", "1.25em")
-  ]
+rollover =
+  [ ("background-color", "transparent", "#b3ff99") ]
 
-staffedStyle = style [ ("color", "green") ]
-unstaffedStyle = style [ ("color", "red") ]
-provisionalStyle = style [ ("color", "orange") ]
+staffedStyle = hover' (List.concat [[("color", "green")], taskNameCss]) rollover
+
+unstaffedStyle = hover' (List.concat [[("color", "red")], taskNameCss]) rollover
+
+provisionalStyle = hover' (List.concat [[("color", "#c68e17")], taskNameCss]) rollover
 
 dayOtherMonthStyle = style
   [ ("background-color", "#eeeeee")
@@ -176,13 +182,14 @@ dayTodayStyle = style
 
 opsTask : OpsTask -> Html Msg
 opsTask ot =
-  let colorStyle = case ot.staffingStatus of
-    "S" -> staffedStyle
-    "U" -> unstaffedStyle
-    "P" -> provisionalStyle
-    _   -> Debug.crash "Only S, U, and P are allowed."
+  let
+    theStyle = case ot.staffingStatus of
+      "S" -> staffedStyle
+      "U" -> unstaffedStyle
+      "P" -> provisionalStyle
+      _   -> Debug.crash "Only S, U, and P are allowed."
   in
-     div [taskNameStyle, colorStyle] [ text ot.shortDesc ]
+     div theStyle [ text ot.shortDesc ]
 
 day : DayOfTasks -> Html Msg
 day dayOfTasks =
@@ -222,4 +229,3 @@ month monthOfTasks =
 
 view : Model -> Html Msg
 view model = month model.tasks
-
