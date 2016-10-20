@@ -58,8 +58,15 @@ class Fetcher(AbstractFetcher):
                 month = self.month_in_str(lmod)
 
         if family is None:
-            print("Couldn't determine family count for {}:{}".format(sale['ctrlid'], item_num))
-            family = 0
+            ctrlid = sale['ctrlid']
+
+            # A special case because the 12 month membership item was set up incorrectly.
+            if ctrlid == "SQ:kZxawM1NBAxvqr2vKU2ZnzMF" and item_num == 1:
+                family = 0
+
+            else:
+                print("Couldn't determine family count for {}:{}".format(sale['ctrlid'], item_num))
+                family = 0
 
         quantity = int(float(item['quantity']))
         for n in range(1, quantity+1):
@@ -128,6 +135,7 @@ class Fetcher(AbstractFetcher):
         "Bag of Chips": "Food/Drink",
         "Refill Soda Account": "Refill Soda Account",
         "Bracelet, 3D Printed": "3D Print",
+        "1 M4T Raffle Tkt": "1 Jim Click Raffle Ticket",
     }
 
     def _process_other_item(self, sale, item, item_num):
@@ -227,6 +235,9 @@ class Fetcher(AbstractFetcher):
 
             elif item['name'] == "Six Month Membership":
                 self._process_membership_item(sale, item, item_num, Membership.MT_REGULAR, 6, "months")
+
+            elif item['name'] == "One Year Membership":
+                self._process_membership_item(sale, item, item_num, Membership.MT_REGULAR, 12, "months")
 
             elif item['name'] in self.WORK_TRADE_ITEMS:
                 self._process_membership_item(sale, item, item_num, Membership.MT_WORKTRADE, 1, "months")
@@ -393,10 +404,12 @@ class Fetcher(AbstractFetcher):
 
         payments_url = "https://connect.squareup.com/v1/{}/payments".format(self.merchant_id)
 
-        window_start = date(2013, 12, 1)
-        while window_start < date.today():
-            window_start = window_start + relativedelta(months=+1)
-            window_end = window_start + relativedelta(months=+1)
+        # REVIEW: In code below, startdate 2013-12-01 and 1 month windows didn't get newer sales.
+        # REVIEW: Don't know why but starting at 2015-12-01 and using 2 week windows does work.
+        window_start = date(2015, 12, 1)  # date(2013, 12, 1)
+        while window_start <= date.today():
+            window_start = window_start + relativedelta(weeks=+1)
+            window_end = window_start + relativedelta(weeks=+1)
             get_data = {
                 'begin_time': window_start.isoformat(),
                 'end_time': window_end.isoformat(),
