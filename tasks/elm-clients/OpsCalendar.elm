@@ -44,7 +44,6 @@ main =
 
 type alias OpsTask =
   { taskId: Int
-  , dayOfMonth: Int
   , shortDesc: String
   , startTime: Maybe Time
   , endTime: Maybe Time
@@ -52,8 +51,15 @@ type alias OpsTask =
   , staffingStatus: String
   }
 
-type alias DayOfTasks = List OpsTask
+type alias DayOfTasks =
+  { dayOfMonth: Int
+  , isInTargetMonth: Bool  -- REVIEW: Can't this be Bool?
+  , isToday: Bool
+  , tasks: List OpsTask
+  }
+
 type alias WeekOfTasks = List DayOfTasks
+
 type alias MonthOfTasks = List WeekOfTasks
 
 type alias Model =
@@ -99,21 +105,23 @@ unselectable = style
   ]
 
 containerStyle = style
-  [ ("text-align", "center")
-  , ("padding", "10% 0")
-  , ("font-family", "Roboto Condensed, Arial, Helvetica, sans-serif")
+  [ ("padding", "0 0")
+  , ("width", "100%")
+  , ("height", "100%")
+  ]
+
+tableStyle = style
+  [ ("border-spacing", "0")
+  , ("border-collapse", "collapse")
+  , ("margin", "0 auto")
+  , ("margin-top", "5%")
+  , ("display", "table")
   ]
 
 buttonStyle = style
   [ ("font-size", "1.2em")
   , ("margin", "12px 7px") -- vert, horiz
   , ("padding", "7px 13px")
-  ]
-
-tableStyle = style
-  [ ("border-spacing", "0")
-  , ("border-collapse", "collapse")
-  , ("margin", "20px 20px 20px 20px")
   ]
 
 tdStyle = style
@@ -124,9 +132,16 @@ tdStyle = style
   , ("vertical-align", "top")
   ]
 
+thStyle = style
+  [ ("padding", "5px")
+  , ("vertical-align", "top")
+  , ("font-family", "Arial, Helvetica")
+  , ("font-size", "1.2em")
+  ]
+
 taskNameStyle = style
-  [ ("font-family", "Arial")
-  , ("font-size", "0.8em")
+  [ ("font-family", "Roboto Condensed")
+  , ("font-size", "0.9em")
   , ("margin", "2px")
   , ("overflow", "hidden")
   , ("white-space", "nowrap")
@@ -135,9 +150,24 @@ taskNameStyle = style
   ]
 
 dayNumStyle = style
-  [ ("font-size", "2em")
-  , ("margin", "12px 7px") -- vert, horiz
-  , ("padding", "7px 13px")
+  [ ("font-family", "Arial, Helvetica")
+  , ("font-size", "1.25em")
+  ]
+
+staffedStyle = style [ ("color", "green") ]
+unstaffedStyle = style [ ("color", "red") ]
+provisionalStyle = style [ ("color", "orange") ]
+
+dayOtherMonthStyle = style
+  [ ("background-color", "#eeeeee")
+  ]
+
+dayTargetMonthStyle = style
+  [ ("background-color", "white")
+  ]
+
+dayTodayStyle = style
+  [ ("background-color", "#f0ffff")  -- azure
   ]
 
 -----------------------------------------------------------------------------
@@ -146,17 +176,30 @@ dayNumStyle = style
 
 opsTask : OpsTask -> Html Msg
 opsTask ot =
-  div [taskNameStyle] [ text ot.shortDesc ]
+  let colorStyle = case ot.staffingStatus of
+    "S" -> staffedStyle
+    "U" -> unstaffedStyle
+    "P" -> provisionalStyle
+    _   -> Debug.crash "Only S, U, and P are allowed."
+  in
+     div [taskNameStyle, colorStyle] [ text ot.shortDesc ]
 
 day : DayOfTasks -> Html Msg
 day dayOfTasks =
-  td [tdStyle]
-    ( List.concat
-        [ [ text "2" ]
-        , List.map opsTask dayOfTasks
-        ]
-    )
-
+  let
+    monthStyle = case dayOfTasks.isInTargetMonth of
+      False -> dayOtherMonthStyle
+      True -> dayTargetMonthStyle
+    colorStyle = case dayOfTasks.isToday of
+      False -> monthStyle
+      True -> dayTodayStyle
+  in
+    td [tdStyle, colorStyle]
+      ( List.concat
+          [ [span [dayNumStyle] [text (toString dayOfTasks.dayOfMonth)]]
+          , List.map opsTask dayOfTasks.tasks
+          ]
+      )
 
 week : WeekOfTasks -> Html Msg
 week weekOfTasks =
@@ -165,8 +208,17 @@ week weekOfTasks =
 
 month : MonthOfTasks -> Html Msg
 month monthOfTasks =
-  table [tableStyle]
-    (List.map week monthOfTasks)
+  let
+    daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+    headify = \x -> (th [thStyle] [text x])
+  in
+    div [containerStyle]
+      [ table [tableStyle, unselectable]
+          (List.concat
+            [ [tr [] (List.map headify daysOfWeek)]
+            , (List.map week monthOfTasks)
+            ])
+      ]
 
 view : Model -> Html Msg
 view model = month model.tasks

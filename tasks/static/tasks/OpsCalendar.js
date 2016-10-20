@@ -8026,18 +8026,47 @@ var _evancz$elm_http$Http$post = F3(
 			A2(_evancz$elm_http$Http$send, _evancz$elm_http$Http$defaultSettings, request));
 	});
 
+var _user$project$OpsCalendar$dayTodayStyle = _elm_lang$html$Html_Attributes$style(
+	_elm_lang$core$Native_List.fromArray(
+		[
+			{ctor: '_Tuple2', _0: 'background-color', _1: '#f0ffff'}
+		]));
+var _user$project$OpsCalendar$dayTargetMonthStyle = _elm_lang$html$Html_Attributes$style(
+	_elm_lang$core$Native_List.fromArray(
+		[
+			{ctor: '_Tuple2', _0: 'background-color', _1: 'white'}
+		]));
+var _user$project$OpsCalendar$dayOtherMonthStyle = _elm_lang$html$Html_Attributes$style(
+	_elm_lang$core$Native_List.fromArray(
+		[
+			{ctor: '_Tuple2', _0: 'background-color', _1: '#eeeeee'}
+		]));
+var _user$project$OpsCalendar$provisionalStyle = _elm_lang$html$Html_Attributes$style(
+	_elm_lang$core$Native_List.fromArray(
+		[
+			{ctor: '_Tuple2', _0: 'color', _1: 'orange'}
+		]));
+var _user$project$OpsCalendar$unstaffedStyle = _elm_lang$html$Html_Attributes$style(
+	_elm_lang$core$Native_List.fromArray(
+		[
+			{ctor: '_Tuple2', _0: 'color', _1: 'red'}
+		]));
+var _user$project$OpsCalendar$staffedStyle = _elm_lang$html$Html_Attributes$style(
+	_elm_lang$core$Native_List.fromArray(
+		[
+			{ctor: '_Tuple2', _0: 'color', _1: 'green'}
+		]));
 var _user$project$OpsCalendar$dayNumStyle = _elm_lang$html$Html_Attributes$style(
 	_elm_lang$core$Native_List.fromArray(
 		[
-			{ctor: '_Tuple2', _0: 'font-size', _1: '2em'},
-			{ctor: '_Tuple2', _0: 'margin', _1: '12px 7px'},
-			{ctor: '_Tuple2', _0: 'padding', _1: '7px 13px'}
+			{ctor: '_Tuple2', _0: 'font-family', _1: 'Arial, Helvetica'},
+			{ctor: '_Tuple2', _0: 'font-size', _1: '1.25em'}
 		]));
 var _user$project$OpsCalendar$taskNameStyle = _elm_lang$html$Html_Attributes$style(
 	_elm_lang$core$Native_List.fromArray(
 		[
-			{ctor: '_Tuple2', _0: 'font-family', _1: 'Arial'},
-			{ctor: '_Tuple2', _0: 'font-size', _1: '0.8em'},
+			{ctor: '_Tuple2', _0: 'font-family', _1: 'Roboto Condensed'},
+			{ctor: '_Tuple2', _0: 'font-size', _1: '0.9em'},
 			{ctor: '_Tuple2', _0: 'margin', _1: '2px'},
 			{ctor: '_Tuple2', _0: 'overflow', _1: 'hidden'},
 			{ctor: '_Tuple2', _0: 'white-space', _1: 'nowrap'},
@@ -8045,15 +8074,42 @@ var _user$project$OpsCalendar$taskNameStyle = _elm_lang$html$Html_Attributes$sty
 			{ctor: '_Tuple2', _0: 'width', _1: '120px'}
 		]));
 var _user$project$OpsCalendar$opsTask = function (ot) {
+	var colorStyle = function () {
+		var _p0 = ot.staffingStatus;
+		switch (_p0) {
+			case 'S':
+				return _user$project$OpsCalendar$staffedStyle;
+			case 'U':
+				return _user$project$OpsCalendar$unstaffedStyle;
+			case 'P':
+				return _user$project$OpsCalendar$provisionalStyle;
+			default:
+				return _elm_lang$core$Native_Utils.crashCase(
+					'OpsCalendar',
+					{
+						start: {line: 179, column: 20},
+						end: {line: 183, column: 55}
+					},
+					_p0)('Only S, U, and P are allowed.');
+		}
+	}();
 	return A2(
 		_elm_lang$html$Html$div,
 		_elm_lang$core$Native_List.fromArray(
-			[_user$project$OpsCalendar$taskNameStyle]),
+			[_user$project$OpsCalendar$taskNameStyle, colorStyle]),
 		_elm_lang$core$Native_List.fromArray(
 			[
 				_elm_lang$html$Html$text(ot.shortDesc)
 			]));
 };
+var _user$project$OpsCalendar$thStyle = _elm_lang$html$Html_Attributes$style(
+	_elm_lang$core$Native_List.fromArray(
+		[
+			{ctor: '_Tuple2', _0: 'padding', _1: '5px'},
+			{ctor: '_Tuple2', _0: 'vertical-align', _1: 'top'},
+			{ctor: '_Tuple2', _0: 'font-family', _1: 'Arial, Helvetica'},
+			{ctor: '_Tuple2', _0: 'font-size', _1: '1.2em'}
+		]));
 var _user$project$OpsCalendar$tdStyle = _elm_lang$html$Html_Attributes$style(
 	_elm_lang$core$Native_List.fromArray(
 		[
@@ -8064,18 +8120,42 @@ var _user$project$OpsCalendar$tdStyle = _elm_lang$html$Html_Attributes$style(
 			{ctor: '_Tuple2', _0: 'vertical-align', _1: 'top'}
 		]));
 var _user$project$OpsCalendar$day = function (dayOfTasks) {
+	var monthStyle = function () {
+		var _p2 = dayOfTasks.isInTargetMonth;
+		if (_p2 === false) {
+			return _user$project$OpsCalendar$dayOtherMonthStyle;
+		} else {
+			return _user$project$OpsCalendar$dayTargetMonthStyle;
+		}
+	}();
+	var colorStyle = function () {
+		var _p3 = dayOfTasks.isToday;
+		if (_p3 === false) {
+			return monthStyle;
+		} else {
+			return _user$project$OpsCalendar$dayTodayStyle;
+		}
+	}();
 	return A2(
 		_elm_lang$html$Html$td,
 		_elm_lang$core$Native_List.fromArray(
-			[_user$project$OpsCalendar$tdStyle]),
+			[_user$project$OpsCalendar$tdStyle, colorStyle]),
 		_elm_lang$core$List$concat(
 			_elm_lang$core$Native_List.fromArray(
 				[
 					_elm_lang$core$Native_List.fromArray(
 					[
-						_elm_lang$html$Html$text('2')
+						A2(
+						_elm_lang$html$Html$span,
+						_elm_lang$core$Native_List.fromArray(
+							[_user$project$OpsCalendar$dayNumStyle]),
+						_elm_lang$core$Native_List.fromArray(
+							[
+								_elm_lang$html$Html$text(
+								_elm_lang$core$Basics$toString(dayOfTasks.dayOfMonth))
+							]))
 					]),
-					A2(_elm_lang$core$List$map, _user$project$OpsCalendar$opsTask, dayOfTasks)
+					A2(_elm_lang$core$List$map, _user$project$OpsCalendar$opsTask, dayOfTasks.tasks)
 				])));
 };
 var _user$project$OpsCalendar$week = function (weekOfTasks) {
@@ -8085,23 +8165,6 @@ var _user$project$OpsCalendar$week = function (weekOfTasks) {
 			[]),
 		A2(_elm_lang$core$List$map, _user$project$OpsCalendar$day, weekOfTasks));
 };
-var _user$project$OpsCalendar$tableStyle = _elm_lang$html$Html_Attributes$style(
-	_elm_lang$core$Native_List.fromArray(
-		[
-			{ctor: '_Tuple2', _0: 'border-spacing', _1: '0'},
-			{ctor: '_Tuple2', _0: 'border-collapse', _1: 'collapse'},
-			{ctor: '_Tuple2', _0: 'margin', _1: '20px 20px 20px 20px'}
-		]));
-var _user$project$OpsCalendar$month = function (monthOfTasks) {
-	return A2(
-		_elm_lang$html$Html$table,
-		_elm_lang$core$Native_List.fromArray(
-			[_user$project$OpsCalendar$tableStyle]),
-		A2(_elm_lang$core$List$map, _user$project$OpsCalendar$week, monthOfTasks));
-};
-var _user$project$OpsCalendar$view = function (model) {
-	return _user$project$OpsCalendar$month(model.tasks);
-};
 var _user$project$OpsCalendar$buttonStyle = _elm_lang$html$Html_Attributes$style(
 	_elm_lang$core$Native_List.fromArray(
 		[
@@ -8109,12 +8172,21 @@ var _user$project$OpsCalendar$buttonStyle = _elm_lang$html$Html_Attributes$style
 			{ctor: '_Tuple2', _0: 'margin', _1: '12px 7px'},
 			{ctor: '_Tuple2', _0: 'padding', _1: '7px 13px'}
 		]));
+var _user$project$OpsCalendar$tableStyle = _elm_lang$html$Html_Attributes$style(
+	_elm_lang$core$Native_List.fromArray(
+		[
+			{ctor: '_Tuple2', _0: 'border-spacing', _1: '0'},
+			{ctor: '_Tuple2', _0: 'border-collapse', _1: 'collapse'},
+			{ctor: '_Tuple2', _0: 'margin', _1: '0 auto'},
+			{ctor: '_Tuple2', _0: 'margin-top', _1: '5%'},
+			{ctor: '_Tuple2', _0: 'display', _1: 'table'}
+		]));
 var _user$project$OpsCalendar$containerStyle = _elm_lang$html$Html_Attributes$style(
 	_elm_lang$core$Native_List.fromArray(
 		[
-			{ctor: '_Tuple2', _0: 'text-align', _1: 'center'},
-			{ctor: '_Tuple2', _0: 'padding', _1: '10% 0'},
-			{ctor: '_Tuple2', _0: 'font-family', _1: 'Roboto Condensed, Arial, Helvetica, sans-serif'}
+			{ctor: '_Tuple2', _0: 'padding', _1: '0 0'},
+			{ctor: '_Tuple2', _0: 'width', _1: '100%'},
+			{ctor: '_Tuple2', _0: 'height', _1: '100%'}
 		]));
 var _user$project$OpsCalendar$unselectable = _elm_lang$html$Html_Attributes$style(
 	_elm_lang$core$Native_List.fromArray(
@@ -8125,27 +8197,68 @@ var _user$project$OpsCalendar$unselectable = _elm_lang$html$Html_Attributes$styl
 			{ctor: '_Tuple2', _0: '-ms-user-select', _1: 'none'},
 			{ctor: '_Tuple2', _0: 'user-select', _1: 'none'}
 		]));
+var _user$project$OpsCalendar$month = function (monthOfTasks) {
+	var headify = function (x) {
+		return A2(
+			_elm_lang$html$Html$th,
+			_elm_lang$core$Native_List.fromArray(
+				[_user$project$OpsCalendar$thStyle]),
+			_elm_lang$core$Native_List.fromArray(
+				[
+					_elm_lang$html$Html$text(x)
+				]));
+	};
+	var daysOfWeek = _elm_lang$core$Native_List.fromArray(
+		['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']);
+	return A2(
+		_elm_lang$html$Html$div,
+		_elm_lang$core$Native_List.fromArray(
+			[_user$project$OpsCalendar$containerStyle]),
+		_elm_lang$core$Native_List.fromArray(
+			[
+				A2(
+				_elm_lang$html$Html$table,
+				_elm_lang$core$Native_List.fromArray(
+					[_user$project$OpsCalendar$tableStyle, _user$project$OpsCalendar$unselectable]),
+				_elm_lang$core$List$concat(
+					_elm_lang$core$Native_List.fromArray(
+						[
+							_elm_lang$core$Native_List.fromArray(
+							[
+								A2(
+								_elm_lang$html$Html$tr,
+								_elm_lang$core$Native_List.fromArray(
+									[]),
+								A2(_elm_lang$core$List$map, headify, daysOfWeek))
+							]),
+							A2(_elm_lang$core$List$map, _user$project$OpsCalendar$week, monthOfTasks)
+						])))
+			]));
+};
+var _user$project$OpsCalendar$view = function (model) {
+	return _user$project$OpsCalendar$month(model.tasks);
+};
 var _user$project$OpsCalendar$update = F2(
 	function (action, model) {
-		var _p0 = action;
+		var _p4 = action;
 		return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
 	});
 var _user$project$OpsCalendar$init = function (monthOfTasks) {
-	var _p1 = monthOfTasks;
-	if (_p1.ctor === 'Just') {
+	var _p5 = monthOfTasks;
+	if (_p5.ctor === 'Just') {
 		return {
 			ctor: '_Tuple2',
-			_0: {tasks: _p1._0, selectedTask: _elm_lang$core$Maybe$Nothing, year: 0, month: 0},
+			_0: {tasks: _p5._0, selectedTask: _elm_lang$core$Maybe$Nothing, year: 0, month: 0},
 			_1: _elm_lang$core$Platform_Cmd$none
 		};
 	} else {
 		return _elm_lang$core$Native_Utils.crashCase(
 			'OpsCalendar',
 			{
-				start: {line: 68, column: 3},
-				end: {line: 72, column: 63}
+				start: {line: 74, column: 3},
+				end: {line: 78, column: 63}
 			},
-			_p1)('Parameters MUST be provided by Javascript.');
+			_p5)('Parameters MUST be provided by Javascript.');
 	}
 };
 var _user$project$OpsCalendar$main = {
@@ -8154,7 +8267,7 @@ var _user$project$OpsCalendar$main = {
 			init: _user$project$OpsCalendar$init,
 			view: _user$project$OpsCalendar$view,
 			update: _user$project$OpsCalendar$update,
-			subscriptions: function (_p3) {
+			subscriptions: function (_p7) {
 				return _elm_lang$core$Platform_Sub$none;
 			}
 		}),
@@ -8167,60 +8280,79 @@ var _user$project$OpsCalendar$main = {
 				_elm_lang$core$Maybe$Just,
 				_elm_lang$core$Json_Decode$list(
 					_elm_lang$core$Json_Decode$list(
-						_elm_lang$core$Json_Decode$list(
-							A2(
-								_elm_lang$core$Json_Decode$andThen,
-								A2(_elm_lang$core$Json_Decode_ops[':='], 'dayOfMonth', _elm_lang$core$Json_Decode$int),
-								function (dayOfMonth) {
-									return A2(
-										_elm_lang$core$Json_Decode$andThen,
-										A2(
-											_elm_lang$core$Json_Decode_ops[':='],
-											'endTime',
-											_elm_lang$core$Json_Decode$oneOf(
-												_elm_lang$core$Native_List.fromArray(
-													[
-														_elm_lang$core$Json_Decode$null(_elm_lang$core$Maybe$Nothing),
-														A2(_elm_lang$core$Json_Decode$map, _elm_lang$core$Maybe$Just, _elm_lang$core$Json_Decode$float)
-													]))),
-										function (endTime) {
-											return A2(
-												_elm_lang$core$Json_Decode$andThen,
-												A2(_elm_lang$core$Json_Decode_ops[':='], 'instructions', _elm_lang$core$Json_Decode$string),
-												function (instructions) {
-													return A2(
-														_elm_lang$core$Json_Decode$andThen,
-														A2(_elm_lang$core$Json_Decode_ops[':='], 'shortDesc', _elm_lang$core$Json_Decode$string),
-														function (shortDesc) {
-															return A2(
+						A2(
+							_elm_lang$core$Json_Decode$andThen,
+							A2(_elm_lang$core$Json_Decode_ops[':='], 'dayOfMonth', _elm_lang$core$Json_Decode$int),
+							function (dayOfMonth) {
+								return A2(
+									_elm_lang$core$Json_Decode$andThen,
+									A2(_elm_lang$core$Json_Decode_ops[':='], 'isInTargetMonth', _elm_lang$core$Json_Decode$bool),
+									function (isInTargetMonth) {
+										return A2(
+											_elm_lang$core$Json_Decode$andThen,
+											A2(_elm_lang$core$Json_Decode_ops[':='], 'isToday', _elm_lang$core$Json_Decode$bool),
+											function (isToday) {
+												return A2(
+													_elm_lang$core$Json_Decode$andThen,
+													A2(
+														_elm_lang$core$Json_Decode_ops[':='],
+														'tasks',
+														_elm_lang$core$Json_Decode$list(
+															A2(
 																_elm_lang$core$Json_Decode$andThen,
-																A2(_elm_lang$core$Json_Decode_ops[':='], 'staffingStatus', _elm_lang$core$Json_Decode$string),
-																function (staffingStatus) {
+																A2(
+																	_elm_lang$core$Json_Decode_ops[':='],
+																	'endTime',
+																	_elm_lang$core$Json_Decode$oneOf(
+																		_elm_lang$core$Native_List.fromArray(
+																			[
+																				_elm_lang$core$Json_Decode$null(_elm_lang$core$Maybe$Nothing),
+																				A2(_elm_lang$core$Json_Decode$map, _elm_lang$core$Maybe$Just, _elm_lang$core$Json_Decode$float)
+																			]))),
+																function (endTime) {
 																	return A2(
 																		_elm_lang$core$Json_Decode$andThen,
-																		A2(
-																			_elm_lang$core$Json_Decode_ops[':='],
-																			'startTime',
-																			_elm_lang$core$Json_Decode$oneOf(
-																				_elm_lang$core$Native_List.fromArray(
-																					[
-																						_elm_lang$core$Json_Decode$null(_elm_lang$core$Maybe$Nothing),
-																						A2(_elm_lang$core$Json_Decode$map, _elm_lang$core$Maybe$Just, _elm_lang$core$Json_Decode$float)
-																					]))),
-																		function (startTime) {
+																		A2(_elm_lang$core$Json_Decode_ops[':='], 'instructions', _elm_lang$core$Json_Decode$string),
+																		function (instructions) {
 																			return A2(
 																				_elm_lang$core$Json_Decode$andThen,
-																				A2(_elm_lang$core$Json_Decode_ops[':='], 'taskId', _elm_lang$core$Json_Decode$int),
-																				function (taskId) {
-																					return _elm_lang$core$Json_Decode$succeed(
-																						{dayOfMonth: dayOfMonth, endTime: endTime, instructions: instructions, shortDesc: shortDesc, staffingStatus: staffingStatus, startTime: startTime, taskId: taskId});
+																				A2(_elm_lang$core$Json_Decode_ops[':='], 'shortDesc', _elm_lang$core$Json_Decode$string),
+																				function (shortDesc) {
+																					return A2(
+																						_elm_lang$core$Json_Decode$andThen,
+																						A2(_elm_lang$core$Json_Decode_ops[':='], 'staffingStatus', _elm_lang$core$Json_Decode$string),
+																						function (staffingStatus) {
+																							return A2(
+																								_elm_lang$core$Json_Decode$andThen,
+																								A2(
+																									_elm_lang$core$Json_Decode_ops[':='],
+																									'startTime',
+																									_elm_lang$core$Json_Decode$oneOf(
+																										_elm_lang$core$Native_List.fromArray(
+																											[
+																												_elm_lang$core$Json_Decode$null(_elm_lang$core$Maybe$Nothing),
+																												A2(_elm_lang$core$Json_Decode$map, _elm_lang$core$Maybe$Just, _elm_lang$core$Json_Decode$float)
+																											]))),
+																								function (startTime) {
+																									return A2(
+																										_elm_lang$core$Json_Decode$andThen,
+																										A2(_elm_lang$core$Json_Decode_ops[':='], 'taskId', _elm_lang$core$Json_Decode$int),
+																										function (taskId) {
+																											return _elm_lang$core$Json_Decode$succeed(
+																												{endTime: endTime, instructions: instructions, shortDesc: shortDesc, staffingStatus: staffingStatus, startTime: startTime, taskId: taskId});
+																										});
+																								});
+																						});
 																				});
 																		});
-																});
-														});
-												});
-										});
-								})))))
+																}))),
+													function (tasks) {
+														return _elm_lang$core$Json_Decode$succeed(
+															{dayOfMonth: dayOfMonth, isInTargetMonth: isInTargetMonth, isToday: isToday, tasks: tasks});
+													});
+											});
+									});
+							}))))
 			]))
 };
 var _user$project$OpsCalendar$toStr = function (v) {
@@ -8232,9 +8364,13 @@ var _user$project$OpsCalendar$toStr = function (v) {
 		1,
 		A2(_elm_lang$core$String$dropLeft, 1, str)) : str;
 };
-var _user$project$OpsCalendar$OpsTask = F7(
-	function (a, b, c, d, e, f, g) {
-		return {taskId: a, dayOfMonth: b, shortDesc: c, startTime: d, endTime: e, instructions: f, staffingStatus: g};
+var _user$project$OpsCalendar$OpsTask = F6(
+	function (a, b, c, d, e, f) {
+		return {taskId: a, shortDesc: b, startTime: c, endTime: d, instructions: e, staffingStatus: f};
+	});
+var _user$project$OpsCalendar$DayOfTasks = F4(
+	function (a, b, c, d) {
+		return {dayOfMonth: a, isInTargetMonth: b, isToday: c, tasks: d};
 	});
 var _user$project$OpsCalendar$Model = F4(
 	function (a, b, c, d) {
