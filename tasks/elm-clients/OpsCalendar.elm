@@ -1,9 +1,9 @@
 module OpsCalendar exposing (..)
 
-import Html exposing (..)
+import Html exposing (Html, div, table, tr, td, th, text, span, button, br)
 import Html.App as Html
 import Html.Attributes exposing (..)
-import Html.Events exposing (..)
+import Html.Events exposing (onClick)
 import Http
 import Json.Decode as Dec
 import Json.Encode as Enc
@@ -11,6 +11,7 @@ import Task
 import String
 import Time exposing (Time)
 import List
+import Array
 import DynamicStyle exposing (hover, hover')
 
 -----------------------------------------------------------------------------
@@ -63,18 +64,25 @@ type alias WeekOfTasks = List DayOfTasks
 
 type alias MonthOfTasks = List WeekOfTasks
 
-type alias Model =
+-- These are params from the server. Elm docs tend to call them "flags".
+type alias Flags =
   { tasks: MonthOfTasks
-  , selectedTask: Maybe Int
   , year: Int
   , month: Int
   }
 
-init : Maybe (MonthOfTasks) -> (Model, Cmd Msg)
-init monthOfTasks =
-  case monthOfTasks of
-    Just theTasks ->
-      ({tasks=theTasks, selectedTask=Nothing, year=0, month=0}, Cmd.none)
+type alias Model =
+  { tasks: MonthOfTasks
+  , year: Int
+  , month: Int
+  , selectedTask: Maybe Int
+  }
+
+init : Maybe (Flags) -> (Model, Cmd Msg)
+init flags =
+  case flags of
+    Just {tasks, year, month} ->
+      ({tasks=tasks, year=year, month=month, selectedTask=Nothing}, Cmd.none)
     Nothing ->
       Debug.crash "Parameters MUST be provided by Javascript."
 
@@ -82,8 +90,7 @@ init monthOfTasks =
 -- UPDATE
 -----------------------------------------------------------------------------
 
-type Msg
-  = ShowTaskDetail
+type Msg = ShowTaskDetail | PrevMonth | NextMonth
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update action model =
@@ -92,6 +99,11 @@ update action model =
     ShowTaskDetail ->
       (model, Cmd.none)
 
+    PrevMonth ->
+      (model, Cmd.none)
+
+    NextMonth ->
+      (model, Cmd.none)
 
 -----------------------------------------------------------------------------
 -- STYLES
@@ -107,15 +119,22 @@ unselectable = style
 
 containerStyle = style
   [ ("padding", "0 0")
+  , ("margin-top", "3%")
   , ("width", "100%")
   , ("height", "100%")
+  , ("text-align", "center")
+  ]
+
+headerStyle = style
+  [ ("font-family", "Arial, Helvetica")
+  , ("font-size", "2em")
   ]
 
 tableStyle = style
   [ ("border-spacing", "0")
   , ("border-collapse", "collapse")
   , ("margin", "0 auto")
-  , ("margin-top", "5%")
+  , ("margin-top", "2%")
   , ("display", "table")
   ]
 
@@ -131,6 +150,7 @@ tdStyle = style
   , ("border", "1px solid black")
   , ("padding", "10px")
   , ("vertical-align", "top")
+  , ("text-align", "left")
   ]
 
 thStyle = style
@@ -138,6 +158,7 @@ thStyle = style
   , ("vertical-align", "top")
   , ("font-family", "Arial, Helvetica")
   , ("font-size", "1.2em")
+  , ("font-weight", "normal")
   ]
 
 dayNumStyle = style
@@ -153,10 +174,10 @@ taskNameCss =
   , ("white-space", "nowrap")
   , ("text-overflow", "ellipsis")
   , ("width", "120px")
+  , ("cursor", "pointer")
   ]
 
-rollover =
-  [ ("background-color", "transparent", "#b3ff99") ]
+rollover = [ ("background-color", "transparent", "#b3ff99") ]
 
 staffedStyle = hover' (List.concat [[("color", "green")], taskNameCss]) rollover
 
@@ -176,12 +197,18 @@ dayTodayStyle = style
   [ ("background-color", "#f0ffff")  -- azure
   ]
 
+navButtonStyle = style
+  [ ("vertical-align", ".28em")
+  , ("font-size", "0.6em")
+  , ("cursor", "pointer")
+  ]
+
 -----------------------------------------------------------------------------
 -- VIEW
 -----------------------------------------------------------------------------
 
-opsTask : OpsTask -> Html Msg
-opsTask ot =
+taskView : OpsTask -> Html Msg
+taskView ot =
   let
     theStyle = case ot.staffingStatus of
       "S" -> staffedStyle
@@ -189,10 +216,10 @@ opsTask ot =
       "P" -> provisionalStyle
       _   -> Debug.crash "Only S, U, and P are allowed."
   in
-     div theStyle [ text ot.shortDesc ]
+     div (List.concat [theStyle, [onClick ShowTaskDetail]]) [ text ot.shortDesc ]
 
-day : DayOfTasks -> Html Msg
-day dayOfTasks =
+dayView : DayOfTasks -> Html Msg
+dayView dayOfTasks =
   let
     monthStyle = case dayOfTasks.isInTargetMonth of
       False -> dayOtherMonthStyle
@@ -204,28 +231,46 @@ day dayOfTasks =
     td [tdStyle, colorStyle]
       ( List.concat
           [ [span [dayNumStyle] [text (toString dayOfTasks.dayOfMonth)]]
-          , List.map opsTask dayOfTasks.tasks
+          , List.map taskView dayOfTasks.tasks
           ]
       )
 
-week : WeekOfTasks -> Html Msg
-week weekOfTasks =
+weekView : WeekOfTasks -> Html Msg
+weekView weekOfTasks =
   tr []
-    (List.map day weekOfTasks)
+    (List.map dayView weekOfTasks)
 
-month : MonthOfTasks -> Html Msg
-month monthOfTasks =
+monthView : MonthOfTasks -> Html Msg
+monthView monthOfTasks =
   let
     daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
     headify = \x -> (th [thStyle] [text x])
   in
-    div [containerStyle]
-      [ table [tableStyle, unselectable]
-          (List.concat
-            [ [tr [] (List.map headify daysOfWeek)]
-            , (List.map week monthOfTasks)
-            ])
+     table [tableStyle, unselectable]
+       (List.concat
+         [ [tr [] (List.map headify daysOfWeek)]
+         , (List.map weekView monthOfTasks)
+         ])
+
+headerView : Int -> Int -> Html Msg
+headerView year month =
+  let months = Array.fromList [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"]
+  in
+    span [headerStyle]
+      [ button [navButtonStyle, (onClick PrevMonth)] [text "🠜"]
+      , text " "
+      , text (Maybe.withDefault "???" (Array.get (month-1) months))
+      , text " "
+      , text (toStr year)
+      , text " "
+      , button [navButtonStyle, (onClick NextMonth)] [text "🠞"]
       ]
 
 view : Model -> Html Msg
-view model = month model.tasks
+view model =
+  div [containerStyle]
+    [ headerView model.year model.month
+    , monthView model.tasks
+    ]

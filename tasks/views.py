@@ -670,7 +670,11 @@ def _ops_calendar_json(request, year, month):
             "tasks":[task_json(t) for t in task_list_for_date]
         }
 
-    return [list(tasks_on_date(day) for day in week) for week in calpage]
+    return {
+        "tasks": [list(tasks_on_date(day) for day in week) for week in calpage],
+        "year": year,
+        "month": month,
+    }
 
 
 def ops_calendar_spa(request, year, month) -> HttpResponse:
