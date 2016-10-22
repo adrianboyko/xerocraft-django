@@ -5,14 +5,20 @@ import Html.App as Html
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
 import Http
-import Json.Decode as Dec
-import Json.Encode as Enc
 import Task
 import String
 import Time exposing (Time)
 import List
 import Array
 import DynamicStyle exposing (hover, hover')
+
+
+import Json.Decode exposing((:=), maybe)
+import Json.Decode as Dec
+-- elm-package install --yes elm-community/elm-json-extra
+import Json.Decode.Extra exposing ((|:))
+-- elm-package install -- yes NoRedInk/elm-decode-pipeline
+-- import Json.Decode.Pipeline
 
 -----------------------------------------------------------------------------
 -- UTILITIES
@@ -27,6 +33,22 @@ toStr v =
     else
       str
 
+monthName : Int -> String
+monthName x =
+  case x of
+    0 -> "January"
+    1 -> "February"
+    2 -> "March"
+    3 -> "April"
+    4 -> "May"
+    5 -> "June"
+    6 -> "July"
+    7 -> "August"
+    8 -> "September"
+    9 -> "October"
+    10 -> "November"
+    11 -> "December"
+    _ -> Debug.crash "Provide a value from 0 to 11, inclusive"
 
 -----------------------------------------------------------------------------
 -- MAIN
@@ -55,7 +77,7 @@ type alias OpsTask =
 
 type alias DayOfTasks =
   { dayOfMonth: Int
-  , isInTargetMonth: Bool  -- REVIEW: Can't this be Bool?
+  , isInTargetMonth: Bool
   , isToday: Bool
   , tasks: List OpsTask
   }
@@ -78,19 +100,53 @@ type alias Model =
   , selectedTask: Maybe Int
   }
 
-init : Maybe (Flags) -> (Model, Cmd Msg)
-init flags =
-  case flags of
-    Just {tasks, year, month} ->
-      ({tasks=tasks, year=year, month=month, selectedTask=Nothing}, Cmd.none)
-    Nothing ->
-      Debug.crash "Parameters MUST be provided by Javascript."
+init : Flags -> (Model, Cmd Msg)
+init {tasks, year, month} =
+  (Model tasks year month Nothing, Cmd.none)
+
+-----------------------------------------------------------------------------
+-- JSON Decoder from http://noredink.github.io/json-to-elm/
+-----------------------------------------------------------------------------
+
+decodeOpsTask : Dec.Decoder OpsTask
+decodeOpsTask =
+  Dec.succeed OpsTask
+    |: ("taskId"           := Dec.int)
+    |: ("shortDesc"        := Dec.string)
+    |: (maybe ("startTime" := Dec.float))
+    |: (maybe ("endTime"   := Dec.float))
+    |: ("instructions"     := Dec.string)
+    |: ("staffingStatus"   := Dec.string)
+
+
+decodeDayOfTasks : Dec.Decoder DayOfTasks
+decodeDayOfTasks =
+  Dec.succeed DayOfTasks
+    |: ("dayOfMonth"      := Dec.int)
+    |: ("isInTargetMonth" := Dec.bool)
+    |: ("isToday"         := Dec.bool)
+    |: ("tasks"           := Dec.list decodeOpsTask)
+
+
+decodeFlags : Dec.Decoder Flags
+decodeFlags =
+  Dec.succeed Flags
+    |: ("tasks" := Dec.list (Dec.list decodeDayOfTasks))
+    |: ("year"  := Dec.int)
+    |: ("month" := Dec.int)
+
 
 -----------------------------------------------------------------------------
 -- UPDATE
 -----------------------------------------------------------------------------
 
-type Msg = ShowTaskDetail | PrevMonth | NextMonth
+type Msg
+  = ShowTaskDetail
+  | PrevMonth
+  | NextMonth
+  | NewMonthSuccess Http.Response
+  | NewMonthFailure Http.RawError
+
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update action model =
@@ -100,10 +156,105 @@ update action model =
       (model, Cmd.none)
 
     PrevMonth ->
-      (model, Cmd.none)
+      (model, Cmd.none) --(model, getNewMonth model.year model.month)
 
     NextMonth ->
+      (model, Cmd.none) --(model, getNewMonth model.year model.month)
+
+    NewMonthSuccess response ->
       (model, Cmd.none)
+
+    NewMonthFailure err ->
+      case err of
+        Http.RawTimeout ->
+          -- TODO: Display some sort of error message.
+          (model, Cmd.none)
+        Http.RawNetworkError ->
+          -- TODO: Display some sort of error message.
+          (model, Cmd.none)
+
+
+{--
+getNewMonth : int -> int -> Cmd Msg
+getNewMonth year month =
+  let
+    -- TODO: These should be passed in from Django, not hard-coded here.
+    urlbase = "http://localhost:8000/tasks/ops-calanedar-spa-json/"
+    urlyyyymm = urlbase++toStr(year)++toStr(month)++"/"
+  in
+    Task.perform
+      NewMonthFailure
+      NewMonthSuccess
+      (Http.get decodeFlags urlyyyymm)
+--}
+
+-----------------------------------------------------------------------------
+-- VIEW
+-----------------------------------------------------------------------------
+
+taskView : OpsTask -> Html Msg
+taskView ot =
+  let
+    theStyle = case ot.staffingStatus of
+      "S" -> staffedStyle
+      "U" -> unstaffedStyle
+      "P" -> provisionalStyle
+      _   -> Debug.crash "Only S, U, and P are allowed."
+  in
+     div (List.concat [theStyle, [onClick ShowTaskDetail]]) [ text ot.shortDesc ]
+
+dayView : DayOfTasks -> Html Msg
+dayView dayOfTasks =
+  let
+    monthStyle = case dayOfTasks.isInTargetMonth of
+      False -> dayOtherMonthStyle
+      True -> dayTargetMonthStyle
+    colorStyle = case dayOfTasks.isToday of
+      False -> monthStyle
+      True -> dayTodayStyle
+  in
+    td [tdStyle, colorStyle]
+      ( List.concat
+          [ [span [dayNumStyle] [text (toString dayOfTasks.dayOfMonth)]]
+          , List.map taskView dayOfTasks.tasks
+          ]
+      )
+
+weekView : WeekOfTasks -> Html Msg
+weekView weekOfTasks =
+  tr []
+    (List.map dayView weekOfTasks)
+
+monthView : MonthOfTasks -> Html Msg
+monthView monthOfTasks =
+  let
+    daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+    headify = \x -> (th [thStyle] [text x])
+  in
+     table [tableStyle, unselectable]
+       (List.concat
+         [ [tr [] (List.map headify daysOfWeek)]
+         , (List.map weekView monthOfTasks)
+         ])
+
+headerView : Int -> Int -> Html Msg
+headerView year month =
+  span [headerStyle]
+    [ button [navButtonStyle, (onClick PrevMonth)] [text "🠜"]
+    , text " "
+    , text (monthName (month-1))
+    , text " "
+    , text (toStr year)
+    , text " "
+    , button [navButtonStyle, (onClick NextMonth)] [text "🠞"]
+    ]
+
+view : Model -> Html Msg
+view model =
+  div [containerStyle]
+    [ headerView model.year model.month
+    , monthView model.tasks
+    ]
 
 -----------------------------------------------------------------------------
 -- STYLES
@@ -202,75 +353,3 @@ navButtonStyle = style
   , ("font-size", "0.6em")
   , ("cursor", "pointer")
   ]
-
------------------------------------------------------------------------------
--- VIEW
------------------------------------------------------------------------------
-
-taskView : OpsTask -> Html Msg
-taskView ot =
-  let
-    theStyle = case ot.staffingStatus of
-      "S" -> staffedStyle
-      "U" -> unstaffedStyle
-      "P" -> provisionalStyle
-      _   -> Debug.crash "Only S, U, and P are allowed."
-  in
-     div (List.concat [theStyle, [onClick ShowTaskDetail]]) [ text ot.shortDesc ]
-
-dayView : DayOfTasks -> Html Msg
-dayView dayOfTasks =
-  let
-    monthStyle = case dayOfTasks.isInTargetMonth of
-      False -> dayOtherMonthStyle
-      True -> dayTargetMonthStyle
-    colorStyle = case dayOfTasks.isToday of
-      False -> monthStyle
-      True -> dayTodayStyle
-  in
-    td [tdStyle, colorStyle]
-      ( List.concat
-          [ [span [dayNumStyle] [text (toString dayOfTasks.dayOfMonth)]]
-          , List.map taskView dayOfTasks.tasks
-          ]
-      )
-
-weekView : WeekOfTasks -> Html Msg
-weekView weekOfTasks =
-  tr []
-    (List.map dayView weekOfTasks)
-
-monthView : MonthOfTasks -> Html Msg
-monthView monthOfTasks =
-  let
-    daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
-    headify = \x -> (th [thStyle] [text x])
-  in
-     table [tableStyle, unselectable]
-       (List.concat
-         [ [tr [] (List.map headify daysOfWeek)]
-         , (List.map weekView monthOfTasks)
-         ])
-
-headerView : Int -> Int -> Html Msg
-headerView year month =
-  let months = Array.fromList [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December"]
-  in
-    span [headerStyle]
-      [ button [navButtonStyle, (onClick PrevMonth)] [text "🠜"]
-      , text " "
-      , text (Maybe.withDefault "???" (Array.get (month-1) months))
-      , text " "
-      , text (toStr year)
-      , text " "
-      , button [navButtonStyle, (onClick NextMonth)] [text "🠞"]
-      ]
-
-view : Model -> Html Msg
-view model =
-  div [containerStyle]
-    [ headerView model.year model.month
-    , monthView model.tasks
-    ]
