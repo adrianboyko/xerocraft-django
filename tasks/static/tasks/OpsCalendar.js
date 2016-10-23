@@ -9220,30 +9220,9 @@ var _user$project$OpsCalendar$unselectable = _elm_lang$html$Html_Attributes$styl
 			{ctor: '_Tuple2', _0: '-ms-user-select', _1: 'none'},
 			{ctor: '_Tuple2', _0: 'user-select', _1: 'none'}
 		]));
-var _user$project$OpsCalendar$update = F2(
-	function (action, model) {
-		var _p0 = action;
-		switch (_p0.ctor) {
-			case 'ShowTaskDetail':
-				return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
-			case 'PrevMonth':
-				return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
-			case 'NextMonth':
-				return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
-			case 'NewMonthSuccess':
-				return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
-			default:
-				var _p1 = _p0._0;
-				if (_p1.ctor === 'RawTimeout') {
-					return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
-				} else {
-					return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
-				}
-		}
-	});
 var _user$project$OpsCalendar$monthName = function (x) {
-	var _p2 = x;
-	switch (_p2) {
+	var _p0 = x;
+	switch (_p0) {
 		case 0:
 			return 'January';
 		case 1:
@@ -9275,7 +9254,7 @@ var _user$project$OpsCalendar$monthName = function (x) {
 					start: {line: 38, column: 3},
 					end: {line: 51, column: 63}
 				},
-				_p2)('Provide a value from 0 to 11, inclusive');
+				_p0)('Provide a value from 0 to 11, inclusive');
 	}
 };
 var _user$project$OpsCalendar$toStr = function (v) {
@@ -9354,11 +9333,11 @@ var _user$project$OpsCalendar$Model = F4(
 	function (a, b, c, d) {
 		return {tasks: a, year: b, month: c, selectedTask: d};
 	});
-var _user$project$OpsCalendar$init = function (_p4) {
-	var _p5 = _p4;
+var _user$project$OpsCalendar$init = function (_p2) {
+	var _p3 = _p2;
 	return {
 		ctor: '_Tuple2',
-		_0: A4(_user$project$OpsCalendar$Model, _p5.tasks, _p5.year, _p5.month, _elm_lang$core$Maybe$Nothing),
+		_0: A4(_user$project$OpsCalendar$Model, _p3.tasks, _p3.year, _p3.month, _elm_lang$core$Maybe$Nothing),
 		_1: _elm_lang$core$Platform_Cmd$none
 	};
 };
@@ -9368,6 +9347,62 @@ var _user$project$OpsCalendar$NewMonthFailure = function (a) {
 var _user$project$OpsCalendar$NewMonthSuccess = function (a) {
 	return {ctor: 'NewMonthSuccess', _0: a};
 };
+var _user$project$OpsCalendar$getNewMonth = F2(
+	function (year, month) {
+		var urlbase = 'http://localhost:8000/tasks/ops-calendar-json/';
+		var urlyyyymm = A2(
+			_elm_lang$core$Basics_ops['++'],
+			urlbase,
+			A2(
+				_elm_lang$core$Basics_ops['++'],
+				_user$project$OpsCalendar$toStr(year),
+				A2(
+					_elm_lang$core$Basics_ops['++'],
+					'-',
+					A2(
+						_elm_lang$core$Basics_ops['++'],
+						_user$project$OpsCalendar$toStr(month),
+						'/'))));
+		return A3(
+			_elm_lang$core$Task$perform,
+			_user$project$OpsCalendar$NewMonthFailure,
+			_user$project$OpsCalendar$NewMonthSuccess,
+			A2(_evancz$elm_http$Http$get, _user$project$OpsCalendar$decodeFlags, urlyyyymm));
+	});
+var _user$project$OpsCalendar$update = F2(
+	function (action, model) {
+		var _p4 = action;
+		switch (_p4.ctor) {
+			case 'ShowTaskDetail':
+				return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
+			case 'PrevMonth':
+				return {
+					ctor: '_Tuple2',
+					_0: model,
+					_1: A2(_user$project$OpsCalendar$getNewMonth, model.year, model.month - 1)
+				};
+			case 'NextMonth':
+				return {
+					ctor: '_Tuple2',
+					_0: model,
+					_1: A2(_user$project$OpsCalendar$getNewMonth, model.year, model.month + 1)
+				};
+			case 'NewMonthSuccess':
+				return _user$project$OpsCalendar$init(_p4._0);
+			default:
+				var _p5 = _p4._0;
+				switch (_p5.ctor) {
+					case 'Timeout':
+						return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
+					case 'NetworkError':
+						return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
+					case 'UnexpectedPayload':
+						return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
+					default:
+						return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
+				}
+		}
+	});
 var _user$project$OpsCalendar$NextMonth = {ctor: 'NextMonth'};
 var _user$project$OpsCalendar$PrevMonth = {ctor: 'PrevMonth'};
 var _user$project$OpsCalendar$headerView = F2(
@@ -9424,8 +9459,8 @@ var _user$project$OpsCalendar$taskView = function (ot) {
 				return _elm_lang$core$Native_Utils.crashCase(
 					'OpsCalendar',
 					{
-						start: {line: 198, column: 16},
-						end: {line: 202, column: 57}
+						start: {line: 197, column: 16},
+						end: {line: 201, column: 57}
 					},
 					_p6)('Only S, U, and P are allowed.');
 		}

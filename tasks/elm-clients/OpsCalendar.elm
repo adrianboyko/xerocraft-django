@@ -144,8 +144,8 @@ type Msg
   = ShowTaskDetail
   | PrevMonth
   | NextMonth
-  | NewMonthSuccess Http.Response
-  | NewMonthFailure Http.RawError
+  | NewMonthSuccess Flags
+  | NewMonthFailure Http.Error
 
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -156,37 +156,36 @@ update action model =
       (model, Cmd.none)
 
     PrevMonth ->
-      (model, Cmd.none) --(model, getNewMonth model.year model.month)
+      -- TODO: Mod 12
+      (model, getNewMonth model.year (model.month-1))
 
     NextMonth ->
-      (model, Cmd.none) --(model, getNewMonth model.year model.month)
+      -- TODO: Mod 12
+      (model, getNewMonth model.year (model.month+1))
 
-    NewMonthSuccess response ->
-      (model, Cmd.none)
+    NewMonthSuccess flags ->
+      init flags
 
     NewMonthFailure err ->
+      -- TODO: Display some sort of error message.
       case err of
-        Http.RawTimeout ->
-          -- TODO: Display some sort of error message.
-          (model, Cmd.none)
-        Http.RawNetworkError ->
-          -- TODO: Display some sort of error message.
-          (model, Cmd.none)
+        Http.Timeout -> (model, Cmd.none)
+        Http.NetworkError -> (model, Cmd.none)
+        Http.UnexpectedPayload _ -> (model, Cmd.none)
+        Http.BadResponse _ _ -> (model, Cmd.none)
 
-
-{--
 getNewMonth : int -> int -> Cmd Msg
 getNewMonth year month =
   let
     -- TODO: These should be passed in from Django, not hard-coded here.
-    urlbase = "http://localhost:8000/tasks/ops-calanedar-spa-json/"
-    urlyyyymm = urlbase++toStr(year)++toStr(month)++"/"
+    urlbase = "http://localhost:8000/tasks/ops-calendar-json/"
+    urlyyyymm = urlbase ++ toStr(year) ++ "-" ++ toStr(month) ++ "/"
   in
     Task.perform
       NewMonthFailure
       NewMonthSuccess
       (Http.get decodeFlags urlyyyymm)
---}
+
 
 -----------------------------------------------------------------------------
 -- VIEW

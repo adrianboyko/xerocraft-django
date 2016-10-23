@@ -677,6 +677,12 @@ def _ops_calendar_json(request, year, month):
     }
 
 
+def ops_calendar_json(request, year, month) -> JsonResponse:
+    year = int(year)
+    month = int(month)
+    return JsonResponse(_ops_calendar_json(request, year, month))
+
+
 def ops_calendar_spa(request, year, month) -> HttpResponse:
     year = int(year)
     month = int(month)
