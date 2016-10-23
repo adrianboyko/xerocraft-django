@@ -176,8 +176,7 @@ getNewMonth : Model -> (Int -> Int -> Int) -> Cmd Msg
 getNewMonth model op =
   let
     -- TODO: These should be passed in from Django, not hard-coded here.
-    urlbase = "http://localhost:8000/tasks/ops-calendar-json/"
-    urlyyyymm = urlbase ++ toStr(year) ++ "-" ++ toStr(month) ++ "/"
+    url = "/tasks/ops-calendar-json/" ++ toStr(year) ++ "-" ++ toStr(month) ++ "/"
     opMonth = op model.month 1
     year = case opMonth of
       13 -> model.year + 1
@@ -191,7 +190,7 @@ getNewMonth model op =
     Task.perform
       NewMonthFailure
       NewMonthSuccess
-      (Http.get decodeFlags urlyyyymm)
+      (Http.get decodeFlags url)
 
 
 -----------------------------------------------------------------------------

@@ -9372,10 +9372,9 @@ var _user$project$OpsCalendar$getNewMonth = F2(
 					return opMonth;
 			}
 		}();
-		var urlbase = 'http://localhost:8000/tasks/ops-calendar-json/';
-		var urlyyyymm = A2(
+		var url = A2(
 			_elm_lang$core$Basics_ops['++'],
-			urlbase,
+			'/tasks/ops-calendar-json/',
 			A2(
 				_elm_lang$core$Basics_ops['++'],
 				_user$project$OpsCalendar$toStr(year),
@@ -9390,7 +9389,7 @@ var _user$project$OpsCalendar$getNewMonth = F2(
 			_elm_lang$core$Task$perform,
 			_user$project$OpsCalendar$NewMonthFailure,
 			_user$project$OpsCalendar$NewMonthSuccess,
-			A2(_evancz$elm_http$Http$get, _user$project$OpsCalendar$decodeFlags, urlyyyymm));
+			A2(_evancz$elm_http$Http$get, _user$project$OpsCalendar$decodeFlags, url));
 	});
 var _user$project$OpsCalendar$update = F2(
 	function (action, model) {
@@ -9494,8 +9493,8 @@ var _user$project$OpsCalendar$taskView = function (ot) {
 				return _elm_lang$core$Native_Utils.crashCase(
 					'OpsCalendar',
 					{
-						start: {line: 204, column: 16},
-						end: {line: 208, column: 57}
+						start: {line: 203, column: 16},
+						end: {line: 207, column: 57}
 					},
 					_p8)('Only S, U, and P are allowed.');
 		}
