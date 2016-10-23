@@ -655,8 +655,8 @@ def _ops_calendar_json(request, year, month):
         return {
             "taskId": task.pk,
             "shortDesc": task.short_desc,
-            "startTime": 100000,
-            "endTime": 100000,
+            "startTime": 100000,  # TODO: Provide actual time
+            "endTime": 100000,  # TODO: Provide actual time
             "instructions": task.instructions,
             "staffingStatus": task.staffing_status(),
         }
@@ -665,7 +665,7 @@ def _ops_calendar_json(request, year, month):
         task_list_for_date = [t for t in page_tasks if t.scheduled_date == x]
         return {
             "dayOfMonth": x.day,
-            "isInTargetMonth": x.month == date.today().month,
+            "isInTargetMonth": x.month == month,
             "isToday": x == date.today(),
             "tasks":[task_json(t) for t in task_list_for_date]
         }
@@ -683,9 +683,10 @@ def ops_calendar_json(request, year, month) -> JsonResponse:
     return JsonResponse(_ops_calendar_json(request, year, month))
 
 
-def ops_calendar_spa(request, year, month) -> HttpResponse:
-    year = int(year)
-    month = int(month)
+def ops_calendar_spa(request) -> HttpResponse:
+    today = date.today()
+    year = today.year
+    month = today.month
     props = {
         "cal_data": json.dumps(_ops_calendar_json(request, year, month)),
     }

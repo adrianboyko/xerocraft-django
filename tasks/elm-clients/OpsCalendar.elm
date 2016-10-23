@@ -156,12 +156,10 @@ update action model =
       (model, Cmd.none)
 
     PrevMonth ->
-      -- TODO: Mod 12
-      (model, getNewMonth model.year (model.month-1))
+      (model, getNewMonth model (-))
 
     NextMonth ->
-      -- TODO: Mod 12
-      (model, getNewMonth model.year (model.month+1))
+      (model, getNewMonth model (+))
 
     NewMonthSuccess flags ->
       init flags
@@ -174,12 +172,21 @@ update action model =
         Http.UnexpectedPayload _ -> (model, Cmd.none)
         Http.BadResponse _ _ -> (model, Cmd.none)
 
-getNewMonth : int -> int -> Cmd Msg
-getNewMonth year month =
+getNewMonth : Model -> (Int -> Int -> Int) -> Cmd Msg
+getNewMonth model op =
   let
     -- TODO: These should be passed in from Django, not hard-coded here.
     urlbase = "http://localhost:8000/tasks/ops-calendar-json/"
     urlyyyymm = urlbase ++ toStr(year) ++ "-" ++ toStr(month) ++ "/"
+    opMonth = op model.month 1
+    year = case opMonth of
+      13 -> model.year + 1
+      0 -> model.year - 1
+      _ -> model.year
+    month = case opMonth of
+      13 -> 1
+      0 -> 12
+      _ -> opMonth
   in
     Task.perform
       NewMonthFailure

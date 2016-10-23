@@ -44,8 +44,8 @@ urlpatterns = [
     url(r'^ops-calendar/staffed/$', views.ops_calendar_staffed, name='ops-calendar-staffed'),
     url(r'^ops-calendar/provisional/$', views.ops_calendar_provisional, name='ops-calendar-provisional'),
     url(r'^ops-calendar/unstaffed/$', views.ops_calendar_unstaffed, name='ops-calendar-unstaffed'),
-    url(r'^ops-calendar-spa/(?P<year>[0-9]{4})-(?P<month>[0-9][0-9]?)/$', views.ops_calendar_spa, name='ops-calendar-spa'),
-    url(r'^ops-calendar-json/(?P<year>[0-9]{4})-(?P<month>[0-9][0-9]?)/$', views.ops_calendar_json, name='ops-calendar-json'),
+    url(r'^ops-calendar-spa/$', views.ops_calendar_spa, name='ops-calendar-spa'),
+    url(r'^ops-calendar-json/(?P<year>[0-9]{4})-(?P<month>[01]?[0-9])/$', views.ops_calendar_json, name='ops-calendar-json'),
 
     url(r'^cal-task-details/(?P<task_pk>[0-9]+)/$', views.cal_task_details, name='cal-task-details'),
 
