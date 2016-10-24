@@ -275,7 +275,8 @@ unselectable = style
 
 containerStyle = style
   [ ("padding", "0 0")
-  , ("margin-top", "3%")
+  , ("padding-top", "3%")
+  , ("margin-top", "0")
   , ("width", "100%")
   , ("height", "100%")
   , ("text-align", "center")

@@ -9206,7 +9206,8 @@ var _user$project$OpsCalendar$containerStyle = _elm_lang$html$Html_Attributes$st
 	_elm_lang$core$Native_List.fromArray(
 		[
 			{ctor: '_Tuple2', _0: 'padding', _1: '0 0'},
-			{ctor: '_Tuple2', _0: 'margin-top', _1: '3%'},
+			{ctor: '_Tuple2', _0: 'padding-top', _1: '3%'},
+			{ctor: '_Tuple2', _0: 'margin-top', _1: '0'},
 			{ctor: '_Tuple2', _0: 'width', _1: '100%'},
 			{ctor: '_Tuple2', _0: 'height', _1: '100%'},
 			{ctor: '_Tuple2', _0: 'text-align', _1: 'center'}
