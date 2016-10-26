@@ -350,7 +350,13 @@ XEROPS_CONFIG = {
     # Set the XEROPS_FACILITY_PUBLIC_IP environment variable to either:
     # (1) A DNS name that resolves to the facility's public IP
     # (2) The facility's static IP address.
-    'FACILITY_PUBLIC_IP': os.getenv('XEROPS_FACILITY_PUBLIC_IP', None)
+    'FACILITY_PUBLIC_IP': os.getenv('XEROPS_FACILITY_PUBLIC_IP', None),
+
+    # Email addresses
+    'EMAIL_ARCHIVE': "Xerocraft Internal Systems <xis@xerocraft.org>",
+    'EMAIL_XEROPS': "Xerocraft Internal Systems <xis@xerocraft.org>",
+    'EMAIL_TREASURER': "Xerocraft Treasurer <treasurer@xerocraft.org>",
+    'EMAIL_VOLUNTEER': "Volunteer Coordinator <volunteer@xerocraft.org>"
 }
 
 XEROPS_MEMBERS_CONFIG = {
