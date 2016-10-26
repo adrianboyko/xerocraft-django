@@ -1,6 +1,6 @@
 
 # Standard
-from datetime import datetime, timedelta, time
+from datetime import datetime, date, timedelta, time
 import logging
 
 # Third Party
@@ -12,7 +12,7 @@ from django.conf import settings
 from freezegun import freeze_time
 
 # Local
-from members.models import Membership, VisitEvent, PaidMembershipNudge
+from members.models import Membership, VisitEvent
 
 __author__ = 'adrian'
 
@@ -51,7 +51,6 @@ class Command(BaseCommand):
 
     def __init__(self):
         super().__init__()
-        self.bad_visitors = {}
         self.tz = timezone.get_default_timezone()
         self.today = None
         self.yesterday = None
@@ -60,8 +59,8 @@ class Command(BaseCommand):
         # Intended for test cases which will run on a specific date.
         parser.add_argument('--date')
 
-    def process_bad_visits(self):
-        for member, (pm, visit) in self.bad_visitors.items():
+    def process_bad_visitors(self, bad_visitors):
+        for member, (pm, visit) in bad_visitors.items():
 
             if member.email in [None, ""]:
                 logger.info("Bad visit by %s but they haven't provided an email address.", member.username)
@@ -77,7 +76,7 @@ class Command(BaseCommand):
                 'bad_visit': visit,
             }
 
-            subject = 'Time to Renew your Xerocraft Membership'
+            subject = 'Please Renew your Xerocraft Membership'
             from_email = EMAIL_TREASURER
             bcc_email = EMAIL_ARCHIVE
             to = EMAIL_ARCHIVE  # TODO: Switch this to the actual visitor's email when ready for production.
@@ -88,7 +87,9 @@ class Command(BaseCommand):
             msg.send()
 
             logger.info("Email sent to %s re bad visit.", member.username)
-            PaidMembershipNudge.objects.create(member=member)
+            pm.when_nudged = date.today()
+            pm.nudge_count += 1
+            pm.save()
 
     # TODO: "Open" times should be defined in a database table.
     def during_open_hack(self, visit):
@@ -103,7 +104,9 @@ class Command(BaseCommand):
                     return True
         return False
 
-    def nag_for_unpaid_visits(self):
+    def collect_bad_visitors(self):
+
+        bad_visitors = {}
 
         yesterdays_visits = VisitEvent.objects.filter(when__range=[self.yesterday, self.today])
         for visit in yesterdays_visits:
@@ -133,12 +136,15 @@ class Command(BaseCommand):
             elif self.yesterday.date() <= pm.end_date + self.leeway:
                 # Don't nag yet because we're giving the member some leeway to renew.
                 continue
+            elif pm.when_nudged == self.today.date():
+                # Don't nag somebody more than once per day.
+                continue
             else:
                 # Make a note to nag this visitor
-                if visit.who not in self.bad_visitors:
-                    self.bad_visitors[visit.who] = (pm, visit)
+                if visit.who not in bad_visitors:
+                    bad_visitors[visit.who] = (pm, visit)
 
-        self.process_bad_visits()
+        return bad_visitors
 
     def handle(self, *args, **options):
 
@@ -152,8 +158,8 @@ class Command(BaseCommand):
         self.today = timezone.make_aware(self.today, timezone.get_default_timezone())
         self.yesterday = self.today - timedelta(days=1)
 
-        self.nag_for_unpaid_visits()
-        # There may be other sorts of nags here, in the future.
+        bad_visitors = self.collect_bad_visitors()
+        self.process_bad_visitors(bad_visitors)
 
         if test_time is not None:
             freezer.stop()

@@ -8,10 +8,13 @@ from reversion.admin import VersionAdmin
 
 # Local
 from books.admin import Sellable
-from members.models import Tag, Pushover, Tagging, VisitEvent, \
-    Member, Membership, PaidMembershipNudge, GroupMembership, \
-    MemberNote, MemberLogin, MembershipGiftCardRedemption, \
-    MembershipGiftCard, MembershipGiftCardReference, DiscoveryMethod, WifiMacDetected
+from members.models import (
+    Tag, Pushover, Tagging, VisitEvent,
+    Member, Membership, GroupMembership,
+    MemberNote, MemberLogin, MembershipGiftCardRedemption,
+    MembershipGiftCard, MembershipGiftCardReference,
+    DiscoveryMethod, WifiMacDetected
+)
 
 
 @admin.register(Tag)
@@ -89,6 +92,13 @@ class TaggingForMember(admin.TabularInline):
     extra = 0
 
 
+class MemberNoteInline(admin.TabularInline):
+    model = MemberNote
+    fk_name = 'member'
+    raw_id_fields = ['author']
+    extra = 0
+
+
 @admin.register(Member)
 class MemberAdmin(VersionAdmin):
 
@@ -119,7 +129,7 @@ class MemberAdmin(VersionAdmin):
 
     list_filter = [MemberTypeFilter]
 
-    inlines = [TaggingForMember]
+    inlines = [MemberNoteInline, TaggingForMember]
 
     class Media:
         css = {
@@ -149,13 +159,6 @@ class PaymentLinkedFilter(admin.SimpleListFilter):
 # class MemberAKAAdmin(VersionAdmin):
 #     list_display = ['pk', 'member', 'aka']
 #     raw_id_fields = ['member']
-
-
-@admin.register(PaidMembershipNudge)
-class PaidMembershipNudgeAdmin(admin.ModelAdmin):  # No need to version these
-    list_display = ['pk', 'member', 'when']
-    raw_id_fields = ['member']
-    ordering = ['-when']
 
 
 @admin.register(MemberLogin)
@@ -258,6 +261,7 @@ class MembershipAdmin(VersionAdmin):
         'membership_type',
         ('start_date', 'end_date'),
         'sale_price',
+        ('when_nudged', 'nudge_count'),
         'protected',
         'ctrlid',
     ]

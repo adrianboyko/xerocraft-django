@@ -480,20 +480,6 @@ class GroupMembership(models.Model):
             raise ValidationError(_("End date must be later than start date."))
 
 
-class PaidMembershipNudge(models.Model):
-    """ Records the fact that we reminded somebody that they should renew their paid membership """
-
-    member = models.ForeignKey(Member, null=False, blank=False,
-        on_delete=models.CASCADE,  # If a member is deleted, we don't care that we've nudged him to pay.
-        help_text="The member we reminded.")
-
-    when = models.DateField(null=False, blank=False, default=timezone.now,
-        help_text="Date on which the member was reminded.")
-
-    class Meta:
-        verbose_name = "Renewal reminder"
-
-
 class MembershipGiftCard(models.Model):
 
     redemption_code = models.CharField(max_length=20, unique=True, null=False, blank=False,
@@ -607,6 +593,16 @@ class Membership(models.Model):
 
     protected = models.BooleanField(default=False,
         help_text="Protect against further auto processing by ETL, etc. Prevents overwrites of manually entered data.")
+
+    # Fields related to nudges, i.e. reminders to renew membership
+
+    when_nudged = models.DateField(null=True, blank=True, default=None,
+        help_text="Most recent date on which a renewal reminder was sent.")
+
+    nudge_count = models.IntegerField(null=False, blank=False, default=0,
+        help_text="The number of times a renewal reminder was sent.")
+
+    # Methods
 
     def link_to_member(self):
 
