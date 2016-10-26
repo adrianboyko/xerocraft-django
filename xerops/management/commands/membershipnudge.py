@@ -8,6 +8,7 @@ from django.core.management.base import BaseCommand
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import get_template
 from django.utils import timezone
+from django.conf import settings
 from freezegun import freeze_time
 
 # Local
@@ -15,8 +16,8 @@ from members.models import Membership, VisitEvent, PaidMembershipNudge
 
 __author__ = 'adrian'
 
-VC_EMAIL = "Volunteer Coordinator <volunteer@xerocraft.org>"
-XIS_EMAIL = "Xerocraft Internal Systems <xis@xerocraft.org>"
+EMAIL_TREASURER = settings.XEROPS_CONFIG['EMAIL_TREASURER']
+EMAIL_ARCHIVE = settings.XEROPS_CONFIG['EMAIL_ARCHIVE']
 
 # Why aren't these defined in datetime?
 MONDAY    = 0
@@ -35,66 +36,57 @@ OPENHACKS = [
     (SATURDAY, time(12, 0, 0), time(16, 0, 0)),
 ]
 
+logger = logging.getLogger("xerocraft-django")
+
 
 # TODO: Combine this command with the login scraper so it sends email shortly after person arrives?
 # TODO: Should send an alert to staff members' Xerocraft apps.
+# TODO: Handle membership nudges via generic "object mailer" mechanism?
 class Command(BaseCommand):
 
     help = "Emails unpaid members who visit during paid member hours."
-    logger = logging.getLogger("xerocraft-django")
-    bad_visits = None
-    bad_visitors = None
-    tz = timezone.get_default_timezone()
-    today = None
-    yesterday = None
+
+    def __init__(self):
+        self.bad_visitors = {}
+        self.tz = timezone.get_default_timezone()
+        self.today = None
+        self.yesterday = None
 
     def add_arguments(self, parser):
         # Intended for test cases which will run on a specific date.
         parser.add_argument('--date')
 
-    def note_bad_visit(self, visit, pm: Membership):
-
-        if visit.who in self.bad_visits:
-            self.bad_visits[visit.who].append(visit)
-        else:
-            self.bad_visits[visit.who] = [visit]
-
-        if visit.who not in self.bad_visitors:
-            self.bad_visitors[visit.who] = pm
-
     def process_bad_visits(self):
-        for member, pm in self.bad_visitors.items():
+        for member, (pm, visit) in self.bad_visitors.items():
 
             if member.email in [None, ""]:
-                self.logger.info("Bad visit by %s but they haven't provided an email address.", member.username)
+                logger.info("Bad visit by %s but they haven't provided an email address.", member.username)
                 continue
 
             # Send email messages:
             text_content_template = get_template('members/email-unpaid-visit.txt')
             html_content_template = get_template('members/email-unpaid-visit.html')
 
-            visits = self.bad_visits[member]
-            visits = [timezone.localtime(v.when) for v in visits]
-
             d = {
                 'friendly_name': member.friendly_name,
                 'paid_membership': pm,
-                'bad_visit': visits[0],
+                'bad_visit': visit,
             }
 
             subject = 'Time to Renew your Xerocraft Membership'
-            from_email = XIS_EMAIL
-            bcc_email = XIS_EMAIL
-            to = from_email  # TODO: Testing only. Not ready to send to actual members.
+            from_email = EMAIL_TREASURER
+            bcc_email = EMAIL_ARCHIVE
+            to = EMAIL_ARCHIVE  # TODO: Switch this to the actual visitor's email when ready for production.
             text_content = text_content_template.render(d)
             html_content = html_content_template.render(d)
             msg = EmailMultiAlternatives(subject, text_content, from_email, [to], [bcc_email])
             msg.attach_alternative(html_content, "text/html")
             msg.send()
 
-            self.logger.info("Email sent to %s re bad visit.", member.username)
+            logger.info("Email sent to %s re bad visit.", member.username)
             PaidMembershipNudge.objects.create(member=member)
 
+    # TODO: "Open" times should be defined in a database table.
     def during_open_hack(self, visit):
         assert timezone.localtime(visit.when).date() == self.yesterday.date()
         time_leeway = timedelta(hours=1)
@@ -109,10 +101,7 @@ class Command(BaseCommand):
 
     def nag_for_unpaid_visits(self):
 
-        self.bad_visits = {}
-        self.bad_visitors = {}
-
-        date_leeway = timedelta(days=14)
+        date_leeway = timedelta(days=31)  # Let's be very conservative about nagging people.
 
         yesterdays_visits = VisitEvent.objects.filter(when__range=[self.yesterday, self.today])
         for visit in yesterdays_visits:
@@ -121,7 +110,8 @@ class Command(BaseCommand):
             if self.during_open_hack(visit): continue
 
             # Ignore visits by directors (who have decided they don't need to pay)
-            if visit.who.is_tagged_with("Director"): continue
+            if visit.who.is_tagged_with("Director"):
+                continue
 
             # Get most recent membership for visitor.
             try:
@@ -138,15 +128,15 @@ class Command(BaseCommand):
             elif pm.start_date <= self.yesterday.date() <= pm.end_date:
                 # Don't nag because the latest paid membership covers the visit.
                 continue
-            elif self.yesterday.date() <= pm.end_date+date_leeway:
+            elif self.yesterday.date() <= pm.end_date + date_leeway:
                 # Don't nag yet because we're giving the member some leeway to renew.
                 continue
             else:
-                # Nag this user.
-                self.note_bad_visit(visit, pm)
+                # Make a note to nag this visitor
+                if visit.who not in self.bad_visitors:
+                    self.bad_visitors[visit.who] = (pm, visit)
 
         self.process_bad_visits()
-        return
 
     def handle(self, *args, **options):
 

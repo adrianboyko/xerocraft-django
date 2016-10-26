@@ -8,9 +8,9 @@
     <body style='font-family:Arial; font-color:black'>
         <p>Hi {{friendly_name}},</p>
         <p>
-            Thanks for visiting Xerocraft on {{bad_visit | date:"D M d"}} at
-            {{bad_visit | time:"g:iA"}}! But, unfortunately, you visited during paid member hours
-            without an active paid membership.
+            Thanks for visiting Xerocraft on {{bad_visit.when | date:"D M d"}} at
+            {{bad_visit.when | time:"g:iA"}} but, unfortunately, you visited during paid member hours
+            without an active paid membership!
             {% if paid_membership %}
             Your most recent paid membership ended on {{paid_membership.end_date | date:"D M d, Y"}}.
             {% endif %}

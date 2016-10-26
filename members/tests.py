@@ -57,7 +57,7 @@ class TestMemberNag(TestCase):
             )
             mship.clean()
             mship.dbcheck()
-            management.call_command("membernag", date=self.FREEZE_DATE_STR)
+            management.call_command("membershipnudge", date=self.FREEZE_DATE_STR)
             self.assertEqual(len(mail.outbox), 0)
 
     def test_unpaid_visit(self):
@@ -68,13 +68,13 @@ class TestMemberNag(TestCase):
             mship = Membership.objects.create(
                 member=self.memb,
                 membership_type=Membership.MT_COMPLIMENTARY,
-                # membernag gives member 14 days to pay, so make old membership older than that:
-                start_date=date.today()-timedelta(days=21),
-                end_date=date.today()-timedelta(days=20),
+                # membershipnudge gives member 31 days to pay, so make old membership older than that:
+                start_date=date.today()-timedelta(days=41),
+                end_date=date.today()-timedelta(days=40),
             )
             mship.clean()
             mship.dbcheck()
-            management.call_command("membernag", date=self.FREEZE_DATE_STR)
+            management.call_command("membershipnudge", date=self.FREEZE_DATE_STR)
             self.assertEqual(len(mail.outbox), 1)
 
     def test_unpaid_visit_leeway(self):
@@ -85,13 +85,13 @@ class TestMemberNag(TestCase):
             mship = Membership.objects.create(
                 member=self.memb,
                 membership_type=Membership.MT_COMPLIMENTARY,
-                # membernag gives member 14 days to pay, so make old membership inside the leeway:
+                # membershipnudge gives member 31 days to pay, so make old membership inside the leeway:
                 start_date=date.today()-timedelta(days=11),
                 end_date=date.today()-timedelta(days=10),
             )
             mship.clean()
             mship.dbcheck()
-            management.call_command("membernag", date=self.FREEZE_DATE_STR)
+            management.call_command("membershipnudge", date=self.FREEZE_DATE_STR)
             self.assertEqual(len(mail.outbox), 0)
 
 
