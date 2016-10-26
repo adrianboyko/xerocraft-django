@@ -28,7 +28,6 @@ FRIDAY    = 4
 SATURDAY  = 5
 SUNDAY    = 6
 
-# TODO: This command is Xerocraft specific. Move to "xerocraft"?
 
 OPENHACKS = [
     (TUESDAY, time(18, 0, 0), time(22, 0, 0)),
@@ -46,7 +45,12 @@ class Command(BaseCommand):
 
     help = "Emails unpaid members who visit during paid member hours."
 
+    # This is the length of the "leeway" or "grace period" before which we'll nag.
+    # I'm choosing a very conservative value here.
+    leeway = timedelta(days=31)
+
     def __init__(self):
+        super().__init__()
         self.bad_visitors = {}
         self.tz = timezone.get_default_timezone()
         self.today = None
@@ -101,8 +105,6 @@ class Command(BaseCommand):
 
     def nag_for_unpaid_visits(self):
 
-        date_leeway = timedelta(days=31)  # Let's be very conservative about nagging people.
-
         yesterdays_visits = VisitEvent.objects.filter(when__range=[self.yesterday, self.today])
         for visit in yesterdays_visits:
 
@@ -128,7 +130,7 @@ class Command(BaseCommand):
             elif pm.start_date <= self.yesterday.date() <= pm.end_date:
                 # Don't nag because the latest paid membership covers the visit.
                 continue
-            elif self.yesterday.date() <= pm.end_date + date_leeway:
+            elif self.yesterday.date() <= pm.end_date + self.leeway:
                 # Don't nag yet because we're giving the member some leeway to renew.
                 continue
             else:

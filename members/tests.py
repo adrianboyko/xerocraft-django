@@ -18,6 +18,7 @@ import members.notifications as notifications
 from members.models import Tag, Tagging, VisitEvent, Membership, Pushover
 from members.views import _calculate_accrued_membership_revenue
 from members.notifications import pushover_available
+from members.management.commands.membershipnudge import Command as MembershipNudgeCmd
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
@@ -68,9 +69,9 @@ class TestMemberNag(TestCase):
             mship = Membership.objects.create(
                 member=self.memb,
                 membership_type=Membership.MT_COMPLIMENTARY,
-                # membershipnudge gives member 31 days to pay, so make old membership older than that:
-                start_date=date.today()-timedelta(days=41),
-                end_date=date.today()-timedelta(days=40),
+                # Make old membership OLDER than membership nudge command's leeway:
+                start_date=date.today()-MembershipNudgeCmd.leeway-timedelta(days=11),
+                end_date=date.today()-MembershipNudgeCmd.leeway-timedelta(days=10),
             )
             mship.clean()
             mship.dbcheck()
@@ -85,9 +86,9 @@ class TestMemberNag(TestCase):
             mship = Membership.objects.create(
                 member=self.memb,
                 membership_type=Membership.MT_COMPLIMENTARY,
-                # membershipnudge gives member 31 days to pay, so make old membership inside the leeway:
-                start_date=date.today()-timedelta(days=11),
-                end_date=date.today()-timedelta(days=10),
+                # Make old membership exist INSIDE the leeway:
+                start_date=date.today()-MembershipNudgeCmd.leeway+timedelta(days=2),
+                end_date=date.today()-MembershipNudgeCmd.leeway+timedelta(days=3),
             )
             mship.clean()
             mship.dbcheck()
@@ -98,7 +99,7 @@ class TestMemberNag(TestCase):
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 """
-TODO: The following test is complicated by my signal processing.
+TODO: The following test is complicated by my signal handling.
 Specifically, when loading a fixture there's no need for the handler that creates a member for each user.
 """
 # class TestMemberValidity(TestCase):
