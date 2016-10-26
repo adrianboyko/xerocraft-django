@@ -9199,7 +9199,7 @@ var _user$project$OpsCalendar$tableStyle = _elm_lang$html$Html_Attributes$style(
 var _user$project$OpsCalendar$headerStyle = _elm_lang$html$Html_Attributes$style(
 	_elm_lang$core$Native_List.fromArray(
 		[
-			{ctor: '_Tuple2', _0: 'font-family', _1: 'Arial, Helvetica'},
+			{ctor: '_Tuple2', _0: 'font-family', _1: 'Roboto Condensed, Arial, Helvetica'},
 			{ctor: '_Tuple2', _0: 'font-size', _1: '2em'}
 		]));
 var _user$project$OpsCalendar$containerStyle = _elm_lang$html$Html_Attributes$style(
@@ -9330,15 +9330,15 @@ var _user$project$OpsCalendar$decodeFlags = A2(
 					_elm_lang$core$Json_Decode$list(_user$project$OpsCalendar$decodeDayOfTasks)))),
 		A2(_elm_lang$core$Json_Decode_ops[':='], 'year', _elm_lang$core$Json_Decode$int)),
 	A2(_elm_lang$core$Json_Decode_ops[':='], 'month', _elm_lang$core$Json_Decode$int));
-var _user$project$OpsCalendar$Model = F4(
-	function (a, b, c, d) {
-		return {tasks: a, year: b, month: c, selectedTask: d};
+var _user$project$OpsCalendar$Model = F5(
+	function (a, b, c, d, e) {
+		return {tasks: a, year: b, month: c, selectedTask: d, working: e};
 	});
 var _user$project$OpsCalendar$init = function (_p2) {
 	var _p3 = _p2;
 	return {
 		ctor: '_Tuple2',
-		_0: A4(_user$project$OpsCalendar$Model, _p3.tasks, _p3.year, _p3.month, _elm_lang$core$Maybe$Nothing),
+		_0: A5(_user$project$OpsCalendar$Model, _p3.tasks, _p3.year, _p3.month, _elm_lang$core$Maybe$Nothing, false),
 		_1: _elm_lang$core$Platform_Cmd$none
 	};
 };
@@ -9401,7 +9401,9 @@ var _user$project$OpsCalendar$update = F2(
 			case 'PrevMonth':
 				return {
 					ctor: '_Tuple2',
-					_0: model,
+					_0: _elm_lang$core$Native_Utils.update(
+						model,
+						{working: true}),
 					_1: A2(
 						_user$project$OpsCalendar$getNewMonth,
 						model,
@@ -9413,7 +9415,9 @@ var _user$project$OpsCalendar$update = F2(
 			case 'NextMonth':
 				return {
 					ctor: '_Tuple2',
-					_0: model,
+					_0: _elm_lang$core$Native_Utils.update(
+						model,
+						{working: true}),
 					_1: A2(
 						_user$project$OpsCalendar$getNewMonth,
 						model,
@@ -9440,45 +9444,47 @@ var _user$project$OpsCalendar$update = F2(
 	});
 var _user$project$OpsCalendar$NextMonth = {ctor: 'NextMonth'};
 var _user$project$OpsCalendar$PrevMonth = {ctor: 'PrevMonth'};
-var _user$project$OpsCalendar$headerView = F2(
-	function (year, month) {
-		return A2(
-			_elm_lang$html$Html$span,
-			_elm_lang$core$Native_List.fromArray(
-				[_user$project$OpsCalendar$headerStyle]),
-			_elm_lang$core$Native_List.fromArray(
-				[
-					A2(
-					_elm_lang$html$Html$button,
-					_elm_lang$core$Native_List.fromArray(
-						[
-							_user$project$OpsCalendar$navButtonStyle,
-							_elm_lang$html$Html_Events$onClick(_user$project$OpsCalendar$PrevMonth)
-						]),
-					_elm_lang$core$Native_List.fromArray(
-						[
-							_elm_lang$html$Html$text('🠜')
-						])),
-					_elm_lang$html$Html$text(' '),
-					_elm_lang$html$Html$text(
-					_user$project$OpsCalendar$monthName(month - 1)),
-					_elm_lang$html$Html$text(' '),
-					_elm_lang$html$Html$text(
-					_user$project$OpsCalendar$toStr(year)),
-					_elm_lang$html$Html$text(' '),
-					A2(
-					_elm_lang$html$Html$button,
-					_elm_lang$core$Native_List.fromArray(
-						[
-							_user$project$OpsCalendar$navButtonStyle,
-							_elm_lang$html$Html_Events$onClick(_user$project$OpsCalendar$NextMonth)
-						]),
-					_elm_lang$core$Native_List.fromArray(
-						[
-							_elm_lang$html$Html$text('🠞')
-						]))
-				]));
-	});
+var _user$project$OpsCalendar$headerView = function (model) {
+	return A2(
+		_elm_lang$html$Html$span,
+		_elm_lang$core$Native_List.fromArray(
+			[_user$project$OpsCalendar$headerStyle]),
+		model.working ? _elm_lang$core$Native_List.fromArray(
+			[
+				_elm_lang$html$Html$text('Working')
+			]) : _elm_lang$core$Native_List.fromArray(
+			[
+				A2(
+				_elm_lang$html$Html$button,
+				_elm_lang$core$Native_List.fromArray(
+					[
+						_user$project$OpsCalendar$navButtonStyle,
+						_elm_lang$html$Html_Events$onClick(_user$project$OpsCalendar$PrevMonth)
+					]),
+				_elm_lang$core$Native_List.fromArray(
+					[
+						_elm_lang$html$Html$text('🠜')
+					])),
+				_elm_lang$html$Html$text(' '),
+				_elm_lang$html$Html$text(
+				_user$project$OpsCalendar$monthName(model.month - 1)),
+				_elm_lang$html$Html$text(' '),
+				_elm_lang$html$Html$text(
+				_user$project$OpsCalendar$toStr(model.year)),
+				_elm_lang$html$Html$text(' '),
+				A2(
+				_elm_lang$html$Html$button,
+				_elm_lang$core$Native_List.fromArray(
+					[
+						_user$project$OpsCalendar$navButtonStyle,
+						_elm_lang$html$Html_Events$onClick(_user$project$OpsCalendar$NextMonth)
+					]),
+				_elm_lang$core$Native_List.fromArray(
+					[
+						_elm_lang$html$Html$text('🠞')
+					]))
+			]));
+};
 var _user$project$OpsCalendar$ShowTaskDetail = {ctor: 'ShowTaskDetail'};
 var _user$project$OpsCalendar$taskView = function (ot) {
 	var theStyle = function () {
@@ -9494,8 +9500,8 @@ var _user$project$OpsCalendar$taskView = function (ot) {
 				return _elm_lang$core$Native_Utils.crashCase(
 					'OpsCalendar',
 					{
-						start: {line: 203, column: 16},
-						end: {line: 207, column: 57}
+						start: {line: 204, column: 16},
+						end: {line: 208, column: 57}
 					},
 					_p8)('Only S, U, and P are allowed.');
 		}
@@ -9600,7 +9606,7 @@ var _user$project$OpsCalendar$view = function (model) {
 			[_user$project$OpsCalendar$containerStyle]),
 		_elm_lang$core$Native_List.fromArray(
 			[
-				A2(_user$project$OpsCalendar$headerView, model.year, model.month),
+				_user$project$OpsCalendar$headerView(model),
 				_user$project$OpsCalendar$monthView(model.tasks)
 			]));
 };

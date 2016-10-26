@@ -98,14 +98,15 @@ type alias Model =
   , year: Int
   , month: Int
   , selectedTask: Maybe Int
+  , working: Bool
   }
 
 init : Flags -> (Model, Cmd Msg)
 init {tasks, year, month} =
-  (Model tasks year month Nothing, Cmd.none)
+  (Model tasks year month Nothing False, Cmd.none)
 
 -----------------------------------------------------------------------------
--- JSON Decoder from http://noredink.github.io/json-to-elm/
+-- JSON Decoder
 -----------------------------------------------------------------------------
 
 decodeOpsTask : Dec.Decoder OpsTask
@@ -156,10 +157,10 @@ update action model =
       (model, Cmd.none)
 
     PrevMonth ->
-      (model, getNewMonth model (-))
+      ({model | working = True}, getNewMonth model (-))
 
     NextMonth ->
-      (model, getNewMonth model (+))
+      ({model | working = True}, getNewMonth model (+))
 
     NewMonthSuccess flags ->
       init flags
@@ -242,22 +243,27 @@ monthView monthOfTasks =
          , (List.map weekView monthOfTasks)
          ])
 
-headerView : Int -> Int -> Html Msg
-headerView year month =
+headerView : Model -> Html Msg
+headerView model =
   span [headerStyle]
-    [ button [navButtonStyle, (onClick PrevMonth)] [text "🠜"]
-    , text " "
-    , text (monthName (month-1))
-    , text " "
-    , text (toStr year)
-    , text " "
-    , button [navButtonStyle, (onClick NextMonth)] [text "🠞"]
-    ]
+    (
+    if model.working then
+      [ text "Working" ]
+    else
+      [ button [navButtonStyle, (onClick PrevMonth)] [text "🠜"]
+      , text " "
+      , text (monthName (model.month-1))
+      , text " "
+      , text (toStr model.year)
+      , text " "
+      , button [navButtonStyle, (onClick NextMonth)] [text "🠞"]
+      ]
+    )
 
 view : Model -> Html Msg
 view model =
   div [containerStyle]
-    [ headerView model.year model.month
+    [ headerView model
     , monthView model.tasks
     ]
 
@@ -283,7 +289,7 @@ containerStyle = style
   ]
 
 headerStyle = style
-  [ ("font-family", "Arial, Helvetica")
+  [ ("font-family", "Roboto Condensed, Arial, Helvetica")
   , ("font-size", "2em")
   ]
 
