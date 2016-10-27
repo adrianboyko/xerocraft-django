@@ -15,7 +15,7 @@ from reversion.admin import VersionAdmin
 
 # Local
 from books.models import (
-    Account, DonationNote, MonetaryDonation, DonatedItem, Donation,
+    Account, DonationNote, MonetaryDonation, DonatedItem, Donation, MonetaryDonationReward,
     Sale, SaleNote, OtherItem, OtherItemType, ExpenseTransaction,
     ExpenseTransactionNote, ExpenseClaim, ExpenseClaimNote,
     ExpenseClaimReference, ExpenseLineItem, AccountGroup,
@@ -140,6 +140,10 @@ class AccountGroupAdmin(VersionAdmin):
 # DONATIONS
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
+@admin.register(MonetaryDonationReward)
+class MonetaryDonationRewardAdmin(VersionAdmin):
+    pass
+
 class DonationNoteInline(NoteInline):
     model = DonationNote
 
@@ -149,6 +153,7 @@ class MonetaryDonationInline(admin.StackedInline):
     fields = [
         'amount',
         'earmark',
+        'reward',
     ]
     raw_id_fields = ['earmark']
     extra = 0

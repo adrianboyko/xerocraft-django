@@ -529,6 +529,22 @@ class OtherItem(models.Model):
         return self.type.name
 
 
+class MonetaryDonationReward(models.Model):
+
+    name = models.CharField(max_length=40, blank=False,
+        help_text="Name of the reward.")
+
+    cost_to_org = models.DecimalField(max_digits=6, decimal_places=2,
+        null=False, blank=False, default=Decimal(0.0),
+        help_text="The cost of this reward to the organization.")
+
+    description = models.TextField(max_length=1024,
+        help_text="Description of the reward.")
+
+    def __str__(self):
+        return self.name
+
+
 class MonetaryDonation(models.Model):
 
     # NOTE: A monetary donation can ONLY appear on a Sale.
@@ -543,6 +559,10 @@ class MonetaryDonation(models.Model):
     earmark = models.ForeignKey(Account, null=True, blank=True,
         on_delete=models.SET_NULL,  # In the unlikely evt that acct vanishes, just point to null.
         help_text="The account for which this donation is earmarked.")
+
+    reward = models.ForeignKey(MonetaryDonationReward, null=True, blank=True, default=None,
+        on_delete=models.PROTECT,  # Don't allow a reward to be deleted if donations point to it.
+        help_text="The reward given to the donor, if any.")
 
     ctrlid = models.CharField(max_length=40, null=False, blank=False, unique=True,
         default=next_monetarydonation_ctrlid,
