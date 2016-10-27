@@ -99,6 +99,25 @@ class MemberNoteInline(admin.TabularInline):
     extra = 0
 
 
+class MembershipInline(admin.TabularInline):
+    model = Membership
+    extra = 0
+    fields = [
+        'membership_type',
+        'start_date',
+        'end_date',
+        'when_nudged',
+        'nudge_count',
+    ]
+    readonly_fields = [
+        'membership_type',
+        'start_date',
+        'end_date',
+        'when_nudged',
+        'nudge_count',
+    ]
+
+
 @admin.register(Member)
 class MemberAdmin(VersionAdmin):
 
@@ -129,7 +148,7 @@ class MemberAdmin(VersionAdmin):
 
     list_filter = [MemberTypeFilter]
 
-    inlines = [MemberNoteInline, TaggingForMember]
+    inlines = [MemberNoteInline, TaggingForMember, MembershipInline]
 
     class Media:
         css = {

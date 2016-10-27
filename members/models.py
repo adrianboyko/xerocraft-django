@@ -636,6 +636,9 @@ class Membership(models.Model):
     def __str__(self):
         return "%s, %s to %s" % (self.member, self.start_date, self.end_date)
 
+    class Meta:
+        ordering = ['start_date']
+
 
 class DiscoveryMethod(models.Model):
     """Different ways that members learn about us. E.g. 'Tucson Meet Yourself', 'Radio', 'TV', 'Website', etc """
