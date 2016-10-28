@@ -10,10 +10,13 @@ from django.db import models
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
 from django.utils.translation import ugettext_lazy as _
+from django.conf import settings
 from nameparser import HumanName
 
 # Local
 from abutils.utils import generate_ctrlid
+
+ORG_NAME = settings.XEROPS_CONFIG['ORG_NAME']
 
 
 # class PayerAKA(models.Model):
@@ -534,12 +537,24 @@ class MonetaryDonationReward(models.Model):
     name = models.CharField(max_length=40, blank=False,
         help_text="Name of the reward.")
 
+    min_donation = models.DecimalField(max_digits=6, decimal_places=2,
+        null=False, blank=False, default=Decimal(0.0),
+        help_text="The minimum donation required to earn this reward.")
+
     cost_to_org = models.DecimalField(max_digits=6, decimal_places=2,
         null=False, blank=False, default=Decimal(0.0),
-        help_text="The cost of this reward to the organization.")
+        help_text="The cost of this reward to {}.".format(ORG_NAME))
+
+    fair_mkt_value = models.DecimalField(max_digits=6, decimal_places=2,
+        null=False, blank=False, default=Decimal(0.0),
+        help_text="The value of this reward to the donor, for tax purposes.")
 
     description = models.TextField(max_length=1024,
         help_text="Description of the reward.")
+
+    def clean(self):
+        if self.cost_to_org > self.min_donation:
+            raise ValidationError(_("Min donation should cover the cost of the reward."))
 
     def __str__(self):
         return self.name
@@ -588,6 +603,49 @@ class ReceivableInvoiceReference(models.Model):
 
     portion = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, default=None,
         help_text="Leave blank unless they're only paying a portion of the invoice.")
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# FUND RAISING CAMPAIGNS
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+class Campaign(models.Model):
+
+    name = models.CharField(max_length=40, blank=False,
+        help_text="Short name of the campaign.")
+
+    is_active = models.BooleanField(default=True,
+        help_text="Whether or not this campaign is currently being pursued.")
+
+    target_amount = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
+        help_text="The total amount that needs to be collected in donations.")
+
+    account = models.ForeignKey(Account, null=False, blank=False,
+        on_delete=models.PROTECT,  # Don't allow deletion of account if campaign still exists.
+        help_text="The account used by this campaign.")
+
+    description = models.TextField(max_length=1024,
+        help_text="A description of the campaign and why people should donate to it.")
+
+    def clean(self):
+        if self.account.category is not Account.CAT_REVENUE:
+             raise ValidationError(_("Account chosen must have category REVENUE."))
+
+        if self.account.type is not Account.TYPE_CREDIT:
+            raise ValidationError(_("Account chosen must have type CREDIT."))
+
+    def __str__(self):
+        return self.name
+
+
+class CampaignNote(Note):
+
+    is_public = models.BooleanField(default=False,
+        help_text="Should this note be visible to the public as a campaign update?")
+
+    campaign = models.ForeignKey(Campaign,
+        on_delete=models.CASCADE,  # No point in keeping the update if the campaign is deleted.
+        help_text="The campaign to which this public update applies.")
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =

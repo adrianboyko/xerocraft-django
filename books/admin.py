@@ -22,6 +22,7 @@ from books.models import (
     ReceivableInvoice, ReceivableInvoiceNote, ReceivableInvoiceReference, ReceivableInvoiceLineItem,
     PayableInvoice, PayableInvoiceNote, PayableInvoiceReference, PayableInvoiceLineItem,
     Entity, EntityNote,
+    Campaign, CampaignNote,
 )
 from modelmailer.admin import ModelMailerAdmin
 
@@ -142,7 +143,9 @@ class AccountGroupAdmin(VersionAdmin):
 
 @admin.register(MonetaryDonationReward)
 class MonetaryDonationRewardAdmin(VersionAdmin):
-    pass
+    list_display = ['pk', 'name', 'min_donation', 'fair_mkt_value', 'cost_to_org']
+    list_display_links = ['pk', 'name']
+
 
 class DonationNoteInline(NoteInline):
     model = DonationNote
@@ -200,10 +203,32 @@ class DonationAdmin(ModelMailerAdmin, VersionAdmin):
             )
         }
 
+
+class CampaignNoteInline(admin.TabularInline): # Can't inherit from NoteInline b/c of extra field.
+    model = CampaignNote
+    fields = ['author', 'is_public', 'content']
+    extra = 0
+    raw_id_fields = ['author']
+
+
+@admin.register(Campaign)
+class CampaignAdmin(VersionAdmin):
+    list_display = ['pk', 'name', 'target_amount', 'account']
+    list_display_links = ['pk', 'name']
+    raw_id_fields = ['account']
+    inlines = [CampaignNoteInline]
+
+    class Media:
+        css = {
+            "all": (
+                "abutils/admin-tabular-inline.css",  # Hides "denormalized obj descs", to use Woj's term.
+            )
+        }
+
+
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # ENTITY
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-
 
 class EntityNoteInline(NoteInline):
     model = EntityNote
@@ -318,6 +343,11 @@ class InvoiceAdmin(VersionAdmin):
         '^user__username',
         'user__email',
     ]
+
+    class Media:
+        css = {
+            "all": ("abutils/admin-tabular-inline.css",)  # This hides "denormalized object descs", to use Wojciech's term.
+        }
 
 
 @admin.register(ReceivableInvoice)
