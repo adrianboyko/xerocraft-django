@@ -237,6 +237,7 @@ class EntityNoteInline(NoteInline):
 @admin.register(Entity)
 class EntityAdmin(VersionAdmin):
     list_display = ['id', 'name']
+    list_display_links = ['id', 'name']
     inlines = [EntityNoteInline]
 
 
