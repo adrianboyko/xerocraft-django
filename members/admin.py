@@ -208,15 +208,14 @@ class MembershipGiftCardAdmin(VersionAdmin):
         'redemption_code',
         'price',
         'month_duration',
+        'day_duration',
         'created',
         'sold',
         'redeemed',
     ]
-    search_fields = [
-        'redemption_code',
-    ]
+    search_fields = ['redemption_code']
     list_display_links = ['pk', 'redemption_code']
-    list_filter = ['month_duration', 'price']
+    list_filter = ['month_duration', 'day_duration', 'price']
     ordering = ['redemption_code']
 
 

@@ -491,8 +491,20 @@ class MembershipGiftCard(models.Model):
     price = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
         help_text="The price to buy this gift card.")
 
-    month_duration = models.IntegerField(null=False, blank=False,
-        help_text="The number of months of membership this gift card grants when redeemed.")
+    month_duration = models.IntegerField(null=True, blank=True, default=None,
+        help_text="The number of months of membership this gift card grants when redeemed.",
+        verbose_name="Months")
+
+    day_duration = models.IntegerField(null=True, blank=True, default=None,
+        help_text="The number of days of membership this gift card grants when redeemed.",
+        verbose_name = "Days")
+
+    def clean(self):
+        dur_count = 0
+        dur_count += int(self.month_duration is not None)
+        dur_count += int(self.day_duration is not None)
+        if dur_count != 1:
+            raise ValidationError(_("EITHER month or day duration should be specified."))
 
     def __str__(self):
         return "{} months for ${}, code: {}".format(self.month_duration, self.price, self.redemption_code)
