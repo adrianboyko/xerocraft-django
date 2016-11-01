@@ -928,6 +928,10 @@ class ExpenseLineItem(models.Model):
     def __str__(self):
         return "${} on {}".format(self.amount, self.expense_date)
 
+    def clean(self):
+        if self.account.category is not Account.CAT_EXPENSE:
+            raise ValidationError(_("Account chosen must have category EXPENSE."))
+
     def dbcheck(self):
         # Relationships can't be checked in clean but can be checked later in a "db check" operation.
         if self.claim is None and self.exp is None:
