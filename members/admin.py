@@ -213,6 +213,7 @@ class MembershipGiftCardAdmin(VersionAdmin):
         'sold',
         'redeemed',
     ]
+    date_hierarchy = 'date_created'
     search_fields = ['redemption_code']
     list_display_links = ['pk', 'redemption_code']
     list_filter = ['month_duration', 'day_duration', 'price']
