@@ -1,6 +1,7 @@
 # Standard
 import string
 import random
+from subprocess import call
 
 # Third Party
 from django.core.management.base import BaseCommand
@@ -127,3 +128,5 @@ class Command(BaseCommand):
                 self.draw_label(c, col, row, redemption_code)
         c.showPage()
         c.save()
+
+        call(["cat", "labels.pdf"])  # REVIEW: Python instead?
