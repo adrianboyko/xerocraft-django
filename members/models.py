@@ -507,7 +507,11 @@ class MembershipGiftCard(models.Model):
             raise ValidationError(_("EITHER month or day duration should be specified."))
 
     def __str__(self):
-        return "{} months for ${}, code: {}".format(self.month_duration, self.price, self.redemption_code)
+        fmtstr = "{} {} for ${}, code: {}"
+        if self.month_duration is not None:
+            return fmtstr.format(self.month_duration, "months", self.price, self.redemption_code)
+        if self.day_duration is not None:
+            return fmtstr.format(self.day_duration, "days", self.price, self.redemption_code)
 
     class Meta:
         verbose_name = "Gift card"
