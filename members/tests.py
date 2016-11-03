@@ -15,7 +15,7 @@ from freezegun import freeze_time
 import members.notifications as notifications
 
 # Local
-from members.models import Tag, Tagging, VisitEvent, Membership, Pushover
+from members.models import Tag, Tagging, VisitEvent, Membership, Pushover, MembershipGiftCard
 from members.views import _calculate_accrued_membership_revenue
 from members.notifications import pushover_available
 from members.management.commands.membershipnudge import Command as MembershipNudgeCmd
@@ -291,3 +291,21 @@ class TestNotify(TestCase):
     def test(self):
         if pushover_available:
             notifications.notify(self.user.member, "Testing Pushover", "This is a test.")
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# GENERATE GIFT CARDS
+
+class GenGiftCards(TestCase):
+
+    def test_dry_run(self):
+        management.call_command('gengiftcards', 'TST', '50', '--months', '1', '--dry-run', 'True')
+        self.assertEqual(MembershipGiftCard.objects.count(), 0)  # because it's a dry run
+
+    def test_month_duration(self):
+        management.call_command('gengiftcards', 'TST', '50', '--months', '1')
+        self.assertEqual(MembershipGiftCard.objects.filter(month_duration=1).count(), 30)
+
+    def test_day_duration(self):
+        management.call_command('gengiftcards', 'TST', '50', '--days', '14')
+        self.assertEqual(MembershipGiftCard.objects.filter(day_duration=14).count(), 30)

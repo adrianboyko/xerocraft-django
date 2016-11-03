@@ -12,7 +12,7 @@ from reportlab.lib.units import inch
 from members.models import MembershipGiftCard
 
 
-class GenGiftCards(BaseCommand):
+class Command(BaseCommand):
 
     help = "Email reports of new taggings are sent to members that authorized those taggings."
 
@@ -33,9 +33,12 @@ class GenGiftCards(BaseCommand):
         parser.add_argument('price', type=int, help="The price for the cards being generated.")
         parser.add_argument('-m', '--months', type=int, help="The number of membership months this gift card conveys.")
         parser.add_argument('-d', '--days', type=int, help="The number of membership days this gift card conveys.")
-        parser.add_argument('--dry-run', help="Make the PDF but don't create anything in the database.")
+        parser.add_argument('--dry-run', type=bool, default=False, help="Make the PDF but don't create anything in the database.")
 
     def create_db_entry(self, redemption_code):
+        if self.dry_run:
+            return
+
         try:
             mgc = MembershipGiftCard.objects.create(
                 redemption_code=redemption_code,
@@ -114,6 +117,7 @@ class GenGiftCards(BaseCommand):
         self.price = options['price']
         self.month_duration = options['months']
         self.day_duration = options['days']
+        self.dry_run = options['dry_run']
 
         c = Canvas("labels.pdf", pagesize=letter)
         for row in range(0, 10):
