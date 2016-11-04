@@ -9085,6 +9085,7 @@ var _garetht$elm_dynamic_style$DynamicStyle$hover = _garetht$elm_dynamic_style$D
 var _user$project$OpsCalendar$navButtonStyle = _elm_lang$html$Html_Attributes$style(
 	_elm_lang$core$Native_List.fromArray(
 		[
+			{ctor: '_Tuple2', _0: 'font-family', _1: 'Roboto Condensed'},
 			{ctor: '_Tuple2', _0: 'vertical-align', _1: '.28em'},
 			{ctor: '_Tuple2', _0: 'font-size', _1: '0.6em'},
 			{ctor: '_Tuple2', _0: 'cursor', _1: 'pointer'}
@@ -9210,7 +9211,9 @@ var _user$project$OpsCalendar$containerStyle = _elm_lang$html$Html_Attributes$st
 			{ctor: '_Tuple2', _0: 'margin-top', _1: '0'},
 			{ctor: '_Tuple2', _0: 'width', _1: '100%'},
 			{ctor: '_Tuple2', _0: 'height', _1: '100%'},
-			{ctor: '_Tuple2', _0: 'text-align', _1: 'center'}
+			{ctor: '_Tuple2', _0: 'text-align', _1: 'center'},
+			{ctor: '_Tuple2', _0: 'font-family', _1: 'Roboto Condensed, Arial, Helvetica'},
+			{ctor: '_Tuple2', _0: 'font-size', _1: '1em'}
 		]));
 var _user$project$OpsCalendar$unselectable = _elm_lang$html$Html_Attributes$style(
 	_elm_lang$core$Native_List.fromArray(
@@ -9221,6 +9224,29 @@ var _user$project$OpsCalendar$unselectable = _elm_lang$html$Html_Attributes$styl
 			{ctor: '_Tuple2', _0: '-ms-user-select', _1: 'none'},
 			{ctor: '_Tuple2', _0: 'user-select', _1: 'none'}
 		]));
+var _user$project$OpsCalendar$taskDetailStyle = _elm_lang$html$Html_Attributes$style(
+	_elm_lang$core$Native_List.fromArray(
+		[
+			{ctor: '_Tuple2', _0: 'float', _1: 'left'},
+			{ctor: '_Tuple2', _0: 'width', _1: '400px'},
+			{ctor: '_Tuple2', _0: 'background-color', _1: '#f0f0f0'},
+			{ctor: '_Tuple2', _0: 'position', _1: 'absolute'},
+			{ctor: '_Tuple2', _0: 'left', _1: '100px'},
+			{ctor: '_Tuple2', _0: 'top', _1: '100px'},
+			{ctor: '_Tuple2', _0: 'text-align', _1: 'left'},
+			{ctor: '_Tuple2', _0: 'padding', _1: '30px'}
+		]));
+var _user$project$OpsCalendar$indexDay = function (dayOfTasks) {
+	return dayOfTasks.tasks;
+};
+var _user$project$OpsCalendar$indexWeek = function (weekOfTasks) {
+	return _elm_lang$core$List$concat(
+		A2(_elm_lang$core$List$map, _user$project$OpsCalendar$indexDay, weekOfTasks));
+};
+var _user$project$OpsCalendar$indexMonth = function (monthOfTasks) {
+	return _elm_lang$core$List$concat(
+		A2(_elm_lang$core$List$map, _user$project$OpsCalendar$indexWeek, monthOfTasks));
+};
 var _user$project$OpsCalendar$monthName = function (x) {
 	var _p0 = x;
 	switch (_p0) {
@@ -9330,15 +9356,23 @@ var _user$project$OpsCalendar$decodeFlags = A2(
 					_elm_lang$core$Json_Decode$list(_user$project$OpsCalendar$decodeDayOfTasks)))),
 		A2(_elm_lang$core$Json_Decode_ops[':='], 'year', _elm_lang$core$Json_Decode$int)),
 	A2(_elm_lang$core$Json_Decode_ops[':='], 'month', _elm_lang$core$Json_Decode$int));
-var _user$project$OpsCalendar$Model = F5(
-	function (a, b, c, d, e) {
-		return {tasks: a, year: b, month: c, selectedTask: d, working: e};
+var _user$project$OpsCalendar$Model = F6(
+	function (a, b, c, d, e, f) {
+		return {tasks: a, year: b, month: c, selectedTask: d, index: e, working: f};
 	});
 var _user$project$OpsCalendar$init = function (_p2) {
 	var _p3 = _p2;
+	var _p4 = _p3.tasks;
 	return {
 		ctor: '_Tuple2',
-		_0: A5(_user$project$OpsCalendar$Model, _p3.tasks, _p3.year, _p3.month, _elm_lang$core$Maybe$Nothing, false),
+		_0: A6(
+			_user$project$OpsCalendar$Model,
+			_p4,
+			_p3.year,
+			_p3.month,
+			_elm_lang$core$Maybe$Nothing,
+			_user$project$OpsCalendar$indexMonth(_p4),
+			false),
 		_1: _elm_lang$core$Platform_Cmd$none
 	};
 };
@@ -9352,8 +9386,8 @@ var _user$project$OpsCalendar$getNewMonth = F2(
 	function (model, op) {
 		var opMonth = A2(op, model.month, 1);
 		var year = function () {
-			var _p4 = opMonth;
-			switch (_p4) {
+			var _p5 = opMonth;
+			switch (_p5) {
 				case 13:
 					return model.year + 1;
 				case 0:
@@ -9363,8 +9397,8 @@ var _user$project$OpsCalendar$getNewMonth = F2(
 			}
 		}();
 		var month = function () {
-			var _p5 = opMonth;
-			switch (_p5) {
+			var _p6 = opMonth;
+			switch (_p6) {
 				case 13:
 					return 1;
 				case 0:
@@ -9394,10 +9428,26 @@ var _user$project$OpsCalendar$getNewMonth = F2(
 	});
 var _user$project$OpsCalendar$update = F2(
 	function (action, model) {
-		var _p6 = action;
-		switch (_p6.ctor) {
+		var _p7 = action;
+		switch (_p7.ctor) {
 			case 'ShowTaskDetail':
-				return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
+				return {
+					ctor: '_Tuple2',
+					_0: _elm_lang$core$Native_Utils.update(
+						model,
+						{
+							selectedTask: _elm_lang$core$Maybe$Just(_p7._0)
+						}),
+					_1: _elm_lang$core$Platform_Cmd$none
+				};
+			case 'HideTaskDetail':
+				return {
+					ctor: '_Tuple2',
+					_0: _elm_lang$core$Native_Utils.update(
+						model,
+						{selectedTask: _elm_lang$core$Maybe$Nothing}),
+					_1: _elm_lang$core$Platform_Cmd$none
+				};
 			case 'PrevMonth':
 				return {
 					ctor: '_Tuple2',
@@ -9427,10 +9477,10 @@ var _user$project$OpsCalendar$update = F2(
 							}))
 				};
 			case 'NewMonthSuccess':
-				return _user$project$OpsCalendar$init(_p6._0);
+				return _user$project$OpsCalendar$init(_p7._0);
 			default:
-				var _p7 = _p6._0;
-				switch (_p7.ctor) {
+				var _p8 = _p7._0;
+				switch (_p8.ctor) {
 					case 'Timeout':
 						return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
 					case 'NetworkError':
@@ -9485,11 +9535,87 @@ var _user$project$OpsCalendar$headerView = function (model) {
 					]))
 			]));
 };
-var _user$project$OpsCalendar$ShowTaskDetail = {ctor: 'ShowTaskDetail'};
+var _user$project$OpsCalendar$HideTaskDetail = {ctor: 'HideTaskDetail'};
+var _user$project$OpsCalendar$detailView = function (model) {
+	var _p9 = model.selectedTask;
+	if (_p9.ctor === 'Nothing') {
+		return _elm_lang$html$Html$text(' ');
+	} else {
+		var _p13 = _p9._0;
+		var task = _elm_lang$core$List$head(
+			A2(
+				_elm_lang$core$List$filter,
+				function (t) {
+					return _elm_lang$core$Native_Utils.eq(t.taskId, _p13);
+				},
+				model.index));
+		var _p10 = task;
+		if (_p10.ctor === 'Nothing') {
+			return _elm_lang$core$Native_Utils.crashCase(
+				'OpsCalendar',
+				{
+					start: {line: 292, column: 11},
+					end: {line: 300, column: 18}
+				},
+				_p10)('Selected task does not appear in index!');
+		} else {
+			var _p12 = _p10._0;
+			return A2(
+				_elm_lang$html$Html$div,
+				_elm_lang$core$Native_List.fromArray(
+					[_user$project$OpsCalendar$taskDetailStyle]),
+				_elm_lang$core$Native_List.fromArray(
+					[
+						A2(
+						_elm_lang$html$Html$p,
+						_elm_lang$core$Native_List.fromArray(
+							[]),
+						_elm_lang$core$Native_List.fromArray(
+							[
+								_elm_lang$html$Html$text(
+								A2(
+									_elm_lang$core$Basics_ops['++'],
+									'Task ID: ',
+									_user$project$OpsCalendar$toStr(_p13)))
+							])),
+						A2(
+						_elm_lang$html$Html$p,
+						_elm_lang$core$Native_List.fromArray(
+							[]),
+						_elm_lang$core$Native_List.fromArray(
+							[
+								_elm_lang$html$Html$text(_p12.shortDesc)
+							])),
+						A2(
+						_elm_lang$html$Html$p,
+						_elm_lang$core$Native_List.fromArray(
+							[]),
+						_elm_lang$core$Native_List.fromArray(
+							[
+								_elm_lang$html$Html$text(_p12.instructions)
+							])),
+						A2(
+						_elm_lang$html$Html$button,
+						_elm_lang$core$Native_List.fromArray(
+							[
+								_user$project$OpsCalendar$navButtonStyle,
+								_elm_lang$html$Html_Events$onClick(_user$project$OpsCalendar$HideTaskDetail)
+							]),
+						_elm_lang$core$Native_List.fromArray(
+							[
+								_elm_lang$html$Html$text('Close')
+							]))
+					]));
+		}
+	}
+};
+var _user$project$OpsCalendar$ShowTaskDetail = function (a) {
+	return {ctor: 'ShowTaskDetail', _0: a};
+};
 var _user$project$OpsCalendar$taskView = function (ot) {
 	var theStyle = function () {
-		var _p8 = ot.staffingStatus;
-		switch (_p8) {
+		var _p14 = ot.staffingStatus;
+		switch (_p14) {
 			case 'S':
 				return _user$project$OpsCalendar$staffedStyle;
 			case 'U':
@@ -9500,10 +9626,10 @@ var _user$project$OpsCalendar$taskView = function (ot) {
 				return _elm_lang$core$Native_Utils.crashCase(
 					'OpsCalendar',
 					{
-						start: {line: 204, column: 16},
-						end: {line: 208, column: 57}
+						start: {line: 225, column: 16},
+						end: {line: 229, column: 57}
 					},
-					_p8)('Only S, U, and P are allowed.');
+					_p14)('Only S, U, and P are allowed.');
 		}
 	}();
 	return A2(
@@ -9514,7 +9640,8 @@ var _user$project$OpsCalendar$taskView = function (ot) {
 					theStyle,
 					_elm_lang$core$Native_List.fromArray(
 					[
-						_elm_lang$html$Html_Events$onClick(_user$project$OpsCalendar$ShowTaskDetail)
+						_elm_lang$html$Html_Events$onClick(
+						_user$project$OpsCalendar$ShowTaskDetail(ot.taskId))
 					])
 				])),
 		_elm_lang$core$Native_List.fromArray(
@@ -9524,16 +9651,16 @@ var _user$project$OpsCalendar$taskView = function (ot) {
 };
 var _user$project$OpsCalendar$dayView = function (dayOfTasks) {
 	var monthStyle = function () {
-		var _p10 = dayOfTasks.isInTargetMonth;
-		if (_p10 === false) {
+		var _p16 = dayOfTasks.isInTargetMonth;
+		if (_p16 === false) {
 			return _user$project$OpsCalendar$dayOtherMonthStyle;
 		} else {
 			return _user$project$OpsCalendar$dayTargetMonthStyle;
 		}
 	}();
 	var colorStyle = function () {
-		var _p11 = dayOfTasks.isToday;
-		if (_p11 === false) {
+		var _p17 = dayOfTasks.isToday;
+		if (_p17 === false) {
 			return monthStyle;
 		} else {
 			return _user$project$OpsCalendar$dayTodayStyle;
@@ -9607,7 +9734,8 @@ var _user$project$OpsCalendar$view = function (model) {
 		_elm_lang$core$Native_List.fromArray(
 			[
 				_user$project$OpsCalendar$headerView(model),
-				_user$project$OpsCalendar$monthView(model.tasks)
+				_user$project$OpsCalendar$monthView(model.tasks),
+				_user$project$OpsCalendar$detailView(model)
 			]));
 };
 var _user$project$OpsCalendar$main = {
@@ -9616,7 +9744,7 @@ var _user$project$OpsCalendar$main = {
 			init: _user$project$OpsCalendar$init,
 			view: _user$project$OpsCalendar$view,
 			update: _user$project$OpsCalendar$update,
-			subscriptions: function (_p12) {
+			subscriptions: function (_p18) {
 				return _elm_lang$core$Platform_Sub$none;
 			}
 		}),

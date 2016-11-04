@@ -1,6 +1,6 @@
 module OpsCalendar exposing (..)
 
-import Html exposing (Html, div, table, tr, td, th, text, span, button, br)
+import Html exposing (Html, div, table, tr, td, th, text, span, button, br, p)
 import Html.App as Html
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
@@ -98,12 +98,29 @@ type alias Model =
   , year: Int
   , month: Int
   , selectedTask: Maybe Int
+  , index: List OpsTask
   , working: Bool
   }
 
 init : Flags -> (Model, Cmd Msg)
 init {tasks, year, month} =
-  (Model tasks year month Nothing False, Cmd.none)
+  (Model tasks year month Nothing (indexMonth tasks) False, Cmd.none)
+
+-----------------------------------------------------------------------------
+-- Index tasks by ID
+-----------------------------------------------------------------------------
+
+indexMonth : MonthOfTasks -> List OpsTask
+indexMonth monthOfTasks =
+  List.concat (List.map indexWeek monthOfTasks)
+
+indexWeek : WeekOfTasks -> List OpsTask
+indexWeek weekOfTasks =
+  List.concat (List.map indexDay weekOfTasks)
+
+indexDay : DayOfTasks -> List OpsTask
+indexDay dayOfTasks =
+  dayOfTasks.tasks
 
 -----------------------------------------------------------------------------
 -- JSON Decoder
@@ -142,7 +159,8 @@ decodeFlags =
 -----------------------------------------------------------------------------
 
 type Msg
-  = ShowTaskDetail
+  = ShowTaskDetail Int
+  | HideTaskDetail
   | PrevMonth
   | NextMonth
   | NewMonthSuccess Flags
@@ -153,8 +171,11 @@ update : Msg -> Model -> (Model, Cmd Msg)
 update action model =
   case action of
 
-    ShowTaskDetail ->
-      (model, Cmd.none)
+    ShowTaskDetail taskId ->
+      ({model | selectedTask = Just taskId}, Cmd.none)
+
+    HideTaskDetail ->
+      ({model | selectedTask = Nothing}, Cmd.none)
 
     PrevMonth ->
       ({model | working = True}, getNewMonth model (-))
@@ -207,7 +228,7 @@ taskView ot =
       "P" -> provisionalStyle
       _   -> Debug.crash "Only S, U, and P are allowed."
   in
-     div (List.concat [theStyle, [onClick ShowTaskDetail]]) [ text ot.shortDesc ]
+     div (List.concat [theStyle, [onClick (ShowTaskDetail ot.taskId)]]) [ text ot.shortDesc ]
 
 dayView : DayOfTasks -> Html Msg
 dayView dayOfTasks =
@@ -260,16 +281,46 @@ headerView model =
       ]
     )
 
+detailView : Model -> Html Msg
+detailView model =
+  case model.selectedTask of
+      Nothing -> text " "
+      Just selectedTaskId ->
+        let
+          task = List.head (List.filter (\t -> t.taskId == selectedTaskId) model.index)
+        in
+          case task of
+            Nothing -> Debug.crash "Selected task does not appear in index!"
+            Just t ->
+              div [taskDetailStyle]
+                [ p [] [text ("Task ID: "++(toStr selectedTaskId))]
+                , p [] [text t.shortDesc]
+                , p [] [text t.instructions]
+                , button [navButtonStyle, (onClick HideTaskDetail)] [text "Close"]
+                ]
+
 view : Model -> Html Msg
 view model =
   div [containerStyle]
     [ headerView model
     , monthView model.tasks
+    , detailView model
     ]
 
 -----------------------------------------------------------------------------
 -- STYLES
 -----------------------------------------------------------------------------
+
+taskDetailStyle = style
+  [ ("float", "left")
+  , ("width", "400px")
+  , ("background-color", "#f0f0f0")
+  , ("position", "absolute")
+  , ("left", "100px")
+  , ("top", "100px")
+  , ("text-align", "left")
+  , ("padding", "30px")
+  ]
 
 unselectable = style
   [ ("-moz-user-select", "-moz-none")
@@ -286,6 +337,8 @@ containerStyle = style
   , ("width", "100%")
   , ("height", "100%")
   , ("text-align", "center")
+  , ("font-family", "Roboto Condensed, Arial, Helvetica")
+  , ("font-size", "1em")
   ]
 
 headerStyle = style
@@ -361,7 +414,8 @@ dayTodayStyle = style
   ]
 
 navButtonStyle = style
-  [ ("vertical-align", ".28em")
+  [ ("font-family", "Roboto Condensed")
+  , ("vertical-align", ".28em")
   , ("font-size", "0.6em")
   , ("cursor", "pointer")
   ]
