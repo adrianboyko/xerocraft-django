@@ -9082,6 +9082,14 @@ var _garetht$elm_dynamic_style$DynamicStyle$hover = _garetht$elm_dynamic_style$D
 	_elm_lang$core$Native_List.fromArray(
 		[]));
 
+var _user$project$OpsCalendar$detailButtonStyle = _elm_lang$html$Html_Attributes$style(
+	_elm_lang$core$Native_List.fromArray(
+		[
+			{ctor: '_Tuple2', _0: 'font-family', _1: 'Roboto Condensed'},
+			{ctor: '_Tuple2', _0: 'font-size', _1: '1.2em'},
+			{ctor: '_Tuple2', _0: 'cursor', _1: 'pointer'},
+			{ctor: '_Tuple2', _0: 'margin-right', _1: '10px'}
+		]));
 var _user$project$OpsCalendar$navButtonStyle = _elm_lang$html$Html_Attributes$style(
 	_elm_lang$core$Native_List.fromArray(
 		[
@@ -9358,7 +9366,7 @@ var _user$project$OpsCalendar$decodeFlags = A2(
 	A2(_elm_lang$core$Json_Decode_ops[':='], 'month', _elm_lang$core$Json_Decode$int));
 var _user$project$OpsCalendar$Model = F6(
 	function (a, b, c, d, e, f) {
-		return {tasks: a, year: b, month: c, selectedTask: d, index: e, working: f};
+		return {tasks: a, year: b, month: c, selectedTaskId: d, index: e, working: f};
 	});
 var _user$project$OpsCalendar$init = function (_p2) {
 	var _p3 = _p2;
@@ -9430,24 +9438,46 @@ var _user$project$OpsCalendar$update = F2(
 	function (action, model) {
 		var _p7 = action;
 		switch (_p7.ctor) {
-			case 'ShowTaskDetail':
-				return {
-					ctor: '_Tuple2',
-					_0: _elm_lang$core$Native_Utils.update(
-						model,
-						{
-							selectedTask: _elm_lang$core$Maybe$Just(_p7._0)
-						}),
-					_1: _elm_lang$core$Platform_Cmd$none
-				};
+			case 'ToggleTaskDetail':
+				var _p9 = _p7._0;
+				var _p8 = model.selectedTaskId;
+				if (_p8.ctor === 'Nothing') {
+					return {
+						ctor: '_Tuple2',
+						_0: _elm_lang$core$Native_Utils.update(
+							model,
+							{
+								selectedTaskId: _elm_lang$core$Maybe$Just(_p9)
+							}),
+						_1: _elm_lang$core$Platform_Cmd$none
+					};
+				} else {
+					return _elm_lang$core$Native_Utils.eq(_p8._0, _p9) ? {
+						ctor: '_Tuple2',
+						_0: _elm_lang$core$Native_Utils.update(
+							model,
+							{selectedTaskId: _elm_lang$core$Maybe$Nothing}),
+						_1: _elm_lang$core$Platform_Cmd$none
+					} : {
+						ctor: '_Tuple2',
+						_0: _elm_lang$core$Native_Utils.update(
+							model,
+							{
+								selectedTaskId: _elm_lang$core$Maybe$Just(_p9)
+							}),
+						_1: _elm_lang$core$Platform_Cmd$none
+					};
+				}
 			case 'HideTaskDetail':
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
 						model,
-						{selectedTask: _elm_lang$core$Maybe$Nothing}),
+						{selectedTaskId: _elm_lang$core$Maybe$Nothing}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
+			case 'ClaimTask':
+				return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
 			case 'PrevMonth':
 				return {
 					ctor: '_Tuple2',
@@ -9479,8 +9509,8 @@ var _user$project$OpsCalendar$update = F2(
 			case 'NewMonthSuccess':
 				return _user$project$OpsCalendar$init(_p7._0);
 			default:
-				var _p8 = _p7._0;
-				switch (_p8.ctor) {
+				var _p10 = _p7._0;
+				switch (_p10.ctor) {
 					case 'Timeout':
 						return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
 					case 'NetworkError':
@@ -9535,31 +9565,34 @@ var _user$project$OpsCalendar$headerView = function (model) {
 					]))
 			]));
 };
+var _user$project$OpsCalendar$ClaimTask = function (a) {
+	return {ctor: 'ClaimTask', _0: a};
+};
 var _user$project$OpsCalendar$HideTaskDetail = {ctor: 'HideTaskDetail'};
 var _user$project$OpsCalendar$detailView = function (model) {
-	var _p9 = model.selectedTask;
-	if (_p9.ctor === 'Nothing') {
-		return _elm_lang$html$Html$text(' ');
+	var _p11 = model.selectedTaskId;
+	if (_p11.ctor === 'Nothing') {
+		return _elm_lang$html$Html$text('');
 	} else {
-		var _p13 = _p9._0;
-		var task = _elm_lang$core$List$head(
+		var _p15 = _p11._0;
+		var task$ = _elm_lang$core$List$head(
 			A2(
 				_elm_lang$core$List$filter,
 				function (t) {
-					return _elm_lang$core$Native_Utils.eq(t.taskId, _p13);
+					return _elm_lang$core$Native_Utils.eq(t.taskId, _p15);
 				},
 				model.index));
-		var _p10 = task;
-		if (_p10.ctor === 'Nothing') {
+		var _p12 = task$;
+		if (_p12.ctor === 'Nothing') {
 			return _elm_lang$core$Native_Utils.crashCase(
 				'OpsCalendar',
 				{
-					start: {line: 292, column: 11},
-					end: {line: 300, column: 18}
+					start: {line: 301, column: 11},
+					end: {line: 312, column: 18}
 				},
-				_p10)('Selected task does not appear in index!');
+				_p12)('Selected task does not appear in index!');
 		} else {
-			var _p12 = _p10._0;
+			var _p14 = _p12._0;
 			return A2(
 				_elm_lang$html$Html$div,
 				_elm_lang$core$Native_List.fromArray(
@@ -9576,7 +9609,7 @@ var _user$project$OpsCalendar$detailView = function (model) {
 								A2(
 									_elm_lang$core$Basics_ops['++'],
 									'Task ID: ',
-									_user$project$OpsCalendar$toStr(_p13)))
+									_user$project$OpsCalendar$toStr(_p15)))
 							])),
 						A2(
 						_elm_lang$html$Html$p,
@@ -9584,7 +9617,7 @@ var _user$project$OpsCalendar$detailView = function (model) {
 							[]),
 						_elm_lang$core$Native_List.fromArray(
 							[
-								_elm_lang$html$Html$text(_p12.shortDesc)
+								_elm_lang$html$Html$text(_p14.shortDesc)
 							])),
 						A2(
 						_elm_lang$html$Html$p,
@@ -9592,30 +9625,42 @@ var _user$project$OpsCalendar$detailView = function (model) {
 							[]),
 						_elm_lang$core$Native_List.fromArray(
 							[
-								_elm_lang$html$Html$text(_p12.instructions)
+								_elm_lang$html$Html$text(_p14.instructions)
 							])),
 						A2(
 						_elm_lang$html$Html$button,
 						_elm_lang$core$Native_List.fromArray(
 							[
-								_user$project$OpsCalendar$navButtonStyle,
+								_user$project$OpsCalendar$detailButtonStyle,
 								_elm_lang$html$Html_Events$onClick(_user$project$OpsCalendar$HideTaskDetail)
 							]),
 						_elm_lang$core$Native_List.fromArray(
 							[
 								_elm_lang$html$Html$text('Close')
-							]))
+							])),
+						_elm_lang$core$Native_Utils.eq(_p14.staffingStatus, 'U') ? A2(
+						_elm_lang$html$Html$button,
+						_elm_lang$core$Native_List.fromArray(
+							[
+								_user$project$OpsCalendar$detailButtonStyle,
+								_elm_lang$html$Html_Events$onClick(
+								_user$project$OpsCalendar$ClaimTask(_p14.taskId))
+							]),
+						_elm_lang$core$Native_List.fromArray(
+							[
+								_elm_lang$html$Html$text('Claim')
+							])) : _elm_lang$html$Html$text('')
 					]));
 		}
 	}
 };
-var _user$project$OpsCalendar$ShowTaskDetail = function (a) {
-	return {ctor: 'ShowTaskDetail', _0: a};
+var _user$project$OpsCalendar$ToggleTaskDetail = function (a) {
+	return {ctor: 'ToggleTaskDetail', _0: a};
 };
 var _user$project$OpsCalendar$taskView = function (ot) {
 	var theStyle = function () {
-		var _p14 = ot.staffingStatus;
-		switch (_p14) {
+		var _p16 = ot.staffingStatus;
+		switch (_p16) {
 			case 'S':
 				return _user$project$OpsCalendar$staffedStyle;
 			case 'U':
@@ -9626,10 +9671,10 @@ var _user$project$OpsCalendar$taskView = function (ot) {
 				return _elm_lang$core$Native_Utils.crashCase(
 					'OpsCalendar',
 					{
-						start: {line: 225, column: 16},
-						end: {line: 229, column: 57}
+						start: {line: 234, column: 16},
+						end: {line: 238, column: 57}
 					},
-					_p14)('Only S, U, and P are allowed.');
+					_p16)('Only S, U, and P are allowed.');
 		}
 	}();
 	return A2(
@@ -9641,7 +9686,7 @@ var _user$project$OpsCalendar$taskView = function (ot) {
 					_elm_lang$core$Native_List.fromArray(
 					[
 						_elm_lang$html$Html_Events$onClick(
-						_user$project$OpsCalendar$ShowTaskDetail(ot.taskId))
+						_user$project$OpsCalendar$ToggleTaskDetail(ot.taskId))
 					])
 				])),
 		_elm_lang$core$Native_List.fromArray(
@@ -9651,16 +9696,16 @@ var _user$project$OpsCalendar$taskView = function (ot) {
 };
 var _user$project$OpsCalendar$dayView = function (dayOfTasks) {
 	var monthStyle = function () {
-		var _p16 = dayOfTasks.isInTargetMonth;
-		if (_p16 === false) {
+		var _p18 = dayOfTasks.isInTargetMonth;
+		if (_p18 === false) {
 			return _user$project$OpsCalendar$dayOtherMonthStyle;
 		} else {
 			return _user$project$OpsCalendar$dayTargetMonthStyle;
 		}
 	}();
 	var colorStyle = function () {
-		var _p17 = dayOfTasks.isToday;
-		if (_p17 === false) {
+		var _p19 = dayOfTasks.isToday;
+		if (_p19 === false) {
 			return monthStyle;
 		} else {
 			return _user$project$OpsCalendar$dayTodayStyle;
@@ -9744,7 +9789,7 @@ var _user$project$OpsCalendar$main = {
 			init: _user$project$OpsCalendar$init,
 			view: _user$project$OpsCalendar$view,
 			update: _user$project$OpsCalendar$update,
-			subscriptions: function (_p18) {
+			subscriptions: function (_p20) {
 				return _elm_lang$core$Platform_Sub$none;
 			}
 		}),

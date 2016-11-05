@@ -97,7 +97,7 @@ type alias Model =
   { tasks: MonthOfTasks
   , year: Int
   , month: Int
-  , selectedTask: Maybe Int
+  , selectedTaskId: Maybe Int
   , index: List OpsTask
   , working: Bool
   }
@@ -159,8 +159,9 @@ decodeFlags =
 -----------------------------------------------------------------------------
 
 type Msg
-  = ShowTaskDetail Int
+  = ToggleTaskDetail Int
   | HideTaskDetail
+  | ClaimTask Int
   | PrevMonth
   | NextMonth
   | NewMonthSuccess Flags
@@ -171,11 +172,19 @@ update : Msg -> Model -> (Model, Cmd Msg)
 update action model =
   case action of
 
-    ShowTaskDetail taskId ->
-      ({model | selectedTask = Just taskId}, Cmd.none)
+    ToggleTaskDetail clickedTaskId ->
+      case model.selectedTaskId of
+        Nothing -> ({model | selectedTaskId = Just clickedTaskId}, Cmd.none)
+        Just selectedTaskId' ->
+          if selectedTaskId' == clickedTaskId
+            then ({model | selectedTaskId = Nothing}, Cmd.none)
+            else ({model | selectedTaskId = Just clickedTaskId}, Cmd.none)
 
     HideTaskDetail ->
-      ({model | selectedTask = Nothing}, Cmd.none)
+      ({model | selectedTaskId = Nothing}, Cmd.none)
+
+    ClaimTask taskId ->
+      (model, Cmd.none)  -- TODO
 
     PrevMonth ->
       ({model | working = True}, getNewMonth model (-))
@@ -228,7 +237,7 @@ taskView ot =
       "P" -> provisionalStyle
       _   -> Debug.crash "Only S, U, and P are allowed."
   in
-     div (List.concat [theStyle, [onClick (ShowTaskDetail ot.taskId)]]) [ text ot.shortDesc ]
+     div (List.concat [theStyle, [onClick (ToggleTaskDetail ot.taskId)]]) [ text ot.shortDesc ]
 
 dayView : DayOfTasks -> Html Msg
 dayView dayOfTasks =
@@ -283,20 +292,23 @@ headerView model =
 
 detailView : Model -> Html Msg
 detailView model =
-  case model.selectedTask of
-      Nothing -> text " "
+  case model.selectedTaskId of
+      Nothing -> text ""
       Just selectedTaskId ->
         let
-          task = List.head (List.filter (\t -> t.taskId == selectedTaskId) model.index)
+          task' = List.head (List.filter (\t -> t.taskId == selectedTaskId) model.index)
         in
-          case task of
+          case task' of
             Nothing -> Debug.crash "Selected task does not appear in index!"
-            Just t ->
+            Just task ->
               div [taskDetailStyle]
                 [ p [] [text ("Task ID: "++(toStr selectedTaskId))]
-                , p [] [text t.shortDesc]
-                , p [] [text t.instructions]
-                , button [navButtonStyle, (onClick HideTaskDetail)] [text "Close"]
+                , p [] [text task.shortDesc]
+                , p [] [text task.instructions]
+                , button [detailButtonStyle, (onClick HideTaskDetail)] [text "Close"]
+                , if task.staffingStatus == "U"
+                    then button [detailButtonStyle, (onClick (ClaimTask task.taskId))] [text "Claim"]
+                    else text ""
                 ]
 
 view : Model -> Html Msg
@@ -418,4 +430,11 @@ navButtonStyle = style
   , ("vertical-align", ".28em")
   , ("font-size", "0.6em")
   , ("cursor", "pointer")
+  ]
+
+detailButtonStyle = style
+  [ ("font-family", "Roboto Condensed")
+  , ("font-size", "1.2em")
+  , ("cursor", "pointer")
+  , ("margin-right", "10px")
   ]
