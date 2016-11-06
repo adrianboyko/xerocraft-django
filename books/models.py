@@ -326,8 +326,8 @@ class PayableInvoiceLineItem(InvoiceLineItem):
 
     def clean(self):
 
-        if self.account.category is not Account.CAT_EXPENSE:
-             raise ValidationError(_("Account chosen must have category EXPENSE."))
+        if self.account.category not in [Account.CAT_EXPENSE, Account.CAT_ASSET]:
+             raise ValidationError(_("Account chosen must have category EXPENSE or ASSET."))
 
         if self.account.type is not Account.TYPE_DEBIT:
             raise ValidationError(_("Account chosen must have type DEBIT."))
@@ -929,8 +929,8 @@ class ExpenseLineItem(models.Model):
         return "${} on {}".format(self.amount, self.expense_date)
 
     def clean(self):
-        if self.account.category is not Account.CAT_EXPENSE:
-            raise ValidationError(_("Account chosen must have category EXPENSE."))
+        if self.account.category not in [Account.CAT_EXPENSE, Account.CAT_ASSET]:
+            raise ValidationError(_("Account chosen must have category EXPENSE or ASSET."))
 
     def dbcheck(self):
         # Relationships can't be checked in clean but can be checked later in a "db check" operation.
