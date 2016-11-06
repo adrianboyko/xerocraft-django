@@ -99,27 +99,26 @@ class MemberNoteInline(admin.TabularInline):
     extra = 0
 
 
-class MembershipInline(admin.TabularInline):
-    model = Membership
-    extra = 0
-    fields = [
-        'membership_type',
-        'start_date',
-        'end_date',
-        'when_nudged',
-        'nudge_count',
-    ]
-    readonly_fields = [
-        'membership_type',
-        'start_date',
-        'end_date',
-        'when_nudged',
-        'nudge_count',
-    ]
-
-
 @admin.register(Member)
 class MemberAdmin(VersionAdmin):
+
+    class MembershipInline(admin.TabularInline):
+        model = Membership
+        extra = 0
+        fields = [
+            'membership_type',
+            'start_date',
+            'end_date',
+            'when_nudged',
+            'nudge_count',
+        ]
+        readonly_fields = [
+            'membership_type',
+            'start_date',
+            'end_date',
+            'when_nudged',
+            'nudge_count',
+        ]
 
     list_display = [
         'pk',
@@ -220,20 +219,19 @@ class MembershipGiftCardAdmin(VersionAdmin):
     ordering = ['redemption_code']
 
 
-# This is an Inline for MembershipGiftCardRedemptionAdmin
-class MembershipInline(admin.StackedInline):
-    model = Membership
-    extra = 0
-    fields = [
-        'member',
-        'membership_type',
-        ('start_date', 'end_date'),
-    ]
-    raw_id_fields = ['member']
-
-
 @admin.register(MembershipGiftCardRedemption)
 class MembershipGiftCardRedemptionAdmin(VersionAdmin):
+
+    class MembershipInline(admin.StackedInline):
+        model = Membership
+        extra = 0
+        fields = [
+            'member',
+            'membership_type',
+            ('start_date', 'end_date'),
+        ]
+        raw_id_fields = ['member']
+
     def members(self, obj):
         return ",".join([str(mli.member) for mli in obj.membership_set.all()])
 
@@ -297,6 +295,50 @@ class MembershipAdmin(VersionAdmin):
     ]
 
 
+@admin.register(GroupMembership)
+class GroupMembershipAdmin(VersionAdmin):
+
+    class MembershipInline(admin.TabularInline):
+        model = Membership
+        extra = 0
+        fields = [
+            'member',
+            'membership_type',
+            'start_date',
+            'end_date'
+        ]
+        raw_id_fields = ['member']
+
+    inlines = [MembershipInline]
+
+    list_display = [
+        'pk',
+        'sale_price',
+        'group_tag',
+        'start_date',
+        'end_date',
+        'max_members',
+    ]
+
+    list_filter = [
+        ('group_tag', admin.RelatedOnlyFieldListFilter),
+    ]
+
+    date_hierarchy = 'start_date'
+
+    fields = [
+        'sale_price',
+        'group_tag',
+        ('start_date', 'end_date'),
+        'max_members',
+    ]
+
+    class Media:
+        css = {
+            "all": ("abutils/admin-tabular-inline.css",)
+        }
+
+
 @admin.register(DiscoveryMethod)
 class DiscoveryMethodAdmin(VersionAdmin):
     list_display = ['pk', 'order', 'name']
@@ -339,5 +381,4 @@ class GroupMembershipLineItem(admin.StackedInline):
         ('start_date', 'end_date'),
         'max_members',
     ]
-
 

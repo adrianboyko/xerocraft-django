@@ -479,6 +479,13 @@ class GroupMembership(models.Model):
         if self.start_date >= self.end_date:
             raise ValidationError(_("End date must be later than start date."))
 
+    def dbcheck(self):
+        for mship in self.membership_set.all():
+            if self.start_date != mship.start_date or self.end_date != mship.end_date:
+                raise ValidationError(_("Start/end dates for covered memberships must match start/end dates for group membership."))
+            if mship.membership_type != Membership.MT_GROUP:
+                raise ValidationError(_("Individual memberships covered by a group membership must have type GROUP."))
+
 
 class MembershipGiftCard(models.Model):
 
@@ -642,10 +649,15 @@ class Membership(models.Model):
 
     def clean(self):
         zero_sale_price_types = [self.MT_GIFTCARD, self.MT_COMPLIMENTARY, self.MT_GROUP]
-        if self.start_date >= self.end_date:
-            raise ValidationError(_("End date must be later than start date."))
-        if self.membership_type not in zero_sale_price_types and self.sale_price == 0:
-            raise ValidationError(_("This membership type requires a sale price greater than zero."))
+
+        # Note: start and end date are equal for a one day membership.
+        if self.start_date > self.end_date:
+            raise ValidationError(_("End date must be later than or equal to start date."))
+
+        # This turned out to be false. Example: Person gets $0 work-trade membership if they buy a Jim Click raffle ticket.
+        # if self.membership_type not in zero_sale_price_types and self.sale_price == 0:
+        #     raise ValidationError(_("This membership type requires a sale price greater than zero."))
+
         if self.membership_type in zero_sale_price_types and self.sale_price != 0:
             raise ValidationError(_("Sale price should be $0 for this membership type."))
 
