@@ -306,9 +306,9 @@ detailView model =
                 , p [] [text task.shortDesc]
                 , p [] [text task.instructions]
                 , button [detailButtonStyle, (onClick HideTaskDetail)] [text "Close"]
-                , if task.staffingStatus == "U"
-                    then button [detailButtonStyle, (onClick (ClaimTask task.taskId))] [text "Claim"]
-                    else text ""
+--                , if task.staffingStatus == "U"
+--                    then button [detailButtonStyle, (onClick (ClaimTask task.taskId))] [text "Claim"]
+--                    else text ""
                 ]
 
 view : Model -> Html Msg
@@ -332,6 +332,7 @@ taskDetailStyle = style
   , ("top", "100px")
   , ("text-align", "left")
   , ("padding", "30px")
+  , ("border", "1px solid black")
   ]
 
 unselectable = style
@@ -373,9 +374,7 @@ buttonStyle = style
   ]
 
 tdStyle = style
-  [ ("border-width", "1px")
-  , ("border-color", "black")
-  , ("border", "1px solid black")
+  [ ("border", "1px solid black")
   , ("padding", "10px")
   , ("vertical-align", "top")
   , ("text-align", "left")

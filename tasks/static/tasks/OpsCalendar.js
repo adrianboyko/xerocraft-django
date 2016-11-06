@@ -9182,8 +9182,6 @@ var _user$project$OpsCalendar$thStyle = _elm_lang$html$Html_Attributes$style(
 var _user$project$OpsCalendar$tdStyle = _elm_lang$html$Html_Attributes$style(
 	_elm_lang$core$Native_List.fromArray(
 		[
-			{ctor: '_Tuple2', _0: 'border-width', _1: '1px'},
-			{ctor: '_Tuple2', _0: 'border-color', _1: 'black'},
 			{ctor: '_Tuple2', _0: 'border', _1: '1px solid black'},
 			{ctor: '_Tuple2', _0: 'padding', _1: '10px'},
 			{ctor: '_Tuple2', _0: 'vertical-align', _1: 'top'},
@@ -9242,7 +9240,8 @@ var _user$project$OpsCalendar$taskDetailStyle = _elm_lang$html$Html_Attributes$s
 			{ctor: '_Tuple2', _0: 'left', _1: '100px'},
 			{ctor: '_Tuple2', _0: 'top', _1: '100px'},
 			{ctor: '_Tuple2', _0: 'text-align', _1: 'left'},
-			{ctor: '_Tuple2', _0: 'padding', _1: '30px'}
+			{ctor: '_Tuple2', _0: 'padding', _1: '30px'},
+			{ctor: '_Tuple2', _0: 'border', _1: '1px solid black'}
 		]));
 var _user$project$OpsCalendar$indexDay = function (dayOfTasks) {
 	return dayOfTasks.tasks;
@@ -9637,19 +9636,7 @@ var _user$project$OpsCalendar$detailView = function (model) {
 						_elm_lang$core$Native_List.fromArray(
 							[
 								_elm_lang$html$Html$text('Close')
-							])),
-						_elm_lang$core$Native_Utils.eq(_p14.staffingStatus, 'U') ? A2(
-						_elm_lang$html$Html$button,
-						_elm_lang$core$Native_List.fromArray(
-							[
-								_user$project$OpsCalendar$detailButtonStyle,
-								_elm_lang$html$Html_Events$onClick(
-								_user$project$OpsCalendar$ClaimTask(_p14.taskId))
-							]),
-						_elm_lang$core$Native_List.fromArray(
-							[
-								_elm_lang$html$Html$text('Claim')
-							])) : _elm_lang$html$Html$text('')
+							]))
 					]));
 		}
 	}
