@@ -177,6 +177,7 @@ class DonationAdmin(ModelMailerAdmin, VersionAdmin):
         'donator_name',
         'donator_email',
     ]
+
     fields = [
         'donation_date',
         'donator_acct',
@@ -509,6 +510,7 @@ class SaleAdmin(VersionAdmin):
     ]
     readonly_fields = ['ctrlid', 'checksum']
     search_fields = [
+        '^id',
         'payer_name',
         'payer_email',
         #TODO: 'entity_acct__name',
@@ -634,6 +636,7 @@ class ExpenseClaimAdmin(VersionAdmin):
         # ReimbursementInline,
     ]
     search_fields = [
+        '^id',
         '^claimant__first_name',
         '^claimant__last_name',
         '^claimant__username',
@@ -648,6 +651,40 @@ class ExpenseClaimAdmin(VersionAdmin):
         css = {
             "all": ("abutils/admin-tabular-inline.css",)  # This hides "denormalized object descs", to use Wojciech's term.
         }
+
+
+@admin.register(ExpenseLineItem)
+class ExpenseLineItemAdmin(VersionAdmin):
+
+    search_fields = [
+        '^id',
+        'amount',
+    ]
+
+    list_display =  [
+        'pk',
+        'expense_date',
+        'amount',
+        'description',
+    ]
+
+    list_display_links = [
+        'pk',
+        'description',
+    ]
+
+    fields = [
+        ('exp', 'claim'),
+        'description',
+        'amount',
+        'expense_date',
+        'receipt_num',
+        'account',
+        'approved_by',
+    ]
+
+    raw_id_fields = ['approved_by']
+    readonly_fields = ['exp', 'claim']
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -724,6 +761,7 @@ class ExpenseTransactionAdmin(VersionAdmin):
 
 
     search_fields = [
+        '^id',
         '^recipient_acct__first_name',
         '^recipient_acct__last_name',
         '^recipient_acct__username',
