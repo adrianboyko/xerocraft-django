@@ -12,6 +12,10 @@ import List
 import Array
 import DynamicStyle exposing (hover, hover')
 
+import Material
+import Material.Button as Button
+import Material.Icon as Icon
+import Material.Options exposing (css)
 
 import Json.Decode exposing((:=), maybe)
 import Json.Decode as Dec
@@ -94,7 +98,8 @@ type alias Flags =
   }
 
 type alias Model =
-  { tasks: MonthOfTasks
+  { mdl: Material.Model
+  , tasks: MonthOfTasks
   , year: Int
   , month: Int
   , selectedTaskId: Maybe Int
@@ -104,7 +109,17 @@ type alias Model =
 
 init : Flags -> (Model, Cmd Msg)
 init {tasks, year, month} =
-  (Model tasks year month Nothing (indexMonth tasks) False, Cmd.none)
+  ( Model
+      Material.model
+      tasks
+      year
+      month
+      Nothing
+      (indexMonth tasks)
+      False
+  , Cmd.none
+  )
+
 
 -----------------------------------------------------------------------------
 -- Index tasks by ID
@@ -166,7 +181,7 @@ type Msg
   | NextMonth
   | NewMonthSuccess Flags
   | NewMonthFailure Http.Error
-
+  | Mdl Material.Msg
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update action model =
@@ -202,6 +217,10 @@ update action model =
         Http.NetworkError -> (model, Cmd.none)
         Http.UnexpectedPayload _ -> (model, Cmd.none)
         Http.BadResponse _ _ -> (model, Cmd.none)
+
+    Mdl msg' ->
+      Material.update Mdl msg' model
+
 
 getNewMonth : Model -> (Int -> Int -> Int) -> Cmd Msg
 getNewMonth model op =
@@ -273,22 +292,32 @@ monthView monthOfTasks =
          , (List.map weekView monthOfTasks)
          ])
 
+
+oneByThreeTable : Html Msg -> Html Msg -> Html Msg -> Html Msg
+oneByThreeTable left center right =
+  table [navHeaderStyle]
+  [ tr []
+    [ td [] [left]
+    , td [] [center]
+    , td [] [right]
+    ]
+  ]
+
+
 headerView : Model -> Html Msg
 headerView model =
-  span [headerStyle]
-    (
     if model.working then
-      [ text "Working" ]
+      oneByThreeTable (text "") (text "Working") (text "")
     else
-      [ button [navButtonStyle, (onClick PrevMonth)] [text "🠜"]
-      , text " "
-      , text (monthName (model.month-1))
-      , text " "
-      , text (toStr model.year)
-      , text " "
-      , button [navButtonStyle, (onClick NextMonth)] [text "🠞"]
-      ]
-    )
+      oneByThreeTable
+        (Button.render Mdl [0] model.mdl
+          ([ Button.fab, Button.onClick PrevMonth ] ++ navButtonCss)
+          [ Icon.i "navigate_before" ])
+        (text (monthName (model.month-1) ++ " " ++ (toStr model.year)))
+        (Button.render Mdl [1] model.mdl
+          ([ Button.fab, Button.onClick NextMonth ] ++ navButtonCss)
+          [ Icon.i "navigate_next" ])
+
 
 detailView : Model -> Html Msg
 detailView model =
@@ -302,14 +331,15 @@ detailView model =
             Nothing -> Debug.crash "Selected task does not appear in index!"
             Just task ->
               div [taskDetailStyle]
-                [ p [] [text ("Task ID: "++(toStr selectedTaskId))]
-                , p [] [text task.shortDesc]
-                , p [] [text task.instructions]
+                [ p [taskDetailParaStyle] [text ("Task ID: "++(toStr selectedTaskId))]
+                , p [taskDetailParaStyle] [text task.shortDesc]
+                , p [taskDetailParaStyle] [text task.instructions]
                 , button [detailButtonStyle, (onClick HideTaskDetail)] [text "Close"]
 --                , if task.staffingStatus == "U"
 --                    then button [detailButtonStyle, (onClick (ClaimTask task.taskId))] [text "Claim"]
 --                    else text ""
                 ]
+
 
 view : Model -> Html Msg
 view model =
@@ -323,6 +353,22 @@ view model =
 -- STYLES
 -----------------------------------------------------------------------------
 
+navButtonCss =
+    [ css "margin" "0 10px"
+    , css "padding" "5px"
+    , css "min-width" "25px"
+    , css "width" "25px"
+    , css "height" "25px"
+    ]
+
+navHeaderStyle = style
+  [ ("font-family", "Roboto Condensed, Arial, Helvetica")
+  , ("font-size", "2em")
+  , ("height", "35px")
+  , ("margin-left", "auto")
+  , ("margin-right", "auto")
+  ]
+
 taskDetailStyle = style
   [ ("float", "left")
   , ("width", "400px")
@@ -333,6 +379,10 @@ taskDetailStyle = style
   , ("text-align", "left")
   , ("padding", "30px")
   , ("border", "1px solid black")
+  ]
+
+taskDetailParaStyle = style
+  [ ("line-height", "1.15")
   ]
 
 unselectable = style
@@ -354,11 +404,6 @@ containerStyle = style
   , ("font-size", "1em")
   ]
 
-headerStyle = style
-  [ ("font-family", "Roboto Condensed, Arial, Helvetica")
-  , ("font-size", "2em")
-  ]
-
 tableStyle = style
   [ ("border-spacing", "0")
   , ("border-collapse", "collapse")
@@ -378,6 +423,9 @@ tdStyle = style
   , ("padding", "10px")
   , ("vertical-align", "top")
   , ("text-align", "left")
+  , ("line-height", "1.1")
+  , ("height", "90px")
+  , ("width", "120px")
   ]
 
 thStyle = style
@@ -395,8 +443,8 @@ dayNumStyle = style
 
 taskNameCss =
   [ ("font-family", "Roboto Condensed")
-  , ("font-size", "0.9em")
-  , ("margin", "2px")
+  , ("font-size", "1.1em")
+  , ("margin", "0")
   , ("overflow", "hidden")
   , ("white-space", "nowrap")
   , ("text-overflow", "ellipsis")
@@ -422,13 +470,6 @@ dayTargetMonthStyle = style
 
 dayTodayStyle = style
   [ ("background-color", "#f0ffff")  -- azure
-  ]
-
-navButtonStyle = style
-  [ ("font-family", "Roboto Condensed")
-  , ("vertical-align", ".28em")
-  , ("font-size", "0.6em")
-  , ("cursor", "pointer")
   ]
 
 detailButtonStyle = style
