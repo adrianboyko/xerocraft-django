@@ -8,6 +8,7 @@ import Http
 import Task
 import String
 import Time exposing (Time)
+import Date
 import List
 import Array
 import DynamicStyle exposing (hover, hover')
@@ -21,8 +22,7 @@ import Json.Decode exposing((:=), maybe)
 import Json.Decode as Dec
 -- elm-package install --yes elm-community/elm-json-extra
 import Json.Decode.Extra exposing ((|:))
--- elm-package install -- yes NoRedInk/elm-decode-pipeline
--- import Json.Decode.Pipeline
+
 
 -----------------------------------------------------------------------------
 -- UTILITIES
@@ -72,6 +72,7 @@ main =
 
 type alias OpsTask =
   { taskId: Int
+  , isoDate: String
   , shortDesc: String
   , startTime: Maybe Time
   , endTime: Maybe Time
@@ -145,6 +146,7 @@ decodeOpsTask : Dec.Decoder OpsTask
 decodeOpsTask =
   Dec.succeed OpsTask
     |: ("taskId"           := Dec.int)
+    |: ("isoDate"          := Dec.string)
     |: ("shortDesc"        := Dec.string)
     |: (maybe ("startTime" := Dec.float))
     |: (maybe ("endTime"   := Dec.float))
@@ -247,6 +249,28 @@ getNewMonth model op =
 -- VIEW
 -----------------------------------------------------------------------------
 
+dowToInt : Date.Day -> Int
+dowToInt d =
+  case d of
+    Date.Sat -> 0  -- REVIEW: Date.dayOfWeek is returning incorrect values?
+    Date.Sun -> 1
+    Date.Mon -> 2
+    Date.Tue -> 3
+    Date.Wed -> 4
+    Date.Thu -> 5
+    Date.Fri -> 6
+
+
+taskDow : OpsTask -> Int
+taskDow ot =
+  let
+    res = Date.fromString ot.isoDate
+  in
+    case res of
+      Err error -> Debug.crash ("Invalid date encountered: " ++ error)
+      Ok value -> value |> Date.dayOfWeek |> dowToInt
+
+
 taskView : OpsTask -> Html Msg
 taskView ot =
   let
@@ -270,7 +294,7 @@ dayView dayOfTasks =
   in
     td [tdStyle, colorStyle]
       ( List.concat
-          [ [span [dayNumStyle] [text (toString dayOfTasks.dayOfMonth)]]
+          [ [div [dayNumStyle] [text (toString dayOfTasks.dayOfMonth)]]
           , List.map taskView dayOfTasks.tasks
           ]
       )
@@ -330,7 +354,7 @@ detailView model =
           case task' of
             Nothing -> Debug.crash "Selected task does not appear in index!"
             Just task ->
-              div [taskDetailStyle]
+              div [taskDetailStyle, style [(if (taskDow task) < 3 then "right" else "left", "50px")]]
                 [ p [taskDetailParaStyle] [text ("Task ID: "++(toStr selectedTaskId))]
                 , p [taskDetailParaStyle] [text task.shortDesc]
                 , p [taskDetailParaStyle] [text task.instructions]
@@ -370,15 +394,15 @@ navHeaderStyle = style
   ]
 
 taskDetailStyle = style
-  [ ("float", "left")
-  , ("width", "400px")
+  [ ("width", "400px")
   , ("background-color", "#f0f0f0")
   , ("position", "absolute")
-  , ("left", "100px")
   , ("top", "100px")
   , ("text-align", "left")
   , ("padding", "30px")
   , ("border", "1px solid black")
+  , ("moz-border-radius", "5px")
+  , ("-webkit-border-radius", "5px")
   ]
 
 taskDetailParaStyle = style
@@ -439,6 +463,7 @@ thStyle = style
 dayNumStyle = style
   [ ("font-family", "Arial, Helvetica")
   , ("font-size", "1.25em")
+  , ("margin-bottom", "5px")
   ]
 
 taskNameCss =

@@ -654,6 +654,7 @@ def _ops_calendar_json(request, year, month):
     def task_json(task: Task) -> dict:
         return {
             "taskId": task.pk,
+            "isoDate": task.scheduled_date.isoformat(),
             "shortDesc": task.short_desc,
             "startTime": 100000,  # TODO: Provide actual time
             "endTime": 100000,  # TODO: Provide actual time
