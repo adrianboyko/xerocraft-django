@@ -104,7 +104,6 @@ type alias Model =
   , year: Int
   , month: Int
   , selectedTaskId: Maybe Int
-  , index: List OpsTask
   , working: Bool
   }
 
@@ -116,27 +115,9 @@ init {tasks, year, month} =
       year
       month
       Nothing
-      (indexMonth tasks)
       False
   , Cmd.none
   )
-
-
------------------------------------------------------------------------------
--- Index tasks by ID
------------------------------------------------------------------------------
-
-indexMonth : MonthOfTasks -> List OpsTask
-indexMonth monthOfTasks =
-  List.concat (List.map indexWeek monthOfTasks)
-
-indexWeek : WeekOfTasks -> List OpsTask
-indexWeek weekOfTasks =
-  List.concat (List.map indexDay weekOfTasks)
-
-indexDay : DayOfTasks -> List OpsTask
-indexDay dayOfTasks =
-  dayOfTasks.tasks
 
 -----------------------------------------------------------------------------
 -- JSON Decoder
@@ -246,33 +227,38 @@ getNewMonth model op =
 
 
 -----------------------------------------------------------------------------
+-- UTILITIES
+-----------------------------------------------------------------------------
+
+oneByThreeTable : Html Msg -> Html Msg -> Html Msg -> Html Msg
+oneByThreeTable left center right =
+  table [navHeaderStyle]
+  [ tr []
+    [ td [] [left]
+    , td [] [center]
+    , td [] [right]
+    ]
+  ]
+
+
+-----------------------------------------------------------------------------
 -- VIEW
 -----------------------------------------------------------------------------
 
-dowToInt : Date.Day -> Int
-dowToInt d =
-  case d of
-    Date.Sat -> 0  -- REVIEW: Date.dayOfWeek is returning incorrect values?
-    Date.Sun -> 1
-    Date.Mon -> 2
-    Date.Tue -> 3
-    Date.Wed -> 4
-    Date.Thu -> 5
-    Date.Fri -> 6
+detailView : OpsTask -> Html Msg
+detailView ot =
+  div [taskDetailStyle]
+    [ p [taskDetailParaStyle] [text ("Task ID: "++(toStr ot.taskId))]
+    , p [taskDetailParaStyle] [text ot.shortDesc]
+    , p [taskDetailParaStyle] [text ot.instructions]
+    , button [detailButtonStyle, (onClick HideTaskDetail)] [text "Close"]
+--  , if task.staffingStatus == "U"
+--      then button [detailButtonStyle, (onClick (ClaimTask task.taskId))] [text "Claim"]
+--      else text ""
+    ]
 
-
-taskDow : OpsTask -> Int
-taskDow ot =
-  let
-    res = Date.fromString ot.isoDate
-  in
-    case res of
-      Err error -> Debug.crash ("Invalid date encountered: " ++ error)
-      Ok value -> value |> Date.dayOfWeek |> dowToInt
-
-
-taskView : OpsTask -> Html Msg
-taskView ot =
+taskView : Model -> OpsTask -> Html Msg
+taskView model ot =
   let
     theStyle = case ot.staffingStatus of
       "S" -> staffedStyle
@@ -280,10 +266,16 @@ taskView ot =
       "P" -> provisionalStyle
       _   -> Debug.crash "Only S, U, and P are allowed."
   in
-     div (List.concat [theStyle, [onClick (ToggleTaskDetail ot.taskId)]]) [ text ot.shortDesc ]
+    div []
+      [ div (List.concat [theStyle, [onClick (ToggleTaskDetail ot.taskId)]]) [text ot.shortDesc]
+      , if (model.selectedTaskId == Just ot.taskId)
+           then detailView ot
+           else text ""
+      ]
 
-dayView : DayOfTasks -> Html Msg
-dayView dayOfTasks =
+
+dayView : Model -> DayOfTasks -> Html Msg
+dayView model dayOfTasks =
   let
     monthStyle = case dayOfTasks.isInTargetMonth of
       False -> dayOtherMonthStyle
@@ -295,17 +287,17 @@ dayView dayOfTasks =
     td [tdStyle, colorStyle]
       ( List.concat
           [ [div [dayNumStyle] [text (toString dayOfTasks.dayOfMonth)]]
-          , List.map taskView dayOfTasks.tasks
+          , List.map (taskView model) dayOfTasks.tasks
           ]
       )
 
-weekView : WeekOfTasks -> Html Msg
-weekView weekOfTasks =
+weekView : Model -> WeekOfTasks -> Html Msg
+weekView model weekOfTasks =
   tr []
-    (List.map dayView weekOfTasks)
+    (List.map (dayView model) weekOfTasks)
 
-monthView : MonthOfTasks -> Html Msg
-monthView monthOfTasks =
+monthView : Model -> Html Msg
+monthView model =
   let
     daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
     headify = \x -> (th [thStyle] [text x])
@@ -313,19 +305,8 @@ monthView monthOfTasks =
      table [tableStyle, unselectable]
        (List.concat
          [ [tr [] (List.map headify daysOfWeek)]
-         , (List.map weekView monthOfTasks)
+         , (List.map (weekView model) model.tasks)
          ])
-
-
-oneByThreeTable : Html Msg -> Html Msg -> Html Msg -> Html Msg
-oneByThreeTable left center right =
-  table [navHeaderStyle]
-  [ tr []
-    [ td [] [left]
-    , td [] [center]
-    , td [] [right]
-    ]
-  ]
 
 
 headerView : Model -> Html Msg
@@ -343,39 +324,18 @@ headerView model =
           [ Icon.i "navigate_next" ])
 
 
-detailView : Model -> Html Msg
-detailView model =
-  case model.selectedTaskId of
-      Nothing -> text ""
-      Just selectedTaskId ->
-        let
-          task' = List.head (List.filter (\t -> t.taskId == selectedTaskId) model.index)
-        in
-          case task' of
-            Nothing -> Debug.crash "Selected task does not appear in index!"
-            Just task ->
-              div [taskDetailStyle, style [(if (taskDow task) < 3 then "right" else "left", "50px")]]
-                [ p [taskDetailParaStyle] [text ("Task ID: "++(toStr selectedTaskId))]
-                , p [taskDetailParaStyle] [text task.shortDesc]
-                , p [taskDetailParaStyle] [text task.instructions]
-                , button [detailButtonStyle, (onClick HideTaskDetail)] [text "Close"]
---                , if task.staffingStatus == "U"
---                    then button [detailButtonStyle, (onClick (ClaimTask task.taskId))] [text "Claim"]
---                    else text ""
-                ]
-
-
 view : Model -> Html Msg
 view model =
   div [containerStyle]
     [ headerView model
-    , monthView model.tasks
-    , detailView model
+    , monthView model
     ]
 
 -----------------------------------------------------------------------------
 -- STYLES
 -----------------------------------------------------------------------------
+
+(=>) = (,)
 
 navButtonCss =
     [ css "margin" "0 10px"
@@ -386,95 +346,95 @@ navButtonCss =
     ]
 
 navHeaderStyle = style
-  [ ("font-family", "Roboto Condensed, Arial, Helvetica")
-  , ("font-size", "2em")
-  , ("height", "35px")
-  , ("margin-left", "auto")
-  , ("margin-right", "auto")
+  [ "font-family" => "Roboto Condensed, Arial, Helvetica"
+  , "font-size" => "2em"
+  , "height" => "35px"
+  , "margin-left" => "auto"
+  , "margin-right" => "auto"
   ]
 
 taskDetailStyle = style
-  [ ("width", "400px")
-  , ("background-color", "#f0f0f0")
-  , ("position", "absolute")
-  , ("top", "100px")
-  , ("text-align", "left")
-  , ("padding", "30px")
-  , ("border", "1px solid black")
-  , ("moz-border-radius", "5px")
-  , ("-webkit-border-radius", "5px")
+  [ "width" => "400px"
+  , "background-color" => "#f0f0f0"
+  , "position" => "absolute"
+  , "text-align" => "left"
+  , "padding" => "30px"
+  , "border" => "1px solid black"
+  , "moz-border-radius" => "5px"
+  , "-webkit-border-radius" => "5px"
+  , "margin-right" => "auto"
   ]
 
 taskDetailParaStyle = style
-  [ ("line-height", "1.15")
+  [ "line-height" => "1.15"
   ]
 
 unselectable = style
-  [ ("-moz-user-select", "-moz-none")
-  , ("-khtml-user-select", "none")
-  , ("-webkit-user-select", "none")
-  , ("-ms-user-select", "none")
-  , ("user-select", "none")
+  [ "-moz-user-select" => "-moz-none"
+  , "-khtml-user-select" => "none"
+  , "-webkit-user-select" => "none"
+  , "-ms-user-select" => "none"
+  , "user-select" => "none"
   ]
 
 containerStyle = style
-  [ ("padding", "0 0")
-  , ("padding-top", "3%")
-  , ("margin-top", "0")
-  , ("width", "100%")
-  , ("height", "100%")
-  , ("text-align", "center")
-  , ("font-family", "Roboto Condensed, Arial, Helvetica")
-  , ("font-size", "1em")
+  [ "padding" => "0 0"
+  , "padding-top" => "3%"
+  , "margin-top" => "0"
+  , "width" => "100%"
+  , "height" => "100%"
+  , "text-align" => "center"
+  , "font-family" => "Roboto Condensed, Arial, Helvetica"
+  , "font-size" => "1em"
   ]
 
 tableStyle = style
-  [ ("border-spacing", "0")
-  , ("border-collapse", "collapse")
-  , ("margin", "0 auto")
-  , ("margin-top", "2%")
-  , ("display", "table")
+  [ "border-spacing" => "0"
+  , "border-collapse" => "collapse"
+  , "margin" => "0 auto"
+  , "margin-top" => "2%"
+  , "display" => "table"
   ]
 
 buttonStyle = style
-  [ ("font-size", "1.2em")
-  , ("margin", "12px 7px") -- vert, horiz
-  , ("padding", "7px 13px")
+  [ "font-size" => "1.2em"
+  , "margin" => "12px 7px" -- vert, horiz
+  , "padding" => "7px 13px"
   ]
 
 tdStyle = style
-  [ ("border", "1px solid black")
-  , ("padding", "10px")
-  , ("vertical-align", "top")
-  , ("text-align", "left")
-  , ("line-height", "1.1")
-  , ("height", "90px")
-  , ("width", "120px")
+  [ "border" => "1px solid black"
+  , "padding" => "10px"
+  , "vertical-align" => "top"
+  , "text-align" => "left"
+  , "line-height" => "1.1"
+  , "height" => "90px"
+  , "width" => "120px"
   ]
 
 thStyle = style
-  [ ("padding", "5px")
-  , ("vertical-align", "top")
-  , ("font-family", "Arial, Helvetica")
-  , ("font-size", "1.2em")
-  , ("font-weight", "normal")
+  [ "padding" => "5px"
+  , "vertical-align" => "top"
+  , "font-family" => "Arial, Helvetica"
+  , "font-size" => "1.2em"
+  , "font-weight" => "normal"
   ]
 
 dayNumStyle = style
-  [ ("font-family", "Arial, Helvetica")
-  , ("font-size", "1.25em")
-  , ("margin-bottom", "5px")
+  [ "font-family" => "Arial, Helvetica"
+  , "font-size" => "1.25em"
+  , "margin-bottom" => "5px"
   ]
 
 taskNameCss =
-  [ ("font-family", "Roboto Condensed")
-  , ("font-size", "1.1em")
-  , ("margin", "0")
-  , ("overflow", "hidden")
-  , ("white-space", "nowrap")
-  , ("text-overflow", "ellipsis")
-  , ("width", "120px")
-  , ("cursor", "pointer")
+  [ "font-family" => "Roboto Condensed"
+  , "font-size" => "1.1em"
+  , "margin" => "0"
+  , "overflow" => "hidden"
+  , "white-space" => "nowrap"
+  , "text-overflow" => "ellipsis"
+  , "width" => "120px"
+  , "cursor" => "pointer"
   ]
 
 rollover = [ ("background-color", "transparent", "#b3ff99") ]
@@ -486,20 +446,20 @@ unstaffedStyle = hover' (List.concat [[("color", "red")], taskNameCss]) rollover
 provisionalStyle = hover' (List.concat [[("color", "#c68e17")], taskNameCss]) rollover
 
 dayOtherMonthStyle = style
-  [ ("background-color", "#eeeeee")
+  [ "background-color" => "#eeeeee"
   ]
 
 dayTargetMonthStyle = style
-  [ ("background-color", "white")
+  [ "background-color" => "white"
   ]
 
 dayTodayStyle = style
-  [ ("background-color", "#f0ffff")  -- azure
+  [ "background-color" => "#f0ffff"  -- azure
   ]
 
 detailButtonStyle = style
-  [ ("font-family", "Roboto Condensed")
-  , ("font-size", "1.2em")
-  , ("cursor", "pointer")
-  , ("margin-right", "10px")
+  [ "font-family" => "Roboto Condensed"
+  , "font-size" => "1.2em"
+  , "cursor" => "pointer"
+  , "margin-right" => "10px"
   ]
