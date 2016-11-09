@@ -12,6 +12,7 @@ import Date
 import List
 import Array
 import DynamicStyle exposing (hover, hover')
+import Mouse exposing (Position)
 
 import Material
 import Material.Button as Button
@@ -27,6 +28,10 @@ import Json.Decode.Extra exposing ((|:))
 -----------------------------------------------------------------------------
 -- UTILITIES
 -----------------------------------------------------------------------------
+
+px : Int -> String
+px number =
+  toString number ++ "px"
 
 toStr v =
   let
@@ -54,6 +59,18 @@ monthName x =
     11 -> "December"
     _ -> Debug.crash "Provide a value from 0 to 11, inclusive"
 
+
+oneByThreeTable : Html Msg -> Html Msg -> Html Msg -> Html Msg
+oneByThreeTable left center right =
+  table [navHeaderStyle]
+  [ tr []
+    [ td [] [left]
+    , td [] [center]
+    , td [] [right]
+    ]
+  ]
+
+
 -----------------------------------------------------------------------------
 -- MAIN
 -----------------------------------------------------------------------------
@@ -63,7 +80,7 @@ main =
     { init = init
     , view = view
     , update = update
-    , subscriptions = (\_ -> Sub.none)
+    , subscriptions = subscriptions
     }
 
 -----------------------------------------------------------------------------
@@ -105,6 +122,11 @@ type alias Model =
   , month: Int
   , selectedTaskId: Maybe Int
   , working: Bool
+  , mouseX: Int
+  , mouseY: Int
+  , draggingDetail: Bool
+  , detailX: Int
+  , detailY: Int
   }
 
 init : Flags -> (Model, Cmd Msg)
@@ -116,6 +138,11 @@ init {tasks, year, month} =
       month
       Nothing
       False
+      0
+      0
+      False
+      0
+      0
   , Cmd.none
   )
 
@@ -165,18 +192,28 @@ type Msg
   | NewMonthSuccess Flags
   | NewMonthFailure Http.Error
   | Mdl Material.Msg
+  | Position Int Int
+
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update action model =
   case action of
 
     ToggleTaskDetail clickedTaskId ->
-      case model.selectedTaskId of
-        Nothing -> ({model | selectedTaskId = Just clickedTaskId}, Cmd.none)
-        Just selectedTaskId' ->
-          if selectedTaskId' == clickedTaskId
-            then ({model | selectedTaskId = Nothing}, Cmd.none)
-            else ({model | selectedTaskId = Just clickedTaskId}, Cmd.none)
+      let
+        detailModel =
+          { model
+          | selectedTaskId = Just clickedTaskId
+          , detailX = model.mouseX
+          , detailY = model.mouseY
+          }
+      in
+        case model.selectedTaskId of
+          Nothing -> (detailModel, Cmd.none)
+          Just selectedTaskId' ->
+            if selectedTaskId' == clickedTaskId
+              then ({model | selectedTaskId = Nothing}, Cmd.none)
+              else (detailModel, Cmd.none)
 
     HideTaskDetail ->
       ({model | selectedTaskId = Nothing}, Cmd.none)
@@ -200,6 +237,9 @@ update action model =
         Http.NetworkError -> (model, Cmd.none)
         Http.UnexpectedPayload _ -> (model, Cmd.none)
         Http.BadResponse _ _ -> (model, Cmd.none)
+
+    Position newX newY ->
+      ({model | mouseX = newX, mouseY = newY} , Cmd.none)
 
     Mdl msg' ->
       Material.update Mdl msg' model
@@ -227,35 +267,24 @@ getNewMonth model op =
 
 
 -----------------------------------------------------------------------------
--- UTILITIES
------------------------------------------------------------------------------
-
-oneByThreeTable : Html Msg -> Html Msg -> Html Msg -> Html Msg
-oneByThreeTable left center right =
-  table [navHeaderStyle]
-  [ tr []
-    [ td [] [left]
-    , td [] [center]
-    , td [] [right]
-    ]
-  ]
-
-
------------------------------------------------------------------------------
 -- VIEW
 -----------------------------------------------------------------------------
 
-detailView : OpsTask -> Html Msg
-detailView ot =
-  div [taskDetailStyle]
-    [ p [taskDetailParaStyle] [text ("Task ID: "++(toStr ot.taskId))]
-    , p [taskDetailParaStyle] [text ot.shortDesc]
-    , p [taskDetailParaStyle] [text ot.instructions]
-    , button [detailButtonStyle, (onClick HideTaskDetail)] [text "Close"]
---  , if task.staffingStatus == "U"
---      then button [detailButtonStyle, (onClick (ClaimTask task.taskId))] [text "Claim"]
---      else text ""
-    ]
+detailView : Model -> OpsTask -> Html Msg
+detailView model ot =
+  let
+    left = px (model.detailX - 200)
+    top = px (model.detailY + 12)
+  in
+    div [taskDetailStyle, style ["left" => left, "top" => top]]
+      [ p [taskDetailParaStyle] [text ("Task ID: "++(toStr ot.taskId))]
+      , p [taskDetailParaStyle] [text ot.shortDesc]
+      , p [taskDetailParaStyle] [text ot.instructions]
+      , button [detailButtonStyle, onClick HideTaskDetail] [text "Close"]
+  --  , if task.staffingStatus == "U"
+  --      then button [detailButtonStyle, (onClick (ClaimTask task.taskId))] [text "Claim"]
+  --      else text ""
+      ]
 
 taskView : Model -> OpsTask -> Html Msg
 taskView model ot =
@@ -269,7 +298,7 @@ taskView model ot =
     div []
       [ div (List.concat [theStyle, [onClick (ToggleTaskDetail ot.taskId)]]) [text ot.shortDesc]
       , if (model.selectedTaskId == Just ot.taskId)
-           then detailView ot
+           then detailView model ot
            else text ""
       ]
 
@@ -331,6 +360,16 @@ view model =
     , monthView model
     ]
 
+
+-----------------------------------------------------------------------------
+-- SUBSCRIPTIONS
+-----------------------------------------------------------------------------
+
+subscriptions: Model -> Sub Msg
+subscriptions model =
+  Mouse.moves (\{x, y} -> Position x y)
+
+
 -----------------------------------------------------------------------------
 -- STYLES
 -----------------------------------------------------------------------------
@@ -353,17 +392,21 @@ navHeaderStyle = style
   , "margin-right" => "auto"
   ]
 
-taskDetailStyle = style
-  [ "width" => "400px"
-  , "background-color" => "#f0f0f0"
-  , "position" => "absolute"
-  , "text-align" => "left"
-  , "padding" => "30px"
-  , "border" => "1px solid black"
-  , "moz-border-radius" => "5px"
-  , "-webkit-border-radius" => "5px"
-  , "margin-right" => "auto"
-  ]
+
+taskDetailStyle =
+  let r = "5px"
+  in style
+    [ "width" => "400px"
+    , "background-color" => "#f0f0f0"
+    , "position" => "absolute"
+    , "text-align" => "left"
+    , "padding" => "30px"
+    , "border" => "1px solid black"
+    , "border-radius" => r
+    , "moz-border-radius" => r
+    , "-webkit-border-radius" => r
+    , "margin-right" => "auto"
+    ]
 
 taskDetailParaStyle = style
   [ "line-height" => "1.15"
