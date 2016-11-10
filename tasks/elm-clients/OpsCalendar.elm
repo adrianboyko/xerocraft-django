@@ -1,9 +1,9 @@
 module OpsCalendar exposing (..)
 
-import Html exposing (Html, div, table, tr, td, th, text, span, button, br, p)
+import Html exposing (Html, Attribute, div, table, tr, td, th, text, span, button, br, p)
 import Html.App as Html
 import Html.Attributes exposing (..)
-import Html.Events exposing (onClick)
+import Html.Events exposing (onClick, on)
 import Http
 import Task
 import String
@@ -13,6 +13,7 @@ import List
 import Array
 import DynamicStyle exposing (hover, hover')
 import Mouse exposing (Position)
+import Maybe exposing (withDefault)
 
 import Material
 import Material.Button as Button
@@ -59,7 +60,6 @@ monthName x =
     11 -> "December"
     _ -> Debug.crash "Provide a value from 0 to 11, inclusive"
 
-
 oneByThreeTable : Html Msg -> Html Msg -> Html Msg -> Html Msg
 oneByThreeTable left center right =
   table [navHeaderStyle]
@@ -69,7 +69,6 @@ oneByThreeTable left center right =
     , td [] [right]
     ]
   ]
-
 
 -----------------------------------------------------------------------------
 -- MAIN
@@ -122,11 +121,9 @@ type alias Model =
   , month: Int
   , selectedTaskId: Maybe Int
   , working: Bool
-  , mouseX: Int
-  , mouseY: Int
-  , draggingDetail: Bool
-  , detailX: Int
-  , detailY: Int
+  , mousePt: Position  -- The current most position.
+  , detailPt: Position  -- Where the detail "popup" is positioned.
+  , dragStartPt: Maybe Position  -- Where drag began, if user is dragging.
   }
 
 init : Flags -> (Model, Cmd Msg)
@@ -138,11 +135,9 @@ init {tasks, year, month} =
       month
       Nothing
       False
-      0
-      0
-      False
-      0
-      0
+      (Position 0 0)
+      (Position 0 0)
+      Nothing
   , Cmd.none
   )
 
@@ -192,7 +187,9 @@ type Msg
   | NewMonthSuccess Flags
   | NewMonthFailure Http.Error
   | Mdl Material.Msg
-  | Position Int Int
+  | MouseMove Position
+  | DragStart Position
+  | DragFinish Position
 
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -204,8 +201,7 @@ update action model =
         detailModel =
           { model
           | selectedTaskId = Just clickedTaskId
-          , detailX = model.mouseX
-          , detailY = model.mouseY
+          , detailPt = Position (model.mousePt.x - 200) (model.mousePt.y + 12)
           }
       in
         case model.selectedTaskId of
@@ -238,8 +234,18 @@ update action model =
         Http.UnexpectedPayload _ -> (model, Cmd.none)
         Http.BadResponse _ _ -> (model, Cmd.none)
 
-    Position newX newY ->
-      ({model | mouseX = newX, mouseY = newY} , Cmd.none)
+    MouseMove newPt ->
+      ({model | mousePt = newPt}, Cmd.none)
+
+    DragStart pt ->
+      ({model | dragStartPt = Just pt}, Cmd.none)
+
+    DragFinish pt ->
+      case model.dragStartPt of
+        Nothing -> (model, Cmd.none)
+        Just {x, y} ->
+          let newDetailPt = Position (model.detailPt.x + (pt.x - x)) (model.detailPt.y + (pt.y - y))
+          in ({model | dragStartPt = Nothing, detailPt = newDetailPt}, Cmd.none)
 
     Mdl msg' ->
       Material.update Mdl msg' model
@@ -270,15 +276,19 @@ getNewMonth model op =
 -- VIEW
 -----------------------------------------------------------------------------
 
+onMouseDown : Attribute Msg
+onMouseDown =
+  on "mousedown" (Dec.map DragStart Mouse.position)
+
 detailView : Model -> OpsTask -> Html Msg
 detailView model ot =
   let
-    left = px (model.detailX - 200)
-    top = px (model.detailY + 12)
+    dragStartPt' = withDefault model.mousePt model.dragStartPt
+    left = px (model.detailPt.x + (model.mousePt.x - dragStartPt'.x))
+    top = px (model.detailPt.y + (model.mousePt.y - dragStartPt'.y))
   in
-    div [taskDetailStyle, style ["left" => left, "top" => top]]
-      [ p [taskDetailParaStyle] [text ("Task ID: "++(toStr ot.taskId))]
-      , p [taskDetailParaStyle] [text ot.shortDesc]
+    div [taskDetailStyle, onMouseDown, style ["left" => left, "top" => top]]
+      [ p [taskDetailParaStyle] [text ot.shortDesc]
       , p [taskDetailParaStyle] [text ot.instructions]
       , button [detailButtonStyle, onClick HideTaskDetail] [text "Close"]
   --  , if task.staffingStatus == "U"
@@ -367,8 +377,10 @@ view model =
 
 subscriptions: Model -> Sub Msg
 subscriptions model =
-  Mouse.moves (\{x, y} -> Position x y)
-
+  Sub.batch
+    [ Mouse.moves MouseMove
+    , Mouse.ups DragFinish
+    ]
 
 -----------------------------------------------------------------------------
 -- STYLES
