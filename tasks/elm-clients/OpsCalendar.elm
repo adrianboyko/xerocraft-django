@@ -10,7 +10,6 @@ import String
 import Time exposing (Time)
 import Date
 import List
-import Array
 import DynamicStyle exposing (hover, hover')
 import Mouse exposing (Position)
 import Maybe exposing (withDefault)
@@ -182,6 +181,8 @@ type Msg
   = ToggleTaskDetail Int
   | HideTaskDetail
   | ClaimTask Int
+  | VerifyTask Int
+  | UnstaffTask Int
   | PrevMonth
   | NextMonth
   | NewMonthSuccess Flags
@@ -215,6 +216,12 @@ update action model =
       ({model | selectedTaskId = Nothing}, Cmd.none)
 
     ClaimTask taskId ->
+      (model, Cmd.none)  -- TODO
+
+    VerifyTask taskId ->
+      (model, Cmd.none)  -- TODO
+
+    UnstaffTask taskId ->
       (model, Cmd.none)  -- TODO
 
     PrevMonth ->
@@ -291,9 +298,11 @@ detailView model ot =
       [ p [taskDetailParaStyle] [text ot.shortDesc]
       , p [taskDetailParaStyle] [text ot.instructions]
       , button [detailButtonStyle, onClick HideTaskDetail] [text "Close"]
-  --  , if task.staffingStatus == "U"
-  --      then button [detailButtonStyle, (onClick (ClaimTask task.taskId))] [text "Claim"]
-  --      else text ""
+--      , case ot.staffingStatus of
+--          "S" -> button [detailButtonStyle, (onClick (UnstaffTask ot.taskId))] [text "Unstaff"]
+--          "U" -> button [detailButtonStyle, (onClick (ClaimTask ot.taskId))] [text "Claim"]
+--          "P" -> button [detailButtonStyle, (onClick (VerifyTask ot.taskId))] [text "Verify"]
+--         _ -> Debug.crash "Only S, U, and P are allowed."
       ]
 
 taskView : Model -> OpsTask -> Html Msg
@@ -311,7 +320,6 @@ taskView model ot =
            then detailView model ot
            else text ""
       ]
-
 
 dayView : Model -> DayOfTasks -> Html Msg
 dayView model dayOfTasks =
@@ -347,7 +355,6 @@ monthView model =
          , (List.map (weekView model) model.tasks)
          ])
 
-
 headerView : Model -> Html Msg
 headerView model =
     if model.working then
@@ -362,14 +369,12 @@ headerView model =
           ([ Button.fab, Button.onClick NextMonth ] ++ navButtonCss)
           [ Icon.i "navigate_next" ])
 
-
 view : Model -> Html Msg
 view model =
   div [containerStyle]
     [ headerView model
     , monthView model
     ]
-
 
 -----------------------------------------------------------------------------
 -- SUBSCRIPTIONS
@@ -403,7 +408,6 @@ navHeaderStyle = style
   , "margin-left" => "auto"
   , "margin-right" => "auto"
   ]
-
 
 taskDetailStyle =
   let r = "5px"
