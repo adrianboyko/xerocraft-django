@@ -671,7 +671,9 @@ def _ops_calendar_json(request, year, month):
             "tasks":[task_json(t) for t in task_list_for_date]
         }
 
+    u = request.user
     return {
+        "user": {"id": u.pk, "name": u.member.friendly_name} if u.is_authenticated() else None,
         "tasks": [list(tasks_on_date(day) for day in week) for week in calpage],
         "year": year,
         "month": month,
@@ -684,10 +686,9 @@ def ops_calendar_json(request, year, month) -> JsonResponse:
     return JsonResponse(_ops_calendar_json(request, year, month))
 
 
-def ops_calendar_spa(request) -> HttpResponse:
-    today = date.today()
-    year = today.year
-    month = today.month
+def ops_calendar_spa(request, year=date.today().year, month=date.today().month) -> HttpResponse:
+    year = int(year)
+    month = int(month)
     props = {
         "cal_data": json.dumps(_ops_calendar_json(request, year, month)),
     }

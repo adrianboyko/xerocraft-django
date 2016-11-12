@@ -1,6 +1,6 @@
 module OpsCalendar exposing (..)
 
-import Html exposing (Html, Attribute, div, table, tr, td, th, text, span, button, br, p)
+import Html exposing (Html, Attribute, a, div, table, tr, td, th, text, span, button, br, p)
 import Html.App as Html
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, on)
@@ -85,6 +85,11 @@ main =
 -- MODEL
 -----------------------------------------------------------------------------
 
+type alias User =
+  { id: Int
+  , name: String
+  }
+
 type alias OpsTask =
   { taskId: Int
   , isoDate: String
@@ -108,13 +113,15 @@ type alias MonthOfTasks = List WeekOfTasks
 
 -- These are params from the server. Elm docs tend to call them "flags".
 type alias Flags =
-  { tasks: MonthOfTasks
+  { user: Maybe User
+  , tasks: MonthOfTasks
   , year: Int
   , month: Int
   }
 
 type alias Model =
   { mdl: Material.Model
+  , user: Maybe User
   , tasks: MonthOfTasks
   , year: Int
   , month: Int
@@ -126,9 +133,10 @@ type alias Model =
   }
 
 init : Flags -> (Model, Cmd Msg)
-init {tasks, year, month} =
+init {tasks, year, month, user} =
   ( Model
       Material.model
+      user
       tasks
       year
       month
@@ -144,6 +152,12 @@ init {tasks, year, month} =
 -- JSON Decoder
 -----------------------------------------------------------------------------
 
+decodeUser : Dec.Decoder User
+decodeUser =
+  Dec.succeed User
+    |: ("id"   := Dec.int)
+    |: ("name" := Dec.string)
+
 decodeOpsTask : Dec.Decoder OpsTask
 decodeOpsTask =
   Dec.succeed OpsTask
@@ -155,7 +169,6 @@ decodeOpsTask =
     |: ("instructions"     := Dec.string)
     |: ("staffingStatus"   := Dec.string)
 
-
 decodeDayOfTasks : Dec.Decoder DayOfTasks
 decodeDayOfTasks =
   Dec.succeed DayOfTasks
@@ -164,14 +177,13 @@ decodeDayOfTasks =
     |: ("isToday"         := Dec.bool)
     |: ("tasks"           := Dec.list decodeOpsTask)
 
-
 decodeFlags : Dec.Decoder Flags
 decodeFlags =
   Dec.succeed Flags
-    |: ("tasks" := Dec.list (Dec.list decodeDayOfTasks))
-    |: ("year"  := Dec.int)
-    |: ("month" := Dec.int)
-
+    |: (maybe ("user" := decodeUser))
+    |: ("tasks"       := Dec.list (Dec.list decodeDayOfTasks))
+    |: ("year"        := Dec.int)
+    |: ("month"       := Dec.int)
 
 -----------------------------------------------------------------------------
 -- UPDATE
@@ -283,16 +295,13 @@ getNewMonth model op =
 -- VIEW
 -----------------------------------------------------------------------------
 
-onMouseDown : Attribute Msg
-onMouseDown =
-  on "mousedown" (Dec.map DragStart Mouse.position)
-
 detailView : Model -> OpsTask -> Html Msg
 detailView model ot =
   let
     dragStartPt' = withDefault model.mousePt model.dragStartPt
     left = px (model.detailPt.x + (model.mousePt.x - dragStartPt'.x))
     top = px (model.detailPt.y + (model.mousePt.y - dragStartPt'.y))
+    onMouseDown = on "mousedown" (Dec.map DragStart Mouse.position)
   in
     div [taskDetailStyle, onMouseDown, style ["left" => left, "top" => top]]
       [ p [taskDetailParaStyle] [text ot.shortDesc]
@@ -349,7 +358,7 @@ monthView model =
     daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
     headify = \x -> (th [thStyle] [text x])
   in
-     table [tableStyle, unselectable]
+     table [tableStyle]
        (List.concat
          [ [tr [] (List.map headify daysOfWeek)]
          , (List.map (weekView model) model.tasks)
@@ -369,11 +378,28 @@ headerView model =
           ([ Button.fab, Button.onClick NextMonth ] ++ navButtonCss)
           [ Icon.i "navigate_next" ])
 
+loginView : Model -> Html Msg
+loginView model =
+  div []
+    [ br [] []
+    , case model.user of
+        Nothing ->
+          let
+            y = toStr(model.year)
+            m = toStr(model.month)
+            url = "/login/?next=/tasks/ops-calendar-spa/" ++ y ++ "-" ++ m  -- TODO: Django should provide url.
+          in
+            a [href url] [text "Log In to Change Schedule"]
+        Just {id, name} ->
+          a [href "/logout/"] [text ("Log Out "++name)]
+    ]
+
 view : Model -> Html Msg
 view model =
-  div [containerStyle]
+  div [containerStyle, unselectable]
     [ headerView model
     , monthView model
+    --, loginView model
     ]
 
 -----------------------------------------------------------------------------
