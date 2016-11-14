@@ -8,7 +8,7 @@ import Http
 import Task
 import String
 import Time exposing (Time)
-import Date
+import Date exposing (Date)
 import List
 import DynamicStyle exposing (hover, hover')
 import Mouse exposing (Position)
@@ -24,6 +24,7 @@ import Json.Decode as Dec
 -- elm-package install --yes elm-community/elm-json-extra
 import Json.Decode.Extra exposing ((|:))
 
+import TaskApi exposing (TimeWindow, Duration, durationToString, decodeTimeWindow, clockTimeToStr)
 
 -----------------------------------------------------------------------------
 -- UTILITIES
@@ -94,8 +95,7 @@ type alias OpsTask =
   { taskId: Int
   , isoDate: String
   , shortDesc: String
-  , startTime: Maybe Time
-  , endTime: Maybe Time
+  , timeWindow: Maybe TimeWindow
   , instructions: String
   , staffingStatus: String
   }
@@ -155,19 +155,18 @@ init {tasks, year, month, user} =
 decodeUser : Dec.Decoder User
 decodeUser =
   Dec.succeed User
-    |: ("id"   := Dec.int)
-    |: ("name" := Dec.string)
+    |: ("id"    := Dec.int)
+    |: ("name"  := Dec.string)
 
 decodeOpsTask : Dec.Decoder OpsTask
 decodeOpsTask =
   Dec.succeed OpsTask
-    |: ("taskId"           := Dec.int)
-    |: ("isoDate"          := Dec.string)
-    |: ("shortDesc"        := Dec.string)
-    |: (maybe ("startTime" := Dec.float))
-    |: (maybe ("endTime"   := Dec.float))
-    |: ("instructions"     := Dec.string)
-    |: ("staffingStatus"   := Dec.string)
+    |: ("taskId"            := Dec.int)
+    |: ("isoDate"           := Dec.string)
+    |: ("shortDesc"         := Dec.string)
+    |: (maybe ("timeWindow" := decodeTimeWindow))
+    |: ("instructions"      := Dec.string)
+    |: ("staffingStatus"    := Dec.string)
 
 decodeDayOfTasks : Dec.Decoder DayOfTasks
 decodeDayOfTasks =
@@ -302,9 +301,16 @@ detailView model ot =
     left = px (model.detailPt.x + (model.mousePt.x - dragStartPt'.x))
     top = px (model.detailPt.y + (model.mousePt.y - dragStartPt'.y))
     onMouseDown = on "mousedown" (Dec.map DragStart Mouse.position)
+    window = case ot.timeWindow of
+      Nothing -> Debug.crash "Must not be 'Nothing' at this point"
+      Just x -> x
   in
     div [taskDetailStyle, onMouseDown, style ["left" => left, "top" => top]]
-      [ p [taskDetailParaStyle] [text ot.shortDesc]
+      [ p [taskDetailParaStyle]
+        [ text (ot.shortDesc)
+        , br [] []
+        , text((durationToString True window.duration) ++ " @ " ++ (clockTimeToStr window.begin))
+        ]
       , p [taskDetailParaStyle] [text ot.instructions]
       , button [detailButtonStyle, onClick HideTaskDetail] [text "Close"]
 --      , case ot.staffingStatus of
@@ -323,12 +329,15 @@ taskView model ot =
       "P" -> provisionalStyle
       _   -> Debug.crash "Only S, U, and P are allowed."
   in
-    div []
-      [ div (List.concat [theStyle, [onClick (ToggleTaskDetail ot.taskId)]]) [text ot.shortDesc]
-      , if (model.selectedTaskId == Just ot.taskId)
-           then detailView model ot
-           else text ""
-      ]
+    case ot.timeWindow of
+      Nothing -> text ""
+      Just {begin, duration} ->
+        div []
+          [ div (List.concat [theStyle, [onClick (ToggleTaskDetail ot.taskId)]]) [text ot.shortDesc]
+          , if (model.selectedTaskId == Just ot.taskId)
+              then detailView model ot
+              else text ""
+          ]
 
 dayView : Model -> DayOfTasks -> Html Msg
 dayView model dayOfTasks =
@@ -385,11 +394,11 @@ loginView model =
     , case model.user of
         Nothing ->
           let
-            y = toStr(model.year)
-            m = toStr(model.month)
+            y = toString(model.year)
+            m = toString(model.month)
             url = "/login/?next=/tasks/ops-calendar-spa/" ++ y ++ "-" ++ m  -- TODO: Django should provide url.
           in
-            a [href url] [text "Log In to Change Schedule"]
+            a [href url] [text "Log In to Edit Schedule"]
         Just {id, name} ->
           a [href "/logout/"] [text ("Log Out "++name)]
     ]

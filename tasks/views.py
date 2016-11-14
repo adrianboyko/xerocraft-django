@@ -652,12 +652,19 @@ def _ops_calendar_json(request, year, month):
     page_tasks = list(qset)
 
     def task_json(task: Task) -> dict:
+        window = None
+        if task.window_duration() is not None and task.window_start_time() is not None:
+            msec_dur = 1000.0 * task.window_duration().total_seconds()
+            start_time = task.window_start_time()
+            window ={
+                "begin": {"hour": start_time.hour, "minute": start_time.minute},
+                "duration": msec_dur
+            }
         return {
             "taskId": task.pk,
             "isoDate": task.scheduled_date.isoformat(),
             "shortDesc": task.short_desc,
-            "startTime": 100000,  # TODO: Provide actual time
-            "endTime": 100000,  # TODO: Provide actual time
+            "timeWindow": window,
             "instructions": task.instructions,
             "staffingStatus": task.staffing_status(),
         }
