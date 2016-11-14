@@ -64,8 +64,7 @@ type alias Params =
   , claim_list_uri: String
   , task_list_uri: String
   , member_list_uri: String
-
-}
+  }
 
 type alias Model =
   { scene: Scene
