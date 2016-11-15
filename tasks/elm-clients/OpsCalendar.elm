@@ -24,51 +24,13 @@ import Json.Decode as Dec
 -- elm-package install --yes elm-community/elm-json-extra
 import Json.Decode.Extra exposing ((|:))
 
-import TaskApi exposing (TimeWindow, Duration, durationToString, decodeTimeWindow, clockTimeToStr)
+import TaskApi exposing
+  ( Target(ForHuman)
+  , TimeWindow, decodeTimeWindow
+  , Duration, durationToString
+  , clockTimeToStr
+  )
 
------------------------------------------------------------------------------
--- UTILITIES
------------------------------------------------------------------------------
-
-px : Int -> String
-px number =
-  toString number ++ "px"
-
-toStr v =
-  let
-    str = toString v
-  in
-    if String.left 1 str == "\"" then
-      String.dropRight 1 (String.dropLeft 1 str)
-    else
-      str
-
-monthName : Int -> String
-monthName x =
-  case x of
-    0 -> "January"
-    1 -> "February"
-    2 -> "March"
-    3 -> "April"
-    4 -> "May"
-    5 -> "June"
-    6 -> "July"
-    7 -> "August"
-    8 -> "September"
-    9 -> "October"
-    10 -> "November"
-    11 -> "December"
-    _ -> Debug.crash "Provide a value from 0 to 11, inclusive"
-
-oneByThreeTable : Html Msg -> Html Msg -> Html Msg -> Html Msg
-oneByThreeTable left center right =
-  table [navHeaderStyle]
-  [ tr []
-    [ td [] [left]
-    , td [] [center]
-    , td [] [right]
-    ]
-  ]
 
 -----------------------------------------------------------------------------
 -- MAIN
@@ -81,6 +43,7 @@ main =
     , update = update
     , subscriptions = subscriptions
     }
+
 
 -----------------------------------------------------------------------------
 -- MODEL
@@ -148,60 +111,32 @@ init {tasks, year, month, user} =
   , Cmd.none
   )
 
------------------------------------------------------------------------------
--- JSON Decoder
------------------------------------------------------------------------------
-
-decodeUser : Dec.Decoder User
-decodeUser =
-  Dec.succeed User
-    |: ("id"    := Dec.int)
-    |: ("name"  := Dec.string)
-
-decodeOpsTask : Dec.Decoder OpsTask
-decodeOpsTask =
-  Dec.succeed OpsTask
-    |: ("taskId"            := Dec.int)
-    |: ("isoDate"           := Dec.string)
-    |: ("shortDesc"         := Dec.string)
-    |: (maybe ("timeWindow" := decodeTimeWindow))
-    |: ("instructions"      := Dec.string)
-    |: ("staffingStatus"    := Dec.string)
-
-decodeDayOfTasks : Dec.Decoder DayOfTasks
-decodeDayOfTasks =
-  Dec.succeed DayOfTasks
-    |: ("dayOfMonth"      := Dec.int)
-    |: ("isInTargetMonth" := Dec.bool)
-    |: ("isToday"         := Dec.bool)
-    |: ("tasks"           := Dec.list decodeOpsTask)
-
-decodeFlags : Dec.Decoder Flags
-decodeFlags =
-  Dec.succeed Flags
-    |: (maybe ("user" := decodeUser))
-    |: ("tasks"       := Dec.list (Dec.list decodeDayOfTasks))
-    |: ("year"        := Dec.int)
-    |: ("month"       := Dec.int)
 
 -----------------------------------------------------------------------------
 -- UPDATE
 -----------------------------------------------------------------------------
 
 type Msg
+  -- Calendar app messages
   = ToggleTaskDetail Int
   | HideTaskDetail
-  | ClaimTask Int
-  | VerifyTask Int
-  | UnstaffTask Int
   | PrevMonth
   | NextMonth
   | NewMonthSuccess Flags
   | NewMonthFailure Http.Error
-  | Mdl Material.Msg
   | MouseMove Position
   | DragStart Position
   | DragFinish Position
+  | ClaimTask Time Int Int
+  | VerifyTask Time Int Int
+  | UnstaffTask Time Int Int
+
+  -- For elm-mdl
+  | Mdl Material.Msg
+
+  -- For time aware messages
+  -- Based on http://stackoverflow.com/a/39059005/2037738
+  | GetTimeAndThen (Time -> Msg)
 
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -226,13 +161,13 @@ update action model =
     HideTaskDetail ->
       ({model | selectedTaskId = Nothing}, Cmd.none)
 
-    ClaimTask taskId ->
+    ClaimTask time memberId taskId ->
       (model, Cmd.none)  -- TODO
 
-    VerifyTask taskId ->
+    VerifyTask time memberId taskId ->
       (model, Cmd.none)  -- TODO
 
-    UnstaffTask taskId ->
+    UnstaffTask time memberId taskId ->
       (model, Cmd.none)  -- TODO
 
     PrevMonth ->
@@ -267,6 +202,10 @@ update action model =
 
     Mdl msg' ->
       Material.update Mdl msg' model
+
+    GetTimeAndThen successHandler ->
+      let failHandler = assertNeverHandler "Couldn't get current time."
+      in (model, (Task.perform failHandler successHandler Time.now))
 
 
 getNewMonth : Model -> (Int -> Int -> Int) -> Cmd Msg
@@ -309,15 +248,22 @@ detailView model ot =
       [ p [taskDetailParaStyle]
         [ text (ot.shortDesc)
         , br [] []
-        , text((durationToString True window.duration) ++ " @ " ++ (clockTimeToStr window.begin))
+        , text((durationToString ForHuman window.duration) ++ " @ " ++ (clockTimeToStr window.begin))
         ]
       , p [taskDetailParaStyle] [text ot.instructions]
       , button [detailButtonStyle, onClick HideTaskDetail] [text "Close"]
---      , case ot.staffingStatus of
---          "S" -> button [detailButtonStyle, (onClick (UnstaffTask ot.taskId))] [text "Unstaff"]
---          "U" -> button [detailButtonStyle, (onClick (ClaimTask ot.taskId))] [text "Claim"]
---          "P" -> button [detailButtonStyle, (onClick (VerifyTask ot.taskId))] [text "Verify"]
---         _ -> Debug.crash "Only S, U, and P are allowed."
+      , case model.user of
+          Nothing -> text ""
+          Just {id, name} ->
+            let (msg, buttonText) = case ot.staffingStatus of
+              "S" -> (UnstaffTask, "Unstaff")
+              "U" -> (ClaimTask, "Claim")
+              "P" -> (VerifyTask, "Verify")
+              _   -> assertNever "Staffing status can only be S, U, or P"
+
+            in
+              let clickMsg = GetTimeAndThen (\time -> (msg time id ot.taskId))
+              in button [detailButtonStyle, onClick clickMsg] [text buttonText]
       ]
 
 taskView : Model -> OpsTask -> Html Msg
@@ -327,7 +273,7 @@ taskView model ot =
       "S" -> staffedStyle
       "U" -> unstaffedStyle
       "P" -> provisionalStyle
-      _   -> Debug.crash "Only S, U, and P are allowed."
+      _   -> noStaffStatusStyle  -- This shouldn't happen. Would be a server side problem.
   in
     case ot.timeWindow of
       Nothing -> text ""
@@ -408,8 +354,9 @@ view model =
   div [containerStyle, unselectable]
     [ headerView model
     , monthView model
-    --, loginView model
+    , loginView model
     ]
+
 
 -----------------------------------------------------------------------------
 -- SUBSCRIPTIONS
@@ -421,6 +368,97 @@ subscriptions model =
     [ Mouse.moves MouseMove
     , Mouse.ups DragFinish
     ]
+
+
+-----------------------------------------------------------------------------
+-- JSON Decoder
+-----------------------------------------------------------------------------
+
+decodeUser : Dec.Decoder User
+decodeUser =
+  Dec.succeed User
+    |: ("id"    := Dec.int)
+    |: ("name"  := Dec.string)
+
+decodeOpsTask : Dec.Decoder OpsTask
+decodeOpsTask =
+  Dec.succeed OpsTask
+    |: ("taskId"            := Dec.int)
+    |: ("isoDate"           := Dec.string)
+    |: ("shortDesc"         := Dec.string)
+    |: (maybe ("timeWindow" := decodeTimeWindow))
+    |: ("instructions"      := Dec.string)
+    |: ("staffingStatus"    := Dec.string)
+
+decodeDayOfTasks : Dec.Decoder DayOfTasks
+decodeDayOfTasks =
+  Dec.succeed DayOfTasks
+    |: ("dayOfMonth"      := Dec.int)
+    |: ("isInTargetMonth" := Dec.bool)
+    |: ("isToday"         := Dec.bool)
+    |: ("tasks"           := Dec.list decodeOpsTask)
+
+decodeFlags : Dec.Decoder Flags
+decodeFlags =
+  Dec.succeed Flags
+    |: (maybe ("user" := decodeUser))
+    |: ("tasks"       := Dec.list (Dec.list decodeDayOfTasks))
+    |: ("year"        := Dec.int)
+    |: ("month"       := Dec.int)
+
+
+-----------------------------------------------------------------------------
+-- UTILITIES
+-----------------------------------------------------------------------------
+
+px : Int -> String
+px number =
+  toString number ++ "px"
+
+toStr v =
+  let
+    str = toString v
+  in
+    if String.left 1 str == "\"" then
+      String.dropRight 1 (String.dropLeft 1 str)
+    else
+      str
+
+monthName : Int -> String
+monthName x =
+  case x of
+    0 -> "January"
+    1 -> "February"
+    2 -> "March"
+    3 -> "April"
+    4 -> "May"
+    5 -> "June"
+    6 -> "July"
+    7 -> "August"
+    8 -> "September"
+    9 -> "October"
+    10 -> "November"
+    11 -> "December"
+    _ -> Debug.crash "Provide a value from 0 to 11, inclusive"
+
+oneByThreeTable : Html Msg -> Html Msg -> Html Msg -> Html Msg
+oneByThreeTable left center right =
+  table [navHeaderStyle]
+  [ tr []
+    [ td [] [left]
+    , td [] [center]
+    , td [] [right]
+    ]
+  ]
+
+assertNever : String -> a
+assertNever str =
+  Debug.crash str
+
+assertNeverHandler : String -> a -> b
+assertNeverHandler str =
+  (\_ -> assertNever str)
+
 
 -----------------------------------------------------------------------------
 -- STYLES
@@ -538,6 +576,8 @@ staffedStyle = hover' (List.concat [[("color", "green")], taskNameCss]) rollover
 unstaffedStyle = hover' (List.concat [[("color", "red")], taskNameCss]) rollover
 
 provisionalStyle = hover' (List.concat [[("color", "#c68e17")], taskNameCss]) rollover
+
+noStaffStatusStyle = hover' (List.concat [[("color", "#000000")], taskNameCss]) rollover
 
 dayOtherMonthStyle = style
   [ "background-color" => "#eeeeee"

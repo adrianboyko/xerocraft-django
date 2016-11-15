@@ -13514,11 +13514,149 @@ var _garetht$elm_dynamic_style$DynamicStyle$hover = _garetht$elm_dynamic_style$D
 	_elm_lang$core$Native_List.fromArray(
 		[]));
 
+var _user$project$TaskApi$durationToString = F2(
+	function (target, dhms) {
+		var pad = function (_p0) {
+			return A3(
+				_elm_lang$core$String$padLeft,
+				2,
+				_elm_lang$core$Native_Utils.chr('0'),
+				_elm_lang$core$Basics$toString(_p0));
+		};
+		var day = 24.0 * _elm_lang$core$Time$hour;
+		var days = _elm_lang$core$Basics$toFloat(
+			_elm_lang$core$Basics$floor(dhms / day));
+		var hms = dhms - (days * day);
+		var hours = _elm_lang$core$Basics$toFloat(
+			_elm_lang$core$Basics$floor(hms / _elm_lang$core$Time$hour));
+		var ms = hms - (hours * _elm_lang$core$Time$hour);
+		var minutes = _elm_lang$core$Basics$toFloat(
+			_elm_lang$core$Basics$floor(ms / _elm_lang$core$Time$minute));
+		var seconds = ms - (minutes * _elm_lang$core$Time$minute);
+		var _p1 = target;
+		if (_p1.ctor === 'ForHuman') {
+			return A2(
+				_elm_lang$core$Basics_ops['++'],
+				_elm_lang$core$Basics$toString(hours + (minutes / 60.0)),
+				' hrs');
+		} else {
+			return A2(
+				_elm_lang$core$Basics_ops['++'],
+				_elm_lang$core$Basics$toString(days),
+				A2(
+					_elm_lang$core$Basics_ops['++'],
+					' ',
+					A2(
+						_elm_lang$core$Basics_ops['++'],
+						pad(hours),
+						A2(
+							_elm_lang$core$Basics_ops['++'],
+							':',
+							A2(
+								_elm_lang$core$Basics_ops['++'],
+								pad(minutes),
+								A2(
+									_elm_lang$core$Basics_ops['++'],
+									':',
+									pad(seconds)))))));
+		}
+	});
+var _user$project$TaskApi$durationFromString = function (s) {
+	var weights3 = _elm_lang$core$Native_List.fromArray(
+		[_elm_lang$core$Time$hour, _elm_lang$core$Time$minute, _elm_lang$core$Time$second]);
+	var weights4 = A2(
+		_elm_lang$core$Basics_ops['++'],
+		_elm_lang$core$Native_List.fromArray(
+			[24 * _elm_lang$core$Time$hour]),
+		weights3);
+	var partsAsStrs = A3(
+		_elm_lang$core$Regex$split,
+		_elm_lang$core$Regex$All,
+		_elm_lang$core$Regex$regex('[: ]'),
+		s);
+	var partsAsResults = A2(_elm_lang$core$List$map, _elm_lang$core$String$toFloat, partsAsStrs);
+	var unResult = function (x) {
+		var _p2 = x;
+		if (_p2.ctor === 'Ok') {
+			return _p2._0;
+		} else {
+			return _elm_lang$core$Native_Utils.crashCase(
+				'TaskApi',
+				{
+					start: {line: 73, column: 22},
+					end: {line: 75, column: 33}
+				},
+				_p2)(_p2._0);
+		}
+	};
+	var partsAsFloats = A2(_elm_lang$core$List$map, unResult, partsAsResults);
+	var weights = _elm_lang$core$Native_Utils.eq(
+		_elm_lang$core$List$length(partsAsFloats),
+		4) ? weights4 : weights3;
+	return A3(
+		_elm_lang$core$List$foldr,
+		F2(
+			function (x, y) {
+				return x + y;
+			}),
+		0,
+		A3(
+			_elm_lang$core$List$map2,
+			F2(
+				function (x, y) {
+					return x * y;
+				}),
+			weights,
+			partsAsFloats));
+};
+var _user$project$TaskApi$clockTimeToStr = function (ct) {
+	var minute = A3(
+		_elm_lang$core$String$padLeft,
+		2,
+		_elm_lang$core$Native_Utils.chr('0'),
+		_elm_lang$core$Basics$toString(ct.minute));
+	var hour = A3(
+		_elm_lang$core$String$padLeft,
+		2,
+		_elm_lang$core$Native_Utils.chr('0'),
+		_elm_lang$core$Basics$toString(ct.hour));
+	return A2(
+		_elm_lang$core$Basics_ops['++'],
+		hour,
+		A2(_elm_lang$core$Basics_ops['++'], ':', minute));
+};
+var _user$project$TaskApi$TimeWindow = F2(
+	function (a, b) {
+		return {begin: a, duration: b};
+	});
+var _user$project$TaskApi$ClockTime = F2(
+	function (a, b) {
+		return {hour: a, minute: b};
+	});
+var _user$project$TaskApi$decodeClockTime = A2(
+	_elm_community$elm_json_extra$Json_Decode_Extra_ops['|:'],
+	A2(
+		_elm_community$elm_json_extra$Json_Decode_Extra_ops['|:'],
+		_elm_lang$core$Json_Decode$succeed(_user$project$TaskApi$ClockTime),
+		A2(_elm_lang$core$Json_Decode_ops[':='], 'hour', _elm_lang$core$Json_Decode$int)),
+	A2(_elm_lang$core$Json_Decode_ops[':='], 'minute', _elm_lang$core$Json_Decode$int));
+var _user$project$TaskApi$decodeTimeWindow = A2(
+	_elm_community$elm_json_extra$Json_Decode_Extra_ops['|:'],
+	A2(
+		_elm_community$elm_json_extra$Json_Decode_Extra_ops['|:'],
+		_elm_lang$core$Json_Decode$succeed(_user$project$TaskApi$TimeWindow),
+		A2(_elm_lang$core$Json_Decode_ops[':='], 'begin', _user$project$TaskApi$decodeClockTime)),
+	A2(_elm_lang$core$Json_Decode_ops[':='], 'duration', _elm_lang$core$Json_Decode$float));
+var _user$project$TaskApi$Claim = F5(
+	function (a, b, c, d, e) {
+		return {taskId: a, claimantId: b, startOfClaim: c, durationOfClaim: d, verifiedOn: e};
+	});
+var _user$project$TaskApi$ForRest = {ctor: 'ForRest'};
 var _user$project$TaskApi$createClaim = F4(
 	function (credentials, claim, failure, success) {
 		var authHeader = function () {
-			var _p0 = credentials;
-			if (_p0.ctor === 'None') {
+			var _p4 = credentials;
+			if (_p4.ctor === 'None') {
 				return _elm_lang$core$Native_List.fromArray(
 					[]);
 			} else {
@@ -13527,13 +13665,13 @@ var _user$project$TaskApi$createClaim = F4(
 						{
 						ctor: '_Tuple2',
 						_0: 'Authentication',
-						_1: A2(_elm_lang$core$Basics_ops['++'], 'Bearer ', _p0._0)
+						_1: A2(_elm_lang$core$Basics_ops['++'], 'Bearer ', _p4._0)
 					}
 					]);
 			}
 		}();
 		var verifiedOnStr = '';
-		var durationOfClaimStr = '';
+		var durationOfClaimStr = A2(_user$project$TaskApi$durationToString, _user$project$TaskApi$ForRest, claim.durationOfClaim);
 		var startOfClaimStr = A2(
 			_elm_lang$core$Basics_ops['++'],
 			_elm_lang$core$Basics$toString(claim.startOfClaim.hour),
@@ -13615,149 +13753,7 @@ var _user$project$TaskApi$createClaim = F4(
 					body: newClaimBody
 				}));
 	});
-var _user$project$TaskApi$durationToString = F2(
-	function (friendly, dhms) {
-		var pad = function (_p1) {
-			return A3(
-				_elm_lang$core$String$padLeft,
-				2,
-				_elm_lang$core$Native_Utils.chr('0'),
-				_elm_lang$core$Basics$toString(_p1));
-		};
-		var day = 24.0 * _elm_lang$core$Time$hour;
-		var days = _elm_lang$core$Basics$toFloat(
-			_elm_lang$core$Basics$floor(dhms / day));
-		var hms = dhms - (days * day);
-		var hours = _elm_lang$core$Basics$toFloat(
-			_elm_lang$core$Basics$floor(hms / _elm_lang$core$Time$hour));
-		var ms = hms - (hours * _elm_lang$core$Time$hour);
-		var minutes = _elm_lang$core$Basics$toFloat(
-			_elm_lang$core$Basics$floor(ms / _elm_lang$core$Time$minute));
-		var seconds = ms - (minutes * _elm_lang$core$Time$minute);
-		if (friendly) {
-			var unitize = F2(
-				function (val, unit) {
-					return (_elm_lang$core$Native_Utils.cmp(val, 0) > 0) ? A2(
-						_elm_lang$core$Basics_ops['++'],
-						_elm_lang$core$Basics$toString(val),
-						unit) : '';
-				});
-			return A2(
-				_elm_lang$core$Basics_ops['++'],
-				_elm_lang$core$Basics$toString(hours + (minutes / 60.0)),
-				' hrs');
-		} else {
-			return A2(
-				_elm_lang$core$Basics_ops['++'],
-				_elm_lang$core$Basics$toString(days),
-				A2(
-					_elm_lang$core$Basics_ops['++'],
-					' ',
-					A2(
-						_elm_lang$core$Basics_ops['++'],
-						pad(hours),
-						A2(
-							_elm_lang$core$Basics_ops['++'],
-							':',
-							A2(
-								_elm_lang$core$Basics_ops['++'],
-								pad(minutes),
-								A2(
-									_elm_lang$core$Basics_ops['++'],
-									':',
-									pad(seconds)))))));
-		}
-	});
-var _user$project$TaskApi$durationFromString = function (s) {
-	var weights3 = _elm_lang$core$Native_List.fromArray(
-		[_elm_lang$core$Time$hour, _elm_lang$core$Time$minute, _elm_lang$core$Time$second]);
-	var weights4 = A2(
-		_elm_lang$core$Basics_ops['++'],
-		_elm_lang$core$Native_List.fromArray(
-			[24 * _elm_lang$core$Time$hour]),
-		weights3);
-	var partsAsStrs = A3(
-		_elm_lang$core$Regex$split,
-		_elm_lang$core$Regex$All,
-		_elm_lang$core$Regex$regex('[: ]'),
-		s);
-	var partsAsResults = A2(_elm_lang$core$List$map, _elm_lang$core$String$toFloat, partsAsStrs);
-	var unResult = function (x) {
-		var _p2 = x;
-		if (_p2.ctor === 'Ok') {
-			return _p2._0;
-		} else {
-			return _elm_lang$core$Native_Utils.crashCase(
-				'TaskApi',
-				{
-					start: {line: 70, column: 22},
-					end: {line: 72, column: 33}
-				},
-				_p2)(_p2._0);
-		}
-	};
-	var partsAsFloats = A2(_elm_lang$core$List$map, unResult, partsAsResults);
-	var weights = _elm_lang$core$Native_Utils.eq(
-		_elm_lang$core$List$length(partsAsFloats),
-		4) ? weights4 : weights3;
-	return A3(
-		_elm_lang$core$List$foldr,
-		F2(
-			function (x, y) {
-				return x + y;
-			}),
-		0,
-		A3(
-			_elm_lang$core$List$map2,
-			F2(
-				function (x, y) {
-					return x * y;
-				}),
-			weights,
-			partsAsFloats));
-};
-var _user$project$TaskApi$clockTimeToStr = function (ct) {
-	var minute = A3(
-		_elm_lang$core$String$padLeft,
-		2,
-		_elm_lang$core$Native_Utils.chr('0'),
-		_elm_lang$core$Basics$toString(ct.minute));
-	var hour = A3(
-		_elm_lang$core$String$padLeft,
-		2,
-		_elm_lang$core$Native_Utils.chr('0'),
-		_elm_lang$core$Basics$toString(ct.hour));
-	return A2(
-		_elm_lang$core$Basics_ops['++'],
-		hour,
-		A2(_elm_lang$core$Basics_ops['++'], ':', minute));
-};
-var _user$project$TaskApi$TimeWindow = F2(
-	function (a, b) {
-		return {begin: a, duration: b};
-	});
-var _user$project$TaskApi$ClockTime = F2(
-	function (a, b) {
-		return {hour: a, minute: b};
-	});
-var _user$project$TaskApi$decodeClockTime = A2(
-	_elm_community$elm_json_extra$Json_Decode_Extra_ops['|:'],
-	A2(
-		_elm_community$elm_json_extra$Json_Decode_Extra_ops['|:'],
-		_elm_lang$core$Json_Decode$succeed(_user$project$TaskApi$ClockTime),
-		A2(_elm_lang$core$Json_Decode_ops[':='], 'hour', _elm_lang$core$Json_Decode$int)),
-	A2(_elm_lang$core$Json_Decode_ops[':='], 'minute', _elm_lang$core$Json_Decode$int));
-var _user$project$TaskApi$decodeTimeWindow = A2(
-	_elm_community$elm_json_extra$Json_Decode_Extra_ops['|:'],
-	A2(
-		_elm_community$elm_json_extra$Json_Decode_Extra_ops['|:'],
-		_elm_lang$core$Json_Decode$succeed(_user$project$TaskApi$TimeWindow),
-		A2(_elm_lang$core$Json_Decode_ops[':='], 'begin', _user$project$TaskApi$decodeClockTime)),
-	A2(_elm_lang$core$Json_Decode_ops[':='], 'duration', _elm_lang$core$Json_Decode$float));
-var _user$project$TaskApi$Claim = F5(
-	function (a, b, c, d, e) {
-		return {taskId: a, claimantId: b, startOfClaim: c, durationOfClaim: d, verifiedOn: e};
-	});
+var _user$project$TaskApi$ForHuman = {ctor: 'ForHuman'};
 var _user$project$TaskApi$Token = function (a) {
 	return {ctor: 'Token', _0: a};
 };
@@ -13922,6 +13918,18 @@ var _user$project$OpsCalendar$provisionalStyle = A2(
 				_user$project$OpsCalendar$taskNameCss
 			])),
 	_user$project$OpsCalendar$rollover);
+var _user$project$OpsCalendar$noStaffStatusStyle = A2(
+	_garetht$elm_dynamic_style$DynamicStyle$hover$,
+	_elm_lang$core$List$concat(
+		_elm_lang$core$Native_List.fromArray(
+			[
+				_elm_lang$core$Native_List.fromArray(
+				[
+					{ctor: '_Tuple2', _0: 'color', _1: '#000000'}
+				]),
+				_user$project$OpsCalendar$taskNameCss
+			])),
+	_user$project$OpsCalendar$rollover);
 var _user$project$OpsCalendar$dayOtherMonthStyle = _elm_lang$html$Html_Attributes$style(
 	_elm_lang$core$Native_List.fromArray(
 		[
@@ -13945,57 +13953,18 @@ var _user$project$OpsCalendar$detailButtonStyle = _elm_lang$html$Html_Attributes
 			A2(_user$project$OpsCalendar_ops['=>'], 'cursor', 'pointer'),
 			A2(_user$project$OpsCalendar_ops['=>'], 'margin-right', '10px')
 		]));
-var _user$project$OpsCalendar$loginView = function (model) {
-	return A2(
-		_elm_lang$html$Html$div,
-		_elm_lang$core$Native_List.fromArray(
-			[]),
-		_elm_lang$core$Native_List.fromArray(
-			[
-				A2(
-				_elm_lang$html$Html$br,
-				_elm_lang$core$Native_List.fromArray(
-					[]),
-				_elm_lang$core$Native_List.fromArray(
-					[])),
-				function () {
-				var _p0 = model.user;
-				if (_p0.ctor === 'Nothing') {
-					var m = _elm_lang$core$Basics$toString(model.month);
-					var y = _elm_lang$core$Basics$toString(model.year);
-					var url = A2(
-						_elm_lang$core$Basics_ops['++'],
-						'/login/?next=/tasks/ops-calendar-spa/',
-						A2(
-							_elm_lang$core$Basics_ops['++'],
-							y,
-							A2(_elm_lang$core$Basics_ops['++'], '-', m)));
-					return A2(
-						_elm_lang$html$Html$a,
-						_elm_lang$core$Native_List.fromArray(
-							[
-								_elm_lang$html$Html_Attributes$href(url)
-							]),
-						_elm_lang$core$Native_List.fromArray(
-							[
-								_elm_lang$html$Html$text('Log In to Edit Schedule')
-							]));
-				} else {
-					return A2(
-						_elm_lang$html$Html$a,
-						_elm_lang$core$Native_List.fromArray(
-							[
-								_elm_lang$html$Html_Attributes$href('/logout/')
-							]),
-						_elm_lang$core$Native_List.fromArray(
-							[
-								_elm_lang$html$Html$text(
-								A2(_elm_lang$core$Basics_ops['++'], 'Log Out ', _p0._0.name))
-							]));
-				}
-			}()
-			]));
+var _user$project$OpsCalendar$assertNever = function (str) {
+	return _elm_lang$core$Native_Utils.crash(
+		'OpsCalendar',
+		{
+			start: {line: 456, column: 3},
+			end: {line: 456, column: 14}
+		})(str);
 };
+var _user$project$OpsCalendar$assertNeverHandler = F2(
+	function (str, _p0) {
+		return _user$project$OpsCalendar$assertNever(str);
+	});
 var _user$project$OpsCalendar$oneByThreeTable = F3(
 	function (left, center, right) {
 		return A2(
@@ -14062,8 +14031,8 @@ var _user$project$OpsCalendar$monthName = function (x) {
 			return _elm_lang$core$Native_Utils.crashCase(
 				'OpsCalendar',
 				{
-					start: {line: 48, column: 3},
-					end: {line: 61, column: 63}
+					start: {line: 429, column: 3},
+					end: {line: 442, column: 63}
 				},
 				_p1)('Provide a value from 0 to 11, inclusive');
 	}
@@ -14082,6 +14051,57 @@ var _user$project$OpsCalendar$px = function (number) {
 		_elm_lang$core$Basics_ops['++'],
 		_elm_lang$core$Basics$toString(number),
 		'px');
+};
+var _user$project$OpsCalendar$loginView = function (model) {
+	return A2(
+		_elm_lang$html$Html$div,
+		_elm_lang$core$Native_List.fromArray(
+			[]),
+		_elm_lang$core$Native_List.fromArray(
+			[
+				A2(
+				_elm_lang$html$Html$br,
+				_elm_lang$core$Native_List.fromArray(
+					[]),
+				_elm_lang$core$Native_List.fromArray(
+					[])),
+				function () {
+				var _p3 = model.user;
+				if (_p3.ctor === 'Nothing') {
+					var m = _elm_lang$core$Basics$toString(model.month);
+					var y = _elm_lang$core$Basics$toString(model.year);
+					var url = A2(
+						_elm_lang$core$Basics_ops['++'],
+						'/login/?next=/tasks/ops-calendar-spa/',
+						A2(
+							_elm_lang$core$Basics_ops['++'],
+							y,
+							A2(_elm_lang$core$Basics_ops['++'], '-', m)));
+					return A2(
+						_elm_lang$html$Html$a,
+						_elm_lang$core$Native_List.fromArray(
+							[
+								_elm_lang$html$Html_Attributes$href(url)
+							]),
+						_elm_lang$core$Native_List.fromArray(
+							[
+								_elm_lang$html$Html$text('Log In to Edit Schedule')
+							]));
+				} else {
+					return A2(
+						_elm_lang$html$Html$a,
+						_elm_lang$core$Native_List.fromArray(
+							[
+								_elm_lang$html$Html_Attributes$href('/logout/')
+							]),
+						_elm_lang$core$Native_List.fromArray(
+							[
+								_elm_lang$html$Html$text(
+								A2(_elm_lang$core$Basics_ops['++'], 'Log Out ', _p3._0.name))
+							]));
+				}
+			}()
+			]));
 };
 var _user$project$OpsCalendar$User = F2(
 	function (a, b) {
@@ -14181,16 +14201,34 @@ var _user$project$OpsCalendar$Model = function (a) {
 		};
 	};
 };
-var _user$project$OpsCalendar$init = function (_p3) {
-	var _p4 = _p3;
+var _user$project$OpsCalendar$init = function (_p4) {
+	var _p5 = _p4;
 	return {
 		ctor: '_Tuple2',
-		_0: _user$project$OpsCalendar$Model(_debois$elm_mdl$Material$model)(_p4.user)(_p4.tasks)(_p4.year)(_p4.month)(_elm_lang$core$Maybe$Nothing)(false)(
+		_0: _user$project$OpsCalendar$Model(_debois$elm_mdl$Material$model)(_p5.user)(_p5.tasks)(_p5.year)(_p5.month)(_elm_lang$core$Maybe$Nothing)(false)(
 			A2(_elm_lang$mouse$Mouse$Position, 0, 0))(
 			A2(_elm_lang$mouse$Mouse$Position, 0, 0))(_elm_lang$core$Maybe$Nothing),
 		_1: _elm_lang$core$Platform_Cmd$none
 	};
 };
+var _user$project$OpsCalendar$GetTimeAndThen = function (a) {
+	return {ctor: 'GetTimeAndThen', _0: a};
+};
+var _user$project$OpsCalendar$Mdl = function (a) {
+	return {ctor: 'Mdl', _0: a};
+};
+var _user$project$OpsCalendar$UnstaffTask = F3(
+	function (a, b, c) {
+		return {ctor: 'UnstaffTask', _0: a, _1: b, _2: c};
+	});
+var _user$project$OpsCalendar$VerifyTask = F3(
+	function (a, b, c) {
+		return {ctor: 'VerifyTask', _0: a, _1: b, _2: c};
+	});
+var _user$project$OpsCalendar$ClaimTask = F3(
+	function (a, b, c) {
+		return {ctor: 'ClaimTask', _0: a, _1: b, _2: c};
+	});
 var _user$project$OpsCalendar$DragFinish = function (a) {
 	return {ctor: 'DragFinish', _0: a};
 };
@@ -14208,9 +14246,6 @@ var _user$project$OpsCalendar$subscriptions = function (model) {
 				_elm_lang$mouse$Mouse$ups(_user$project$OpsCalendar$DragFinish)
 			]));
 };
-var _user$project$OpsCalendar$Mdl = function (a) {
-	return {ctor: 'Mdl', _0: a};
-};
 var _user$project$OpsCalendar$NewMonthFailure = function (a) {
 	return {ctor: 'NewMonthFailure', _0: a};
 };
@@ -14221,8 +14256,8 @@ var _user$project$OpsCalendar$getNewMonth = F2(
 	function (model, op) {
 		var opMonth = A2(op, model.month, 1);
 		var year = function () {
-			var _p5 = opMonth;
-			switch (_p5) {
+			var _p6 = opMonth;
+			switch (_p6) {
 				case 13:
 					return model.year + 1;
 				case 0:
@@ -14232,8 +14267,8 @@ var _user$project$OpsCalendar$getNewMonth = F2(
 			}
 		}();
 		var month = function () {
-			var _p6 = opMonth;
-			switch (_p6) {
+			var _p7 = opMonth;
+			switch (_p7) {
 				case 13:
 					return 1;
 				case 0:
@@ -14263,21 +14298,21 @@ var _user$project$OpsCalendar$getNewMonth = F2(
 	});
 var _user$project$OpsCalendar$update = F2(
 	function (action, model) {
-		var _p7 = action;
-		switch (_p7.ctor) {
+		var _p8 = action;
+		switch (_p8.ctor) {
 			case 'ToggleTaskDetail':
-				var _p9 = _p7._0;
+				var _p10 = _p8._0;
 				var detailModel = _elm_lang$core$Native_Utils.update(
 					model,
 					{
-						selectedTaskId: _elm_lang$core$Maybe$Just(_p9),
+						selectedTaskId: _elm_lang$core$Maybe$Just(_p10),
 						detailPt: A2(_elm_lang$mouse$Mouse$Position, model.mousePt.x - 200, model.mousePt.y + 12)
 					});
-				var _p8 = model.selectedTaskId;
-				if (_p8.ctor === 'Nothing') {
+				var _p9 = model.selectedTaskId;
+				if (_p9.ctor === 'Nothing') {
 					return {ctor: '_Tuple2', _0: detailModel, _1: _elm_lang$core$Platform_Cmd$none};
 				} else {
-					return _elm_lang$core$Native_Utils.eq(_p8._0, _p9) ? {
+					return _elm_lang$core$Native_Utils.eq(_p9._0, _p10) ? {
 						ctor: '_Tuple2',
 						_0: _elm_lang$core$Native_Utils.update(
 							model,
@@ -14328,10 +14363,10 @@ var _user$project$OpsCalendar$update = F2(
 							}))
 				};
 			case 'NewMonthSuccess':
-				return _user$project$OpsCalendar$init(_p7._0);
+				return _user$project$OpsCalendar$init(_p8._0);
 			case 'NewMonthFailure':
-				var _p10 = _p7._0;
-				switch (_p10.ctor) {
+				var _p11 = _p8._0;
+				switch (_p11.ctor) {
 					case 'Timeout':
 						return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
 					case 'NetworkError':
@@ -14346,7 +14381,7 @@ var _user$project$OpsCalendar$update = F2(
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
 						model,
-						{mousePt: _p7._0}),
+						{mousePt: _p8._0}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 			case 'DragStart':
@@ -14355,17 +14390,17 @@ var _user$project$OpsCalendar$update = F2(
 					_0: _elm_lang$core$Native_Utils.update(
 						model,
 						{
-							dragStartPt: _elm_lang$core$Maybe$Just(_p7._0)
+							dragStartPt: _elm_lang$core$Maybe$Just(_p8._0)
 						}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 			case 'DragFinish':
-				var _p12 = _p7._0;
-				var _p11 = model.dragStartPt;
-				if (_p11.ctor === 'Nothing') {
+				var _p13 = _p8._0;
+				var _p12 = model.dragStartPt;
+				if (_p12.ctor === 'Nothing') {
 					return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
 				} else {
-					var newDetailPt = A2(_elm_lang$mouse$Mouse$Position, model.detailPt.x + (_p12.x - _p11._0.x), model.detailPt.y + (_p12.y - _p11._0.y));
+					var newDetailPt = A2(_elm_lang$mouse$Mouse$Position, model.detailPt.x + (_p13.x - _p12._0.x), model.detailPt.y + (_p13.y - _p12._0.y));
 					return {
 						ctor: '_Tuple2',
 						_0: _elm_lang$core$Native_Utils.update(
@@ -14374,8 +14409,15 @@ var _user$project$OpsCalendar$update = F2(
 						_1: _elm_lang$core$Platform_Cmd$none
 					};
 				}
+			case 'Mdl':
+				return A3(_debois$elm_mdl$Material$update, _user$project$OpsCalendar$Mdl, _p8._0, model);
 			default:
-				return A3(_debois$elm_mdl$Material$update, _user$project$OpsCalendar$Mdl, _p7._0, model);
+				var failHandler = _user$project$OpsCalendar$assertNeverHandler('Couldn\'t get current time.');
+				return {
+					ctor: '_Tuple2',
+					_0: model,
+					_1: A3(_elm_lang$core$Task$perform, failHandler, _p8._0, _elm_lang$core$Time$now)
+				};
 		}
 	});
 var _user$project$OpsCalendar$NextMonth = {ctor: 'NextMonth'};
@@ -14432,30 +14474,21 @@ var _user$project$OpsCalendar$headerView = function (model) {
 					_debois$elm_mdl$Material_Icon$i('navigate_next')
 				])));
 };
-var _user$project$OpsCalendar$UnstaffTask = function (a) {
-	return {ctor: 'UnstaffTask', _0: a};
-};
-var _user$project$OpsCalendar$VerifyTask = function (a) {
-	return {ctor: 'VerifyTask', _0: a};
-};
-var _user$project$OpsCalendar$ClaimTask = function (a) {
-	return {ctor: 'ClaimTask', _0: a};
-};
 var _user$project$OpsCalendar$HideTaskDetail = {ctor: 'HideTaskDetail'};
 var _user$project$OpsCalendar$detailView = F2(
 	function (model, ot) {
 		var window = function () {
-			var _p13 = ot.timeWindow;
-			if (_p13.ctor === 'Nothing') {
+			var _p14 = ot.timeWindow;
+			if (_p14.ctor === 'Nothing') {
 				return _elm_lang$core$Native_Utils.crashCase(
 					'OpsCalendar',
 					{
-						start: {line: 304, column: 14},
-						end: {line: 306, column: 18}
+						start: {line: 243, column: 14},
+						end: {line: 245, column: 18}
 					},
-					_p13)('Must not be \'Nothing\' at this point');
+					_p14)('Must not be \'Nothing\' at this point');
 			} else {
-				return _p13._0;
+				return _p14._0;
 			}
 		}();
 		var onMouseDown = A2(
@@ -14496,7 +14529,7 @@ var _user$project$OpsCalendar$detailView = F2(
 							_elm_lang$html$Html$text(
 							A2(
 								_elm_lang$core$Basics_ops['++'],
-								A2(_user$project$TaskApi$durationToString, true, window.duration),
+								A2(_user$project$TaskApi$durationToString, _user$project$TaskApi$ForHuman, window.duration),
 								A2(
 									_elm_lang$core$Basics_ops['++'],
 									' @ ',
@@ -14520,7 +14553,44 @@ var _user$project$OpsCalendar$detailView = F2(
 					_elm_lang$core$Native_List.fromArray(
 						[
 							_elm_lang$html$Html$text('Close')
-						]))
+						])),
+					function () {
+					var _p16 = model.user;
+					if (_p16.ctor === 'Nothing') {
+						return _elm_lang$html$Html$text('');
+					} else {
+						var _p17 = function () {
+							var _p18 = ot.staffingStatus;
+							switch (_p18) {
+								case 'S':
+									return {ctor: '_Tuple2', _0: _user$project$OpsCalendar$UnstaffTask, _1: 'Unstaff'};
+								case 'U':
+									return {ctor: '_Tuple2', _0: _user$project$OpsCalendar$ClaimTask, _1: 'Claim'};
+								case 'P':
+									return {ctor: '_Tuple2', _0: _user$project$OpsCalendar$VerifyTask, _1: 'Verify'};
+								default:
+									return _user$project$OpsCalendar$assertNever('Staffing status can only be S, U, or P');
+							}
+						}();
+						var msg = _p17._0;
+						var buttonText = _p17._1;
+						var clickMsg = _user$project$OpsCalendar$GetTimeAndThen(
+							function (time) {
+								return A3(msg, time, _p16._0.id, ot.taskId);
+							});
+						return A2(
+							_elm_lang$html$Html$button,
+							_elm_lang$core$Native_List.fromArray(
+								[
+									_user$project$OpsCalendar$detailButtonStyle,
+									_elm_lang$html$Html_Events$onClick(clickMsg)
+								]),
+							_elm_lang$core$Native_List.fromArray(
+								[
+									_elm_lang$html$Html$text(buttonText)
+								]));
+					}
+				}()
 				]));
 	});
 var _user$project$OpsCalendar$ToggleTaskDetail = function (a) {
@@ -14529,8 +14599,8 @@ var _user$project$OpsCalendar$ToggleTaskDetail = function (a) {
 var _user$project$OpsCalendar$taskView = F2(
 	function (model, ot) {
 		var theStyle = function () {
-			var _p15 = ot.staffingStatus;
-			switch (_p15) {
+			var _p19 = ot.staffingStatus;
+			switch (_p19) {
 				case 'S':
 					return _user$project$OpsCalendar$staffedStyle;
 				case 'U':
@@ -14538,17 +14608,11 @@ var _user$project$OpsCalendar$taskView = F2(
 				case 'P':
 					return _user$project$OpsCalendar$provisionalStyle;
 				default:
-					return _elm_lang$core$Native_Utils.crashCase(
-						'OpsCalendar',
-						{
-							start: {line: 326, column: 16},
-							end: {line: 330, column: 57}
-						},
-						_p15)('Only S, U, and P are allowed.');
+					return _user$project$OpsCalendar$noStaffStatusStyle;
 			}
 		}();
-		var _p17 = ot.timeWindow;
-		if (_p17.ctor === 'Nothing') {
+		var _p20 = ot.timeWindow;
+		if (_p20.ctor === 'Nothing') {
 			return _elm_lang$html$Html$text('');
 		} else {
 			return A2(
@@ -14582,16 +14646,16 @@ var _user$project$OpsCalendar$taskView = F2(
 var _user$project$OpsCalendar$dayView = F2(
 	function (model, dayOfTasks) {
 		var monthStyle = function () {
-			var _p18 = dayOfTasks.isInTargetMonth;
-			if (_p18 === false) {
+			var _p21 = dayOfTasks.isInTargetMonth;
+			if (_p21 === false) {
 				return _user$project$OpsCalendar$dayOtherMonthStyle;
 			} else {
 				return _user$project$OpsCalendar$dayTargetMonthStyle;
 			}
 		}();
 		var colorStyle = function () {
-			var _p19 = dayOfTasks.isToday;
-			if (_p19 === false) {
+			var _p22 = dayOfTasks.isToday;
+			if (_p22 === false) {
 				return monthStyle;
 			} else {
 				return _user$project$OpsCalendar$dayTodayStyle;
@@ -14675,7 +14739,8 @@ var _user$project$OpsCalendar$view = function (model) {
 		_elm_lang$core$Native_List.fromArray(
 			[
 				_user$project$OpsCalendar$headerView(model),
-				_user$project$OpsCalendar$monthView(model)
+				_user$project$OpsCalendar$monthView(model),
+				_user$project$OpsCalendar$loginView(model)
 			]));
 };
 var _user$project$OpsCalendar$main = {

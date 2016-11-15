@@ -1,5 +1,6 @@
 module TaskApi exposing
-  ( Claim, createClaim
+  ( Target(ForHuman, ForRest)
+  , Claim, createClaim
   , Credentials
   , ClockTime, decodeClockTime, clockTimeToStr
   , Duration, durationFromString, durationToString
@@ -19,6 +20,8 @@ import Regex exposing (Regex, regex, split)
 import List
 import Http
 import String
+
+type Target = ForHuman | ForRest
 
 -----------------------------------------------------------------------------
 -- TIME WINDOW
@@ -81,8 +84,8 @@ durationFromString s =
 
 -- Python form for API (friendly = False): "[<days> ]<hours>:<minutes>:<seconds>"
 -- User-friendly form (friendly = True): "3.5 hrs"
-durationToString: Bool -> Duration -> String
-durationToString friendly dhms =
+durationToString: Target -> Duration -> String
+durationToString target dhms =
   let
     day = 24.0 * hour
     days = dhms / day |> floor |> toFloat
@@ -93,14 +96,11 @@ durationToString friendly dhms =
     seconds = ms - (minutes * minute)
     pad = toString >> (String.padLeft 2 '0')
   in
-    if friendly
-      then
-        let
-          unitize = \val unit -> if val > 0 then ((toString val)++unit) else ""
-        in
-          -- TODO: This is only good for tasks that are less than a day long, which suffices for now.
-          toString (hours + minutes/60.0) ++ " hrs"
-      else
+    case target of
+      ForHuman ->
+        -- TODO: This is only good for tasks that are less than a day long, which suffices for now.
+        toString (hours + minutes/60.0) ++ " hrs"
+      ForRest ->
         (toString days) ++ " " ++ (pad hours) ++ ":" ++ (pad minutes) ++ ":" ++ (pad seconds)
 
 
@@ -131,7 +131,7 @@ createClaim credentials claim failure success =
     claimantIdStr = toString claim.claimantId
     taskIdStr = toString claim.taskId
     startOfClaimStr = (toString claim.startOfClaim.hour) ++ ":" ++ (toString claim.startOfClaim.minute) ++ ":00"
-    durationOfClaimStr = ""
+    durationOfClaimStr = durationToString ForRest claim.durationOfClaim
     verifiedOnStr = ""
 
     newClaimBody =
