@@ -49,6 +49,7 @@ main =
 -- MODEL
 -----------------------------------------------------------------------------
 
+-- REVIEW: Should "User" be "Member" instead? Or should it have userId, memberId, workerId?
 type alias User =
   { id: Int
   , name: String
@@ -61,6 +62,7 @@ type alias OpsTask =
   , timeWindow: Maybe TimeWindow
   , instructions: String
   , staffingStatus: String
+  --, staffedBy: List String -- Friendly names
   }
 
 type alias DayOfTasks =
@@ -260,7 +262,6 @@ detailView model ot =
               "U" -> (ClaimTask, "Claim")
               "P" -> (VerifyTask, "Verify")
               _   -> assertNever "Staffing status can only be S, U, or P"
-
             in
               let clickMsg = GetTimeAndThen (\time -> (msg time id ot.taskId))
               in button [detailButtonStyle, onClick clickMsg] [text buttonText]
@@ -354,7 +355,7 @@ view model =
   div [containerStyle, unselectable]
     [ headerView model
     , monthView model
-    , loginView model
+    --, loginView model
     ]
 
 

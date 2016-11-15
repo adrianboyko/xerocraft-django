@@ -13957,8 +13957,8 @@ var _user$project$OpsCalendar$assertNever = function (str) {
 	return _elm_lang$core$Native_Utils.crash(
 		'OpsCalendar',
 		{
-			start: {line: 456, column: 3},
-			end: {line: 456, column: 14}
+			start: {line: 457, column: 3},
+			end: {line: 457, column: 14}
 		})(str);
 };
 var _user$project$OpsCalendar$assertNeverHandler = F2(
@@ -14031,8 +14031,8 @@ var _user$project$OpsCalendar$monthName = function (x) {
 			return _elm_lang$core$Native_Utils.crashCase(
 				'OpsCalendar',
 				{
-					start: {line: 429, column: 3},
-					end: {line: 442, column: 63}
+					start: {line: 430, column: 3},
+					end: {line: 443, column: 63}
 				},
 				_p1)('Provide a value from 0 to 11, inclusive');
 	}
@@ -14483,8 +14483,8 @@ var _user$project$OpsCalendar$detailView = F2(
 				return _elm_lang$core$Native_Utils.crashCase(
 					'OpsCalendar',
 					{
-						start: {line: 243, column: 14},
-						end: {line: 245, column: 18}
+						start: {line: 245, column: 14},
+						end: {line: 247, column: 18}
 					},
 					_p14)('Must not be \'Nothing\' at this point');
 			} else {
@@ -14739,8 +14739,7 @@ var _user$project$OpsCalendar$view = function (model) {
 		_elm_lang$core$Native_List.fromArray(
 			[
 				_user$project$OpsCalendar$headerView(model),
-				_user$project$OpsCalendar$monthView(model),
-				_user$project$OpsCalendar$loginView(model)
+				_user$project$OpsCalendar$monthView(model)
 			]));
 };
 var _user$project$OpsCalendar$main = {
