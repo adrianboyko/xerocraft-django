@@ -1,0 +1,14 @@
+<html>
+<body style='font-family:Arial'>
+    <p>Help!</p>
+    <p>
+        The following <b>high priority</b> task{{tasks|pluralize}} {{tasks|pluralize:"is,are"}}
+        scheduled for <b>today</b> but {{tasks|pluralize:"is,are"}} not yet staffed:
+    </p>
+    <ul>{% for task in tasks %}
+        <li>{{task.short_desc}} @ {{task.work_start_time|time:"H:i A"}}</li>{% endfor %}
+    </ul>
+    <p>This is bad! If you can help, please "respond to all" and let us know via email.</p>
+    <p>Thanks in advance,<br/>Volunteer Coordinator</p>
+</body>
+</html>

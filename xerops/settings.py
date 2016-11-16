@@ -356,7 +356,8 @@ XEROPS_CONFIG = {
     'EMAIL_ARCHIVE': "Xerocraft Internal Systems <xis@xerocraft.org>",
     'EMAIL_XEROPS': "Xerocraft Internal Systems <xis@xerocraft.org>",
     'EMAIL_TREASURER': "Xerocraft Treasurer <treasurer@xerocraft.org>",
-    'EMAIL_VOLUNTEER': "Volunteer Coordinator <volunteer@xerocraft.org>"
+    'EMAIL_VOLUNTEER': "Volunteer Coordinator <volunteer@xerocraft.org>",
+    'EMAIL_STAFF_LIST': "Staff List <xerocraft-staff@xerocraft.org>",
 }
 
 XEROPS_MEMBERS_CONFIG = {

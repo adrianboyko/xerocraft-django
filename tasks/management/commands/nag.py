@@ -7,6 +7,7 @@ from django.core.management.base import BaseCommand
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import get_template
 from django.db.models import F
+from django.conf import settings
 
 # Local
 from tasks.models import Task, Claim, Nag, Worker
@@ -14,6 +15,10 @@ from members.models import Member
 
 __author__ = 'adrian'
 
+EMAIL_XEROPS = settings.XEROPS_CONFIG['EMAIL_XEROPS']
+EMAIL_VOLUNTEER = settings.XEROPS_CONFIG['EMAIL_VOLUNTEER']
+EMAIL_ARCHIVE = settings.XEROPS_CONFIG['EMAIL_ARCHIVE']
+EMAIL_STAFF_LIST = settings.XEROPS_CONFIG['EMAIL_STAFF_LIST']
 
 ONEDAY = datetime.timedelta(days=1)
 TWODAYS = ONEDAY + ONEDAY
@@ -22,9 +27,6 @@ FOURDAYS = THREEDAYS + ONEDAY
 ONEWEEK = datetime.timedelta(weeks=1)
 TWOWEEKS = ONEWEEK + ONEWEEK
 
-VC_EMAIL = "Volunteer Coordinator <volunteer@xerocraft.org>"
-XIS_EMAIL = "Xerocraft Internal Systems <xis@xerocraft.org>"
-
 
 class Command(BaseCommand):
 
@@ -32,6 +34,28 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument('--host', default="https://xerocraft-django.herokuapp.com")
+
+    @staticmethod
+    def send_staffing_emergency_message(tasks, HOST):
+
+        text_content_template = get_template('tasks/email-staffing-emergency.txt')
+        html_content_template = get_template('tasks/email-staffing-emergency.html')
+
+        d = {
+            'tasks': tasks,
+            'host': HOST,
+            'vc': EMAIL_VOLUNTEER,
+        }
+
+        subject = 'Staffing Emergency! ' + datetime.date.today().strftime('%a %b %d')
+        from_email = EMAIL_VOLUNTEER
+        bcc_email = EMAIL_ARCHIVE
+        to = EMAIL_VOLUNTEER  # Testing by sending to Volunteer. Will ultimately send to EMAIL_STAFF_LIST.
+        text_content = text_content_template.render(d)
+        html_content = html_content_template.render(d)
+        msg = EmailMultiAlternatives(subject, text_content, from_email, [to], [bcc_email])
+        msg.attach_alternative(html_content, "text/html")
+        msg.send()
 
     @staticmethod
     def nag_for_workers(HOST):
@@ -49,6 +73,7 @@ class Command(BaseCommand):
 
         # Cycle through future days' NAGGING tasks to see which need workers and who should be nagged.
         nag_lists = {}
+        emergency_tasks = []
         for task in Task.objects.filter(scheduled_date__gte=today, scheduled_date__lt=today+THREEDAYS, should_nag=True):
 
             # No need to nag if task is fully claimed or not workable.
@@ -61,7 +86,9 @@ class Command(BaseCommand):
             potentials -= ppl_excluded
 
             panic_situation = task.scheduled_date == today and task.priority == Task.PRIO_HIGH
-            if not panic_situation:
+            if panic_situation:
+                emergency_tasks.append(task)
+            else:
                 # Don't bother heavily scheduled people if it's not time to panic
                 potentials -= ppl_heavily_scheduled
 
@@ -70,7 +97,11 @@ class Command(BaseCommand):
                     nag_lists[member] = []
                 nag_lists[member] += [task]
 
-        # Send email messages:
+        # Send staffing emergency message to staff list:
+        if len(emergency_tasks) > 0:
+            Command.send_staffing_emergency_message(emergency_tasks, HOST)
+
+        # Send email nag messages to potential workers:
         text_content_template = get_template('tasks/email_nag_template.txt')
         html_content_template = get_template('tasks/email_nag_template.html')
         for member, tasks in nag_lists.items():
@@ -89,8 +120,8 @@ class Command(BaseCommand):
                 'host': HOST,
             }
             subject = 'Call for Volunteers, ' + datetime.date.today().strftime('%a %b %d')
-            from_email = VC_EMAIL
-            bcc_email = XIS_EMAIL
+            from_email = EMAIL_VOLUNTEER
+            bcc_email = EMAIL_ARCHIVE
             to = member.email
             text_content = text_content_template.render(d)
             html_content = html_content_template.render(d)
@@ -159,8 +190,8 @@ class Command(BaseCommand):
 
             # Send email messages:
             subject = 'Please verify your availability for this {}'.format(dow)
-            from_email = VC_EMAIL
-            bcc_email = XIS_EMAIL
+            from_email = EMAIL_VOLUNTEER
+            bcc_email = EMAIL_ARCHIVE
             to = claim.claiming_member.email
             text_content = text_content_template.render(d)
             html_content = html_content_template.render(d)

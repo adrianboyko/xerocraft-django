@@ -1,0 +1,10 @@
+Help!
+
+The following HIGH PRIORITY task{{tasks|pluralize}} {{tasks|pluralize:"is,are"}} scheduled for TODAY but {{tasks|pluralize:"is,are"}} not yet staffed:
+
+{% for task in tasks %}    {{task.short_desc}} @ {{task.work_start_time|time:"H:i A"}}
+{% endfor %}
+This is bad! If you can help, please "respond to all" and let us know via email.
+
+Thanks in advance,
+Volunteer Coordinator
