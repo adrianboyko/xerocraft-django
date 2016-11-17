@@ -83,6 +83,11 @@ class Member(models.Model):
     auth_user = models.OneToOneField('auth.User', null=False, unique=True, related_name="member",
         help_text="This must point to the corresponding auth.User object.")
 
+    nag_re_membership = models.BooleanField(default=False,
+        help_text="If true, person will be nudged (via email) to renew membership.")
+        # It's difficult to automate the logic given complications at our organization.
+        # REVIEW: Make the default configurable so orgs with more stringent operations can make it True.
+
     # Saving as MD5 provides some protection against read-only attacks.
     membership_card_md5 = models.CharField(max_length=MEMB_CARD_STR_LEN, null=True, blank=True,
         help_text="MD5 of the random urlsafe base64 string on the membership card.")

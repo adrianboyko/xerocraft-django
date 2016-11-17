@@ -66,6 +66,10 @@ class Command(BaseCommand):
                 logger.info("Bad visit by %s but they haven't provided an email address.", member.username)
                 continue
 
+            if not member.nag_re_membership:
+                logger.info("Bad visit by %s but they're not configured to nag re membership.", member.username)
+                continue
+
             # Send email messages:
             text_content_template = get_template('members/email-unpaid-visit.txt')
             html_content_template = get_template('members/email-unpaid-visit.html')
@@ -74,12 +78,13 @@ class Command(BaseCommand):
                 'friendly_name': member.friendly_name,
                 'paid_membership': pm,
                 'bad_visit': visit,
+                'is_keyholder': member.is_tagged_with("Keyholder"),
             }
 
             subject = 'Please Renew your Xerocraft Membership'
             from_email = EMAIL_TREASURER
             bcc_email = EMAIL_ARCHIVE
-            to = EMAIL_ARCHIVE  # TODO: Switch this to the actual visitor's email when ready for production.
+            to = member.email
             text_content = text_content_template.render(d)
             html_content = html_content_template.render(d)
             msg = EmailMultiAlternatives(subject, text_content, from_email, [to], [bcc_email])

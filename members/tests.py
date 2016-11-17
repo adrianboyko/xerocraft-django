@@ -15,7 +15,7 @@ from freezegun import freeze_time
 import members.notifications as notifications
 
 # Local
-from members.models import Tag, Tagging, VisitEvent, Membership, Pushover, MembershipGiftCard
+from members.models import Member, Tag, Tagging, VisitEvent, Membership, Pushover, MembershipGiftCard
 from members.views import _calculate_accrued_membership_revenue
 from members.notifications import pushover_available
 from members.management.commands.membershipnudge import Command as MembershipNudgeCmd
@@ -36,7 +36,10 @@ class TestMemberNag(TestCase):
                 password="fake1",
                 email="fake@example.com",
             )
-            self.memb = u.member
+            self.memb = u.member  # type: Member
+            self.memb.nag_re_membership = True
+            self.memb.clean()
+            self.memb.save()
 
             visit = VisitEvent.objects.create(
                 who=self.memb,
