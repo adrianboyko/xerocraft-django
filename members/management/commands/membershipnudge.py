@@ -106,43 +106,67 @@ class Command(BaseCommand):
 
     def collect_bad_visitors(self):
 
+        # NOTE: Don't want "members" to depend on "tasks".
+        # This attempts to dynamically load "tasks".
+        # Later code will analyze task data IFF it loaded.
+        try:
+            tasks = __import__("tasks", fromlist=[''])
+            Work = tasks.models.Work
+        except ImportError:
+            # The website doesn't have "tasks" installed.
+            Work = None
+
         bad_visitors = {}
 
         yesterdays_visits = VisitEvent.objects.filter(when__range=[self.yesterday, self.today])
         for visit in yesterdays_visits:
+            pms = None
+            work_count = None
 
-            # Ignore the visit if it was during open hacks because all open hack visits are OK.
-            if self.during_open_hack(visit): continue
-
-            # Ignore visits by directors (who have decided they don't need to pay)
-            if visit.who.is_tagged_with("Director"):
+            if self.during_open_hack(visit):
+                # Ignore the visit if it was during open hacks because all open hack visits are OK.
                 continue
 
-            # Get most recent membership for visitor.
-            try:
-                pm = Membership.objects.filter(member=visit.who).latest('start_date')
-            except Membership.DoesNotExist:
+            if visit.who.is_tagged_with("Director"):
+                # Ignore visits by directors (who have decided they don't need to pay).
+                continue
+
+            pms = Membership.objects.filter(member=visit.who).all()
+            if len(pms) == 0:
                 # Don't nag people that have NEVER paid because either:
                 #  1) It's too soon to bother the member.
                 #  2) The member is hopeless and will never pay.
                 continue
+            else:
+                covered = False
+                for pm in pms:
+                    if pm.start_date <= visit.when.date() <= (pm.end_date + self.leeway):
+                        # Don't nag because the latest paid membership covers the visit.
+                        # Note that there's some leeway in this to allow time for payments to be processed.
+                        covered = True
+                        break
+                    if pm.start_date > visit.when.date():
+                        # Don't nag because there is a future paid membership.
+                        covered = True
+                        break
+                if covered:
+                    continue
 
-            if pm.start_date > self.yesterday.date():
-                # Don't nag because there is a future paid membership.
-                continue
-            elif pm.start_date <= self.yesterday.date() <= pm.end_date:
-                # Don't nag because the latest paid membership covers the visit.
-                continue
-            elif self.yesterday.date() <= pm.end_date + self.leeway:
-                # Don't nag yet because we're giving the member some leeway to renew.
-                continue
-            elif pm.when_nudged == self.today.date():
+            if Work is not None:
+                work_count = Work.objects.filter(
+                    claim__claiming_member=visit.who, work_date=visit.when.date()
+                ).count()
+                if work_count > 0:
+                    # Don't nag somebody who did volunteer work the day they visited.
+                    continue
+
+            if pm.when_nudged == self.today.date():
                 # Don't nag somebody more than once per day.
                 continue
-            else:
-                # Make a note to nag this visitor
-                if visit.who not in bad_visitors:
-                    bad_visitors[visit.who] = (pm, visit)
+
+            # Make a note to nag this visitor
+            if visit.who not in bad_visitors:
+                bad_visitors[visit.who] = (pm, visit)
 
         return bad_visitors
 
