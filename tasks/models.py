@@ -531,6 +531,9 @@ class Work(models.Model):
         if work.work_duration > claim.claimed_duration:
             raise ValidationError(_("Can't report more work than was claimed."))
 
+    def __str__(self):
+        return "{} worked {} on {}".format(self.claim.claiming_member.username, self.work_duration, self.work_date)
+
     class Meta:
         verbose_name_plural = "Work"
 
