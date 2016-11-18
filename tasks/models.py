@@ -676,6 +676,10 @@ class Task(make_TaskMixin("Tasks"), TimeWindowedObject):
     def create_default_claim(self):
         '''Create a claim assuming that other task info has already been initialized.'''
 
+        # Short out if template doesn't specify a default claimant
+        if self.recurring_task_template.default_claimant is None:
+            return
+
         # Short out if default claimant already has a claim.
         def_claimant_claims = self.claim_set.filter(
             claiming_member=self.recurring_task_template.default_claimant,
