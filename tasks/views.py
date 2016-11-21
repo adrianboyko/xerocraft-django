@@ -270,7 +270,7 @@ def verify_claim(request, task_pk, claim_pk, will_do, auth_token):
 
     elif will_do == "N":  # The default claimant says they can't do the work, this time.
         claim.date_verified = date.today()
-        claim.status = Claim.STAT_UNINTERESTED
+        claim.status = Claim.STAT_ABANDONED
         claim.save()
 
     else:

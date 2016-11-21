@@ -81,8 +81,10 @@ class Command(BaseCommand):
                 continue
 
             potentials = task.all_eligible_claimants()
-            potentials -= task.current_claimants()
-            potentials -= task.uninterested_claimants()
+            potentials -= task.claimant_set(Claim.STAT_CURRENT)
+            potentials -= task.claimant_set(Claim.STAT_UNINTERESTED)
+            # potentials -= task.claimant_set(Claim.STAT_EXPIRED) Their claim expired but they're still a possibility.
+            potentials -= task.claimant_set(Claim.STAT_ABANDONED)
             potentials -= ppl_excluded
 
             panic_situation = task.scheduled_date == today and task.priority == Task.PRIO_HIGH
@@ -146,9 +148,10 @@ class Command(BaseCommand):
                 # It looks like person who set up the task forgot to make default claimant an eligible claimant.
                 # So let's add the default claimant to the list of eligible claimants.
                 claim.claimed_task.eligible_claimants.add(claim.claiming_member)
-            # Change the default claimant's claim to (presumably) UNINTERESTED
+            # Change the default claimant's claim to EXPIRED
             # because we now want to nag to ALL eligible claimants.
-            claim.status = Claim.STAT_UNINTERESTED
+            # Note that "verified date" is not set for status EXPIRED.
+            claim.status = Claim.STAT_EXPIRED
             claim.save()
 
     @staticmethod

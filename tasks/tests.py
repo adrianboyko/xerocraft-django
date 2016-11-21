@@ -153,26 +153,26 @@ class Test_VerifyClaim_Scenario2(Test_VerifyClaim_Base):
     def do_day_minus2(self):
         claims = self.task.claim_set.all()
         self.assertEqual(len(claims), 1)
-        self.assertEqual(claims[0].status, Claim.STAT_UNINTERESTED)
-        self.assertEqual(len(mail.outbox), 4)
+        self.assertEqual(claims[0].status, Claim.STAT_EXPIRED)
+        self.assertEqual(len(mail.outbox), 5)
 
     def do_day_minus1(self):
         claims = self.task.claim_set.all()
         self.assertEqual(len(claims), 1)
-        self.assertEqual(claims[0].status, Claim.STAT_UNINTERESTED)
-        self.assertEqual(len(mail.outbox), 6)
+        self.assertEqual(claims[0].status, Claim.STAT_EXPIRED)
+        self.assertEqual(len(mail.outbox), 8)
 
     def do_day_0(self):
         claims = self.task.claim_set.all()
         self.assertEqual(len(claims), 1)
-        self.assertEqual(claims[0].status, Claim.STAT_UNINTERESTED)
-        self.assertEqual(len(mail.outbox), 8)
+        self.assertEqual(claims[0].status, Claim.STAT_EXPIRED)
+        self.assertEqual(len(mail.outbox), 11)
 
     def do_day_plus1(self):
         claims = self.task.claim_set.all()
         self.assertEqual(len(claims), 1)
-        self.assertEqual(claims[0].status, Claim.STAT_UNINTERESTED)
-        self.assertEqual(len(mail.outbox), 8)
+        self.assertEqual(claims[0].status, Claim.STAT_EXPIRED)
+        self.assertEqual(len(mail.outbox), 11)
 
 
 class Test_VerifyClaim_Scenario3(Test_VerifyClaim_Base):
@@ -181,7 +181,7 @@ class Test_VerifyClaim_Scenario3(Test_VerifyClaim_Base):
     In this scenario:
         * The default assignee responds negatively on D-4
         * A backup picks up the task on D-2
-        * The original default assignee decides to nonsensically respond affirmatively on D-1
+        * The original default assignee decides to respond affirmatively on D-1, but it's too late.
     """
 
     def do_day_minus4(self):
@@ -203,8 +203,8 @@ class Test_VerifyClaim_Scenario3(Test_VerifyClaim_Base):
 
         # So, there is now exactly one claim and it's status is UNINTERESTED
         self.assertEqual(len(self.task.claim_set.all()), 1)
-        self.assertEqual(len(self.task.claim_set.filter(status=Claim.STAT_UNINTERESTED)), 1)
-        claim = Claim.objects.filter(status=Claim.STAT_UNINTERESTED).all()[0]  # type: Claim
+        self.assertEqual(len(self.task.claim_set.filter(status=Claim.STAT_ABANDONED)), 1)
+        claim = Claim.objects.filter(status=Claim.STAT_ABANDONED).all()[0]  # type: Claim
         self.assertEqual(claim.claiming_member, self.memb1)
 
     def do_day_minus3(self):
