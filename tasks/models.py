@@ -15,6 +15,7 @@ import nptime
 
 # Local
 from members import models as mm
+from abutils.deprecation import deprecated
 
 
 class TimeWindowedObject(object):
@@ -445,9 +446,9 @@ class Claim(models.Model, TimeWindowedObject):
     date_verified = models.DateField(null=True, blank=True)
 
     STAT_CURRENT      = "C"  # Member has a current claim on the task.
-    STAT_EXPIRED      = "X"  # Member didn't finish the task while claimed, so member's claim has expired.
+    STAT_EXPIRED      = "X"  # Member didn't verify or finish the task while claimed, so member's claim has expired.
     STAT_QUEUED       = "Q"  # Member is interested in claiming task but it is already fully claimed.
-    STAT_ABANDONED    = "A"  # Member had a claim on task but had to abandon it.
+    STAT_ABANDONED    = "A"  # Member had a claim on task but had to abandon it. E.g. "Something else came up."
     STAT_WORKING      = "W"  # The member is currently working the task, prob determined by checkin @ kiosk.
     STAT_DONE         = "D"  # The member has finished working the task, prob determined by checkout @ kiosk.
     STAT_UNINTERESTED = "U"  # The member doesn't want to claim the task. AKA "uninterested"
@@ -651,26 +652,22 @@ class Task(make_TaskMixin("Tasks"), TimeWindowedObject):
             result |= set(list(tag.members.all()))
         return result
 
+    @deprecated   # Use claimant_set instead
     def current_claimants(self):
-        """
-        Determine the set of current claimants.
-        :return: A set of Members
-        """
-        result = set()
-        for claim in self.claim_set.all():
-            if claim.status == claim.STAT_CURRENT:
-                result |= set([claim.claiming_member])
-        return result
+        return self.claimant_set(Claim.STAT_CURRENT)
 
-    def uninterested_claimants(self):
+    @deprecated  # Use claimant_set instead
+    def uninterested_claimants(self): # Use claimant_set instead
+        return self.claimant_set(Claim.STAT_UNINTERESTED)
+
+    def claimant_set(self, status):
         """
-        Determine the set of uninterested claimants.
+        Build the set of all claimants with a particular status.
         :return: A set of Members
         """
         result = set()
-        for claim in self.claim_set.all():
-            if claim.status == claim.STAT_UNINTERESTED:
-                result |= set([claim.claiming_member])
+        for claim in self.claim_set.filter(status=status).all():
+            result |= set([claim.claiming_member])
         return result
 
     def create_default_claim(self):
