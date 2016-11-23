@@ -660,6 +660,10 @@ def _ops_calendar_json(request, year, month):
                 "begin": {"hour": start_time.hour, "minute": start_time.minute},
                 "duration": msec_dur
             }
+
+        user = request.user
+        actions = task.possible_actions_for(user.member) if user.is_authenticated() else []
+
         return {
             "taskId": task.pk,
             "isoDate": task.scheduled_date.isoformat(),
@@ -667,6 +671,7 @@ def _ops_calendar_json(request, year, month):
             "timeWindow": window,
             "instructions": task.instructions,
             "staffingStatus": task.staffing_status(),
+            "possibleActions": actions
         }
 
     def tasks_on_date(x: date):

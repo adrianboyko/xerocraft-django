@@ -13957,8 +13957,8 @@ var _user$project$OpsCalendar$assertNever = function (str) {
 	return _elm_lang$core$Native_Utils.crash(
 		'OpsCalendar',
 		{
-			start: {line: 457, column: 3},
-			end: {line: 457, column: 14}
+			start: {line: 466, column: 3},
+			end: {line: 466, column: 14}
 		})(str);
 };
 var _user$project$OpsCalendar$assertNeverHandler = F2(
@@ -14031,8 +14031,8 @@ var _user$project$OpsCalendar$monthName = function (x) {
 			return _elm_lang$core$Native_Utils.crashCase(
 				'OpsCalendar',
 				{
-					start: {line: 430, column: 3},
-					end: {line: 443, column: 63}
+					start: {line: 439, column: 3},
+					end: {line: 452, column: 63}
 				},
 				_p1)('Provide a value from 0 to 11, inclusive');
 	}
@@ -14114,9 +14114,9 @@ var _user$project$OpsCalendar$decodeUser = A2(
 		_elm_lang$core$Json_Decode$succeed(_user$project$OpsCalendar$User),
 		A2(_elm_lang$core$Json_Decode_ops[':='], 'id', _elm_lang$core$Json_Decode$int)),
 	A2(_elm_lang$core$Json_Decode_ops[':='], 'name', _elm_lang$core$Json_Decode$string));
-var _user$project$OpsCalendar$OpsTask = F6(
-	function (a, b, c, d, e, f) {
-		return {taskId: a, isoDate: b, shortDesc: c, timeWindow: d, instructions: e, staffingStatus: f};
+var _user$project$OpsCalendar$OpsTask = F7(
+	function (a, b, c, d, e, f, g) {
+		return {taskId: a, isoDate: b, shortDesc: c, timeWindow: d, instructions: e, staffingStatus: f, possibleActions: g};
 	});
 var _user$project$OpsCalendar$decodeOpsTask = A2(
 	_elm_community$elm_json_extra$Json_Decode_Extra_ops['|:'],
@@ -14130,14 +14130,20 @@ var _user$project$OpsCalendar$decodeOpsTask = A2(
 					_elm_community$elm_json_extra$Json_Decode_Extra_ops['|:'],
 					A2(
 						_elm_community$elm_json_extra$Json_Decode_Extra_ops['|:'],
-						_elm_lang$core$Json_Decode$succeed(_user$project$OpsCalendar$OpsTask),
-						A2(_elm_lang$core$Json_Decode_ops[':='], 'taskId', _elm_lang$core$Json_Decode$int)),
-					A2(_elm_lang$core$Json_Decode_ops[':='], 'isoDate', _elm_lang$core$Json_Decode$string)),
-				A2(_elm_lang$core$Json_Decode_ops[':='], 'shortDesc', _elm_lang$core$Json_Decode$string)),
-			_elm_lang$core$Json_Decode$maybe(
-				A2(_elm_lang$core$Json_Decode_ops[':='], 'timeWindow', _user$project$TaskApi$decodeTimeWindow))),
-		A2(_elm_lang$core$Json_Decode_ops[':='], 'instructions', _elm_lang$core$Json_Decode$string)),
-	A2(_elm_lang$core$Json_Decode_ops[':='], 'staffingStatus', _elm_lang$core$Json_Decode$string));
+						A2(
+							_elm_community$elm_json_extra$Json_Decode_Extra_ops['|:'],
+							_elm_lang$core$Json_Decode$succeed(_user$project$OpsCalendar$OpsTask),
+							A2(_elm_lang$core$Json_Decode_ops[':='], 'taskId', _elm_lang$core$Json_Decode$int)),
+						A2(_elm_lang$core$Json_Decode_ops[':='], 'isoDate', _elm_lang$core$Json_Decode$string)),
+					A2(_elm_lang$core$Json_Decode_ops[':='], 'shortDesc', _elm_lang$core$Json_Decode$string)),
+				_elm_lang$core$Json_Decode$maybe(
+					A2(_elm_lang$core$Json_Decode_ops[':='], 'timeWindow', _user$project$TaskApi$decodeTimeWindow))),
+			A2(_elm_lang$core$Json_Decode_ops[':='], 'instructions', _elm_lang$core$Json_Decode$string)),
+		A2(_elm_lang$core$Json_Decode_ops[':='], 'staffingStatus', _elm_lang$core$Json_Decode$string)),
+	A2(
+		_elm_lang$core$Json_Decode_ops[':='],
+		'possibleActions',
+		_elm_lang$core$Json_Decode$list(_elm_lang$core$Json_Decode$string)));
 var _user$project$OpsCalendar$DayOfTasks = F4(
 	function (a, b, c, d) {
 		return {dayOfMonth: a, isInTargetMonth: b, isToday: c, tasks: d};
@@ -14229,6 +14235,44 @@ var _user$project$OpsCalendar$ClaimTask = F3(
 	function (a, b, c) {
 		return {ctor: 'ClaimTask', _0: a, _1: b, _2: c};
 	});
+var _user$project$OpsCalendar$actionButton = F3(
+	function (model, opsTask, action) {
+		var _p6 = model.user;
+		if (_p6.ctor === 'Nothing') {
+			return _elm_lang$html$Html$text('');
+		} else {
+			var _p7 = function () {
+				var _p8 = action;
+				switch (_p8) {
+					case 'U':
+						return {ctor: '_Tuple2', _0: _user$project$OpsCalendar$UnstaffTask, _1: 'Unstaff'};
+					case 'S':
+						return {ctor: '_Tuple2', _0: _user$project$OpsCalendar$ClaimTask, _1: 'Staff It'};
+					case 'V':
+						return {ctor: '_Tuple2', _0: _user$project$OpsCalendar$VerifyTask, _1: 'Verify'};
+					default:
+						return _user$project$OpsCalendar$assertNever('Action can only be S, U, or V');
+				}
+			}();
+			var msg = _p7._0;
+			var buttonText = _p7._1;
+			var clickMsg = _user$project$OpsCalendar$GetTimeAndThen(
+				function (time) {
+					return A3(msg, time, _p6._0.id, opsTask.taskId);
+				});
+			return A2(
+				_elm_lang$html$Html$button,
+				_elm_lang$core$Native_List.fromArray(
+					[
+						_user$project$OpsCalendar$detailButtonStyle,
+						_elm_lang$html$Html_Events$onClick(clickMsg)
+					]),
+				_elm_lang$core$Native_List.fromArray(
+					[
+						_elm_lang$html$Html$text(buttonText)
+					]));
+		}
+	});
 var _user$project$OpsCalendar$DragFinish = function (a) {
 	return {ctor: 'DragFinish', _0: a};
 };
@@ -14256,8 +14300,8 @@ var _user$project$OpsCalendar$getNewMonth = F2(
 	function (model, op) {
 		var opMonth = A2(op, model.month, 1);
 		var year = function () {
-			var _p6 = opMonth;
-			switch (_p6) {
+			var _p9 = opMonth;
+			switch (_p9) {
 				case 13:
 					return model.year + 1;
 				case 0:
@@ -14267,8 +14311,8 @@ var _user$project$OpsCalendar$getNewMonth = F2(
 			}
 		}();
 		var month = function () {
-			var _p7 = opMonth;
-			switch (_p7) {
+			var _p10 = opMonth;
+			switch (_p10) {
 				case 13:
 					return 1;
 				case 0:
@@ -14298,21 +14342,21 @@ var _user$project$OpsCalendar$getNewMonth = F2(
 	});
 var _user$project$OpsCalendar$update = F2(
 	function (action, model) {
-		var _p8 = action;
-		switch (_p8.ctor) {
+		var _p11 = action;
+		switch (_p11.ctor) {
 			case 'ToggleTaskDetail':
-				var _p10 = _p8._0;
+				var _p13 = _p11._0;
 				var detailModel = _elm_lang$core$Native_Utils.update(
 					model,
 					{
-						selectedTaskId: _elm_lang$core$Maybe$Just(_p10),
+						selectedTaskId: _elm_lang$core$Maybe$Just(_p13),
 						detailPt: A2(_elm_lang$mouse$Mouse$Position, model.mousePt.x - 200, model.mousePt.y + 12)
 					});
-				var _p9 = model.selectedTaskId;
-				if (_p9.ctor === 'Nothing') {
+				var _p12 = model.selectedTaskId;
+				if (_p12.ctor === 'Nothing') {
 					return {ctor: '_Tuple2', _0: detailModel, _1: _elm_lang$core$Platform_Cmd$none};
 				} else {
-					return _elm_lang$core$Native_Utils.eq(_p9._0, _p10) ? {
+					return _elm_lang$core$Native_Utils.eq(_p12._0, _p13) ? {
 						ctor: '_Tuple2',
 						_0: _elm_lang$core$Native_Utils.update(
 							model,
@@ -14363,10 +14407,10 @@ var _user$project$OpsCalendar$update = F2(
 							}))
 				};
 			case 'NewMonthSuccess':
-				return _user$project$OpsCalendar$init(_p8._0);
+				return _user$project$OpsCalendar$init(_p11._0);
 			case 'NewMonthFailure':
-				var _p11 = _p8._0;
-				switch (_p11.ctor) {
+				var _p14 = _p11._0;
+				switch (_p14.ctor) {
 					case 'Timeout':
 						return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
 					case 'NetworkError':
@@ -14381,7 +14425,7 @@ var _user$project$OpsCalendar$update = F2(
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
 						model,
-						{mousePt: _p8._0}),
+						{mousePt: _p11._0}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 			case 'DragStart':
@@ -14390,17 +14434,17 @@ var _user$project$OpsCalendar$update = F2(
 					_0: _elm_lang$core$Native_Utils.update(
 						model,
 						{
-							dragStartPt: _elm_lang$core$Maybe$Just(_p8._0)
+							dragStartPt: _elm_lang$core$Maybe$Just(_p11._0)
 						}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 			case 'DragFinish':
-				var _p13 = _p8._0;
-				var _p12 = model.dragStartPt;
-				if (_p12.ctor === 'Nothing') {
+				var _p16 = _p11._0;
+				var _p15 = model.dragStartPt;
+				if (_p15.ctor === 'Nothing') {
 					return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
 				} else {
-					var newDetailPt = A2(_elm_lang$mouse$Mouse$Position, model.detailPt.x + (_p13.x - _p12._0.x), model.detailPt.y + (_p13.y - _p12._0.y));
+					var newDetailPt = A2(_elm_lang$mouse$Mouse$Position, model.detailPt.x + (_p16.x - _p15._0.x), model.detailPt.y + (_p16.y - _p15._0.y));
 					return {
 						ctor: '_Tuple2',
 						_0: _elm_lang$core$Native_Utils.update(
@@ -14410,13 +14454,13 @@ var _user$project$OpsCalendar$update = F2(
 					};
 				}
 			case 'Mdl':
-				return A3(_debois$elm_mdl$Material$update, _user$project$OpsCalendar$Mdl, _p8._0, model);
+				return A3(_debois$elm_mdl$Material$update, _user$project$OpsCalendar$Mdl, _p11._0, model);
 			default:
 				var failHandler = _user$project$OpsCalendar$assertNeverHandler('Couldn\'t get current time.');
 				return {
 					ctor: '_Tuple2',
 					_0: model,
-					_1: A3(_elm_lang$core$Task$perform, failHandler, _p8._0, _elm_lang$core$Time$now)
+					_1: A3(_elm_lang$core$Task$perform, failHandler, _p11._0, _elm_lang$core$Time$now)
 				};
 		}
 	});
@@ -14478,17 +14522,17 @@ var _user$project$OpsCalendar$HideTaskDetail = {ctor: 'HideTaskDetail'};
 var _user$project$OpsCalendar$detailView = F2(
 	function (model, ot) {
 		var window = function () {
-			var _p14 = ot.timeWindow;
-			if (_p14.ctor === 'Nothing') {
+			var _p17 = ot.timeWindow;
+			if (_p17.ctor === 'Nothing') {
 				return _elm_lang$core$Native_Utils.crashCase(
 					'OpsCalendar',
 					{
-						start: {line: 245, column: 14},
-						end: {line: 247, column: 18}
+						start: {line: 261, column: 14},
+						end: {line: 263, column: 18}
 					},
-					_p14)('Must not be \'Nothing\' at this point');
+					_p17)('Must not be \'Nothing\' at this point');
 			} else {
-				return _p14._0;
+				return _p17._0;
 			}
 		}();
 		var onMouseDown = A2(
@@ -14554,43 +14598,14 @@ var _user$project$OpsCalendar$detailView = F2(
 						[
 							_elm_lang$html$Html$text('Close')
 						])),
-					function () {
-					var _p16 = model.user;
-					if (_p16.ctor === 'Nothing') {
-						return _elm_lang$html$Html$text('');
-					} else {
-						var _p17 = function () {
-							var _p18 = ot.staffingStatus;
-							switch (_p18) {
-								case 'S':
-									return {ctor: '_Tuple2', _0: _user$project$OpsCalendar$UnstaffTask, _1: 'Unstaff'};
-								case 'U':
-									return {ctor: '_Tuple2', _0: _user$project$OpsCalendar$ClaimTask, _1: 'Claim'};
-								case 'P':
-									return {ctor: '_Tuple2', _0: _user$project$OpsCalendar$VerifyTask, _1: 'Verify'};
-								default:
-									return _user$project$OpsCalendar$assertNever('Staffing status can only be S, U, or P');
-							}
-						}();
-						var msg = _p17._0;
-						var buttonText = _p17._1;
-						var clickMsg = _user$project$OpsCalendar$GetTimeAndThen(
-							function (time) {
-								return A3(msg, time, _p16._0.id, ot.taskId);
-							});
-						return A2(
-							_elm_lang$html$Html$button,
-							_elm_lang$core$Native_List.fromArray(
-								[
-									_user$project$OpsCalendar$detailButtonStyle,
-									_elm_lang$html$Html_Events$onClick(clickMsg)
-								]),
-							_elm_lang$core$Native_List.fromArray(
-								[
-									_elm_lang$html$Html$text(buttonText)
-								]));
-					}
-				}()
+					A2(
+					_elm_lang$html$Html$span,
+					_elm_lang$core$Native_List.fromArray(
+						[]),
+					A2(
+						_elm_lang$core$List$map,
+						A2(_user$project$OpsCalendar$actionButton, model, ot),
+						ot.possibleActions))
 				]));
 	});
 var _user$project$OpsCalendar$ToggleTaskDetail = function (a) {
@@ -14739,7 +14754,8 @@ var _user$project$OpsCalendar$view = function (model) {
 		_elm_lang$core$Native_List.fromArray(
 			[
 				_user$project$OpsCalendar$headerView(model),
-				_user$project$OpsCalendar$monthView(model)
+				_user$project$OpsCalendar$monthView(model),
+				_user$project$OpsCalendar$loginView(model)
 			]));
 };
 var _user$project$OpsCalendar$main = {
@@ -14784,58 +14800,66 @@ var _user$project$OpsCalendar$main = {
 																			function (isoDate) {
 																				return A2(
 																					_elm_lang$core$Json_Decode$andThen,
-																					A2(_elm_lang$core$Json_Decode_ops[':='], 'shortDesc', _elm_lang$core$Json_Decode$string),
-																					function (shortDesc) {
+																					A2(
+																						_elm_lang$core$Json_Decode_ops[':='],
+																						'possibleActions',
+																						_elm_lang$core$Json_Decode$list(_elm_lang$core$Json_Decode$string)),
+																					function (possibleActions) {
 																						return A2(
 																							_elm_lang$core$Json_Decode$andThen,
-																							A2(_elm_lang$core$Json_Decode_ops[':='], 'staffingStatus', _elm_lang$core$Json_Decode$string),
-																							function (staffingStatus) {
+																							A2(_elm_lang$core$Json_Decode_ops[':='], 'shortDesc', _elm_lang$core$Json_Decode$string),
+																							function (shortDesc) {
 																								return A2(
 																									_elm_lang$core$Json_Decode$andThen,
-																									A2(_elm_lang$core$Json_Decode_ops[':='], 'taskId', _elm_lang$core$Json_Decode$int),
-																									function (taskId) {
+																									A2(_elm_lang$core$Json_Decode_ops[':='], 'staffingStatus', _elm_lang$core$Json_Decode$string),
+																									function (staffingStatus) {
 																										return A2(
 																											_elm_lang$core$Json_Decode$andThen,
-																											A2(
-																												_elm_lang$core$Json_Decode_ops[':='],
-																												'timeWindow',
-																												_elm_lang$core$Json_Decode$oneOf(
-																													_elm_lang$core$Native_List.fromArray(
-																														[
-																															_elm_lang$core$Json_Decode$null(_elm_lang$core$Maybe$Nothing),
-																															A2(
-																															_elm_lang$core$Json_Decode$map,
-																															_elm_lang$core$Maybe$Just,
-																															A2(
-																																_elm_lang$core$Json_Decode$andThen,
-																																A2(
-																																	_elm_lang$core$Json_Decode_ops[':='],
-																																	'begin',
+																											A2(_elm_lang$core$Json_Decode_ops[':='], 'taskId', _elm_lang$core$Json_Decode$int),
+																											function (taskId) {
+																												return A2(
+																													_elm_lang$core$Json_Decode$andThen,
+																													A2(
+																														_elm_lang$core$Json_Decode_ops[':='],
+																														'timeWindow',
+																														_elm_lang$core$Json_Decode$oneOf(
+																															_elm_lang$core$Native_List.fromArray(
+																																[
+																																	_elm_lang$core$Json_Decode$null(_elm_lang$core$Maybe$Nothing),
+																																	A2(
+																																	_elm_lang$core$Json_Decode$map,
+																																	_elm_lang$core$Maybe$Just,
 																																	A2(
 																																		_elm_lang$core$Json_Decode$andThen,
-																																		A2(_elm_lang$core$Json_Decode_ops[':='], 'hour', _elm_lang$core$Json_Decode$int),
-																																		function (hour) {
+																																		A2(
+																																			_elm_lang$core$Json_Decode_ops[':='],
+																																			'begin',
+																																			A2(
+																																				_elm_lang$core$Json_Decode$andThen,
+																																				A2(_elm_lang$core$Json_Decode_ops[':='], 'hour', _elm_lang$core$Json_Decode$int),
+																																				function (hour) {
+																																					return A2(
+																																						_elm_lang$core$Json_Decode$andThen,
+																																						A2(_elm_lang$core$Json_Decode_ops[':='], 'minute', _elm_lang$core$Json_Decode$int),
+																																						function (minute) {
+																																							return _elm_lang$core$Json_Decode$succeed(
+																																								{hour: hour, minute: minute});
+																																						});
+																																				})),
+																																		function (begin) {
 																																			return A2(
 																																				_elm_lang$core$Json_Decode$andThen,
-																																				A2(_elm_lang$core$Json_Decode_ops[':='], 'minute', _elm_lang$core$Json_Decode$int),
-																																				function (minute) {
+																																				A2(_elm_lang$core$Json_Decode_ops[':='], 'duration', _elm_lang$core$Json_Decode$float),
+																																				function (duration) {
 																																					return _elm_lang$core$Json_Decode$succeed(
-																																						{hour: hour, minute: minute});
+																																						{begin: begin, duration: duration});
 																																				});
-																																		})),
-																																function (begin) {
-																																	return A2(
-																																		_elm_lang$core$Json_Decode$andThen,
-																																		A2(_elm_lang$core$Json_Decode_ops[':='], 'duration', _elm_lang$core$Json_Decode$float),
-																																		function (duration) {
-																																			return _elm_lang$core$Json_Decode$succeed(
-																																				{begin: begin, duration: duration});
-																																		});
-																																}))
-																														]))),
-																											function (timeWindow) {
-																												return _elm_lang$core$Json_Decode$succeed(
-																													{instructions: instructions, isoDate: isoDate, shortDesc: shortDesc, staffingStatus: staffingStatus, taskId: taskId, timeWindow: timeWindow});
+																																		}))
+																																]))),
+																													function (timeWindow) {
+																														return _elm_lang$core$Json_Decode$succeed(
+																															{instructions: instructions, isoDate: isoDate, possibleActions: possibleActions, shortDesc: shortDesc, staffingStatus: staffingStatus, taskId: taskId, timeWindow: timeWindow});
+																													});
 																											});
 																									});
 																							});

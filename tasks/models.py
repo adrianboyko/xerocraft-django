@@ -641,6 +641,25 @@ class Task(make_TaskMixin("Tasks"), TimeWindowedObject):
         else:
             return Task.STAFFING_STATUS_UNSTAFFED
 
+    ACTION_STAFF = "S"    # Member staffs the task
+    ACTION_UNSTAFF = "U"  # Member abandons task
+    ACTION_VERIFY = "V"   # Member verifies provisional staffing status
+
+    def possible_actions_for(self, member:mm.Member):
+        actions = set()
+
+        if self.is_active():
+            try:
+                claim = Claim.objects.get(claimed_task=self, claiming_member=member)
+                if claim.status == Claim.STAT_CURRENT:
+                    actions.add(Task.ACTION_UNSTAFF)
+                    if claim.date_verified is None:
+                        actions.add(Task.ACTION_VERIFY)
+            except Claim.DoesNotExist:
+                if member in self.all_eligible_claimants() and not self.is_fully_claimed():
+                    actions.add(Task.ACTION_STAFF)
+        return list(actions)
+
     def all_eligible_claimants(self):
         """
         Determine all eligible claimants whether they're directly eligible by name or indirectly by tag

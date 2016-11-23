@@ -62,6 +62,7 @@ type alias OpsTask =
   , timeWindow: Maybe TimeWindow
   , instructions: String
   , staffingStatus: String
+  , possibleActions: List String
   --, staffedBy: List String -- Friendly names
   }
 
@@ -235,6 +236,21 @@ getNewMonth model op =
 -- VIEW
 -----------------------------------------------------------------------------
 
+actionButton : Model -> OpsTask -> String -> Html Msg
+actionButton model opsTask action =
+  case model.user of
+    Nothing -> text ""
+    Just {id, name} ->
+      let
+        (msg, buttonText) = case action of
+          "U" -> (UnstaffTask, "Unstaff")
+          "S" -> (ClaimTask, "Staff It")
+          "V" -> (VerifyTask, "Verify")
+          _   -> assertNever "Action can only be S, U, or V"
+        clickMsg = GetTimeAndThen (\time -> (msg time id opsTask.taskId))
+      in
+        button [detailButtonStyle, onClick clickMsg] [text buttonText]
+
 detailView : Model -> OpsTask -> Html Msg
 detailView model ot =
   let
@@ -254,17 +270,9 @@ detailView model ot =
         ]
       , p [taskDetailParaStyle] [text ot.instructions]
       , button [detailButtonStyle, onClick HideTaskDetail] [text "Close"]
-      , case model.user of
-          Nothing -> text ""
-          Just {id, name} ->
-            let (msg, buttonText) = case ot.staffingStatus of
-              "S" -> (UnstaffTask, "Unstaff")
-              "U" -> (ClaimTask, "Claim")
-              "P" -> (VerifyTask, "Verify")
-              _   -> assertNever "Staffing status can only be S, U, or P"
-            in
-              let clickMsg = GetTimeAndThen (\time -> (msg time id ot.taskId))
-              in button [detailButtonStyle, onClick clickMsg] [text buttonText]
+
+      , span []
+          (List.map (actionButton model ot) ot.possibleActions)
       ]
 
 taskView : Model -> OpsTask -> Html Msg
@@ -355,7 +363,7 @@ view model =
   div [containerStyle, unselectable]
     [ headerView model
     , monthView model
-    --, loginView model
+    , loginView model
     ]
 
 
@@ -390,6 +398,7 @@ decodeOpsTask =
     |: (maybe ("timeWindow" := decodeTimeWindow))
     |: ("instructions"      := Dec.string)
     |: ("staffingStatus"    := Dec.string)
+    |: ("possibleActions"   := Dec.list Dec.string)
 
 decodeDayOfTasks : Dec.Decoder DayOfTasks
 decodeDayOfTasks =
