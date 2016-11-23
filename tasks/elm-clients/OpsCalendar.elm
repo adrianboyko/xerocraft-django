@@ -366,7 +366,7 @@ view model =
   div [containerStyle, unselectable]
     [ headerView model
     , monthView model
-    , loginView model
+    --, loginView model
     ]
 
 

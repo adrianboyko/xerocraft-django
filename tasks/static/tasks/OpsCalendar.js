@@ -14771,8 +14771,7 @@ var _user$project$OpsCalendar$view = function (model) {
 		_elm_lang$core$Native_List.fromArray(
 			[
 				_user$project$OpsCalendar$headerView(model),
-				_user$project$OpsCalendar$monthView(model),
-				_user$project$OpsCalendar$loginView(model)
+				_user$project$OpsCalendar$monthView(model)
 			]));
 };
 var _user$project$OpsCalendar$main = {
