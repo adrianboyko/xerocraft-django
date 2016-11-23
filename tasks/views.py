@@ -675,6 +675,7 @@ def _ops_calendar_json(request, year, month):
             "staffingStatus": task.staffing_status(),
             "possibleActions": actions,
             "staffedBy": staffed_by,
+            "taskStatus": task.status,
         }
 
     def tasks_on_date(x: date):

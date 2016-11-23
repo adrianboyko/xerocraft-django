@@ -64,6 +64,7 @@ type alias OpsTask =
   , staffingStatus: String
   , possibleActions: List String
   , staffedBy: List String -- Friendly names
+  , taskStatus: String
   }
 
 type alias DayOfTasks =
@@ -280,22 +281,15 @@ detailView model ot =
 
 taskView : Model -> OpsTask -> Html Msg
 taskView model ot =
-  let
-    theStyle = case ot.staffingStatus of
-      "S" -> staffedStyle
-      "U" -> unstaffedStyle
-      "P" -> provisionalStyle
-      _   -> noStaffStatusStyle  -- This shouldn't happen. Would be a server side problem.
-  in
-    case ot.timeWindow of
-      Nothing -> text ""
-      Just {begin, duration} ->
-        div []
-          [ div (List.concat [theStyle, [onClick (ToggleTaskDetail ot.taskId)]]) [text ot.shortDesc]
-          , if (model.selectedTaskId == Just ot.taskId)
-              then detailView model ot
-              else text ""
-          ]
+  case ot.timeWindow of
+    Nothing -> text ""
+    Just {begin, duration} ->
+      div []
+        [ div (List.concat [(taskNameStyle ot), [onClick (ToggleTaskDetail ot.taskId)]]) [text ot.shortDesc]
+        , if (model.selectedTaskId == Just ot.taskId)
+            then detailView model ot
+            else text ""
+        ]
 
 dayView : Model -> DayOfTasks -> Html Msg
 dayView model dayOfTasks =
@@ -403,6 +397,7 @@ decodeOpsTask =
     |: ("staffingStatus"    := Dec.string)
     |: ("possibleActions"   := Dec.list Dec.string)
     |: ("staffedBy"         := Dec.list Dec.string)
+    |: ("taskStatus"        := Dec.string)
 
 decodeDayOfTasks : Dec.Decoder DayOfTasks
 decodeDayOfTasks =
@@ -572,7 +567,7 @@ dayNumStyle = style
   , "margin-bottom" => "5px"
   ]
 
-taskNameCss =
+taskNameCss opsTask =
   [ "font-family" => "Roboto Condensed"
   , "font-size" => "1.1em"
   , "margin" => "0"
@@ -581,17 +576,18 @@ taskNameCss =
   , "text-overflow" => "ellipsis"
   , "width" => "120px"
   , "cursor" => "pointer"
+  , "color" => case opsTask.staffingStatus of
+      "S" -> "green"
+      "P" -> "#c68e17"
+      "U" -> "red"
+      _   -> "#000000"
+  , "text-decoration" => if opsTask.taskStatus == "C" then "line-through" else "none"
   ]
 
-rollover = [ ("background-color", "transparent", "#b3ff99") ]
-
-staffedStyle = hover' (List.concat [[("color", "green")], taskNameCss]) rollover
-
-unstaffedStyle = hover' (List.concat [[("color", "red")], taskNameCss]) rollover
-
-provisionalStyle = hover' (List.concat [[("color", "#c68e17")], taskNameCss]) rollover
-
-noStaffStatusStyle = hover' (List.concat [[("color", "#000000")], taskNameCss]) rollover
+taskNameStyle opsTask =
+    hover'
+      (taskNameCss opsTask)
+      [("background-color", "transparent", "#b3ff99")]  -- rollover
 
 dayOtherMonthStyle = style
   [ "background-color" => "#eeeeee"
