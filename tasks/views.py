@@ -664,6 +664,8 @@ def _ops_calendar_json(request, year, month):
         user = request.user
         actions = task.possible_actions_for(user.member) if user.is_authenticated() else []
 
+        staffed_by = [claimant.friendly_name for claimant in task.claimant_set(Claim.STAT_CURRENT)]
+
         return {
             "taskId": task.pk,
             "isoDate": task.scheduled_date.isoformat(),
@@ -671,7 +673,8 @@ def _ops_calendar_json(request, year, month):
             "timeWindow": window,
             "instructions": task.instructions,
             "staffingStatus": task.staffing_status(),
-            "possibleActions": actions
+            "possibleActions": actions,
+            "staffedBy": staffed_by,
         }
 
     def tasks_on_date(x: date):

@@ -63,7 +63,7 @@ type alias OpsTask =
   , instructions: String
   , staffingStatus: String
   , possibleActions: List String
-  --, staffedBy: List String -- Friendly names
+  , staffedBy: List String -- Friendly names
   }
 
 type alias DayOfTasks =
@@ -266,13 +266,16 @@ detailView model ot =
       [ p [taskDetailParaStyle]
         [ text (ot.shortDesc)
         , br [] []
-        , text((durationToString ForHuman window.duration) ++ " @ " ++ (clockTimeToStr window.begin))
+        , text ((durationToString ForHuman window.duration) ++ " @ " ++ (clockTimeToStr window.begin))
+        , br [] []
+        , if List.length(ot.staffedBy) > 0
+            then text ("Staffed by " ++ (String.join ", " ot.staffedBy))
+            else text "Not yet staffed!"
         ]
       , p [taskDetailParaStyle] [text ot.instructions]
       , button [detailButtonStyle, onClick HideTaskDetail] [text "Close"]
-
       , span []
-          (List.map (actionButton model ot) ot.possibleActions)
+          [] --(List.map (actionButton model ot) ot.possibleActions)
       ]
 
 taskView : Model -> OpsTask -> Html Msg
@@ -399,6 +402,7 @@ decodeOpsTask =
     |: ("instructions"      := Dec.string)
     |: ("staffingStatus"    := Dec.string)
     |: ("possibleActions"   := Dec.list Dec.string)
+    |: ("staffedBy"         := Dec.list Dec.string)
 
 decodeDayOfTasks : Dec.Decoder DayOfTasks
 decodeDayOfTasks =
@@ -453,7 +457,7 @@ monthName x =
 
 oneByThreeTable : Html Msg -> Html Msg -> Html Msg -> Html Msg
 oneByThreeTable left center right =
-  table [navHeaderStyle]
+  table [navHeaderStyle]  -- TODO: Style should be a parameter
   [ tr []
     [ td [] [left]
     , td [] [center]

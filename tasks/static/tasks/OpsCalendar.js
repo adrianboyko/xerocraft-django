@@ -13957,8 +13957,8 @@ var _user$project$OpsCalendar$assertNever = function (str) {
 	return _elm_lang$core$Native_Utils.crash(
 		'OpsCalendar',
 		{
-			start: {line: 466, column: 3},
-			end: {line: 466, column: 14}
+			start: {line: 470, column: 3},
+			end: {line: 470, column: 14}
 		})(str);
 };
 var _user$project$OpsCalendar$assertNeverHandler = F2(
@@ -14031,8 +14031,8 @@ var _user$project$OpsCalendar$monthName = function (x) {
 			return _elm_lang$core$Native_Utils.crashCase(
 				'OpsCalendar',
 				{
-					start: {line: 439, column: 3},
-					end: {line: 452, column: 63}
+					start: {line: 443, column: 3},
+					end: {line: 456, column: 63}
 				},
 				_p1)('Provide a value from 0 to 11, inclusive');
 	}
@@ -14114,9 +14114,9 @@ var _user$project$OpsCalendar$decodeUser = A2(
 		_elm_lang$core$Json_Decode$succeed(_user$project$OpsCalendar$User),
 		A2(_elm_lang$core$Json_Decode_ops[':='], 'id', _elm_lang$core$Json_Decode$int)),
 	A2(_elm_lang$core$Json_Decode_ops[':='], 'name', _elm_lang$core$Json_Decode$string));
-var _user$project$OpsCalendar$OpsTask = F7(
-	function (a, b, c, d, e, f, g) {
-		return {taskId: a, isoDate: b, shortDesc: c, timeWindow: d, instructions: e, staffingStatus: f, possibleActions: g};
+var _user$project$OpsCalendar$OpsTask = F8(
+	function (a, b, c, d, e, f, g, h) {
+		return {taskId: a, isoDate: b, shortDesc: c, timeWindow: d, instructions: e, staffingStatus: f, possibleActions: g, staffedBy: h};
 	});
 var _user$project$OpsCalendar$decodeOpsTask = A2(
 	_elm_community$elm_json_extra$Json_Decode_Extra_ops['|:'],
@@ -14132,17 +14132,23 @@ var _user$project$OpsCalendar$decodeOpsTask = A2(
 						_elm_community$elm_json_extra$Json_Decode_Extra_ops['|:'],
 						A2(
 							_elm_community$elm_json_extra$Json_Decode_Extra_ops['|:'],
-							_elm_lang$core$Json_Decode$succeed(_user$project$OpsCalendar$OpsTask),
-							A2(_elm_lang$core$Json_Decode_ops[':='], 'taskId', _elm_lang$core$Json_Decode$int)),
-						A2(_elm_lang$core$Json_Decode_ops[':='], 'isoDate', _elm_lang$core$Json_Decode$string)),
-					A2(_elm_lang$core$Json_Decode_ops[':='], 'shortDesc', _elm_lang$core$Json_Decode$string)),
-				_elm_lang$core$Json_Decode$maybe(
-					A2(_elm_lang$core$Json_Decode_ops[':='], 'timeWindow', _user$project$TaskApi$decodeTimeWindow))),
-			A2(_elm_lang$core$Json_Decode_ops[':='], 'instructions', _elm_lang$core$Json_Decode$string)),
-		A2(_elm_lang$core$Json_Decode_ops[':='], 'staffingStatus', _elm_lang$core$Json_Decode$string)),
+							A2(
+								_elm_community$elm_json_extra$Json_Decode_Extra_ops['|:'],
+								_elm_lang$core$Json_Decode$succeed(_user$project$OpsCalendar$OpsTask),
+								A2(_elm_lang$core$Json_Decode_ops[':='], 'taskId', _elm_lang$core$Json_Decode$int)),
+							A2(_elm_lang$core$Json_Decode_ops[':='], 'isoDate', _elm_lang$core$Json_Decode$string)),
+						A2(_elm_lang$core$Json_Decode_ops[':='], 'shortDesc', _elm_lang$core$Json_Decode$string)),
+					_elm_lang$core$Json_Decode$maybe(
+						A2(_elm_lang$core$Json_Decode_ops[':='], 'timeWindow', _user$project$TaskApi$decodeTimeWindow))),
+				A2(_elm_lang$core$Json_Decode_ops[':='], 'instructions', _elm_lang$core$Json_Decode$string)),
+			A2(_elm_lang$core$Json_Decode_ops[':='], 'staffingStatus', _elm_lang$core$Json_Decode$string)),
+		A2(
+			_elm_lang$core$Json_Decode_ops[':='],
+			'possibleActions',
+			_elm_lang$core$Json_Decode$list(_elm_lang$core$Json_Decode$string))),
 	A2(
 		_elm_lang$core$Json_Decode_ops[':='],
-		'possibleActions',
+		'staffedBy',
 		_elm_lang$core$Json_Decode$list(_elm_lang$core$Json_Decode$string)));
 var _user$project$OpsCalendar$DayOfTasks = F4(
 	function (a, b, c, d) {
@@ -14577,7 +14583,20 @@ var _user$project$OpsCalendar$detailView = F2(
 								A2(
 									_elm_lang$core$Basics_ops['++'],
 									' @ ',
-									_user$project$TaskApi$clockTimeToStr(window.begin))))
+									_user$project$TaskApi$clockTimeToStr(window.begin)))),
+							A2(
+							_elm_lang$html$Html$br,
+							_elm_lang$core$Native_List.fromArray(
+								[]),
+							_elm_lang$core$Native_List.fromArray(
+								[])),
+							(_elm_lang$core$Native_Utils.cmp(
+							_elm_lang$core$List$length(ot.staffedBy),
+							0) > 0) ? _elm_lang$html$Html$text(
+							A2(
+								_elm_lang$core$Basics_ops['++'],
+								'Staffed by ',
+								A2(_elm_lang$core$String$join, ', ', ot.staffedBy))) : _elm_lang$html$Html$text('Not yet staffed!')
 						])),
 					A2(
 					_elm_lang$html$Html$p,
@@ -14602,10 +14621,8 @@ var _user$project$OpsCalendar$detailView = F2(
 					_elm_lang$html$Html$span,
 					_elm_lang$core$Native_List.fromArray(
 						[]),
-					A2(
-						_elm_lang$core$List$map,
-						A2(_user$project$OpsCalendar$actionButton, model, ot),
-						ot.possibleActions))
+					_elm_lang$core$Native_List.fromArray(
+						[]))
 				]));
 	});
 var _user$project$OpsCalendar$ToggleTaskDetail = function (a) {
@@ -14811,54 +14828,62 @@ var _user$project$OpsCalendar$main = {
 																							function (shortDesc) {
 																								return A2(
 																									_elm_lang$core$Json_Decode$andThen,
-																									A2(_elm_lang$core$Json_Decode_ops[':='], 'staffingStatus', _elm_lang$core$Json_Decode$string),
-																									function (staffingStatus) {
+																									A2(
+																										_elm_lang$core$Json_Decode_ops[':='],
+																										'staffedBy',
+																										_elm_lang$core$Json_Decode$list(_elm_lang$core$Json_Decode$string)),
+																									function (staffedBy) {
 																										return A2(
 																											_elm_lang$core$Json_Decode$andThen,
-																											A2(_elm_lang$core$Json_Decode_ops[':='], 'taskId', _elm_lang$core$Json_Decode$int),
-																											function (taskId) {
+																											A2(_elm_lang$core$Json_Decode_ops[':='], 'staffingStatus', _elm_lang$core$Json_Decode$string),
+																											function (staffingStatus) {
 																												return A2(
 																													_elm_lang$core$Json_Decode$andThen,
-																													A2(
-																														_elm_lang$core$Json_Decode_ops[':='],
-																														'timeWindow',
-																														_elm_lang$core$Json_Decode$oneOf(
-																															_elm_lang$core$Native_List.fromArray(
-																																[
-																																	_elm_lang$core$Json_Decode$null(_elm_lang$core$Maybe$Nothing),
-																																	A2(
-																																	_elm_lang$core$Json_Decode$map,
-																																	_elm_lang$core$Maybe$Just,
-																																	A2(
-																																		_elm_lang$core$Json_Decode$andThen,
-																																		A2(
-																																			_elm_lang$core$Json_Decode_ops[':='],
-																																			'begin',
+																													A2(_elm_lang$core$Json_Decode_ops[':='], 'taskId', _elm_lang$core$Json_Decode$int),
+																													function (taskId) {
+																														return A2(
+																															_elm_lang$core$Json_Decode$andThen,
+																															A2(
+																																_elm_lang$core$Json_Decode_ops[':='],
+																																'timeWindow',
+																																_elm_lang$core$Json_Decode$oneOf(
+																																	_elm_lang$core$Native_List.fromArray(
+																																		[
+																																			_elm_lang$core$Json_Decode$null(_elm_lang$core$Maybe$Nothing),
+																																			A2(
+																																			_elm_lang$core$Json_Decode$map,
+																																			_elm_lang$core$Maybe$Just,
 																																			A2(
 																																				_elm_lang$core$Json_Decode$andThen,
-																																				A2(_elm_lang$core$Json_Decode_ops[':='], 'hour', _elm_lang$core$Json_Decode$int),
-																																				function (hour) {
+																																				A2(
+																																					_elm_lang$core$Json_Decode_ops[':='],
+																																					'begin',
+																																					A2(
+																																						_elm_lang$core$Json_Decode$andThen,
+																																						A2(_elm_lang$core$Json_Decode_ops[':='], 'hour', _elm_lang$core$Json_Decode$int),
+																																						function (hour) {
+																																							return A2(
+																																								_elm_lang$core$Json_Decode$andThen,
+																																								A2(_elm_lang$core$Json_Decode_ops[':='], 'minute', _elm_lang$core$Json_Decode$int),
+																																								function (minute) {
+																																									return _elm_lang$core$Json_Decode$succeed(
+																																										{hour: hour, minute: minute});
+																																								});
+																																						})),
+																																				function (begin) {
 																																					return A2(
 																																						_elm_lang$core$Json_Decode$andThen,
-																																						A2(_elm_lang$core$Json_Decode_ops[':='], 'minute', _elm_lang$core$Json_Decode$int),
-																																						function (minute) {
+																																						A2(_elm_lang$core$Json_Decode_ops[':='], 'duration', _elm_lang$core$Json_Decode$float),
+																																						function (duration) {
 																																							return _elm_lang$core$Json_Decode$succeed(
-																																								{hour: hour, minute: minute});
+																																								{begin: begin, duration: duration});
 																																						});
-																																				})),
-																																		function (begin) {
-																																			return A2(
-																																				_elm_lang$core$Json_Decode$andThen,
-																																				A2(_elm_lang$core$Json_Decode_ops[':='], 'duration', _elm_lang$core$Json_Decode$float),
-																																				function (duration) {
-																																					return _elm_lang$core$Json_Decode$succeed(
-																																						{begin: begin, duration: duration});
-																																				});
-																																		}))
-																																]))),
-																													function (timeWindow) {
-																														return _elm_lang$core$Json_Decode$succeed(
-																															{instructions: instructions, isoDate: isoDate, possibleActions: possibleActions, shortDesc: shortDesc, staffingStatus: staffingStatus, taskId: taskId, timeWindow: timeWindow});
+																																				}))
+																																		]))),
+																															function (timeWindow) {
+																																return _elm_lang$core$Json_Decode$succeed(
+																																	{instructions: instructions, isoDate: isoDate, possibleActions: possibleActions, shortDesc: shortDesc, staffedBy: staffedBy, staffingStatus: staffingStatus, taskId: taskId, timeWindow: timeWindow});
+																															});
 																													});
 																											});
 																									});
