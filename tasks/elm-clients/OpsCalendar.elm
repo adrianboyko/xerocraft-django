@@ -188,14 +188,15 @@ update action model =
           let
             claim = Claim opsTask.taskId memberId begin duration (Date.fromTime time)
             creds = LoggedIn model.csrfToken
+            newModel = {model | state=OperatingOnTask}
           in
-            (model, createClaim creds model.restUrls claim CreateClaimFailure CreateClaimSuccess)
+            (newModel, createClaim creds model.restUrls claim CreateClaimFailure CreateClaimSuccess)
 
     CreateClaimSuccess response ->
-      ({model | state=Normal, selectedTaskId=Nothing}, getNewMonth model 0)
+      (model, getNewMonth model 0)
 
     CreateClaimFailure err ->
-      ({model | state=Normal, selectedTaskId=Nothing}, getNewMonth model 0)
+      (model, getNewMonth model 0)
 
 
     VerifyTask time memberId opsTask ->
@@ -316,12 +317,17 @@ taskView model ot =
   case ot.timeWindow of
     Nothing -> text ""
     Just {begin, duration} ->
-      div []
-        [ div (List.concat [(taskNameStyle ot), [onClick (ToggleTaskDetail ot.taskId)]]) [text ot.shortDesc]
-        , if (model.selectedTaskId == Just ot.taskId)
-            then detailView model ot
-            else text ""
-        ]
+      let
+        selectedTask = withDefault -1 model.selectedTaskId
+        operatingOnTask = model.state==OperatingOnTask && ot.taskId==selectedTask
+        taskStr = if operatingOnTask then "Working..." else ot.shortDesc
+      in
+        div []
+          [ div (List.concat [(taskNameStyle ot), [onClick (ToggleTaskDetail ot.taskId)]]) [text taskStr]
+          , if (model.selectedTaskId == Just ot.taskId)
+              then detailView model ot
+              else text ""
+          ]
 
 dayView : Model -> DayOfTasks -> Html Msg
 dayView model dayOfTasks =
