@@ -187,12 +187,10 @@ update action model =
             (model, createClaim creds model.restUrls claim CreateClaimFailure CreateClaimSuccess)
 
     CreateClaimSuccess response ->
-      -- max is a noop in this case.
-      ({model | working=False, selectedTaskId=Nothing}, getNewMonth model Basics.max)
+      ({model | working=False, selectedTaskId=Nothing}, getNewMonth model 0)
 
     CreateClaimFailure err ->
-      -- max is a noop in this case.
-      ({model | working=False, selectedTaskId=Nothing}, getNewMonth model Basics.max)
+      ({model | working=False, selectedTaskId=Nothing}, getNewMonth model 0)
 
 
     VerifyTask time memberId opsTask ->
@@ -202,10 +200,10 @@ update action model =
       (model, Cmd.none)  -- TODO
 
     PrevMonth ->
-      ({model | working = True, selectedTaskId = Nothing}, getNewMonth model (-))
+      ({model | working = True, selectedTaskId = Nothing}, getNewMonth model -1)
 
     NextMonth ->
-      ({model | working = True, selectedTaskId = Nothing}, getNewMonth model (+))
+      ({model | working = True, selectedTaskId = Nothing}, getNewMonth model 1)
 
     NewMonthSuccess fetched ->
       let newModel = {model | working=False, user=fetched.user, tasks=fetched.tasks, year=fetched.year, month=fetched.month}
@@ -240,20 +238,20 @@ update action model =
       in (model, (Task.perform failHandler successHandler Time.now))
 
 
-getNewMonth : Model -> (Int -> Int -> Int) -> Cmd Msg
-getNewMonth model op =
+getNewMonth : Model -> Int -> Cmd Msg
+getNewMonth model delta =
   let
     -- TODO: These should be passed in from Django, not hard-coded here.
     url = "/tasks/ops-calendar-json/" ++ toStr(year) ++ "-" ++ toStr(month) ++ "/"
-    opMonth = op model.month 1
-    year = case opMonth of
+    newMonth = model.month + delta
+    year = case newMonth of
       13 -> model.year + 1
       0 -> model.year - 1
       _ -> model.year
-    month = case opMonth of
+    month = case newMonth of
       13 -> 1
       0 -> 12
-      _ -> opMonth
+      _ -> newMonth
   in
     Task.perform
       NewMonthFailure
