@@ -94,6 +94,11 @@ type alias Flags =
   , csrfToken: String
   }
 
+type State
+  = Normal
+  | SwitchingMonth
+  | OperatingOnTask
+
 type alias Model =
   { mdl: Material.Model
   , user: Maybe User
@@ -103,7 +108,7 @@ type alias Model =
   , csrfToken: String
   , restUrls: RestUrls
   , selectedTaskId: Maybe Int
-  , working: Bool
+  , state: State
   , mousePt: Position  -- The current most position.
   , detailPt: Position  -- Where the detail "popup" is positioned.
   , dragStartPt: Maybe Position  -- Where drag began, if user is dragging.
@@ -121,7 +126,7 @@ init {restUrls, initials, csrfToken} =
       csrfToken
       restUrls
       Nothing
-      False
+      Normal
       (Position 0 0)
       (Position 0 0)
       Nothing
@@ -187,10 +192,10 @@ update action model =
             (model, createClaim creds model.restUrls claim CreateClaimFailure CreateClaimSuccess)
 
     CreateClaimSuccess response ->
-      ({model | working=False, selectedTaskId=Nothing}, getNewMonth model 0)
+      ({model | state=Normal, selectedTaskId=Nothing}, getNewMonth model 0)
 
     CreateClaimFailure err ->
-      ({model | working=False, selectedTaskId=Nothing}, getNewMonth model 0)
+      ({model | state=Normal, selectedTaskId=Nothing}, getNewMonth model 0)
 
 
     VerifyTask time memberId opsTask ->
@@ -200,22 +205,22 @@ update action model =
       (model, Cmd.none)  -- TODO
 
     PrevMonth ->
-      ({model | working = True, selectedTaskId = Nothing}, getNewMonth model -1)
+      ({model | state=SwitchingMonth, selectedTaskId=Nothing}, getNewMonth model -1)
 
     NextMonth ->
-      ({model | working = True, selectedTaskId = Nothing}, getNewMonth model 1)
+      ({model | state=SwitchingMonth, selectedTaskId=Nothing}, getNewMonth model 1)
 
     NewMonthSuccess fetched ->
-      let newModel = {model | working=False, user=fetched.user, tasks=fetched.tasks, year=fetched.year, month=fetched.month}
+      let newModel = {model | state=Normal, user=fetched.user, tasks=fetched.tasks, year=fetched.year, month=fetched.month}
       in (newModel, Cmd.none)
 
     NewMonthFailure err ->
       -- TODO: Display some sort of error message.
       case err of
-        Http.Timeout -> ({model | working = False, errorStr = Just "Timeout"}, Cmd.none)
-        Http.NetworkError -> ({model | working = False, errorStr = Just "Network Error"}, Cmd.none)
-        Http.UnexpectedPayload s -> ({model | working = False, errorStr = Just s}, Cmd.none)
-        Http.BadResponse _ s -> ({model | working = False, errorStr = Just s}, Cmd.none)
+        Http.Timeout -> ({model | state=Normal, errorStr=Just "Timeout"}, Cmd.none)
+        Http.NetworkError -> ({model | state=Normal, errorStr=Just "Network Error"}, Cmd.none)
+        Http.UnexpectedPayload s -> ({model | state=Normal, errorStr=Just s}, Cmd.none)
+        Http.BadResponse _ s -> ({model | state=Normal, errorStr=Just s}, Cmd.none)
 
     MouseMove newPt ->
       ({model | mousePt = newPt}, Cmd.none)
@@ -354,7 +359,7 @@ monthView model =
 
 headerView : Model -> Html Msg
 headerView model =
-    if model.working then
+    if model.state == SwitchingMonth then
       oneByThreeTable (text "") (text "Working") (text "")
     else
       oneByThreeTable
