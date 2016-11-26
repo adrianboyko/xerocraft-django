@@ -26,11 +26,13 @@ import Json.Decode.Extra exposing ((|:))
 
 import TaskApi exposing
   ( Target(ForHuman)
+  , Credentials(LoggedIn)
   , TimeWindow, decodeTimeWindow
   , Duration, durationToString
-  , clockTimeToStr
+  , ClockTime, clockTimeToStr
+  , Claim, createClaim
+  , RestUrls
   )
-
 
 -----------------------------------------------------------------------------
 -- MAIN
@@ -43,7 +45,6 @@ main =
     , update = update
     , subscriptions = subscriptions
     }
-
 
 -----------------------------------------------------------------------------
 -- MODEL
@@ -78,12 +79,19 @@ type alias WeekOfTasks = List DayOfTasks
 
 type alias MonthOfTasks = List WeekOfTasks
 
--- These are params from the server. Elm docs tend to call them "flags".
-type alias Flags =
+-- These come in with the init "flags" but they can also be fetched later.
+type alias Fetchable =
   { user: Maybe User
   , tasks: MonthOfTasks
   , year: Int
   , month: Int
+  }
+
+-- These are params from the server. Elm docs tend to call them "flags".
+type alias Flags =
+  { restUrls: RestUrls
+  , initials: Fetchable
+  , csrfToken: String
   }
 
 type alias Model =
@@ -92,29 +100,34 @@ type alias Model =
   , tasks: MonthOfTasks
   , year: Int
   , month: Int
+  , csrfToken: String
+  , restUrls: RestUrls
   , selectedTaskId: Maybe Int
   , working: Bool
   , mousePt: Position  -- The current most position.
   , detailPt: Position  -- Where the detail "popup" is positioned.
   , dragStartPt: Maybe Position  -- Where drag began, if user is dragging.
+  , errorStr: Maybe String
   }
 
 init : Flags -> (Model, Cmd Msg)
-init {tasks, year, month, user} =
+init {restUrls, initials, csrfToken} =
   ( Model
       Material.model
-      user
-      tasks
-      year
-      month
+      initials.user
+      initials.tasks
+      initials.year
+      initials.month
+      csrfToken
+      restUrls
       Nothing
       False
       (Position 0 0)
       (Position 0 0)
       Nothing
+      Nothing
   , Cmd.none
   )
-
 
 -----------------------------------------------------------------------------
 -- UPDATE
@@ -123,17 +136,18 @@ init {tasks, year, month, user} =
 type Msg
   -- Calendar app messages
   = ToggleTaskDetail Int
-  | HideTaskDetail
   | PrevMonth
   | NextMonth
-  | NewMonthSuccess Flags
+  | NewMonthSuccess Fetchable
   | NewMonthFailure Http.Error
   | MouseMove Position
   | DragStart Position
   | DragFinish Position
-  | ClaimTask Time Int Int
-  | VerifyTask Time Int Int
-  | UnstaffTask Time Int Int
+  | ClaimTask Time Int OpsTask
+  | VerifyTask Time Int OpsTask
+  | UnstaffTask Time Int OpsTask
+  | CreateClaimSuccess Http.Response
+  | CreateClaimFailure Http.RawError
 
   -- For elm-mdl
   | Mdl Material.Msg
@@ -162,34 +176,48 @@ update action model =
               then ({model | selectedTaskId = Nothing}, Cmd.none)
               else (detailModel, Cmd.none)
 
-    HideTaskDetail ->
-      ({model | selectedTaskId = Nothing}, Cmd.none)
+    ClaimTask time memberId opsTask ->
+      case opsTask.timeWindow of
+        Nothing -> Debug.crash "Must not be 'Nothing' at this point"
+        Just {begin, duration} ->
+          let
+            claim = Claim opsTask.taskId memberId begin duration (Date.fromTime time)
+            creds = LoggedIn model.csrfToken
+          in
+            (model, createClaim creds model.restUrls claim CreateClaimFailure CreateClaimSuccess)
 
-    ClaimTask time memberId taskId ->
+    CreateClaimSuccess response ->
+      -- max is a noop in this case.
+      ({model | working=False, selectedTaskId=Nothing}, getNewMonth model Basics.max)
+
+    CreateClaimFailure err ->
+      -- max is a noop in this case.
+      ({model | working=False, selectedTaskId=Nothing}, getNewMonth model Basics.max)
+
+
+    VerifyTask time memberId opsTask ->
       (model, Cmd.none)  -- TODO
 
-    VerifyTask time memberId taskId ->
-      (model, Cmd.none)  -- TODO
-
-    UnstaffTask time memberId taskId ->
+    UnstaffTask time memberId opsTask ->
       (model, Cmd.none)  -- TODO
 
     PrevMonth ->
-      ({model | working = True}, getNewMonth model (-))
+      ({model | working = True, selectedTaskId = Nothing}, getNewMonth model (-))
 
     NextMonth ->
-      ({model | working = True}, getNewMonth model (+))
+      ({model | working = True, selectedTaskId = Nothing}, getNewMonth model (+))
 
-    NewMonthSuccess flags ->
-      init flags
+    NewMonthSuccess fetched ->
+      let newModel = {model | working=False, user=fetched.user, tasks=fetched.tasks, year=fetched.year, month=fetched.month}
+      in (newModel, Cmd.none)
 
     NewMonthFailure err ->
       -- TODO: Display some sort of error message.
       case err of
-        Http.Timeout -> (model, Cmd.none)
-        Http.NetworkError -> (model, Cmd.none)
-        Http.UnexpectedPayload _ -> (model, Cmd.none)
-        Http.BadResponse _ _ -> (model, Cmd.none)
+        Http.Timeout -> ({model | working = False, errorStr = Just "Timeout"}, Cmd.none)
+        Http.NetworkError -> ({model | working = False, errorStr = Just "Network Error"}, Cmd.none)
+        Http.UnexpectedPayload s -> ({model | working = False, errorStr = Just s}, Cmd.none)
+        Http.BadResponse _ s -> ({model | working = False, errorStr = Just s}, Cmd.none)
 
     MouseMove newPt ->
       ({model | mousePt = newPt}, Cmd.none)
@@ -230,8 +258,7 @@ getNewMonth model op =
     Task.perform
       NewMonthFailure
       NewMonthSuccess
-      (Http.get decodeFlags url)
-
+      (Http.get decodeFetchable url)
 
 -----------------------------------------------------------------------------
 -- VIEW
@@ -248,9 +275,11 @@ actionButton model opsTask action =
           "S" -> (ClaimTask, "Staff It")
           "V" -> (VerifyTask, "Verify")
           _   -> assertNever "Action can only be S, U, or V"
-        clickMsg = GetTimeAndThen (\time -> (msg time id opsTask.taskId))
+        clickMsg = GetTimeAndThen (\time -> (msg time id opsTask))
       in
-        button [detailButtonStyle, onClick clickMsg] [text buttonText]
+        if action=="S"
+          then button [detailButtonStyle, onClick clickMsg] [text buttonText]
+          else text ""
 
 detailView : Model -> OpsTask -> Html Msg
 detailView model ot =
@@ -274,9 +303,9 @@ detailView model ot =
             else text "Not yet staffed!"
         ]
       , p [taskDetailParaStyle] [text ot.instructions]
-      , button [detailButtonStyle, onClick HideTaskDetail] [text "Close"]
+      , button [detailButtonStyle, onClick (ToggleTaskDetail ot.taskId)] [text "Close"]
       , span []
-          [] --(List.map (actionButton model ot) ot.possibleActions)
+          (List.map (actionButton model ot) ot.possibleActions)
       ]
 
 taskView : Model -> OpsTask -> Html Msg
@@ -355,12 +384,20 @@ loginView model =
           a [href "/logout/"] [text ("Log Out "++name)]
     ]
 
+errorView : Model -> Html Msg
+errorView model =
+  let str =  case model.errorStr of
+    Nothing -> ""
+    Just err -> err
+  in div [] [ text str ]
+
 view : Model -> Html Msg
 view model =
   div [containerStyle, unselectable]
     [ headerView model
     , monthView model
-    --, loginView model
+    , loginView model
+    , errorView model
     ]
 
 
@@ -407,14 +444,13 @@ decodeDayOfTasks =
     |: ("isToday"         := Dec.bool)
     |: ("tasks"           := Dec.list decodeOpsTask)
 
-decodeFlags : Dec.Decoder Flags
-decodeFlags =
-  Dec.succeed Flags
+decodeFetchable : Dec.Decoder Fetchable
+decodeFetchable =
+  Dec.succeed Fetchable
     |: (maybe ("user" := decodeUser))
     |: ("tasks"       := Dec.list (Dec.list decodeDayOfTasks))
     |: ("year"        := Dec.int)
     |: ("month"       := Dec.int)
-
 
 -----------------------------------------------------------------------------
 -- UTILITIES

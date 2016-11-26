@@ -1,13 +1,15 @@
 module TaskApi exposing
   ( Target(ForHuman, ForRest)
   , Claim, createClaim
-  , Credentials
+  , Credentials(LoggedIn, Token)
   , ClockTime, decodeClockTime, clockTimeToStr
   , Duration, durationFromString, durationToString
   , TimeWindow, decodeTimeWindow
+  , RestUrls
   )
 
 import Date exposing(Date)
+import Date.Extra.Format exposing (isoString)
 import Time exposing (Time, hour, minute, second)
 import Json.Encode as Enc
 import Json.Decode as Dec exposing((:=), maybe)
@@ -22,6 +24,16 @@ import Http
 import String
 
 type Target = ForHuman | ForRest
+
+-----------------------------------------------------------------------------
+-- TIME WINDOW
+-----------------------------------------------------------------------------
+
+type alias RestUrls =
+  { memberList: String
+  , taskList: String
+  , claimList: String
+  }
 
 -----------------------------------------------------------------------------
 -- TIME WINDOW
@@ -117,26 +129,22 @@ type alias Claim =
   }
 
 type Credentials
-  = None  -- Use this if the user already has a logged in session
+  = LoggedIn String -- Use this if the user already has a logged in session. String is the csrfToken.
   | Token String
 
-createClaim : Credentials -> Claim -> (Http.RawError -> msg) -> (Http.Response -> msg) -> Cmd msg
-createClaim credentials claim failure success =
+makeClaimBody : Claim -> RestUrls -> Http.Body
+makeClaimBody claim restUrls =
   let
-    -- TODO: These should be passed in from Django, not hard-coded here.
-    claimUrl = "http://localhost:8000/tasks/api/claims/"
-    memberUrl = "http://localhost:8000/members/api/members/"
-    taskUrl = "http://localhost:8000/tasks/api/tasks/"
 
     claimantIdStr = toString claim.claimantId
     taskIdStr = toString claim.taskId
     startOfClaimStr = (toString claim.startOfClaim.hour) ++ ":" ++ (toString claim.startOfClaim.minute) ++ ":00"
     durationOfClaimStr = durationToString ForRest claim.durationOfClaim
-    verifiedOnStr = ""
+    verifiedOnStr = String.left 10 (isoString claim.verifiedOn)
 
-    newClaimBody =
-      [ ("claiming_member", Enc.string (memberUrl ++ claimantIdStr ++ "/"))
-      , ("claimed_task", Enc.string (taskUrl ++ taskIdStr ++ "/"))
+    in
+      [ ("claiming_member", Enc.string (restUrls.memberList ++ claimantIdStr ++ "/"))
+      , ("claimed_task", Enc.string (restUrls.taskList ++ taskIdStr ++ "/"))
       , ("claimed_start_time", Enc.string startOfClaimStr)
       , ("claimed_duration", Enc.string durationOfClaimStr)
       , ("status", Enc.string "C") -- Current
@@ -146,10 +154,13 @@ createClaim credentials claim failure success =
         |> Enc.encode 0
         |> Http.string
 
-    authHeader = case credentials of
-      None -> []
-      Token token -> [("Authentication", "Bearer " ++ token)]
 
+createClaim : Credentials -> RestUrls -> Claim -> (Http.RawError -> msg) -> (Http.Response -> msg) -> Cmd msg
+createClaim credentials restUrls claim failure success =
+  let
+    authHeader = case credentials of
+      LoggedIn csrfToken -> [("X-CSRFToken", csrfToken)]
+      Token token -> [("Authentication", "Bearer " ++ token)]
   in
     Task.perform
       failure
@@ -159,7 +170,7 @@ createClaim credentials claim failure success =
           Http.defaultSettings
           { verb = "POST"
           , headers = [("Content-Type", "application/json")] ++ authHeader
-          , url = claimUrl
-          , body = newClaimBody
+          , url = restUrls.claimList
+          , body = makeClaimBody claim restUrls
           }
       )
