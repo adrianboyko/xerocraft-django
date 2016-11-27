@@ -648,13 +648,15 @@ class Task(make_TaskMixin("Tasks"), TimeWindowedObject):
     def possible_actions_for(self, member:mm.Member):
         actions = set()
 
-        if self.is_active():
+        if self.is_active() and self.scheduled_date >= date.today():
             try:
                 claim = Claim.objects.get(claimed_task=self, claiming_member=member)
                 if claim.status == Claim.STAT_CURRENT:
                     actions.add(Task.ACTION_UNSTAFF)
                     if claim.date_verified is None:
                         actions.add(Task.ACTION_VERIFY)
+                else:
+                    actions.add(Task.ACTION_STAFF)
             except Claim.DoesNotExist:
                 if member in self.all_eligible_claimants() and not self.is_fully_claimed():
                     actions.add(Task.ACTION_STAFF)
