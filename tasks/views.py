@@ -664,7 +664,13 @@ def _ops_calendar_json(request, year, month):
         user = request.user
         actions = task.possible_actions_for(user.member) if user.is_authenticated() else []
 
-        staffed_by = [claimant.friendly_name for claimant in task.claimant_set(Claim.STAT_CURRENT)]
+        staffed_by_names = []
+        users_claim = None
+        for claim in task.claim_set.all():
+            if claim.status == Claim.STAT_CURRENT:
+                staffed_by_names.append(claim.claiming_member.friendly_name)
+            if user.is_authenticated() and user.member == claim.claiming_member:
+                users_claim = claim.pk
 
         return {
             "taskId": task.pk,
@@ -674,8 +680,9 @@ def _ops_calendar_json(request, year, month):
             "instructions": task.instructions,
             "staffingStatus": task.staffing_status(),
             "possibleActions": actions,
-            "staffedBy": staffed_by,
+            "staffedBy": staffed_by_names,
             "taskStatus": task.status,
+            "usersClaimId": users_claim,
         }
 
     def tasks_on_date(x: date):

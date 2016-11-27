@@ -4,11 +4,12 @@ import Html exposing (Html, Attribute, a, div, table, tr, td, th, text, span, bu
 import Html.App as Html
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, on)
-import Http
+import Http exposing (Value(Text,Blob))
 import Task
 import String
 import Time exposing (Time)
 import Date exposing (Date)
+import Date.Extra.Format exposing (isoString)
 import List
 import DynamicStyle exposing (hover, hover')
 import Mouse exposing (Position)
@@ -23,6 +24,7 @@ import Json.Decode exposing((:=), maybe)
 import Json.Decode as Dec
 -- elm-package install --yes elm-community/elm-json-extra
 import Json.Decode.Extra exposing ((|:))
+import Json.Encode as Enc
 
 import TaskApi exposing
   ( Target(ForHuman)
@@ -30,7 +32,7 @@ import TaskApi exposing
   , TimeWindow, decodeTimeWindow
   , Duration, durationToString
   , ClockTime, clockTimeToStr
-  , Claim, createClaim
+  , Claim, createClaim, updateClaim
   , RestUrls
   )
 
@@ -66,6 +68,7 @@ type alias OpsTask =
   , possibleActions: List String
   , staffedBy: List String -- Friendly names
   , taskStatus: String
+  , usersClaimId: Maybe Int
   }
 
 type alias DayOfTasks =
@@ -113,6 +116,7 @@ type alias Model =
   , detailPt: Position  -- Where the detail "popup" is positioned.
   , dragStartPt: Maybe Position  -- Where drag began, if user is dragging.
   , errorStr: Maybe String
+  , errorStr2: Maybe String
   }
 
 init : Flags -> (Model, Cmd Msg)
@@ -129,6 +133,7 @@ init {restUrls, initials, csrfToken} =
       Normal
       (Position 0 0)
       (Position 0 0)
+      Nothing
       Nothing
       Nothing
   , Cmd.none
@@ -151,8 +156,8 @@ type Msg
   | ClaimTask Time Int OpsTask
   | VerifyTask Time Int OpsTask
   | UnstaffTask Time Int OpsTask
-  | CreateClaimSuccess Http.Response
-  | CreateClaimFailure Http.RawError
+  | ClaimOpSuccess Http.Response
+  | ClaimOpFailure Http.RawError
 
   -- For elm-mdl
   | Mdl Material.Msg
@@ -183,27 +188,46 @@ update action model =
 
     ClaimTask time memberId opsTask ->
       case opsTask.timeWindow of
-        Nothing -> Debug.crash "Must not be 'Nothing' at this point"
+        Nothing -> Debug.crash "Must not be 'Nothing' at this point"  -- TODO: Log error, don't crash.
         Just {begin, duration} ->
           let
             claim = Claim opsTask.taskId memberId begin duration (Date.fromTime time)
             creds = LoggedIn model.csrfToken
             newModel = {model | state=OperatingOnTask}
           in
-            (newModel, createClaim creds model.restUrls claim CreateClaimFailure CreateClaimSuccess)
+            (newModel, createClaim creds model.restUrls claim ClaimOpFailure ClaimOpSuccess)
 
-    CreateClaimSuccess response ->
-      (model, getNewMonth model 0)
+    ClaimOpSuccess response ->
+      if response.status >= 400
+        then
+          let
+            str = Just response.statusText
+            str2 = case response.value of
+              Text s -> Just s
+              Blob b -> Nothing
+          in ({model | errorStr=str, errorStr2=str2}, getNewMonth model 0)
+        else
+          ({model | errorStr=Nothing, errorStr2=Nothing}, getNewMonth model 0)
 
-    CreateClaimFailure err ->
-      (model, getNewMonth model 0)
-
+    ClaimOpFailure err ->
+      ({model |  errorStr=Just (httpRawErrToStr err)}, getNewMonth model 0)
 
     VerifyTask time memberId opsTask ->
       (model, Cmd.none)  -- TODO
 
     UnstaffTask time memberId opsTask ->
-      (model, Cmd.none)  -- TODO
+      case opsTask.usersClaimId of
+        Nothing -> (model, Cmd.none)
+        Just claimId ->
+          let
+            creds = LoggedIn model.csrfToken
+            newModel = {model | state=OperatingOnTask}
+            statusField = ("status", Enc.string "A")
+            todayIso = String.left 10 (isoString (Date.fromTime time))
+            dateVerifiedField = ("date_verified", Enc.string todayIso)
+            updateFields = [statusField, dateVerifiedField]
+          in
+            (newModel, updateClaim creds model.restUrls claimId updateFields ClaimOpFailure ClaimOpSuccess)
 
     PrevMonth ->
       ({model | state=SwitchingMonth, selectedTaskId=Nothing}, getNewMonth model -1)
@@ -216,12 +240,7 @@ update action model =
       in (newModel, Cmd.none)
 
     NewMonthFailure err ->
-      -- TODO: Display some sort of error message.
-      case err of
-        Http.Timeout -> ({model | state=Normal, errorStr=Just "Timeout"}, Cmd.none)
-        Http.NetworkError -> ({model | state=Normal, errorStr=Just "Network Error"}, Cmd.none)
-        Http.UnexpectedPayload s -> ({model | state=Normal, errorStr=Just s}, Cmd.none)
-        Http.BadResponse _ s -> ({model | state=Normal, errorStr=Just s}, Cmd.none)
+      ({model | state=Normal, errorStr=Just (httpErrToStr err)}, Cmd.none)
 
     MouseMove newPt ->
       ({model | mousePt = newPt}, Cmd.none)
@@ -281,7 +300,7 @@ actionButton model opsTask action =
           _   -> assertNever "Action can only be S, U, or V"
         clickMsg = GetTimeAndThen (\time -> (msg time id opsTask))
       in
-        if action=="S"
+        if action=="S" || action=="U"
           then button [detailButtonStyle, onClick clickMsg] [text buttonText]
           else text ""
 
@@ -395,10 +414,19 @@ loginView model =
 
 errorView : Model -> Html Msg
 errorView model =
-  let str =  case model.errorStr of
-    Nothing -> ""
-    Just err -> err
-  in div [] [ text str ]
+  let
+    str = case model.errorStr of
+      Nothing -> ""
+      Just err -> err
+    str2 = case model.errorStr2 of
+      Nothing -> ""
+      Just err -> err
+  in
+    div []
+      [ text str
+      , br [] []
+      , text str2
+      ]
 
 view : Model -> Html Msg
 view model =
@@ -435,15 +463,16 @@ decodeUser =
 decodeOpsTask : Dec.Decoder OpsTask
 decodeOpsTask =
   Dec.succeed OpsTask
-    |: ("taskId"            := Dec.int)
-    |: ("isoDate"           := Dec.string)
-    |: ("shortDesc"         := Dec.string)
-    |: (maybe ("timeWindow" := decodeTimeWindow))
-    |: ("instructions"      := Dec.string)
-    |: ("staffingStatus"    := Dec.string)
-    |: ("possibleActions"   := Dec.list Dec.string)
-    |: ("staffedBy"         := Dec.list Dec.string)
-    |: ("taskStatus"        := Dec.string)
+    |: ("taskId"              := Dec.int)
+    |: ("isoDate"             := Dec.string)
+    |: ("shortDesc"           := Dec.string)
+    |: (maybe ("timeWindow"   := decodeTimeWindow))
+    |: ("instructions"        := Dec.string)
+    |: ("staffingStatus"      := Dec.string)
+    |: ("possibleActions"     := Dec.list Dec.string)
+    |: ("staffedBy"           := Dec.list Dec.string)
+    |: ("taskStatus"          := Dec.string)
+    |: (maybe ("usersClaimId" := Dec.int))
 
 decodeDayOfTasks : Dec.Decoder DayOfTasks
 decodeDayOfTasks =
@@ -464,6 +493,20 @@ decodeFetchable =
 -----------------------------------------------------------------------------
 -- UTILITIES
 -----------------------------------------------------------------------------
+
+httpErrToStr : Http.Error -> String
+httpErrToStr err =
+  case err of
+    Http.Timeout -> "Timeout"
+    Http.NetworkError -> "Network Error"
+    Http.UnexpectedPayload s -> s
+    Http.BadResponse _ s -> s
+
+httpRawErrToStr : Http.RawError -> String
+httpRawErrToStr err =
+  case err of
+    Http.RawTimeout -> "Timeout"
+    Http.RawNetworkError -> "Network Error"
 
 px : Int -> String
 px number =

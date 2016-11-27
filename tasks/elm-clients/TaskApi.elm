@@ -1,6 +1,6 @@
 module TaskApi exposing
   ( Target(ForHuman, ForRest)
-  , Claim, createClaim
+  , Claim, createClaim, updateClaim
   , Credentials(LoggedIn, Token)
   , ClockTime, decodeClockTime, clockTimeToStr
   , Duration, durationFromString, durationToString
@@ -115,7 +115,6 @@ durationToString target dhms =
       ForRest ->
         (toString days) ++ " " ++ (pad hours) ++ ":" ++ (pad minutes) ++ ":" ++ (pad seconds)
 
-
 -----------------------------------------------------------------------------
 -- CLAIM
 -----------------------------------------------------------------------------
@@ -132,45 +131,79 @@ type Credentials
   = LoggedIn String -- Use this if the user already has a logged in session. String is the csrfToken.
   | Token String
 
+encodeBody: List (String, Enc.Value) -> Http.Body
+encodeBody pairs =
+  pairs
+    |> Enc.object
+    |> Enc.encode 0
+    |> Http.string
+
 makeClaimBody : Claim -> RestUrls -> Http.Body
 makeClaimBody claim restUrls =
   let
-
     claimantIdStr = toString claim.claimantId
     taskIdStr = toString claim.taskId
     startOfClaimStr = (toString claim.startOfClaim.hour) ++ ":" ++ (toString claim.startOfClaim.minute) ++ ":00"
     durationOfClaimStr = durationToString ForRest claim.durationOfClaim
     verifiedOnStr = String.left 10 (isoString claim.verifiedOn)
+  in
+    [ ("claiming_member", Enc.string (restUrls.memberList ++ claimantIdStr ++ "/"))
+    , ("claimed_task", Enc.string (restUrls.taskList ++ taskIdStr ++ "/"))
+    , ("claimed_start_time", Enc.string startOfClaimStr)
+    , ("claimed_duration", Enc.string durationOfClaimStr)
+    , ("status", Enc.string "C") -- Current
+    , ("date_verified", Enc.string verifiedOnStr)
+    ]
+    |> encodeBody
 
-    in
-      [ ("claiming_member", Enc.string (restUrls.memberList ++ claimantIdStr ++ "/"))
-      , ("claimed_task", Enc.string (restUrls.taskList ++ taskIdStr ++ "/"))
-      , ("claimed_start_time", Enc.string startOfClaimStr)
-      , ("claimed_duration", Enc.string durationOfClaimStr)
-      , ("status", Enc.string "C") -- Current
-      , ("date_verified", Enc.string verifiedOnStr)
-      ]
-        |> Enc.object
-        |> Enc.encode 0
-        |> Http.string
-
-
-createClaim : Credentials -> RestUrls -> Claim -> (Http.RawError -> msg) -> (Http.Response -> msg) -> Cmd msg
-createClaim credentials restUrls claim failure success =
+makeHeaders : Credentials -> List (String, String)
+makeHeaders credentials =
   let
     authHeader = case credentials of
       LoggedIn csrfToken -> [("X-CSRFToken", csrfToken)]
       Token token -> [("Authentication", "Bearer " ++ token)]
   in
-    Task.perform
-      failure
-      success
-      (
-        Http.send
-          Http.defaultSettings
-          { verb = "POST"
-          , headers = [("Content-Type", "application/json")] ++ authHeader
-          , url = restUrls.claimList
-          , body = makeClaimBody claim restUrls
-          }
-      )
+    [("Content-Type", "application/json")] ++ authHeader
+
+createClaim : Credentials -> RestUrls -> Claim -> (Http.RawError -> msg) -> (Http.Response -> msg) -> Cmd msg
+createClaim credentials restUrls claim failure success =
+  Task.perform
+    failure
+    success
+    (
+      Http.send
+        Http.defaultSettings
+        { verb = "POST"
+        , headers = makeHeaders credentials
+        , url = restUrls.claimList
+        , body = makeClaimBody claim restUrls
+        }
+    )
+
+updateClaim : Credentials -> RestUrls -> Int -> List (String, Enc.Value) -> (Http.RawError -> msg) -> (Http.Response -> msg) -> Cmd msg
+updateClaim credentials restUrls claimId fields failure success =
+  Task.perform
+    failure
+    success
+    (
+      Http.send
+        Http.defaultSettings
+        { verb = "PATCH"
+        , headers = makeHeaders credentials
+        , url = restUrls.claimList ++ toStr(claimId) ++ "/"
+        , body = encodeBody fields
+        }
+    )
+
+   -----------------------------------------------------------------------------
+-- UTILITIES
+-----------------------------------------------------------------------------
+
+toStr v =
+  let
+    str = toString v
+  in
+    if String.left 1 str == "\"" then
+      String.dropRight 1 (String.dropLeft 1 str)
+    else
+      str

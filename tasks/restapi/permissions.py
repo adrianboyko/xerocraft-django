@@ -28,6 +28,10 @@ class ClaimPermission(permissions.BasePermission):
         if request.method in permissions.SAFE_METHODS:
             return True
 
+        if request.method == "PATCH":
+            # I believe this is safe because Django subsequently goes to has_object_permissions
+            return True
+
         if request.method == "POST":
 
             # Web interface to REST API sends POST with no body to determine if

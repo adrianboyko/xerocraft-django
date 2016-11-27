@@ -7941,14 +7941,79 @@ var _rluiten$elm_date_extra$Date_Extra_Format$utcIsoString = function (date) {
 };
 var _rluiten$elm_date_extra$Date_Extra_Format$isoFormat = '%Y-%m-%dT%H:%M:%S';
 
+var _user$project$TaskApi$toStr = function (v) {
+	var str = _elm_lang$core$Basics$toString(v);
+	return _elm_lang$core$Native_Utils.eq(
+		A2(_elm_lang$core$String$left, 1, str),
+		'\"') ? A2(
+		_elm_lang$core$String$dropRight,
+		1,
+		A2(_elm_lang$core$String$dropLeft, 1, str)) : str;
+};
+var _user$project$TaskApi$makeHeaders = function (credentials) {
+	var authHeader = function () {
+		var _p0 = credentials;
+		if (_p0.ctor === 'LoggedIn') {
+			return _elm_lang$core$Native_List.fromArray(
+				[
+					{ctor: '_Tuple2', _0: 'X-CSRFToken', _1: _p0._0}
+				]);
+		} else {
+			return _elm_lang$core$Native_List.fromArray(
+				[
+					{
+					ctor: '_Tuple2',
+					_0: 'Authentication',
+					_1: A2(_elm_lang$core$Basics_ops['++'], 'Bearer ', _p0._0)
+				}
+				]);
+		}
+	}();
+	return A2(
+		_elm_lang$core$Basics_ops['++'],
+		_elm_lang$core$Native_List.fromArray(
+			[
+				{ctor: '_Tuple2', _0: 'Content-Type', _1: 'application/json'}
+			]),
+		authHeader);
+};
+var _user$project$TaskApi$encodeBody = function (pairs) {
+	return _evancz$elm_http$Http$string(
+		A2(
+			_elm_lang$core$Json_Encode$encode,
+			0,
+			_elm_lang$core$Json_Encode$object(pairs)));
+};
+var _user$project$TaskApi$updateClaim = F6(
+	function (credentials, restUrls, claimId, fields, failure, success) {
+		return A3(
+			_elm_lang$core$Task$perform,
+			failure,
+			success,
+			A2(
+				_evancz$elm_http$Http$send,
+				_evancz$elm_http$Http$defaultSettings,
+				{
+					verb: 'PATCH',
+					headers: _user$project$TaskApi$makeHeaders(credentials),
+					url: A2(
+						_elm_lang$core$Basics_ops['++'],
+						restUrls.claimList,
+						A2(
+							_elm_lang$core$Basics_ops['++'],
+							_user$project$TaskApi$toStr(claimId),
+							'/')),
+					body: _user$project$TaskApi$encodeBody(fields)
+				}));
+	});
 var _user$project$TaskApi$durationToString = F2(
 	function (target, dhms) {
-		var pad = function (_p0) {
+		var pad = function (_p1) {
 			return A3(
 				_elm_lang$core$String$padLeft,
 				2,
 				_elm_lang$core$Native_Utils.chr('0'),
-				_elm_lang$core$Basics$toString(_p0));
+				_elm_lang$core$Basics$toString(_p1));
 		};
 		var day = 24.0 * _elm_lang$core$Time$hour;
 		var days = _elm_lang$core$Basics$toFloat(
@@ -7960,8 +8025,8 @@ var _user$project$TaskApi$durationToString = F2(
 		var minutes = _elm_lang$core$Basics$toFloat(
 			_elm_lang$core$Basics$floor(ms / _elm_lang$core$Time$minute));
 		var seconds = ms - (minutes * _elm_lang$core$Time$minute);
-		var _p1 = target;
-		if (_p1.ctor === 'ForHuman') {
+		var _p2 = target;
+		if (_p2.ctor === 'ForHuman') {
 			return A2(
 				_elm_lang$core$Basics_ops['++'],
 				_elm_lang$core$Basics$toString(hours + (minutes / 60.0)),
@@ -8003,9 +8068,9 @@ var _user$project$TaskApi$durationFromString = function (s) {
 		s);
 	var partsAsResults = A2(_elm_lang$core$List$map, _elm_lang$core$String$toFloat, partsAsStrs);
 	var unResult = function (x) {
-		var _p2 = x;
-		if (_p2.ctor === 'Ok') {
-			return _p2._0;
+		var _p3 = x;
+		if (_p3.ctor === 'Ok') {
+			return _p3._0;
 		} else {
 			return _elm_lang$core$Native_Utils.crashCase(
 				'TaskApi',
@@ -8013,7 +8078,7 @@ var _user$project$TaskApi$durationFromString = function (s) {
 					start: {line: 85, column: 22},
 					end: {line: 87, column: 33}
 				},
-				_p2)(_p2._0);
+				_p3)(_p3._0);
 		}
 	};
 	var partsAsFloats = A2(_elm_lang$core$List$map, unResult, partsAsResults);
@@ -8102,73 +8167,51 @@ var _user$project$TaskApi$makeClaimBody = F2(
 					':00')));
 		var taskIdStr = _elm_lang$core$Basics$toString(claim.taskId);
 		var claimantIdStr = _elm_lang$core$Basics$toString(claim.claimantId);
-		return _evancz$elm_http$Http$string(
-			A2(
-				_elm_lang$core$Json_Encode$encode,
-				0,
-				_elm_lang$core$Json_Encode$object(
-					_elm_lang$core$Native_List.fromArray(
-						[
-							{
-							ctor: '_Tuple2',
-							_0: 'claiming_member',
-							_1: _elm_lang$core$Json_Encode$string(
-								A2(
-									_elm_lang$core$Basics_ops['++'],
-									restUrls.memberList,
-									A2(_elm_lang$core$Basics_ops['++'], claimantIdStr, '/')))
-						},
-							{
-							ctor: '_Tuple2',
-							_0: 'claimed_task',
-							_1: _elm_lang$core$Json_Encode$string(
-								A2(
-									_elm_lang$core$Basics_ops['++'],
-									restUrls.taskList,
-									A2(_elm_lang$core$Basics_ops['++'], taskIdStr, '/')))
-						},
-							{
-							ctor: '_Tuple2',
-							_0: 'claimed_start_time',
-							_1: _elm_lang$core$Json_Encode$string(startOfClaimStr)
-						},
-							{
-							ctor: '_Tuple2',
-							_0: 'claimed_duration',
-							_1: _elm_lang$core$Json_Encode$string(durationOfClaimStr)
-						},
-							{
-							ctor: '_Tuple2',
-							_0: 'status',
-							_1: _elm_lang$core$Json_Encode$string('C')
-						},
-							{
-							ctor: '_Tuple2',
-							_0: 'date_verified',
-							_1: _elm_lang$core$Json_Encode$string(verifiedOnStr)
-						}
-						]))));
+		return _user$project$TaskApi$encodeBody(
+			_elm_lang$core$Native_List.fromArray(
+				[
+					{
+					ctor: '_Tuple2',
+					_0: 'claiming_member',
+					_1: _elm_lang$core$Json_Encode$string(
+						A2(
+							_elm_lang$core$Basics_ops['++'],
+							restUrls.memberList,
+							A2(_elm_lang$core$Basics_ops['++'], claimantIdStr, '/')))
+				},
+					{
+					ctor: '_Tuple2',
+					_0: 'claimed_task',
+					_1: _elm_lang$core$Json_Encode$string(
+						A2(
+							_elm_lang$core$Basics_ops['++'],
+							restUrls.taskList,
+							A2(_elm_lang$core$Basics_ops['++'], taskIdStr, '/')))
+				},
+					{
+					ctor: '_Tuple2',
+					_0: 'claimed_start_time',
+					_1: _elm_lang$core$Json_Encode$string(startOfClaimStr)
+				},
+					{
+					ctor: '_Tuple2',
+					_0: 'claimed_duration',
+					_1: _elm_lang$core$Json_Encode$string(durationOfClaimStr)
+				},
+					{
+					ctor: '_Tuple2',
+					_0: 'status',
+					_1: _elm_lang$core$Json_Encode$string('C')
+				},
+					{
+					ctor: '_Tuple2',
+					_0: 'date_verified',
+					_1: _elm_lang$core$Json_Encode$string(verifiedOnStr)
+				}
+				]));
 	});
 var _user$project$TaskApi$createClaim = F5(
 	function (credentials, restUrls, claim, failure, success) {
-		var authHeader = function () {
-			var _p4 = credentials;
-			if (_p4.ctor === 'LoggedIn') {
-				return _elm_lang$core$Native_List.fromArray(
-					[
-						{ctor: '_Tuple2', _0: 'X-CSRFToken', _1: _p4._0}
-					]);
-			} else {
-				return _elm_lang$core$Native_List.fromArray(
-					[
-						{
-						ctor: '_Tuple2',
-						_0: 'Authentication',
-						_1: A2(_elm_lang$core$Basics_ops['++'], 'Bearer ', _p4._0)
-					}
-					]);
-			}
-		}();
 		return A3(
 			_elm_lang$core$Task$perform,
 			failure,
@@ -8178,13 +8221,7 @@ var _user$project$TaskApi$createClaim = F5(
 				_evancz$elm_http$Http$defaultSettings,
 				{
 					verb: 'POST',
-					headers: A2(
-						_elm_lang$core$Basics_ops['++'],
-						_elm_lang$core$Native_List.fromArray(
-							[
-								{ctor: '_Tuple2', _0: 'Content-Type', _1: 'application/json'}
-							]),
-						authHeader),
+					headers: _user$project$TaskApi$makeHeaders(credentials),
 					url: restUrls.claimList,
 					body: A2(_user$project$TaskApi$makeClaimBody, claim, restUrls)
 				}));
