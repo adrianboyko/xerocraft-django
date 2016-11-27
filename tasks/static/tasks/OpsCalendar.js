@@ -14888,8 +14888,8 @@ var _user$project$OpsCalendar$assertNever = function (str) {
 	return _elm_lang$core$Native_Utils.crash(
 		'OpsCalendar',
 		{
-			start: {line: 553, column: 3},
-			end: {line: 553, column: 14}
+			start: {line: 570, column: 3},
+			end: {line: 570, column: 14}
 		})(str);
 };
 var _user$project$OpsCalendar$assertNeverHandler = F2(
@@ -14962,8 +14962,8 @@ var _user$project$OpsCalendar$monthName = function (x) {
 			return _elm_lang$core$Native_Utils.crashCase(
 				'OpsCalendar',
 				{
-					start: {line: 526, column: 3},
-					end: {line: 539, column: 63}
+					start: {line: 543, column: 3},
+					end: {line: 556, column: 63}
 				},
 				_p2)('Provide a value from 0 to 11, inclusive');
 	}
@@ -15003,6 +15003,13 @@ var _user$project$OpsCalendar$httpErrToStr = function (err) {
 		default:
 			return _p5._1;
 	}
+};
+var _user$project$OpsCalendar$isoDateStrFromTime = function (time) {
+	return A2(
+		_elm_lang$core$String$left,
+		10,
+		_rluiten$elm_date_extra$Date_Extra_Format$isoString(
+			_elm_lang$core$Date$fromTime(time)));
 };
 var _user$project$OpsCalendar$errorView = function (model) {
 	var str2 = function () {
@@ -15297,7 +15304,7 @@ var _user$project$OpsCalendar$actionButton = F3(
 				function (time) {
 					return A3(msg, time, _p12._0.id, opsTask);
 				});
-			return (_elm_lang$core$Native_Utils.eq(action, 'S') || _elm_lang$core$Native_Utils.eq(action, 'U')) ? A2(
+			return A2(
 				_elm_lang$html$Html$button,
 				_elm_lang$core$Native_List.fromArray(
 					[
@@ -15307,7 +15314,7 @@ var _user$project$OpsCalendar$actionButton = F3(
 				_elm_lang$core$Native_List.fromArray(
 					[
 						_elm_lang$html$Html$text(buttonText)
-					])) : _elm_lang$html$Html$text('');
+					]));
 		}
 	});
 var _user$project$OpsCalendar$DragFinish = function (a) {
@@ -15379,206 +15386,236 @@ var _user$project$OpsCalendar$getNewMonth = F2(
 	});
 var _user$project$OpsCalendar$update = F2(
 	function (action, model) {
-		var _p17 = action;
-		switch (_p17.ctor) {
-			case 'ToggleTaskDetail':
-				var _p19 = _p17._0;
-				var detailModel = _elm_lang$core$Native_Utils.update(
-					model,
-					{
-						selectedTaskId: _elm_lang$core$Maybe$Just(_p19),
-						detailPt: A2(_elm_lang$mouse$Mouse$Position, model.mousePt.x - 200, model.mousePt.y + 12)
-					});
-				var _p18 = model.selectedTaskId;
-				if (_p18.ctor === 'Nothing') {
-					return {ctor: '_Tuple2', _0: detailModel, _1: _elm_lang$core$Platform_Cmd$none};
-				} else {
-					return _elm_lang$core$Native_Utils.eq(_p18._0, _p19) ? {
-						ctor: '_Tuple2',
-						_0: _elm_lang$core$Native_Utils.update(
-							model,
-							{selectedTaskId: _elm_lang$core$Maybe$Nothing}),
-						_1: _elm_lang$core$Platform_Cmd$none
-					} : {ctor: '_Tuple2', _0: detailModel, _1: _elm_lang$core$Platform_Cmd$none};
-				}
-			case 'ClaimTask':
-				var _p22 = _p17._2;
-				var _p20 = _p22.timeWindow;
-				if (_p20.ctor === 'Nothing') {
-					return _elm_lang$core$Native_Utils.crashCase(
-						'OpsCalendar',
-						{
-							start: {line: 190, column: 7},
-							end: {line: 198, column: 93}
-						},
-						_p20)('Must not be \'Nothing\' at this point');
-				} else {
-					var newModel = _elm_lang$core$Native_Utils.update(
+		update:
+		while (true) {
+			var _p17 = action;
+			switch (_p17.ctor) {
+				case 'ToggleTaskDetail':
+					var _p19 = _p17._0;
+					var detailModel = _elm_lang$core$Native_Utils.update(
 						model,
-						{state: _user$project$OpsCalendar$OperatingOnTask});
-					var creds = _user$project$TaskApi$LoggedIn(model.csrfToken);
-					var claim = A5(
-						_user$project$TaskApi$Claim,
-						_p22.taskId,
-						_p17._1,
-						_p20._0.begin,
-						_p20._0.duration,
-						_elm_lang$core$Date$fromTime(_p17._0));
-					return {
-						ctor: '_Tuple2',
-						_0: newModel,
-						_1: A5(_user$project$TaskApi$createClaim, creds, model.restUrls, claim, _user$project$OpsCalendar$ClaimOpFailure, _user$project$OpsCalendar$ClaimOpSuccess)
-					};
-				}
-			case 'ClaimOpSuccess':
-				var _p24 = _p17._0;
-				if (_elm_lang$core$Native_Utils.cmp(_p24.status, 400) > -1) {
-					var str2 = function () {
-						var _p23 = _p24.value;
-						if (_p23.ctor === 'Text') {
-							return _elm_lang$core$Maybe$Just(_p23._0);
+						{
+							selectedTaskId: _elm_lang$core$Maybe$Just(_p19),
+							detailPt: A2(_elm_lang$mouse$Mouse$Position, model.mousePt.x - 200, model.mousePt.y + 12)
+						});
+					var _p18 = model.selectedTaskId;
+					if (_p18.ctor === 'Nothing') {
+						return {ctor: '_Tuple2', _0: detailModel, _1: _elm_lang$core$Platform_Cmd$none};
+					} else {
+						return _elm_lang$core$Native_Utils.eq(_p18._0, _p19) ? {
+							ctor: '_Tuple2',
+							_0: _elm_lang$core$Native_Utils.update(
+								model,
+								{selectedTaskId: _elm_lang$core$Maybe$Nothing}),
+							_1: _elm_lang$core$Platform_Cmd$none
+						} : {ctor: '_Tuple2', _0: detailModel, _1: _elm_lang$core$Platform_Cmd$none};
+					}
+				case 'ClaimTask':
+					var _p24 = _p17._0;
+					var _p23 = _p17._2;
+					var _p22 = _p17._1;
+					var _p20 = _p23.usersClaimId;
+					if (_p20.ctor === 'Just') {
+						var _v15 = A3(_user$project$OpsCalendar$VerifyTask, _p24, _p22, _p23),
+							_v16 = model;
+						action = _v15;
+						model = _v16;
+						continue update;
+					} else {
+						var _p21 = _p23.timeWindow;
+						if (_p21.ctor === 'Nothing') {
+							return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
 						} else {
-							return _elm_lang$core$Maybe$Nothing;
+							var newModel = _elm_lang$core$Native_Utils.update(
+								model,
+								{state: _user$project$OpsCalendar$OperatingOnTask});
+							var creds = _user$project$TaskApi$LoggedIn(model.csrfToken);
+							var claim = A5(
+								_user$project$TaskApi$Claim,
+								_p23.taskId,
+								_p22,
+								_p21._0.begin,
+								_p21._0.duration,
+								_elm_lang$core$Date$fromTime(_p24));
+							return {
+								ctor: '_Tuple2',
+								_0: newModel,
+								_1: A5(_user$project$TaskApi$createClaim, creds, model.restUrls, claim, _user$project$OpsCalendar$ClaimOpFailure, _user$project$OpsCalendar$ClaimOpSuccess)
+							};
 						}
-					}();
-					var str = _elm_lang$core$Maybe$Just(_p24.statusText);
+					}
+				case 'VerifyTask':
+					var _p25 = _p17._2.usersClaimId;
+					if (_p25.ctor === 'Nothing') {
+						return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
+					} else {
+						var statusField = {
+							ctor: '_Tuple2',
+							_0: 'status',
+							_1: _elm_lang$core$Json_Encode$string('C')
+						};
+						var todayIso = _user$project$OpsCalendar$isoDateStrFromTime(_p17._0);
+						var dateVerifiedField = {
+							ctor: '_Tuple2',
+							_0: 'date_verified',
+							_1: _elm_lang$core$Json_Encode$string(todayIso)
+						};
+						var updateFields = _elm_lang$core$Native_List.fromArray(
+							[statusField, dateVerifiedField]);
+						var newModel = _elm_lang$core$Native_Utils.update(
+							model,
+							{state: _user$project$OpsCalendar$OperatingOnTask});
+						var creds = _user$project$TaskApi$LoggedIn(model.csrfToken);
+						return {
+							ctor: '_Tuple2',
+							_0: newModel,
+							_1: A6(_user$project$TaskApi$updateClaim, creds, model.restUrls, _p25._0, updateFields, _user$project$OpsCalendar$ClaimOpFailure, _user$project$OpsCalendar$ClaimOpSuccess)
+						};
+					}
+				case 'UnstaffTask':
+					var _p26 = _p17._2.usersClaimId;
+					if (_p26.ctor === 'Nothing') {
+						return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
+					} else {
+						var todayIso = _user$project$OpsCalendar$isoDateStrFromTime(_p17._0);
+						var dateVerifiedField = {
+							ctor: '_Tuple2',
+							_0: 'date_verified',
+							_1: _elm_lang$core$Json_Encode$string(todayIso)
+						};
+						var statusField = {
+							ctor: '_Tuple2',
+							_0: 'status',
+							_1: _elm_lang$core$Json_Encode$string('A')
+						};
+						var updateFields = _elm_lang$core$Native_List.fromArray(
+							[statusField, dateVerifiedField]);
+						var newModel = _elm_lang$core$Native_Utils.update(
+							model,
+							{state: _user$project$OpsCalendar$OperatingOnTask});
+						var creds = _user$project$TaskApi$LoggedIn(model.csrfToken);
+						return {
+							ctor: '_Tuple2',
+							_0: newModel,
+							_1: A6(_user$project$TaskApi$updateClaim, creds, model.restUrls, _p26._0, updateFields, _user$project$OpsCalendar$ClaimOpFailure, _user$project$OpsCalendar$ClaimOpSuccess)
+						};
+					}
+				case 'ClaimOpSuccess':
+					var _p28 = _p17._0;
+					if (_elm_lang$core$Native_Utils.cmp(_p28.status, 400) > -1) {
+						var str2 = function () {
+							var _p27 = _p28.value;
+							if (_p27.ctor === 'Text') {
+								return _elm_lang$core$Maybe$Just(_p27._0);
+							} else {
+								return _elm_lang$core$Maybe$Nothing;
+							}
+						}();
+						var str = _elm_lang$core$Maybe$Just(_p28.statusText);
+						return {
+							ctor: '_Tuple2',
+							_0: _elm_lang$core$Native_Utils.update(
+								model,
+								{errorStr: str, errorStr2: str2}),
+							_1: A2(_user$project$OpsCalendar$getNewMonth, model, 0)
+						};
+					} else {
+						return {
+							ctor: '_Tuple2',
+							_0: _elm_lang$core$Native_Utils.update(
+								model,
+								{errorStr: _elm_lang$core$Maybe$Nothing, errorStr2: _elm_lang$core$Maybe$Nothing}),
+							_1: A2(_user$project$OpsCalendar$getNewMonth, model, 0)
+						};
+					}
+				case 'ClaimOpFailure':
 					return {
 						ctor: '_Tuple2',
 						_0: _elm_lang$core$Native_Utils.update(
 							model,
-							{errorStr: str, errorStr2: str2}),
+							{
+								errorStr: _elm_lang$core$Maybe$Just(
+									_user$project$OpsCalendar$httpRawErrToStr(_p17._0))
+							}),
 						_1: A2(_user$project$OpsCalendar$getNewMonth, model, 0)
 					};
-				} else {
+				case 'PrevMonth':
 					return {
 						ctor: '_Tuple2',
 						_0: _elm_lang$core$Native_Utils.update(
 							model,
-							{errorStr: _elm_lang$core$Maybe$Nothing, errorStr2: _elm_lang$core$Maybe$Nothing}),
-						_1: A2(_user$project$OpsCalendar$getNewMonth, model, 0)
+							{state: _user$project$OpsCalendar$SwitchingMonth, selectedTaskId: _elm_lang$core$Maybe$Nothing}),
+						_1: A2(_user$project$OpsCalendar$getNewMonth, model, -1)
 					};
-				}
-			case 'ClaimOpFailure':
-				return {
-					ctor: '_Tuple2',
-					_0: _elm_lang$core$Native_Utils.update(
-						model,
-						{
-							errorStr: _elm_lang$core$Maybe$Just(
-								_user$project$OpsCalendar$httpRawErrToStr(_p17._0))
-						}),
-					_1: A2(_user$project$OpsCalendar$getNewMonth, model, 0)
-				};
-			case 'VerifyTask':
-				return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
-			case 'UnstaffTask':
-				var _p25 = _p17._2.usersClaimId;
-				if (_p25.ctor === 'Nothing') {
-					return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
-				} else {
-					var todayIso = A2(
-						_elm_lang$core$String$left,
-						10,
-						_rluiten$elm_date_extra$Date_Extra_Format$isoString(
-							_elm_lang$core$Date$fromTime(_p17._0)));
-					var dateVerifiedField = {
+				case 'NextMonth':
+					return {
 						ctor: '_Tuple2',
-						_0: 'date_verified',
-						_1: _elm_lang$core$Json_Encode$string(todayIso)
+						_0: _elm_lang$core$Native_Utils.update(
+							model,
+							{state: _user$project$OpsCalendar$SwitchingMonth, selectedTaskId: _elm_lang$core$Maybe$Nothing}),
+						_1: A2(_user$project$OpsCalendar$getNewMonth, model, 1)
 					};
-					var statusField = {
-						ctor: '_Tuple2',
-						_0: 'status',
-						_1: _elm_lang$core$Json_Encode$string('A')
-					};
-					var updateFields = _elm_lang$core$Native_List.fromArray(
-						[statusField, dateVerifiedField]);
+				case 'NewMonthSuccess':
+					var _p29 = _p17._0;
 					var newModel = _elm_lang$core$Native_Utils.update(
 						model,
-						{state: _user$project$OpsCalendar$OperatingOnTask});
-					var creds = _user$project$TaskApi$LoggedIn(model.csrfToken);
-					return {
-						ctor: '_Tuple2',
-						_0: newModel,
-						_1: A6(_user$project$TaskApi$updateClaim, creds, model.restUrls, _p25._0, updateFields, _user$project$OpsCalendar$ClaimOpFailure, _user$project$OpsCalendar$ClaimOpSuccess)
-					};
-				}
-			case 'PrevMonth':
-				return {
-					ctor: '_Tuple2',
-					_0: _elm_lang$core$Native_Utils.update(
-						model,
-						{state: _user$project$OpsCalendar$SwitchingMonth, selectedTaskId: _elm_lang$core$Maybe$Nothing}),
-					_1: A2(_user$project$OpsCalendar$getNewMonth, model, -1)
-				};
-			case 'NextMonth':
-				return {
-					ctor: '_Tuple2',
-					_0: _elm_lang$core$Native_Utils.update(
-						model,
-						{state: _user$project$OpsCalendar$SwitchingMonth, selectedTaskId: _elm_lang$core$Maybe$Nothing}),
-					_1: A2(_user$project$OpsCalendar$getNewMonth, model, 1)
-				};
-			case 'NewMonthSuccess':
-				var _p26 = _p17._0;
-				var newModel = _elm_lang$core$Native_Utils.update(
-					model,
-					{state: _user$project$OpsCalendar$Normal, user: _p26.user, tasks: _p26.tasks, year: _p26.year, month: _p26.month});
-				return {ctor: '_Tuple2', _0: newModel, _1: _elm_lang$core$Platform_Cmd$none};
-			case 'NewMonthFailure':
-				return {
-					ctor: '_Tuple2',
-					_0: _elm_lang$core$Native_Utils.update(
-						model,
-						{
-							state: _user$project$OpsCalendar$Normal,
-							errorStr: _elm_lang$core$Maybe$Just(
-								_user$project$OpsCalendar$httpErrToStr(_p17._0))
-						}),
-					_1: _elm_lang$core$Platform_Cmd$none
-				};
-			case 'MouseMove':
-				return {
-					ctor: '_Tuple2',
-					_0: _elm_lang$core$Native_Utils.update(
-						model,
-						{mousePt: _p17._0}),
-					_1: _elm_lang$core$Platform_Cmd$none
-				};
-			case 'DragStart':
-				return {
-					ctor: '_Tuple2',
-					_0: _elm_lang$core$Native_Utils.update(
-						model,
-						{
-							dragStartPt: _elm_lang$core$Maybe$Just(_p17._0)
-						}),
-					_1: _elm_lang$core$Platform_Cmd$none
-				};
-			case 'DragFinish':
-				var _p28 = _p17._0;
-				var _p27 = model.dragStartPt;
-				if (_p27.ctor === 'Nothing') {
-					return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
-				} else {
-					var newDetailPt = A2(_elm_lang$mouse$Mouse$Position, model.detailPt.x + (_p28.x - _p27._0.x), model.detailPt.y + (_p28.y - _p27._0.y));
+						{state: _user$project$OpsCalendar$Normal, user: _p29.user, tasks: _p29.tasks, year: _p29.year, month: _p29.month});
+					return {ctor: '_Tuple2', _0: newModel, _1: _elm_lang$core$Platform_Cmd$none};
+				case 'NewMonthFailure':
 					return {
 						ctor: '_Tuple2',
 						_0: _elm_lang$core$Native_Utils.update(
 							model,
-							{dragStartPt: _elm_lang$core$Maybe$Nothing, detailPt: newDetailPt}),
+							{
+								state: _user$project$OpsCalendar$Normal,
+								errorStr: _elm_lang$core$Maybe$Just(
+									_user$project$OpsCalendar$httpErrToStr(_p17._0))
+							}),
 						_1: _elm_lang$core$Platform_Cmd$none
 					};
-				}
-			case 'Mdl':
-				return A3(_debois$elm_mdl$Material$update, _user$project$OpsCalendar$Mdl, _p17._0, model);
-			default:
-				var failHandler = _user$project$OpsCalendar$assertNeverHandler('Couldn\'t get current time.');
-				return {
-					ctor: '_Tuple2',
-					_0: model,
-					_1: A3(_elm_lang$core$Task$perform, failHandler, _p17._0, _elm_lang$core$Time$now)
-				};
+				case 'MouseMove':
+					return {
+						ctor: '_Tuple2',
+						_0: _elm_lang$core$Native_Utils.update(
+							model,
+							{mousePt: _p17._0}),
+						_1: _elm_lang$core$Platform_Cmd$none
+					};
+				case 'DragStart':
+					return {
+						ctor: '_Tuple2',
+						_0: _elm_lang$core$Native_Utils.update(
+							model,
+							{
+								dragStartPt: _elm_lang$core$Maybe$Just(_p17._0)
+							}),
+						_1: _elm_lang$core$Platform_Cmd$none
+					};
+				case 'DragFinish':
+					var _p31 = _p17._0;
+					var _p30 = model.dragStartPt;
+					if (_p30.ctor === 'Nothing') {
+						return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
+					} else {
+						var newDetailPt = A2(_elm_lang$mouse$Mouse$Position, model.detailPt.x + (_p31.x - _p30._0.x), model.detailPt.y + (_p31.y - _p30._0.y));
+						return {
+							ctor: '_Tuple2',
+							_0: _elm_lang$core$Native_Utils.update(
+								model,
+								{dragStartPt: _elm_lang$core$Maybe$Nothing, detailPt: newDetailPt}),
+							_1: _elm_lang$core$Platform_Cmd$none
+						};
+					}
+				case 'Mdl':
+					return A3(_debois$elm_mdl$Material$update, _user$project$OpsCalendar$Mdl, _p17._0, model);
+				default:
+					var failHandler = _user$project$OpsCalendar$assertNeverHandler('Couldn\'t get current time.');
+					return {
+						ctor: '_Tuple2',
+						_0: model,
+						_1: A3(_elm_lang$core$Task$perform, failHandler, _p17._0, _elm_lang$core$Time$now)
+					};
+			}
 		}
 	});
 var _user$project$OpsCalendar$NextMonth = {ctor: 'NextMonth'};
@@ -15641,17 +15678,17 @@ var _user$project$OpsCalendar$ToggleTaskDetail = function (a) {
 var _user$project$OpsCalendar$detailView = F2(
 	function (model, ot) {
 		var window = function () {
-			var _p29 = ot.timeWindow;
-			if (_p29.ctor === 'Nothing') {
+			var _p32 = ot.timeWindow;
+			if (_p32.ctor === 'Nothing') {
 				return _elm_lang$core$Native_Utils.crashCase(
 					'OpsCalendar',
 					{
-						start: {line: 314, column: 14},
-						end: {line: 316, column: 18}
+						start: {line: 327, column: 14},
+						end: {line: 329, column: 18}
 					},
-					_p29)('Must not be \'Nothing\' at this point');
+					_p32)('Must not be \'Nothing\' at this point');
 			} else {
-				return _p29._0;
+				return _p32._0;
 			}
 		}();
 		var onMouseDown = A2(
@@ -15743,8 +15780,8 @@ var _user$project$OpsCalendar$detailView = F2(
 	});
 var _user$project$OpsCalendar$taskView = F2(
 	function (model, ot) {
-		var _p31 = ot.timeWindow;
-		if (_p31.ctor === 'Nothing') {
+		var _p34 = ot.timeWindow;
+		if (_p34.ctor === 'Nothing') {
 			return _elm_lang$html$Html$text('');
 		} else {
 			var selectedTask = A2(_elm_lang$core$Maybe$withDefault, -1, model.selectedTaskId);
@@ -15781,16 +15818,16 @@ var _user$project$OpsCalendar$taskView = F2(
 var _user$project$OpsCalendar$dayView = F2(
 	function (model, dayOfTasks) {
 		var monthStyle = function () {
-			var _p32 = dayOfTasks.isInTargetMonth;
-			if (_p32 === false) {
+			var _p35 = dayOfTasks.isInTargetMonth;
+			if (_p35 === false) {
 				return _user$project$OpsCalendar$dayOtherMonthStyle;
 			} else {
 				return _user$project$OpsCalendar$dayTargetMonthStyle;
 			}
 		}();
 		var colorStyle = function () {
-			var _p33 = dayOfTasks.isToday;
-			if (_p33 === false) {
+			var _p36 = dayOfTasks.isToday;
+			if (_p36 === false) {
 				return monthStyle;
 			} else {
 				return _user$project$OpsCalendar$dayTodayStyle;

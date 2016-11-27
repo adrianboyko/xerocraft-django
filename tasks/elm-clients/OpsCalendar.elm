@@ -187,15 +187,47 @@ update action model =
               else (detailModel, Cmd.none)
 
     ClaimTask time memberId opsTask ->
-      case opsTask.timeWindow of
-        Nothing -> Debug.crash "Must not be 'Nothing' at this point"  -- TODO: Log error, don't crash.
-        Just {begin, duration} ->
+      case opsTask.usersClaimId of
+        Just claimId ->
+          update (VerifyTask time memberId opsTask) model
+        Nothing ->
+          case opsTask.timeWindow of
+            Nothing -> (model, Cmd.none)  -- Should never get here.
+            Just {begin, duration} ->
+              let
+                claim = Claim opsTask.taskId memberId begin duration (Date.fromTime time)
+                creds = LoggedIn model.csrfToken
+                newModel = {model | state=OperatingOnTask}
+              in
+                (newModel, createClaim creds model.restUrls claim ClaimOpFailure ClaimOpSuccess)
+
+    VerifyTask time memberId opsTask ->
+      case opsTask.usersClaimId of
+        Nothing -> (model, Cmd.none)  -- Should never get here.
+        Just claimId ->
           let
-            claim = Claim opsTask.taskId memberId begin duration (Date.fromTime time)
             creds = LoggedIn model.csrfToken
             newModel = {model | state=OperatingOnTask}
+            todayIso = isoDateStrFromTime time
+            statusField = ("status", Enc.string "C")  -- need this because ClaimTask uses VerifyTask
+            dateVerifiedField = ("date_verified", Enc.string todayIso)
+            updateFields = [statusField, dateVerifiedField]
           in
-            (newModel, createClaim creds model.restUrls claim ClaimOpFailure ClaimOpSuccess)
+            (newModel, updateClaim creds model.restUrls claimId updateFields ClaimOpFailure ClaimOpSuccess)
+
+    UnstaffTask time memberId opsTask ->
+      case opsTask.usersClaimId of
+        Nothing -> (model, Cmd.none)  -- Should never get here.
+        Just claimId ->
+          let
+            creds = LoggedIn model.csrfToken
+            newModel = {model | state=OperatingOnTask}
+            statusField = ("status", Enc.string "A")
+            todayIso = isoDateStrFromTime time
+            dateVerifiedField = ("date_verified", Enc.string todayIso)
+            updateFields = [statusField, dateVerifiedField]
+          in
+            (newModel, updateClaim creds model.restUrls claimId updateFields ClaimOpFailure ClaimOpSuccess)
 
     ClaimOpSuccess response ->
       if response.status >= 400
@@ -211,23 +243,6 @@ update action model =
 
     ClaimOpFailure err ->
       ({model |  errorStr=Just (httpRawErrToStr err)}, getNewMonth model 0)
-
-    VerifyTask time memberId opsTask ->
-      (model, Cmd.none)  -- TODO
-
-    UnstaffTask time memberId opsTask ->
-      case opsTask.usersClaimId of
-        Nothing -> (model, Cmd.none)
-        Just claimId ->
-          let
-            creds = LoggedIn model.csrfToken
-            newModel = {model | state=OperatingOnTask}
-            statusField = ("status", Enc.string "A")
-            todayIso = String.left 10 (isoString (Date.fromTime time))
-            dateVerifiedField = ("date_verified", Enc.string todayIso)
-            updateFields = [statusField, dateVerifiedField]
-          in
-            (newModel, updateClaim creds model.restUrls claimId updateFields ClaimOpFailure ClaimOpSuccess)
 
     PrevMonth ->
       ({model | state=SwitchingMonth, selectedTaskId=Nothing}, getNewMonth model -1)
@@ -300,9 +315,7 @@ actionButton model opsTask action =
           _   -> assertNever "Action can only be S, U, or V"
         clickMsg = GetTimeAndThen (\time -> (msg time id opsTask))
       in
-        if action=="S" || action=="U"
-          then button [detailButtonStyle, onClick clickMsg] [text buttonText]
-          else text ""
+        button [detailButtonStyle, onClick clickMsg] [text buttonText]
 
 detailView : Model -> OpsTask -> Html Msg
 detailView model ot =
@@ -493,6 +506,10 @@ decodeFetchable =
 -----------------------------------------------------------------------------
 -- UTILITIES
 -----------------------------------------------------------------------------
+
+isoDateStrFromTime : Time -> String
+isoDateStrFromTime time =
+  String.left 10 (isoString (Date.fromTime time))
 
 httpErrToStr : Http.Error -> String
 httpErrToStr err =
