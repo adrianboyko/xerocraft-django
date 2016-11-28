@@ -34,7 +34,7 @@ class Command(BaseCommand):
         parser.add_argument('price', type=int, help="The price for the cards being generated.")
         parser.add_argument('-m', '--months', type=int, help="The number of membership months this gift card conveys.")
         parser.add_argument('-d', '--days', type=int, help="The number of membership days this gift card conveys.")
-        parser.add_argument('--dry-run', type=bool, default=False, help="Make the PDF but don't create anything in the database.")
+        parser.add_argument('--dry-run', action="store_true", default=False, help="Make the PDF but don't create anything in the database.")
 
     def create_db_entry(self, redemption_code):
         if self.dry_run:
