@@ -254,7 +254,7 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
             """ Return a value which indicates whether date d is the LAST <x>day of the month. """
             month = d.month
             d += timedelta(weeks = +1)
-            return True if d.month > month else False
+            return d.month != month  # Don't use gt because 1 is not gt 12
 
         month_matches = (d.month==1 and self.jan) \
             or (d.month==2 and self.feb) \
