@@ -302,7 +302,7 @@ class TestNotify(TestCase):
 class GenGiftCards(TestCase):
 
     def test_dry_run(self):
-        management.call_command('gengiftcards', 'TST', '50', '--months', '1', '--dry-run', 'True')
+        management.call_command('gengiftcards', 'TST', '50', '--months', '1', '--dry-run')
         self.assertEqual(MembershipGiftCard.objects.count(), 0)  # because it's a dry run
 
     def test_month_duration(self):
