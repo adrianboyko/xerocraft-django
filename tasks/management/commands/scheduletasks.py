@@ -1,8 +1,14 @@
-__author__ = 'adrian'
 
-from django.core.management.base import BaseCommand, CommandError
-from tasks.models import RecurringTaskTemplate, Task
+# Standard
 import datetime
+
+# Third Party
+from django.core.management.base import BaseCommand, CommandError
+
+# Local
+from tasks.models import RecurringTaskTemplate, Task
+
+__author__ = 'adrian'
 
 
 class Command(BaseCommand):
@@ -25,9 +31,12 @@ class Command(BaseCommand):
                 scheduled_date__isnull=False
             ).order_by('scheduled_date')
 
-            if len(tasks) == 0: continue
+            if len(tasks) == 0:
+                continue
+
             t0 = tasks[0]
-            if t0.scheduled_date >= today: continue
+            if t0.scheduled_date >= today:
+                continue
 
             if t0.missed_date_action == Task.MDA_SLIDE_SELF_AND_LATER:
                 slide_delta = today - t0.scheduled_date
