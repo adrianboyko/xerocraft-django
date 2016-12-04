@@ -25,7 +25,8 @@ class Command(BaseCommand):
     @staticmethod
     def reschedule_missed_dates():
         today = datetime.date.today()
-        for template in RecurringTaskTemplate.objects.all():
+        RTT = RecurringTaskTemplate
+        for template in RTT.objects.filter(missed_date_action=RTT.MDA_SLIDE_SELF_AND_LATER):
             tasks = template.instances.filter(
                 status=Task.STAT_ACTIVE,
                 scheduled_date__isnull=False
@@ -38,14 +39,10 @@ class Command(BaseCommand):
             if t0.scheduled_date >= today:
                 continue
 
-            if t0.missed_date_action == Task.MDA_SLIDE_SELF_AND_LATER:
-                slide_delta = today - t0.scheduled_date
-                for task in tasks:
-                    task.scheduled_date += slide_delta
-                    task.save()
-
-            if t0.missed_date_action == Task.MDA_IGNORE:
-                pass  # No action required
+            slide_delta = today - t0.scheduled_date
+            for task in tasks:
+                task.scheduled_date += slide_delta
+                task.save()
 
     def handle(self, *args, **options):
         Command.reschedule_missed_dates()

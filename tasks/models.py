@@ -136,16 +136,6 @@ def make_TaskMixin(dest_class_alias):
         should_nag = models.BooleanField(default=False,
             help_text="If true, people will be encouraged to work the task via email messages.")
 
-        MDA_IGNORE = "I"
-        MDA_SLIDE_SELF_AND_LATER = "S"
-        MISSED_DATE_ACTIONS = [
-            (MDA_IGNORE, "Don't do anything."),
-            (MDA_SLIDE_SELF_AND_LATER, "Slide task and all later instances forward."),
-        ]
-        missed_date_action = models.CharField(max_length=1, null=True, blank= True,
-            default=MDA_IGNORE, choices=MISSED_DATE_ACTIONS,
-            help_text="What should be done if the task is not completed by the deadline date.")
-
         class Meta:
             abstract = True
 
@@ -198,6 +188,15 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
 
     # Every X days:
     repeat_interval = models.SmallIntegerField(null=True, blank=True, help_text="Minimum number of days between recurrences, e.g. 14 for every two weeks.")
+    MDA_IGNORE = "I"
+    MDA_SLIDE_SELF_AND_LATER = "S"
+    MISSED_DATE_ACTIONS = [
+        (MDA_IGNORE, "Don't do anything."),
+        (MDA_SLIDE_SELF_AND_LATER, "Slide task and all later instances forward."),
+    ]
+    missed_date_action = models.CharField(max_length=1, null=True, blank=True,
+        default=MDA_IGNORE, choices=MISSED_DATE_ACTIONS,
+        help_text="What should be done if the task is not completed by the deadline date.")
 
     def clean(self):
         if self.work_start_time is not None and self.work_duration is None:
@@ -364,7 +363,6 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
                         instructions            =Snippet.expand(self.instructions),
                         short_desc              =self.short_desc,
                         reviewer                =self.reviewer,
-                        missed_date_action      =self.missed_date_action,
                         max_work                =self.max_work,
                         max_workers             =self.max_workers,
                         work_start_time         =self.work_start_time,
@@ -742,7 +740,6 @@ class Task(make_TaskMixin("Tasks"), TimeWindowedObject):
         self.instructions = Snippet.expand(templ.instructions)
         self.short_desc = templ.short_desc
         self.reviewer = templ.reviewer
-        self.missed_date_action = templ.missed_date_action
         self.max_work = templ.max_work
         self.max_workers = templ.max_workers
         self.work_start_time = templ.work_start_time
