@@ -90,7 +90,8 @@ def make_TaskMixin(dest_class_alias):
         Help text describes the fields in terms of their role in Task.
         """
 
-        owner = models.ForeignKey(mm.Member, null=True, blank=True, on_delete=models.SET_NULL, related_name="owned_"+dest_class_alias,
+        owner = models.ForeignKey(mm.Member, null=True, blank=True, related_name="owned_"+dest_class_alias,
+            on_delete=models.SET_NULL,
             help_text="The member that asked for this task to be created or has taken responsibility for its content.<br/>This is almost certainly not the person who will claim the task and do the work.")
 
         instructions = models.TextField(max_length=2048, blank=True,
@@ -111,7 +112,8 @@ def make_TaskMixin(dest_class_alias):
         eligible_tags = models.ManyToManyField(mm.Tag, blank=True, related_name="claimable_"+dest_class_alias,
             help_text="Anybody that has one of the chosen tags is eligible to claim the task.<br/>")
 
-        reviewer = models.ForeignKey(mm.Member, null=True, blank=True, on_delete=models.SET_NULL, related_name="reviewable"+dest_class_alias,
+        reviewer = models.ForeignKey(mm.Member, null=True, blank=True, related_name="reviewable"+dest_class_alias,
+            on_delete=models.SET_NULL,
             help_text="If required, a member who will review the work once its completed.")
 
         # TODO: Maybe rename work_start_time -> window_start and work_duration -> window_size?
@@ -159,7 +161,8 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
     start_date = models.DateField(help_text="Choose a date for the first instance of the recurring task.")
     active = models.BooleanField(default=True, help_text="Additional tasks will be created only when the template is active.")
 
-    default_claimant = models.ForeignKey(mm.Member, null=True, blank=True, on_delete=models.SET_NULL,
+    default_claimant = models.ForeignKey(mm.Member, null=True, blank=True,
+        on_delete=models.SET_NULL,
         help_text="Some recurring tasks (e.g. classes) have a default a default claimant (e.g. the instructor).")
 
     # Weekday of month:
@@ -432,6 +435,7 @@ class Claim(models.Model, TimeWindowedObject):
         help_text="The task against which the claim to work is made.")
 
     claiming_member = models.ForeignKey(mm.Member,
+        on_delete = models.CASCADE, # The claim means nothing if the member is gone.
         help_text = "The member claiming the task.")
 
     stake_date = models.DateField(auto_now_add=True,
@@ -576,7 +580,8 @@ class Task(make_TaskMixin("Tasks"), TimeWindowedObject):
     status = models.CharField(max_length=1, choices=TASK_STATUS_CHOICES, null=False, blank=False, default=STAT_ACTIVE,
         help_text = "The status of this task.")
 
-    recurring_task_template = models.ForeignKey(RecurringTaskTemplate, null=True, blank=True, on_delete=models.SET_NULL, related_name="instances")
+    recurring_task_template = models.ForeignKey(RecurringTaskTemplate, null=True, blank=True, related_name="instances",
+        on_delete=models.PROTECT)  # Existing code assumes that every task has a template.
 
     def clean(self):
 
@@ -802,8 +807,9 @@ class Task(make_TaskMixin("Tasks"), TimeWindowedObject):
 
 class TaskNote(models.Model):
 
-    # Note will become anonymous if author is deleted or author is blank.
-    author = models.ForeignKey(mm.Member, null=True, blank=True, on_delete=models.SET_NULL, related_name="task_notes_authored",
+    # Note will be anonymous if author is null.
+    author = models.ForeignKey(mm.Member, null=True, blank=True, related_name="task_notes_authored",
+        on_delete=models.SET_NULL,  # Note will become anonymous if author is deleted.
         help_text="The member who wrote this note.")
 
     when_written = models.DateTimeField(null=False, auto_now_add=True,
@@ -812,7 +818,8 @@ class TaskNote(models.Model):
     content = models.TextField(max_length=2048,
         help_text="Anything you want to say about the task. Questions, hints, problems, review feedback, etc.")
 
-    task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name='notes')
+    task = models.ForeignKey(Task, related_name='notes',
+        on_delete=models.CASCADE)  # The note is useless if the task is deleted.
 
     CRITICAL = "C" # The note describes a critical issue that must be resolved. E.g. work estimate is too low.
     RESOLVED = "R" # The note was previously listed as CRITICAL but the issue has been resolved.
@@ -907,8 +914,9 @@ class Worker(models.Model):
 
 class WorkNote(models.Model):
 
-    # Note will become anonymous if author is deleted or author is blank.
-    author = models.ForeignKey(mm.Member, null=True, blank=True, on_delete=models.SET_NULL, related_name="work_notes_authored",
+    # Note will be anonymous if author is null.
+    author = models.ForeignKey(mm.Member, null=True, blank=True, related_name="work_notes_authored",
+        on_delete=models.SET_NULL,  # Note will become anonymous if author is deleted.
         help_text="The member who wrote this note.")
 
     when_written = models.DateTimeField(null=False, auto_now_add=True,
@@ -917,7 +925,8 @@ class WorkNote(models.Model):
     content = models.TextField(max_length=2048,
         help_text="Anything you want to say about the work done.")
 
-    work = models.ForeignKey(Work, on_delete=models.CASCADE, related_name='notes')
+    work = models.ForeignKey(Work, related_name='notes',
+        on_delete=models.CASCADE)  # Notes about work are useless if work is deleted.
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # UNAVAILABILITY
@@ -925,8 +934,9 @@ class WorkNote(models.Model):
 
 class UnavailableDates(models.Model):
 
-    who = models.ForeignKey(Worker, null=True, blank=True, on_delete=models.SET_NULL,
-        help_text="The member who wrote this note.")
+    who = models.ForeignKey(Worker, null=True, blank=True,
+        on_delete=models.CASCADE,  # Unavailability info is uninteresting if the worker is deleted.
+        help_text="The worker who will be unavailable.")
 
     start_date = models.DateField(
         help_text="The first date (inclusive) on which the person will be unavailable.")
