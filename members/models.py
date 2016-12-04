@@ -268,6 +268,14 @@ class Pushover(models.Model):
     key = models.CharField(max_length=30, null=False, blank=False,
         help_text="The member's User Key on Pushover.com")
 
+    @staticmethod
+    def getkey(member: Member):
+        try:
+            p = Pushover.objects.get(who=member)
+            return p.key
+        except Pushover.DoesNotExist:
+            return None
+
 
 class Tagging(models.Model):
     """ Intermediate table representing the many-tomany relation between Member and Tag
