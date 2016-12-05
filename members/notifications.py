@@ -21,7 +21,13 @@ else:
 
 
 # REVIEW: This sometimes fails. Should it be an asynchronous task with retries?
-def notify(target_member: Member, title: str, message: str):
+def notify(
+  target_member: Member,
+  title: str,
+  message: str,
+  url: str = None,
+  url_title: str = None):
+
     if not pushover_available:
         return
 
@@ -33,6 +39,6 @@ def notify(target_member: Member, title: str, message: str):
 
     try:
         client = pushover.Client(target_key)
-        client.send_message(message, title=title)
+        client.send_message(message, title=title, url=url, url_title=url_title)
     except Exception as e:
         logger.error("Couldn't send msg to %s because %s", str(target_member), str(e))
