@@ -4,7 +4,7 @@ from hashlib import md5
 from datetime import date, datetime, timedelta
 import logging
 import json
-from typing import Generator
+from typing import Generator, Tuple
 import calendar
 
 # Third Party
@@ -113,6 +113,27 @@ def visitevent_departure_content(member, member_card_str, visit_event_type):
         'member_card_str'   : member_card_str,
     })
     return template.render(context)
+
+
+def note_task_done(request, task_pk, auth_token):
+
+    task, nag = _get_task_and_nag(task_pk, auth_token)  # type: Tuple[Task, Nag]
+
+    task.status = Task.STAT_DONE
+    task.save()
+    # TODO: Should also note work done, but I don't have an immediate need for that.
+
+    finisher = nag.who  # type: Member
+    finisher.worker.populate_calendar_token()  # Idempotent
+
+    params = {
+        'title': "Done",
+        'message': "Thank You!",
+        'friendly_name': finisher.friendly_name,
+        'cal_token': finisher.worker.calendar_token,
+    }
+
+    return render(request, 'tasks/simple-generic-response.html', params)
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =

@@ -22,10 +22,15 @@ urlpatterns = [
     url(r'^will-work-now/(?P<task_pk>[0-9]+)_(?P<member_card_str>[-_a-zA-Z0-9]{32})/$', views.will_work_now, name='will-work-now'),
     url(r'^record_work/(?P<task_pk>[0-9]+)_(?P<member_card_str>[-_a-zA-Z0-9]{32})/$', views.record_work, name='record_work'),
 
-    # Nag re tasks that need volunteers:
-    url(r'^offer-task/(?P<task_pk>[0-9]+)_(?P<auth_token>[-_a-zA-Z0-9]{32})/$', views.offer_task, name='offer-task'),
-    url(r'^offer-more-tasks/(?P<task_pk>[0-9]+)_(?P<auth_token>[-_a-zA-Z0-9]{32})/$', views.offer_more_tasks, name='offer-more-tasks'),
-    url(r'^offers-done/(?P<auth_token>[-_a-zA-Z0-9]{32})/$', views.offers_done, name='offers-done'),
+    # Nag related views:
+    url(r'^offer-task/(?P<task_pk>[0-9]+)_(?P<auth_token>[-_a-zA-Z0-9]{32})/$',
+        views.offer_task, name='offer-task'),
+    url(r'^offer-more-tasks/(?P<task_pk>[0-9]+)_(?P<auth_token>[-_a-zA-Z0-9]{32})/$',
+        views.offer_more_tasks, name='offer-more-tasks'),
+    url(r'^offers-done/(?P<auth_token>[-_a-zA-Z0-9]{32})/$',
+        views.offers_done, name='offers-done'),
+    url(r'^note_task_done/(?P<task_pk>[0-9]+)_(?P<auth_token>[-_a-zA-Z0-9]{32})/$',
+        views.note_task_done, name='note-task-done'),
 
     # Verify auto claims:
     url(r'^verify-claim/(?P<task_pk>[0-9]+)_(?P<claim_pk>[0-9]+)_(?P<will_do>[YN])_(?P<auth_token>[-_a-zA-Z0-9]{32})/$', views.verify_claim, name='verify-claim'),
