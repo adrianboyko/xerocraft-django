@@ -69,76 +69,77 @@ HOST = "https://" + Site.objects.get_current().domain
 
 @receiver(post_save, sender=VisitEvent)
 def maintenance_nag(sender, **kwargs):
-    try:
-        visit = kwargs.get('instance')  # type: VisitEvent
-
-        # We're only interested in arrivals
-        if visit.event_type != VisitEvent.EVT_ARRIVAL:
-            return
-
-        # Only act on a member's first visit of the day.
-        num_visits_today = VisitEvent.objects.filter(
-            who=visit.who,
-            event_type=VisitEvent.EVT_ARRIVAL,
-            when__gte=date.today(),
-        ).count()
-        if num_visits_today > 1:
-            return
-
-        # This gets tasks that are scheduled like maintenance tasks.
-        # I.e. those that need to be done every X days, but can slide.
-        tasks = Task.objects.filter(
-            eligible_claimants=visit.who,
-            scheduled_date=date.today(),
-            status=Task.STAT_ACTIVE,
-            should_nag=True,
-            recurring_task_template__repeat_interval__isnull=False,
-            recurring_task_template__missed_date_action=RecurringTaskTemplate.MDA_SLIDE_SELF_AND_LATER,
-        )
-
-        # Bail out if the member doesn't have a pushover key.
-        if Pushover.getkey(visit.who) is None:
-            if len(tasks) > 0:
-                logger.info(
-                    "Wanted to notify %s of task(s) but Pushover key not available.",
-                    visit.who.friendly_name
-                )
-            return
-
-        # Nag by sending a notification for each task the member could work.
-        for task in tasks:  # type: Task
-
-            # Create the nag
-            b64, md5 = Member.generate_auth_token_str(
-                lambda token: Nag.objects.filter(auth_token_md5=token).count() == 0  # uniqueness test
-            )
-            nag = Nag.objects.create(who=visit.who, auth_token_md5=md5)
-            nag.tasks.add(task)
-
-            # Generate an informative message
-            try:
-                last_done = Task.objects.filter(
-                    scheduled_date__lt=date.today(),
-                    status=Task.STAT_DONE,
-                    recurring_task_template=task.recurring_task_template,
-                ).latest('scheduled_date')
-                delta = date.today() - last_done.scheduled_date  # type: timedelta
-                message = "This task was last completed {} days ago!\n".format(delta.days)
-            except Task.DoesNotExist:
-                message = ""
-            message += "If you can complete this task today, please click the link AFTER the work is done."
-
-            relative = reverse('task:note-task-done', kwargs={'task_pk': task.id, 'auth_token': b64})
-            # Send the notification
-            notifications.notify(
-                visit.who,
-                task.short_desc,
-                message,
-                url=HOST+relative,
-                url_title="I Did It!",
-            )
-
-    except Exception as e:
-        # Makes sure that problems here do not prevent subsequent processing.
-        logger.error("Problem in maintenance_nag: %s", str(e))
+    pass
+    # try:
+    #     visit = kwargs.get('instance')  # type: VisitEvent
+    #
+    #     # We're only interested in arrivals
+    #     if visit.event_type != VisitEvent.EVT_ARRIVAL:
+    #         return
+    #
+    #     # Only act on a member's first visit of the day.
+    #     num_visits_today = VisitEvent.objects.filter(
+    #         who=visit.who,
+    #         event_type=VisitEvent.EVT_ARRIVAL,
+    #         when__gte=date.today(),
+    #     ).count()
+    #     if num_visits_today > 1:
+    #         return
+    #
+    #     # This gets tasks that are scheduled like maintenance tasks.
+    #     # I.e. those that need to be done every X days, but can slide.
+    #     tasks = Task.objects.filter(
+    #         eligible_claimants=visit.who,
+    #         scheduled_date=date.today(),
+    #         status=Task.STAT_ACTIVE,
+    #         should_nag=True,
+    #         recurring_task_template__repeat_interval__isnull=False,
+    #         recurring_task_template__missed_date_action=RecurringTaskTemplate.MDA_SLIDE_SELF_AND_LATER,
+    #     )
+    #
+    #     # Bail out if the member doesn't have a pushover key.
+    #     if Pushover.getkey(visit.who) is None:
+    #         if len(tasks) > 0:
+    #             logger.info(
+    #                 "Wanted to notify %s of task(s) but Pushover key not available.",
+    #                 visit.who.friendly_name
+    #             )
+    #         return
+    #
+    #     # Nag by sending a notification for each task the member could work.
+    #     for task in tasks:  # type: Task
+    #
+    #         # Create the nag
+    #         b64, md5 = Member.generate_auth_token_str(
+    #             lambda token: Nag.objects.filter(auth_token_md5=token).count() == 0  # uniqueness test
+    #         )
+    #         nag = Nag.objects.create(who=visit.who, auth_token_md5=md5)
+    #         nag.tasks.add(task)
+    #
+    #         # Generate an informative message
+    #         try:
+    #             last_done = Task.objects.filter(
+    #                 scheduled_date__lt=date.today(),
+    #                 status=Task.STAT_DONE,
+    #                 recurring_task_template=task.recurring_task_template,
+    #             ).latest('scheduled_date')
+    #             delta = date.today() - last_done.scheduled_date  # type: timedelta
+    #             message = "This task was last completed {} days ago!\n".format(delta.days)
+    #         except Task.DoesNotExist:
+    #             message = ""
+    #         message += "If you can complete this task today, please click the link AFTER the work is done."
+    #
+    #         relative = reverse('task:note-task-done', kwargs={'task_pk': task.id, 'auth_token': b64})
+    #         # Send the notification
+    #         notifications.notify(
+    #             visit.who,
+    #             task.short_desc,
+    #             message,
+    #             url=HOST+relative,
+    #             url_title="I Did It!",
+    #         )
+    #
+    # except Exception as e:
+    #     # Makes sure that problems here do not prevent subsequent processing.
+    #     logger.error("Problem in maintenance_nag: %s", str(e))
 
