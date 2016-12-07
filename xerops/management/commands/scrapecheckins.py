@@ -126,13 +126,10 @@ class CheckinScraper(Scraper):
                 # Failure on a particular check-in doesn't mean we give up on the rest.
                 # Just log the error and carry on with the rest.
                 # REVIEW: Might want to give up if there are "too many" errors.
-                exc_info = sys.exc_info()
-                #traceback.print_exception(*exc_info)
-                self.logger.error("Failure while processing checkin for %s (%s), %s",
+                self.logger.exception("Failure while processing check-in for %s (%s).",
                     attrs[CHECKIN_NAME_KEY],
                     attrs[CHECKIN_USERID_KEY],
-                    str(exc_info[0]))
-
+                )
         self.logout()
 
 
