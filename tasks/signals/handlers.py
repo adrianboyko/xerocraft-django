@@ -123,10 +123,10 @@ def maintenance_nag(sender, **kwargs):
                     recurring_task_template=task.recurring_task_template,
                 ).latest('scheduled_date')
                 delta = date.today() - last_done.scheduled_date  # type: timedelta
-                message = "This task was last completed {} days ago!\n".format(delta.days)
+                message = "This task was last completed {} days ago!".format(delta.days)
             except Task.DoesNotExist:
                 message = ""
-            message += "If you can complete this task today, please click the link AFTER the work is done."
+            message += " If you can complete this task today, please click the link AFTER the work is done."
 
             relative = reverse('task:note-task-done', kwargs={'task_pk': task.id, 'auth_token': b64})
             # Send the notification
@@ -137,6 +137,16 @@ def maintenance_nag(sender, **kwargs):
                 url=HOST+relative,
                 url_title="I Did It!",
             )
+
+            # Send a notification to manager(s) to let them know that somebody was asked to do the task.
+            # TODO: Shouldn't have a hard-coded userid here. Make configurable, perhaps with tags.
+            mgr = Member.objects.get(auth_user__username='adrianb')
+            if visit.who != mgr:
+                notifications.notify(
+                    mgr,
+                    task.short_desc,
+                    visit.who.friendly_name + " was asked to work this task.",
+                )
 
     except Exception as e:
         # Makes sure that problems here do not prevent subsequent processing.
