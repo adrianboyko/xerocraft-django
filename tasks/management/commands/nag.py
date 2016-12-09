@@ -163,7 +163,9 @@ class Command(BaseCommand):
             claimed_task__scheduled_date__range=[today+THREEDAYS, today+FOURDAYS],
             # REVIEW: Is the following 'claiming_member' restriction actually required?
             claiming_member=F('claimed_task__recurring_task_template__default_claimant'),
-            date_verified__isnull=True)
+            date_verified__isnull=True,
+            claiming_member__worker__should_nag=True,
+        )
 
         if len(claims) == 0:
             # No default claims to process.
@@ -173,9 +175,11 @@ class Command(BaseCommand):
         html_content_template = get_template('tasks/email-verify-claim.html')
 
         for claim in claims:
+            if not claim.claiming_member.worker.should_nag:
+                continue
+
             b64, md5 = Member.generate_auth_token_str(
                 lambda token: Nag.objects.filter(auth_token_md5=token).count() == 0)  # uniqueness test
-
             nag = Nag.objects.create(who=claim.claiming_member, auth_token_md5=md5)
             nag.claims.add(claim)
             nag.tasks.add(claim.claimed_task)
