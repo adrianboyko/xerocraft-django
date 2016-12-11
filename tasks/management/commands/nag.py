@@ -80,6 +80,12 @@ class Command(BaseCommand):
             if (not task.is_active()) or task.is_fully_claimed():
                 continue
 
+            # Skip tasks that repeat at intervals and can slide. Nags for these will be
+            # notifications pushed when an eligible worker walks into the facility.
+            rtt = task.recurring_task_template
+            if rtt.repeat_interval is not None and rtt.missed_date_action == rtt.MDA_SLIDE_SELF_AND_LATER:
+                continue
+
             potentials = task.all_eligible_claimants()
             potentials -= task.claimant_set(Claim.STAT_CURRENT)
             potentials -= task.claimant_set(Claim.STAT_UNINTERESTED)
