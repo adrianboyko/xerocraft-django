@@ -588,6 +588,17 @@ class TestViews(TestCase):
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
+class TestOpsCalendarSpa(TestCase):
+
+    def test_anonymous_user(self):
+        client = Client()
+        url = reverse('task:ops-calendar-spa')
+        response = client.get(url)
+        self.assertEqual(response.status_code, 200)
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
 class RunSchedAndNagCmds(TestCase):
     """It's best to run scheduletasks before nag, so this test does both."""
 
