@@ -52,6 +52,11 @@ class ClaimPermission(permissions.BasePermission):
             claiming_member = mm.Member.objects.get(pk=claiming_member_pk)
             claimed_task = tm.Task.objects.get(pk=claimed_task_pk)  # type: tm.Task
 
+            # Not allowed to claim a task that's already fully claimed.
+            if request.data["status"] == tm.Claim.STAT_CURRENT:
+                if claimed_task.is_fully_claimed():
+                    return False
+
             if claiming_member not in claimed_task.eligible_claimants.all():
                 # Don't allow non-eligible claimant.
                 return False
