@@ -715,10 +715,12 @@ def _ops_calendar_json(request, year, month):
             "tasks":[task_json(t) for t in task_list_for_date]
         }
 
+    user_info = None
     u = request.user
-    m = u.member
+    if u.is_authenticated():
+        user_info = {"id": u.member.pk, "name": u.member.friendly_name}
     return {
-        "user": {"id": m.pk, "name": m.friendly_name} if u.is_authenticated() else None,
+        "user": user_info,
         "tasks": [list(tasks_on_date(day) for day in week) for week in calpage],
         "year": year,
         "month": month,
