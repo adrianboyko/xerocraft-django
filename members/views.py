@@ -452,14 +452,18 @@ class WifiMacDetectedViewSet(viewsets.ModelViewSet):
 # RFID CARDS
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-def rfid_entry_granted(request, rfid_cardnum_hashed):
+def rfid_entry_requested(request, rfid_cardnum):
+    return JsonResponse({'failure': "Not yet implemented."})
+
+
+def rfid_entry_granted(request, rfid_cardnum_hash):
     return JsonResponse({'success': "Information noted."})
 
 
 def rfid_entry_denied(request, rfid_cardnum):
     # TODO: Shouldn't have a hard-coded userid here. Make configurable, perhaps with tags.
-    recipient = Member.objects.get(auth_user__username='adrianb')
-    notify(recipient, "Entry Denied", rfid_cardnum)
+    #recipient = Member.objects.get(auth_user__username='adrianb')
+    #notify(recipient, "Entry Denied", rfid_cardnum)
     return JsonResponse({'success': "Information noted."})
 
 
