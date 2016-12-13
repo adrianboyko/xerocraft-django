@@ -42,6 +42,6 @@ urlpatterns = [
 
     # RFID cards
     url(r'^rfid-entry-requested/(?P<rfid_cardnum>[0-9]+)/$', views.rfid_entry_requested, name='rfid-entry-requested'),
-    url(r'^rfid-entry-granted/(?P<rfid_cardnum_hash>[a-fA-f0-9]{32})/$', views.rfid_entry_granted, name='rfid-entry-granted'),
+    url(r'^rfid-entry-granted/(?P<rfid_cardnum>[0-9]+)/$', views.rfid_entry_granted, name='rfid-entry-granted'),
     url(r'^rfid-entry-denied/(?P<rfid_cardnum>[0-9]+)/$', views.rfid_entry_denied, name='rfid-entry-denied'),
 ]

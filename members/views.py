@@ -13,6 +13,7 @@ from dateutil.relativedelta import relativedelta
 from django.shortcuts import render, redirect
 from django.http import HttpResponse, JsonResponse
 from django.core.urlresolvers import reverse
+from django.core.exceptions import PermissionDenied
 from django.contrib.auth.decorators import login_required
 from django.views.generic import View
 from django.conf import settings
@@ -452,18 +453,37 @@ class WifiMacDetectedViewSet(viewsets.ModelViewSet):
 # RFID CARDS
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
+# REVIEW: How can this be made more secure? Require specific token?
+# TODO: Add request throttling
+def inside_facility_only(function):
+    def wrap(request, *args, **kwargs):
+        if FACILITY_PUBLIC_IP is None:
+            # If the public IP is not specified in settings, we can't tell if we should allow this request.
+            # So we'll default to NOT allowing it.
+            raise PermissionDenied
+        elif request_is_from_host(request, FACILITY_PUBLIC_IP):
+            # Respond since the request is coming from INSIDE our facility.
+            return function(request, *args, **kwargs)
+        else:
+            # Deny since the request is coming from OUTSIDE out facility.
+            raise PermissionDenied
+    wrap.__doc__=function.__doc__
+    wrap.__name__=function.__name__
+    return wrap
+
+
+@inside_facility_only
 def rfid_entry_requested(request, rfid_cardnum):
     return JsonResponse({'failure': "Not yet implemented."})
 
 
-def rfid_entry_granted(request, rfid_cardnum_hash):
+@inside_facility_only
+def rfid_entry_granted(request, rfid_cardnum):
     return JsonResponse({'success': "Information noted."})
 
 
+@inside_facility_only
 def rfid_entry_denied(request, rfid_cardnum):
-    # TODO: Shouldn't have a hard-coded userid here. Make configurable, perhaps with tags.
-    #recipient = Member.objects.get(auth_user__username='adrianb')
-    #notify(recipient, "Entry Denied", rfid_cardnum)
     return JsonResponse({'success': "Information noted."})
 
 
