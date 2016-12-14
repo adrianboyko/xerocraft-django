@@ -474,7 +474,27 @@ def inside_facility_only(function):
 
 @inside_facility_only
 def rfid_entry_requested(request, rfid_cardnum):
-    return JsonResponse({'failure': "Not yet implemented."})
+
+    member = Member.get_by_card_str(rfid_cardnum)
+    if member is None:
+        json = {'card_registered': False}
+    else:
+        try:
+            latest_pm = Membership.objects.filter(member=member).latest('start_date')
+            json = {
+                'card_registered': True,
+                'membership_current': member.is_currently_paid(),
+                'membership_start_date': latest_pm.start_date,
+                'membership_end_date': latest_pm.end_date,
+            }
+        except Membership.DoesNotExist:
+            json = {
+                'card_registered': True,
+                'membership_current': False,
+                'membership_start_date': None,
+                'membership_end_date': None,
+            }
+    return JsonResponse(json)
 
 
 @inside_facility_only

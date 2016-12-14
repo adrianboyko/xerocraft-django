@@ -41,7 +41,7 @@ urlpatterns = [
     url(r'^csv/monthly-accrued-membership-download/$', views.csv_monthly_accrued_membership_download, name='csv-monthly-accrued-membership_download'),
 
     # RFID cards
-    url(r'^rfid-entry-requested/(?P<rfid_cardnum>[0-9]+)/$', views.rfid_entry_requested, name='rfid-entry-requested'),
-    url(r'^rfid-entry-granted/(?P<rfid_cardnum>[0-9]+)/$', views.rfid_entry_granted, name='rfid-entry-granted'),
-    url(r'^rfid-entry-denied/(?P<rfid_cardnum>[0-9]+)/$', views.rfid_entry_denied, name='rfid-entry-denied'),
+    url(r'^rfid-entry-requested/(?P<rfid_cardnum>[0-9]{1,32})/$', views.rfid_entry_requested, name='rfid-entry-requested'),
+    url(r'^rfid-entry-granted/(?P<rfid_cardnum>[0-9]{1,32})/$', views.rfid_entry_granted, name='rfid-entry-granted'),
+    url(r'^rfid-entry-denied/(?P<rfid_cardnum>[0-9]{1,32})/$', views.rfid_entry_denied, name='rfid-entry-denied'),
 ]

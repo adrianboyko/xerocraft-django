@@ -3,8 +3,10 @@
 from datetime import date, timedelta
 import json
 import os
+import hashlib
 
 # Third Party
+from django.conf import settings
 from django.test import Client
 from django.test import TestCase
 from django.contrib.auth.models import User
@@ -19,6 +21,7 @@ from members.models import Member, Tag, Tagging, VisitEvent, Membership, Pushove
 from members.views import _calculate_accrued_membership_revenue
 from members.notifications import pushover_available
 from members.management.commands.membershipnudge import Command as MembershipNudgeCmd
+import members.views as views
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
@@ -312,3 +315,105 @@ class GenGiftCards(TestCase):
     def test_day_duration(self):
         management.call_command('gengiftcards', 'TST', '50', '--days', '14')
         self.assertEqual(MembershipGiftCard.objects.filter(day_duration=14).count(), 30)
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# RFID_ENTRY
+
+class RfidEntry(TestCase):
+
+    def setUp(self):
+        self.unregistered_card = "12345678901234567890123456789012"
+        self.registered_card = "987654321"
+        self.memb = None
+        self.client = Client()
+        u = User.objects.create_user(
+            username='fake1',
+            first_name="Aaaa", last_name="Bbbb",
+            password="fake1",
+            email="fake@example.com",
+        )
+        self.memb = u.member  # type: Member
+        self.memb.membership_card_md5 = hashlib.md5(self.registered_card.encode()).hexdigest()
+        self.memb.clean()
+        self.memb.save()
+
+        # This simulates requests from inside the facility.
+        views.FACILITY_PUBLIC_IP = "127.0.0.1"
+
+    def tearDown(self):
+        views.FACILITY_PUBLIC_IP = settings.XEROPS_FACILITY_PUBLIC_IP
+
+    def test_ip(self):
+
+        # The card number used for this test doesn't matter.
+        # We're only testing handling of IP addresses.
+
+        # This simulates a request from outside the facility.
+        views.FACILITY_PUBLIC_IP = "1.1.1.1"
+        path = reverse('memb:rfid-entry-granted', args=[self.registered_card])
+        response = self.client.get(path)
+        self.assertTrue(response.status_code == 403)  # Permission denied.
+
+        # This simulates a request from inside the facility.
+        views.FACILITY_PUBLIC_IP = "127.0.0.1"
+        path = reverse('memb:rfid-entry-granted', args=[self.registered_card])
+        response = self.client.get(path)
+        self.assertTrue(response.status_code == 200)
+
+    def test_unregistered_card(self):
+        path = reverse('memb:rfid-entry-requested', args=[self.unregistered_card])
+        response = self.client.get(path)
+        self.assertTrue(response.status_code == 200)
+        jr = json.loads(response.content.decode())
+        self.assertFalse(jr['card_registered'])
+
+    def test_registered_card_never_paid(self):
+        path = reverse('memb:rfid-entry-requested', args=[self.registered_card])
+        response = self.client.get(path)
+        self.assertTrue(response.status_code == 200)
+        jr = json.loads(response.content.decode())
+        self.assertTrue(jr['card_registered'])
+        self.assertFalse(jr['membership_current'])
+        self.assertIsNone(jr['membership_start_date'])
+        self.assertIsNone(jr['membership_end_date'])
+
+    def test_registered_card_currently_paid(self):
+        Membership.objects.create(
+            member=self.memb,
+            start_date=date.today()-timedelta(days=7),
+            end_date = date.today()+timedelta(days=7),
+        )
+        path = reverse('memb:rfid-entry-requested', args=[self.registered_card])
+        response = self.client.get(path)
+        self.assertTrue(response.status_code == 200)
+        jr = json.loads(response.content.decode())
+        self.assertTrue(jr['card_registered'])
+        self.assertTrue(jr['membership_current'])
+        self.assertIsNotNone(jr['membership_start_date'])
+        self.assertIsNotNone(jr['membership_end_date'])
+
+    def test_registered_card_past_paid(self):
+        Membership.objects.create(
+            member=self.memb,
+            start_date=date.today()-timedelta(days=14),
+            end_date = date.today()-timedelta(days=7),
+        )
+        path = reverse('memb:rfid-entry-requested', args=[self.registered_card])
+        response = self.client.get(path)
+        self.assertTrue(response.status_code == 200)
+        jr = json.loads(response.content.decode())
+        self.assertTrue(jr['card_registered'])
+        self.assertFalse(jr['membership_current'])
+        self.assertIsNotNone(jr['membership_start_date'])
+        self.assertIsNotNone(jr['membership_end_date'])
+
+    def test_note_granted(self):
+        path = reverse('memb:rfid-entry-granted', args=[self.registered_card])
+        response = self.client.get(path)
+        self.assertTrue(response.status_code == 200)
+
+    def test_note_denied(self):
+        path = reverse('memb:rfid-entry-denied', args=[self.registered_card])
+        response = self.client.get(path)
+        self.assertTrue(response.status_code == 200)
