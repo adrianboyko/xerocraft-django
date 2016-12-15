@@ -15097,14 +15097,14 @@ var _user$project$OpsCalendar$loginView = function (model) {
 };
 var _user$project$OpsCalendar$User = F2(
 	function (a, b) {
-		return {id: a, name: b};
+		return {memberId: a, name: b};
 	});
 var _user$project$OpsCalendar$decodeUser = A2(
 	_elm_community$elm_json_extra$Json_Decode_Extra_ops['|:'],
 	A2(
 		_elm_community$elm_json_extra$Json_Decode_Extra_ops['|:'],
 		_elm_lang$core$Json_Decode$succeed(_user$project$OpsCalendar$User),
-		A2(_elm_lang$core$Json_Decode_ops[':='], 'id', _elm_lang$core$Json_Decode$int)),
+		A2(_elm_lang$core$Json_Decode_ops[':='], 'memberId', _elm_lang$core$Json_Decode$int)),
 	A2(_elm_lang$core$Json_Decode_ops[':='], 'name', _elm_lang$core$Json_Decode$string));
 var _user$project$OpsCalendar$OpsTask = function (a) {
 	return function (b) {
@@ -15302,7 +15302,7 @@ var _user$project$OpsCalendar$actionButton = F3(
 			var buttonText = _p13._1;
 			var clickMsg = _user$project$OpsCalendar$GetTimeAndThen(
 				function (time) {
-					return A3(msg, time, _p12._0.id, opsTask);
+					return A3(msg, time, _p12._0.memberId, opsTask);
 				});
 			return A2(
 				_elm_lang$html$Html$button,
@@ -16081,14 +16081,14 @@ var _user$project$OpsCalendar$main = {
 														_elm_lang$core$Maybe$Just,
 														A2(
 															_elm_lang$core$Json_Decode$andThen,
-															A2(_elm_lang$core$Json_Decode_ops[':='], 'id', _elm_lang$core$Json_Decode$int),
-															function (id) {
+															A2(_elm_lang$core$Json_Decode_ops[':='], 'memberId', _elm_lang$core$Json_Decode$int),
+															function (memberId) {
 																return A2(
 																	_elm_lang$core$Json_Decode$andThen,
 																	A2(_elm_lang$core$Json_Decode_ops[':='], 'name', _elm_lang$core$Json_Decode$string),
 																	function (name) {
 																		return _elm_lang$core$Json_Decode$succeed(
-																			{id: id, name: name});
+																			{memberId: memberId, name: name});
 																	});
 															}))
 													]))),

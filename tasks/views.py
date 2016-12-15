@@ -718,7 +718,7 @@ def _ops_calendar_json(request, year, month):
     user_info = None
     u = request.user
     if u.is_authenticated():
-        user_info = {"id": u.member.pk, "name": u.member.friendly_name}
+        user_info = {"memberId": u.member.pk, "name": u.member.friendly_name}
     return {
         "user": user_info,
         "tasks": [list(tasks_on_date(day) for day in week) for week in calpage],

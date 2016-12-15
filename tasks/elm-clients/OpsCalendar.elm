@@ -52,9 +52,9 @@ main =
 -- MODEL
 -----------------------------------------------------------------------------
 
--- REVIEW: Should "User" be "Member" instead? Or should it have userId, memberId, workerId?
+-- Remember: User has user/member/worker on server side, with userId!=memberId!=workerId, in general.
 type alias User =
-  { id: Int
+  { memberId: Int
   , name: String
   }
 
@@ -306,14 +306,14 @@ actionButton : Model -> OpsTask -> String -> Html Msg
 actionButton model opsTask action =
   case model.user of
     Nothing -> text ""
-    Just {id, name} ->
+    Just {memberId, name} ->
       let
         (msg, buttonText) = case action of
           "U" -> (UnstaffTask, "Unstaff")
           "S" -> (ClaimTask, "Staff It")
           "V" -> (VerifyTask, "Verify")
           _   -> assertNever "Action can only be S, U, or V"
-        clickMsg = GetTimeAndThen (\time -> (msg time id opsTask))
+        clickMsg = GetTimeAndThen (\time -> (msg time memberId opsTask))
       in
         button [detailButtonStyle, onClick clickMsg] [text buttonText]
 
@@ -421,7 +421,7 @@ loginView model =
             url = "/login/?next=/tasks/ops-calendar-spa/" ++ y ++ "-" ++ m  -- TODO: Django should provide url.
           in
             a [href url] [text "Log In to Edit Schedule"]
-        Just {id, name} ->
+        Just {memberId, name} ->
           a [href "/logout/"] [text ("Log Out "++name)]
     ]
 
@@ -470,8 +470,8 @@ subscriptions model =
 decodeUser : Dec.Decoder User
 decodeUser =
   Dec.succeed User
-    |: ("id"    := Dec.int)
-    |: ("name"  := Dec.string)
+    |: ("memberId" := Dec.int)
+    |: ("name"     := Dec.string)
 
 decodeOpsTask : Dec.Decoder OpsTask
 decodeOpsTask =
