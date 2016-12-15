@@ -273,7 +273,13 @@ update action model =
       Material.update Mdl msg' model
 
     Tick newTime ->
-      ({model | time = newTime}, Cmd.none)
+      let
+        seconds = (round newTime) // 1000
+        newModel = {model | time = newTime}
+      in
+        if rem seconds 900 == 0
+          then (newModel, getNewMonth newModel 0)
+          else (newModel, Cmd.none)
 
 
 getNewMonth : Model -> Int -> Cmd Msg

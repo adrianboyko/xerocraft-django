@@ -14888,8 +14888,8 @@ var _user$project$OpsCalendar$assertNever = function (str) {
 	return _elm_lang$core$Native_Utils.crash(
 		'OpsCalendar',
 		{
-			start: {line: 569, column: 3},
-			end: {line: 569, column: 14}
+			start: {line: 575, column: 3},
+			end: {line: 575, column: 14}
 		})(str);
 };
 var _user$project$OpsCalendar$assertNeverHandler = F2(
@@ -14962,8 +14962,8 @@ var _user$project$OpsCalendar$monthName = function (x) {
 			return _elm_lang$core$Native_Utils.crashCase(
 				'OpsCalendar',
 				{
-					start: {line: 542, column: 3},
-					end: {line: 555, column: 63}
+					start: {line: 548, column: 3},
+					end: {line: 561, column: 63}
 				},
 				_p2)('Provide a value from 0 to 11, inclusive');
 	}
@@ -15608,13 +15608,18 @@ var _user$project$OpsCalendar$update = F2(
 				case 'Mdl':
 					return A3(_debois$elm_mdl$Material$update, _user$project$OpsCalendar$Mdl, _p17._0, model);
 				default:
-					return {
+					var _p31 = _p17._0;
+					var newModel = _elm_lang$core$Native_Utils.update(
+						model,
+						{time: _p31});
+					var seconds = (_elm_lang$core$Basics$round(_p31) / 1000) | 0;
+					return _elm_lang$core$Native_Utils.eq(
+						A2(_elm_lang$core$Basics$rem, seconds, 900),
+						0) ? {
 						ctor: '_Tuple2',
-						_0: _elm_lang$core$Native_Utils.update(
-							model,
-							{time: _p17._0}),
-						_1: _elm_lang$core$Platform_Cmd$none
-					};
+						_0: newModel,
+						_1: A2(_user$project$OpsCalendar$getNewMonth, newModel, 0)
+					} : {ctor: '_Tuple2', _0: newModel, _1: _elm_lang$core$Platform_Cmd$none};
 			}
 		}
 	});
@@ -15678,17 +15683,17 @@ var _user$project$OpsCalendar$ToggleTaskDetail = function (a) {
 var _user$project$OpsCalendar$detailView = F2(
 	function (model, ot) {
 		var window = function () {
-			var _p31 = ot.timeWindow;
-			if (_p31.ctor === 'Nothing') {
+			var _p32 = ot.timeWindow;
+			if (_p32.ctor === 'Nothing') {
 				return _elm_lang$core$Native_Utils.crashCase(
 					'OpsCalendar',
 					{
-						start: {line: 325, column: 14},
-						end: {line: 327, column: 18}
+						start: {line: 331, column: 14},
+						end: {line: 333, column: 18}
 					},
-					_p31)('Must not be \'Nothing\' at this point');
+					_p32)('Must not be \'Nothing\' at this point');
 			} else {
-				return _p31._0;
+				return _p32._0;
 			}
 		}();
 		var onMouseDown = A2(
@@ -15780,8 +15785,8 @@ var _user$project$OpsCalendar$detailView = F2(
 	});
 var _user$project$OpsCalendar$taskView = F2(
 	function (model, ot) {
-		var _p33 = ot.timeWindow;
-		if (_p33.ctor === 'Nothing') {
+		var _p34 = ot.timeWindow;
+		if (_p34.ctor === 'Nothing') {
 			return _elm_lang$html$Html$text('');
 		} else {
 			var selectedTask = A2(_elm_lang$core$Maybe$withDefault, -1, model.selectedTaskId);
@@ -15818,16 +15823,16 @@ var _user$project$OpsCalendar$taskView = F2(
 var _user$project$OpsCalendar$dayView = F2(
 	function (model, dayOfTasks) {
 		var monthStyle = function () {
-			var _p34 = dayOfTasks.isInTargetMonth;
-			if (_p34 === false) {
+			var _p35 = dayOfTasks.isInTargetMonth;
+			if (_p35 === false) {
 				return _user$project$OpsCalendar$dayOtherMonthStyle;
 			} else {
 				return _user$project$OpsCalendar$dayTargetMonthStyle;
 			}
 		}();
 		var colorStyle = function () {
-			var _p35 = dayOfTasks.isToday;
-			if (_p35 === false) {
+			var _p36 = dayOfTasks.isToday;
+			if (_p36 === false) {
 				return monthStyle;
 			} else {
 				return _user$project$OpsCalendar$dayTodayStyle;
