@@ -14,6 +14,7 @@ import List
 import DynamicStyle exposing (hover, hover')
 import Mouse exposing (Position)
 import Maybe exposing (withDefault)
+import Time exposing (Time, second)
 
 import Material
 import Material.Button as Button
@@ -103,7 +104,8 @@ type State
   | OperatingOnTask
 
 type alias Model =
-  { mdl: Material.Model
+  { time: Time
+  , mdl: Material.Model
   , user: Maybe User
   , tasks: MonthOfTasks
   , year: Int
@@ -122,6 +124,7 @@ type alias Model =
 init : Flags -> (Model, Cmd Msg)
 init {restUrls, initials, csrfToken} =
   ( Model
+      0
       Material.model
       initials.user
       initials.tasks
@@ -153,18 +156,14 @@ type Msg
   | MouseMove Position
   | DragStart Position
   | DragFinish Position
-  | ClaimTask Time Int OpsTask
-  | VerifyTask Time Int OpsTask
-  | UnstaffTask Time Int OpsTask
+  | ClaimTask Int OpsTask
+  | VerifyTask Int OpsTask
+  | UnstaffTask Int OpsTask
   | ClaimOpSuccess Http.Response
   | ClaimOpFailure Http.RawError
+  | Tick Time
+  | Mdl Material.Msg  -- For elm-mdl
 
-  -- For elm-mdl
-  | Mdl Material.Msg
-
-  -- For time aware messages
-  -- Based on http://stackoverflow.com/a/39059005/2037738
-  | GetTimeAndThen (Time -> Msg)
 
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -186,36 +185,36 @@ update action model =
               then ({model | selectedTaskId = Nothing}, Cmd.none)
               else (detailModel, Cmd.none)
 
-    ClaimTask time memberId opsTask ->
+    ClaimTask memberId opsTask ->
       case opsTask.usersClaimId of
         Just claimId ->
-          update (VerifyTask time memberId opsTask) model
+          update (VerifyTask memberId opsTask) model
         Nothing ->
           case opsTask.timeWindow of
             Nothing -> (model, Cmd.none)  -- Should never get here.
             Just {begin, duration} ->
               let
-                claim = Claim opsTask.taskId memberId begin duration (Date.fromTime time)
+                claim = Claim opsTask.taskId memberId begin duration (Date.fromTime model.time)
                 creds = LoggedIn model.csrfToken
                 newModel = {model | state=OperatingOnTask}
               in
                 (newModel, createClaim creds model.restUrls claim ClaimOpFailure ClaimOpSuccess)
 
-    VerifyTask time memberId opsTask ->
+    VerifyTask memberId opsTask ->
       case opsTask.usersClaimId of
         Nothing -> (model, Cmd.none)  -- Should never get here.
         Just claimId ->
           let
             creds = LoggedIn model.csrfToken
             newModel = {model | state=OperatingOnTask}
-            todayIso = isoDateStrFromTime time
+            todayIso = isoDateStrFromTime model.time
             statusField = ("status", Enc.string "C")  -- need this because ClaimTask uses VerifyTask
             dateVerifiedField = ("date_verified", Enc.string todayIso)
             updateFields = [statusField, dateVerifiedField]
           in
             (newModel, updateClaim creds model.restUrls claimId updateFields ClaimOpFailure ClaimOpSuccess)
 
-    UnstaffTask time memberId opsTask ->
+    UnstaffTask memberId opsTask ->
       case opsTask.usersClaimId of
         Nothing -> (model, Cmd.none)  -- Should never get here.
         Just claimId ->
@@ -223,7 +222,7 @@ update action model =
             creds = LoggedIn model.csrfToken
             newModel = {model | state=OperatingOnTask}
             statusField = ("status", Enc.string "A")
-            todayIso = isoDateStrFromTime time
+            todayIso = isoDateStrFromTime model.time
             dateVerifiedField = ("date_verified", Enc.string todayIso)
             updateFields = [statusField, dateVerifiedField]
           in
@@ -273,9 +272,8 @@ update action model =
     Mdl msg' ->
       Material.update Mdl msg' model
 
-    GetTimeAndThen successHandler ->
-      let failHandler = assertNeverHandler "Couldn't get current time."
-      in (model, (Task.perform failHandler successHandler Time.now))
+    Tick newTime ->
+      ({model | time = newTime}, Cmd.none)
 
 
 getNewMonth : Model -> Int -> Cmd Msg
@@ -313,7 +311,7 @@ actionButton model opsTask action =
           "S" -> (ClaimTask, "Staff It")
           "V" -> (VerifyTask, "Verify")
           _   -> assertNever "Action can only be S, U, or V"
-        clickMsg = GetTimeAndThen (\time -> (msg time memberId opsTask))
+        clickMsg = msg memberId opsTask
       in
         button [detailButtonStyle, onClick clickMsg] [text buttonText]
 
@@ -458,7 +456,8 @@ view model =
 subscriptions: Model -> Sub Msg
 subscriptions model =
   Sub.batch
-    [ Mouse.moves MouseMove
+    [ Time.every second Tick
+    , Mouse.moves MouseMove
     , Mouse.ups DragFinish
     ]
 
