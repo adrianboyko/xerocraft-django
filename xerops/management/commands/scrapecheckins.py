@@ -109,8 +109,11 @@ class CheckinScraper(Scraper):
                 values.append(text)
             attrs = dict(zip(names, values))
 
-            if attrs[CHECKIN_TYPE_KEY] == "Guardian-Checkin":
-                # There are no accounts or usernames for minors being checked in by guardians.
+            if attrs[CHECKIN_TYPE_KEY] == "Guardian-Checkin" \
+              or attrs[CHECKIN_USERNAME_KEY] is None \
+              or len(attrs[CHECKIN_USERNAME_KEY]) == 0:
+                # There are no Django accounts or usernames for minors being checked in by guardians.
+                # Minors don't always have "Guardian-Checkin" type but will have empty username.
                 continue
 
             if CHECKIN_NAME_KEY in attrs:
