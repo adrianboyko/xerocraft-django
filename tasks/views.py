@@ -156,14 +156,16 @@ def offer_task(request, task_pk, auth_token):
         h = request.POST['hours']
         t = datetime.strptime(h,"%H:%M:%S")
 
-        # TODO: There's some risk that user will end up here via browser history. Catch unique violoation exception?
-        Claim.objects.create(
+        # TODO: There's some risk that user will end up here via browser history. Catch unique violation exception?
+        Claim.objects.update_or_create(
             claimed_task=task,
             claiming_member=nag.who,
-            claimed_start_time=task.work_start_time,
-            claimed_duration=timedelta(hours=t.hour, minutes=t.minute, seconds=t.second),
-            status=Claim.STAT_CURRENT,
-            date_verified=date.today(),
+            defaults={
+                'claimed_start_time': task.work_start_time,
+                'claimed_duration': timedelta(hours=t.hour, minutes=t.minute, seconds=t.second),
+                'status': Claim.STAT_CURRENT,
+                'date_verified': date.today(),
+            }
         )
         return redirect('task:offer-more-tasks', task_pk=task_pk, auth_token=auth_token)
 
@@ -196,13 +198,15 @@ def offer_more_tasks(request, task_pk, auth_token):
         for pk in pks:
             t = Task.objects.get(pk=pk)
             # TODO: There's some risk that user will end up here via browser history. Catch unique violoation exception?
-            Claim.objects.create(
+            Claim.objects.update_or_create(
                 claimed_task=t,
                 claiming_member=nag.who,
-                claimed_start_time=t.work_start_time,
-                claimed_duration=t.max_work,
-                status=Claim.STAT_CURRENT,
-                date_verified=date.today(),
+                defaults={
+                    'claimed_start_time': t.work_start_time,
+                    'claimed_duration': t.max_work,
+                    'status': Claim.STAT_CURRENT,
+                    'date_verified': date.today(),
+                }
             )
         return redirect('task:offers-done', auth_token=auth_token)
 
