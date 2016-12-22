@@ -14799,7 +14799,7 @@ var _user$project$OpsCalendar$tdStyle = _elm_lang$html$Html_Attributes$style(
 			A2(_user$project$OpsCalendar_ops['=>'], 'padding', '10px'),
 			A2(_user$project$OpsCalendar_ops['=>'], 'vertical-align', 'top'),
 			A2(_user$project$OpsCalendar_ops['=>'], 'text-align', 'left'),
-			A2(_user$project$OpsCalendar_ops['=>'], 'line-height', '1.1'),
+			A2(_user$project$OpsCalendar_ops['=>'], 'line-height', '1.3'),
 			A2(_user$project$OpsCalendar_ops['=>'], 'height', '90px'),
 			A2(_user$project$OpsCalendar_ops['=>'], 'width', '120px')
 		]));
@@ -14823,7 +14823,7 @@ var _user$project$OpsCalendar$taskNameCss = function (opsTask) {
 	return _elm_lang$core$Native_List.fromArray(
 		[
 			A2(_user$project$OpsCalendar_ops['=>'], 'font-family', 'Roboto Condensed'),
-			A2(_user$project$OpsCalendar_ops['=>'], 'font-size', '1.1em'),
+			A2(_user$project$OpsCalendar_ops['=>'], 'font-size', '1em'),
 			A2(_user$project$OpsCalendar_ops['=>'], 'margin', '0'),
 			A2(_user$project$OpsCalendar_ops['=>'], 'overflow', 'hidden'),
 			A2(_user$project$OpsCalendar_ops['=>'], 'white-space', 'nowrap'),

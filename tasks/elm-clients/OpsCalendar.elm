@@ -658,7 +658,7 @@ tdStyle = style
   , "padding" => "10px"
   , "vertical-align" => "top"
   , "text-align" => "left"
-  , "line-height" => "1.1"
+  , "line-height" => "1.3"
   , "height" => "90px"
   , "width" => "120px"
   ]
@@ -679,7 +679,7 @@ dayNumStyle = style
 
 taskNameCss opsTask =
   [ "font-family" => "Roboto Condensed"
-  , "font-size" => "1.1em"
+  , "font-size" => "1em"
   , "margin" => "0"
   , "overflow" => "hidden"
   , "white-space" => "nowrap"
