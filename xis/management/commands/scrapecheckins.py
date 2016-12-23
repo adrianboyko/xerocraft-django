@@ -1,21 +1,17 @@
 
 # Standard
-import sys
 from datetime import date, datetime
 
-# Third Party
-from django.core.management.base import BaseCommand
-from django.utils.timezone import get_default_timezone_name
 import lxml.html
 from dateutil import relativedelta
+from django.core.management.base import BaseCommand
+from django.utils.timezone import get_default_timezone_name
 from nameparser import HumanName
 from pytz import timezone
 
-# Local
 from members.models import VisitEvent
-from .scraper import (
-    Scraper,
-    djangofy_username,
+from xis.xerocraft_org_utils.accountscraper import (
+    AccountScraper,
     SERVER,
     USERNAME_KEY,
     DJANGO_USERNAME_KEY,
@@ -43,7 +39,7 @@ CHECKIN_DJANGO_USERNAME_KEY = "Django Username"
 METHOD_CODES = {v: k for (k,v) in VisitEvent.VISIT_METHOD_CHOICES}
 
 
-class CheckinScraper(Scraper):
+class CheckinScraper(AccountScraper):
     """ Scrape the admin checkin page on xerocraft.org"""
 
     def process_checkin(self, dict):
@@ -121,7 +117,7 @@ class CheckinScraper(Scraper):
                 attrs[CHECKIN_FIRSTNAME_KEY] = name.first
                 attrs[CHECKIN_LASTNAME_KEY] = name.last
 
-            attrs[CHECKIN_DJANGO_USERNAME_KEY] = djangofy_username(attrs[CHECKIN_USERNAME_KEY])
+            attrs[CHECKIN_DJANGO_USERNAME_KEY] = self.djangofy_username(attrs[CHECKIN_USERNAME_KEY])
 
             try:
                 self.process_checkin(attrs)

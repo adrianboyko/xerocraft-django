@@ -1,10 +1,17 @@
+
+# Standard
+import logging
+import os
+
+# Third party
 from django.contrib.auth.models import User
 from nameparser import HumanName
 from social.apps.django_app.default.models import UserSocialAuth
 import lxml.html
-import logging
 import requests
-import os
+
+# Local
+from xis.xerocraft_org_utils.xerocraftscraper import XerocraftScraper
 
 __author__ = 'adrian'
 
@@ -26,52 +33,18 @@ ROLE_KEY = "Role at Xerocraft"
 PROVIDER = "xerocraft.org"
 
 
-def djangofy_username(username):
-    return _djangofy_username(username)
+class AccountScraper(XerocraftScraper):
 
-
-# TODO: Get rid of private version
-def _djangofy_username(username):
-    username = username.strip()  # Kyle has verified that xerocraft.org database has some untrimmed usernames.
-    newname = ""
-    for c in username:
-        if c.isalnum() or c in "_@+.-": newname += c
-        else: newname += "_"
-    return newname
-
-
-class Scraper(object):
-
-    def __init__(self):
-        super().__init__()
-        self.logger = logging.getLogger("xerocraft-django")
-        self.session = requests.session()
-
-    # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-
-    def login(self):
-        id = os.environ['XEROCRAFT_WEBSITE_ADMIN_ID']
-        pw = os.environ['XEROCRAFT_WEBSITE_ADMIN_PW']
-        postdata = {
-            'SignInUsername': id,
-            'SignInPassword': pw,
-            'action': 'signin',
-            'ax': 'n',
-            'q': '',
-        }
-        response = self.session.post(ACTION_URL, postdata)
-        if response.text.find('<a href="./index.php?logout=true">[Logout?]</a>') == -1:
-            self.logger.error("Could not log in %s", id)
-            return False
-        if response.text.find('>Administrator Page</a>') == -1:
-            self.logger.warning("Less data will be collected since %s is not an administrator", id)
-            # REVIEW: Should this return False? Probably not...
-        return True
-
-    def logout(self):
-        response = self.session.get(SERVER+"index.php?logout=true")
-        if response.text.find('<u>Sign In Options</u>') == -1:
-            self.logger.error("Unexpected response from xerocraft.org logout.")
+    @staticmethod
+    def djangofy_username(username):
+        username = username.strip()  # Kyle has verified that xerocraft.org database has some untrimmed usernames.
+        newname = ""
+        for c in username:
+            if c.isalnum() or c in "_@+.-":
+                newname += c
+            else:
+                newname += "_"
+        return newname
 
     # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
@@ -160,7 +133,7 @@ class Scraper(object):
         attrs = dict(zip(attr_names, attr_vals))
         attrs[USERNUM_KEY] = user_num
         attrs[USERNAME_KEY] = username
-        attrs[DJANGO_USERNAME_KEY] = _djangofy_username(username)
+        attrs[DJANGO_USERNAME_KEY] = self.djangofy_username(username)
         if REALNAME_KEY in attrs:
             attrs[REALNAME_KEY] = attrs[REALNAME_KEY].replace(" (Admin)", "")
             name = HumanName(attrs[REALNAME_KEY])

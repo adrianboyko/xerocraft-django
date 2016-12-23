@@ -7,8 +7,7 @@ import requests
 from django.contrib.auth.backends import ModelBackend
 
 # Local
-
-from xerops.management.commands.scraper import Scraper
+from xis.xerocraft_org_utils.accountscraper import AccountScraper
 
 
 class XerocraftBackend(ModelBackend):
@@ -47,7 +46,7 @@ class XerocraftBackend(ModelBackend):
             return None
 
         # Reuse the Scraper's logic to create a user for this usernum.
-        scraper = Scraper()
+        scraper = AccountScraper()
         if scraper.login():  # Logs in using admin acct in its own requests.session.
             user = scraper.scrape_profile(usernum)
             scraper.logout()

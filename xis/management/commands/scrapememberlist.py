@@ -1,12 +1,14 @@
-from django.core.management.base import BaseCommand
-from .scraper import *
 import sys
+
 import lxml.html
+from django.core.management.base import BaseCommand
+
+from xis.xerocraft_org_utils.accountscraper import *
 
 __author__ = 'adrian'
 
 
-class Command(Scraper, BaseCommand):
+class Command(AccountScraper, BaseCommand):
 
     help = "Scrapes xerocraft.org/profiles.php and creates corresponding accounts on this website, if not already created."
 
