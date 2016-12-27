@@ -117,6 +117,7 @@ INSTALLED_APPS += (
     'books',
     'reversion',
     'modelmailer',
+    'django_sabayon',
 
     'markdown_deux',  # for helpdesk
     'bootstrapform',  # for helpdesk

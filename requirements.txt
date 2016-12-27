@@ -19,6 +19,7 @@ django-object-actions==0.8.2
 # Must be 2.0.0 or greater because we're using Django 1.8
 django-reversion==2.0.6
 
+django-sabayon==0.1.1
 django-storages==1.5.1
 djangorestframework==3.3.3
 django-webpack-loader==0.3.0
