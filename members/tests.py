@@ -132,8 +132,7 @@ class TestMembers(TestCase):
         for u in User.objects.all():
             m = u.member
             self.assertTrue(m is not None)
-            valid,_ = m.validate()
-            self.assertTrue(valid)
+            m.clean()
 
     def test_member_auto_gen_content(self):
         for u in User.objects.all():

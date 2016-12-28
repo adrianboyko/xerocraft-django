@@ -4,6 +4,7 @@
 import base64
 import uuid
 import hashlib
+import re
 from datetime import datetime, date, timedelta
 from decimal import Decimal
 from typing import Union, Tuple
@@ -241,13 +242,24 @@ class Member(models.Model):
         if user is not None: return user.member
         return None
 
-    def validate(self):
+    def clean(self):
         if self.membership_card_md5 is not None:
-            if len(self.membership_card_md5) != self.MEMB_CARD_STR_LEN:
-                return False, "Bad membership card string."
-            if self.auth_user is None:
-                return False, "Every Member must be linked to a User."
-        return True, "Looks good"
+            val = self.membership_card_md5
+            if len(val) < self.MEMB_CARD_STR_LEN:
+                if val.isdigit():
+                    # If it's all digits, we'll assume that it's the raw card# NOT md5'ed and we'll md5 it.
+                    val = val.lstrip("0")  # Some people enter the leading zeros, some don't. We don't want them.
+                    self.membership_card_md5 = hashlib.md5(val.encode()).hexdigest()
+                else:
+                    # If there are non-digits then it's a bad value.
+                    raise ValidationError(_("Bad membership card string (too short)."))
+            if len(val) == self.MEMB_CARD_STR_LEN:
+                if re.fullmatch(r"([a-fA-F\d]{32})", val) == None:
+                    raise ValidationError(_("Bad membership card string (not md5)."))
+
+    def dbcheck(self):
+        if self.auth_user is None:
+            raise ValidationError(_("Every Member must be linked to a User."))
 
     def __str__(self):
         if self.first_name != "" and self.last_name != "":
