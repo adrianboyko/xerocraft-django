@@ -16,6 +16,7 @@ from django.template import loader, Context
 from django.contrib.auth import authenticate
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
+from django.views.decorators.csrf import ensure_csrf_cookie
 from icalendar import Calendar, Event, vCalAddress, vText
 
 # Local
@@ -737,6 +738,7 @@ def ops_calendar_json(request, year, month) -> JsonResponse:
     return JsonResponse(_ops_calendar_json(request, year, month))
 
 
+@ensure_csrf_cookie
 def ops_calendar_spa(request, year=date.today().year, month=date.today().month) -> HttpResponse:
     year = int(year)
     month = int(month)
