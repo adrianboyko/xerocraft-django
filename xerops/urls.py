@@ -13,11 +13,18 @@ Including another URLconf
     1. Add an import:  from blog import urls as blog_urls
     2. Add a URL to urlpatterns:  url(r'^blog/', include(blog_urls))
 """
+
+# Standard
+
+# Third Party
 from django.conf.urls import include, url
 from django.contrib import admin
-from xerops import views
 from django.conf import settings
 from django.conf.urls.static import static
+from django_sabayon import urls as sabayon_urls
+
+# Local
+from xerops import views
 
 urlpatterns = [
     url(r'^$', views.index),
@@ -44,7 +51,7 @@ urlpatterns = [
 
     url(r'^helpdesk/', include('helpdesk.urls')),
 
-    # # The following is for auto-renewal of "letsencrypt" SSL certs
-    # url(r'/', include('django_sabayon.urls'))
+    # The following is for auto-renewal of "letsencrypt" SSL certs
+    url(r'^', include(sabayon_urls)),
 
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
