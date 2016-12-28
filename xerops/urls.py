@@ -44,7 +44,7 @@ urlpatterns = [
 
     url(r'^helpdesk/', include('helpdesk.urls')),
 
-    # The following is for auto-renewal of "letsencrypt" SSL certs
-    url(r'/', include('django_sabayon.urls'))
+    # # The following is for auto-renewal of "letsencrypt" SSL certs
+    # url(r'/', include('django_sabayon.urls'))
 
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
