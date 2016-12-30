@@ -499,8 +499,14 @@ def rfid_entry_requested(request, rfid_cardnum):
 
 @inside_facility_only
 def rfid_entry_granted(request, rfid_cardnum):
+    member = Member.get_by_card_str(rfid_cardnum)
+    if member is not None:
+        event_type = VisitEvent.EVT_ARRIVAL
+        VisitEvent.objects.create(who=member, event_type=event_type)
+        _inform_other_systems_of_checkin(member, event_type)
+    else:
+        logger.warning("No member found with RFID card# %s", rfid_cardnum)
     return JsonResponse({'success': "Information noted."})
-
 
 @inside_facility_only
 def rfid_entry_denied(request, rfid_cardnum):
