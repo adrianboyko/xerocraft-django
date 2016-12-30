@@ -502,7 +502,11 @@ def rfid_entry_granted(request, rfid_cardnum):
     member = Member.get_by_card_str(rfid_cardnum)
     if member is not None:
         event_type = VisitEvent.EVT_ARRIVAL
-        VisitEvent.objects.create(who=member, event_type=event_type)
+        VisitEvent.objects.create(
+            who=member,
+            event_type=event_type,
+            method=VisitEvent.METHOD_RFID,
+        )
         _inform_other_systems_of_checkin(member, event_type)
     else:
         logger.warning("No member found with RFID card# %s", rfid_cardnum)
