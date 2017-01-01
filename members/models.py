@@ -91,8 +91,9 @@ class Member(models.Model):
 
     # Saving as MD5 provides some protection against read-only attacks.
     membership_card_md5 = models.CharField(max_length=MEMB_CARD_STR_LEN, null=True, blank=True,
-        help_text="MD5 of the random urlsafe base64 string on the membership card.")
+        help_text="MD5 of the member card#. Field will auto-apply MD5 if value is digits.")
 
+    # TODO: Remove membership_card_when? It was useful for the QR cards but we're going RFID.
     membership_card_when = models.DateTimeField(null=True, blank=True,
         help_text="Date/time on which the membership card was created.")
 
@@ -100,13 +101,11 @@ class Member(models.Model):
     #     null=True, blank=True,  # MAC address tracking is opt-in
     #     help_text="MAC address of member's phone.")
     #
-    # rfid_has = models.CharField(max_length=32,
-    #     null=True, blank=True,  # RFIDs are issued to some members but not all
-    #     help_text="MD5 of member's RFID card number.")
 
     tags = models.ManyToManyField(Tag, blank=True, related_name="members",
         through='Tagging', through_fields=('tagged_member', 'tag'))
 
+    # TODO: Remove QR code oriented member identities because we're sticking with RFID.
     @staticmethod
     def generate_auth_token_str(is_unique):
         """Generate a token (and its md5) which will be used in nag email urls, icalendar urls, etc."""
@@ -126,6 +125,7 @@ class Member(models.Model):
             # Collision detected, so try again.
             return Member.generate_auth_token_str(is_unique)
 
+    # TODO: Remove QR code oriented member identities because we're sticking with RFID.
     def generate_member_card_str(self):
 
         def unique(token: str) -> bool:
@@ -243,7 +243,7 @@ class Member(models.Model):
         return None
 
     def clean(self):
-        if self.membership_card_md5 is not None:
+        if self.membership_card_md5 is not None and self.membership_card_md5 != "":
             val = self.membership_card_md5
             if len(val) < self.MEMB_CARD_STR_LEN:
                 if val.isdigit():
