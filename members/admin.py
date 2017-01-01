@@ -130,11 +130,19 @@ class MemberAdmin(VersionAdmin):
         # 'membership_card_md5'
     ]
 
+    fields = [
+        'auth_user',
+        'membership_card_md5',
+        # 'membership_card_when',
+        'nag_re_membership',
+    ]
+
     search_fields = [
         '^auth_user__first_name',
         '^auth_user__last_name',
         '^auth_user__username',
         'auth_user__email',
+        '^membership_card_md5',
     ]
 
     list_display_links = [
