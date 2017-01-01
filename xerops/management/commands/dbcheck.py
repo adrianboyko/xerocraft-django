@@ -28,7 +28,7 @@ class DbCheck(unittest.TestCase):
 
     def test_models(self):
 
-        count = 0
+        total_err_count = 0
         problems = []
 
         #TODO: Get list of apps from settings module.
@@ -36,24 +36,31 @@ class DbCheck(unittest.TestCase):
             print(appname)
             app = apps.get_app_config(appname)
             for modelname, model in app.models.items():
-                print("   {} ({}) ".format(modelname, model.objects.count()), end="")
+                total_obj_count = model.objects.count()
+                model_info_str = "   {}, {} objs".format(modelname, total_obj_count)
+                print(model_info_str, end="")
+                sys.stdout.flush()
                 obj_count = 0
+                model_err_count = 0
+                errstr = ""
                 for obj in model.objects.all():
                     try:
                         obj.full_clean()
                         if hasattr(obj, "dbcheck"): obj.dbcheck()
                         obj_count += 1
-                        if obj_count % 100 == 0:
-                            print(".", end="")
+                        if obj_count % 10 == 0:
+                            progress = obj_count/total_obj_count
+                            errstr = ", *** {} ERRS ***".format(model_err_count) if model_err_count > 0 else ""
+                            print("\r{}, {:.0%} done{}".format(model_info_str, progress, errstr), end="")
                             sys.stdout.flush()
                     except ValidationError as e:
-                        print("E", end="")
-                        problems.append("{} #{}, {} {}".format(modelname, obj.pk, obj, e))
-                        count += 1
+                        problems.append("{} #{}, {} {}".format(modelname, obj.pk, obj, e.messages))
+                        model_err_count += 1
+                        total_err_count += 1
                         continue
-                print("")
+                print("\r{}{}".format(model_info_str, errstr))
 
-        if count > 0:
+        if total_err_count > 0:
             print("DBCheck found the following issues:")
             for problem in problems:
                 print("   "+problem)
