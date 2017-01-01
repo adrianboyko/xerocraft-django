@@ -58,7 +58,9 @@ class DbCheck(unittest.TestCase):
                         model_err_count += 1
                         total_err_count += 1
                         continue
-                print("\r{}{}".format(model_info_str, errstr))
+                print("\r{}{}".format(model_info_str, errstr), end="")
+                # Above string is shorter than the string it replaces. So print some spaces to clear out leftover:
+                print("                     ")
 
         if total_err_count > 0:
             print("DBCheck found the following issues:")
