@@ -48,7 +48,7 @@ class TaggingAdmin(VersionAdmin):
 class VisitEventAdmin(admin.ModelAdmin):  # No need to version events.
     ordering = ['-when']
     list_display = ['pk', 'when', 'who', 'event_type', 'method', 'sync1']
-    readonly_fields = ['when', 'who', 'event_type', 'method', 'sync1']
+    #readonly_fields = ['when', 'who', 'event_type', 'method', 'sync1']
     search_fields = [
         '^who__auth_user__first_name',
         '^who__auth_user__last_name',
@@ -56,7 +56,7 @@ class VisitEventAdmin(admin.ModelAdmin):  # No need to version events.
     ]
     list_filter = ['when']
     date_hierarchy = 'when'
-
+    raw_id_fields = ['who']
 
 @admin.register(WifiMacDetected)
 class WifiMacDetectedAdmin(admin.ModelAdmin):  # No need to version events.
@@ -136,6 +136,8 @@ class MemberAdmin(VersionAdmin):
         # 'membership_card_when',
         'nag_re_membership',
     ]
+
+    raw_id_fields = ['auth_user']
 
     search_fields = [
         '^auth_user__first_name',
