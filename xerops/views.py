@@ -155,7 +155,8 @@ def scrape_checkins():
 
 
 def scrape_xerocraft_org_checkins(request) -> JsonResponse:
-    result = q.enqueue(scrape_checkins)
+    # Can't rely on this being called so I'm making it a no-op, for now.
+    #result = q.enqueue(scrape_checkins)
     return JsonResponse({'result': "success"})
 
 

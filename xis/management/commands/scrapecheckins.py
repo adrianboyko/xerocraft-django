@@ -105,7 +105,7 @@ class CheckinScraper(AccountScraper):
                 values.append(text)
             attrs = dict(zip(names, values))
 
-            if attrs[CHECKIN_TYPE_KEY] == "Guardian-Checkin" \
+            if attrs[CHECKIN_TYPE_KEY] in ["Guardian-Checkin", "RFID"] \
               or attrs[CHECKIN_USERNAME_KEY] is None \
               or len(attrs[CHECKIN_USERNAME_KEY]) == 0:
                 # There are no Django accounts or usernames for minors being checked in by guardians.
