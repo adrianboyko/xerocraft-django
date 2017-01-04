@@ -8,6 +8,7 @@ from typing import Dict
 # Third party
 from django.db import models
 from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator
 from django.contrib.auth.models import User
 from django.utils.translation import ugettext_lazy as _
 from django.conf import settings
@@ -972,3 +973,71 @@ class PayableInvoiceReference(models.Model):
 
     portion = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, default=None,
         help_text="Leave blank unless we're only paying a portion of the invoice.")
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# JOURNAL - The journal is generated (and regenerated) from the models above.
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+class JournalEntry(models.Model):
+
+    frozen = models.BooleanField(default=False,
+        help_text="If frozen, this entry (and its lines) won't be deleted/regenerated.")
+
+    source_url = models.URLField(blank=False, null=False,
+        help_text="URL to retrieve the item that gave rise to this journal entry.")
+
+    when = models.DateField(null=False, blank=False,
+        help_text="The date of the transaction.")
+
+    def dbcheck(self):
+        # Relationships can't be checked in clean but can be checked later in a "db check" operation.
+        total_debits = Decimal(0.0)
+        total_credits = Decimal(0.0)
+        for line in self.journalentrylineitem_set.all():  # type: JournalEntryLineItem
+            if line.iscredit():
+                total_credits += line.amount
+            else:
+                total_debits += line.amount
+        if total_credits != total_debits:
+            raise ValidationError(
+                _("Total credits do not equal total debits (dr {} != cr {}.").format(total_debits, total_credits)
+            )
+
+
+class JournalEntryLineItem(models.Model):
+
+    journal_entry = models.ForeignKey(JournalEntry, null=False, blank=False,
+        on_delete=models.CASCADE,  # Deletion and regeneration of journal entries will be common.
+        help_text=".")
+
+    account = models.ForeignKey(Account, null=False, blank=False,
+        on_delete=models.PROTECT,  # Don't allow account to be deleted if transaction lines reference it.
+        help_text=".")
+
+    # "Increase" can mean 'credit' OR 'debit', depending on the account referenced! The same is true for "Decrease".
+    # This approach is intended to make code more intuitive. Note that iscredit() and isdebit() can be used
+    # to determine the traditional dual entry bookkeeping status of the line.
+    ACTION_BALANCE_INCREASE = ">"
+    ACTION_BALANCE_DECREASE = "<"
+    ACTION_CHOICES = [
+        (ACTION_BALANCE_INCREASE, "Increase"),
+        (ACTION_BALANCE_DECREASE, "Decrease"),
+    ]
+    action = models.CharField(max_length=1, choices=ACTION_CHOICES,
+        null=False, blank=False,
+        help_text="Is the account balance increased or decreased?")
+
+    amount = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
+        help_text="The amount of the increase or decrease (always positive)",
+        validators = [MinValueValidator(Decimal('0.00'))])
+
+    def iscredit(self):
+        if self.account.type == Account.TYPE_CREDIT:
+            return self.action == self.ACTION_BALANCE_INCREASE
+        if self.account.type == Account.TYPE_DEBIT:
+            return self.action == self.ACTION_BALANCE_DECREASE
+
+    def isdebit(self):
+        return not self.iscredit()
+
