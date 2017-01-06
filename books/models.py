@@ -3,7 +3,8 @@
 # Standard
 from datetime import date
 from decimal import Decimal
-from typing import Dict
+from typing import Dict, List
+import abc
 
 # Third party
 from django.db import models
@@ -146,13 +147,13 @@ class AccountGroup(models.Model):
 class JournalEntry(models.Model):
 
     frozen = models.BooleanField(default=False,
-                                 help_text="If frozen, this entry (and its lines) won't be deleted/regenerated.")
+        help_text="If frozen, this entry (and its lines) won't be deleted/regenerated.")
 
     source_url = models.URLField(blank=False, null=False,
-                                 help_text="URL to retrieve the item that gave rise to this journal entry.")
+        help_text="URL to retrieve the item that gave rise to this journal entry.")
 
     when = models.DateField(null=False, blank=False,
-                            help_text="The date of the transaction.")
+        help_text="The date of the transaction.")
 
     def dbcheck(self):
         # Relationships can't be checked in clean but can be checked later in a "db check" operation.
@@ -168,17 +169,16 @@ class JournalEntry(models.Model):
                 _("Total credits do not equal total debits (dr {} != cr {}.").format(total_debits, total_credits)
             )
 
+
 class JournalEntryLineItem(models.Model):
 
     journal_entry = models.ForeignKey(JournalEntry, null=False, blank=False,
-                                      on_delete=models.CASCADE,
-                                      # Deletion and regeneration of journal entries will be common.
-                                      help_text=".")
+        on_delete=models.CASCADE,  # Deletion and regeneration of journal entries will be common.
+        help_text="The journal entry that this line item is part of.")
 
     account = models.ForeignKey(Account, null=False, blank=False,
-                                on_delete=models.PROTECT,
-                                # Don't allow account to be deleted if transaction lines reference it.
-                                help_text=".")
+        on_delete=models.PROTECT,  # Don't allow account to be deleted if transaction lines reference it.
+        help_text="The account involved in this line item.")
 
     # "Increase" can mean 'credit' OR 'debit', depending on the account referenced! The same is true for "Decrease".
     # This approach is intended to make code more intuitive. Note that iscredit() and isdebit() can be used
@@ -190,12 +190,12 @@ class JournalEntryLineItem(models.Model):
         (ACTION_BALANCE_DECREASE, "Decrease"),
     ]
     action = models.CharField(max_length=1, choices=ACTION_CHOICES,
-                              null=False, blank=False,
-                              help_text="Is the account balance increased or decreased?")
+        null=False, blank=False,
+        help_text="Is the account balance increased or decreased?")
 
     amount = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
-                                 help_text="The amount of the increase or decrease (always positive)",
-                                 validators=[MinValueValidator(Decimal('0.00'))])
+        help_text="The amount of the increase or decrease (always positive)",
+        validators=[MinValueValidator(Decimal('0.00'))])
 
     def iscredit(self):
         if self.account.type == Account.TYPE_CREDIT:
@@ -205,6 +205,66 @@ class JournalEntryLineItem(models.Model):
 
     def isdebit(self):
         return not self.iscredit()
+
+
+class Journaler(models.Model):
+
+    __metaclass__ = abc.ABCMeta
+
+    class Meta:
+        abstract = True
+
+    # The journal entry created by this journaler, if any.
+    journal_entry = models.ForeignKey(JournalEntry, null=True, blank=True,
+        on_delete=models.SET_NULL,
+        help_text="Automatically maintained by accounting commands. Do not modify.")
+
+    # Each journaler will have its own logic for creating a journal entry.
+    @abc.abstractmethod
+    def create_journalentry(self):
+        """
+        Create the journal entry associated with this Journaler.
+        Also create any line items that are intrinsic to the Journaler.
+        Don't create line items that arise from JournalLiner children.
+        """
+        raise NotImplementedError
+
+    def create_lineitems_from_children(self):
+        related_objects = [
+            f for f in self._meta.get_fields()
+              if (f.one_to_many or f.one_to_one)
+              and f.auto_created
+              and not f.concrete
+        ]
+        link_names = [rel.get_accessor_name() for rel in related_objects]
+        for link_name in link_names:
+            children = getattr(self, link_name).all()
+            for child in children:
+                # The children include Notes and other objs of no interest here.
+                if isinstance(child, JournalLiner):
+                    child.create_journalentry_lineitems(self.journal_entry)
+
+
+class JournalLiner:
+    __metaclass__ = abc.ABCMeta
+
+    # Each journal liner will have its own logic for creating its line items in the specified entry.
+    @abc.abstractmethod
+    def create_journalentry_lineitems(self, entry: JournalEntry):
+        raise NotImplementedError
+
+
+registered_journaler_classes = []  # type: List[Journaler]
+
+
+def register_journaler():
+    """ Registers the given journaler class so that it will participate in bookkeeping """
+    def _decorator(journaler_class):
+        if not issubclass(journaler_class, Journaler):
+            raise ValueError("Registered class must be a Journaler")
+        registered_journaler_classes.append(journaler_class)
+        return journaler_class
+    return _decorator
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -406,10 +466,11 @@ class PayableInvoiceLineItem(InvoiceLineItem):
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-# SALE
+# SALE (aka Income Transaction in Admin)
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-class Sale(models.Model):
+@register_journaler()
+class Sale(Journaler):
 
     sale_date = models.DateField(null=False, blank=False, default=date.today,
         help_text="The date on which the sale was made. Best guess if exact date not known.")
@@ -554,6 +615,29 @@ class Sale(models.Model):
         elif self.payer_acct is not None: return "{} sale to {}".format(self.sale_date, self.payer_acct)
         elif self.payer_email > "": return "{} sale to {}".format(self.sale_date, self.payer_email)
         else: return "{} sale".format(self.sale_date)
+
+    def create_journalentry(self):
+        # Child models will also contribute to this journal entry but that's handled by "generatejournal"
+        self.journal_entry = JournalEntry.objects.create(
+            when=self.sale_date
+        )
+        cash = Account.objects.get(name="Cash")  # TODO: Acct name can't be hard-coded?
+        fees = Account.objects.get(name="Expense, Business")  # TODO: Acct name can't be hard-coded?
+        JournalEntryLineItem.objects.create(
+            journal_entry=self.journal_entry,
+            account=cash,
+            action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
+            amount=self.total_paid_by_customer - self.processing_fee
+        )
+        if self.processing_fee > Decimal(0.00):
+            JournalEntryLineItem.objects.create(
+                journal_entry=self.journal_entry,
+                account=fees,
+                action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
+                amount=self.processing_fee
+            )
+        self.create_lineitems_from_children()
+        self.save()
 
 
 class SaleNote(Note):
@@ -875,7 +959,8 @@ class ExpenseClaimNote(Note):
 # EXPENSE TRANSACTION
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-class ExpenseTransaction(models.Model):
+@register_journaler()
+class ExpenseTransaction(Journaler):
 
     payment_date = models.DateField(null=True, blank=True, default=None,
         help_text="The date on which the expense was paid (use bank statement date). Blank if not yet paid or statement not yet received. Best guess if paid but exact date not known.")
@@ -956,6 +1041,21 @@ class ExpenseTransaction(models.Model):
 
     def __str__(self):
         return "${} by {}".format(self.amount_paid, self.payment_method_verbose())
+
+    def create_journalentry(self):
+        # Child models will also contribute to this journal entry but that's handled by "generatejournal"
+        self.journal_entry = JournalEntry.objects.create(
+            when=self.payment_date
+        )
+        cash = Account.objects.get(name="Cash")  # TODO: Acct name can't be hard-coded?
+        JournalEntryLineItem.objects.create(
+            journal_entry=self.journal_entry,
+            account=cash,
+            action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
+            amount=self.amount_paid
+        )
+        self.create_lineitems_from_children()
+        self.save()
 
 
 class ExpenseClaimReference(models.Model):
