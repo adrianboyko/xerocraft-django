@@ -1074,7 +1074,7 @@ class ExpenseClaimReference(models.Model):
         help_text="Leave blank unless you're only paying a portion of the claim.")
 
 
-class ExpenseLineItem(models.Model):
+class ExpenseLineItem(models.Model, JournalLiner):
 
     # An expense line item can appear in an ExpenseClaim or in an ExpenseTransaction
 
@@ -1119,6 +1119,13 @@ class ExpenseLineItem(models.Model):
         if self.claim is None and self.exp is None:
             raise ValidationError(_("Expense line item must be part of a claim or transaction."))
 
+    def create_journalentry_lineitems(self, entry: JournalEntry):
+        li = JournalEntryLineItem.objects.create(
+            account=self.account,
+            action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
+            amount=self.amount,
+            journal_entry=entry
+        )
 
 class ExpenseTransactionNote(Note):
 
