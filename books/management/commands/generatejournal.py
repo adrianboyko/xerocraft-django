@@ -33,10 +33,10 @@ class Command(BaseCommand):
                     child.create_journalentry_lineitems(journaler)
 
     def handle(self, *args, **options):
-        print("Deleting...")
+        print("Deleting unfrozen journal entries...")
         JournalEntry.objects.filter(frozen=False).delete()
-        print("Generating...")
         for journaler_class in registered_journaler_classes:
+            print("Generating entries for {} transactions...".format(journaler_class.__name__))
             for journaler in journaler_class.objects.all():  # type: Journaler
                 je = journaler.journal_entry
                 if je is not None and je.frozen:
