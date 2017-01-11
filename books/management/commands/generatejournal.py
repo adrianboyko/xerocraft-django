@@ -1,7 +1,10 @@
 # Standard
+import sys
+from decimal import Decimal
 
 # Third party
 from django.core.management.base import BaseCommand
+from django.core.exceptions import ValidationError
 
 # Local
 from books.models import (
@@ -33,14 +36,36 @@ class Command(BaseCommand):
                     child.create_journalentry_lineitems(journaler)
 
     def handle(self, *args, **options):
-        print("Deleting unfrozen journal entries...")
+        print("Deleting unfrozen journal entries... ", end="")
+        sys.stdout.flush()
         JournalEntry.objects.filter(frozen=False).delete()
-        for journaler_class in registered_journaler_classes:
-            print("Generating entries for {} transactions...".format(journaler_class.__name__))
-            for journaler in journaler_class.objects.all():  # type: Journaler
-                je = journaler.journal_entry
-                if je is not None and je.frozen:
-                    continue
-                journaler.create_journalentry()
-                #journaler.journal_entry.dbcheck()
         print("Done.")
+        for journaler_class in registered_journaler_classes:
+            # print("\rGenerating entries for {} transactions...".format(journaler_class.__name__))
+            count = 0  # type: int
+            total_count = journaler_class.objects.count()
+            for journaler in journaler_class.objects.all():  # type: Journaler
+                count += 1
+                progress = 1.0 * count / total_count
+                print("\r{:.0%} of {}s... ".format(progress, journaler_class.__name__), end="")
+                oldje = journaler.journal_entry
+                if oldje is None or not oldje.frozen:
+                    journaler.create_journalentry()
+            print("Done.")
+
+        grand_total_debits = Decimal(0.0)
+        grand_total_credits = Decimal(0.0)
+        print("\nVerifying that individual journal entries balance...")
+        for je in JournalEntry.objects.all():
+            debits, credits = je.debits_and_credits()
+            grand_total_debits += debits
+            grand_total_credits += credits
+            if debits != credits:
+                print("Journal Entry #{} doesn't balance:".format(je.pk))
+                for li in je.journalentrylineitem_set.all():
+                    print("   {}".format(str(li)))
+        print("Done.")
+        print("")
+        print("Grand total credits: {}", grand_total_credits)
+        print(" Grand total debits: {}", grand_total_debits)
+        print("         Difference: {}", grand_total_credits - grand_total_debits)

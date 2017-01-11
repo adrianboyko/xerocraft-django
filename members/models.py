@@ -16,10 +16,12 @@ from django.utils import timezone
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.utils.translation import ugettext_lazy as _
-from nameparser import HumanName
 
 # Local
-from books.models import Sale
+from books.models import (
+    Account, Sale, JournalEntry, JournalEntryLineItem, JournalLiner,
+    ACCT_REVENUE_MEMBERSHIP,
+)
 from abutils.utils import generate_ctrlid
 
 
@@ -441,7 +443,7 @@ def next_paidmembership_ctrlid():
     return "ERROR"
 
 
-class GroupMembership(models.Model):
+class GroupMembership(models.Model, JournalLiner):
 
     group_tag = models.ForeignKey(Tag, null=False, blank=False,
         on_delete=models.PROTECT,  # A group membership's tag should be changed before deleting the unwanted tag.
@@ -511,6 +513,14 @@ class GroupMembership(models.Model):
             if mship.membership_type != Membership.MT_GROUP:
                 raise ValidationError(_("Individual memberships covered by a group membership must have type GROUP."))
 
+    def create_journalentry_lineitems(self, entry: JournalEntry):
+        JournalEntryLineItem.objects.create(
+            account=ACCT_REVENUE_MEMBERSHIP,
+            action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
+            amount=self.sale_price,
+            journal_entry=entry
+        )
+
 
 class MembershipGiftCard(models.Model):
 
@@ -572,7 +582,7 @@ class MembershipGiftCardRedemption(models.Model):
 # MEMBERSHIP
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-class Membership(models.Model):
+class Membership(models.Model, JournalLiner):
 
     # A membership can arise from redemption of a gift card.
     redemption = models.ForeignKey(MembershipGiftCardRedemption, null=True, blank=True, default=None,
@@ -692,6 +702,14 @@ class Membership(models.Model):
     class Meta:
         ordering = ['start_date']
 
+    def create_journalentry_lineitems(self, entry: JournalEntry):
+        JournalEntryLineItem.objects.create(
+            account=ACCT_REVENUE_MEMBERSHIP,
+            action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
+            amount=self.sale_price,
+            journal_entry=entry
+        )
+
 
 class DiscoveryMethod(models.Model):
     """Different ways that members learn about us. E.g. 'Tucson Meet Yourself', 'Radio', 'TV', 'Website', etc """
@@ -710,7 +728,7 @@ class DiscoveryMethod(models.Model):
 # NOTE: Making MembershipGiftCard a LineItem results in user needing to create the card info at time of sale.
 # Adding this MembershipGiftCardReference class lets the user select an existing MembershipGiftCard instead.
 
-class MembershipGiftCardReference(models.Model):
+class MembershipGiftCardReference(models.Model, JournalLiner):
 
     # NOTE: Cards have been sold online without any info about which card was sold.
     # That situation will be mapped to a card value of None and should be rectified manually.
@@ -741,3 +759,11 @@ class MembershipGiftCardReference(models.Model):
 
     class Meta:
         verbose_name = "Membership gift card"
+
+    def create_journalentry_lineitems(self, entry: JournalEntry):
+        JournalEntryLineItem.objects.create(
+            account=ACCT_REVENUE_MEMBERSHIP,
+            action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
+            amount=self.sale_price,
+            journal_entry=entry
+        )

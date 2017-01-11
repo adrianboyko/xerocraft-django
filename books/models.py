@@ -20,7 +20,6 @@ from abutils.utils import generate_ctrlid
 
 ORG_NAME = settings.XEROPS_CONFIG['ORG_NAME']
 
-
 # class PayerAKA(models.Model):
 #     """ Intended primarily to record name variations that are used in payments, etc. """
 #
@@ -139,6 +138,13 @@ class AccountGroup(models.Model):
     class Meta:
         ordering = ['name']
 
+ACCT_LIABILITY_PAYABLE = Account.objects.get(name="Accounts Payable")
+ACCT_ASSET_RECEIVABLE = Account.objects.get(name="Accounts Receivable")
+ACCT_ASSET_CASH = Account.objects.get(name="Cash")
+ACCT_EXPENSE_BUSINESS = Account.objects.get(name="Expense, Business")
+ACCT_REVENUE_DONATION = Account.objects.get(name="Revenue, Donations")
+ACCT_REVENUE_MEMBERSHIP = Account.objects.get(name="Revenues, Membership")
+
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # JOURNAL - The journal is generated (and regenerated) from other models
@@ -155,8 +161,7 @@ class JournalEntry(models.Model):
     when = models.DateField(null=False, blank=False,
         help_text="The date of the transaction.")
 
-    def dbcheck(self):
-        # Relationships can't be checked in clean but can be checked later in a "db check" operation.
+    def debits_and_credits(self):
         total_debits = Decimal(0.0)
         total_credits = Decimal(0.0)
         for line in self.journalentrylineitem_set.all():  # type: JournalEntryLineItem
@@ -164,6 +169,11 @@ class JournalEntry(models.Model):
                 total_credits += line.amount
             else:
                 total_debits += line.amount
+        return total_debits, total_credits
+
+    def dbcheck(self):
+        # Relationships can't be checked in clean but can be checked later in a "db check" operation.
+        total_debits, total_credits = self.debits_and_credits()
         if total_credits != total_debits:
             raise ValidationError(
                 _("Total credits do not equal total debits (dr {} != cr {}.").format(total_debits, total_credits)
@@ -206,6 +216,15 @@ class JournalEntryLineItem(models.Model):
     def isdebit(self):
         return not self.iscredit()
 
+    def __str__(self):
+        actionstrs = dict(self.ACTION_CHOICES)
+        return "jeli #{}, {} '{}' {}".format(
+            self.pk,
+            actionstrs[self.action],
+            str(self.account),
+            self.amount,
+        )
+
 
 class Journaler(models.Model):
 
@@ -229,20 +248,12 @@ class Journaler(models.Model):
         """
         raise NotImplementedError
 
-    def create_lineitems_from_children(self):
-        related_objects = [
-            f for f in self._meta.get_fields()
-              if (f.one_to_many or f.one_to_one)
-              and f.auto_created
-              and not f.concrete
-        ]
-        link_names = [rel.get_accessor_name() for rel in related_objects]
-        for link_name in link_names:
-            children = getattr(self, link_name).all()
-            for child in children:
-                # The children include Notes and other objs of no interest here.
-                if isinstance(child, JournalLiner):
-                    child.create_journalentry_lineitems(self.journal_entry)
+    def create_lineitems_from(self, *args):
+        for relmgr in args:
+            for liner in relmgr.all():
+                if not isinstance(liner, JournalLiner):
+                    raise ValueError("{} is not a JournalLiner".format(liner))
+                liner.create_journalentry_lineitems(self.journal_entry)
 
 
 class JournalLiner:
@@ -617,26 +628,30 @@ class Sale(Journaler):
         else: return "{} sale".format(self.sale_date)
 
     def create_journalentry(self):
-        # Child models will also contribute to this journal entry but that's handled by "generatejournal"
         self.journal_entry = JournalEntry.objects.create(
             when=self.sale_date
         )
-        cash = Account.objects.get(name="Cash")  # TODO: Acct name can't be hard-coded?
-        fees = Account.objects.get(name="Expense, Business")  # TODO: Acct name can't be hard-coded?
         JournalEntryLineItem.objects.create(
             journal_entry=self.journal_entry,
-            account=cash,
+            account=ACCT_ASSET_CASH,
             action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
-            amount=self.total_paid_by_customer - self.processing_fee
+            amount=self.total_paid_by_customer-self.processing_fee
         )
         if self.processing_fee > Decimal(0.00):
             JournalEntryLineItem.objects.create(
                 journal_entry=self.journal_entry,
-                account=fees,
+                account=ACCT_EXPENSE_BUSINESS,
                 action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
                 amount=self.processing_fee
             )
-        self.create_lineitems_from_children()
+        self.create_lineitems_from(
+            self.groupmembership_set,  # TODO: Don't directly ref things outside "books" app
+            self.membership_set,  # TODO: Don't directly ref things outside "books" app
+            self.membershipgiftcardreference_set,  # TODO: Don't directly ref things outside "books" app
+            self.monetarydonation_set,
+            self.otheritem_set,
+            self.receivableinvoicereference_set,
+        )
         self.save()
 
 
@@ -656,11 +671,18 @@ class OtherItemType(models.Model):
     description = models.TextField(max_length=1024,
         help_text="A description of the item.")
 
+    # TODO:
+    # Revenue acct shouldn't ever be null but needs to temporarily so I can fix up existing entries.
+    # Switch to null=False, blank=False, and delete default.
+    revenue_acct = models.ForeignKey(Account, null=True, blank=True, default=None,
+        on_delete=models.PROTECT,  # Don't allow deletion of acct if item types reference it.
+        help_text="The revenue account associated with items of this type.")
+
     def __str__(self):
         return self.name
 
 
-class OtherItem(models.Model):
+class OtherItem(models.Model, JournalLiner):
 
     type = models.ForeignKey(OtherItemType, null=False, blank=False, default=None,
         on_delete=models.PROTECT,  # Don't allow deletion of an item type that appears in a sale.
@@ -687,6 +709,14 @@ class OtherItem(models.Model):
 
     def __str__(self):
         return self.type.name
+
+    def create_journalentry_lineitems(self, entry: JournalEntry):
+        JournalEntryLineItem.objects.create(
+            account=self.type.revenue_acct,
+            action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
+            amount=self.sale_price*self.qty_sold,
+            journal_entry=entry
+        )
 
 
 class MonetaryDonationReward(models.Model):
@@ -719,7 +749,7 @@ class MonetaryDonationReward(models.Model):
         return self.name
 
 
-class MonetaryDonation(models.Model):
+class MonetaryDonation(models.Model, JournalLiner):
 
     # NOTE: A monetary donation can ONLY appear on a Sale.
 
@@ -748,8 +778,16 @@ class MonetaryDonation(models.Model):
     def __str__(self):
         return str("$"+str(self.amount))
 
+    def create_journalentry_lineitems(self, entry: JournalEntry):
+        JournalEntryLineItem.objects.create(
+            account=ACCT_REVENUE_DONATION,
+            action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
+            amount=self.amount,
+            journal_entry=entry
+        )
 
-class ReceivableInvoiceReference(models.Model):
+
+class ReceivableInvoiceReference(models.Model, JournalLiner):
     sale = models.ForeignKey(Sale, null=False, blank=False,
         on_delete=models.CASCADE,  # Delete this relation if the income transaction is deleted.
         help_text="The income transaction that pays the invoice.")
@@ -762,6 +800,17 @@ class ReceivableInvoiceReference(models.Model):
 
     portion = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, default=None,
         help_text="Leave blank unless they're only paying a portion of the invoice.")
+
+    def create_journalentry_lineitems(self, entry: JournalEntry):
+        amount = self.invoice.amount
+        if self.portion is not None:
+            amount = self.portion
+        JournalEntryLineItem.objects.create(
+            account=ACCT_ASSET_RECEIVABLE,
+            action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
+            amount=amount,
+            journal_entry=entry
+        )
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -885,7 +934,8 @@ class DonatedItem(models.Model):
 # EXPENSE CLAIMS
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-class ExpenseClaim(models.Model):
+@register_journaler()
+class ExpenseClaim(Journaler):
 
     claimant = models.ForeignKey(User, null=True, blank=True,
         on_delete=models.SET_NULL,  # Keep the claim for accounting purposes, even if the user is deleted.
@@ -946,6 +996,30 @@ class ExpenseClaim(models.Model):
     def dbcheck(self):
         if  self.amount != self.checksum():
             raise ValidationError(_("Total of line items must match amount of claim."))
+
+    def create_journalentry(self):
+
+        # self.journal_entry = JournalEntry.objects.create(
+        #     when=self.invoice_date
+        # )
+        # ar = Account.objects.get(name="Accounts Payable")  # TODO: Acct name can't be hard-coded?
+        # JournalEntryLineItem.objects.create(
+        #     journal_entry=self.journal_entry,
+        #     account=ar,
+        #     action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
+        #     amount=self.amount
+        # )
+        """
+        Unfortunately, due to the way that Expense Claims were misused as a sort of
+        account in themselves, I'm unable to make sensible journale entries out of them.
+        Instead, a journal entry will be made for each individual line item. This will
+        date the transaction at the time of the purchase which is EARLIER than the date
+        on which the claim was made, but it's close enough and will have to do.
+        """
+        self.create_lineitems_from(
+            self.expenselineitem_set,
+        )
+        # self.save()
 
 
 class ExpenseClaimNote(Note):
@@ -1047,18 +1121,21 @@ class ExpenseTransaction(Journaler):
         self.journal_entry = JournalEntry.objects.create(
             when=self.payment_date
         )
-        cash = Account.objects.get(name="Cash")  # TODO: Acct name can't be hard-coded?
         JournalEntryLineItem.objects.create(
             journal_entry=self.journal_entry,
-            account=cash,
+            account=ACCT_ASSET_CASH,
             action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
             amount=self.amount_paid
         )
-        self.create_lineitems_from_children()
+        self.create_lineitems_from(
+            self.expenseclaimreference_set,
+            self.expenselineitem_set,
+            self.payableinvoicereference_set,
+        )
         self.save()
 
 
-class ExpenseClaimReference(models.Model):
+class ExpenseClaimReference(models.Model, JournalLiner):
 
     exp = models.ForeignKey(ExpenseTransaction, null=False, blank=False,
         on_delete=models.CASCADE,  # Delete this relation if the expense transaction is deleted.
@@ -1072,6 +1149,17 @@ class ExpenseClaimReference(models.Model):
 
     portion = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, default=None,
         help_text="Leave blank unless you're only paying a portion of the claim.")
+
+    def create_journalentry_lineitems(self, entry: JournalEntry):
+        amount = self.claim.amount
+        if self.portion is not None:
+            amount = self.portion
+        li = JournalEntryLineItem.objects.create(
+            account=ACCT_LIABILITY_PAYABLE,
+            action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
+            amount=amount,
+            journal_entry=entry,
+        )
 
 
 class ExpenseLineItem(models.Model, JournalLiner):
@@ -1120,12 +1208,29 @@ class ExpenseLineItem(models.Model, JournalLiner):
             raise ValidationError(_("Expense line item must be part of a claim or transaction."))
 
     def create_journalentry_lineitems(self, entry: JournalEntry):
+        # Note: Sometimes entry will be None and sometimes it won't. This is intentional but undesirable.
+        # When entry has a value, this line item is part of an ExpenseTransaction.
+        # When entry is None, this line item is part of an ExpenseClaim but journal entries are not
+        # being created for ExpenseClaims because they were misused. See comments in ExpenseClaim.
+        # Every line item associated with an ExpenseClaim will get its own JournalEntry, created here.
+        if entry is None:
+            entry = JournalEntry.objects.create(
+                when=self.expense_date
+            )
+            JournalEntryLineItem.objects.create(
+                journal_entry=entry,
+                account=ACCT_LIABILITY_PAYABLE,
+                action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
+                amount=self.amount,
+            )
+
         li = JournalEntryLineItem.objects.create(
             account=self.account,
             action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
             amount=self.amount,
-            journal_entry=entry
+            journal_entry=entry,
         )
+
 
 class ExpenseTransactionNote(Note):
 
@@ -1134,7 +1239,7 @@ class ExpenseTransactionNote(Note):
         help_text="The expense transaction to which the note pertains.")
 
 
-class PayableInvoiceReference(models.Model):
+class PayableInvoiceReference(models.Model, JournalLiner):
 
     exp = models.ForeignKey(ExpenseTransaction, null=False, blank=False,
         on_delete=models.CASCADE,  # Delete this relation if the expense transaction is deleted.
@@ -1149,3 +1254,13 @@ class PayableInvoiceReference(models.Model):
     portion = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, default=None,
         help_text="Leave blank unless we're only paying a portion of the invoice.")
 
+    def create_journalentry_lineitems(self, entry: JournalEntry):
+        amount = self.invoice.amount
+        if self.portion is not None:
+            amount = self.portion
+        JournalEntryLineItem.objects.create(
+            account=ACCT_LIABILITY_PAYABLE,
+            action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
+            amount=amount,
+            journal_entry=entry,
+        )

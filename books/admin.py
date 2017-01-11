@@ -447,6 +447,7 @@ class OtherItemTypeAdmin(VersionAdmin):
         'pk',
         'name',
         'description',
+        'revenue_acct',
     ]
 
 
