@@ -11,9 +11,11 @@ from django.db import models
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.contrib.auth.models import User
+from django.contrib.contenttypes.models import ContentType
 from django.utils.translation import ugettext_lazy as _
 from django.conf import settings
 from nameparser import HumanName
+from django.core.urlresolvers import reverse
 
 # Local
 from abutils.utils import generate_ctrlid
@@ -218,11 +220,13 @@ class JournalEntryLineItem(models.Model):
 
     def __str__(self):
         actionstrs = dict(self.ACTION_CHOICES)
-        return "jeli #{}, {} '{}' {}".format(
+        dr_or_cr = "cr" if self.iscredit() else "dr"
+        return "line item #{}, {} '{}', ${} {}".format(
             self.pk,
             actionstrs[self.action],
             str(self.account),
             self.amount,
+            dr_or_cr,
         )
 
 
@@ -253,7 +257,12 @@ class Journaler(models.Model):
             for liner in relmgr.all():
                 if not isinstance(liner, JournalLiner):
                     raise ValueError("{} is not a JournalLiner".format(liner))
-                liner.create_journalentry_lineitems(self.journal_entry)
+                liner.create_journalentry_lineitems(self)
+
+    def get_absolute_url(self):
+        content_type = ContentType.objects.get_for_model(self.__class__)
+        url_name = "admin:{}_{}_change".format(content_type.app_label, content_type.model)
+        return reverse(url_name, args=[str(self.id)])
 
 
 class JournalLiner:
@@ -261,7 +270,7 @@ class JournalLiner:
 
     # Each journal liner will have its own logic for creating its line items in the specified entry.
     @abc.abstractmethod
-    def create_journalentry_lineitems(self, entry: JournalEntry):
+    def create_journalentry_lineitems(self, journaler: Journaler):
         raise NotImplementedError
 
 
@@ -629,7 +638,8 @@ class Sale(Journaler):
 
     def create_journalentry(self):
         self.journal_entry = JournalEntry.objects.create(
-            when=self.sale_date
+            when=self.sale_date,
+            source_url=self.get_absolute_url(),
         )
         JournalEntryLineItem.objects.create(
             journal_entry=self.journal_entry,
@@ -710,12 +720,12 @@ class OtherItem(models.Model, JournalLiner):
     def __str__(self):
         return self.type.name
 
-    def create_journalentry_lineitems(self, entry: JournalEntry):
+    def create_journalentry_lineitems(self, journaler: Journaler):
         JournalEntryLineItem.objects.create(
             account=self.type.revenue_acct,
             action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
             amount=self.sale_price*self.qty_sold,
-            journal_entry=entry
+            journal_entry=journaler.journal_entry
         )
 
 
@@ -778,12 +788,12 @@ class MonetaryDonation(models.Model, JournalLiner):
     def __str__(self):
         return str("$"+str(self.amount))
 
-    def create_journalentry_lineitems(self, entry: JournalEntry):
+    def create_journalentry_lineitems(self, journaler: Journaler):
         JournalEntryLineItem.objects.create(
             account=ACCT_REVENUE_DONATION,
             action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
             amount=self.amount,
-            journal_entry=entry
+            journal_entry=journaler.journal_entry
         )
 
 
@@ -801,7 +811,7 @@ class ReceivableInvoiceReference(models.Model, JournalLiner):
     portion = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, default=None,
         help_text="Leave blank unless they're only paying a portion of the invoice.")
 
-    def create_journalentry_lineitems(self, entry: JournalEntry):
+    def create_journalentry_lineitems(self, journaler: Journaler):
         amount = self.invoice.amount
         if self.portion is not None:
             amount = self.portion
@@ -809,7 +819,7 @@ class ReceivableInvoiceReference(models.Model, JournalLiner):
             account=ACCT_ASSET_RECEIVABLE,
             action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
             amount=amount,
-            journal_entry=entry
+            journal_entry=journaler.journal_entry
         )
 
 
@@ -1150,7 +1160,7 @@ class ExpenseClaimReference(models.Model, JournalLiner):
     portion = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, default=None,
         help_text="Leave blank unless you're only paying a portion of the claim.")
 
-    def create_journalentry_lineitems(self, entry: JournalEntry):
+    def create_journalentry_lineitems(self, journaler: Journaler):
         amount = self.claim.amount
         if self.portion is not None:
             amount = self.portion
@@ -1158,7 +1168,7 @@ class ExpenseClaimReference(models.Model, JournalLiner):
             account=ACCT_LIABILITY_PAYABLE,
             action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
             amount=amount,
-            journal_entry=entry,
+            journal_entry=journaler.journal_entry,
         )
 
 
@@ -1207,15 +1217,17 @@ class ExpenseLineItem(models.Model, JournalLiner):
         if self.claim is None and self.exp is None:
             raise ValidationError(_("Expense line item must be part of a claim or transaction."))
 
-    def create_journalentry_lineitems(self, entry: JournalEntry):
+    def create_journalentry_lineitems(self, journaler: Journaler):
         # Note: Sometimes entry will be None and sometimes it won't. This is intentional but undesirable.
         # When entry has a value, this line item is part of an ExpenseTransaction.
         # When entry is None, this line item is part of an ExpenseClaim but journal entries are not
         # being created for ExpenseClaims because they were misused. See comments in ExpenseClaim.
         # Every line item associated with an ExpenseClaim will get its own JournalEntry, created here.
-        if entry is None:
+
+        if journaler.journal_entry is None:
             entry = JournalEntry.objects.create(
-                when=self.expense_date
+                when=self.expense_date,
+                source_url=journaler.get_absolute_url()
             )
             JournalEntryLineItem.objects.create(
                 journal_entry=entry,
@@ -1223,6 +1235,8 @@ class ExpenseLineItem(models.Model, JournalLiner):
                 action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
                 amount=self.amount,
             )
+        else:
+            entry = journaler.journal_entry
 
         li = JournalEntryLineItem.objects.create(
             account=self.account,
@@ -1254,7 +1268,7 @@ class PayableInvoiceReference(models.Model, JournalLiner):
     portion = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, default=None,
         help_text="Leave blank unless we're only paying a portion of the invoice.")
 
-    def create_journalentry_lineitems(self, entry: JournalEntry):
+    def create_journalentry_lineitems(self, journaler: Journaler):
         amount = self.invoice.amount
         if self.portion is not None:
             amount = self.portion
@@ -1262,5 +1276,5 @@ class PayableInvoiceReference(models.Model, JournalLiner):
             account=ACCT_LIABILITY_PAYABLE,
             action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
             amount=amount,
-            journal_entry=entry,
+            journal_entry=journaler.journal_entry,
         )

@@ -19,7 +19,7 @@ from django.utils.translation import ugettext_lazy as _
 
 # Local
 from books.models import (
-    Account, Sale, JournalEntry, JournalEntryLineItem, JournalLiner,
+    Account, Sale, JournalEntry, JournalEntryLineItem, Journaler, JournalLiner,
     ACCT_REVENUE_MEMBERSHIP,
 )
 from abutils.utils import generate_ctrlid
@@ -513,12 +513,12 @@ class GroupMembership(models.Model, JournalLiner):
             if mship.membership_type != Membership.MT_GROUP:
                 raise ValidationError(_("Individual memberships covered by a group membership must have type GROUP."))
 
-    def create_journalentry_lineitems(self, entry: JournalEntry):
+    def create_journalentry_lineitems(self, journaler: Journaler):
         JournalEntryLineItem.objects.create(
             account=ACCT_REVENUE_MEMBERSHIP,
             action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
             amount=self.sale_price,
-            journal_entry=entry
+            journal_entry=journaler.journal_entry
         )
 
 
@@ -702,12 +702,12 @@ class Membership(models.Model, JournalLiner):
     class Meta:
         ordering = ['start_date']
 
-    def create_journalentry_lineitems(self, entry: JournalEntry):
+    def create_journalentry_lineitems(self, journaler: Journaler):
         JournalEntryLineItem.objects.create(
             account=ACCT_REVENUE_MEMBERSHIP,
             action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
             amount=self.sale_price,
-            journal_entry=entry
+            journal_entry=journaler.journal_entry
         )
 
 
@@ -760,10 +760,10 @@ class MembershipGiftCardReference(models.Model, JournalLiner):
     class Meta:
         verbose_name = "Membership gift card"
 
-    def create_journalentry_lineitems(self, entry: JournalEntry):
+    def create_journalentry_lineitems(self, journaler: Journaler):
         JournalEntryLineItem.objects.create(
             account=ACCT_REVENUE_MEMBERSHIP,
             action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
             amount=self.sale_price,
-            journal_entry=entry
+            journal_entry=journaler.journal_entry
         )

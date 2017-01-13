@@ -56,15 +56,16 @@ class Command(BaseCommand):
         grand_total_debits = Decimal(0.0)
         grand_total_credits = Decimal(0.0)
         print("\nVerifying that individual journal entries balance...")
-        for je in JournalEntry.objects.all():
+        for je in JournalEntry.objects.all():  # type: JournalEntry
             debits, credits = je.debits_and_credits()
             grand_total_debits += debits
             grand_total_credits += credits
             if debits != credits:
-                print("Journal Entry #{} doesn't balance:".format(je.pk))
+                print("\nJournal Entry #{} doesn't balance.".format(je.pk))
+                print("   http://localhost:8000{}".format(je.source_url))  # TODO: Get base from sites app?
                 for li in je.journalentrylineitem_set.all():
                     print("   {}".format(str(li)))
-        print("Done.")
+        print("\nDone.")
         print("")
         print("Grand total credits: {}", grand_total_credits)
         print(" Grand total debits: {}", grand_total_debits)
