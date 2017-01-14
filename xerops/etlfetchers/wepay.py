@@ -75,6 +75,10 @@ class Fetcher(AbstractFetcher):
             sale.sale_date = date.fromtimestamp(int(checkout['create_time']))  # TODO: This is UTC timezone.
             sale.total_paid_by_customer = Decimal(checkout['gross'])  # Docs: "The total dollar amount paid by the payer"
             sale.processing_fee = Decimal(checkout['fee']) + Decimal(checkout['app_fee'])
+            if checkout['fee_payer'] == 'payer':
+                sale.fee_payer = Sale.FEE_PAID_BY_CUSTOMER
+            else:
+                sale.fee_payer = Sale.FEE_PAID_BY_US
             sale.ctrlid = "{}:{}".format(self.CTRLID_PREFIX, checkout['checkout_id'])
             django_sale = self.upsert(sale)
             sale.id = django_sale['id']
@@ -143,8 +147,15 @@ class Fetcher(AbstractFetcher):
     def _process_subscription_charges(self, charges, subscription, family):
         for charge in charges:
 
-            if not charge["state"].startswith("captured"):
-                if not charge["state"] == "failed": print(charge["state"])
+            state = charge["state"]
+            if state == "refunded":
+                refund = True
+            elif state == "captured":
+                refund = False
+            elif state == "failed":
+                continue
+            else:
+                print("State not handled: " + state)
                 continue
 
             sale = Sale()
