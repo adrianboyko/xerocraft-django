@@ -15,6 +15,7 @@ class SaleSerializer(serializers.ModelSerializer):
             'method_detail',
             'total_paid_by_customer',
             'processing_fee',
+            'fee_payer',
             'ctrlid',
             'protected',
         )

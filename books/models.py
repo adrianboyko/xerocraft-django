@@ -541,6 +541,18 @@ class Sale(Journaler):
         help_text="Payment processor's fee, REGARDLESS OF WHO PAID FOR IT. Zero for cash/check.")
     processing_fee.verbose_name = "Fee"
 
+    FEE_PAID_BY_NOBODY = "N"
+    FEE_PAID_BY_CUSTOMER = "C"
+    FEE_PAID_BY_US = "U"
+    FEE_PAID_CHOICES = [
+        (FEE_PAID_BY_NOBODY, "N/A"),
+        (FEE_PAID_BY_CUSTOMER, "Customer"),
+        (FEE_PAID_BY_US, ORG_NAME),
+    ]
+    fee_payer = models.CharField(max_length=1, choices=FEE_PAID_CHOICES,
+        null=False, blank=False, default=FEE_PAID_BY_US,
+        help_text="Who paid the processing fee (if any)?")
+
     ctrlid = models.CharField(max_length=40, null=False, blank=False, default=next_sale_ctrlid,
         help_text="Payment processor's id for this payment.")
 
