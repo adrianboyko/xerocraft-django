@@ -128,14 +128,27 @@ class Fetcher(AbstractFetcher):
 
     OTHER_ITEM_TYPE_MAP = {
         "Workshop Fee": "Workshop Fee",
+
         "Bumper Sticker": "Sticker",
         "Medium Sticker": "Sticker",
+
         "Soda": "Food/Drink",
         "Can of Soda": "Food/Drink",
         "Bag of Chips": "Food/Drink",
+        "RBar": "Food/Drink",
+
         "Refill Soda Account": "Refill Soda Account",
         "Bracelet, 3D Printed": "3D Print",
         "1 M4T Raffle Tkt": "1 Jim Click Raffle Ticket",
+
+        "Baltic Birch Plywood for Laser Cutter": "Materials, Laser Cutter",
+        "Other/Assorted for Laser Cutter": "Materials, Laser Cutter",
+        "General": "Materials, Laser Cutter",
+        "Acrylic for Laser Cutter": "Materials, Laser Cutter",
+        "Acrylic For Laser Cutter": "Materials, Laser Cutter",
+
+        "Assorted Electronics": "Electronics",
+        "Assortment": "Electronics",
     }
 
     def _process_other_item(self, sale, item, item_num):
@@ -232,6 +245,9 @@ class Fetcher(AbstractFetcher):
 
             elif item['name'] == "One Month Membership":
                 self._process_membership_item(sale, item, item_num, Membership.MT_REGULAR, 1, "months")
+
+            elif item['name'] == "Three Month Membership":
+                self._process_membership_item(sale, item, item_num, Membership.MT_REGULAR, 3, "months")
 
             elif item['name'] == "Six Month Membership":
                 self._process_membership_item(sale, item, item_num, Membership.MT_REGULAR, 6, "months")
