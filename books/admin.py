@@ -496,7 +496,7 @@ class SaleAdmin(VersionAdmin):
         ('payer_name', 'payer_email'),
         ('payment_method','method_detail'),
         ('total_paid_by_customer', 'checksum'),
-        'processing_fee',
+        ('processing_fee', 'fee_payer'),
         'protected',
         'ctrlid',
     ]
