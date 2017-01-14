@@ -9,6 +9,7 @@ from django.contrib.auth.models import User
 from django.core.management import call_command
 
 # Local
+from xis.xerocraft_org_utils.paypalscraper import PaypalScraper
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -24,6 +25,17 @@ class TestAuthentication(TestCase):
         user = authenticate(username=id, password=pw)
         self.assertIsNotNone(user)
         self.assertEquals(User.objects.count(), 1)
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+class TestPaypalScraper(TestCase):
+
+    def test_it(self):
+        scraper = PaypalScraper()
+        ids = scraper.scrape_agreement_ids()
+        # The following assertion assumes that xerocraft.org has agreement ids to scrape.
+        self.assertGreater(len(ids), 0)
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
