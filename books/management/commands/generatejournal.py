@@ -53,7 +53,7 @@ class Command(BaseCommand):
                 for li in je.journalentrylineitem_set.all():
                     print("   {}".format(str(li)))
         print("\nDone.\n")
-        print("        Error count: {}", err_count)
-        print("Grand total credits: {}", grand_total_credits)
-        print(" Grand total debits: {}", grand_total_debits)
-        print("         Difference: {}", grand_total_credits - grand_total_debits)
+        print("        Error count: {}".format(err_count))
+        print("Grand total credits: {}".format(grand_total_credits))
+        print(" Grand total debits: {}".format(grand_total_debits))
+        print("         Difference: {}".format(grand_total_credits - grand_total_debits))
