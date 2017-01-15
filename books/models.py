@@ -320,7 +320,7 @@ class EntityNote(Note):
 
 def make_InvoiceBase(help: Dict[str, str]):
 
-    class InvoiceBase(models.Model):
+    class InvoiceBase(Journaler):
 
         invoice_date = models.DateField(null=False, blank=False, default=date.today,
             help_text = help["invoice_date"])
@@ -373,7 +373,7 @@ recv_invoice_help = {
     "account":      "The revenue account associated with this invoice.",
 }
 
-
+@register_journaler()
 class ReceivableInvoice(make_InvoiceBase(recv_invoice_help)):
 
     def checksum(self) -> Decimal:
@@ -428,6 +428,7 @@ payable_invoice_help = {
 }
 
 
+@register_journaler()
 class PayableInvoice(make_InvoiceBase(payable_invoice_help)):
 
     def checksum(self) -> Decimal:
@@ -490,7 +491,7 @@ class InvoiceLineItem(models.Model):
         abstract = True
 
 
-class ReceivableInvoiceLineItem(InvoiceLineItem):
+class ReceivableInvoiceLineItem(InvoiceLineItem, JournalLiner):
 
     inv = models.ForeignKey(ReceivableInvoice, null=True, blank=True,
         on_delete=models.CASCADE,  # Line items are parts of the larger invoice, so delete if invoice is deleted.
@@ -505,8 +506,16 @@ class ReceivableInvoiceLineItem(InvoiceLineItem):
         if self.account.type is not Account.TYPE_CREDIT:
             raise ValidationError(_("Account chosen must have type CREDIT."))
 
+    def create_journalentry_lineitems(self, journaler: Journaler):
+        JournalEntryLineItem.objects.create(
+            journal_entry=journaler.journal_entry,
+            account=self.account,
+            action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
+            amount=self.amount
+        )
 
-class PayableInvoiceLineItem(InvoiceLineItem):
+
+class PayableInvoiceLineItem(InvoiceLineItem, JournalLiner):
 
     inv = models.ForeignKey(PayableInvoice, null=True, blank=True,
         on_delete=models.CASCADE,  # Line items are parts of the larger invoice, so delete if invoice is deleted.
@@ -520,6 +529,14 @@ class PayableInvoiceLineItem(InvoiceLineItem):
 
         if self.account.type is not Account.TYPE_DEBIT:
             raise ValidationError(_("Account chosen must have type DEBIT."))
+
+    def create_journalentry_lineitems(self, journaler: Journaler):
+        JournalEntryLineItem.objects.create(
+            journal_entry=journaler.journal_entry,
+            account=self.account,
+            action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
+            amount=self.amount
+        )
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -660,6 +677,10 @@ class Sale(Journaler):
 
     def clean(self):
         super().clean()
+
+        # The following is a noncritical constraint, enforced here:
+        if self.processing_fee == Decimal(0.00) and self.fee_payer != self.FEE_PAID_BY_NOBODY:
+            self.fee_payer = self.FEE_PAID_BY_NOBODY
 
         if self.deposit_date is not None and self.sale_date is not None \
          and self.deposit_date < self.sale_date:
