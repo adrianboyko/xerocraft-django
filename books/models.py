@@ -144,8 +144,8 @@ ACCT_LIABILITY_PAYABLE = Account.objects.get(name="Accounts Payable")
 ACCT_ASSET_RECEIVABLE = Account.objects.get(name="Accounts Receivable")
 ACCT_ASSET_CASH = Account.objects.get(name="Cash")
 ACCT_EXPENSE_BUSINESS = Account.objects.get(name="Expense, Business")
-ACCT_REVENUE_DONATION = Account.objects.get(name="Revenue, Donations")
-ACCT_REVENUE_MEMBERSHIP = Account.objects.get(name="Revenues, Membership")
+ACCT_REVENUE_DONATION = Account.objects.get(name="Revenue, Cash Donations")
+ACCT_REVENUE_MEMBERSHIP = Account.objects.get(name="Revenue, Membership")
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -391,6 +391,25 @@ class ReceivableInvoice(make_InvoiceBase(recv_invoice_help)):
             self.name(),
             self.invoice_date)
 
+    def create_journalentry(self):
+        self.journal_entry = JournalEntry.objects.create(
+            when=self.invoice_date,
+            source_url=self.get_absolute_url(),
+        )
+        self.save()
+
+        JournalEntryLineItem.objects.create(
+            journal_entry=self.journal_entry,
+            account=ACCT_ASSET_RECEIVABLE,
+            action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
+            amount=self.amount
+        )
+
+        self.create_lineitems_from(
+            self.receivableinvoicelineitem_set,
+        )
+
+
 
 class ReceivableInvoiceNote(Note):
 
@@ -425,6 +444,24 @@ class PayableInvoice(make_InvoiceBase(payable_invoice_help)):
             self.amount,
             self.name(),
             self.invoice_date)
+
+    def create_journalentry(self):
+        self.journal_entry = JournalEntry.objects.create(
+            when=self.invoice_date,
+            source_url=self.get_absolute_url(),
+        )
+        self.save()
+
+        JournalEntryLineItem.objects.create(
+            journal_entry=self.journal_entry,
+            account=ACCT_LIABILITY_PAYABLE,
+            action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
+            amount=self.amount
+        )
+
+        self.create_lineitems_from(
+            self.payableinvoicelineitem_set,
+        )
 
 
 class PayableInvoiceNote(Note):
@@ -653,6 +690,7 @@ class Sale(Journaler):
             when=self.sale_date,
             source_url=self.get_absolute_url(),
         )
+        self.save()
         JournalEntryLineItem.objects.create(
             journal_entry=self.journal_entry,
             account=ACCT_ASSET_CASH,
@@ -660,12 +698,14 @@ class Sale(Journaler):
             amount=self.total_paid_by_customer-self.processing_fee
         )
         if self.processing_fee > Decimal(0.00):
-            JournalEntryLineItem.objects.create(
-                journal_entry=self.journal_entry,
-                account=ACCT_EXPENSE_BUSINESS,
-                action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
-                amount=self.processing_fee
-            )
+            if self.fee_payer == self.FEE_PAID_BY_US:
+                JournalEntryLineItem.objects.create(
+                    journal_entry=self.journal_entry,
+                    account=ACCT_EXPENSE_BUSINESS,
+                    action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
+                    amount=self.processing_fee
+                )
+
         self.create_lineitems_from(
             self.groupmembership_set,  # TODO: Don't directly ref things outside "books" app
             self.membership_set,  # TODO: Don't directly ref things outside "books" app
@@ -674,7 +714,6 @@ class Sale(Journaler):
             self.otheritem_set,
             self.receivableinvoicereference_set,
         )
-        self.save()
 
 
 class SaleNote(Note):
