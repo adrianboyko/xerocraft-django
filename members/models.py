@@ -11,7 +11,6 @@ from typing import Union, Tuple
 
 # Third Party
 from django.db import models
-from django.db.migrations.recorder import MigrationRecorder
 from django.utils import timezone
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
@@ -20,9 +19,10 @@ from django.utils.translation import ugettext_lazy as _
 # Local
 from books.models import (
     Account, Sale, JournalEntry, JournalEntryLineItem, Journaler, JournalLiner,
-    ACCT_REVENUE_MEMBERSHIP,
+    ACCT_REVENUE_MEMBERSHIP, ACCT_LIABILITY_UNEARNED_MSHIP_REVENUE
 )
 from abutils.utils import generate_ctrlid
+from abutils.time import is_last_day_of_month
 
 
 TZ = timezone.get_default_timezone()
@@ -703,12 +703,46 @@ class Membership(models.Model, JournalLiner):
         ordering = ['start_date']
 
     def create_journalentry_lineitems(self, journaler: Journaler):
+
+        # Interestingly, this case requires that we create a number of future revenue recognition
+        # journal entries, in addition to the line items we create for the sale's journal entry.
+
+        def recognize_revenue(date_to_recognize, amount):
+            je = JournalEntry.objects.create(
+                when=date_to_recognize,
+                source_url=journaler.get_absolute_url()
+            )
+            JournalEntryLineItem.objects.create(
+                account=ACCT_REVENUE_MEMBERSHIP,
+                action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
+                amount=amount,
+                journal_entry=je
+            )
+            JournalEntryLineItem.objects.create(
+                account=ACCT_LIABILITY_UNEARNED_MSHIP_REVENUE,
+                action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
+                amount=amount,
+                journal_entry=je
+            )
+
         JournalEntryLineItem.objects.create(
-            account=ACCT_REVENUE_MEMBERSHIP,
+            account=ACCT_LIABILITY_UNEARNED_MSHIP_REVENUE,
             action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
             amount=self.sale_price,
             journal_entry=journaler.journal_entry
         )
+
+        mship_duration = self.end_date - self.start_date  # type: timedelta
+        mship_days = mship_duration.days + 1
+        rev_per_day = self.sale_price / Decimal(mship_days)
+        curr_date = self.start_date
+        rev_acc = Decimal(0.00)
+        while curr_date <= self.end_date:
+            rev_acc += rev_per_day
+            if is_last_day_of_month(curr_date) or curr_date == self.end_date:
+                recognize_revenue(curr_date, rev_acc)
+                rev_acc = Decimal(0.00)
+            curr_date += timedelta(days=1)
 
 
 class DiscoveryMethod(models.Model):
