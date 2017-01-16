@@ -5,6 +5,7 @@ from datetime import date
 from decimal import Decimal
 from typing import Dict, List
 import abc
+from logging import getLogger
 
 # Third party
 from django.db import models
@@ -19,6 +20,8 @@ from django.core.urlresolvers import reverse
 
 # Local
 from abutils.utils import generate_ctrlid
+
+logger = getLogger("books")
 
 ORG_NAME = settings.XEROPS_CONFIG['ORG_NAME']
 
@@ -140,13 +143,16 @@ class AccountGroup(models.Model):
     class Meta:
         ordering = ['name']
 
-ACCT_LIABILITY_PAYABLE = Account.objects.get(name="Accounts Payable")
-ACCT_ASSET_RECEIVABLE = Account.objects.get(name="Accounts Receivable")
-ACCT_ASSET_CASH = Account.objects.get(name="Cash")
-ACCT_EXPENSE_BUSINESS = Account.objects.get(name="Expense, Business")
-ACCT_REVENUE_DONATION = Account.objects.get(name="Revenue, Cash Donations")
-ACCT_REVENUE_MEMBERSHIP = Account.objects.get(name="Revenue, Membership")
-
+try:
+    ACCT_LIABILITY_PAYABLE = Account.objects.get(name="Accounts Payable")
+    ACCT_LIABILITY_UNEARNED_MSHIP_REVENUE = Account.objects.get(name="Unearned Membership Revenue")
+    ACCT_ASSET_RECEIVABLE = Account.objects.get(name="Accounts Receivable")
+    ACCT_ASSET_CASH = Account.objects.get(name="Cash")
+    ACCT_EXPENSE_BUSINESS = Account.objects.get(name="Expense, Business")
+    ACCT_REVENUE_DONATION = Account.objects.get(name="Revenue, Cash Donations")
+    ACCT_REVENUE_MEMBERSHIP = Account.objects.get(name="Revenue, Membership")
+except Account.DoesNotExist as e:
+    logger.exception("Couldn't find account.")
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # JOURNAL - The journal is generated (and regenerated) from other models
