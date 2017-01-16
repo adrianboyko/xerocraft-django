@@ -271,6 +271,10 @@ LOGGING = {
         'xerocraft-django': {
             'handlers': ['console'],
             'level': 'INFO',
+        },
+        'books': {
+            'handlers': ['console'],
+            'level': 'INFO',
         }
     }
 }
