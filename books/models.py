@@ -187,6 +187,12 @@ class JournalEntry(models.Model):
                 _("Total credits do not equal total debits (dr {} != cr {}.").format(total_debits, total_credits)
             )
 
+    def __str__(self):
+        return "Journal Entry #{} dated {}".format(self.pk, self.when)
+
+    class Meta:
+        ordering = ['when']
+
 
 class JournalEntryLineItem(models.Model):
 
@@ -227,7 +233,7 @@ class JournalEntryLineItem(models.Model):
     def __str__(self):
         actionstrs = dict(self.ACTION_CHOICES)
         dr_or_cr = "cr" if self.iscredit() else "dr"
-        return "line item #{}, {} '{}', ${} {}".format(
+        return "Line Item #{}, {} '{}', ${} {}".format(
             self.pk,
             actionstrs[self.action],
             str(self.account),
@@ -1196,7 +1202,6 @@ class ExpenseTransaction(Journaler):
             total += claimref.portion if claimref.portion is not None else claimref.claim.amount
         return total
 
-
     def dbcheck(self):
         if  self.amount_paid != self.checksum():
             raise ValidationError(_("Total of line items must match amount of transaction."))
@@ -1207,7 +1212,8 @@ class ExpenseTransaction(Journaler):
     def create_journalentry(self):
         # Child models will also contribute to this journal entry but that's handled by "generatejournal"
         self.journal_entry = JournalEntry.objects.create(
-            when=self.payment_date
+            when=self.payment_date,
+            source_url=self.get_absolute_url()
         )
         JournalEntryLineItem.objects.create(
             journal_entry=self.journal_entry,
