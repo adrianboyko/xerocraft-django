@@ -15,7 +15,8 @@ from .models import (
     ExpenseLineItem,
     Sale, SaleNote,
     MonetaryDonation,
-    OtherItem, OtherItemType
+    OtherItem, OtherItemType,
+    Journaler, JournalEntry
 )
 from .serializers import (
     SaleSerializer, SaleNoteSerializer,
@@ -141,3 +142,14 @@ class MonetaryDonationViewSet(viewsets.ModelViewSet):  # Django REST Framework
     filter_fields = {'ctrlid'}
 
 
+def journalentry_view(request, journaler: Journaler):
+
+    params = {
+        'is_popup': False,
+        'title': "Journal Entries for {}".format(journaler),
+        'journaler': journaler,
+        # TODO: Instead of one je, get the list of journal entries that have source_url == journaler.
+        #'journal_entries': [journaler.journal_entry],
+        'journal_entries': JournalEntry.objects.filter(source_url=journaler.get_absolute_url()).all()
+    }
+    return render(request, 'books/journal-entries.html', params)

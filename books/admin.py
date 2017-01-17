@@ -12,6 +12,7 @@ from django.utils.html import format_html
 from django import forms
 from django.utils.translation import ugettext_lazy as _
 from reversion.admin import VersionAdmin
+from django_object_actions import DjangoObjectActions
 
 # Local
 from books.models import (
@@ -23,9 +24,10 @@ from books.models import (
     PayableInvoice, PayableInvoiceNote, PayableInvoiceReference, PayableInvoiceLineItem,
     Entity, EntityNote,
     Campaign, CampaignNote,
+    Journaler
 )
 from modelmailer.admin import ModelMailerAdmin
-
+from books.views import journalentry_view
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # UTILITIES
@@ -62,6 +64,22 @@ def get_ChecksumAdminForm(themodel):
 
     return ChecksumAdminForm
 
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# JOURNALER ADMIN
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+class JournalerAdmin(DjangoObjectActions):
+    """Adds a 'Journal Entries' button to admin views that display Journalers. """
+
+    def viewjournal_action(self, request, obj: Journaler):
+        return journalentry_view(request, obj)
+
+    viewjournal_action.label = "Journal Entries"
+    viewjournal_action.short_description = "View the journal entries (accounting) for this transaction."
+    change_actions = ['viewjournal_action']
+
+    view_on_site = False
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # NOTES
@@ -353,7 +371,7 @@ class InvoiceAdmin(VersionAdmin):
 
 
 @admin.register(ReceivableInvoice)
-class ReceivableInvoiceAdmin(InvoiceAdmin):
+class ReceivableInvoiceAdmin(JournalerAdmin, InvoiceAdmin):
 
     def name_col(self, obj:ReceivableInvoice):
         return name_colfunc(obj.user, obj.entity)
@@ -366,7 +384,7 @@ class ReceivableInvoiceAdmin(InvoiceAdmin):
 
 
 @admin.register(PayableInvoice)
-class PayableInvoiceAdmin(InvoiceAdmin):
+class PayableInvoiceAdmin(JournalerAdmin, InvoiceAdmin):
 
     def name_col(self, obj:ReceivableInvoice):
         return name_colfunc(obj.user, obj.entity)
@@ -452,11 +470,11 @@ class OtherItemTypeAdmin(VersionAdmin):
 
 
 @admin.register(Sale)
-class SaleAdmin(VersionAdmin):
+class SaleAdmin(JournalerAdmin, VersionAdmin):
 
     form = get_ChecksumAdminForm(Sale)
 
-    #TODO: Move to Sale model?
+    # TODO: Move to Sale model?
     def name_col(self, obj: Sale):
         result = ""
         if obj.payer_acct is not None:
@@ -470,7 +488,7 @@ class SaleAdmin(VersionAdmin):
         return result
     name_col.short_description = "Payer"
 
-    #TODO: Move to Sale model?
+    # TODO: Move to Sale model?
     def acct_type_col(self, obj: Sale):
         if obj.payer_acct is not None:
             return "U"
@@ -590,7 +608,7 @@ class ClaimStatusFilter(admin.SimpleListFilter):
 
 
 @admin.register(ExpenseClaim)
-class ExpenseClaimAdmin(VersionAdmin):
+class ExpenseClaimAdmin(JournalerAdmin, VersionAdmin):
 
     form = get_ChecksumAdminForm(ExpenseClaim)
 
@@ -729,7 +747,7 @@ class ExpenseClaimReferenceInline(admin.TabularInline):
 
 
 @admin.register(ExpenseTransaction)
-class ExpenseTransactionAdmin(VersionAdmin):
+class ExpenseTransactionAdmin(JournalerAdmin, VersionAdmin):
 
     form = get_ChecksumAdminForm(ExpenseTransaction)
 

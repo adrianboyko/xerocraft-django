@@ -1,0 +1,41 @@
+{% extends 'admin/base.html' %}
+{% load i18n l10n admin_urls %}
+{% block branding %}<h1 id="site-name">Xerocraft Django Admin</h1>{% endblock %}
+
+{% block breadcrumbs %}
+    <div class="breadcrumbs">
+        <a href="{% url 'admin:index' %}">{% trans 'Home' %}</a> &rsaquo;
+        <a href="{% url 'admin:app_list' 'books' %}">Books</a> &rsaquo;
+        {%  comment %}Link to list of objects of same time as journaler.{% endcomment %}
+        <a href="{{journaler.get_absolute_url}}">{{ journaler }}</a> &rsaquo;
+        Journal Entries
+    </div>
+{% endblock %}
+
+{% block content %}
+    {% for je in journal_entries %}
+        &nbsp;&nbsp;&nbsp;{{ je.when }}<br/>
+
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Debits
+        {% for li in je.journalentrylineitem_set.all %}
+            {% if li.isdebit %}
+                <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                ${{ li.amount }}
+                {% if li.action == '>' %}increase{% else %}decrease{% endif %}
+                to '{{ li.account }}'
+            {% endif %}
+        {% endfor %}
+        <br/>
+
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Credits
+        {% for li in je.journalentrylineitem_set.all %}
+            {% if li.iscredit %}
+                <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                ${{ li.amount }}
+                {% if li.action == '>' %}increase{% else %}decrease{% endif %}
+                to '{{ li.account }}'
+            {% endif %}
+        {% endfor %}
+        <br/><br/>
+    {% endfor %}
+{% endblock %}
