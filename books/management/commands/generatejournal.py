@@ -4,7 +4,7 @@ from decimal import Decimal
 
 # Third party
 from django.core.management.base import BaseCommand
-from django.core.exceptions import ValidationError
+from django.db.models import Max
 
 # Local
 from books.models import (
@@ -21,10 +21,13 @@ class Command(BaseCommand):
     help = "(Re)generates the journal from existing transactions."
 
     def handle(self, *args, **options):
+
         print("Deleting unfrozen journal entries... ", end="")
         sys.stdout.flush()
         JournalEntry.objects.filter(frozen=False).delete()
         print("Done.")
+        Journaler._next_id = (JournalEntry.objects.all().aggregate(Max('id'))['id__max'] or 0) + 1
+
         for journaler_class in registered_journaler_classes:
             # print("\rGenerating entries for {} transactions...".format(journaler_class.__name__))
             count = 0  # type: int
@@ -37,6 +40,8 @@ class Command(BaseCommand):
                 if oldje is None or not oldje.frozen:
                     journaler.create_journalentry()
             print("Done.")
+
+        JournalLiner.save_batch()  # Saves any incomplete batch that may have accumulated.
 
         grand_total_debits = Decimal(0.0)
         grand_total_credits = Decimal(0.0)

@@ -24,7 +24,6 @@ from books.models import (
 from abutils.utils import generate_ctrlid
 from abutils.time import is_last_day_of_month
 
-
 TZ = timezone.get_default_timezone()
 
 
@@ -514,12 +513,12 @@ class GroupMembership(models.Model, JournalLiner):
                 raise ValidationError(_("Individual memberships covered by a group membership must have type GROUP."))
 
     def create_journalentry_lineitems(self, journaler: Journaler):
-        JournalEntryLineItem.objects.create(
+        JournalLiner.batch(JournalEntryLineItem(
             account=ACCT_REVENUE_MEMBERSHIP,
             action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
             amount=self.sale_price,
             journal_entry=journaler.journal_entry
-        )
+        ))
 
 
 class MembershipGiftCard(models.Model):
@@ -709,28 +708,29 @@ class Membership(models.Model, JournalLiner):
 
         def recognize_revenue(date_to_recognize, amount):
             je = JournalEntry.objects.create(
+                id=Journaler.get_next_id(),
                 when=date_to_recognize,
                 source_url=journaler.get_absolute_url()
             )
-            JournalEntryLineItem.objects.create(
+            JournalLiner.batch(JournalEntryLineItem(
                 account=ACCT_REVENUE_MEMBERSHIP,
                 action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
                 amount=amount,
                 journal_entry=je
-            )
-            JournalEntryLineItem.objects.create(
+            ))
+            JournalLiner.batch(JournalEntryLineItem(
                 account=ACCT_LIABILITY_UNEARNED_MSHIP_REVENUE,
                 action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
                 amount=amount,
                 journal_entry=je
-            )
+            ))
 
-        JournalEntryLineItem.objects.create(
+        JournalLiner.batch(JournalEntryLineItem(
             account=ACCT_LIABILITY_UNEARNED_MSHIP_REVENUE,
             action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
             amount=self.sale_price,
             journal_entry=journaler.journal_entry
-        )
+        ))
 
         mship_duration = self.end_date - self.start_date  # type: timedelta
         mship_days = mship_duration.days + 1
@@ -795,9 +795,9 @@ class MembershipGiftCardReference(models.Model, JournalLiner):
         verbose_name = "Membership gift card"
 
     def create_journalentry_lineitems(self, journaler: Journaler):
-        JournalEntryLineItem.objects.create(
+        JournalLiner.batch(JournalEntryLineItem(
             account=ACCT_REVENUE_MEMBERSHIP,
             action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
             amount=self.sale_price,
             journal_entry=journaler.journal_entry
-        )
+        ))
