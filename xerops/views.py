@@ -3,11 +3,11 @@ import time
 
 # Third Party
 from django.core.management import call_command
-from django.shortcuts import render, render_to_response
+from django.shortcuts import render
 from django.contrib import auth
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
-from django.template import RequestContext
+from django.template import RequestContext, loader, Template
 from social.apps.django_app.default.models import UserSocialAuth
 from rest_framework.authtoken.models import Token
 from rq import Queue
@@ -74,9 +74,10 @@ def login(request):
     # The request is not a HTTP POST, so display the login form.
     # This scenario would most likely be a HTTP GET.
     else:
-        # No context variables to pass to the template system, hence the
-        # blank dictionary object...
-        return render_to_response('xerops/login.html', {'next': request.GET.get('next')}, context)
+        t = loader.get_template('xerops/login.html')  # type:Template
+        context = {'next': request.GET.get('next')}
+        http = t.render(context=context, request=request)
+        return HttpResponse(http)
 
 
 def logout(request):

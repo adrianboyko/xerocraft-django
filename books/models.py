@@ -170,6 +170,25 @@ class JournalEntry(models.Model):
     when = models.DateField(null=False, blank=False,
         help_text="The date of the transaction.")
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Prebatched lineitems are JournalEntryLineItems that are waiting for their associated
+        # JournalEntry to get a PK in the database, at which time they'll have their
+        # journal_entry_id assigned and they'll be batched.
+        self.prebatched_lineitems = []  # type:List[JournalEntryLineItem]
+
+    def prebatch(self, jeli: 'JournalEntryLineItem'):
+        self.prebatched_lineitems.append(jeli)
+        return jeli
+
+    def process_prebatch(self):
+        if len(self.prebatched_lineitems) == 0:
+            print("WTF")
+        for jeli in self.prebatched_lineitems:
+            jeli.journal_entry_id = self.id
+            JournalLiner.batch(jeli)
+        self.prebatched_lineitems = []
+
     def debits_and_credits(self):
         total_debits = Decimal(0.0)
         total_credits = Decimal(0.0)
@@ -247,22 +266,10 @@ class Journaler(models.Model):
 
     __metaclass__ = abc.ABCMeta
 
-    _next_id = None
-    _batch = list()  # type:List[JournalEntryListItem]
+    _batch = list()  # type:List[JournalEntry]
 
     class Meta:
         abstract = True
-
-    # The journal entry created by this journaler, if any.
-    journal_entry = models.ForeignKey(JournalEntry, null=True, blank=True,
-        on_delete=models.SET_NULL,
-        help_text="Automatically maintained by accounting commands. Do not modify.")
-
-    @classmethod
-    def get_next_id(cls):
-        result = cls._next_id
-        cls._next_id += 1
-        return result
 
     # Each journaler will have its own logic for creating a journal entry.
     @abc.abstractmethod
@@ -274,12 +281,12 @@ class Journaler(models.Model):
         """
         raise NotImplementedError
 
-    def create_lineitems_from(self, *args):
-        for relmgr in args:
+    def create_lineitems_for(self, je: JournalEntry, mgrs):
+        for relmgr in mgrs:  # type: RelatedManager
             for liner in relmgr.all():
                 if not isinstance(liner, JournalLiner):
                     raise ValueError("{} is not a JournalLiner".format(liner))
-                liner.create_journalentry_lineitems(self)
+                liner.create_journalentry_lineitems(je)
 
     def get_absolute_url(self):
         content_type = ContentType.objects.get_for_model(self.__class__)
@@ -288,14 +295,16 @@ class Journaler(models.Model):
 
     @classmethod
     def save_batch(cls):
+        # NOTE: As of 1/18/2016, this will only work in Django version 1.10 with Postgres
         JournalEntry.objects.bulk_create(cls._batch)
+        for je in cls._batch:
+            je.process_prebatch()
         cls._batch = []
 
     @classmethod
     def batch(cls, je: JournalEntry):
         cls._batch.append(je)
-        if len(cls._batch) > 1000:
-            cls.save_batch()
+        return je
 
 
 class JournalLiner:
@@ -305,20 +314,18 @@ class JournalLiner:
 
     # Each journal liner will have its own logic for creating its line items in the specified entry.
     @abc.abstractmethod
-    def create_journalentry_lineitems(self, journaler: Journaler):
+    def create_journalentry_lineitems(self, je: JournalEntry):
         raise NotImplementedError
 
     @classmethod
     def save_batch(cls):
-        Journaler.save_batch()
-        JournalEntryLineItem.objects.bulk_create(cls._batch)
+        created = JournalEntryLineItem.objects.bulk_create(cls._batch)
         cls._batch = []
 
     @classmethod
     def batch(cls, jeli: JournalEntryLineItem):
         cls._batch.append(jeli)
-        if len(cls._batch) > 1000:
-            cls.save_batch()
+        return jeli
 
 
 registered_journaler_classes = []  # type: List[Journaler]
@@ -439,24 +446,19 @@ class ReceivableInvoice(make_InvoiceBase(recv_invoice_help)):
             self.invoice_date)
 
     def create_journalentry(self):
-        self.journal_entry = JournalEntry.objects.create(
-            id=Journaler.get_next_id(),
+        je = Journaler.batch(JournalEntry(
             when=self.invoice_date,
             source_url=self.get_absolute_url(),
-        )
-        self.save()
-
-        JournalLiner.batch(JournalEntryLineItem(
-            journal_entry=self.journal_entry,
+        ))
+        je.prebatch(JournalEntryLineItem(
             account=ACCT_ASSET_RECEIVABLE,
             action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
             amount=self.amount
         ))
-
-        self.create_lineitems_from(
-            self.receivableinvoicelineitem_set,
+        self.create_lineitems_for(
+            je,
+            [self.receivableinvoicelineitem_set]
         )
-
 
 
 class ReceivableInvoiceNote(Note):
@@ -495,22 +497,18 @@ class PayableInvoice(make_InvoiceBase(payable_invoice_help)):
             self.invoice_date)
 
     def create_journalentry(self):
-        self.journal_entry = JournalEntry.objects.create(
-            id=Journaler.get_next_id(),
+        je = Journaler.batch(JournalEntry(
             when=self.invoice_date,
             source_url=self.get_absolute_url(),
-        )
-        self.save()
-
-        JournalLiner.batch(JournalEntryLineItem(
-            journal_entry=self.journal_entry,
+        ))
+        je.prebatch(JournalEntryLineItem(
             account=ACCT_LIABILITY_PAYABLE,
             action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
             amount=self.amount
         ))
-
-        self.create_lineitems_from(
-            self.payableinvoicelineitem_set,
+        self.create_lineitems_for(
+            je,
+            [self.payableinvoicelineitem_set],
         )
 
 
@@ -555,9 +553,8 @@ class ReceivableInvoiceLineItem(InvoiceLineItem, JournalLiner):
         if self.account.type is not Account.TYPE_CREDIT:
             raise ValidationError(_("Account chosen must have type CREDIT."))
 
-    def create_journalentry_lineitems(self, journaler: Journaler):
-        JournalLiner.batch(JournalEntryLineItem(
-            journal_entry=journaler.journal_entry,
+    def create_journalentry_lineitems(self, je: JournalEntry):
+        je.prebatch(JournalEntryLineItem(
             account=self.account,
             action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
             amount=self.amount
@@ -579,9 +576,8 @@ class PayableInvoiceLineItem(InvoiceLineItem, JournalLiner):
         if self.account.type is not Account.TYPE_DEBIT:
             raise ValidationError(_("Account chosen must have type DEBIT."))
 
-    def create_journalentry_lineitems(self, journaler: Journaler):
-        JournalLiner.batch(JournalEntryLineItem(
-            journal_entry=journaler.journal_entry,
+    def create_journalentry_lineitems(self, je: JournalEntry):
+        je.prebatch(JournalEntryLineItem(
             account=self.account,
             action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
             amount=self.amount
@@ -756,34 +752,33 @@ class Sale(Journaler):
         else: return "{} sale".format(self.sale_date)
 
     def create_journalentry(self):
-        self.journal_entry = JournalEntry.objects.create(
-            id=Journaler.get_next_id(),
+        je = Journaler.batch(JournalEntry(
             when=self.sale_date,
             source_url=self.get_absolute_url(),
-        )
-        self.save()
-        JournalLiner.batch(JournalEntryLineItem(
-            journal_entry=self.journal_entry,
+        ))
+        je.prebatch(JournalEntryLineItem(
             account=ACCT_ASSET_CASH,
             action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
             amount=self.total_paid_by_customer-self.processing_fee
         ))
         if self.processing_fee > Decimal(0.00):
             if self.fee_payer == self.FEE_PAID_BY_US:
-                JournalLiner.batch(JournalEntryLineItem(
-                    journal_entry=self.journal_entry,
+                je.prebatch(JournalEntryLineItem(
                     account=ACCT_EXPENSE_BUSINESS,
                     action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
                     amount=self.processing_fee
                 ))
 
-        self.create_lineitems_from(
-            self.groupmembership_set,  # TODO: Don't directly ref things outside "books" app
-            self.membership_set,  # TODO: Don't directly ref things outside "books" app
-            self.membershipgiftcardreference_set,  # TODO: Don't directly ref things outside "books" app
-            self.monetarydonation_set,
-            self.otheritem_set,
-            self.receivableinvoicereference_set,
+        self.create_lineitems_for(
+            je,
+            [
+                self.groupmembership_set,  # TODO: Don't directly ref things outside "books" app
+                self.membership_set,  # TODO: Don't directly ref things outside "books" app
+                self.membershipgiftcardreference_set,  # TODO: Don't directly ref things outside "books" app
+                self.monetarydonation_set,
+                self.otheritem_set,
+                self.receivableinvoicereference_set,
+            ]
         )
 
 
@@ -842,12 +837,11 @@ class OtherItem(models.Model, JournalLiner):
     def __str__(self):
         return self.type.name
 
-    def create_journalentry_lineitems(self, journaler: Journaler):
-        JournalLiner.batch(JournalEntryLineItem(
+    def create_journalentry_lineitems(self, je: JournalEntry):
+        je.prebatch(JournalEntryLineItem(
             account=self.type.revenue_acct,
             action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
             amount=self.sale_price*self.qty_sold,
-            journal_entry=journaler.journal_entry
         ))
 
 
@@ -910,12 +904,11 @@ class MonetaryDonation(models.Model, JournalLiner):
     def __str__(self):
         return str("$"+str(self.amount))
 
-    def create_journalentry_lineitems(self, journaler: Journaler):
-        JournalLiner.batch(JournalEntryLineItem(
+    def create_journalentry_lineitems(self, je: JournalEntry):
+        je.prebatch(JournalEntryLineItem(
             account=ACCT_REVENUE_DONATION,
             action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
             amount=self.amount,
-            journal_entry=journaler.journal_entry
         ))
 
 
@@ -933,15 +926,17 @@ class ReceivableInvoiceReference(models.Model, JournalLiner):
     portion = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, default=None,
         help_text="Leave blank unless they're only paying a portion of the invoice.")
 
-    def create_journalentry_lineitems(self, journaler: Journaler):
+    def create_journalentry_lineitems(self, je: JournalEntry):
+
         amount = self.invoice.amount
+
         if self.portion is not None:
             amount = self.portion
-        JournalLiner.batch(JournalEntryLineItem(
+
+        je.prebatch(JournalEntryLineItem(
             account=ACCT_ASSET_RECEIVABLE,
             action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
             amount=amount,
-            journal_entry=journaler.journal_entry
         ))
 
 
@@ -1148,8 +1143,9 @@ class ExpenseClaim(Journaler):
         date the transaction at the time of the purchase which is EARLIER than the date
         on which the claim was made, but it's close enough and will have to do.
         """
-        self.create_lineitems_from(
-            self.expenselineitem_set,
+        self.create_lineitems_for(
+            JournalEntry(id=-1, source_url=self.get_absolute_url()),
+            [self.expenselineitem_set]
         )
         # self.save()
 
@@ -1249,23 +1245,23 @@ class ExpenseTransaction(Journaler):
 
     def create_journalentry(self):
         # Child models will also contribute to this journal entry but that's handled by "generatejournal"
-        self.journal_entry = JournalEntry.objects.create(
-            id=Journaler.get_next_id(),
+        je = Journaler.batch(JournalEntry(
             when=self.payment_date,
             source_url=self.get_absolute_url()
-        )
-        JournalLiner.batch(JournalEntryLineItem(
-            journal_entry=self.journal_entry,
+        ))
+        je.prebatch(JournalEntryLineItem(
             account=ACCT_ASSET_CASH,
             action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
             amount=self.amount_paid
         ))
-        self.create_lineitems_from(
-            self.expenseclaimreference_set,
-            self.expenselineitem_set,
-            self.payableinvoicereference_set,
+        self.create_lineitems_for(
+            je,
+            [
+                self.expenseclaimreference_set,
+                self.expenselineitem_set,
+                self.payableinvoicereference_set,
+            ]
         )
-        self.save()
 
 
 class ExpenseClaimReference(models.Model, JournalLiner):
@@ -1283,15 +1279,17 @@ class ExpenseClaimReference(models.Model, JournalLiner):
     portion = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, default=None,
         help_text="Leave blank unless you're only paying a portion of the claim.")
 
-    def create_journalentry_lineitems(self, journaler: Journaler):
+    def create_journalentry_lineitems(self, je: JournalEntry):
+
         amount = self.claim.amount
+
         if self.portion is not None:
             amount = self.portion
-        JournalLiner.batch(JournalEntryLineItem(
+
+        je.prebatch(JournalEntryLineItem(
             account=ACCT_LIABILITY_PAYABLE,
             action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
             amount=amount,
-            journal_entry=journaler.journal_entry,
         ))
 
 
@@ -1340,33 +1338,33 @@ class ExpenseLineItem(models.Model, JournalLiner):
         if self.claim is None and self.exp is None:
             raise ValidationError(_("Expense line item must be part of a claim or transaction."))
 
-    def create_journalentry_lineitems(self, journaler: Journaler):
-        # Note: Sometimes entry will be None and sometimes it won't. This is intentional but undesirable.
-        # When entry has a value, this line item is part of an ExpenseTransaction.
-        # When entry is None, this line item is part of an ExpenseClaim but journal entries are not
+    def create_journalentry_lineitems(self, je: JournalEntry):
+        # Note: Sometimes entry will be real and sometimes it won't. This is intentional if undesirable.
+        # When entry has id > 0, this line item is part of an ExpenseTransaction.
+        # When entry has id == -1, this line item is part of an ExpenseClaim but journal entries are not
         # being created for ExpenseClaims because they were misused. See comments in ExpenseClaim.
         # Every line item associated with an ExpenseClaim will get its own JournalEntry, created here.
 
-        if journaler.journal_entry is None:
-            entry = JournalEntry.objects.create(
-                id=Journaler.get_next_id(),
+        if je.id == -1:
+
+            je2 = Journaler.batch(JournalEntry(
                 when=self.expense_date,
-                source_url=journaler.get_absolute_url()
-            )
-            JournalLiner.batch(JournalEntryLineItem(
-                journal_entry=entry,
+                source_url=je.source_url  # The fake je has source_url specified.
+            ))
+
+            je2.prebatch(JournalEntryLineItem(
                 account=ACCT_LIABILITY_PAYABLE,
                 action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
                 amount=self.amount,
             ))
-        else:
-            entry = journaler.journal_entry
 
-        JournalLiner.batch(JournalEntryLineItem(
+        else:
+            je2 = je
+
+        je2.prebatch(JournalEntryLineItem(
             account=self.account,
             action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
             amount=self.amount,
-            journal_entry=entry,
         ))
 
 
@@ -1392,13 +1390,15 @@ class PayableInvoiceReference(models.Model, JournalLiner):
     portion = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, default=None,
         help_text="Leave blank unless we're only paying a portion of the invoice.")
 
-    def create_journalentry_lineitems(self, journaler: Journaler):
+    def create_journalentry_lineitems(self, je: JournalEntry):
+
         amount = self.invoice.amount
+
         if self.portion is not None:
             amount = self.portion
-        JournalLiner.batch(JournalEntryLineItem(
+
+        je.prebatch(JournalEntryLineItem(
             account=ACCT_LIABILITY_PAYABLE,
             action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
             amount=amount,
-            journal_entry=journaler.journal_entry,
         ))

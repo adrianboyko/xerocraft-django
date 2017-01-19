@@ -175,7 +175,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                'django.core.context_processors.request',
+                #'django.core.context_processors.request', Removed in 1.10 per http://stackoverflow.com/a/38907086/2037738
                 # 'social.apps.django_app.context_processors.backends',
                 # 'social.apps.django_app.context_processors.login_redirect',
             ],

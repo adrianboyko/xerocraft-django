@@ -1,14 +1,12 @@
 # Standard
-import sys
 from decimal import Decimal
 
 # Third party
 from django.core.management.base import BaseCommand
-from django.db.models import Max
 
 # Local
 from books.models import (
-    JournalEntry, JournalEntryLineItem,
+    JournalEntry,
     Journaler, JournalLiner,
     registered_journaler_classes,
 )
@@ -22,11 +20,9 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
 
-        print("Deleting unfrozen journal entries... ", end="")
-        sys.stdout.flush()
-        JournalEntry.objects.filter(frozen=False).delete()
-        print("Done.")
-        Journaler._next_id = (JournalEntry.objects.all().aggregate(Max('id'))['id__max'] or 0) + 1
+        print("\nDeleting unfrozen journal entries... ", end="", flush=True)
+        JournalEntry.objects.all().delete()
+        print("Done.\n")
 
         for journaler_class in registered_journaler_classes:
             # print("\rGenerating entries for {} transactions...".format(journaler_class.__name__))
@@ -36,18 +32,19 @@ class Command(BaseCommand):
                 count += 1
                 progress = 1.0 * count / total_count
                 print("\r{:.0%} of {}s... ".format(progress, journaler_class.__name__), end="")
-                oldje = journaler.journal_entry
-                if oldje is None or not oldje.frozen:
-                    journaler.create_journalentry()
+                journaler.create_journalentry()
             print("Done.")
 
-        JournalLiner.save_batch()  # Saves any incomplete batch that may have accumulated.
+        print("\nSaving batches... ", end="", flush="True")
+        Journaler.save_batch()
+        JournalLiner.save_batch()
+        print("Done.")
 
         grand_total_debits = Decimal(0.0)
         grand_total_credits = Decimal(0.0)
         err_count = 0
         print("\nVerifying that individual journal entries balance...")
-        for je in JournalEntry.objects.all():  # type: JournalEntry
+        for je in JournalEntry.objects.all().prefetch_related("journalentrylineitem_set"):  # type: JournalEntry
             debits, credits = je.debits_and_credits()
             grand_total_debits += debits
             grand_total_credits += credits

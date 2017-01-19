@@ -5,13 +5,13 @@ boto==2.42.0
 
 coverage==4.2
 defusedxml==0.4.1
-Django==1.9.10
-django-crispy-forms==1.5.2
+Django==1.10.5
+django-crispy-forms==1.6.1
 django-debug-toolbar==1.4
-django-filter==0.12.0
+django-filter==1.0.1
 
-# django-helpdesk==0.1.17
--e git+https://github.com/adrianboyko/django-helpdesk.git@maint_0.1.17#egg=django-helpdesk
+django-helpdesk==0.1.18
+#-e git+https://github.com/adrianboyko/django-helpdesk.git@maint_0.1.17#egg=django-helpdesk
 
 django-jenkins==0.110.0
 django-object-actions==0.8.2
@@ -21,7 +21,7 @@ django-reversion==2.0.6
 
 django-sabayon==0.1.1
 django-storages==1.5.1
-djangorestframework==3.3.3
+djangorestframework==3.5.3
 django-webpack-loader==0.3.0
 freezegun==0.3.7
 gunicorn==19.3.0

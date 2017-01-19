@@ -512,12 +512,11 @@ class GroupMembership(models.Model, JournalLiner):
             if mship.membership_type != Membership.MT_GROUP:
                 raise ValidationError(_("Individual memberships covered by a group membership must have type GROUP."))
 
-    def create_journalentry_lineitems(self, journaler: Journaler):
-        JournalLiner.batch(JournalEntryLineItem(
+    def create_journalentry_lineitems(self, je: JournalEntry):
+        je.prebatch(JournalEntryLineItem(
             account=ACCT_REVENUE_MEMBERSHIP,
             action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
             amount=self.sale_price,
-            journal_entry=journaler.journal_entry
         ))
 
 
@@ -701,35 +700,34 @@ class Membership(models.Model, JournalLiner):
     class Meta:
         ordering = ['start_date']
 
-    def create_journalentry_lineitems(self, journaler: Journaler):
+    def create_journalentry_lineitems(self, je: JournalEntry):
 
         # Interestingly, this case requires that we create a number of future revenue recognition
         # journal entries, in addition to the line items we create for the sale's journal entry.
 
         def recognize_revenue(date_to_recognize, amount):
-            je = JournalEntry.objects.create(
-                id=Journaler.get_next_id(),
+
+            je2 = Journaler.batch(JournalEntry(  # Calling it "je2" so it doesn't shadow outer "je".
                 when=date_to_recognize,
-                source_url=journaler.get_absolute_url()
-            )
-            JournalLiner.batch(JournalEntryLineItem(
+                source_url=je.source_url
+            ))
+
+            je2.prebatch(JournalEntryLineItem(
                 account=ACCT_REVENUE_MEMBERSHIP,
                 action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
                 amount=amount,
-                journal_entry=je
             ))
-            JournalLiner.batch(JournalEntryLineItem(
+
+            je2.prebatch(JournalEntryLineItem(
                 account=ACCT_LIABILITY_UNEARNED_MSHIP_REVENUE,
                 action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
                 amount=amount,
-                journal_entry=je
             ))
 
-        JournalLiner.batch(JournalEntryLineItem(
+        je.prebatch(JournalEntryLineItem(
             account=ACCT_LIABILITY_UNEARNED_MSHIP_REVENUE,
             action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
             amount=self.sale_price,
-            journal_entry=journaler.journal_entry
         ))
 
         mship_duration = self.end_date - self.start_date  # type: timedelta
@@ -794,10 +792,9 @@ class MembershipGiftCardReference(models.Model, JournalLiner):
     class Meta:
         verbose_name = "Membership gift card"
 
-    def create_journalentry_lineitems(self, journaler: Journaler):
-        JournalLiner.batch(JournalEntryLineItem(
+    def create_journalentry_lineitems(self, je: JournalEntry):
+        je.prebatch(JournalEntryLineItem(
             account=ACCT_REVENUE_MEMBERSHIP,
             action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
             amount=self.sale_price,
-            journal_entry=journaler.journal_entry
         ))
