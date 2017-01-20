@@ -35,7 +35,7 @@ class Command(BaseCommand):
                 journaler.create_journalentry()
             print("Done.")
 
-        print("\nSaving batches... ", end="", flush="True")
+        print("\nSaving batches... ", end="", flush=True)
         Journaler.save_batch()
         JournalLiner.save_batch()
         print("Done.")
