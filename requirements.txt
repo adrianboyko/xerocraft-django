@@ -10,8 +10,9 @@ django-crispy-forms==1.6.1
 django-debug-toolbar==1.4
 django-filter==1.0.1
 
-django-helpdesk==0.1.18
-#-e git+https://github.com/adrianboyko/django-helpdesk.git@maint_0.1.17#egg=django-helpdesk
+django-helpdesk==0.1.17
+#django-helpdesk==0.1.18
+#-e git+https://github.com/adrianboyko/django-helpdesk.git@maint_0.1.18#egg=django-helpdesk
 
 django-jenkins==0.110.0
 django-object-actions==0.8.2
