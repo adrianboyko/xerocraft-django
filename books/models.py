@@ -267,6 +267,7 @@ class Journaler(models.Model):
     __metaclass__ = abc.ABCMeta
 
     _batch = list()  # type:List[JournalEntry]
+    _link_names_of_relevant_children = None
 
     class Meta:
         abstract = True
@@ -281,12 +282,28 @@ class Journaler(models.Model):
         """
         raise NotImplementedError
 
-    def create_lineitems_for(self, je: JournalEntry, mgrs):
-        for relmgr in mgrs:  # type: RelatedManager
-            for liner in relmgr.all():
-                if not isinstance(liner, JournalLiner):
-                    raise ValueError("{} is not a JournalLiner".format(liner))
-                liner.create_journalentry_lineitems(je)
+    @classmethod
+    def link_names_of_relevant_children(cls):
+        if cls._link_names_of_relevant_children == None:
+            related_objects = [
+                f for f in cls._meta.get_fields()
+                  if (f.one_to_many or f.one_to_one)
+                  and f.auto_created
+                  and not f.concrete
+            ]
+            cls._link_names_of_relevant_children = [
+                rel.get_accessor_name() for rel in related_objects
+                  if (not hasattr(rel.field, 'is_not_parent'))  # Indicates that link is to a PEER transaction and not to a parent transaction.
+                  and issubclass(rel.field.model, JournalLiner)
+                ]
+        return cls._link_names_of_relevant_children
+
+    def create_lineitems_for(self, je: JournalEntry):
+        link_names = self.link_names_of_relevant_children()
+        for link_name in link_names:
+            children = getattr(self, link_name).all()
+            for child in children:
+                child.create_journalentry_lineitems(je)
 
     def get_absolute_url(self):
         content_type = ContentType.objects.get_for_model(self.__class__)
@@ -455,10 +472,7 @@ class ReceivableInvoice(make_InvoiceBase(recv_invoice_help)):
             action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
             amount=self.amount
         ))
-        self.create_lineitems_for(
-            je,
-            [self.receivableinvoicelineitem_set]
-        )
+        self.create_lineitems_for(je)
 
 
 class ReceivableInvoiceNote(Note):
@@ -506,10 +520,7 @@ class PayableInvoice(make_InvoiceBase(payable_invoice_help)):
             action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
             amount=self.amount
         ))
-        self.create_lineitems_for(
-            je,
-            [self.payableinvoicelineitem_set],
-        )
+        self.create_lineitems_for(je)
 
 
 class PayableInvoiceNote(Note):
@@ -769,17 +780,7 @@ class Sale(Journaler):
                     amount=self.processing_fee
                 ))
 
-        self.create_lineitems_for(
-            je,
-            [
-                self.groupmembership_set,  # TODO: Don't directly ref things outside "books" app
-                self.membership_set,  # TODO: Don't directly ref things outside "books" app
-                self.membershipgiftcardreference_set,  # TODO: Don't directly ref things outside "books" app
-                self.monetarydonation_set,
-                self.otheritem_set,
-                self.receivableinvoicereference_set,
-            ]
-        )
+        self.create_lineitems_for(je)
 
 
 class SaleNote(Note):
@@ -922,6 +923,8 @@ class ReceivableInvoiceReference(models.Model, JournalLiner):
     invoice = models.ForeignKey(ReceivableInvoice, null=False, blank=False,
         on_delete=models.CASCADE,  # Delete this relation if the invoice is deleted.
         help_text="The invoice that is paid by the income transaction.")
+    # 'not_part_of', below, indicates that this Reference is not part of the referenced Invoice.
+    invoice.is_not_parent = True
 
     portion = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, default=None,
         help_text="Leave blank unless they're only paying a portion of the invoice.")
@@ -1145,9 +1148,7 @@ class ExpenseClaim(Journaler):
         """
         self.create_lineitems_for(
             JournalEntry(id=-1, source_url=self.get_absolute_url()),
-            [self.expenselineitem_set]
         )
-        # self.save()
 
 
 class ExpenseClaimNote(Note):
@@ -1254,14 +1255,7 @@ class ExpenseTransaction(Journaler):
             action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
             amount=self.amount_paid
         ))
-        self.create_lineitems_for(
-            je,
-            [
-                self.expenseclaimreference_set,
-                self.expenselineitem_set,
-                self.payableinvoicereference_set,
-            ]
-        )
+        self.create_lineitems_for(je)
 
 
 class ExpenseClaimReference(models.Model, JournalLiner):
@@ -1386,6 +1380,8 @@ class PayableInvoiceReference(models.Model, JournalLiner):
     invoice = models.ForeignKey(PayableInvoice, null=False, blank=False,
         on_delete=models.CASCADE,  # Delete this relation if the invoice is deleted.
         help_text="The invoice that is paid by the expense transaction.")
+    # 'not_part_of', below, indicates that this Reference is not part of the referenced Invoice.
+    invoice.is_not_parent = True
 
     portion = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, default=None,
         help_text="Leave blank unless we're only paying a portion of the invoice.")
