@@ -28,14 +28,19 @@ class Command(BaseCommand):
             # print("\rGenerating entries for {} transactions...".format(journaler_class.__name__))
             count = 0  # type: int
             total_count = journaler_class.objects.count()
-            for journaler in journaler_class.objects.all():  # type: Journaler
+            print("{}s".format(journaler_class.__name__), flush=True)
+            print("   Loading data ... ", end="", flush=True)
+            links = journaler_class.link_names_of_relevant_children()
+            journalers = journaler_class.objects.all().prefetch_related(*links)  # type: List[Journaler]
+            for journaler in journalers:
+                if count==0:
+                    print("Done.", flush=True)
                 count += 1
                 progress = 1.0 * count / total_count
-                print("\r{:.0%} of {}s... ".format(progress, journaler_class.__name__), end="")
+                print("\r   Processed {:.0%} ... ".format(progress), end="")
                 journaler.create_journalentry()
-            print("Done.")
-
-        print("\nSaving batches... ", end="", flush=True)
+            print("Done.\n")
+        print("Saving batches ... ", end="", flush=True)
         Journaler.save_batch()
         JournalLiner.save_batch()
         print("Done.")
