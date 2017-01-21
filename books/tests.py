@@ -6,6 +6,7 @@ from datetime import date
 # Third Party
 from django.test import TestCase
 from django.core.exceptions import ValidationError
+from django.core.management import call_command
 
 # Local
 from books.models import (
@@ -115,3 +116,6 @@ class TestJournalEntries(TestCase):
         self.je.full_clean()
         self.assertRaises(ValidationError, self.je.dbcheck)
 
+    def test_generate(self):
+        # TODO: generatejournal should have a test mode that raises exceptions?
+        call_command("generatejournal")
