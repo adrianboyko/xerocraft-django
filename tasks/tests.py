@@ -201,6 +201,10 @@ class Test_VerifyClaim_Scenario3(Test_VerifyClaim_Base):
         no_url = html_dom.xpath("//a[@id='N']/@href")[0]
         self.browser.get(no_url)
 
+        # http://www.obeythetestinggoat.com/how-to-get-selenium-to-wait-for-page-load-after-a-click.html
+        self.browser.implicitly_wait(5)
+        self.browser.find_element_by_partial_link_text("Calendar")
+
         # So, there is now exactly one claim and it's status is UNINTERESTED
         self.assertEqual(len(self.task.claim_set.all()), 1)
         self.assertEqual(len(self.task.claim_set.filter(status=Claim.STAT_ABANDONED)), 1)
