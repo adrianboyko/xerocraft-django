@@ -80,7 +80,7 @@ class Test_VerifyClaim_Base(LiveServerTestCase):
             for offset in range(-4, 2):
                 with freeze_time(self.task.scheduled_date + offset*ONEDAY):
                     self.assertEqual(self.task.scheduled_date + offset*ONEDAY, date.today())  # Testing the freeze
-                    management.call_command("nag", host="http://localhost:8081")
+                    management.call_command("nag", host=self.live_server_url)
                     if offset < 0: sign_name = "minus"
                     elif offset == 0: sign_name = ""
                     else: sign_name = "plus"
