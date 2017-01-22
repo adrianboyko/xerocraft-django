@@ -1,6 +1,6 @@
 # Standard
 from decimal import Decimal
-
+from typing import List
 # Third party
 from django.core.management.base import BaseCommand
 
@@ -40,27 +40,24 @@ class Command(BaseCommand):
                 print("\r   Processed {:.0%} ... ".format(progress), end="")
                 journaler.create_journalentry()
             print("Done.\n")
-        print("Saving batches ... ", end="", flush=True)
+
         Journaler.save_batch()
         JournalLiner.save_batch()
-        print("Done.")
 
-        grand_total_debits = Decimal(0.0)
-        grand_total_credits = Decimal(0.0)
-        err_count = 0
-        print("\nVerifying that individual journal entries balance...")
-        for je in JournalEntry.objects.all().prefetch_related("journalentrylineitem_set"):  # type: JournalEntry
-            debits, credits = je.debits_and_credits()
-            grand_total_debits += debits
-            grand_total_credits += credits
-            if debits != credits:
-                err_count += 1
-                print("\nJournal Entry #{} doesn't balance.".format(je.pk))
-                print("   http://localhost:8000{}".format(je.source_url))  # TODO: Get base from sites app?
-                for li in je.journalentrylineitem_set.all():
-                    print("   {}".format(str(li)))
+        errors = journaler_class.get_unbalanced_journal_entries()
+        print("Found {} Errors:".format(len(errors)))
+        for je in errors:
+            print("\n   {} doesn't balance:".format(je))
+            print("      http://localhost:8000{}".format(je.source_url))  # TODO: Get base from sites app?
+            for li in je.journalentrylineitem_set.all():
+                print("      {}".format(str(li)))
+
+        total_dr = journaler_class._grand_total_debits
+        total_cr = journaler_class._grand_total_credits
+        total_diff = total_cr - total_dr
+        print("\nTotals")
+        print("  debits:  {0:9.2f}".format(total_dr))
+        print("  credits: {0:9.2f}".format(total_cr))
+        print("  diff:    {0:9.2f}".format(total_diff))
+
         print("\nDone.\n")
-        print("        Error count: {}".format(err_count))
-        print("Grand total credits: {}".format(grand_total_credits))
-        print(" Grand total debits: {}".format(grand_total_debits))
-        print("         Difference: {}".format(grand_total_credits - grand_total_debits))

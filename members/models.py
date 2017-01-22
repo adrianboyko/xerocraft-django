@@ -707,10 +707,10 @@ class Membership(models.Model, JournalLiner):
 
         def recognize_revenue(date_to_recognize, amount):
 
-            je2 = Journaler.batch(JournalEntry(  # Calling it "je2" so it doesn't shadow outer "je".
+            je2 = JournalEntry(  # Calling it "je2" so it doesn't shadow outer "je".
                 when=date_to_recognize,
                 source_url=je.source_url
-            ))
+            )
 
             je2.prebatch(JournalEntryLineItem(
                 account=ACCT_REVENUE_MEMBERSHIP,
@@ -723,6 +723,8 @@ class Membership(models.Model, JournalLiner):
                 action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
                 amount=amount,
             ))
+
+            Journaler.batch(je2)
 
         je.prebatch(JournalEntryLineItem(
             account=ACCT_LIABILITY_UNEARNED_MSHIP_REVENUE,

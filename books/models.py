@@ -183,7 +183,7 @@ class JournalEntry(models.Model):
 
     def process_prebatch(self):
         if len(self.prebatched_lineitems) == 0:
-            print("WTF")
+            print("Journal Entry for {} has no line items!".format(self.source_url))
         for jeli in self.prebatched_lineitems:
             jeli.journal_entry_id = self.id
             JournalLiner.batch(jeli)
@@ -268,6 +268,9 @@ class Journaler(models.Model):
 
     _batch = list()  # type:List[JournalEntry]
     _link_names_of_relevant_children = None
+    _unbalanced_journal_entries = list()  # type:List[JournalEntry]
+    _grand_total_debits = Decimal(0.00)
+    _grand_total_credits = Decimal(0.00)
 
     class Meta:
         abstract = True
@@ -320,8 +323,25 @@ class Journaler(models.Model):
 
     @classmethod
     def batch(cls, je: JournalEntry):
+        balance = Decimal(0.00)
+        for jeli in je.prebatched_lineitems:
+            if jeli.iscredit():
+                balance += jeli.amount
+                cls._grand_total_credits += jeli.amount
+            else:
+                balance -= jeli.amount
+                cls._grand_total_debits += jeli.amount
+        if balance != Decimal(0.00):
+            cls._unbalanced_journal_entries.append(je)
+            # TODO: Perhaps set an IsUnbalanced field to True instead?
         cls._batch.append(je)
+        if len(cls._batch) > 1000:
+            cls.save_batch()
         return je
+
+    @classmethod
+    def get_unbalanced_journal_entries(cls):
+        return cls._unbalanced_journal_entries
 
 
 class JournalLiner:
@@ -342,6 +362,8 @@ class JournalLiner:
     @classmethod
     def batch(cls, jeli: JournalEntryLineItem):
         cls._batch.append(jeli)
+        if len(cls._batch) > 1000:
+            cls.save_batch()
         return jeli
 
 
@@ -463,17 +485,17 @@ class ReceivableInvoice(make_InvoiceBase(recv_invoice_help)):
             self.invoice_date)
 
     def create_journalentry(self):
-        je = Journaler.batch(JournalEntry(
+        je = JournalEntry(
             when=self.invoice_date,
             source_url=self.get_absolute_url(),
-        ))
+        )
         je.prebatch(JournalEntryLineItem(
             account=ACCT_ASSET_RECEIVABLE,
             action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
             amount=self.amount
         ))
         self.create_lineitems_for(je)
-
+        Journaler.batch(je)
 
 class ReceivableInvoiceNote(Note):
 
@@ -511,17 +533,17 @@ class PayableInvoice(make_InvoiceBase(payable_invoice_help)):
             self.invoice_date)
 
     def create_journalentry(self):
-        je = Journaler.batch(JournalEntry(
+        je = JournalEntry(
             when=self.invoice_date,
             source_url=self.get_absolute_url(),
-        ))
+        )
         je.prebatch(JournalEntryLineItem(
             account=ACCT_LIABILITY_PAYABLE,
             action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
             amount=self.amount
         ))
         self.create_lineitems_for(je)
-
+        Journaler.batch(je)
 
 class PayableInvoiceNote(Note):
 
@@ -763,10 +785,10 @@ class Sale(Journaler):
         else: return "{} sale".format(self.sale_date)
 
     def create_journalentry(self):
-        je = Journaler.batch(JournalEntry(
+        je = JournalEntry(
             when=self.sale_date,
             source_url=self.get_absolute_url(),
-        ))
+        )
         je.prebatch(JournalEntryLineItem(
             account=ACCT_ASSET_CASH,
             action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
@@ -781,6 +803,7 @@ class Sale(Journaler):
                 ))
 
         self.create_lineitems_for(je)
+        Journaler.batch(je)
 
 
 class SaleNote(Note):
@@ -1246,16 +1269,17 @@ class ExpenseTransaction(Journaler):
 
     def create_journalentry(self):
         # Child models will also contribute to this journal entry but that's handled by "generatejournal"
-        je = Journaler.batch(JournalEntry(
+        je = JournalEntry(
             when=self.payment_date,
             source_url=self.get_absolute_url()
-        ))
+        )
         je.prebatch(JournalEntryLineItem(
             account=ACCT_ASSET_CASH,
             action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
             amount=self.amount_paid
         ))
         self.create_lineitems_for(je)
+        Journaler.batch(je)
 
 
 class ExpenseClaimReference(models.Model, JournalLiner):
@@ -1341,10 +1365,10 @@ class ExpenseLineItem(models.Model, JournalLiner):
 
         if je.id == -1:
 
-            je2 = Journaler.batch(JournalEntry(
+            je2 = JournalEntry(
                 when=self.expense_date,
                 source_url=je.source_url  # The fake je has source_url specified.
-            ))
+            )
 
             je2.prebatch(JournalEntryLineItem(
                 account=ACCT_LIABILITY_PAYABLE,
@@ -1360,6 +1384,8 @@ class ExpenseLineItem(models.Model, JournalLiner):
             action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
             amount=self.amount,
         ))
+        if je.id == -1:
+            Journaler.batch(je2)
 
 
 class ExpenseTransactionNote(Note):
