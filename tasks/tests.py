@@ -12,6 +12,7 @@ from django.contrib.admin import site
 from django.core.management import call_command
 from freezegun import freeze_time
 from selenium import webdriver
+from selenium.common.exceptions import NoSuchElementException
 import lxml.html
 import requests
 from pyvirtualdisplay import Display
@@ -202,8 +203,12 @@ class Test_VerifyClaim_Scenario3(Test_VerifyClaim_Base):
         self.browser.get(no_url)
 
         # http://www.obeythetestinggoat.com/how-to-get-selenium-to-wait-for-page-load-after-a-click.html
-        self.browser.implicitly_wait(60)
-        self.browser.find_element_by_partial_link_text("Calendar")
+        try:
+            self.browser.implicitly_wait(60)
+            self.browser.find_element_by_partial_link_text("Calendar")
+        except NoSuchElementException as e:
+            print(self.browser.page_source)
+            raise e
 
         # So, there is now exactly one claim and it's status is UNINTERESTED
         self.assertEqual(len(self.task.claim_set.all()), 1)
