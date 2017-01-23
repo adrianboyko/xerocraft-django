@@ -53,6 +53,9 @@ SECRET_KEY = os.environ['XEROPS_DJANGO_SECRET_KEY']
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True if ISDEVHOST else False
 
+ADMINS = [('Adrian', 'adrian@xerocraft.org')]
+SERVER_EMAIL = 'xis+error@xerocraft.org'  # Django only uses this for error email.
+
 ALLOWED_HOSTS = (
     'xerocraft-django.herokuapp.com',
     'xis.xerocraft.us',
