@@ -556,15 +556,22 @@ class ExpenseClaimNoteInline(NoteInline):
 class ExpenseLineItemInline(admin.TabularInline):
     model = ExpenseLineItem
     fields = [
+        'bought_from',
         'receipt_num',
         'expense_date',
         'description',
         'account',
         'amount',
+        'discount',
         'approved_by',
     ]
-    raw_id_fields = ['approved_by']
+    raw_id_fields = ['bought_from', 'approved_by', 'account']
     extra = 0
+
+    class Media:
+        css = {
+        "all": ("books/expense-lineitem-inline.css",)
+        }
 
 
 class ClaimStatusFilter(admin.SimpleListFilter):

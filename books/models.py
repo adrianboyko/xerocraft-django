@@ -1323,6 +1323,10 @@ class ExpenseLineItem(models.Model, JournalLiner):
         on_delete=models.CASCADE,  # Line items are parts of the larger transaction, so delete if transaction is deleted.
         help_text="The expense transaction on which this line item appears.")
 
+    bought_from = models.ForeignKey(Entity, null=True, blank=True, default=None,
+        on_delete=models.PROTECT,  # Don't want to allow entity to be deleted if it's in use.
+        help_text="Who was this purchased from (optional).")
+
     description = models.CharField(max_length=80, blank=False,
         help_text="A brief description of this line item.")
 
@@ -1331,6 +1335,9 @@ class ExpenseLineItem(models.Model, JournalLiner):
 
     amount = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
         help_text="The dollar amount for this line item.")
+
+    discount = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False, default=0.00,
+        help_text="Any CHARITABLE discount applied to this purchase.")
 
     account = models.ForeignKey(Account, null=False, blank=False,
         on_delete=models.CASCADE,  # Line items are parts of the larger claim, so delete if claim is deleted.
@@ -1383,8 +1390,15 @@ class ExpenseLineItem(models.Model, JournalLiner):
         je2.prebatch(JournalEntryLineItem(
             account=self.account,
             action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
-            amount=self.amount,
+            amount=self.amount+self.discount,  # The actual expense amount INCLUDES the discount.
         ))
+        if self.discount > Decimal(0.00):
+            je2.prebatch(JournalEntryLineItem(
+                account=ACCT_REVENUE_DONATION,
+                action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
+                amount=self.discount,  # The actual expense amount INCLUDES the discount.
+            ))
+
         if je.id == -1:
             Journaler.batch(je2)
 

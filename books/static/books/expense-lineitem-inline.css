@@ -1,0 +1,12 @@
+
+.field-amount input {
+    width: 5em;
+}
+
+.field-discount input {
+    width: 5em;
+}
+
+.field-receipt_num input {
+    width: 3em;
+}
