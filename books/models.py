@@ -1340,6 +1340,7 @@ class ExpenseLineItem(models.Model, JournalLiner):
         help_text="The receipt number assigned by the treasurer and written on the receipt.")
 
     approved_by = models.ForeignKey(User, null=True, blank=True, default=None,
+        on_delete=models.SET_NULL,  # If user is deleted, just null this out.
         help_text="Usually the shop/account manager. Leave blank if not yet approved.")
 
     def __str__(self):
