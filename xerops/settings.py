@@ -307,6 +307,12 @@ WEBPACK_LOADER = {
 }
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# DJANGO-HELPDESK
+
+HELPDESK_KB_ENABLED = False
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # JENKINS
 
 PROJECT_APPS = ('abutils', 'books', 'inventory', 'members', 'modelmailer', 'tasks', 'xerops', 'xis')
