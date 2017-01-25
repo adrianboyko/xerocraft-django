@@ -2,12 +2,12 @@
 {% load i18n %}
 
 {% block sidebar %}
-<div id="content-related">
+<div id="content-related" style="width:300px; margin-right:-350px">
     <div class="module" id="recent-actions-module">
         <h2>{% trans 'Recent Actions' %}</h2>
-        <h3>{% trans 'Last Actions' %}</h3>             {# Title modified #}
+        {# <h3>{% trans 'For All Admins' %}</h3>             {# Title hidden #}
             {% load log %}
-            {% get_admin_log 50 as admin_log %}         {# No more filtering #}
+            {% get_admin_log 50 as admin_log %}         {# No more user filtering #}
             {% if not admin_log %}
             <p>{% trans 'None available' %}</p>
             {% else %}
@@ -21,10 +21,10 @@
                 {% endif %}
                 <br/>
                 {% if entry.content_type %}
-                    {# Add the author here, at the end #}
-                    <span class="mini quiet">{% filter capfirst %}{% trans entry.content_type.name %}{% endfilter %}, by {{ entry.user }}</span>    
+                    {# Added the author here, at the end. Also removed "mini quiet" class #}
+                    <span class="">{% filter capfirst %}{% trans entry.content_type.name %}{% endfilter %}, by <b>{{ entry.user }}</b></span>
                 {% else %}
-                    <span class="mini quiet">{% trans 'Unknown content' %}</span>
+                    <span class="">{% trans 'Unknown content' %}</span>
                 {% endif %}
             </li>
             {% endfor %}
