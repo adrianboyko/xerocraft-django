@@ -69,11 +69,16 @@ def get_ChecksumAdminForm(themodel):
 # JOURNALER ADMIN
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-class JournalerAdmin(DjangoObjectActions):
+class JournalerAdmin(DjangoObjectActions, VersionAdmin):
     """Adds a 'Journal Entries' button to admin views that display Journalers. """
 
     def viewjournal_action(self, request, obj: Journaler):
         return journalentry_view(request, obj)
+
+    def save_related(self, request, form, formsets, change):
+        """This method is overriden because it's the logical place to journal the transaction after it's changed."""
+        super(VersionAdmin, self).save_related(request, form, formsets, change)
+        form.instance.journal_one_transaction()
 
     viewjournal_action.label = "Journal Entries"
     viewjournal_action.short_description = "View the journal entries (accounting) for this transaction."
@@ -277,7 +282,6 @@ def make_InvoiceStatusFilter(invtype: str):
             )
 
         def annotate_total_paid(self, queryset):
-            invtype = "receivable"
             return queryset.annotate(
                 total_paid=Coalesce(
                     Sum(
@@ -331,7 +335,7 @@ class PayableInvoiceLineItemAdmin(admin.TabularInline):
     raw_id_fields = ['account']
 
 
-class InvoiceAdmin(VersionAdmin):
+class InvoiceAdmin(JournalerAdmin):
 
     list_display = [
         'id',
@@ -371,7 +375,7 @@ class InvoiceAdmin(VersionAdmin):
 
 
 @admin.register(ReceivableInvoice)
-class ReceivableInvoiceAdmin(JournalerAdmin, InvoiceAdmin):
+class ReceivableInvoiceAdmin(InvoiceAdmin):
 
     def name_col(self, obj:ReceivableInvoice):
         return name_colfunc(obj.user, obj.entity)
@@ -384,7 +388,7 @@ class ReceivableInvoiceAdmin(JournalerAdmin, InvoiceAdmin):
 
 
 @admin.register(PayableInvoice)
-class PayableInvoiceAdmin(JournalerAdmin, InvoiceAdmin):
+class PayableInvoiceAdmin(InvoiceAdmin):
 
     def name_col(self, obj:ReceivableInvoice):
         return name_colfunc(obj.user, obj.entity)
@@ -400,7 +404,7 @@ class ReceivableInvoiceReferenceInline(admin.StackedInline):
     model = ReceivableInvoiceReference
     extra = 0
 
-    def invoice_link(self, obj):
+    def invoice_link(self, obj):  # TODO: Obsolete because Admin now automatically links?
         # TODO: Use reverse as in the answer at http://stackoverflow.com/questions/2857001
         url_str = "/admin/books/receivableinvoice/{}".format(obj.invoice.id)
         return format_html("<a href='{}'>View Invoice</a>", url_str)
@@ -413,7 +417,7 @@ class PayableInvoiceReferenceInline(admin.StackedInline):
     model = PayableInvoiceReference
     extra = 0
 
-    def invoice_link(self, obj):
+    def invoice_link(self, obj):  # TODO: Obsolete because Admin now automatically links?
         # TODO: Use reverse as in the answer at http://stackoverflow.com/questions/2857001
         url_str = "/admin/books/payableinvoice/{}".format(obj.invoice.id)
         return format_html("<a href='{}'>View Invoice</a>", url_str)
@@ -470,7 +474,7 @@ class OtherItemTypeAdmin(VersionAdmin):
 
 
 @admin.register(Sale)
-class SaleAdmin(JournalerAdmin, VersionAdmin):
+class SaleAdmin(JournalerAdmin):
 
     form = get_ChecksumAdminForm(Sale)
 
@@ -615,7 +619,7 @@ class ClaimStatusFilter(admin.SimpleListFilter):
 
 
 @admin.register(ExpenseClaim)
-class ExpenseClaimAdmin(JournalerAdmin, VersionAdmin):
+class ExpenseClaimAdmin(JournalerAdmin):
 
     form = get_ChecksumAdminForm(ExpenseClaim)
 
@@ -646,7 +650,7 @@ class ExpenseClaimAdmin(JournalerAdmin, VersionAdmin):
     ]
     list_filter = [
         ClaimStatusFilter,
-        ('claimant',admin.RelatedOnlyFieldListFilter)
+        ('claimant', admin.RelatedOnlyFieldListFilter)
     ]
     fields = [
         'id',
@@ -679,7 +683,7 @@ class ExpenseClaimAdmin(JournalerAdmin, VersionAdmin):
         }
 
 
-@admin.register(ExpenseLineItem)
+#@admin.register(ExpenseLineItem)
 class ExpenseLineItemAdmin(VersionAdmin):
 
     search_fields = [
@@ -744,7 +748,7 @@ class ExpenseClaimReferenceInline(admin.TabularInline):
     model = ExpenseClaimReference
     extra = 0
 
-    def claim_link(self, obj):
+    def claim_link(self, obj):  # TODO: Obsolete because Admin now automatically links?
         # TODO: Use reverse as in the answer at http://stackoverflow.com/questions/2857001
         url_str = "/admin/books/expenseclaim/{}".format(obj.claim.id)
         return format_html("<a href='{}'>View Claim</a>", url_str)
@@ -754,7 +758,7 @@ class ExpenseClaimReferenceInline(admin.TabularInline):
 
 
 @admin.register(ExpenseTransaction)
-class ExpenseTransactionAdmin(JournalerAdmin, VersionAdmin):
+class ExpenseTransactionAdmin(JournalerAdmin):
 
     form = get_ChecksumAdminForm(ExpenseTransaction)
 
