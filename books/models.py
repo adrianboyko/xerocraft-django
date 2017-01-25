@@ -279,9 +279,9 @@ class Journaler(models.Model):
     @abc.abstractmethod
     def create_journalentry(self):
         """
-        Create the journal entry associated with this Journaler.
-        Also create any line items that are intrinsic to the Journaler.
-        Don't create line items that arise from JournalLiner children.
+        Create JournalEntry instances associated with this Journaler.
+        Do not use SomeModel.objects.create(...)!
+        Instead, create SomeModel(...) instances and stage them for batch_create using Journaler.batch(...).
         """
         raise NotImplementedError
 
@@ -302,6 +302,7 @@ class Journaler(models.Model):
         return cls._link_names_of_relevant_children
 
     def create_lineitems_for(self, je: JournalEntry):
+        """Discovers the JournalLiner children of this Journaler and asks them to create_journalentry_lineitems."""
         link_names = self.link_names_of_relevant_children()
         for link_name in link_names:
             children = getattr(self, link_name).all()
@@ -315,6 +316,10 @@ class Journaler(models.Model):
 
     @classmethod
     def save_batch(cls):
+        """
+        Save the currently batched JournalEntry instances using bulk_create,
+        and stage the associated pre-batched JournalEntryLineItems for batch creation.
+        """
         # NOTE: As of 1/18/2016, this will only work in Django version 1.10 with Postgres
         JournalEntry.objects.bulk_create(cls._batch)
         for je in cls._batch:
@@ -323,6 +328,7 @@ class Journaler(models.Model):
 
     @classmethod
     def batch(cls, je: JournalEntry):
+        """Adds a JournalEntry instance to the batch that's accumulating for eventual bulk_create."""
         balance = Decimal(0.00)
         for jeli in je.prebatched_lineitems:
             if jeli.iscredit():
@@ -339,6 +345,17 @@ class Journaler(models.Model):
             cls.save_batch()
         return je
 
+    def journal_one_transaction(self):
+        """
+        Create and save journal entries for this one transaction.
+        Intended to be used after a transaction is created or updated in admin.
+        """
+        JournalEntry.objects.filter(source_url=self.get_absolute_url()).delete()
+        self.create_journalentry()
+        Journaler.save_batch()
+        JournalLiner.save_batch()
+
+
     @classmethod
     def get_unbalanced_journal_entries(cls):
         return cls._unbalanced_journal_entries
@@ -347,7 +364,7 @@ class Journaler(models.Model):
 class JournalLiner:
     __metaclass__ = abc.ABCMeta
 
-    _batch = list()  # type:List[JournalEntryListItem]
+    _batch = list()  # type:List[JournalEntryLineItem]
 
     # Each journal liner will have its own logic for creating its line items in the specified entry.
     @abc.abstractmethod
