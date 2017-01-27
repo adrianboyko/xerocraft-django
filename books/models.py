@@ -272,12 +272,22 @@ class Journaler(models.Model):
     _grand_total_debits = Decimal(0.00)
     _grand_total_credits = Decimal(0.00)
 
+    frozen_in_journal = models.BooleanField(default=False,
+        help_text="If true, the journal entries for this transaction are frozen and will not be modified.")
+
     class Meta:
         abstract = True
 
+    def create_journalentry(self):  # TODO: Name should be plural
+        """ This public method guards frozen transactions. """
+        if self.frozen_in_journal:
+            return
+        else:
+            self._create_journalentries()
+
     # Each journaler will have its own logic for creating a journal entry.
     @abc.abstractmethod
-    def create_journalentry(self):
+    def _create_journalentries(self):
         """
         Create JournalEntry instances associated with this Journaler.
         Do not use SomeModel.objects.create(...)!
@@ -501,7 +511,7 @@ class ReceivableInvoice(make_InvoiceBase(recv_invoice_help)):
             self.name(),
             self.invoice_date)
 
-    def create_journalentry(self):
+    def _create_journalentries(self):
         je = JournalEntry(
             when=self.invoice_date,
             source_url=self.get_absolute_url(),
@@ -549,7 +559,7 @@ class PayableInvoice(make_InvoiceBase(payable_invoice_help)):
             self.name(),
             self.invoice_date)
 
-    def create_journalentry(self):
+    def _create_journalentries(self):
         je = JournalEntry(
             when=self.invoice_date,
             source_url=self.get_absolute_url(),
@@ -801,7 +811,7 @@ class Sale(Journaler):
         elif self.payer_email > "": return "{} sale to {}".format(self.sale_date, self.payer_email)
         else: return "{} sale".format(self.sale_date)
 
-    def create_journalentry(self):
+    def _create_journalentries(self):
         je = JournalEntry(
             when=self.sale_date,
             source_url=self.get_absolute_url(),
@@ -1167,7 +1177,7 @@ class ExpenseClaim(Journaler):
         if  self.amount != self.checksum():
             raise ValidationError(_("Total of line items must match amount of claim."))
 
-    def create_journalentry(self):
+    def _create_journalentries(self):
 
         # self.journal_entry = JournalEntry.objects.create(
         #     when=self.invoice_date
@@ -1284,7 +1294,7 @@ class ExpenseTransaction(Journaler):
     def __str__(self):
         return "${} by {}".format(self.amount_paid, self.payment_method_verbose())
 
-    def create_journalentry(self):
+    def _create_journalentries(self):
         # Child models will also contribute to this journal entry but that's handled by "generatejournal"
         je = JournalEntry(
             when=self.payment_date,
