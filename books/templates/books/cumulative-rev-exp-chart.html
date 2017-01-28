@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Cumulative vs Date</title>
+
+    <style>
+        /* Style the list */
+        ul.tab {
+            display: inline-block;
+            list-style-type: none;
+            margin: 0 50px;
+            padding: 0;
+            overflow: auto;
+            border: 1px solid #ccc;
+            background-color: #f1f1f1;
+        }
+
+        /* Float the list items side by side */
+        ul.tab li {
+            float: left;
+            border: 0.5px solid #ccc;
+        }
+
+        /* Style the links inside the list items */
+        ul.tab li a {
+            display: inline-block;
+            color: black;
+            text-align: center;
+            padding: 14px 16px;
+            text-decoration: none;
+            transition: 0.3s;
+            font-size: 17px;
+        }
+
+        /* Change background color of links on hover */
+        ul.tab li a:hover {background-color: #ddd;}
+
+        /* Create an active/current tablink class */
+        ul.tab li a:focus, .active {background-color: #ccc;}
+
+        /* Style the tab content */
+        .tabcontent {
+            display: none;
+            padding: 6px 12px;
+            margin: 0px 50px;
+            border: 1px solid #ccc;
+            height:768px;
+        }
+
+        .tabcontent {
+            -webkit-animation: fadeEffect 1s;
+            animation: fadeEffect 1s; /* Fading effect takes 1 second */
+        }
+
+        @-webkit-keyframes fadeEffect {
+            from {opacity: 0;}
+            to {opacity: 1;}
+        }
+
+        @keyframes fadeEffect {
+            from {opacity: 0;}
+            to {opacity: 1;}
+        }
+    </style>
+
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript">
+      google.charts.load('current', {'packages':['corechart']});
+      google.charts.setOnLoadCallback(showDefaultTab);
+
+      function drawChart(includeTrend, theDivId, title, columnNames, pts) {
+        var data = google.visualization.arrayToDataTable(
+          [columnNames].concat(pts)
+        );
+
+        var options = {
+          title: title,
+          legend: { position: 'none' },
+          series: {
+            1: {
+              lineDashStyle: [5, 5],
+              lineWidth: 3,
+              color: 'green'
+            }
+          }
+        };
+
+        if (includeTrend) {
+          options['trendlines'] =
+          {
+            0: {
+              type: 'linear',
+              degree: 3,
+              lineWidth: includeTrend ? 20 : 0,
+              opacity: 0.2,
+              color: 'gray'
+            }
+          };
+        }
+
+        var chart = new google.visualization.LineChart(document.getElementById(theDivId));
+        chart.draw(data, options);
+      }
+
+      function drawChartNamed(name) {
+        if (name=="Both") {
+            drawChart(false,
+                "Both", "Cumulative Revenues & Expenses vs Date", ["Date", "Net"],
+                [{% for theDate, theNet in net %}
+                    [new Date('{{theDate}}'), {{theNet}}],{% endfor %}
+                ]
+            );
+        }
+        if (name=="Revenues") {
+            drawChart(true,
+                "Revenues", "Cumulative Revenues vs Date", ["Date", "Rev"],
+                [{% for theDate, theRev in rev %}
+                    [new Date('{{theDate}}'), {{theRev}}],{% endfor %}
+                ]
+            );
+        }
+        if (name=="Expenses") {
+            drawChart(true,
+                "Expenses", "Cumulative Expenses vs Date", ["Date", "Exp"],
+                [{% for theDate, theExp in exp %}
+                    [new Date('{{theDate}}'), {{theExp}}],{% endfor %}
+                ]
+            );
+        }
+      }
+
+      function showDefaultTab() {
+          document.getElementById("default").click();
+      }
+
+    </script>
+
+    <script>
+        function showChart(evt, chartName) {
+            // Declare all variables
+            var i, tabcontent, tablinks;
+
+            // Get all elements with class="tabcontent" and hide them
+            tabcontent = document.getElementsByClassName("tabcontent");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
+            }
+
+            // Get all elements with class="tablinks" and remove the class "active"
+            tablinks = document.getElementsByClassName("tablinks");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].className = tablinks[i].className.replace(" active", "");
+            }
+
+            // Show the current tab, and add an "active" class to the link that opened the tab
+            document.getElementById(chartName).style.display = "block";
+            drawChartNamed(chartName);
+            evt.currentTarget.className += " active";
+        }
+    </script>
+
+
+</head>
+<body style="font-family: Arial, Helvetica, sans-serif;">
+    <h2 style="text-align:center">Cumulative Data from Journal Entries</h2>
+    <div align="center">
+        <ul class="tab">
+          <li><a href="javascript:void(0)" class="tablinks" onclick="showChart(event, 'Revenues')">Revenues</a></li>
+          <li><a href="javascript:void(0)" class="tablinks" onclick="showChart(event, 'Both')" id="default">Both</a></li>
+          <li><a href="javascript:void(0)" class="tablinks" onclick="showChart(event, 'Expenses')">Expenses</a></li>
+        </ul>
+    </div>
+    <div id="Revenues" class="tabcontent"></div>
+    <div id="Expenses" class="tabcontent"></div>
+    <div id="Both" class="tabcontent"></div>
+    <div style="margin-top:10px" align="center">
+        <a href="/director-menu">Return to Director's Menu</a>
+    </div>
+</body>
+</html>

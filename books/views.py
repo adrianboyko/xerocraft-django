@@ -12,11 +12,12 @@ from dateutil.parser import parse
 
 # Local
 from .models import (
+    Account,
     ExpenseLineItem,
     Sale, SaleNote,
     MonetaryDonation,
     OtherItem, OtherItemType,
-    Journaler, JournalEntry
+    Journaler, JournalEntry, JournalEntryLineItem
 )
 from .serializers import (
     SaleSerializer, SaleNoteSerializer,
@@ -38,75 +39,27 @@ def _acc(pts):
     return acc_vs_time
 
 
-def _fits(pts):
-
-    cols = list(zip(*pts))
-    iso_dates = cols[0]
-    xs = [parse(x).timestamp() for x in iso_dates]
-    ys = cols[1]
-
-    # Index of the point on the poly fit at which the tangential linear comparison will be calculated
-    tan_ndx = 0  # int(len(xs)/2)
-
-    # Polynomial fit
-    [x2, x1, x0] = np.polyfit(xs, ys, 2)
-    tan_y = x2*xs[tan_ndx]*xs[tan_ndx] + x1*xs[tan_ndx] + x0
-
-    # claculate the tangential linear comparison y values
-    m = 2 * x2 * xs[tan_ndx] + x1
-    lin_ys = [m*(x - xs[tan_ndx]) + tan_y for x in xs]
-
-    return zip(iso_dates, ys, lin_ys)
-
-
-@login_required
-def cumulative_vs_date_chart(request):
-
-    # TODO: Turn this into a @directors_only decorator that uses @login_required
-    # REVIEW: This creates a dependency on "members". Review members/books relationship.
-    if not request.user.member.is_tagged_with("Director"):
-        return HttpResponse("This page is for Directors only.")
-
-    start = date(2016, 1, 1)
-
-    data = []
-
-    exps = []
-    for exp in ExpenseLineItem.objects.all():
-        if exp.expense_date < start:
-            continue
-        pt = [exp.expense_date.isoformat(), -1.0 * float(exp.amount)]
-        exps.append(pt)
-        data.append(pt)
-
-    incs = []
-    for inc in Sale.objects.all():  # AKA IncomeTransactions
-        if inc.sale_date <= start:
-            continue
-
-        # Bit Buckets "what if?"
-        if request.path.endswith("/2/"):
-            if inc.payer_name.lower().startswith("bit"):
-                continue
-
-        pt = [inc.sale_date.isoformat(), float(inc.total_paid_by_customer - inc.processing_fee)]
-        incs.append(pt)
-        data.append(pt)
-
-    acc_inc_vs_time = _acc(incs)
-    acc_exp_vs_time = _acc(exps)
-    acc_net_vs_time = _acc(data)
-
-    acc_inc_vs_time = _fits(acc_inc_vs_time)
-    acc_exp_vs_time = _fits(acc_exp_vs_time)
-
-    params = {
-        'net': acc_net_vs_time,
-        'inc': acc_inc_vs_time,
-        'exp': acc_exp_vs_time,
-    }
-    return render(request, 'books/cumulative-vs-date-chart.html', params)
-
+# def _fits(pts):
+#
+#     cols = list(zip(*pts))
+#     iso_dates = cols[0]
+#     xs = [parse(x).timestamp() for x in iso_dates]
+#     ys = cols[1]
+#
+#     # Index of the point on the poly fit at which the tangential linear comparison will be calculated
+#     tan_ndx = 0  # int(len(xs)/2)
+#
+#     # Polynomial fit
+#     [x2, x1, x0] = np.polyfit(xs, ys, 2)
+#     tan_y = x2*xs[tan_ndx]*xs[tan_ndx] + x1*xs[tan_ndx] + x0
+#
+#     # claculate the tangential linear comparison y values
+#     m = 2 * x2 * xs[tan_ndx] + x1
+#     lin_ys = [m*(x - xs[tan_ndx]) + tan_y for x in xs]
+#
+#     return zip(iso_dates, ys, lin_ys)
+#
+#
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = SALE REST API
 
@@ -142,6 +95,8 @@ class MonetaryDonationViewSet(viewsets.ModelViewSet):  # Django REST Framework
     filter_fields = {'ctrlid'}
 
 
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
 def journalentry_view(request, journaler: Journaler):
 
     params = {
@@ -153,3 +108,43 @@ def journalentry_view(request, journaler: Journaler):
         'journal_entries': JournalEntry.objects.filter(source_url=journaler.get_absolute_url()).all()
     }
     return render(request, 'books/journal-entries.html', params)
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+@login_required
+def revenues_and_expenses_from_journal(request):
+
+    # TODO: Turn this into a @directors_only decorator that uses @login_required
+    # REVIEW: This creates a dependency on "members". Review members/books relationship.
+    if not request.user.member.is_tagged_with("Director"):
+        return HttpResponse("This page is for Directors only.")
+
+    start = date(2016, 1, 1)
+    end = date.today()
+
+    def get_data(category, factor):
+        data = []
+        for jeli in JournalEntryLineItem.objects.filter(
+          account__category=category,
+          journal_entry__when__gte=start,
+          journal_entry__when__lte=end).prefetch_related('journal_entry'):  # type: JournalEntryLineItem
+            pt = [jeli.journal_entry.when.isoformat(), factor * float(jeli.amount)]
+            data.append(pt)
+        return data
+
+    rev = get_data(Account.CAT_REVENUE, 1.0)
+    exp = get_data(Account.CAT_EXPENSE, -1.0)
+
+    net = rev+exp
+    acc_rev_vs_time = _acc(rev)
+    acc_exp_vs_time = _acc(exp)
+    acc_net_vs_time = _acc(net)
+
+    params = {
+        'net': acc_net_vs_time,
+        'rev': acc_rev_vs_time,
+        'exp': acc_exp_vs_time,
+    }
+    return render(request, 'books/cumulative-rev-exp-chart.html', params)
+

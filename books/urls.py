@@ -11,8 +11,9 @@ router.register(r'other-item-types', views.OtherItemTypeViewSet)
 
 urlpatterns = [
 
-    url(r'^cumulative-vs-date-chart/$', views.cumulative_vs_date_chart, name='cumulative-vs-date-chart'),
-    url(r'^cumulative-vs-date-chart/2/$', views.cumulative_vs_date_chart, name='cumulative-vs-date-chart'),
+    # url(r'^cumulative-vs-date-chart/$', views.cumulative_vs_date_chart, name='cumulative-vs-date-chart'),
+    # url(r'^cumulative-vs-date-chart/2/$', views.cumulative_vs_date_chart, name='cumulative-vs-date-chart'),
+    url(r'^cumulative-rev-exp-chart/$', views.revenues_and_expenses_from_journal, name='cumulative-rev-exp-chart'),
 
     # DJANGO REST FRAMEWORK API
     url(r'^', include(router.urls)),
