@@ -22,7 +22,10 @@
     <script src="{% static 'members/ReceptionKiosk.js' %}"></script>
     <script>
         var csrfToken = Cookies.get('csrftoken');
-        var flags = {"csrfToken": csrfToken};
+        var flags = {
+            "csrfToken": csrfToken,
+            "orgName": "{{ org_name }}"
+        };
         var myContainer = document.getElementById("myContainer");
         var app = Elm.ReceptionKiosk.embed(myContainer, flags);
     </script>

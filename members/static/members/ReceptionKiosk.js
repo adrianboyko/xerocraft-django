@@ -5731,6 +5731,126 @@ var _elm_lang$core$Json_Decode$bool = _elm_lang$core$Native_Json.decodePrimitive
 var _elm_lang$core$Json_Decode$string = _elm_lang$core$Native_Json.decodePrimitive('string');
 var _elm_lang$core$Json_Decode$Decoder = {ctor: 'Decoder'};
 
+//import Maybe, Native.List //
+
+var _elm_lang$core$Native_Regex = function() {
+
+function escape(str)
+{
+	return str.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+}
+function caseInsensitive(re)
+{
+	return new RegExp(re.source, 'gi');
+}
+function regex(raw)
+{
+	return new RegExp(raw, 'g');
+}
+
+function contains(re, string)
+{
+	return string.match(re) !== null;
+}
+
+function find(n, re, str)
+{
+	n = n.ctor === 'All' ? Infinity : n._0;
+	var out = [];
+	var number = 0;
+	var string = str;
+	var lastIndex = re.lastIndex;
+	var prevLastIndex = -1;
+	var result;
+	while (number++ < n && (result = re.exec(string)))
+	{
+		if (prevLastIndex === re.lastIndex) break;
+		var i = result.length - 1;
+		var subs = new Array(i);
+		while (i > 0)
+		{
+			var submatch = result[i];
+			subs[--i] = submatch === undefined
+				? _elm_lang$core$Maybe$Nothing
+				: _elm_lang$core$Maybe$Just(submatch);
+		}
+		out.push({
+			match: result[0],
+			submatches: _elm_lang$core$Native_List.fromArray(subs),
+			index: result.index,
+			number: number
+		});
+		prevLastIndex = re.lastIndex;
+	}
+	re.lastIndex = lastIndex;
+	return _elm_lang$core$Native_List.fromArray(out);
+}
+
+function replace(n, re, replacer, string)
+{
+	n = n.ctor === 'All' ? Infinity : n._0;
+	var count = 0;
+	function jsReplacer(match)
+	{
+		if (count++ >= n)
+		{
+			return match;
+		}
+		var i = arguments.length - 3;
+		var submatches = new Array(i);
+		while (i > 0)
+		{
+			var submatch = arguments[i];
+			submatches[--i] = submatch === undefined
+				? _elm_lang$core$Maybe$Nothing
+				: _elm_lang$core$Maybe$Just(submatch);
+		}
+		return replacer({
+			match: match,
+			submatches: _elm_lang$core$Native_List.fromArray(submatches),
+			index: arguments[arguments.length - 2],
+			number: count
+		});
+	}
+	return string.replace(re, jsReplacer);
+}
+
+function split(n, re, str)
+{
+	n = n.ctor === 'All' ? Infinity : n._0;
+	if (n === Infinity)
+	{
+		return _elm_lang$core$Native_List.fromArray(str.split(re));
+	}
+	var string = str;
+	var result;
+	var out = [];
+	var start = re.lastIndex;
+	var restoreLastIndex = re.lastIndex;
+	while (n--)
+	{
+		if (!(result = re.exec(string))) break;
+		out.push(string.slice(start, result.index));
+		start = re.lastIndex;
+	}
+	out.push(string.slice(start));
+	re.lastIndex = restoreLastIndex;
+	return _elm_lang$core$Native_List.fromArray(out);
+}
+
+return {
+	regex: regex,
+	caseInsensitive: caseInsensitive,
+	escape: escape,
+
+	contains: F2(contains),
+	find: F3(find),
+	replace: F4(replace),
+	split: F3(split)
+};
+
+}();
+
 var _elm_lang$core$Tuple$mapSecond = F2(
 	function (func, _p0) {
 		var _p1 = _p0;
@@ -5757,6 +5877,23 @@ var _elm_lang$core$Tuple$first = function (_p6) {
 	var _p7 = _p6;
 	return _p7._0;
 };
+
+var _elm_lang$core$Regex$split = _elm_lang$core$Native_Regex.split;
+var _elm_lang$core$Regex$replace = _elm_lang$core$Native_Regex.replace;
+var _elm_lang$core$Regex$find = _elm_lang$core$Native_Regex.find;
+var _elm_lang$core$Regex$contains = _elm_lang$core$Native_Regex.contains;
+var _elm_lang$core$Regex$caseInsensitive = _elm_lang$core$Native_Regex.caseInsensitive;
+var _elm_lang$core$Regex$regex = _elm_lang$core$Native_Regex.regex;
+var _elm_lang$core$Regex$escape = _elm_lang$core$Native_Regex.escape;
+var _elm_lang$core$Regex$Match = F4(
+	function (a, b, c, d) {
+		return {match: a, submatches: b, index: c, number: d};
+	});
+var _elm_lang$core$Regex$Regex = {ctor: 'Regex'};
+var _elm_lang$core$Regex$AtMost = function (a) {
+	return {ctor: 'AtMost', _0: a};
+};
+var _elm_lang$core$Regex$All = {ctor: 'All'};
 
 var _elm_lang$virtual_dom$VirtualDom_Debug$wrap;
 var _elm_lang$virtual_dom$VirtualDom_Debug$wrapWithFlags;
@@ -7800,25 +7937,97 @@ var _user$project$ReceptionKiosk$subscriptions = function (model) {
 	return _elm_lang$core$Platform_Sub$batch(
 		{ctor: '[]'});
 };
-var _user$project$ReceptionKiosk$view = function (model) {
-	return _elm_lang$html$Html$text('Hello World!');
-};
 var _user$project$ReceptionKiosk$update = F2(
 	function (action, model) {
 		var _p0 = action;
 		return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
 	});
-var _user$project$ReceptionKiosk$Flags = function (a) {
-	return {csrfToken: a};
+var _user$project$ReceptionKiosk$replaceAll = F3(
+	function (theString, oldSub, newSub) {
+		return A4(
+			_elm_lang$core$Regex$replace,
+			_elm_lang$core$Regex$All,
+			_elm_lang$core$Regex$regex(oldSub),
+			function (_p1) {
+				return newSub;
+			},
+			theString);
+	});
+var _user$project$ReceptionKiosk$stepDialog = F3(
+	function (model, inTitle, inSubtitle) {
+		var subtitle = A3(_user$project$ReceptionKiosk$replaceAll, inSubtitle, 'ORGNAME', model.orgName);
+		var title = A3(_user$project$ReceptionKiosk$replaceAll, inTitle, 'ORGNAME', model.orgName);
+		return A2(
+			_elm_lang$html$Html$div,
+			{ctor: '[]'},
+			{
+				ctor: '::',
+				_0: _elm_lang$html$Html$text(title),
+				_1: {
+					ctor: '::',
+					_0: A2(
+						_elm_lang$html$Html$br,
+						{ctor: '[]'},
+						{ctor: '[]'}),
+					_1: {
+						ctor: '::',
+						_0: _elm_lang$html$Html$text(subtitle),
+						_1: {ctor: '[]'}
+					}
+				}
+			});
+	});
+var _user$project$ReceptionKiosk$view = function (model) {
+	var _p2 = model.step;
+	switch (_p2.ctor) {
+		case 'Welcome':
+			return A3(_user$project$ReceptionKiosk$stepDialog, model, 'Welcome to ORGNAME!', 'Is this your first visit?');
+		case 'HaveAcct':
+			return A3(_user$project$ReceptionKiosk$stepDialog, model, 'Great!', 'Do you already have an account here or on our website?');
+		case 'CheckIn':
+			return A3(_user$project$ReceptionKiosk$stepDialog, model, 'Please Check In', 'Enter your userid or email address:');
+		case 'LetsCreate':
+			return A3(_user$project$ReceptionKiosk$stepDialog, model, 'Let\'s Create One!', 'Please tell us about yourself:');
+		case 'UserIdAndPw':
+			return A3(_user$project$ReceptionKiosk$stepDialog, model, 'Id & Password', 'Please chooose a userid and password for your account:');
+		case 'HowDidYouHear':
+			return A3(_user$project$ReceptionKiosk$stepDialog, model, 'Just Wondering', 'How did you hear about ORGNAME');
+		case 'Waiver':
+			return A3(_user$project$ReceptionKiosk$stepDialog, model, 'Waiver', 'Please read the waiver and sign in the box to accept.');
+		case 'Rules':
+			return A3(_user$project$ReceptionKiosk$stepDialog, model, 'Rules', 'Please read the rules and check the box to agree.');
+		case 'Activity':
+			return A3(_user$project$ReceptionKiosk$stepDialog, model, 'Today\'s Activity?', 'Let us know what you\'ll be doing:');
+		case 'SupportUs':
+			return A3(_user$project$ReceptionKiosk$stepDialog, model, 'Support ORGNAME', '{TODO}');
+		default:
+			return A3(_user$project$ReceptionKiosk$stepDialog, model, 'You\'re Checked In', 'Have fun!');
+	}
 };
-var _user$project$ReceptionKiosk$Model = function (a) {
-	return {csrfToken: a};
-};
-var _user$project$ReceptionKiosk$init = function (_p1) {
-	var _p2 = _p1;
+var _user$project$ReceptionKiosk$Flags = F2(
+	function (a, b) {
+		return {csrfToken: a, orgName: b};
+	});
+var _user$project$ReceptionKiosk$Model = F3(
+	function (a, b, c) {
+		return {csrfToken: a, orgName: b, step: c};
+	});
+var _user$project$ReceptionKiosk$Done = {ctor: 'Done'};
+var _user$project$ReceptionKiosk$SupportUs = {ctor: 'SupportUs'};
+var _user$project$ReceptionKiosk$Activity = {ctor: 'Activity'};
+var _user$project$ReceptionKiosk$Rules = {ctor: 'Rules'};
+var _user$project$ReceptionKiosk$Waiver = {ctor: 'Waiver'};
+var _user$project$ReceptionKiosk$HowDidYouHear = {ctor: 'HowDidYouHear'};
+var _user$project$ReceptionKiosk$UserIdAndPw = {ctor: 'UserIdAndPw'};
+var _user$project$ReceptionKiosk$LetsCreate = {ctor: 'LetsCreate'};
+var _user$project$ReceptionKiosk$CheckIn = {ctor: 'CheckIn'};
+var _user$project$ReceptionKiosk$HaveAcct = {ctor: 'HaveAcct'};
+var _user$project$ReceptionKiosk$Welcome = {ctor: 'Welcome'};
+var _user$project$ReceptionKiosk$init = function (_p3) {
+	var _p4 = _p3;
 	return {
 		ctor: '_Tuple2',
-		_0: _user$project$ReceptionKiosk$Model(_p2.csrfToken),
+		_0: A3(_user$project$ReceptionKiosk$Model, _p4.csrfToken, _p4.orgName, _user$project$ReceptionKiosk$Welcome),
 		_1: _elm_lang$core$Platform_Cmd$none
 	};
 };
@@ -7827,8 +8036,13 @@ var _user$project$ReceptionKiosk$main = _elm_lang$html$Html$programWithFlags(
 	A2(
 		_elm_lang$core$Json_Decode$andThen,
 		function (csrfToken) {
-			return _elm_lang$core$Json_Decode$succeed(
-				{csrfToken: csrfToken});
+			return A2(
+				_elm_lang$core$Json_Decode$andThen,
+				function (orgName) {
+					return _elm_lang$core$Json_Decode$succeed(
+						{csrfToken: csrfToken, orgName: orgName});
+				},
+				A2(_elm_lang$core$Json_Decode$field, 'orgName', _elm_lang$core$Json_Decode$string));
 		},
 		A2(_elm_lang$core$Json_Decode$field, 'csrfToken', _elm_lang$core$Json_Decode$string)));
 var _user$project$ReceptionKiosk$Spam = {ctor: 'Spam'};

@@ -39,6 +39,7 @@ from abutils.utils import request_is_from_host
 
 logger = getLogger("members")
 
+ORG_NAME = settings.XEROPS_ORG_NAME
 ORG_NAME_POSSESSIVE = settings.XEROPS_ORG_NAME_POSSESSIVE
 FACILITY_PUBLIC_IP = settings.XEROPS_FACILITY_PUBLIC_IP
 
@@ -658,7 +659,6 @@ def reception_kiosk_spa(request) -> HttpResponse:
         taskList=reverse("task:task-list"),
         memberList=reverse("memb:member-list"),
     )
-    props = {
-    }
+    props = { "org_name": ORG_NAME }
     return render(request, "members/reception-kiosk-spa.html", props)
 
