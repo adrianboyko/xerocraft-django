@@ -26,6 +26,8 @@ from reportlab.graphics.barcode.qr import QrCodeWidget
 from reportlab.graphics import renderPDF
 from reportlab.lib.units import inch, mm
 from reportlab.lib.pagesizes import letter
+from django.views.decorators.csrf import ensure_csrf_cookie
+
 
 # Local
 from members.models import Member, Tag, Tagging, VisitEvent, Membership, DiscoveryMethod, MembershipGiftCardReference, WifiMacDetected
@@ -647,3 +649,16 @@ def desktop_earned_membership_revenue(request):
 
     del chart_data[-1]  # Don't show current month.
     return render(request, 'members/desktop-earned-mship-rev.html', {'data': chart_data})
+
+
+@ensure_csrf_cookie
+def reception_kiosk_spa(request) -> HttpResponse:
+    urls = dict(
+        claimList=reverse("task:claim-list"),
+        taskList=reverse("task:task-list"),
+        memberList=reverse("memb:member-list"),
+    )
+    props = {
+    }
+    return render(request, "members/reception-kiosk-spa.html", props)
+

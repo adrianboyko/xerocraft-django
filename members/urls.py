@@ -19,7 +19,7 @@ urlpatterns = [
     url(r'^desktop/member-count-vs-date/$', views.desktop_member_count_vs_date, name='desktop-member-count-vs-date'),
     url(r'^desktop/earned-membership-revenue/$', views.desktop_earned_membership_revenue, name='earned-membership-revenue'),
 
-    # For kiosk:
+    # For generic kiosk (ABANDONED):
     url(r'^kiosk/waiting/$', views.kiosk_waiting),
     url(r'^kiosk/main-menu/(?P<member_card_str>[-_a-zA-Z0-9]{32})/$', views.kiosk_main_menu, name="kiosk-main-menu"),
     url(r'^kiosk/staff-menu/(?P<member_card_str>[-_a-zA-Z0-9]{32})/$', views.kiosk_staff_menu, name="kiosk-staff-menu"),
@@ -27,6 +27,9 @@ urlpatterns = [
     url(r'^kiosk/check-in-member/(?P<member_card_str>[-_a-zA-Z0-9]{32})_(?P<event_type>[APD])/$', views.Kiosk_LogVisitEvent.as_view(), name="kiosk-check-in-member"),
     url(r'^kiosk/member-details/(?P<member_card_str>[-_a-zA-Z0-9]{32})_(?P<staff_card_str>[-_a-zA-Z0-9]{32})/$', views.kiosk_member_details, name="kiosk-member-details"),
     url(r'^kiosk/member-details/(?P<member_card_str>[-_a-zA-Z0-9]{32})_(?P<staff_card_str>[-_a-zA-Z0-9]{32})/(?P<tag_pk>[0-9]+)/', views.kiosk_add_tag),
+
+    # For reception kiosk (check-in, sign-up, etc):
+    url(r'^reception/$', views.reception_kiosk_spa),
 
     # For mobile apps:
     url(r'^api/member-details/(?P<member_card_str>[-_a-zA-Z0-9]{32})_(?P<staff_card_str>[-_a-zA-Z0-9]{32})/$', views.api_member_details, name="api-member-details"),
