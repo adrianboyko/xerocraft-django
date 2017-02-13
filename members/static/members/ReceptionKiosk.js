@@ -15021,7 +15021,24 @@ var _elm_lang$core$Regex$AtMost = function (a) {
 };
 var _elm_lang$core$Regex$All = {ctor: 'All'};
 
-var _user$project$ReceptionKiosk$dlgButtonCss = {
+var _user$project$ReceptionKiosk$navButtonCss = {
+	ctor: '::',
+	_0: A2(_debois$elm_mdl$Material_Options$css, 'margin-left', '5px'),
+	_1: {
+		ctor: '::',
+		_0: A2(_debois$elm_mdl$Material_Options$css, 'margin-right', '5px'),
+		_1: {
+			ctor: '::',
+			_0: A2(_debois$elm_mdl$Material_Options$css, 'margin-top', '20px'),
+			_1: {
+				ctor: '::',
+				_0: A2(_debois$elm_mdl$Material_Options$css, 'font-size', '9pt'),
+				_1: {ctor: '[]'}
+			}
+		}
+	}
+};
+var _user$project$ReceptionKiosk$viewButtonCss = {
 	ctor: '::',
 	_0: A2(_debois$elm_mdl$Material_Options$css, 'margin-left', '10px'),
 	_1: {
@@ -15050,13 +15067,13 @@ var _user$project$ReceptionKiosk$dlgButtonCss = {
 		}
 	}
 };
-var _user$project$ReceptionKiosk$dialogWidth = '640px';
+var _user$project$ReceptionKiosk$sceneWidth = '640px';
 var _user$project$ReceptionKiosk_ops = _user$project$ReceptionKiosk_ops || {};
 _user$project$ReceptionKiosk_ops['=>'] = F2(
 	function (v0, v1) {
 		return {ctor: '_Tuple2', _0: v0, _1: v1};
 	});
-var _user$project$ReceptionKiosk$stepDialogStyle = _elm_lang$html$Html_Attributes$style(
+var _user$project$ReceptionKiosk$navDivStyle = _elm_lang$html$Html_Attributes$style(
 	{
 		ctor: '::',
 		_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'font-family', 'Roboto Condensed, Arial, Helvetica'),
@@ -15074,27 +15091,29 @@ var _user$project$ReceptionKiosk$stepDialogStyle = _elm_lang$html$Html_Attribute
 						_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-top', '10%'),
 						_1: {
 							ctor: '::',
-							_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'width', _user$project$ReceptionKiosk$dialogWidth),
-							_1: {
-								ctor: '::',
-								_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'border', '1px solid #bbbbbb'),
-								_1: {
-									ctor: '::',
-									_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'background-color', 'white'),
-									_1: {
-										ctor: '::',
-										_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'padding', '0px'),
-										_1: {ctor: '[]'}
-									}
-								}
-							}
+							_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'width', _user$project$ReceptionKiosk$sceneWidth),
+							_1: {ctor: '[]'}
 						}
 					}
 				}
 			}
 		}
 	});
-var _user$project$ReceptionKiosk$stepTitleStyle = _elm_lang$html$Html_Attributes$style(
+var _user$project$ReceptionKiosk$sceneDivStyle = _elm_lang$html$Html_Attributes$style(
+	{
+		ctor: '::',
+		_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'border', '1px solid #bbbbbb'),
+		_1: {
+			ctor: '::',
+			_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'background-color', 'white'),
+			_1: {
+				ctor: '::',
+				_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'padding', '0px'),
+				_1: {ctor: '[]'}
+			}
+		}
+	});
+var _user$project$ReceptionKiosk$sceneTitleStyle = _elm_lang$html$Html_Attributes$style(
 	{
 		ctor: '::',
 		_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'font-size', '22pt'),
@@ -15116,7 +15135,7 @@ var _user$project$ReceptionKiosk$stepTitleStyle = _elm_lang$html$Html_Attributes
 			}
 		}
 	});
-var _user$project$ReceptionKiosk$stepSubtitleStyle = _elm_lang$html$Html_Attributes$style(
+var _user$project$ReceptionKiosk$sceneSubtitleStyle = _elm_lang$html$Html_Attributes$style(
 	{
 		ctor: '::',
 		_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'font-size', '16pt'),
@@ -15137,7 +15156,7 @@ var _user$project$ReceptionKiosk$stepSubtitleStyle = _elm_lang$html$Html_Attribu
 var _user$project$ReceptionKiosk$bannerTopStyle = _elm_lang$html$Html_Attributes$style(
 	{
 		ctor: '::',
-		_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'width', _user$project$ReceptionKiosk$dialogWidth),
+		_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'width', _user$project$ReceptionKiosk$sceneWidth),
 		_1: {
 			ctor: '::',
 			_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin', '0'),
@@ -15147,7 +15166,7 @@ var _user$project$ReceptionKiosk$bannerTopStyle = _elm_lang$html$Html_Attributes
 var _user$project$ReceptionKiosk$bannerBottomStyle = _elm_lang$html$Html_Attributes$style(
 	{
 		ctor: '::',
-		_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'width', _user$project$ReceptionKiosk$dialogWidth),
+		_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'width', _user$project$ReceptionKiosk$sceneWidth),
 		_1: {
 			ctor: '::',
 			_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-top', '50px'),
@@ -15175,7 +15194,7 @@ var _user$project$ReceptionKiosk$Flags = F4(
 	});
 var _user$project$ReceptionKiosk$Model = F6(
 	function (a, b, c, d, e, f) {
-		return {csrfToken: a, orgName: b, bannerTopUrl: c, bannerBottomUrl: d, step: e, mdl: f};
+		return {csrfToken: a, orgName: b, bannerTopUrl: c, bannerBottomUrl: d, sceneStack: e, mdl: f};
 	});
 var _user$project$ReceptionKiosk$ButtonSpec = F2(
 	function (a, b) {
@@ -15193,11 +15212,23 @@ var _user$project$ReceptionKiosk$CheckIn = {ctor: 'CheckIn'};
 var _user$project$ReceptionKiosk$HaveAcctQ = {ctor: 'HaveAcctQ'};
 var _user$project$ReceptionKiosk$Welcome = {ctor: 'Welcome'};
 var _user$project$ReceptionKiosk$init = function (f) {
-	var model = A6(_user$project$ReceptionKiosk$Model, f.csrfToken, f.orgName, f.bannerTopUrl, f.bannerBottomUrl, _user$project$ReceptionKiosk$Welcome, _debois$elm_mdl$Material$model);
+	var model = A6(
+		_user$project$ReceptionKiosk$Model,
+		f.csrfToken,
+		f.orgName,
+		f.bannerTopUrl,
+		f.bannerBottomUrl,
+		{
+			ctor: '::',
+			_0: _user$project$ReceptionKiosk$Welcome,
+			_1: {ctor: '[]'}
+		},
+		_debois$elm_mdl$Material$model);
 	return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
 };
-var _user$project$ReceptionKiosk$Segue = function (a) {
-	return {ctor: 'Segue', _0: a};
+var _user$project$ReceptionKiosk$PopScene = {ctor: 'PopScene'};
+var _user$project$ReceptionKiosk$PushScene = function (a) {
+	return {ctor: 'PushScene', _0: a};
 };
 var _user$project$ReceptionKiosk$Mdl = function (a) {
 	return {ctor: 'Mdl', _0: a};
@@ -15205,19 +15236,55 @@ var _user$project$ReceptionKiosk$Mdl = function (a) {
 var _user$project$ReceptionKiosk$update = F2(
 	function (action, model) {
 		var _p1 = action;
-		if (_p1.ctor === 'Mdl') {
-			return A3(_debois$elm_mdl$Material$update, _user$project$ReceptionKiosk$Mdl, _p1._0, model);
-		} else {
-			return {
-				ctor: '_Tuple2',
-				_0: _elm_lang$core$Native_Utils.update(
-					model,
-					{step: _p1._0}),
-				_1: _elm_lang$core$Platform_Cmd$none
-			};
+		switch (_p1.ctor) {
+			case 'Mdl':
+				return A3(_debois$elm_mdl$Material$update, _user$project$ReceptionKiosk$Mdl, _p1._0, model);
+			case 'PushScene':
+				if (_p1._0.ctor === 'Welcome') {
+					return {
+						ctor: '_Tuple2',
+						_0: _elm_lang$core$Native_Utils.update(
+							model,
+							{
+								sceneStack: {
+									ctor: '::',
+									_0: _user$project$ReceptionKiosk$Welcome,
+									_1: {ctor: '[]'}
+								}
+							}),
+						_1: _elm_lang$core$Platform_Cmd$none
+					};
+				} else {
+					return {
+						ctor: '_Tuple2',
+						_0: _elm_lang$core$Native_Utils.update(
+							model,
+							{
+								sceneStack: {ctor: '::', _0: _p1._0, _1: model.sceneStack}
+							}),
+						_1: _elm_lang$core$Platform_Cmd$none
+					};
+				}
+			default:
+				return {
+					ctor: '_Tuple2',
+					_0: _elm_lang$core$Native_Utils.update(
+						model,
+						{
+							sceneStack: A2(
+								_elm_lang$core$Maybe$withDefault,
+								{
+									ctor: '::',
+									_0: _user$project$ReceptionKiosk$Welcome,
+									_1: {ctor: '[]'}
+								},
+								_elm_lang$core$List$tail(model.sceneStack))
+						}),
+					_1: _elm_lang$core$Platform_Cmd$none
+				};
 		}
 	});
-var _user$project$ReceptionKiosk$dialogButton = F2(
+var _user$project$ReceptionKiosk$sceneButton = F2(
 	function (model, buttonSpec) {
 		return A5(
 			_debois$elm_mdl$Material_Button$render,
@@ -15236,18 +15303,85 @@ var _user$project$ReceptionKiosk$dialogButton = F2(
 					_1: {
 						ctor: '::',
 						_0: _debois$elm_mdl$Material_Options$onClick(
-							_user$project$ReceptionKiosk$Segue(buttonSpec.segue)),
+							_user$project$ReceptionKiosk$PushScene(buttonSpec.segue)),
 						_1: {ctor: '[]'}
 					}
 				},
-				_user$project$ReceptionKiosk$dlgButtonCss),
+				_user$project$ReceptionKiosk$viewButtonCss),
 			{
 				ctor: '::',
 				_0: _elm_lang$html$Html$text(buttonSpec.title),
 				_1: {ctor: '[]'}
 			});
 	});
-var _user$project$ReceptionKiosk$stepDialog = F4(
+var _user$project$ReceptionKiosk$backButton = function (model) {
+	return (_elm_lang$core$Native_Utils.cmp(
+		_elm_lang$core$List$length(model.sceneStack),
+		1) > 0) ? A2(
+		_elm_lang$html$Html$div,
+		{ctor: '[]'},
+		{
+			ctor: '::',
+			_0: A5(
+				_debois$elm_mdl$Material_Button$render,
+				_user$project$ReceptionKiosk$Mdl,
+				{
+					ctor: '::',
+					_0: 0,
+					_1: {ctor: '[]'}
+				},
+				model.mdl,
+				A2(
+					_elm_lang$core$Basics_ops['++'],
+					{
+						ctor: '::',
+						_0: _debois$elm_mdl$Material_Button$flat,
+						_1: {
+							ctor: '::',
+							_0: _debois$elm_mdl$Material_Options$onClick(_user$project$ReceptionKiosk$PopScene),
+							_1: {ctor: '[]'}
+						}
+					},
+					_user$project$ReceptionKiosk$navButtonCss),
+				{
+					ctor: '::',
+					_0: _elm_lang$html$Html$text('Back'),
+					_1: {ctor: '[]'}
+				}),
+			_1: {
+				ctor: '::',
+				_0: A5(
+					_debois$elm_mdl$Material_Button$render,
+					_user$project$ReceptionKiosk$Mdl,
+					{
+						ctor: '::',
+						_0: 0,
+						_1: {ctor: '[]'}
+					},
+					model.mdl,
+					A2(
+						_elm_lang$core$Basics_ops['++'],
+						{
+							ctor: '::',
+							_0: _debois$elm_mdl$Material_Button$flat,
+							_1: {
+								ctor: '::',
+								_0: _debois$elm_mdl$Material_Options$onClick(
+									_user$project$ReceptionKiosk$PushScene(_user$project$ReceptionKiosk$Welcome)),
+								_1: {ctor: '[]'}
+							}
+						},
+						_user$project$ReceptionKiosk$navButtonCss),
+					{
+						ctor: '::',
+						_0: _elm_lang$html$Html$text('Quit'),
+						_1: {ctor: '[]'}
+					}),
+				_1: {ctor: '[]'}
+			}
+		}) : _elm_lang$html$Html$text('');
+};
+var _user$project$ReceptionKiosk$sceneView = F4(
 	function (model, inTitle, inSubtitle, buttonSpecs) {
 		var subtitle = A3(_user$project$ReceptionKiosk$replaceAll, inSubtitle, 'ORGNAME', model.orgName);
 		var title = A3(_user$project$ReceptionKiosk$replaceAll, inTitle, 'ORGNAME', model.orgName);
@@ -15255,87 +15389,105 @@ var _user$project$ReceptionKiosk$stepDialog = F4(
 			_elm_lang$html$Html$div,
 			{
 				ctor: '::',
-				_0: _user$project$ReceptionKiosk$stepDialogStyle,
+				_0: _user$project$ReceptionKiosk$navDivStyle,
 				_1: {ctor: '[]'}
 			},
 			{
 				ctor: '::',
 				_0: A2(
-					_elm_lang$html$Html$img,
+					_elm_lang$html$Html$div,
 					{
 						ctor: '::',
-						_0: _elm_lang$html$Html_Attributes$src(model.bannerTopUrl),
-						_1: {
-							ctor: '::',
-							_0: _user$project$ReceptionKiosk$bannerTopStyle,
-							_1: {ctor: '[]'}
-						}
+						_0: _user$project$ReceptionKiosk$sceneDivStyle,
+						_1: {ctor: '[]'}
 					},
-					{ctor: '[]'}),
-				_1: {
-					ctor: '::',
-					_0: A2(
-						_elm_lang$html$Html$p,
-						{
-							ctor: '::',
-							_0: _user$project$ReceptionKiosk$stepTitleStyle,
-							_1: {ctor: '[]'}
-						},
-						{
-							ctor: '::',
-							_0: _elm_lang$html$Html$text(title),
-							_1: {ctor: '[]'}
-						}),
-					_1: {
+					{
 						ctor: '::',
 						_0: A2(
-							_elm_lang$html$Html$p,
+							_elm_lang$html$Html$img,
 							{
 								ctor: '::',
-								_0: _user$project$ReceptionKiosk$stepSubtitleStyle,
-								_1: {ctor: '[]'}
+								_0: _elm_lang$html$Html_Attributes$src(model.bannerTopUrl),
+								_1: {
+									ctor: '::',
+									_0: _user$project$ReceptionKiosk$bannerTopStyle,
+									_1: {ctor: '[]'}
+								}
 							},
-							{
-								ctor: '::',
-								_0: _elm_lang$html$Html$text(subtitle),
-								_1: {ctor: '[]'}
-							}),
+							{ctor: '[]'}),
 						_1: {
 							ctor: '::',
 							_0: A2(
-								_elm_lang$html$Html$div,
-								{ctor: '[]'},
-								A2(
-									_elm_lang$core$List$map,
-									_user$project$ReceptionKiosk$dialogButton(model),
-									buttonSpecs)),
+								_elm_lang$html$Html$p,
+								{
+									ctor: '::',
+									_0: _user$project$ReceptionKiosk$sceneTitleStyle,
+									_1: {ctor: '[]'}
+								},
+								{
+									ctor: '::',
+									_0: _elm_lang$html$Html$text(title),
+									_1: {ctor: '[]'}
+								}),
 							_1: {
 								ctor: '::',
 								_0: A2(
-									_elm_lang$html$Html$img,
+									_elm_lang$html$Html$p,
 									{
 										ctor: '::',
-										_0: _elm_lang$html$Html_Attributes$src(model.bannerBottomUrl),
-										_1: {
-											ctor: '::',
-											_0: _user$project$ReceptionKiosk$bannerBottomStyle,
-											_1: {ctor: '[]'}
-										}
+										_0: _user$project$ReceptionKiosk$sceneSubtitleStyle,
+										_1: {ctor: '[]'}
 									},
-									{ctor: '[]'}),
-								_1: {ctor: '[]'}
+									{
+										ctor: '::',
+										_0: _elm_lang$html$Html$text(subtitle),
+										_1: {ctor: '[]'}
+									}),
+								_1: {
+									ctor: '::',
+									_0: A2(
+										_elm_lang$html$Html$div,
+										{ctor: '[]'},
+										A2(
+											_elm_lang$core$List$map,
+											_user$project$ReceptionKiosk$sceneButton(model),
+											buttonSpecs)),
+									_1: {
+										ctor: '::',
+										_0: A2(
+											_elm_lang$html$Html$img,
+											{
+												ctor: '::',
+												_0: _elm_lang$html$Html_Attributes$src(model.bannerBottomUrl),
+												_1: {
+													ctor: '::',
+													_0: _user$project$ReceptionKiosk$bannerBottomStyle,
+													_1: {ctor: '[]'}
+												}
+											},
+											{ctor: '[]'}),
+										_1: {ctor: '[]'}
+									}
+								}
 							}
 						}
-					}
+					}),
+				_1: {
+					ctor: '::',
+					_0: _user$project$ReceptionKiosk$backButton(model),
+					_1: {ctor: '[]'}
 				}
 			});
 	});
 var _user$project$ReceptionKiosk$view = function (model) {
-	var _p2 = model.step;
+	var _p2 = A2(
+		_elm_lang$core$Maybe$withDefault,
+		_user$project$ReceptionKiosk$Welcome,
+		_elm_lang$core$List$head(model.sceneStack));
 	switch (_p2.ctor) {
 		case 'Welcome':
 			return A4(
-				_user$project$ReceptionKiosk$stepDialog,
+				_user$project$ReceptionKiosk$sceneView,
 				model,
 				'Welcome!',
 				'Is this your first visit?',
@@ -15350,22 +15502,22 @@ var _user$project$ReceptionKiosk$view = function (model) {
 				});
 		case 'HaveAcctQ':
 			return A4(
-				_user$project$ReceptionKiosk$stepDialog,
+				_user$project$ReceptionKiosk$sceneView,
 				model,
 				'Great!',
 				'Do you already have an account here or on our website?',
 				{
 					ctor: '::',
-					_0: A2(_user$project$ReceptionKiosk$ButtonSpec, 'Yes, I do', _user$project$ReceptionKiosk$CheckIn),
+					_0: A2(_user$project$ReceptionKiosk$ButtonSpec, 'Yes', _user$project$ReceptionKiosk$CheckIn),
 					_1: {
 						ctor: '::',
-						_0: A2(_user$project$ReceptionKiosk$ButtonSpec, 'No, I don\'t', _user$project$ReceptionKiosk$LetsCreate),
+						_0: A2(_user$project$ReceptionKiosk$ButtonSpec, 'No', _user$project$ReceptionKiosk$LetsCreate),
 						_1: {ctor: '[]'}
 					}
 				});
 		case 'CheckIn':
 			return A4(
-				_user$project$ReceptionKiosk$stepDialog,
+				_user$project$ReceptionKiosk$sceneView,
 				model,
 				'Please Check In',
 				'Enter your userid or email address:',
@@ -15376,7 +15528,7 @@ var _user$project$ReceptionKiosk$view = function (model) {
 				});
 		case 'LetsCreate':
 			return A4(
-				_user$project$ReceptionKiosk$stepDialog,
+				_user$project$ReceptionKiosk$sceneView,
 				model,
 				'Let\'s Create One!',
 				'Please tell us about yourself:',
@@ -15387,7 +15539,7 @@ var _user$project$ReceptionKiosk$view = function (model) {
 				});
 		case 'ChooseIdAndPw':
 			return A4(
-				_user$project$ReceptionKiosk$stepDialog,
+				_user$project$ReceptionKiosk$sceneView,
 				model,
 				'Id & Password',
 				'Please chooose a userid and password for your account:',
@@ -15398,7 +15550,7 @@ var _user$project$ReceptionKiosk$view = function (model) {
 				});
 		case 'HowDidYouHear':
 			return A4(
-				_user$project$ReceptionKiosk$stepDialog,
+				_user$project$ReceptionKiosk$sceneView,
 				model,
 				'Just Wondering',
 				'How did you hear about us?',
@@ -15409,7 +15561,7 @@ var _user$project$ReceptionKiosk$view = function (model) {
 				});
 		case 'Waiver':
 			return A4(
-				_user$project$ReceptionKiosk$stepDialog,
+				_user$project$ReceptionKiosk$sceneView,
 				model,
 				'Waiver',
 				'Please read the waiver and sign in the box.',
@@ -15420,7 +15572,7 @@ var _user$project$ReceptionKiosk$view = function (model) {
 				});
 		case 'Rules':
 			return A4(
-				_user$project$ReceptionKiosk$stepDialog,
+				_user$project$ReceptionKiosk$sceneView,
 				model,
 				'Rules',
 				'Please read the rules and check the box to agree.',
@@ -15431,7 +15583,7 @@ var _user$project$ReceptionKiosk$view = function (model) {
 				});
 		case 'Activity':
 			return A4(
-				_user$project$ReceptionKiosk$stepDialog,
+				_user$project$ReceptionKiosk$sceneView,
 				model,
 				'Today\'s Activity?',
 				'Let us know what you\'ll be doing:',
@@ -15442,7 +15594,7 @@ var _user$project$ReceptionKiosk$view = function (model) {
 				});
 		case 'SupportUs':
 			return A4(
-				_user$project$ReceptionKiosk$stepDialog,
+				_user$project$ReceptionKiosk$sceneView,
 				model,
 				'Please Support Us!',
 				'{TODO}',
@@ -15453,7 +15605,7 @@ var _user$project$ReceptionKiosk$view = function (model) {
 				});
 		default:
 			return A4(
-				_user$project$ReceptionKiosk$stepDialog,
+				_user$project$ReceptionKiosk$sceneView,
 				model,
 				'You\'re Checked In',
 				'Have fun!',
