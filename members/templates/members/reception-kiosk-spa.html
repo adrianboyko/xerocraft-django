@@ -24,7 +24,9 @@
         var csrfToken = Cookies.get('csrftoken');
         var flags = {
             "csrfToken": csrfToken,
-            "orgName": "{{ org_name }}"
+            "orgName": "{{ org_name }}",
+            "bannerTopUrl": "{% static 'xerops/GenericBannerTop.png' %}",
+            "bannerBottomUrl": "{% static 'xerops/GenericBannerBottom.png' %}",
         };
         var myContainer = document.getElementById("myContainer");
         var app = Elm.ReceptionKiosk.embed(myContainer, flags);
