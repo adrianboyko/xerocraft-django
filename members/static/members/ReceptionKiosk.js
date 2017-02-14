@@ -15177,6 +15177,9 @@ var _user$project$ReceptionKiosk$subscriptions = function (model) {
 	return _elm_lang$core$Platform_Sub$batch(
 		{ctor: '[]'});
 };
+var _user$project$ReceptionKiosk$howDidYouHearChoices = function (model) {
+	return _elm_lang$html$Html$text('');
+};
 var _user$project$ReceptionKiosk$vspace = function (amount) {
 	return A2(
 		_elm_lang$html$Html$div,
@@ -15224,7 +15227,11 @@ var _user$project$ReceptionKiosk$Model = function (a) {
 								return function (i) {
 									return function (j) {
 										return function (k) {
-											return {csrfToken: a, orgName: b, bannerTopUrl: c, bannerBottomUrl: d, sceneStack: e, mdl: f, flexId: g, firstName: h, lastName: i, email: j, isAdult: k};
+											return function (l) {
+												return function (m) {
+													return {csrfToken: a, orgName: b, bannerTopUrl: c, bannerBottomUrl: d, sceneStack: e, mdl: f, flexId: g, firstName: h, lastName: i, email: j, isAdult: k, userid: l, password: m};
+												};
+											};
 										};
 									};
 								};
@@ -15252,17 +15259,26 @@ var _user$project$ReceptionKiosk$CheckIn = {ctor: 'CheckIn'};
 var _user$project$ReceptionKiosk$HaveAcctQ = {ctor: 'HaveAcctQ'};
 var _user$project$ReceptionKiosk$Welcome = {ctor: 'Welcome'};
 var _user$project$ReceptionKiosk$init = function (f) {
-	var model = _user$project$ReceptionKiosk$Model(f.csrfToken)(f.orgName)(f.bannerTopUrl)(f.bannerBottomUrl)(
-		{
-			ctor: '::',
-			_0: _user$project$ReceptionKiosk$Welcome,
-			_1: {ctor: '[]'}
-		})(_debois$elm_mdl$Material$model)('')('')('')('')(false);
-	return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
+	return {
+		ctor: '_Tuple2',
+		_0: _user$project$ReceptionKiosk$Model(f.csrfToken)(f.orgName)(f.bannerTopUrl)(f.bannerBottomUrl)(
+			{
+				ctor: '::',
+				_0: _user$project$ReceptionKiosk$Welcome,
+				_1: {ctor: '[]'}
+			})(_debois$elm_mdl$Material$model)('')('')('')('')(false)('')(''),
+		_1: _elm_lang$core$Platform_Cmd$none
+	};
 };
 var _user$project$ReceptionKiosk$reset = function (m) {
 	return _user$project$ReceptionKiosk$init(
 		A4(_user$project$ReceptionKiosk$Flags, m.csrfToken, m.orgName, m.bannerTopUrl, m.bannerBottomUrl));
+};
+var _user$project$ReceptionKiosk$UpdatePassword = function (a) {
+	return {ctor: 'UpdatePassword', _0: a};
+};
+var _user$project$ReceptionKiosk$UpdateUserid = function (a) {
+	return {ctor: 'UpdateUserid', _0: a};
 };
 var _user$project$ReceptionKiosk$ToggleIsAdult = {ctor: 'ToggleIsAdult'};
 var _user$project$ReceptionKiosk$UpdateEmail = function (a) {
@@ -15353,12 +15369,28 @@ var _user$project$ReceptionKiosk$update = F2(
 						{email: _p1._0}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
-			default:
+			case 'ToggleIsAdult':
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
 						model,
 						{isAdult: !model.isAdult}),
+					_1: _elm_lang$core$Platform_Cmd$none
+				};
+			case 'UpdateUserid':
+				return {
+					ctor: '_Tuple2',
+					_0: _elm_lang$core$Native_Utils.update(
+						model,
+						{userid: _p1._0}),
+					_1: _elm_lang$core$Platform_Cmd$none
+				};
+			default:
+				return {
+					ctor: '_Tuple2',
+					_0: _elm_lang$core$Native_Utils.update(
+						model,
+						{password: _p1._0}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 		}
@@ -15417,6 +15449,40 @@ var _user$project$ReceptionKiosk$sceneTextField = F5(
 							ctor: '::',
 							_0: _debois$elm_mdl$Material_Options$onInput(msger),
 							_1: {ctor: '[]'}
+						}
+					}
+				}
+			},
+			_elm_lang$html$Html$text('spam'));
+	});
+var _user$project$ReceptionKiosk$scenePasswordField = F5(
+	function (model, index, hint, value, msger) {
+		return A5(
+			_debois$elm_mdl$Material_Textfield$render,
+			_user$project$ReceptionKiosk$Mdl,
+			{
+				ctor: '::',
+				_0: index,
+				_1: {ctor: '[]'}
+			},
+			model.mdl,
+			{
+				ctor: '::',
+				_0: _debois$elm_mdl$Material_Textfield$label(hint),
+				_1: {
+					ctor: '::',
+					_0: _debois$elm_mdl$Material_Textfield$password,
+					_1: {
+						ctor: '::',
+						_0: _debois$elm_mdl$Material_Textfield$floatingLabel,
+						_1: {
+							ctor: '::',
+							_0: _debois$elm_mdl$Material_Textfield$value(value),
+							_1: {
+								ctor: '::',
+								_0: _debois$elm_mdl$Material_Options$onInput(msger),
+								_1: {ctor: '[]'}
+							}
 						}
 					}
 				}
@@ -15752,7 +15818,26 @@ var _user$project$ReceptionKiosk$view = function (model) {
 				model,
 				'Id & Password',
 				'Please chooose a userid and password for your account:',
-				_elm_lang$html$Html$text(''),
+				A2(
+					_elm_lang$html$Html$div,
+					{ctor: '[]'},
+					{
+						ctor: '::',
+						_0: A5(_user$project$ReceptionKiosk$sceneTextField, model, 6, 'Choose a userid', model.userid, _user$project$ReceptionKiosk$UpdateUserid),
+						_1: {
+							ctor: '::',
+							_0: _user$project$ReceptionKiosk$vspace(0),
+							_1: {
+								ctor: '::',
+								_0: A5(_user$project$ReceptionKiosk$scenePasswordField, model, 7, 'Choose a password', model.password, _user$project$ReceptionKiosk$UpdatePassword),
+								_1: {
+									ctor: '::',
+									_0: _user$project$ReceptionKiosk$vspace(30),
+									_1: {ctor: '[]'}
+								}
+							}
+						}
+					}),
 				{
 					ctor: '::',
 					_0: A2(_user$project$ReceptionKiosk$ButtonSpec, 'OK', _user$project$ReceptionKiosk$HowDidYouHear),
@@ -15764,7 +15849,7 @@ var _user$project$ReceptionKiosk$view = function (model) {
 				model,
 				'Just Wondering',
 				'How did you hear about us?',
-				_elm_lang$html$Html$text(''),
+				_user$project$ReceptionKiosk$howDidYouHearChoices(model),
 				{
 					ctor: '::',
 					_0: A2(_user$project$ReceptionKiosk$ButtonSpec, 'OK', _user$project$ReceptionKiosk$Waiver),

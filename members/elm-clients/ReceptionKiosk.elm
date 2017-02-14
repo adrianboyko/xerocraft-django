@@ -57,6 +57,16 @@ type Scene
   | SupportUs
   | Done
 
+--type alias Account =
+--  { userid: String
+--  , password: String
+--  , memberNum: Maybe Int
+--  , firstName: String
+--  , lastName: String
+--  , email: String
+--  , isAdult: Bool
+--  }
+
 type alias Model =
   { csrfToken: String
   , orgName: String
@@ -68,15 +78,29 @@ type alias Model =
   , firstName: String
   , lastName: String
   , email: String
-  , isAdult : Bool
+  , isAdult: Bool
+  , userid: String
+  , password: String
   }
 
 init : Flags -> (Model, Cmd Msg)
 init f =
-  let model =
-    Model f.csrfToken f.orgName f.bannerTopUrl f.bannerBottomUrl [Welcome] Material.model "" "" "" "" False
-  in
-    (model, Cmd.none)
+  ( Model
+      f.csrfToken
+      f.orgName
+      f.bannerTopUrl
+      f.bannerBottomUrl
+      [Welcome]
+      Material.model
+      ""
+      ""
+      ""
+      ""
+      False
+      ""
+      ""
+  , Cmd.none
+  )
 
 -- reset restores the model as it was after init.
 reset : Model -> (Model, Cmd Msg)
@@ -96,6 +120,8 @@ type Msg
   | UpdateLastName String
   | UpdateEmail String
   | ToggleIsAdult
+  | UpdateUserid String
+  | UpdatePassword String
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update action model =
@@ -119,17 +145,17 @@ update action model =
     GuessIdentity id ->
       ({model | flexId = id}, Cmd.none)
 
-    UpdateFirstName newVal ->
-      ({model | firstName = newVal }, Cmd.none)
+    UpdateFirstName newVal -> ({model | firstName = newVal }, Cmd.none)
 
-    UpdateLastName newVal ->
-      ({model | lastName = newVal }, Cmd.none)
+    UpdateLastName newVal -> ({model | lastName = newVal }, Cmd.none)
 
-    UpdateEmail newVal ->
-      ({model | email = newVal }, Cmd.none)
+    UpdateEmail newVal -> ({model | email = newVal }, Cmd.none)
 
-    ToggleIsAdult ->
-      ({model | isAdult = not model.isAdult }, Cmd.none)
+    ToggleIsAdult -> ({model | isAdult = not model.isAdult }, Cmd.none)
+
+    UpdateUserid newVal -> ({model | userid = newVal }, Cmd.none)
+
+    UpdatePassword newVal -> ({model | password = newVal }, Cmd.none)
 
 -----------------------------------------------------------------------------
 -- VIEW
@@ -147,6 +173,17 @@ sceneTextField : Model -> Int -> String -> String -> (String -> Msg) -> Html Msg
 sceneTextField model index hint value msger =
   Textfield.render Mdl [index] model.mdl
     [ Textfield.label hint
+    , Textfield.floatingLabel
+    , Textfield.value value
+    , Options.onInput msger
+    ]
+    (text "spam") -- What is this Html Msg argument?
+
+scenePasswordField : Model -> Int -> String -> String -> (String -> Msg) -> Html Msg
+scenePasswordField model index hint value msger =
+  Textfield.render Mdl [index] model.mdl
+    [ Textfield.label hint
+    , Textfield.password
     , Textfield.floatingLabel
     , Textfield.value value
     , Options.onInput msger
@@ -202,9 +239,12 @@ sceneView model inTitle inSubtitle extraContent buttonSpecs =
       , backButton model
       ]
 
+howDidYouHearChoices : Model -> Html Msg
+howDidYouHearChoices model =
+  text ""
+
 view : Model -> Html Msg
 view model =
-
   -- Default of "Welcome" elegantly guards against stack underflow, which should not occur.
   case Maybe.withDefault Welcome (List.head model.sceneStack) of
 
@@ -255,14 +295,20 @@ view model =
       sceneView model
         "Id & Password"
         "Please chooose a userid and password for your account:"
-        (text "")
+        ( div []
+            [ sceneTextField model 6 "Choose a userid" model.userid UpdateUserid
+            , vspace 0
+            , scenePasswordField model 7 "Choose a password" model.password UpdatePassword
+            , vspace 30
+            ]
+        )
         [ButtonSpec "OK" HowDidYouHear]
 
     HowDidYouHear ->
       sceneView model
         "Just Wondering"
         "How did you hear about us?"
-        (text "")
+        (howDidYouHearChoices model)
         [ButtonSpec "OK" Waiver]
 
     Waiver ->
