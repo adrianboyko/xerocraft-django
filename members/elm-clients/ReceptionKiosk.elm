@@ -4,8 +4,10 @@ import Html exposing (Html, Attribute, a, div, text, span, button, br, p, img)
 import Html.Attributes exposing (style, src)
 import Regex exposing (regex)
 
-import Material
+import Material.Textfield as Textfield
 import Material.Button as Button
+import Material.Toggles as Toggles
+import Material
 import Material.Options as Options exposing (css)
 
 -----------------------------------------------------------------------------
@@ -62,15 +64,24 @@ type alias Model =
   , bannerBottomUrl: String
   , sceneStack: List Scene  -- 1st element is the top of the stack
   , mdl: Material.Model
+  , flexId: String  -- Userid, surname, or email.
+  , firstName: String
+  , lastName: String
+  , email: String
+  , isAdult : Bool
   }
 
 init : Flags -> (Model, Cmd Msg)
 init f =
   let model =
-    Model f.csrfToken f.orgName f.bannerTopUrl f.bannerBottomUrl [Welcome] Material.model
+    Model f.csrfToken f.orgName f.bannerTopUrl f.bannerBottomUrl [Welcome] Material.model "" "" "" "" False
   in
     (model, Cmd.none)
 
+-- reset restores the model as it was after init.
+reset : Model -> (Model, Cmd Msg)
+reset m =
+    init (Flags m.csrfToken m.orgName m.bannerTopUrl m.bannerBottomUrl)
 
 -----------------------------------------------------------------------------
 -- UPDATE
@@ -80,6 +91,11 @@ type Msg
   = Mdl (Material.Msg Msg)  -- For elm-mdl
   | PushScene Scene
   | PopScene
+  | GuessIdentity String
+  | UpdateFirstName String
+  | UpdateLastName String
+  | UpdateEmail String
+  | ToggleIsAdult
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update action model =
@@ -90,7 +106,7 @@ update action model =
 
     PushScene Welcome ->
       -- Segue to "Welcome" is a special case since it re-initializes the scene stack.
-      ({model | sceneStack = [Welcome] }, Cmd.none)
+      reset model
 
     PushScene nextScene ->
       -- Push the new scene onto the scene stack.
@@ -99,6 +115,21 @@ update action model =
     PopScene ->
       -- Pop the top scene off the stack.
       ({model | sceneStack = Maybe.withDefault [Welcome] (List.tail model.sceneStack) }, Cmd.none)
+
+    GuessIdentity id ->
+      ({model | flexId = id}, Cmd.none)
+
+    UpdateFirstName newVal ->
+      ({model | firstName = newVal }, Cmd.none)
+
+    UpdateLastName newVal ->
+      ({model | lastName = newVal }, Cmd.none)
+
+    UpdateEmail newVal ->
+      ({model | email = newVal }, Cmd.none)
+
+    ToggleIsAdult ->
+      ({model | isAdult = not model.isAdult }, Cmd.none)
 
 -----------------------------------------------------------------------------
 -- VIEW
@@ -111,6 +142,28 @@ sceneButton model buttonSpec =
   Button.render Mdl [0] model.mdl
     ([ Button.raised, Options.onClick (PushScene buttonSpec.segue)]++viewButtonCss)
     [ text buttonSpec.title ]
+
+sceneTextField : Model -> Int -> String -> String -> (String -> Msg) -> Html Msg
+sceneTextField model index hint value msger =
+  Textfield.render Mdl [index] model.mdl
+    [ Textfield.label hint
+    , Textfield.floatingLabel
+    , Textfield.value value
+    , Options.onInput msger
+    ]
+    (text "spam") -- What is this Html Msg argument?
+
+sceneCheckbox : Model -> Int -> String -> Bool -> Msg -> Html Msg
+sceneCheckbox model index label value msger =
+  -- Toggle.checkbox doesn't seem to handle centering very well. The following div compensates for that.
+  div [style ["text-align"=>"left", "display"=>"inline-block", "width"=>"210px"]]
+    [ Toggles.checkbox Mdl [index] model.mdl
+        [ Options.onToggle msger
+        , Toggles.ripple
+        , Toggles.value value
+        ]
+        [ text label ]
+    ]
 
 backButton : Model -> Html Msg
 backButton model =
@@ -127,8 +180,12 @@ backButton model =
     else
       text ""
 
-sceneView: Model -> String -> String -> List ButtonSpec -> Html Msg
-sceneView model inTitle inSubtitle buttonSpecs =
+vspace : Int -> Html Msg
+vspace amount =
+  div [style ["height" => (toString amount ++ "px")]] []
+
+sceneView: Model -> String -> String -> Html Msg -> List ButtonSpec -> Html Msg
+sceneView model inTitle inSubtitle extraContent buttonSpecs =
   let
     title = replaceAll inTitle "ORGNAME" model.orgName
     subtitle = replaceAll inSubtitle "ORGNAME" model.orgName
@@ -138,6 +195,7 @@ sceneView model inTitle inSubtitle buttonSpecs =
         [ img [src model.bannerTopUrl, bannerTopStyle] []
         , p [sceneTitleStyle] [text title]
         , p [sceneSubtitleStyle] [text subtitle]
+        , extraContent
         , div [] (List.map (sceneButton model) buttonSpecs)
         , img [src model.bannerBottomUrl, bannerBottomStyle] []
         ]
@@ -154,14 +212,16 @@ view model =
       sceneView model
         "Welcome!"
         "Is this your first visit?"
-        [ ButtonSpec "Yes" HaveAcctQ
-        , ButtonSpec "No" CheckIn
+        (text "")
+        [ ButtonSpec "First Visit" HaveAcctQ
+        , ButtonSpec "Returning" CheckIn
         ]
 
     HaveAcctQ ->
       sceneView model
         "Great!"
         "Do you already have an account here or on our website?"
+        (text "")
         [ ButtonSpec "Yes" CheckIn
         , ButtonSpec "No" LetsCreate
         -- TODO: How about a "I don't know" button, here?
@@ -169,32 +229,47 @@ view model =
 
     CheckIn ->
       sceneView model
-        "Please Check In"
-        "Enter your userid or email address:"
-        [ButtonSpec "OK" Waiver]
+        "Let's Get You Checked-In!"
+        "Who are you?"
+        ( div [] [sceneTextField model 1 "Enter Userid or Surname or Email here" model.flexId GuessIdentity] )
+        []  -- No buttons
 
     LetsCreate ->
       sceneView model
-        "Let's Create One!"
+        "Let's Create an Account!"
         "Please tell us about yourself:"
+        ( div []
+            [ sceneTextField model 2 "Your first name" model.firstName UpdateFirstName
+            , vspace 0
+            , sceneTextField model 3 "Your last name" model.lastName UpdateLastName
+            , vspace 0
+            , sceneTextField model 4 "Your email address" model.email UpdateEmail
+            , vspace 30
+            , sceneCheckbox model 5 "Check if you are 18 or older!" model.isAdult ToggleIsAdult
+            , vspace 30
+            ]
+        )
         [ButtonSpec "OK" ChooseIdAndPw]
 
     ChooseIdAndPw ->
       sceneView model
         "Id & Password"
         "Please chooose a userid and password for your account:"
+        (text "")
         [ButtonSpec "OK" HowDidYouHear]
 
     HowDidYouHear ->
       sceneView model
         "Just Wondering"
         "How did you hear about us?"
+        (text "")
         [ButtonSpec "OK" Waiver]
 
     Waiver ->
       sceneView model
         "Waiver"
         "Please read the waiver and sign in the box."
+        (text "")
         -- TODO: How about a "Clear" choice here?
         [ButtonSpec "Accept" Rules]
 
@@ -202,24 +277,28 @@ view model =
       sceneView model
         "Rules"
         "Please read the rules and check the box to agree."
+        (text "")
         [ButtonSpec "I Agree" Activity]
 
     Activity ->
       sceneView model
         "Today's Activity?"
         "Let us know what you'll be doing:"
+        (text "")
         [ButtonSpec "OK" SupportUs]
 
     SupportUs ->
       sceneView model
         "Please Support Us!"
         "{TODO}"
+        (text "")
         [ButtonSpec "OK" Done]
 
     Done ->
       sceneView model
         "You're Checked In"
         "Have fun!"
+        (text "")
         [ButtonSpec "Yay!" Welcome]
 
 
@@ -246,7 +325,7 @@ navDivStyle = style
   , "text-align" => "center"
   , "margin-left" => "auto"
   , "margin-right" => "auto"
-  , "margin-top" => "10%"
+  , "margin-top" => "5%"
   , "width" => sceneWidth
   ]
 

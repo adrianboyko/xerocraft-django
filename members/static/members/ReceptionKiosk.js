@@ -15088,7 +15088,7 @@ var _user$project$ReceptionKiosk$navDivStyle = _elm_lang$html$Html_Attributes$st
 					_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-right', 'auto'),
 					_1: {
 						ctor: '::',
-						_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-top', '10%'),
+						_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-top', '5%'),
 						_1: {
 							ctor: '::',
 							_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'width', _user$project$ReceptionKiosk$sceneWidth),
@@ -15177,6 +15177,27 @@ var _user$project$ReceptionKiosk$subscriptions = function (model) {
 	return _elm_lang$core$Platform_Sub$batch(
 		{ctor: '[]'});
 };
+var _user$project$ReceptionKiosk$vspace = function (amount) {
+	return A2(
+		_elm_lang$html$Html$div,
+		{
+			ctor: '::',
+			_0: _elm_lang$html$Html_Attributes$style(
+				{
+					ctor: '::',
+					_0: A2(
+						_user$project$ReceptionKiosk_ops['=>'],
+						'height',
+						A2(
+							_elm_lang$core$Basics_ops['++'],
+							_elm_lang$core$Basics$toString(amount),
+							'px')),
+					_1: {ctor: '[]'}
+				}),
+			_1: {ctor: '[]'}
+		},
+		{ctor: '[]'});
+};
 var _user$project$ReceptionKiosk$replaceAll = F3(
 	function (theString, oldSub, newSub) {
 		return A4(
@@ -15192,10 +15213,29 @@ var _user$project$ReceptionKiosk$Flags = F4(
 	function (a, b, c, d) {
 		return {csrfToken: a, orgName: b, bannerTopUrl: c, bannerBottomUrl: d};
 	});
-var _user$project$ReceptionKiosk$Model = F6(
-	function (a, b, c, d, e, f) {
-		return {csrfToken: a, orgName: b, bannerTopUrl: c, bannerBottomUrl: d, sceneStack: e, mdl: f};
-	});
+var _user$project$ReceptionKiosk$Model = function (a) {
+	return function (b) {
+		return function (c) {
+			return function (d) {
+				return function (e) {
+					return function (f) {
+						return function (g) {
+							return function (h) {
+								return function (i) {
+									return function (j) {
+										return function (k) {
+											return {csrfToken: a, orgName: b, bannerTopUrl: c, bannerBottomUrl: d, sceneStack: e, mdl: f, flexId: g, firstName: h, lastName: i, email: j, isAdult: k};
+										};
+									};
+								};
+							};
+						};
+					};
+				};
+			};
+		};
+	};
+};
 var _user$project$ReceptionKiosk$ButtonSpec = F2(
 	function (a, b) {
 		return {title: a, segue: b};
@@ -15212,19 +15252,30 @@ var _user$project$ReceptionKiosk$CheckIn = {ctor: 'CheckIn'};
 var _user$project$ReceptionKiosk$HaveAcctQ = {ctor: 'HaveAcctQ'};
 var _user$project$ReceptionKiosk$Welcome = {ctor: 'Welcome'};
 var _user$project$ReceptionKiosk$init = function (f) {
-	var model = A6(
-		_user$project$ReceptionKiosk$Model,
-		f.csrfToken,
-		f.orgName,
-		f.bannerTopUrl,
-		f.bannerBottomUrl,
+	var model = _user$project$ReceptionKiosk$Model(f.csrfToken)(f.orgName)(f.bannerTopUrl)(f.bannerBottomUrl)(
 		{
 			ctor: '::',
 			_0: _user$project$ReceptionKiosk$Welcome,
 			_1: {ctor: '[]'}
-		},
-		_debois$elm_mdl$Material$model);
+		})(_debois$elm_mdl$Material$model)('')('')('')('')(false);
 	return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
+};
+var _user$project$ReceptionKiosk$reset = function (m) {
+	return _user$project$ReceptionKiosk$init(
+		A4(_user$project$ReceptionKiosk$Flags, m.csrfToken, m.orgName, m.bannerTopUrl, m.bannerBottomUrl));
+};
+var _user$project$ReceptionKiosk$ToggleIsAdult = {ctor: 'ToggleIsAdult'};
+var _user$project$ReceptionKiosk$UpdateEmail = function (a) {
+	return {ctor: 'UpdateEmail', _0: a};
+};
+var _user$project$ReceptionKiosk$UpdateLastName = function (a) {
+	return {ctor: 'UpdateLastName', _0: a};
+};
+var _user$project$ReceptionKiosk$UpdateFirstName = function (a) {
+	return {ctor: 'UpdateFirstName', _0: a};
+};
+var _user$project$ReceptionKiosk$GuessIdentity = function (a) {
+	return {ctor: 'GuessIdentity', _0: a};
 };
 var _user$project$ReceptionKiosk$PopScene = {ctor: 'PopScene'};
 var _user$project$ReceptionKiosk$PushScene = function (a) {
@@ -15241,19 +15292,7 @@ var _user$project$ReceptionKiosk$update = F2(
 				return A3(_debois$elm_mdl$Material$update, _user$project$ReceptionKiosk$Mdl, _p1._0, model);
 			case 'PushScene':
 				if (_p1._0.ctor === 'Welcome') {
-					return {
-						ctor: '_Tuple2',
-						_0: _elm_lang$core$Native_Utils.update(
-							model,
-							{
-								sceneStack: {
-									ctor: '::',
-									_0: _user$project$ReceptionKiosk$Welcome,
-									_1: {ctor: '[]'}
-								}
-							}),
-						_1: _elm_lang$core$Platform_Cmd$none
-					};
+					return _user$project$ReceptionKiosk$reset(model);
 				} else {
 					return {
 						ctor: '_Tuple2',
@@ -15265,7 +15304,7 @@ var _user$project$ReceptionKiosk$update = F2(
 						_1: _elm_lang$core$Platform_Cmd$none
 					};
 				}
-			default:
+			case 'PopScene':
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
@@ -15280,6 +15319,46 @@ var _user$project$ReceptionKiosk$update = F2(
 								},
 								_elm_lang$core$List$tail(model.sceneStack))
 						}),
+					_1: _elm_lang$core$Platform_Cmd$none
+				};
+			case 'GuessIdentity':
+				return {
+					ctor: '_Tuple2',
+					_0: _elm_lang$core$Native_Utils.update(
+						model,
+						{flexId: _p1._0}),
+					_1: _elm_lang$core$Platform_Cmd$none
+				};
+			case 'UpdateFirstName':
+				return {
+					ctor: '_Tuple2',
+					_0: _elm_lang$core$Native_Utils.update(
+						model,
+						{firstName: _p1._0}),
+					_1: _elm_lang$core$Platform_Cmd$none
+				};
+			case 'UpdateLastName':
+				return {
+					ctor: '_Tuple2',
+					_0: _elm_lang$core$Native_Utils.update(
+						model,
+						{lastName: _p1._0}),
+					_1: _elm_lang$core$Platform_Cmd$none
+				};
+			case 'UpdateEmail':
+				return {
+					ctor: '_Tuple2',
+					_0: _elm_lang$core$Native_Utils.update(
+						model,
+						{email: _p1._0}),
+					_1: _elm_lang$core$Platform_Cmd$none
+				};
+			default:
+				return {
+					ctor: '_Tuple2',
+					_0: _elm_lang$core$Native_Utils.update(
+						model,
+						{isAdult: !model.isAdult}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 		}
@@ -15311,6 +15390,90 @@ var _user$project$ReceptionKiosk$sceneButton = F2(
 			{
 				ctor: '::',
 				_0: _elm_lang$html$Html$text(buttonSpec.title),
+				_1: {ctor: '[]'}
+			});
+	});
+var _user$project$ReceptionKiosk$sceneTextField = F5(
+	function (model, index, hint, value, msger) {
+		return A5(
+			_debois$elm_mdl$Material_Textfield$render,
+			_user$project$ReceptionKiosk$Mdl,
+			{
+				ctor: '::',
+				_0: index,
+				_1: {ctor: '[]'}
+			},
+			model.mdl,
+			{
+				ctor: '::',
+				_0: _debois$elm_mdl$Material_Textfield$label(hint),
+				_1: {
+					ctor: '::',
+					_0: _debois$elm_mdl$Material_Textfield$floatingLabel,
+					_1: {
+						ctor: '::',
+						_0: _debois$elm_mdl$Material_Textfield$value(value),
+						_1: {
+							ctor: '::',
+							_0: _debois$elm_mdl$Material_Options$onInput(msger),
+							_1: {ctor: '[]'}
+						}
+					}
+				}
+			},
+			_elm_lang$html$Html$text('spam'));
+	});
+var _user$project$ReceptionKiosk$sceneCheckbox = F5(
+	function (model, index, label, value, msger) {
+		return A2(
+			_elm_lang$html$Html$div,
+			{
+				ctor: '::',
+				_0: _elm_lang$html$Html_Attributes$style(
+					{
+						ctor: '::',
+						_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'text-align', 'left'),
+						_1: {
+							ctor: '::',
+							_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'display', 'inline-block'),
+							_1: {
+								ctor: '::',
+								_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'width', '210px'),
+								_1: {ctor: '[]'}
+							}
+						}
+					}),
+				_1: {ctor: '[]'}
+			},
+			{
+				ctor: '::',
+				_0: A5(
+					_debois$elm_mdl$Material_Toggles$checkbox,
+					_user$project$ReceptionKiosk$Mdl,
+					{
+						ctor: '::',
+						_0: index,
+						_1: {ctor: '[]'}
+					},
+					model.mdl,
+					{
+						ctor: '::',
+						_0: _debois$elm_mdl$Material_Options$onToggle(msger),
+						_1: {
+							ctor: '::',
+							_0: _debois$elm_mdl$Material_Toggles$ripple,
+							_1: {
+								ctor: '::',
+								_0: _debois$elm_mdl$Material_Toggles$value(value),
+								_1: {ctor: '[]'}
+							}
+						}
+					},
+					{
+						ctor: '::',
+						_0: _elm_lang$html$Html$text(label),
+						_1: {ctor: '[]'}
+					}),
 				_1: {ctor: '[]'}
 			});
 	});
@@ -15381,8 +15544,8 @@ var _user$project$ReceptionKiosk$backButton = function (model) {
 			}
 		}) : _elm_lang$html$Html$text('');
 };
-var _user$project$ReceptionKiosk$sceneView = F4(
-	function (model, inTitle, inSubtitle, buttonSpecs) {
+var _user$project$ReceptionKiosk$sceneView = F5(
+	function (model, inTitle, inSubtitle, extraContent, buttonSpecs) {
 		var subtitle = A3(_user$project$ReceptionKiosk$replaceAll, inSubtitle, 'ORGNAME', model.orgName);
 		var title = A3(_user$project$ReceptionKiosk$replaceAll, inTitle, 'ORGNAME', model.orgName);
 		return A2(
@@ -15445,28 +15608,32 @@ var _user$project$ReceptionKiosk$sceneView = F4(
 									}),
 								_1: {
 									ctor: '::',
-									_0: A2(
-										_elm_lang$html$Html$div,
-										{ctor: '[]'},
-										A2(
-											_elm_lang$core$List$map,
-											_user$project$ReceptionKiosk$sceneButton(model),
-											buttonSpecs)),
+									_0: extraContent,
 									_1: {
 										ctor: '::',
 										_0: A2(
-											_elm_lang$html$Html$img,
-											{
-												ctor: '::',
-												_0: _elm_lang$html$Html_Attributes$src(model.bannerBottomUrl),
-												_1: {
+											_elm_lang$html$Html$div,
+											{ctor: '[]'},
+											A2(
+												_elm_lang$core$List$map,
+												_user$project$ReceptionKiosk$sceneButton(model),
+												buttonSpecs)),
+										_1: {
+											ctor: '::',
+											_0: A2(
+												_elm_lang$html$Html$img,
+												{
 													ctor: '::',
-													_0: _user$project$ReceptionKiosk$bannerBottomStyle,
-													_1: {ctor: '[]'}
-												}
-											},
-											{ctor: '[]'}),
-										_1: {ctor: '[]'}
+													_0: _elm_lang$html$Html_Attributes$src(model.bannerBottomUrl),
+													_1: {
+														ctor: '::',
+														_0: _user$project$ReceptionKiosk$bannerBottomStyle,
+														_1: {ctor: '[]'}
+													}
+												},
+												{ctor: '[]'}),
+											_1: {ctor: '[]'}
+										}
 									}
 								}
 							}
@@ -15486,26 +15653,28 @@ var _user$project$ReceptionKiosk$view = function (model) {
 		_elm_lang$core$List$head(model.sceneStack));
 	switch (_p2.ctor) {
 		case 'Welcome':
-			return A4(
+			return A5(
 				_user$project$ReceptionKiosk$sceneView,
 				model,
 				'Welcome!',
 				'Is this your first visit?',
+				_elm_lang$html$Html$text(''),
 				{
 					ctor: '::',
-					_0: A2(_user$project$ReceptionKiosk$ButtonSpec, 'Yes', _user$project$ReceptionKiosk$HaveAcctQ),
+					_0: A2(_user$project$ReceptionKiosk$ButtonSpec, 'First Visit', _user$project$ReceptionKiosk$HaveAcctQ),
 					_1: {
 						ctor: '::',
-						_0: A2(_user$project$ReceptionKiosk$ButtonSpec, 'No', _user$project$ReceptionKiosk$CheckIn),
+						_0: A2(_user$project$ReceptionKiosk$ButtonSpec, 'Returning', _user$project$ReceptionKiosk$CheckIn),
 						_1: {ctor: '[]'}
 					}
 				});
 		case 'HaveAcctQ':
-			return A4(
+			return A5(
 				_user$project$ReceptionKiosk$sceneView,
 				model,
 				'Great!',
 				'Do you already have an account here or on our website?',
+				_elm_lang$html$Html$text(''),
 				{
 					ctor: '::',
 					_0: A2(_user$project$ReceptionKiosk$ButtonSpec, 'Yes', _user$project$ReceptionKiosk$CheckIn),
@@ -15516,99 +15685,146 @@ var _user$project$ReceptionKiosk$view = function (model) {
 					}
 				});
 		case 'CheckIn':
-			return A4(
+			return A5(
 				_user$project$ReceptionKiosk$sceneView,
 				model,
-				'Please Check In',
-				'Enter your userid or email address:',
-				{
-					ctor: '::',
-					_0: A2(_user$project$ReceptionKiosk$ButtonSpec, 'OK', _user$project$ReceptionKiosk$Waiver),
-					_1: {ctor: '[]'}
-				});
+				'Let\'s Get You Checked-In!',
+				'Who are you?',
+				A2(
+					_elm_lang$html$Html$div,
+					{ctor: '[]'},
+					{
+						ctor: '::',
+						_0: A5(_user$project$ReceptionKiosk$sceneTextField, model, 1, 'Enter Userid or Surname or Email here', model.flexId, _user$project$ReceptionKiosk$GuessIdentity),
+						_1: {ctor: '[]'}
+					}),
+				{ctor: '[]'});
 		case 'LetsCreate':
-			return A4(
+			return A5(
 				_user$project$ReceptionKiosk$sceneView,
 				model,
-				'Let\'s Create One!',
+				'Let\'s Create an Account!',
 				'Please tell us about yourself:',
+				A2(
+					_elm_lang$html$Html$div,
+					{ctor: '[]'},
+					{
+						ctor: '::',
+						_0: A5(_user$project$ReceptionKiosk$sceneTextField, model, 2, 'Your first name', model.firstName, _user$project$ReceptionKiosk$UpdateFirstName),
+						_1: {
+							ctor: '::',
+							_0: _user$project$ReceptionKiosk$vspace(0),
+							_1: {
+								ctor: '::',
+								_0: A5(_user$project$ReceptionKiosk$sceneTextField, model, 3, 'Your last name', model.lastName, _user$project$ReceptionKiosk$UpdateLastName),
+								_1: {
+									ctor: '::',
+									_0: _user$project$ReceptionKiosk$vspace(0),
+									_1: {
+										ctor: '::',
+										_0: A5(_user$project$ReceptionKiosk$sceneTextField, model, 4, 'Your email address', model.email, _user$project$ReceptionKiosk$UpdateEmail),
+										_1: {
+											ctor: '::',
+											_0: _user$project$ReceptionKiosk$vspace(30),
+											_1: {
+												ctor: '::',
+												_0: A5(_user$project$ReceptionKiosk$sceneCheckbox, model, 5, 'Check if you are 18 or older!', model.isAdult, _user$project$ReceptionKiosk$ToggleIsAdult),
+												_1: {
+													ctor: '::',
+													_0: _user$project$ReceptionKiosk$vspace(30),
+													_1: {ctor: '[]'}
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					}),
 				{
 					ctor: '::',
 					_0: A2(_user$project$ReceptionKiosk$ButtonSpec, 'OK', _user$project$ReceptionKiosk$ChooseIdAndPw),
 					_1: {ctor: '[]'}
 				});
 		case 'ChooseIdAndPw':
-			return A4(
+			return A5(
 				_user$project$ReceptionKiosk$sceneView,
 				model,
 				'Id & Password',
 				'Please chooose a userid and password for your account:',
+				_elm_lang$html$Html$text(''),
 				{
 					ctor: '::',
 					_0: A2(_user$project$ReceptionKiosk$ButtonSpec, 'OK', _user$project$ReceptionKiosk$HowDidYouHear),
 					_1: {ctor: '[]'}
 				});
 		case 'HowDidYouHear':
-			return A4(
+			return A5(
 				_user$project$ReceptionKiosk$sceneView,
 				model,
 				'Just Wondering',
 				'How did you hear about us?',
+				_elm_lang$html$Html$text(''),
 				{
 					ctor: '::',
 					_0: A2(_user$project$ReceptionKiosk$ButtonSpec, 'OK', _user$project$ReceptionKiosk$Waiver),
 					_1: {ctor: '[]'}
 				});
 		case 'Waiver':
-			return A4(
+			return A5(
 				_user$project$ReceptionKiosk$sceneView,
 				model,
 				'Waiver',
 				'Please read the waiver and sign in the box.',
+				_elm_lang$html$Html$text(''),
 				{
 					ctor: '::',
 					_0: A2(_user$project$ReceptionKiosk$ButtonSpec, 'Accept', _user$project$ReceptionKiosk$Rules),
 					_1: {ctor: '[]'}
 				});
 		case 'Rules':
-			return A4(
+			return A5(
 				_user$project$ReceptionKiosk$sceneView,
 				model,
 				'Rules',
 				'Please read the rules and check the box to agree.',
+				_elm_lang$html$Html$text(''),
 				{
 					ctor: '::',
 					_0: A2(_user$project$ReceptionKiosk$ButtonSpec, 'I Agree', _user$project$ReceptionKiosk$Activity),
 					_1: {ctor: '[]'}
 				});
 		case 'Activity':
-			return A4(
+			return A5(
 				_user$project$ReceptionKiosk$sceneView,
 				model,
 				'Today\'s Activity?',
 				'Let us know what you\'ll be doing:',
+				_elm_lang$html$Html$text(''),
 				{
 					ctor: '::',
 					_0: A2(_user$project$ReceptionKiosk$ButtonSpec, 'OK', _user$project$ReceptionKiosk$SupportUs),
 					_1: {ctor: '[]'}
 				});
 		case 'SupportUs':
-			return A4(
+			return A5(
 				_user$project$ReceptionKiosk$sceneView,
 				model,
 				'Please Support Us!',
 				'{TODO}',
+				_elm_lang$html$Html$text(''),
 				{
 					ctor: '::',
 					_0: A2(_user$project$ReceptionKiosk$ButtonSpec, 'OK', _user$project$ReceptionKiosk$Done),
 					_1: {ctor: '[]'}
 				});
 		default:
-			return A4(
+			return A5(
 				_user$project$ReceptionKiosk$sceneView,
 				model,
 				'You\'re Checked In',
 				'Have fun!',
+				_elm_lang$html$Html$text(''),
 				{
 					ctor: '::',
 					_0: A2(_user$project$ReceptionKiosk$ButtonSpec, 'Yay!', _user$project$ReceptionKiosk$Welcome),
