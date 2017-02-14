@@ -57,15 +57,25 @@ type Scene
   | SupportUs
   | Done
 
---type alias Account =
---  { userid: String
---  , password: String
---  , memberNum: Maybe Int
---  , firstName: String
---  , lastName: String
---  , email: String
---  , isAdult: Bool
---  }
+type alias Account =
+  { userid: String
+  , password: String
+  , memberNum: Maybe Int
+  , firstName: String
+  , lastName: String
+  , email: String
+  , isAdult: Bool
+  }
+
+blankAccount : Account
+blankAccount = Account
+    ""
+    ""
+    Nothing
+    ""
+    ""
+    ""
+    False
 
 type alias Model =
   { csrfToken: String
@@ -75,12 +85,7 @@ type alias Model =
   , sceneStack: List Scene  -- 1st element is the top of the stack
   , mdl: Material.Model
   , flexId: String  -- Userid, surname, or email.
-  , firstName: String
-  , lastName: String
-  , email: String
-  , isAdult: Bool
-  , userid: String
-  , password: String
+  , visitor: Account
   }
 
 init : Flags -> (Model, Cmd Msg)
@@ -93,12 +98,7 @@ init f =
       [Welcome]
       Material.model
       ""
-      ""
-      ""
-      ""
-      False
-      ""
-      ""
+      blankAccount
   , Cmd.none
   )
 
@@ -115,7 +115,7 @@ type Msg
   = Mdl (Material.Msg Msg)  -- For elm-mdl
   | PushScene Scene
   | PopScene
-  | GuessIdentity String
+  | UpdateFlexId String
   | UpdateFirstName String
   | UpdateLastName String
   | UpdateEmail String
@@ -142,20 +142,33 @@ update action model =
       -- Pop the top scene off the stack.
       ({model | sceneStack = Maybe.withDefault [Welcome] (List.tail model.sceneStack) }, Cmd.none)
 
-    GuessIdentity id ->
+    UpdateFlexId id ->
       ({model | flexId = id}, Cmd.none)
 
-    UpdateFirstName newVal -> ({model | firstName = newVal }, Cmd.none)
+    UpdateFirstName newVal ->
+      let v = model.visitor  -- This is necessary because of a bug in PyCharm elm plugin.
+      in ({model | visitor = {v | firstName = newVal }}, Cmd.none)
 
-    UpdateLastName newVal -> ({model | lastName = newVal }, Cmd.none)
+    UpdateLastName newVal ->
+      let v = model.visitor  -- This is necessary because of a bug in PyCharm elm plugin.
+      in ({model | visitor = {v | lastName = newVal }}, Cmd.none)
 
-    UpdateEmail newVal -> ({model | email = newVal }, Cmd.none)
+    UpdateEmail newVal ->
+      let v = model.visitor  -- This is necessary because of a bug in PyCharm elm plugin.
+      in ({model | visitor = {v | email = newVal }}, Cmd.none)
 
-    ToggleIsAdult -> ({model | isAdult = not model.isAdult }, Cmd.none)
+    ToggleIsAdult ->
+      let v = model.visitor  -- This is necessary because of a bug in PyCharm elm plugin.
+      in ({model | visitor = {v | isAdult = not v.isAdult }}, Cmd.none)
 
-    UpdateUserid newVal -> ({model | userid = newVal }, Cmd.none)
+    UpdateUserid newVal ->
+      let v = model.visitor  -- This is necessary because of a bug in PyCharm elm plugin.
+      in ({model | visitor = {v | userid = newVal }}, Cmd.none)
 
-    UpdatePassword newVal -> ({model | password = newVal }, Cmd.none)
+    UpdatePassword newVal ->
+      let v = model.visitor  -- This is necessary because of a bug in PyCharm elm plugin.
+      in ({model | visitor = {v | password = newVal }}, Cmd.none)
+
 
 -----------------------------------------------------------------------------
 -- VIEW
@@ -271,7 +284,7 @@ view model =
       sceneView model
         "Let's Get You Checked-In!"
         "Who are you?"
-        ( div [] [sceneTextField model 1 "Enter Userid or Surname or Email here" model.flexId GuessIdentity] )
+        ( div [] [sceneTextField model 1 "Enter Userid or Surname or Email here" model.flexId UpdateFlexId] )
         []  -- No buttons
 
     LetsCreate ->
@@ -279,13 +292,13 @@ view model =
         "Let's Create an Account!"
         "Please tell us about yourself:"
         ( div []
-            [ sceneTextField model 2 "Your first name" model.firstName UpdateFirstName
+            [ sceneTextField model 2 "Your first name" model.visitor.firstName UpdateFirstName
             , vspace 0
-            , sceneTextField model 3 "Your last name" model.lastName UpdateLastName
+            , sceneTextField model 3 "Your last name" model.visitor.lastName UpdateLastName
             , vspace 0
-            , sceneTextField model 4 "Your email address" model.email UpdateEmail
+            , sceneTextField model 4 "Your email address" model.visitor.email UpdateEmail
             , vspace 30
-            , sceneCheckbox model 5 "Check if you are 18 or older!" model.isAdult ToggleIsAdult
+            , sceneCheckbox model 5 "Check if you are 18 or older!" model.visitor.isAdult ToggleIsAdult
             , vspace 30
             ]
         )
@@ -296,9 +309,9 @@ view model =
         "Id & Password"
         "Please chooose a userid and password for your account:"
         ( div []
-            [ sceneTextField model 6 "Choose a userid" model.userid UpdateUserid
+            [ sceneTextField model 6 "Choose a userid" model.visitor.userid UpdateUserid
             , vspace 0
-            , scenePasswordField model 7 "Choose a password" model.password UpdatePassword
+            , scenePasswordField model 7 "Choose a password" model.visitor.password UpdatePassword
             , vspace 30
             ]
         )

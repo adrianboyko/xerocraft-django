@@ -15216,33 +15216,15 @@ var _user$project$ReceptionKiosk$Flags = F4(
 	function (a, b, c, d) {
 		return {csrfToken: a, orgName: b, bannerTopUrl: c, bannerBottomUrl: d};
 	});
-var _user$project$ReceptionKiosk$Model = function (a) {
-	return function (b) {
-		return function (c) {
-			return function (d) {
-				return function (e) {
-					return function (f) {
-						return function (g) {
-							return function (h) {
-								return function (i) {
-									return function (j) {
-										return function (k) {
-											return function (l) {
-												return function (m) {
-													return {csrfToken: a, orgName: b, bannerTopUrl: c, bannerBottomUrl: d, sceneStack: e, mdl: f, flexId: g, firstName: h, lastName: i, email: j, isAdult: k, userid: l, password: m};
-												};
-											};
-										};
-									};
-								};
-							};
-						};
-					};
-				};
-			};
-		};
-	};
-};
+var _user$project$ReceptionKiosk$Account = F7(
+	function (a, b, c, d, e, f, g) {
+		return {userid: a, password: b, memberNum: c, firstName: d, lastName: e, email: f, isAdult: g};
+	});
+var _user$project$ReceptionKiosk$blankAccount = A7(_user$project$ReceptionKiosk$Account, '', '', _elm_lang$core$Maybe$Nothing, '', '', '', false);
+var _user$project$ReceptionKiosk$Model = F8(
+	function (a, b, c, d, e, f, g, h) {
+		return {csrfToken: a, orgName: b, bannerTopUrl: c, bannerBottomUrl: d, sceneStack: e, mdl: f, flexId: g, visitor: h};
+	});
 var _user$project$ReceptionKiosk$ButtonSpec = F2(
 	function (a, b) {
 		return {title: a, segue: b};
@@ -15261,12 +15243,20 @@ var _user$project$ReceptionKiosk$Welcome = {ctor: 'Welcome'};
 var _user$project$ReceptionKiosk$init = function (f) {
 	return {
 		ctor: '_Tuple2',
-		_0: _user$project$ReceptionKiosk$Model(f.csrfToken)(f.orgName)(f.bannerTopUrl)(f.bannerBottomUrl)(
+		_0: A8(
+			_user$project$ReceptionKiosk$Model,
+			f.csrfToken,
+			f.orgName,
+			f.bannerTopUrl,
+			f.bannerBottomUrl,
 			{
 				ctor: '::',
 				_0: _user$project$ReceptionKiosk$Welcome,
 				_1: {ctor: '[]'}
-			})(_debois$elm_mdl$Material$model)('')('')('')('')(false)('')(''),
+			},
+			_debois$elm_mdl$Material$model,
+			'',
+			_user$project$ReceptionKiosk$blankAccount),
 		_1: _elm_lang$core$Platform_Cmd$none
 	};
 };
@@ -15290,8 +15280,8 @@ var _user$project$ReceptionKiosk$UpdateLastName = function (a) {
 var _user$project$ReceptionKiosk$UpdateFirstName = function (a) {
 	return {ctor: 'UpdateFirstName', _0: a};
 };
-var _user$project$ReceptionKiosk$GuessIdentity = function (a) {
-	return {ctor: 'GuessIdentity', _0: a};
+var _user$project$ReceptionKiosk$UpdateFlexId = function (a) {
+	return {ctor: 'UpdateFlexId', _0: a};
 };
 var _user$project$ReceptionKiosk$PopScene = {ctor: 'PopScene'};
 var _user$project$ReceptionKiosk$PushScene = function (a) {
@@ -15337,7 +15327,7 @@ var _user$project$ReceptionKiosk$update = F2(
 						}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
-			case 'GuessIdentity':
+			case 'UpdateFlexId':
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
@@ -15346,51 +15336,81 @@ var _user$project$ReceptionKiosk$update = F2(
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 			case 'UpdateFirstName':
+				var v = model.visitor;
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
 						model,
-						{firstName: _p1._0}),
+						{
+							visitor: _elm_lang$core$Native_Utils.update(
+								v,
+								{firstName: _p1._0})
+						}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 			case 'UpdateLastName':
+				var v = model.visitor;
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
 						model,
-						{lastName: _p1._0}),
+						{
+							visitor: _elm_lang$core$Native_Utils.update(
+								v,
+								{lastName: _p1._0})
+						}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 			case 'UpdateEmail':
+				var v = model.visitor;
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
 						model,
-						{email: _p1._0}),
+						{
+							visitor: _elm_lang$core$Native_Utils.update(
+								v,
+								{email: _p1._0})
+						}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 			case 'ToggleIsAdult':
+				var v = model.visitor;
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
 						model,
-						{isAdult: !model.isAdult}),
+						{
+							visitor: _elm_lang$core$Native_Utils.update(
+								v,
+								{isAdult: !v.isAdult})
+						}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 			case 'UpdateUserid':
+				var v = model.visitor;
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
 						model,
-						{userid: _p1._0}),
+						{
+							visitor: _elm_lang$core$Native_Utils.update(
+								v,
+								{userid: _p1._0})
+						}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 			default:
+				var v = model.visitor;
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
 						model,
-						{password: _p1._0}),
+						{
+							visitor: _elm_lang$core$Native_Utils.update(
+								v,
+								{password: _p1._0})
+						}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 		}
@@ -15761,7 +15781,7 @@ var _user$project$ReceptionKiosk$view = function (model) {
 					{ctor: '[]'},
 					{
 						ctor: '::',
-						_0: A5(_user$project$ReceptionKiosk$sceneTextField, model, 1, 'Enter Userid or Surname or Email here', model.flexId, _user$project$ReceptionKiosk$GuessIdentity),
+						_0: A5(_user$project$ReceptionKiosk$sceneTextField, model, 1, 'Enter Userid or Surname or Email here', model.flexId, _user$project$ReceptionKiosk$UpdateFlexId),
 						_1: {ctor: '[]'}
 					}),
 				{ctor: '[]'});
@@ -15776,25 +15796,25 @@ var _user$project$ReceptionKiosk$view = function (model) {
 					{ctor: '[]'},
 					{
 						ctor: '::',
-						_0: A5(_user$project$ReceptionKiosk$sceneTextField, model, 2, 'Your first name', model.firstName, _user$project$ReceptionKiosk$UpdateFirstName),
+						_0: A5(_user$project$ReceptionKiosk$sceneTextField, model, 2, 'Your first name', model.visitor.firstName, _user$project$ReceptionKiosk$UpdateFirstName),
 						_1: {
 							ctor: '::',
 							_0: _user$project$ReceptionKiosk$vspace(0),
 							_1: {
 								ctor: '::',
-								_0: A5(_user$project$ReceptionKiosk$sceneTextField, model, 3, 'Your last name', model.lastName, _user$project$ReceptionKiosk$UpdateLastName),
+								_0: A5(_user$project$ReceptionKiosk$sceneTextField, model, 3, 'Your last name', model.visitor.lastName, _user$project$ReceptionKiosk$UpdateLastName),
 								_1: {
 									ctor: '::',
 									_0: _user$project$ReceptionKiosk$vspace(0),
 									_1: {
 										ctor: '::',
-										_0: A5(_user$project$ReceptionKiosk$sceneTextField, model, 4, 'Your email address', model.email, _user$project$ReceptionKiosk$UpdateEmail),
+										_0: A5(_user$project$ReceptionKiosk$sceneTextField, model, 4, 'Your email address', model.visitor.email, _user$project$ReceptionKiosk$UpdateEmail),
 										_1: {
 											ctor: '::',
 											_0: _user$project$ReceptionKiosk$vspace(30),
 											_1: {
 												ctor: '::',
-												_0: A5(_user$project$ReceptionKiosk$sceneCheckbox, model, 5, 'Check if you are 18 or older!', model.isAdult, _user$project$ReceptionKiosk$ToggleIsAdult),
+												_0: A5(_user$project$ReceptionKiosk$sceneCheckbox, model, 5, 'Check if you are 18 or older!', model.visitor.isAdult, _user$project$ReceptionKiosk$ToggleIsAdult),
 												_1: {
 													ctor: '::',
 													_0: _user$project$ReceptionKiosk$vspace(30),
@@ -15823,13 +15843,13 @@ var _user$project$ReceptionKiosk$view = function (model) {
 					{ctor: '[]'},
 					{
 						ctor: '::',
-						_0: A5(_user$project$ReceptionKiosk$sceneTextField, model, 6, 'Choose a userid', model.userid, _user$project$ReceptionKiosk$UpdateUserid),
+						_0: A5(_user$project$ReceptionKiosk$sceneTextField, model, 6, 'Choose a userid', model.visitor.userid, _user$project$ReceptionKiosk$UpdateUserid),
 						_1: {
 							ctor: '::',
 							_0: _user$project$ReceptionKiosk$vspace(0),
 							_1: {
 								ctor: '::',
-								_0: A5(_user$project$ReceptionKiosk$scenePasswordField, model, 7, 'Choose a password', model.password, _user$project$ReceptionKiosk$UpdatePassword),
+								_0: A5(_user$project$ReceptionKiosk$scenePasswordField, model, 7, 'Choose a password', model.visitor.password, _user$project$ReceptionKiosk$UpdatePassword),
 								_1: {
 									ctor: '::',
 									_0: _user$project$ReceptionKiosk$vspace(30),
