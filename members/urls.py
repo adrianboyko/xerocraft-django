@@ -29,7 +29,8 @@ urlpatterns = [
     url(r'^kiosk/member-details/(?P<member_card_str>[-_a-zA-Z0-9]{32})_(?P<staff_card_str>[-_a-zA-Z0-9]{32})/(?P<tag_pk>[0-9]+)/', views.kiosk_add_tag),
 
     # For reception kiosk (check-in, sign-up, etc):
-    url(r'^reception/$', views.reception_kiosk_spa),
+    url(r'^reception/$', views.reception_kiosk_spa, name="reception-kiosk"),
+    url(r'^reception/matching-accts/(?P<flexid>[-_a-zA-Z0-9]{1,32})/$', views.reception_kiosk_matching_accts, name="reception-kiosk-matching-accts"),
 
     # For mobile apps:
     url(r'^api/member-details/(?P<member_card_str>[-_a-zA-Z0-9]{32})_(?P<staff_card_str>[-_a-zA-Z0-9]{32})/$', views.api_member_details, name="api-member-details"),

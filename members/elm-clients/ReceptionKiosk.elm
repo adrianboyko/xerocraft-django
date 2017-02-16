@@ -3,12 +3,18 @@ module ReceptionKiosk exposing (..)
 import Html exposing (Html, Attribute, a, div, text, span, button, br, p, img)
 import Html.Attributes exposing (style, src)
 import Regex exposing (regex)
+import Http
+import Task
+import Json.Decode as Dec
+import Json.Encode as Enc
 
 import Material.Textfield as Textfield
 import Material.Button as Button
 import Material.Toggles as Toggles
+import Material.Chip as Chip
 import Material
 import Material.Options as Options exposing (css)
+
 
 -----------------------------------------------------------------------------
 -- MAIN
@@ -49,7 +55,7 @@ type Scene
   | HaveAcctQ
   | CheckIn
   | LetsCreate
-  | ChooseIdAndPw
+  | ChooseUserNameAndPw
   | HowDidYouHear
   | Waiver
   | Rules
@@ -57,8 +63,8 @@ type Scene
   | SupportUs
   | Done
 
-type alias Account =
-  { userid: String
+type alias Acct =
+  { userName: String
   , password: String
   , memberNum: Maybe Int
   , firstName: String
@@ -67,8 +73,18 @@ type alias Account =
   , isAdult: Bool
   }
 
-blankAccount : Account
-blankAccount = Account
+type alias MatchingAcct =
+  { userName: String
+  , memberNum: Int
+  }
+
+type alias MatchingAcctInfo =
+  { target: String
+  , matches: List MatchingAcct
+  }
+
+blankAcct : Acct
+blankAcct = Acct
     ""
     ""
     Nothing
@@ -84,8 +100,10 @@ type alias Model =
   , bannerBottomUrl: String
   , sceneStack: List Scene  -- 1st element is the top of the stack
   , mdl: Material.Model
-  , flexId: String  -- Userid, surname, or email.
-  , visitor: Account
+  , flexId: String  -- UserName, surname, or email.
+  , visitor: Acct
+  , matches: List MatchingAcct
+  , error: Maybe String
   }
 
 init : Flags -> (Model, Cmd Msg)
@@ -98,7 +116,9 @@ init f =
       [Welcome]
       Material.model
       ""
-      blankAccount
+      blankAcct
+      []
+      Nothing
   , Cmd.none
   )
 
@@ -120,8 +140,14 @@ type Msg
   | UpdateLastName String
   | UpdateEmail String
   | ToggleIsAdult
-  | UpdateUserid String
+  | UpdateUserName String
   | UpdatePassword String
+  | UpdateMatchingAccts (Result Http.Error MatchingAcctInfo)
+  | LogCheckIn Int
+
+findMatchingAccts : Model -> String -> Html Msg
+findMatchingAccts model flexId =
+    div [] []
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update action model =
@@ -143,7 +169,17 @@ update action model =
       ({model | sceneStack = Maybe.withDefault [Welcome] (List.tail model.sceneStack) }, Cmd.none)
 
     UpdateFlexId id ->
-      ({model | flexId = id}, Cmd.none)
+      if (String.length id) > 1
+      then
+        let
+          url = "/members/reception/matching-accts/"++id++"/"  -- TODO: Django-ize the id.
+          request = Http.get url decodeMatchingAcctInfo
+          cmd = Http.send UpdateMatchingAccts request
+        in
+          ({model | flexId = id}, cmd)
+      else
+        ({model | matches = [], flexId = id}, Cmd.none )
+
 
     UpdateFirstName newVal ->
       let v = model.visitor  -- This is necessary because of a bug in PyCharm elm plugin.
@@ -161,14 +197,24 @@ update action model =
       let v = model.visitor  -- This is necessary because of a bug in PyCharm elm plugin.
       in ({model | visitor = {v | isAdult = not v.isAdult }}, Cmd.none)
 
-    UpdateUserid newVal ->
+    UpdateUserName newVal ->
       let v = model.visitor  -- This is necessary because of a bug in PyCharm elm plugin.
-      in ({model | visitor = {v | userid = newVal }}, Cmd.none)
+      in ({model | visitor = {v | userName = newVal }}, Cmd.none)
 
     UpdatePassword newVal ->
       let v = model.visitor  -- This is necessary because of a bug in PyCharm elm plugin.
       in ({model | visitor = {v | password = newVal }}, Cmd.none)
 
+    UpdateMatchingAccts (Ok {target, matches}) ->
+      if target == model.flexId
+      then ({model | matches = matches, error = Nothing}, Cmd.none)
+      else (model, Cmd.none)
+
+    UpdateMatchingAccts (Err error) ->
+      ({model | error = Just (toString error)}, Cmd.none)
+
+    LogCheckIn memberNum ->
+      (model, Cmd.none)
 
 -----------------------------------------------------------------------------
 -- VIEW
@@ -189,6 +235,7 @@ sceneTextField model index hint value msger =
     , Textfield.floatingLabel
     , Textfield.value value
     , Options.onInput msger
+    , css "width" "500px"
     ]
     (text "spam") -- What is this Html Msg argument?
 
@@ -206,20 +253,20 @@ scenePasswordField model index hint value msger =
 sceneCheckbox : Model -> Int -> String -> Bool -> Msg -> Html Msg
 sceneCheckbox model index label value msger =
   -- Toggle.checkbox doesn't seem to handle centering very well. The following div compensates for that.
-  div [style ["text-align"=>"left", "display"=>"inline-block", "width"=>"210px"]]
+  div [style ["text-align"=>"left", "display"=>"inline-block", "width"=>"400px"]]
     [ Toggles.checkbox Mdl [index] model.mdl
         [ Options.onToggle msger
         , Toggles.ripple
         , Toggles.value value
         ]
-        [ text label ]
+        [span [style ["font-size"=>"24pt"]] [ text label ]]
     ]
 
-backButton : Model -> Html Msg
-backButton model =
+navButtons : Model -> Html Msg
+navButtons model =
   if List.length model.sceneStack > 1
   then
-    div []
+    div [navDivStyle]
       [ Button.render Mdl [0] model.mdl
           ([Button.flat, Options.onClick PopScene]++navButtonCss)
           [text "Back"]
@@ -240,17 +287,26 @@ sceneView model inTitle inSubtitle extraContent buttonSpecs =
     title = replaceAll inTitle "ORGNAME" model.orgName
     subtitle = replaceAll inSubtitle "ORGNAME" model.orgName
   in
-    div [navDivStyle]
-      [ div [sceneDivStyle]
-        [ img [src model.bannerTopUrl, bannerTopStyle] []
-        , p [sceneTitleStyle] [text title]
-        , p [sceneSubtitleStyle] [text subtitle]
-        , extraContent
-        , div [] (List.map (sceneButton model) buttonSpecs)
-        , img [src model.bannerBottomUrl, bannerBottomStyle] []
-        ]
-      , backButton model
+    canvasView model
+      [ p [sceneTitleStyle] [text title]
+      , p [sceneSubtitleStyle] [text subtitle]
+      , extraContent
+      , vspace 50
+      , div [] (List.map (sceneButton model) buttonSpecs)
+      , navButtons model
+      , case model.error of
+          Just err -> text err
+          Nothing -> text ""
       ]
+
+canvasView: Model -> List (Html Msg) -> Html Msg
+canvasView model scene =
+  div [canvasDivStyle]
+    [ img [src model.bannerTopUrl, bannerTopStyle] []
+    , div [sceneDivStyle] scene
+--    , navButtons model
+    , img [src model.bannerBottomUrl, bannerBottomStyle] []
+    ]
 
 howDidYouHearChoices : Model -> Html Msg
 howDidYouHearChoices model =
@@ -284,7 +340,13 @@ view model =
       sceneView model
         "Let's Get You Checked-In!"
         "Who are you?"
-        ( div [] [sceneTextField model 1 "Enter Userid or Surname or Email here" model.flexId UpdateFlexId] )
+        ( div []
+            (List.concat
+              [ [sceneTextField model 1 "Your Username or Surname" model.flexId UpdateFlexId, vspace 0]
+              , List.map (\acct -> Chip.button [Options.onClick (LogCheckIn acct.memberNum)] [ Chip.content [] [ text acct.userName]]) model.matches
+              ]
+            )
+        )
         []  -- No buttons
 
     LetsCreate ->
@@ -299,20 +361,18 @@ view model =
             , sceneTextField model 4 "Your email address" model.visitor.email UpdateEmail
             , vspace 30
             , sceneCheckbox model 5 "Check if you are 18 or older!" model.visitor.isAdult ToggleIsAdult
-            , vspace 30
             ]
         )
-        [ButtonSpec "OK" ChooseIdAndPw]
+        [ButtonSpec "OK" ChooseUserNameAndPw]
 
-    ChooseIdAndPw ->
+    ChooseUserNameAndPw ->
       sceneView model
         "Id & Password"
-        "Please chooose a userid and password for your account:"
+        "Please chooose a user name and password for your account:"
         ( div []
-            [ sceneTextField model 6 "Choose a userid" model.visitor.userid UpdateUserid
+            [ sceneTextField model 6 "Choose a user name" model.visitor.userName UpdateUserName
             , vspace 0
             , scenePasswordField model 7 "Choose a password" model.visitor.password UpdatePassword
-            , vspace 30
             ]
         )
         [ButtonSpec "OK" HowDidYouHear]
@@ -371,52 +431,94 @@ subscriptions model =
     [
     ]
 
+
+-----------------------------------------------------------------------------
+-- JSON
+-----------------------------------------------------------------------------
+
+decodeMatchingAcct : Dec.Decoder MatchingAcct
+decodeMatchingAcct =
+  Dec.map2 MatchingAcct
+    (Dec.field "userName" Dec.string)
+    (Dec.field "memberNum" Dec.int)
+
+decodeMatchingAcctInfo : Dec.Decoder MatchingAcctInfo
+decodeMatchingAcctInfo =
+  Dec.map2 MatchingAcctInfo
+    (Dec.field "target" Dec.string)
+    (Dec.field "matches" (Dec.list decodeMatchingAcct))
+
+
 -----------------------------------------------------------------------------
 -- STYLES
 -----------------------------------------------------------------------------
 
 (=>) = (,)
 
-sceneWidth = "640px"
+-- The reception kiosk is being designed to run full-screen on Motorola Xooms.
+-- These have resolution 1280 x 800 at about 150ppi.
+-- When testing on desktop, the scene should be about 13.6cm wide.
 
-navDivStyle = style
+sceneWidth = "800px"
+sceneHeight = "1280px"
+topBannerHeight = "155px"
+bottomBannerHeight = "84px"
+
+canvasDivStyle = style
   [ "font-family" => "Roboto Condensed, Arial, Helvetica"
   , "text-align" => "center"
-  , "margin-left" => "auto"
-  , "margin-right" => "auto"
-  , "margin-top" => "5%"
-  , "width" => sceneWidth
+  , "padding-left" => "0"
+  , "padding-right" => "0"
+  , "padding-top" => topBannerHeight
+  , "padding-bottom" => bottomBannerHeight
+  , "position" => "absolute"
+  , "top" => "0"
+  , "bottom" => "0"
+  , "left" => "0"
+  , "right" => "0"
   ]
 
 sceneDivStyle = style
-  [ "border" => "1px solid #bbbbbb"
+  [ "margin-left" => "auto"
+  , "margin-right" => "auto"
+  , "border" => "1px solid #bbbbbb"
   , "background-color" => "white"
-  , "padding" => "0px"
+  , "width" => sceneWidth
+  , "min-height" => "99.8%"
   ]
 
 sceneTitleStyle = style
-  [ "font-size" => "22pt"
+  [ "font-size" => "32pt"
   , "margin-left" => "auto"
   , "margin-right" => "auto"
-  , "margin-top" => "50px"
-  , "margin-bottom" => "0.25em"
+  , "margin-top" => "2em"
+  , "margin-bottom" => "0.5em"
   ]
 
 sceneSubtitleStyle = style
-  [ "font-size" => "16pt"
+  [ "font-size" => "24pt"
   , "margin-left" => "auto"
   , "margin-right" => "auto"
+  , "margin-bottom" => "1em"
   , "margin-top" => "0"
   ]
 
 bannerTopStyle = style
-  [ "width" => sceneWidth
-  , "margin" => "0"
+  [ "display" => "block"
+  , "margin-top" => ("-"++topBannerHeight)
+  , "margin-left" => "auto"
+  , "margin-right" => "auto"
+  , "height" => topBannerHeight
+  , "width" => sceneWidth
   ]
 
 bannerBottomStyle = style
-  [ "width" => sceneWidth
-  , "margin-top" => "50px"
+  [ "display" => "block"
+  , "margin-bottom" => ("-"++bottomBannerHeight)
+  , "margin-left" => "auto"
+  , "margin-right" => "auto"
+  , "height" => bottomBannerHeight
+  , "width" => sceneWidth
   ]
 
 viewButtonCss =
@@ -426,12 +528,25 @@ viewButtonCss =
   , css "padding-bottom" "55px"
   , css "padding-left" "30px"
   , css "padding-right" "30px"
-  , css "font-size" "14pt"
+  , css "font-size" "18pt"
+  ]
+
+navDivStyle = style
+  [ "display" => "block"
+  , "margin-left" => "auto"
+  , "margin-right" => "auto"
+  , "width" => sceneWidth
   ]
 
 navButtonCss =
-  [ css "margin-left" "5px"
-  , css "margin-right" "5px"
-  , css "margin-top" "20px"
-  , css "font-size" "9pt"
+  [ css "margin-left" "120px"
+  , css "margin-right" "120px"
+  , css "margin-top" "100px"
+  , css "font-size" "14pt"
+  , css "font-color" "#dddddd"
+  ]
+
+sceneChipCss =
+  [ css "margin-left" "3px"
+  , css "margin-right" "3px"
   ]

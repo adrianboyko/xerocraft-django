@@ -18,11 +18,21 @@
     <script src="/static/members/js.cookie.js"></script>
 
     <style>
-        .mdl-textfield__input { text-align: center; font-size:18pt; }
-        .mdl-textfield__label { text-align: center; font-size:12pt; }
+
+        body { margin:0; padding:0; background-color:#f8f8f8; overflow-y: hidden; }
+        .mdl-textfield__input { text-align: center; font-size:24pt; }
+        .mdl-textfield__label { text-align: center; font-size:24pt; }
+
+        .mdl-textfield--floating-label.is-dirty .mdl-textfield__label,
+        .mdl-textfield--floating-label.is-focused .mdl-textfield__label {
+            text-align: center; font-size:16pt;
+        }
+
+        .mdl-chip { margin: 5px; padding: 20px; font-size:16pt; }
+
     </style>
 </head>
-<body style="margin:0; background-color: #f8f8f8">
+<body>
     <div id="myContainer"></div>
     <script src="{% static 'members/ReceptionKiosk.js' %}"></script>
     <script>
@@ -30,8 +40,8 @@
         var flags = {
             "csrfToken": csrfToken,
             "orgName": "{{ org_name }}",
-            "bannerTopUrl": "{% static 'xerops/GenericBannerTop.png' %}",
-            "bannerBottomUrl": "{% static 'xerops/GenericBannerBottom.png' %}",
+            "bannerTopUrl": "{% static 'xerops/GenericBannerTop_800x155.png' %}",
+            "bannerBottomUrl": "{% static 'xerops/GenericBannerBottom_800x84.png' %}",
         };
         var myContainer = document.getElementById("myContainer");
         var app = Elm.ReceptionKiosk.embed(myContainer, flags);

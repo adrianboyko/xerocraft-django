@@ -14884,6 +14884,254 @@ var _debois$elm_mdl$Material$Model = F8(
 		return {button: a, textfield: b, menu: c, snackbar: d, layout: e, toggles: f, tooltip: g, tabs: h};
 	});
 
+var _debois$elm_mdl$Material_Chip$hasValue = function (m) {
+	var _p0 = m;
+	if (_p0.ctor === 'Just') {
+		return true;
+	} else {
+		return false;
+	}
+};
+var _debois$elm_mdl$Material_Chip$renderItem = function (item) {
+	var _p1 = item;
+	switch (_p1.ctor) {
+		case 'Contact':
+			return A3(
+				_debois$elm_mdl$Material_Options$styled,
+				_p1._0,
+				{
+					ctor: '::',
+					_0: _debois$elm_mdl$Material_Options$cs('mdl-chip__contact'),
+					_1: _p1._1
+				},
+				_p1._2);
+		case 'Text':
+			return A3(
+				_debois$elm_mdl$Material_Options$styled,
+				_elm_lang$html$Html$span,
+				{
+					ctor: '::',
+					_0: _debois$elm_mdl$Material_Options$cs('mdl-chip__text'),
+					_1: _p1._0
+				},
+				_p1._1);
+		default:
+			return A3(
+				_debois$elm_mdl$Material_Options$styled,
+				_p1._0,
+				{
+					ctor: '::',
+					_0: _debois$elm_mdl$Material_Options$cs('mdl-chip__action'),
+					_1: _p1._1
+				},
+				_p1._2);
+	}
+};
+var _debois$elm_mdl$Material_Chip$priority = function (item) {
+	var _p2 = item;
+	switch (_p2.ctor) {
+		case 'Contact':
+			return 0;
+		case 'Text':
+			return 1;
+		default:
+			return 2;
+	}
+};
+var _debois$elm_mdl$Material_Chip$deleteClick = function (msg) {
+	return A3(
+		_debois$elm_mdl$Material_Options$onWithOptions,
+		'click',
+		{stopPropagation: true, preventDefault: true},
+		_elm_lang$core$Json_Decode$succeed(msg));
+};
+var _debois$elm_mdl$Material_Chip$deleteLink = function (_p3) {
+	return _debois$elm_mdl$Material_Options_Internal$option(
+		F2(
+			function (link, config) {
+				return _elm_lang$core$Native_Utils.update(
+					config,
+					{
+						deleteLink: _elm_lang$core$Maybe$Just(
+							_elm_lang$html$Html_Attributes$href(link))
+					});
+			})(_p3));
+};
+var _debois$elm_mdl$Material_Chip$deleteIcon = function (_p4) {
+	return _debois$elm_mdl$Material_Options_Internal$option(
+		F2(
+			function (icon, config) {
+				return _elm_lang$core$Native_Utils.update(
+					config,
+					{
+						deleteIcon: _elm_lang$core$Maybe$Just(icon)
+					});
+			})(_p4));
+};
+var _debois$elm_mdl$Material_Chip$defaultConfig = {deleteIcon: _elm_lang$core$Maybe$Nothing, deleteLink: _elm_lang$core$Maybe$Nothing, deleteClick: _elm_lang$core$Maybe$Nothing};
+var _debois$elm_mdl$Material_Chip$Config = F3(
+	function (a, b, c) {
+		return {deleteIcon: a, deleteLink: b, deleteClick: c};
+	});
+var _debois$elm_mdl$Material_Chip$Action = F3(
+	function (a, b, c) {
+		return {ctor: 'Action', _0: a, _1: b, _2: c};
+	});
+var _debois$elm_mdl$Material_Chip$action = _debois$elm_mdl$Material_Chip$Action;
+var _debois$elm_mdl$Material_Chip$getActionElement = function (config) {
+	var click = function () {
+		var _p5 = config.deleteClick;
+		if (_p5.ctor === 'Just') {
+			return _debois$elm_mdl$Material_Options_Internal$attribute(_p5._0);
+		} else {
+			return _debois$elm_mdl$Material_Options$nop;
+		}
+	}();
+	var link = function () {
+		var _p6 = config.deleteLink;
+		if (_p6.ctor === 'Just') {
+			return _debois$elm_mdl$Material_Options_Internal$attribute(_p6._0);
+		} else {
+			return _debois$elm_mdl$Material_Options$nop;
+		}
+	}();
+	var hasClick = _debois$elm_mdl$Material_Chip$hasValue(config.deleteClick);
+	var hasLink = _debois$elm_mdl$Material_Chip$hasValue(config.deleteLink);
+	var actionElement = hasLink ? _elm_lang$html$Html$a : _elm_lang$html$Html$span;
+	var hasIcon = _debois$elm_mdl$Material_Chip$hasValue(config.deleteIcon);
+	var icon = hasIcon ? A2(_elm_lang$core$Maybe$withDefault, '', config.deleteIcon) : ((hasLink || hasClick) ? A2(_elm_lang$core$Maybe$withDefault, 'cancel', config.deleteIcon) : '');
+	var isDeletable = hasIcon || (hasLink || hasClick);
+	return isDeletable ? _elm_lang$core$Maybe$Just(
+		A3(
+			_debois$elm_mdl$Material_Chip$action,
+			actionElement,
+			{
+				ctor: '::',
+				_0: link,
+				_1: {
+					ctor: '::',
+					_0: click,
+					_1: {ctor: '[]'}
+				}
+			},
+			{
+				ctor: '::',
+				_0: A2(
+					_debois$elm_mdl$Material_Icon$view,
+					icon,
+					{ctor: '[]'}),
+				_1: {ctor: '[]'}
+			})) : _elm_lang$core$Maybe$Nothing;
+};
+var _debois$elm_mdl$Material_Chip$chip = F3(
+	function (element, props, items) {
+		var isContact = A2(
+			_elm_lang$core$List$any,
+			function (x) {
+				return _elm_lang$core$Native_Utils.eq(
+					_debois$elm_mdl$Material_Chip$priority(x),
+					0);
+			},
+			items);
+		var summary = A2(_debois$elm_mdl$Material_Options_Internal$collect, _debois$elm_mdl$Material_Chip$defaultConfig, props);
+		var config = summary.config;
+		var action = _debois$elm_mdl$Material_Chip$getActionElement(config);
+		var isDeletable = _debois$elm_mdl$Material_Chip$hasValue(action);
+		var withIcon = A2(
+			_elm_lang$core$Basics_ops['++'],
+			function () {
+				var _p7 = action;
+				if (_p7.ctor === 'Just') {
+					return {
+						ctor: '::',
+						_0: _p7._0,
+						_1: {ctor: '[]'}
+					};
+				} else {
+					return {ctor: '[]'};
+				}
+			}(),
+			items);
+		var content = A2(
+			_elm_lang$core$List$map,
+			_debois$elm_mdl$Material_Chip$renderItem,
+			A2(_elm_lang$core$List$sortBy, _debois$elm_mdl$Material_Chip$priority, withIcon));
+		return A3(
+			_debois$elm_mdl$Material_Options$styled,
+			element,
+			A2(
+				_elm_lang$core$Basics_ops['++'],
+				{
+					ctor: '::',
+					_0: _debois$elm_mdl$Material_Options$cs('mdl-chip'),
+					_1: {
+						ctor: '::',
+						_0: A2(
+							_debois$elm_mdl$Material_Options$when,
+							isContact,
+							_debois$elm_mdl$Material_Options$cs('mdl-chip--contact')),
+						_1: {
+							ctor: '::',
+							_0: A2(
+								_debois$elm_mdl$Material_Options$when,
+								isDeletable,
+								_debois$elm_mdl$Material_Options$cs('mdl-chip--deletable')),
+							_1: {
+								ctor: '::',
+								_0: _debois$elm_mdl$Material_Options_Internal$attribute(
+									_debois$elm_mdl$Material_Helpers$blurOn('mouseup')),
+								_1: {
+									ctor: '::',
+									_0: _debois$elm_mdl$Material_Options_Internal$attribute(
+										_debois$elm_mdl$Material_Helpers$blurOn('mouseleave')),
+									_1: {
+										ctor: '::',
+										_0: _debois$elm_mdl$Material_Options_Internal$attribute(
+											_debois$elm_mdl$Material_Helpers$blurOn('touchend')),
+										_1: {ctor: '[]'}
+									}
+								}
+							}
+						}
+					}
+				},
+				props),
+			content);
+	});
+var _debois$elm_mdl$Material_Chip$button = function (props) {
+	return A2(
+		_debois$elm_mdl$Material_Chip$chip,
+		_elm_lang$html$Html$button,
+		{
+			ctor: '::',
+			_0: _debois$elm_mdl$Material_Options_Internal$attribute(
+				_elm_lang$html$Html_Attributes$type_('button')),
+			_1: props
+		});
+};
+var _debois$elm_mdl$Material_Chip$span = _debois$elm_mdl$Material_Chip$chip(_elm_lang$html$Html$span);
+var _debois$elm_mdl$Material_Chip$Text = F2(
+	function (a, b) {
+		return {ctor: 'Text', _0: a, _1: b};
+	});
+var _debois$elm_mdl$Material_Chip$content = _debois$elm_mdl$Material_Chip$Text;
+var _debois$elm_mdl$Material_Chip$text = F2(
+	function (props, txt) {
+		return A2(
+			_debois$elm_mdl$Material_Chip$Text,
+			props,
+			{
+				ctor: '::',
+				_0: _elm_lang$html$Html$text(txt),
+				_1: {ctor: '[]'}
+			});
+	});
+var _debois$elm_mdl$Material_Chip$Contact = F3(
+	function (a, b, c) {
+		return {ctor: 'Contact', _0: a, _1: b, _2: c};
+	});
+var _debois$elm_mdl$Material_Chip$contact = _debois$elm_mdl$Material_Chip$Contact;
+
 //import Maybe, Native.List //
 
 var _elm_lang$core$Native_Regex = function() {
@@ -15021,19 +15269,393 @@ var _elm_lang$core$Regex$AtMost = function (a) {
 };
 var _elm_lang$core$Regex$All = {ctor: 'All'};
 
-var _user$project$ReceptionKiosk$navButtonCss = {
+var _elm_lang$http$Native_Http = function() {
+
+
+// ENCODING AND DECODING
+
+function encodeUri(string)
+{
+	return encodeURIComponent(string);
+}
+
+function decodeUri(string)
+{
+	try
+	{
+		return _elm_lang$core$Maybe$Just(decodeURIComponent(string));
+	}
+	catch(e)
+	{
+		return _elm_lang$core$Maybe$Nothing;
+	}
+}
+
+
+// SEND REQUEST
+
+function toTask(request, maybeProgress)
+{
+	return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback)
+	{
+		var xhr = new XMLHttpRequest();
+
+		configureProgress(xhr, maybeProgress);
+
+		xhr.addEventListener('error', function() {
+			callback(_elm_lang$core$Native_Scheduler.fail({ ctor: 'NetworkError' }));
+		});
+		xhr.addEventListener('timeout', function() {
+			callback(_elm_lang$core$Native_Scheduler.fail({ ctor: 'Timeout' }));
+		});
+		xhr.addEventListener('load', function() {
+			callback(handleResponse(xhr, request.expect.responseToResult));
+		});
+
+		try
+		{
+			xhr.open(request.method, request.url, true);
+		}
+		catch (e)
+		{
+			return callback(_elm_lang$core$Native_Scheduler.fail({ ctor: 'BadUrl', _0: request.url }));
+		}
+
+		configureRequest(xhr, request);
+		send(xhr, request.body);
+
+		return function() { xhr.abort(); };
+	});
+}
+
+function configureProgress(xhr, maybeProgress)
+{
+	if (maybeProgress.ctor === 'Nothing')
+	{
+		return;
+	}
+
+	xhr.addEventListener('progress', function(event) {
+		if (!event.lengthComputable)
+		{
+			return;
+		}
+		_elm_lang$core$Native_Scheduler.rawSpawn(maybeProgress._0({
+			bytes: event.loaded,
+			bytesExpected: event.total
+		}));
+	});
+}
+
+function configureRequest(xhr, request)
+{
+	function setHeader(pair)
+	{
+		xhr.setRequestHeader(pair._0, pair._1);
+	}
+
+	A2(_elm_lang$core$List$map, setHeader, request.headers);
+	xhr.responseType = request.expect.responseType;
+	xhr.withCredentials = request.withCredentials;
+
+	if (request.timeout.ctor === 'Just')
+	{
+		xhr.timeout = request.timeout._0;
+	}
+}
+
+function send(xhr, body)
+{
+	switch (body.ctor)
+	{
+		case 'EmptyBody':
+			xhr.send();
+			return;
+
+		case 'StringBody':
+			xhr.setRequestHeader('Content-Type', body._0);
+			xhr.send(body._1);
+			return;
+
+		case 'FormDataBody':
+			xhr.send(body._0);
+			return;
+	}
+}
+
+
+// RESPONSES
+
+function handleResponse(xhr, responseToResult)
+{
+	var response = toResponse(xhr);
+
+	if (xhr.status < 200 || 300 <= xhr.status)
+	{
+		response.body = xhr.responseText;
+		return _elm_lang$core$Native_Scheduler.fail({
+			ctor: 'BadStatus',
+			_0: response
+		});
+	}
+
+	var result = responseToResult(response);
+
+	if (result.ctor === 'Ok')
+	{
+		return _elm_lang$core$Native_Scheduler.succeed(result._0);
+	}
+	else
+	{
+		response.body = xhr.responseText;
+		return _elm_lang$core$Native_Scheduler.fail({
+			ctor: 'BadPayload',
+			_0: result._0,
+			_1: response
+		});
+	}
+}
+
+function toResponse(xhr)
+{
+	return {
+		status: { code: xhr.status, message: xhr.statusText },
+		headers: parseHeaders(xhr.getAllResponseHeaders()),
+		url: xhr.responseURL,
+		body: xhr.response
+	};
+}
+
+function parseHeaders(rawHeaders)
+{
+	var headers = _elm_lang$core$Dict$empty;
+
+	if (!rawHeaders)
+	{
+		return headers;
+	}
+
+	var headerPairs = rawHeaders.split('\u000d\u000a');
+	for (var i = headerPairs.length; i--; )
+	{
+		var headerPair = headerPairs[i];
+		var index = headerPair.indexOf('\u003a\u0020');
+		if (index > 0)
+		{
+			var key = headerPair.substring(0, index);
+			var value = headerPair.substring(index + 2);
+
+			headers = A3(_elm_lang$core$Dict$update, key, function(oldValue) {
+				if (oldValue.ctor === 'Just')
+				{
+					return _elm_lang$core$Maybe$Just(value + ', ' + oldValue._0);
+				}
+				return _elm_lang$core$Maybe$Just(value);
+			}, headers);
+		}
+	}
+
+	return headers;
+}
+
+
+// EXPECTORS
+
+function expectStringResponse(responseToResult)
+{
+	return {
+		responseType: 'text',
+		responseToResult: responseToResult
+	};
+}
+
+function mapExpect(func, expect)
+{
+	return {
+		responseType: expect.responseType,
+		responseToResult: function(response) {
+			var convertedResponse = expect.responseToResult(response);
+			return A2(_elm_lang$core$Result$map, func, convertedResponse);
+		}
+	};
+}
+
+
+// BODY
+
+function multipart(parts)
+{
+	var formData = new FormData();
+
+	while (parts.ctor !== '[]')
+	{
+		var part = parts._0;
+		formData.append(part._0, part._1);
+		parts = parts._1;
+	}
+
+	return { ctor: 'FormDataBody', _0: formData };
+}
+
+return {
+	toTask: F2(toTask),
+	expectStringResponse: expectStringResponse,
+	mapExpect: F2(mapExpect),
+	multipart: multipart,
+	encodeUri: encodeUri,
+	decodeUri: decodeUri
+};
+
+}();
+
+var _elm_lang$http$Http_Internal$map = F2(
+	function (func, request) {
+		return _elm_lang$core$Native_Utils.update(
+			request,
+			{
+				expect: A2(_elm_lang$http$Native_Http.mapExpect, func, request.expect)
+			});
+	});
+var _elm_lang$http$Http_Internal$RawRequest = F7(
+	function (a, b, c, d, e, f, g) {
+		return {method: a, headers: b, url: c, body: d, expect: e, timeout: f, withCredentials: g};
+	});
+var _elm_lang$http$Http_Internal$Request = function (a) {
+	return {ctor: 'Request', _0: a};
+};
+var _elm_lang$http$Http_Internal$Expect = {ctor: 'Expect'};
+var _elm_lang$http$Http_Internal$FormDataBody = {ctor: 'FormDataBody'};
+var _elm_lang$http$Http_Internal$StringBody = F2(
+	function (a, b) {
+		return {ctor: 'StringBody', _0: a, _1: b};
+	});
+var _elm_lang$http$Http_Internal$EmptyBody = {ctor: 'EmptyBody'};
+var _elm_lang$http$Http_Internal$Header = F2(
+	function (a, b) {
+		return {ctor: 'Header', _0: a, _1: b};
+	});
+
+var _elm_lang$http$Http$decodeUri = _elm_lang$http$Native_Http.decodeUri;
+var _elm_lang$http$Http$encodeUri = _elm_lang$http$Native_Http.encodeUri;
+var _elm_lang$http$Http$expectStringResponse = _elm_lang$http$Native_Http.expectStringResponse;
+var _elm_lang$http$Http$expectJson = function (decoder) {
+	return _elm_lang$http$Http$expectStringResponse(
+		function (response) {
+			return A2(_elm_lang$core$Json_Decode$decodeString, decoder, response.body);
+		});
+};
+var _elm_lang$http$Http$expectString = _elm_lang$http$Http$expectStringResponse(
+	function (response) {
+		return _elm_lang$core$Result$Ok(response.body);
+	});
+var _elm_lang$http$Http$multipartBody = _elm_lang$http$Native_Http.multipart;
+var _elm_lang$http$Http$stringBody = _elm_lang$http$Http_Internal$StringBody;
+var _elm_lang$http$Http$jsonBody = function (value) {
+	return A2(
+		_elm_lang$http$Http_Internal$StringBody,
+		'application/json',
+		A2(_elm_lang$core$Json_Encode$encode, 0, value));
+};
+var _elm_lang$http$Http$emptyBody = _elm_lang$http$Http_Internal$EmptyBody;
+var _elm_lang$http$Http$header = _elm_lang$http$Http_Internal$Header;
+var _elm_lang$http$Http$request = _elm_lang$http$Http_Internal$Request;
+var _elm_lang$http$Http$post = F3(
+	function (url, body, decoder) {
+		return _elm_lang$http$Http$request(
+			{
+				method: 'POST',
+				headers: {ctor: '[]'},
+				url: url,
+				body: body,
+				expect: _elm_lang$http$Http$expectJson(decoder),
+				timeout: _elm_lang$core$Maybe$Nothing,
+				withCredentials: false
+			});
+	});
+var _elm_lang$http$Http$get = F2(
+	function (url, decoder) {
+		return _elm_lang$http$Http$request(
+			{
+				method: 'GET',
+				headers: {ctor: '[]'},
+				url: url,
+				body: _elm_lang$http$Http$emptyBody,
+				expect: _elm_lang$http$Http$expectJson(decoder),
+				timeout: _elm_lang$core$Maybe$Nothing,
+				withCredentials: false
+			});
+	});
+var _elm_lang$http$Http$getString = function (url) {
+	return _elm_lang$http$Http$request(
+		{
+			method: 'GET',
+			headers: {ctor: '[]'},
+			url: url,
+			body: _elm_lang$http$Http$emptyBody,
+			expect: _elm_lang$http$Http$expectString,
+			timeout: _elm_lang$core$Maybe$Nothing,
+			withCredentials: false
+		});
+};
+var _elm_lang$http$Http$toTask = function (_p0) {
+	var _p1 = _p0;
+	return A2(_elm_lang$http$Native_Http.toTask, _p1._0, _elm_lang$core$Maybe$Nothing);
+};
+var _elm_lang$http$Http$send = F2(
+	function (resultToMessage, request) {
+		return A2(
+			_elm_lang$core$Task$attempt,
+			resultToMessage,
+			_elm_lang$http$Http$toTask(request));
+	});
+var _elm_lang$http$Http$Response = F4(
+	function (a, b, c, d) {
+		return {url: a, status: b, headers: c, body: d};
+	});
+var _elm_lang$http$Http$BadPayload = F2(
+	function (a, b) {
+		return {ctor: 'BadPayload', _0: a, _1: b};
+	});
+var _elm_lang$http$Http$BadStatus = function (a) {
+	return {ctor: 'BadStatus', _0: a};
+};
+var _elm_lang$http$Http$NetworkError = {ctor: 'NetworkError'};
+var _elm_lang$http$Http$Timeout = {ctor: 'Timeout'};
+var _elm_lang$http$Http$BadUrl = function (a) {
+	return {ctor: 'BadUrl', _0: a};
+};
+var _elm_lang$http$Http$StringPart = F2(
+	function (a, b) {
+		return {ctor: 'StringPart', _0: a, _1: b};
+	});
+var _elm_lang$http$Http$stringPart = _elm_lang$http$Http$StringPart;
+
+var _user$project$ReceptionKiosk$sceneChipCss = {
 	ctor: '::',
-	_0: A2(_debois$elm_mdl$Material_Options$css, 'margin-left', '5px'),
+	_0: A2(_debois$elm_mdl$Material_Options$css, 'margin-left', '3px'),
 	_1: {
 		ctor: '::',
-		_0: A2(_debois$elm_mdl$Material_Options$css, 'margin-right', '5px'),
+		_0: A2(_debois$elm_mdl$Material_Options$css, 'margin-right', '3px'),
+		_1: {ctor: '[]'}
+	}
+};
+var _user$project$ReceptionKiosk$navButtonCss = {
+	ctor: '::',
+	_0: A2(_debois$elm_mdl$Material_Options$css, 'margin-left', '120px'),
+	_1: {
+		ctor: '::',
+		_0: A2(_debois$elm_mdl$Material_Options$css, 'margin-right', '120px'),
 		_1: {
 			ctor: '::',
-			_0: A2(_debois$elm_mdl$Material_Options$css, 'margin-top', '20px'),
+			_0: A2(_debois$elm_mdl$Material_Options$css, 'margin-top', '100px'),
 			_1: {
 				ctor: '::',
-				_0: A2(_debois$elm_mdl$Material_Options$css, 'font-size', '9pt'),
-				_1: {ctor: '[]'}
+				_0: A2(_debois$elm_mdl$Material_Options$css, 'font-size', '14pt'),
+				_1: {
+					ctor: '::',
+					_0: A2(_debois$elm_mdl$Material_Options$css, 'font-color', '#dddddd'),
+					_1: {ctor: '[]'}
+				}
 			}
 		}
 	}
@@ -15058,7 +15680,7 @@ var _user$project$ReceptionKiosk$viewButtonCss = {
 						_0: A2(_debois$elm_mdl$Material_Options$css, 'padding-right', '30px'),
 						_1: {
 							ctor: '::',
-							_0: A2(_debois$elm_mdl$Material_Options$css, 'font-size', '14pt'),
+							_0: A2(_debois$elm_mdl$Material_Options$css, 'font-size', '18pt'),
 							_1: {ctor: '[]'}
 						}
 					}
@@ -15067,13 +15689,16 @@ var _user$project$ReceptionKiosk$viewButtonCss = {
 		}
 	}
 };
-var _user$project$ReceptionKiosk$sceneWidth = '640px';
+var _user$project$ReceptionKiosk$bottomBannerHeight = '84px';
+var _user$project$ReceptionKiosk$topBannerHeight = '155px';
+var _user$project$ReceptionKiosk$sceneHeight = '1280px';
+var _user$project$ReceptionKiosk$sceneWidth = '800px';
 var _user$project$ReceptionKiosk_ops = _user$project$ReceptionKiosk_ops || {};
 _user$project$ReceptionKiosk_ops['=>'] = F2(
 	function (v0, v1) {
 		return {ctor: '_Tuple2', _0: v0, _1: v1};
 	});
-var _user$project$ReceptionKiosk$navDivStyle = _elm_lang$html$Html_Attributes$style(
+var _user$project$ReceptionKiosk$canvasDivStyle = _elm_lang$html$Html_Attributes$style(
 	{
 		ctor: '::',
 		_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'font-family', 'Roboto Condensed, Arial, Helvetica'),
@@ -15082,13 +15707,132 @@ var _user$project$ReceptionKiosk$navDivStyle = _elm_lang$html$Html_Attributes$st
 			_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'text-align', 'center'),
 			_1: {
 				ctor: '::',
+				_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'padding-left', '0'),
+				_1: {
+					ctor: '::',
+					_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'padding-right', '0'),
+					_1: {
+						ctor: '::',
+						_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'padding-top', _user$project$ReceptionKiosk$topBannerHeight),
+						_1: {
+							ctor: '::',
+							_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'padding-bottom', _user$project$ReceptionKiosk$bottomBannerHeight),
+							_1: {
+								ctor: '::',
+								_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'position', 'absolute'),
+								_1: {
+									ctor: '::',
+									_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'top', '0'),
+									_1: {
+										ctor: '::',
+										_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'bottom', '0'),
+										_1: {
+											ctor: '::',
+											_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'left', '0'),
+											_1: {
+												ctor: '::',
+												_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'right', '0'),
+												_1: {ctor: '[]'}
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	});
+var _user$project$ReceptionKiosk$sceneDivStyle = _elm_lang$html$Html_Attributes$style(
+	{
+		ctor: '::',
+		_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-left', 'auto'),
+		_1: {
+			ctor: '::',
+			_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-right', 'auto'),
+			_1: {
+				ctor: '::',
+				_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'border', '1px solid #bbbbbb'),
+				_1: {
+					ctor: '::',
+					_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'background-color', 'white'),
+					_1: {
+						ctor: '::',
+						_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'width', _user$project$ReceptionKiosk$sceneWidth),
+						_1: {
+							ctor: '::',
+							_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'min-height', '99.8%'),
+							_1: {ctor: '[]'}
+						}
+					}
+				}
+			}
+		}
+	});
+var _user$project$ReceptionKiosk$sceneTitleStyle = _elm_lang$html$Html_Attributes$style(
+	{
+		ctor: '::',
+		_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'font-size', '32pt'),
+		_1: {
+			ctor: '::',
+			_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-left', 'auto'),
+			_1: {
+				ctor: '::',
+				_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-right', 'auto'),
+				_1: {
+					ctor: '::',
+					_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-top', '2em'),
+					_1: {
+						ctor: '::',
+						_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-bottom', '0.5em'),
+						_1: {ctor: '[]'}
+					}
+				}
+			}
+		}
+	});
+var _user$project$ReceptionKiosk$sceneSubtitleStyle = _elm_lang$html$Html_Attributes$style(
+	{
+		ctor: '::',
+		_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'font-size', '24pt'),
+		_1: {
+			ctor: '::',
+			_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-left', 'auto'),
+			_1: {
+				ctor: '::',
+				_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-right', 'auto'),
+				_1: {
+					ctor: '::',
+					_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-bottom', '1em'),
+					_1: {
+						ctor: '::',
+						_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-top', '0'),
+						_1: {ctor: '[]'}
+					}
+				}
+			}
+		}
+	});
+var _user$project$ReceptionKiosk$bannerTopStyle = _elm_lang$html$Html_Attributes$style(
+	{
+		ctor: '::',
+		_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'display', 'block'),
+		_1: {
+			ctor: '::',
+			_0: A2(
+				_user$project$ReceptionKiosk_ops['=>'],
+				'margin-top',
+				A2(_elm_lang$core$Basics_ops['++'], '-', _user$project$ReceptionKiosk$topBannerHeight)),
+			_1: {
+				ctor: '::',
 				_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-left', 'auto'),
 				_1: {
 					ctor: '::',
 					_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-right', 'auto'),
 					_1: {
 						ctor: '::',
-						_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-top', '5%'),
+						_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'height', _user$project$ReceptionKiosk$topBannerHeight),
 						_1: {
 							ctor: '::',
 							_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'width', _user$project$ReceptionKiosk$sceneWidth),
@@ -15099,46 +15843,39 @@ var _user$project$ReceptionKiosk$navDivStyle = _elm_lang$html$Html_Attributes$st
 			}
 		}
 	});
-var _user$project$ReceptionKiosk$sceneDivStyle = _elm_lang$html$Html_Attributes$style(
+var _user$project$ReceptionKiosk$bannerBottomStyle = _elm_lang$html$Html_Attributes$style(
 	{
 		ctor: '::',
-		_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'border', '1px solid #bbbbbb'),
+		_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'display', 'block'),
 		_1: {
 			ctor: '::',
-			_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'background-color', 'white'),
+			_0: A2(
+				_user$project$ReceptionKiosk_ops['=>'],
+				'margin-bottom',
+				A2(_elm_lang$core$Basics_ops['++'], '-', _user$project$ReceptionKiosk$bottomBannerHeight)),
 			_1: {
 				ctor: '::',
-				_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'padding', '0px'),
-				_1: {ctor: '[]'}
-			}
-		}
-	});
-var _user$project$ReceptionKiosk$sceneTitleStyle = _elm_lang$html$Html_Attributes$style(
-	{
-		ctor: '::',
-		_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'font-size', '22pt'),
-		_1: {
-			ctor: '::',
-			_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-left', 'auto'),
-			_1: {
-				ctor: '::',
-				_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-right', 'auto'),
+				_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-left', 'auto'),
 				_1: {
 					ctor: '::',
-					_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-top', '50px'),
+					_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-right', 'auto'),
 					_1: {
 						ctor: '::',
-						_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-bottom', '0.25em'),
-						_1: {ctor: '[]'}
+						_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'height', _user$project$ReceptionKiosk$bottomBannerHeight),
+						_1: {
+							ctor: '::',
+							_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'width', _user$project$ReceptionKiosk$sceneWidth),
+							_1: {ctor: '[]'}
+						}
 					}
 				}
 			}
 		}
 	});
-var _user$project$ReceptionKiosk$sceneSubtitleStyle = _elm_lang$html$Html_Attributes$style(
+var _user$project$ReceptionKiosk$navDivStyle = _elm_lang$html$Html_Attributes$style(
 	{
 		ctor: '::',
-		_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'font-size', '16pt'),
+		_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'display', 'block'),
 		_1: {
 			ctor: '::',
 			_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-left', 'auto'),
@@ -15147,30 +15884,10 @@ var _user$project$ReceptionKiosk$sceneSubtitleStyle = _elm_lang$html$Html_Attrib
 				_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-right', 'auto'),
 				_1: {
 					ctor: '::',
-					_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-top', '0'),
+					_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'width', _user$project$ReceptionKiosk$sceneWidth),
 					_1: {ctor: '[]'}
 				}
 			}
-		}
-	});
-var _user$project$ReceptionKiosk$bannerTopStyle = _elm_lang$html$Html_Attributes$style(
-	{
-		ctor: '::',
-		_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'width', _user$project$ReceptionKiosk$sceneWidth),
-		_1: {
-			ctor: '::',
-			_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin', '0'),
-			_1: {ctor: '[]'}
-		}
-	});
-var _user$project$ReceptionKiosk$bannerBottomStyle = _elm_lang$html$Html_Attributes$style(
-	{
-		ctor: '::',
-		_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'width', _user$project$ReceptionKiosk$sceneWidth),
-		_1: {
-			ctor: '::',
-			_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-top', '50px'),
-			_1: {ctor: '[]'}
 		}
 	});
 var _user$project$ReceptionKiosk$subscriptions = function (model) {
@@ -15180,6 +15897,58 @@ var _user$project$ReceptionKiosk$subscriptions = function (model) {
 var _user$project$ReceptionKiosk$howDidYouHearChoices = function (model) {
 	return _elm_lang$html$Html$text('');
 };
+var _user$project$ReceptionKiosk$canvasView = F2(
+	function (model, scene) {
+		return A2(
+			_elm_lang$html$Html$div,
+			{
+				ctor: '::',
+				_0: _user$project$ReceptionKiosk$canvasDivStyle,
+				_1: {ctor: '[]'}
+			},
+			{
+				ctor: '::',
+				_0: A2(
+					_elm_lang$html$Html$img,
+					{
+						ctor: '::',
+						_0: _elm_lang$html$Html_Attributes$src(model.bannerTopUrl),
+						_1: {
+							ctor: '::',
+							_0: _user$project$ReceptionKiosk$bannerTopStyle,
+							_1: {ctor: '[]'}
+						}
+					},
+					{ctor: '[]'}),
+				_1: {
+					ctor: '::',
+					_0: A2(
+						_elm_lang$html$Html$div,
+						{
+							ctor: '::',
+							_0: _user$project$ReceptionKiosk$sceneDivStyle,
+							_1: {ctor: '[]'}
+						},
+						scene),
+					_1: {
+						ctor: '::',
+						_0: A2(
+							_elm_lang$html$Html$img,
+							{
+								ctor: '::',
+								_0: _elm_lang$html$Html_Attributes$src(model.bannerBottomUrl),
+								_1: {
+									ctor: '::',
+									_0: _user$project$ReceptionKiosk$bannerBottomStyle,
+									_1: {ctor: '[]'}
+								}
+							},
+							{ctor: '[]'}),
+						_1: {ctor: '[]'}
+					}
+				}
+			});
+	});
 var _user$project$ReceptionKiosk$vspace = function (amount) {
 	return A2(
 		_elm_lang$html$Html$div,
@@ -15201,6 +15970,13 @@ var _user$project$ReceptionKiosk$vspace = function (amount) {
 		},
 		{ctor: '[]'});
 };
+var _user$project$ReceptionKiosk$findMatchingAccts = F2(
+	function (model, flexId) {
+		return A2(
+			_elm_lang$html$Html$div,
+			{ctor: '[]'},
+			{ctor: '[]'});
+	});
 var _user$project$ReceptionKiosk$replaceAll = F3(
 	function (theString, oldSub, newSub) {
 		return A4(
@@ -15216,15 +15992,53 @@ var _user$project$ReceptionKiosk$Flags = F4(
 	function (a, b, c, d) {
 		return {csrfToken: a, orgName: b, bannerTopUrl: c, bannerBottomUrl: d};
 	});
-var _user$project$ReceptionKiosk$Account = F7(
+var _user$project$ReceptionKiosk$Acct = F7(
 	function (a, b, c, d, e, f, g) {
-		return {userid: a, password: b, memberNum: c, firstName: d, lastName: e, email: f, isAdult: g};
+		return {userName: a, password: b, memberNum: c, firstName: d, lastName: e, email: f, isAdult: g};
 	});
-var _user$project$ReceptionKiosk$blankAccount = A7(_user$project$ReceptionKiosk$Account, '', '', _elm_lang$core$Maybe$Nothing, '', '', '', false);
-var _user$project$ReceptionKiosk$Model = F8(
-	function (a, b, c, d, e, f, g, h) {
-		return {csrfToken: a, orgName: b, bannerTopUrl: c, bannerBottomUrl: d, sceneStack: e, mdl: f, flexId: g, visitor: h};
+var _user$project$ReceptionKiosk$blankAcct = A7(_user$project$ReceptionKiosk$Acct, '', '', _elm_lang$core$Maybe$Nothing, '', '', '', false);
+var _user$project$ReceptionKiosk$MatchingAcct = F2(
+	function (a, b) {
+		return {userName: a, memberNum: b};
 	});
+var _user$project$ReceptionKiosk$decodeMatchingAcct = A3(
+	_elm_lang$core$Json_Decode$map2,
+	_user$project$ReceptionKiosk$MatchingAcct,
+	A2(_elm_lang$core$Json_Decode$field, 'userName', _elm_lang$core$Json_Decode$string),
+	A2(_elm_lang$core$Json_Decode$field, 'memberNum', _elm_lang$core$Json_Decode$int));
+var _user$project$ReceptionKiosk$MatchingAcctInfo = F2(
+	function (a, b) {
+		return {target: a, matches: b};
+	});
+var _user$project$ReceptionKiosk$decodeMatchingAcctInfo = A3(
+	_elm_lang$core$Json_Decode$map2,
+	_user$project$ReceptionKiosk$MatchingAcctInfo,
+	A2(_elm_lang$core$Json_Decode$field, 'target', _elm_lang$core$Json_Decode$string),
+	A2(
+		_elm_lang$core$Json_Decode$field,
+		'matches',
+		_elm_lang$core$Json_Decode$list(_user$project$ReceptionKiosk$decodeMatchingAcct)));
+var _user$project$ReceptionKiosk$Model = function (a) {
+	return function (b) {
+		return function (c) {
+			return function (d) {
+				return function (e) {
+					return function (f) {
+						return function (g) {
+							return function (h) {
+								return function (i) {
+									return function (j) {
+										return {csrfToken: a, orgName: b, bannerTopUrl: c, bannerBottomUrl: d, sceneStack: e, mdl: f, flexId: g, visitor: h, matches: i, error: j};
+									};
+								};
+							};
+						};
+					};
+				};
+			};
+		};
+	};
+};
 var _user$project$ReceptionKiosk$ButtonSpec = F2(
 	function (a, b) {
 		return {title: a, segue: b};
@@ -15235,7 +16049,7 @@ var _user$project$ReceptionKiosk$Activity = {ctor: 'Activity'};
 var _user$project$ReceptionKiosk$Rules = {ctor: 'Rules'};
 var _user$project$ReceptionKiosk$Waiver = {ctor: 'Waiver'};
 var _user$project$ReceptionKiosk$HowDidYouHear = {ctor: 'HowDidYouHear'};
-var _user$project$ReceptionKiosk$ChooseIdAndPw = {ctor: 'ChooseIdAndPw'};
+var _user$project$ReceptionKiosk$ChooseUserNameAndPw = {ctor: 'ChooseUserNameAndPw'};
 var _user$project$ReceptionKiosk$LetsCreate = {ctor: 'LetsCreate'};
 var _user$project$ReceptionKiosk$CheckIn = {ctor: 'CheckIn'};
 var _user$project$ReceptionKiosk$HaveAcctQ = {ctor: 'HaveAcctQ'};
@@ -15243,20 +16057,13 @@ var _user$project$ReceptionKiosk$Welcome = {ctor: 'Welcome'};
 var _user$project$ReceptionKiosk$init = function (f) {
 	return {
 		ctor: '_Tuple2',
-		_0: A8(
-			_user$project$ReceptionKiosk$Model,
-			f.csrfToken,
-			f.orgName,
-			f.bannerTopUrl,
-			f.bannerBottomUrl,
+		_0: _user$project$ReceptionKiosk$Model(f.csrfToken)(f.orgName)(f.bannerTopUrl)(f.bannerBottomUrl)(
 			{
 				ctor: '::',
 				_0: _user$project$ReceptionKiosk$Welcome,
 				_1: {ctor: '[]'}
-			},
-			_debois$elm_mdl$Material$model,
-			'',
-			_user$project$ReceptionKiosk$blankAccount),
+			})(_debois$elm_mdl$Material$model)('')(_user$project$ReceptionKiosk$blankAcct)(
+			{ctor: '[]'})(_elm_lang$core$Maybe$Nothing),
 		_1: _elm_lang$core$Platform_Cmd$none
 	};
 };
@@ -15264,11 +16071,17 @@ var _user$project$ReceptionKiosk$reset = function (m) {
 	return _user$project$ReceptionKiosk$init(
 		A4(_user$project$ReceptionKiosk$Flags, m.csrfToken, m.orgName, m.bannerTopUrl, m.bannerBottomUrl));
 };
+var _user$project$ReceptionKiosk$LogCheckIn = function (a) {
+	return {ctor: 'LogCheckIn', _0: a};
+};
+var _user$project$ReceptionKiosk$UpdateMatchingAccts = function (a) {
+	return {ctor: 'UpdateMatchingAccts', _0: a};
+};
 var _user$project$ReceptionKiosk$UpdatePassword = function (a) {
 	return {ctor: 'UpdatePassword', _0: a};
 };
-var _user$project$ReceptionKiosk$UpdateUserid = function (a) {
-	return {ctor: 'UpdateUserid', _0: a};
+var _user$project$ReceptionKiosk$UpdateUserName = function (a) {
+	return {ctor: 'UpdateUserName', _0: a};
 };
 var _user$project$ReceptionKiosk$ToggleIsAdult = {ctor: 'ToggleIsAdult'};
 var _user$project$ReceptionKiosk$UpdateEmail = function (a) {
@@ -15328,13 +16141,35 @@ var _user$project$ReceptionKiosk$update = F2(
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 			case 'UpdateFlexId':
-				return {
-					ctor: '_Tuple2',
-					_0: _elm_lang$core$Native_Utils.update(
-						model,
-						{flexId: _p1._0}),
-					_1: _elm_lang$core$Platform_Cmd$none
-				};
+				var _p2 = _p1._0;
+				if (_elm_lang$core$Native_Utils.cmp(
+					_elm_lang$core$String$length(_p2),
+					1) > 0) {
+					var url = A2(
+						_elm_lang$core$Basics_ops['++'],
+						'/members/reception/matching-accts/',
+						A2(_elm_lang$core$Basics_ops['++'], _p2, '/'));
+					var request = A2(_elm_lang$http$Http$get, url, _user$project$ReceptionKiosk$decodeMatchingAcctInfo);
+					var cmd = A2(_elm_lang$http$Http$send, _user$project$ReceptionKiosk$UpdateMatchingAccts, request);
+					return {
+						ctor: '_Tuple2',
+						_0: _elm_lang$core$Native_Utils.update(
+							model,
+							{flexId: _p2}),
+						_1: cmd
+					};
+				} else {
+					return {
+						ctor: '_Tuple2',
+						_0: _elm_lang$core$Native_Utils.update(
+							model,
+							{
+								matches: {ctor: '[]'},
+								flexId: _p2
+							}),
+						_1: _elm_lang$core$Platform_Cmd$none
+					};
+				}
 			case 'UpdateFirstName':
 				var v = model.visitor;
 				return {
@@ -15387,7 +16222,7 @@ var _user$project$ReceptionKiosk$update = F2(
 						}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
-			case 'UpdateUserid':
+			case 'UpdateUserName':
 				var v = model.visitor;
 				return {
 					ctor: '_Tuple2',
@@ -15396,11 +16231,11 @@ var _user$project$ReceptionKiosk$update = F2(
 						{
 							visitor: _elm_lang$core$Native_Utils.update(
 								v,
-								{userid: _p1._0})
+								{userName: _p1._0})
 						}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
-			default:
+			case 'UpdatePassword':
 				var v = model.visitor;
 				return {
 					ctor: '_Tuple2',
@@ -15413,6 +16248,29 @@ var _user$project$ReceptionKiosk$update = F2(
 						}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
+			case 'UpdateMatchingAccts':
+				if (_p1._0.ctor === 'Ok') {
+					return _elm_lang$core$Native_Utils.eq(_p1._0._0.target, model.flexId) ? {
+						ctor: '_Tuple2',
+						_0: _elm_lang$core$Native_Utils.update(
+							model,
+							{matches: _p1._0._0.matches, error: _elm_lang$core$Maybe$Nothing}),
+						_1: _elm_lang$core$Platform_Cmd$none
+					} : {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
+				} else {
+					return {
+						ctor: '_Tuple2',
+						_0: _elm_lang$core$Native_Utils.update(
+							model,
+							{
+								error: _elm_lang$core$Maybe$Just(
+									_elm_lang$core$Basics$toString(_p1._0._0))
+							}),
+						_1: _elm_lang$core$Platform_Cmd$none
+					};
+				}
+			default:
+				return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
 		}
 	});
 var _user$project$ReceptionKiosk$sceneButton = F2(
@@ -15468,7 +16326,11 @@ var _user$project$ReceptionKiosk$sceneTextField = F5(
 						_1: {
 							ctor: '::',
 							_0: _debois$elm_mdl$Material_Options$onInput(msger),
-							_1: {ctor: '[]'}
+							_1: {
+								ctor: '::',
+								_0: A2(_debois$elm_mdl$Material_Options$css, 'width', '500px'),
+								_1: {ctor: '[]'}
+							}
 						}
 					}
 				}
@@ -15524,7 +16386,7 @@ var _user$project$ReceptionKiosk$sceneCheckbox = F5(
 							_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'display', 'inline-block'),
 							_1: {
 								ctor: '::',
-								_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'width', '210px'),
+								_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'width', '400px'),
 								_1: {ctor: '[]'}
 							}
 						}
@@ -15557,18 +16419,38 @@ var _user$project$ReceptionKiosk$sceneCheckbox = F5(
 					},
 					{
 						ctor: '::',
-						_0: _elm_lang$html$Html$text(label),
+						_0: A2(
+							_elm_lang$html$Html$span,
+							{
+								ctor: '::',
+								_0: _elm_lang$html$Html_Attributes$style(
+									{
+										ctor: '::',
+										_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'font-size', '24pt'),
+										_1: {ctor: '[]'}
+									}),
+								_1: {ctor: '[]'}
+							},
+							{
+								ctor: '::',
+								_0: _elm_lang$html$Html$text(label),
+								_1: {ctor: '[]'}
+							}),
 						_1: {ctor: '[]'}
 					}),
 				_1: {ctor: '[]'}
 			});
 	});
-var _user$project$ReceptionKiosk$backButton = function (model) {
+var _user$project$ReceptionKiosk$navButtons = function (model) {
 	return (_elm_lang$core$Native_Utils.cmp(
 		_elm_lang$core$List$length(model.sceneStack),
 		1) > 0) ? A2(
 		_elm_lang$html$Html$div,
-		{ctor: '[]'},
+		{
+			ctor: '::',
+			_0: _user$project$ReceptionKiosk$navDivStyle,
+			_1: {ctor: '[]'}
+		},
 		{
 			ctor: '::',
 			_0: A5(
@@ -15635,109 +16517,79 @@ var _user$project$ReceptionKiosk$sceneView = F5(
 		var subtitle = A3(_user$project$ReceptionKiosk$replaceAll, inSubtitle, 'ORGNAME', model.orgName);
 		var title = A3(_user$project$ReceptionKiosk$replaceAll, inTitle, 'ORGNAME', model.orgName);
 		return A2(
-			_elm_lang$html$Html$div,
-			{
-				ctor: '::',
-				_0: _user$project$ReceptionKiosk$navDivStyle,
-				_1: {ctor: '[]'}
-			},
+			_user$project$ReceptionKiosk$canvasView,
+			model,
 			{
 				ctor: '::',
 				_0: A2(
-					_elm_lang$html$Html$div,
+					_elm_lang$html$Html$p,
 					{
 						ctor: '::',
-						_0: _user$project$ReceptionKiosk$sceneDivStyle,
+						_0: _user$project$ReceptionKiosk$sceneTitleStyle,
 						_1: {ctor: '[]'}
 					},
 					{
 						ctor: '::',
-						_0: A2(
-							_elm_lang$html$Html$img,
-							{
-								ctor: '::',
-								_0: _elm_lang$html$Html_Attributes$src(model.bannerTopUrl),
-								_1: {
-									ctor: '::',
-									_0: _user$project$ReceptionKiosk$bannerTopStyle,
-									_1: {ctor: '[]'}
-								}
-							},
-							{ctor: '[]'}),
+						_0: _elm_lang$html$Html$text(title),
+						_1: {ctor: '[]'}
+					}),
+				_1: {
+					ctor: '::',
+					_0: A2(
+						_elm_lang$html$Html$p,
+						{
+							ctor: '::',
+							_0: _user$project$ReceptionKiosk$sceneSubtitleStyle,
+							_1: {ctor: '[]'}
+						},
+						{
+							ctor: '::',
+							_0: _elm_lang$html$Html$text(subtitle),
+							_1: {ctor: '[]'}
+						}),
+					_1: {
+						ctor: '::',
+						_0: extraContent,
 						_1: {
 							ctor: '::',
-							_0: A2(
-								_elm_lang$html$Html$p,
-								{
-									ctor: '::',
-									_0: _user$project$ReceptionKiosk$sceneTitleStyle,
-									_1: {ctor: '[]'}
-								},
-								{
-									ctor: '::',
-									_0: _elm_lang$html$Html$text(title),
-									_1: {ctor: '[]'}
-								}),
+							_0: _user$project$ReceptionKiosk$vspace(50),
 							_1: {
 								ctor: '::',
 								_0: A2(
-									_elm_lang$html$Html$p,
-									{
-										ctor: '::',
-										_0: _user$project$ReceptionKiosk$sceneSubtitleStyle,
-										_1: {ctor: '[]'}
-									},
-									{
-										ctor: '::',
-										_0: _elm_lang$html$Html$text(subtitle),
-										_1: {ctor: '[]'}
-									}),
+									_elm_lang$html$Html$div,
+									{ctor: '[]'},
+									A2(
+										_elm_lang$core$List$map,
+										_user$project$ReceptionKiosk$sceneButton(model),
+										buttonSpecs)),
 								_1: {
 									ctor: '::',
-									_0: extraContent,
+									_0: _user$project$ReceptionKiosk$navButtons(model),
 									_1: {
 										ctor: '::',
-										_0: A2(
-											_elm_lang$html$Html$div,
-											{ctor: '[]'},
-											A2(
-												_elm_lang$core$List$map,
-												_user$project$ReceptionKiosk$sceneButton(model),
-												buttonSpecs)),
-										_1: {
-											ctor: '::',
-											_0: A2(
-												_elm_lang$html$Html$img,
-												{
-													ctor: '::',
-													_0: _elm_lang$html$Html_Attributes$src(model.bannerBottomUrl),
-													_1: {
-														ctor: '::',
-														_0: _user$project$ReceptionKiosk$bannerBottomStyle,
-														_1: {ctor: '[]'}
-													}
-												},
-												{ctor: '[]'}),
-											_1: {ctor: '[]'}
-										}
+										_0: function () {
+											var _p3 = model.error;
+											if (_p3.ctor === 'Just') {
+												return _elm_lang$html$Html$text(_p3._0);
+											} else {
+												return _elm_lang$html$Html$text('');
+											}
+										}(),
+										_1: {ctor: '[]'}
 									}
 								}
 							}
 						}
-					}),
-				_1: {
-					ctor: '::',
-					_0: _user$project$ReceptionKiosk$backButton(model),
-					_1: {ctor: '[]'}
+					}
 				}
 			});
 	});
 var _user$project$ReceptionKiosk$view = function (model) {
-	var _p2 = A2(
+	var _p4 = A2(
 		_elm_lang$core$Maybe$withDefault,
 		_user$project$ReceptionKiosk$Welcome,
 		_elm_lang$core$List$head(model.sceneStack));
-	switch (_p2.ctor) {
+	switch (_p4.ctor) {
 		case 'Welcome':
 			return A5(
 				_user$project$ReceptionKiosk$sceneView,
@@ -15779,11 +16631,48 @@ var _user$project$ReceptionKiosk$view = function (model) {
 				A2(
 					_elm_lang$html$Html$div,
 					{ctor: '[]'},
-					{
-						ctor: '::',
-						_0: A5(_user$project$ReceptionKiosk$sceneTextField, model, 1, 'Enter Userid or Surname or Email here', model.flexId, _user$project$ReceptionKiosk$UpdateFlexId),
-						_1: {ctor: '[]'}
-					}),
+					_elm_lang$core$List$concat(
+						{
+							ctor: '::',
+							_0: {
+								ctor: '::',
+								_0: A5(_user$project$ReceptionKiosk$sceneTextField, model, 1, 'Your Username or Surname', model.flexId, _user$project$ReceptionKiosk$UpdateFlexId),
+								_1: {
+									ctor: '::',
+									_0: _user$project$ReceptionKiosk$vspace(0),
+									_1: {ctor: '[]'}
+								}
+							},
+							_1: {
+								ctor: '::',
+								_0: A2(
+									_elm_lang$core$List$map,
+									function (acct) {
+										return A2(
+											_debois$elm_mdl$Material_Chip$button,
+											{
+												ctor: '::',
+												_0: _debois$elm_mdl$Material_Options$onClick(
+													_user$project$ReceptionKiosk$LogCheckIn(acct.memberNum)),
+												_1: {ctor: '[]'}
+											},
+											{
+												ctor: '::',
+												_0: A2(
+													_debois$elm_mdl$Material_Chip$content,
+													{ctor: '[]'},
+													{
+														ctor: '::',
+														_0: _elm_lang$html$Html$text(acct.userName),
+														_1: {ctor: '[]'}
+													}),
+												_1: {ctor: '[]'}
+											});
+									},
+									model.matches),
+								_1: {ctor: '[]'}
+							}
+						})),
 				{ctor: '[]'});
 		case 'LetsCreate':
 			return A5(
@@ -15815,11 +16704,7 @@ var _user$project$ReceptionKiosk$view = function (model) {
 											_1: {
 												ctor: '::',
 												_0: A5(_user$project$ReceptionKiosk$sceneCheckbox, model, 5, 'Check if you are 18 or older!', model.visitor.isAdult, _user$project$ReceptionKiosk$ToggleIsAdult),
-												_1: {
-													ctor: '::',
-													_0: _user$project$ReceptionKiosk$vspace(30),
-													_1: {ctor: '[]'}
-												}
+												_1: {ctor: '[]'}
 											}
 										}
 									}
@@ -15829,32 +16714,28 @@ var _user$project$ReceptionKiosk$view = function (model) {
 					}),
 				{
 					ctor: '::',
-					_0: A2(_user$project$ReceptionKiosk$ButtonSpec, 'OK', _user$project$ReceptionKiosk$ChooseIdAndPw),
+					_0: A2(_user$project$ReceptionKiosk$ButtonSpec, 'OK', _user$project$ReceptionKiosk$ChooseUserNameAndPw),
 					_1: {ctor: '[]'}
 				});
-		case 'ChooseIdAndPw':
+		case 'ChooseUserNameAndPw':
 			return A5(
 				_user$project$ReceptionKiosk$sceneView,
 				model,
 				'Id & Password',
-				'Please chooose a userid and password for your account:',
+				'Please chooose a user name and password for your account:',
 				A2(
 					_elm_lang$html$Html$div,
 					{ctor: '[]'},
 					{
 						ctor: '::',
-						_0: A5(_user$project$ReceptionKiosk$sceneTextField, model, 6, 'Choose a userid', model.visitor.userid, _user$project$ReceptionKiosk$UpdateUserid),
+						_0: A5(_user$project$ReceptionKiosk$sceneTextField, model, 6, 'Choose a user name', model.visitor.userName, _user$project$ReceptionKiosk$UpdateUserName),
 						_1: {
 							ctor: '::',
 							_0: _user$project$ReceptionKiosk$vspace(0),
 							_1: {
 								ctor: '::',
 								_0: A5(_user$project$ReceptionKiosk$scenePasswordField, model, 7, 'Choose a password', model.visitor.password, _user$project$ReceptionKiosk$UpdatePassword),
-								_1: {
-									ctor: '::',
-									_0: _user$project$ReceptionKiosk$vspace(30),
-									_1: {ctor: '[]'}
-								}
+								_1: {ctor: '[]'}
 							}
 						}
 					}),

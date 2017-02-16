@@ -34,7 +34,6 @@ from members.models import Member, Tag, Tagging, VisitEvent, Membership, Discove
 from members.forms import Desktop_ChooseUserForm
 import members.serializers as ser
 from members.models import GroupMembership
-from members.notifications import notify
 from abutils.utils import request_is_from_host
 
 logger = getLogger("members")
@@ -651,6 +650,9 @@ def desktop_earned_membership_revenue(request):
     del chart_data[-1]  # Don't show current month.
     return render(request, 'members/desktop-earned-mship-rev.html', {'data': chart_data})
 
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# RECEPTION DESK KIOSK
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 @ensure_csrf_cookie
 def reception_kiosk_spa(request) -> HttpResponse:
@@ -661,4 +663,24 @@ def reception_kiosk_spa(request) -> HttpResponse:
     )
     props = { "org_name": ORG_NAME }
     return render(request, "members/reception-kiosk-spa.html", props)
+
+
+def reception_kiosk_matching_accts(request, flexid) -> JsonResponse:
+
+    membs = Member.objects.filter(auth_user__username__istartswith=flexid)
+
+    if len(membs) > 10:
+        # More than 10 results will just overwhelm the user, so return none.
+        return JsonResponse({"target": flexid, "matches": []})
+
+    accts = []
+    for memb in membs:  # type: Member
+        acct = {
+            "userName": memb.username,
+            "memberNum": memb.id,
+        }
+        accts.append(acct)
+
+    return JsonResponse({"target": flexid, "matches": accts})
+
 
