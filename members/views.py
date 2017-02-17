@@ -17,9 +17,10 @@ from django.core.exceptions import PermissionDenied
 from django.contrib.auth.decorators import login_required
 from django.views.generic import View
 from django.conf import settings
+from django.db.models import Q
 from rest_framework import viewsets
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from reportlab.pdfgen import canvas
 from reportlab.graphics.shapes import Drawing
 from reportlab.graphics.barcode.qr import QrCodeWidget
@@ -432,6 +433,7 @@ class DiscoveryMethodViewSet(viewsets.ModelViewSet):
     """
     queryset = DiscoveryMethod.objects.all().order_by('order')
     serializer_class = ser.DiscoveryMethodSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
 
 
 class MembershipGiftCardReferenceViewSet(viewsets.ModelViewSet):
@@ -666,8 +668,9 @@ def reception_kiosk_spa(request) -> HttpResponse:
 
 
 def reception_kiosk_matching_accts(request, flexid) -> JsonResponse:
-
-    membs = Member.objects.filter(auth_user__username__istartswith=flexid)
+    usernameQ = Q(auth_user__username__istartswith=flexid)
+    surnameQ = Q(auth_user__last_name__istartswith=flexid)
+    membs = Member.objects.filter(usernameQ | surnameQ)
 
     if len(membs) > 10:
         # More than 10 results will just overwhelm the user, so return none.

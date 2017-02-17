@@ -8,6 +8,8 @@ import Task
 import Json.Decode as Dec
 import Json.Encode as Enc
 
+import Update.Extra.Infix exposing ((:>))
+
 import Material.Textfield as Textfield
 import Material.Button as Button
 import Material.Toggles as Toggles
@@ -48,6 +50,7 @@ type alias Flags =
   , orgName: String
   , bannerTopUrl: String
   , bannerBottomUrl: String
+  , discoveryMethodsUrl: String
   }
 
 type Scene
@@ -62,6 +65,19 @@ type Scene
   | Activity
   | SupportUs
   | Done
+
+type alias DiscoveryMethod =
+  { id: Int
+  , name: String
+  , order: Int
+  }
+
+type alias DiscoveryMethodInfo =
+  { count: Int
+  , next: Maybe String
+  , previous: Maybe String
+  , results: List DiscoveryMethod
+  }
 
 type alias Acct =
   { userName: String
@@ -98,11 +114,13 @@ type alias Model =
   , orgName: String
   , bannerTopUrl: String
   , bannerBottomUrl: String
+  , discoveryMethodsUrl: String
   , sceneStack: List Scene  -- 1st element is the top of the stack
   , mdl: Material.Model
   , flexId: String  -- UserName, surname, or email.
   , visitor: Acct
-  , matches: List MatchingAcct
+  , matches: List MatchingAcct  -- Matches to username/surname
+  , discoveryMethods: List DiscoveryMethod  -- Fetched from backend
   , error: Maybe String
   }
 
@@ -113,10 +131,12 @@ init f =
       f.orgName
       f.bannerTopUrl
       f.bannerBottomUrl
+      f.discoveryMethodsUrl
       [Welcome]
       Material.model
       ""
       blankAcct
+      []
       []
       Nothing
   , Cmd.none
@@ -125,7 +145,7 @@ init f =
 -- reset restores the model as it was after init.
 reset : Model -> (Model, Cmd Msg)
 reset m =
-    init (Flags m.csrfToken m.orgName m.bannerTopUrl m.bannerBottomUrl)
+    init (Flags m.csrfToken m.orgName m.bannerTopUrl m.bannerBottomUrl m.discoveryMethodsUrl)
 
 -----------------------------------------------------------------------------
 -- UPDATE
@@ -144,14 +164,15 @@ type Msg
   | UpdatePassword String
   | UpdateMatchingAccts (Result Http.Error MatchingAcctInfo)
   | LogCheckIn Int
+  | AccDiscoveryMethods (Result Http.Error DiscoveryMethodInfo)  -- "Acc" means "accumulate"
 
 findMatchingAccts : Model -> String -> Html Msg
 findMatchingAccts model flexId =
     div [] []
 
 update : Msg -> Model -> (Model, Cmd Msg)
-update action model =
-  case action of
+update msg model =
+  case msg of
 
     Mdl msg2 ->
       Material.update Mdl msg2 model
@@ -159,6 +180,18 @@ update action model =
     PushScene Welcome ->
       -- Segue to "Welcome" is a special case since it re-initializes the scene stack.
       reset model
+
+    PushScene LetsCreate ->
+      -- Segue to account creation is a good place to start fetching the "discovery methods" from backend.
+      let
+        url = model.discoveryMethodsUrl
+        request = Http.get url decodeDiscoveryMethodInfo
+        cmd =
+          if List.length model.discoveryMethods == 0
+          then Http.send AccDiscoveryMethods request
+          else Cmd.none -- Don't fetch if we already have them. Can happen with backward scene navigation.
+      in
+        ({model | sceneStack = LetsCreate::model.sceneStack }, cmd)
 
     PushScene nextScene ->
       -- Push the new scene onto the scene stack.
@@ -214,7 +247,19 @@ update action model =
       ({model | error = Just (toString error)}, Cmd.none)
 
     LogCheckIn memberNum ->
-      (model, Cmd.none)
+      -- TODO: Log the visit. Might be last feature to be implemented to avoid collecting bogus visits during alpha testing.
+      (model, Cmd.none) :> update (PushScene Done)
+
+    AccDiscoveryMethods (Ok {count, next, previous, results}) ->
+      -- Data from backend might be paged, so we need to accumulate the batches as they come.
+      let
+        methods = model.discoveryMethods ++ results
+      in
+        -- Also need to deal with "next", if it's not Nothing.
+        ({model | discoveryMethods = methods}, Cmd.none)
+
+    AccDiscoveryMethods (Err error) ->
+      ({model | error = Just (toString error)}, Cmd.none)
 
 -----------------------------------------------------------------------------
 -- VIEW
@@ -310,7 +355,7 @@ canvasView model scene =
 
 howDidYouHearChoices : Model -> Html Msg
 howDidYouHearChoices model =
-  text ""
+  div [] (List.map (\dm -> p [] [text dm.name]) model.discoveryMethods)
 
 view : Model -> Html Msg
 view model =
@@ -447,6 +492,21 @@ decodeMatchingAcctInfo =
   Dec.map2 MatchingAcctInfo
     (Dec.field "target" Dec.string)
     (Dec.field "matches" (Dec.list decodeMatchingAcct))
+
+decodeDiscoveryMethod : Dec.Decoder DiscoveryMethod
+decodeDiscoveryMethod =
+  Dec.map3 DiscoveryMethod
+    (Dec.field "id" Dec.int)
+    (Dec.field "name" Dec.string)
+    (Dec.field "order" Dec.int)
+
+decodeDiscoveryMethodInfo : Dec.Decoder DiscoveryMethodInfo
+decodeDiscoveryMethodInfo =
+  Dec.map4 DiscoveryMethodInfo
+    (Dec.field "count" Dec.int)
+    (Dec.field "next" (Dec.maybe Dec.string))
+    (Dec.field "previous" (Dec.maybe Dec.string))
+    (Dec.field "results" (Dec.list decodeDiscoveryMethod))
 
 
 -----------------------------------------------------------------------------

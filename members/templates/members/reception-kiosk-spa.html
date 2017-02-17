@@ -7,7 +7,8 @@
     <meta charset="UTF-8">
     <title>Reception</title>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
     <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Roboto Condensed">
 
     <!-- MDL -->
@@ -42,6 +43,7 @@
             "orgName": "{{ org_name }}",
             "bannerTopUrl": "{% static 'xerops/GenericBannerTop_800x155.png' %}",
             "bannerBottomUrl": "{% static 'xerops/GenericBannerBottom_800x84.png' %}",
+            "discoveryMethodsUrl": "{% url 'memb:discoverymethod-list' %}",
         };
         var myContainer = document.getElementById("myContainer");
         var app = Elm.ReceptionKiosk.embed(myContainer, flags);
