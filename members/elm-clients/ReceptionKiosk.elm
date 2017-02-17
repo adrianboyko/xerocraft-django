@@ -184,7 +184,7 @@ update msg model =
     PushScene LetsCreate ->
       -- Segue to account creation is a good place to start fetching the "discovery methods" from backend.
       let
-        url = model.discoveryMethodsUrl
+        url = model.discoveryMethodsUrl ++ "?format=json"  -- Easier than an "Accept" header.
         request = Http.get url decodeDiscoveryMethodInfo
         cmd =
           if List.length model.discoveryMethods == 0
@@ -309,22 +309,29 @@ sceneCheckbox model index label value msger =
 
 navButtons : Model -> Html Msg
 navButtons model =
-  if List.length model.sceneStack > 1
-  then
-    div [navDivStyle]
+  div [navDivStyle]
+    (
+    if List.length model.sceneStack > 1
+    then
       [ Button.render Mdl [0] model.mdl
           ([Button.flat, Options.onClick PopScene]++navButtonCss)
           [text "Back"]
+      , hspace 600
       , Button.render Mdl [0] model.mdl
           ([Button.flat, Options.onClick (PushScene Welcome)]++navButtonCss)
           [text "Quit"]
       ]
     else
-      text ""
+      [text ""]
+    )
 
 vspace : Int -> Html Msg
 vspace amount =
   div [style ["height" => (toString amount ++ "px")]] []
+
+hspace : Int -> Html Msg
+hspace amount =
+  div [style ["display" => "inline-block", "width" => (toString amount ++ "px")]] []
 
 sceneView: Model -> String -> String -> Html Msg -> List ButtonSpec -> Html Msg
 sceneView model inTitle inSubtitle extraContent buttonSpecs =
@@ -338,7 +345,6 @@ sceneView model inTitle inSubtitle extraContent buttonSpecs =
       , extraContent
       , vspace 50
       , div [] (List.map (sceneButton model) buttonSpecs)
-      , navButtons model
       , case model.error of
           Just err -> text err
           Nothing -> text ""
@@ -349,7 +355,7 @@ canvasView model scene =
   div [canvasDivStyle]
     [ img [src model.bannerTopUrl, bannerTopStyle] []
     , div [sceneDivStyle] scene
---    , navButtons model
+    , navButtons model
     , img [src model.bannerBottomUrl, bannerBottomStyle] []
     ]
 
@@ -581,6 +587,8 @@ bannerBottomStyle = style
   , "width" => sceneWidth
   ]
 
+navDivStyle = bannerBottomStyle
+
 viewButtonCss =
   [ css "margin-left" "10px"
   , css "margin-right" "10px"
@@ -591,19 +599,11 @@ viewButtonCss =
   , css "font-size" "18pt"
   ]
 
-navDivStyle = style
-  [ "display" => "block"
-  , "margin-left" => "auto"
-  , "margin-right" => "auto"
-  , "width" => sceneWidth
-  ]
-
 navButtonCss =
-  [ css "margin-left" "120px"
-  , css "margin-right" "120px"
-  , css "margin-top" "100px"
+  [ css "display" "inline-block"
+  , css "margin-top" "30px"
   , css "font-size" "14pt"
-  , css "font-color" "#dddddd"
+  , css "color" "#eeeeee"
   ]
 
 sceneChipCss =

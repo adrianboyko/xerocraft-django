@@ -15665,21 +15665,17 @@ var _user$project$ReceptionKiosk$sceneChipCss = {
 };
 var _user$project$ReceptionKiosk$navButtonCss = {
 	ctor: '::',
-	_0: A2(_debois$elm_mdl$Material_Options$css, 'margin-left', '120px'),
+	_0: A2(_debois$elm_mdl$Material_Options$css, 'display', 'inline-block'),
 	_1: {
 		ctor: '::',
-		_0: A2(_debois$elm_mdl$Material_Options$css, 'margin-right', '120px'),
+		_0: A2(_debois$elm_mdl$Material_Options$css, 'margin-top', '30px'),
 		_1: {
 			ctor: '::',
-			_0: A2(_debois$elm_mdl$Material_Options$css, 'margin-top', '100px'),
+			_0: A2(_debois$elm_mdl$Material_Options$css, 'font-size', '14pt'),
 			_1: {
 				ctor: '::',
-				_0: A2(_debois$elm_mdl$Material_Options$css, 'font-size', '14pt'),
-				_1: {
-					ctor: '::',
-					_0: A2(_debois$elm_mdl$Material_Options$css, 'font-color', '#dddddd'),
-					_1: {ctor: '[]'}
-				}
+				_0: A2(_debois$elm_mdl$Material_Options$css, 'color', '#eeeeee'),
+				_1: {ctor: '[]'}
 			}
 		}
 	}
@@ -15896,24 +15892,7 @@ var _user$project$ReceptionKiosk$bannerBottomStyle = _elm_lang$html$Html_Attribu
 			}
 		}
 	});
-var _user$project$ReceptionKiosk$navDivStyle = _elm_lang$html$Html_Attributes$style(
-	{
-		ctor: '::',
-		_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'display', 'block'),
-		_1: {
-			ctor: '::',
-			_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-left', 'auto'),
-			_1: {
-				ctor: '::',
-				_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-right', 'auto'),
-				_1: {
-					ctor: '::',
-					_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'width', _user$project$ReceptionKiosk$sceneWidth),
-					_1: {ctor: '[]'}
-				}
-			}
-		}
-	});
+var _user$project$ReceptionKiosk$navDivStyle = _user$project$ReceptionKiosk$bannerBottomStyle;
 var _user$project$ReceptionKiosk$subscriptions = function (model) {
 	return _elm_lang$core$Platform_Sub$batch(
 		{ctor: '[]'});
@@ -15936,58 +15915,31 @@ var _user$project$ReceptionKiosk$howDidYouHearChoices = function (model) {
 			},
 			model.discoveryMethods));
 };
-var _user$project$ReceptionKiosk$canvasView = F2(
-	function (model, scene) {
-		return A2(
-			_elm_lang$html$Html$div,
-			{
-				ctor: '::',
-				_0: _user$project$ReceptionKiosk$canvasDivStyle,
-				_1: {ctor: '[]'}
-			},
-			{
-				ctor: '::',
-				_0: A2(
-					_elm_lang$html$Html$img,
-					{
-						ctor: '::',
-						_0: _elm_lang$html$Html_Attributes$src(model.bannerTopUrl),
-						_1: {
-							ctor: '::',
-							_0: _user$project$ReceptionKiosk$bannerTopStyle,
-							_1: {ctor: '[]'}
-						}
-					},
-					{ctor: '[]'}),
-				_1: {
+var _user$project$ReceptionKiosk$hspace = function (amount) {
+	return A2(
+		_elm_lang$html$Html$div,
+		{
+			ctor: '::',
+			_0: _elm_lang$html$Html_Attributes$style(
+				{
 					ctor: '::',
-					_0: A2(
-						_elm_lang$html$Html$div,
-						{
-							ctor: '::',
-							_0: _user$project$ReceptionKiosk$sceneDivStyle,
-							_1: {ctor: '[]'}
-						},
-						scene),
+					_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'display', 'inline-block'),
 					_1: {
 						ctor: '::',
 						_0: A2(
-							_elm_lang$html$Html$img,
-							{
-								ctor: '::',
-								_0: _elm_lang$html$Html_Attributes$src(model.bannerBottomUrl),
-								_1: {
-									ctor: '::',
-									_0: _user$project$ReceptionKiosk$bannerBottomStyle,
-									_1: {ctor: '[]'}
-								}
-							},
-							{ctor: '[]'}),
+							_user$project$ReceptionKiosk_ops['=>'],
+							'width',
+							A2(
+								_elm_lang$core$Basics_ops['++'],
+								_elm_lang$core$Basics$toString(amount),
+								'px')),
 						_1: {ctor: '[]'}
 					}
-				}
-			});
-	});
+				}),
+			_1: {ctor: '[]'}
+		},
+		{ctor: '[]'});
+};
 var _user$project$ReceptionKiosk$vspace = function (amount) {
 	return A2(
 		_elm_lang$html$Html$div,
@@ -16191,7 +16143,7 @@ var _user$project$ReceptionKiosk$update = F2(
 					case 'Welcome':
 						return _user$project$ReceptionKiosk$reset(model);
 					case 'LetsCreate':
-						var url = model.discoveryMethodsUrl;
+						var url = A2(_elm_lang$core$Basics_ops['++'], model.discoveryMethodsUrl, '?format=json');
 						var request = A2(_elm_lang$http$Http$get, url, _user$project$ReceptionKiosk$decodeDiscoveryMethodInfo);
 						var cmd = _elm_lang$core$Native_Utils.eq(
 							_elm_lang$core$List$length(model.discoveryMethods),
@@ -16561,16 +16513,16 @@ var _user$project$ReceptionKiosk$sceneCheckbox = F5(
 			});
 	});
 var _user$project$ReceptionKiosk$navButtons = function (model) {
-	return (_elm_lang$core$Native_Utils.cmp(
-		_elm_lang$core$List$length(model.sceneStack),
-		1) > 0) ? A2(
+	return A2(
 		_elm_lang$html$Html$div,
 		{
 			ctor: '::',
 			_0: _user$project$ReceptionKiosk$navDivStyle,
 			_1: {ctor: '[]'}
 		},
-		{
+		(_elm_lang$core$Native_Utils.cmp(
+			_elm_lang$core$List$length(model.sceneStack),
+			1) > 0) ? {
 			ctor: '::',
 			_0: A5(
 				_debois$elm_mdl$Material_Button$render,
@@ -16600,37 +16552,101 @@ var _user$project$ReceptionKiosk$navButtons = function (model) {
 				}),
 			_1: {
 				ctor: '::',
-				_0: A5(
-					_debois$elm_mdl$Material_Button$render,
-					_user$project$ReceptionKiosk$Mdl,
-					{
-						ctor: '::',
-						_0: 0,
-						_1: {ctor: '[]'}
-					},
-					model.mdl,
-					A2(
-						_elm_lang$core$Basics_ops['++'],
+				_0: _user$project$ReceptionKiosk$hspace(600),
+				_1: {
+					ctor: '::',
+					_0: A5(
+						_debois$elm_mdl$Material_Button$render,
+						_user$project$ReceptionKiosk$Mdl,
 						{
 							ctor: '::',
-							_0: _debois$elm_mdl$Material_Button$flat,
-							_1: {
-								ctor: '::',
-								_0: _debois$elm_mdl$Material_Options$onClick(
-									_user$project$ReceptionKiosk$PushScene(_user$project$ReceptionKiosk$Welcome)),
-								_1: {ctor: '[]'}
-							}
+							_0: 0,
+							_1: {ctor: '[]'}
 						},
-						_user$project$ReceptionKiosk$navButtonCss),
+						model.mdl,
+						A2(
+							_elm_lang$core$Basics_ops['++'],
+							{
+								ctor: '::',
+								_0: _debois$elm_mdl$Material_Button$flat,
+								_1: {
+									ctor: '::',
+									_0: _debois$elm_mdl$Material_Options$onClick(
+										_user$project$ReceptionKiosk$PushScene(_user$project$ReceptionKiosk$Welcome)),
+									_1: {ctor: '[]'}
+								}
+							},
+							_user$project$ReceptionKiosk$navButtonCss),
+						{
+							ctor: '::',
+							_0: _elm_lang$html$Html$text('Quit'),
+							_1: {ctor: '[]'}
+						}),
+					_1: {ctor: '[]'}
+				}
+			}
+		} : {
+			ctor: '::',
+			_0: _elm_lang$html$Html$text(''),
+			_1: {ctor: '[]'}
+		});
+};
+var _user$project$ReceptionKiosk$canvasView = F2(
+	function (model, scene) {
+		return A2(
+			_elm_lang$html$Html$div,
+			{
+				ctor: '::',
+				_0: _user$project$ReceptionKiosk$canvasDivStyle,
+				_1: {ctor: '[]'}
+			},
+			{
+				ctor: '::',
+				_0: A2(
+					_elm_lang$html$Html$img,
 					{
 						ctor: '::',
-						_0: _elm_lang$html$Html$text('Quit'),
-						_1: {ctor: '[]'}
-					}),
-				_1: {ctor: '[]'}
-			}
-		}) : _elm_lang$html$Html$text('');
-};
+						_0: _elm_lang$html$Html_Attributes$src(model.bannerTopUrl),
+						_1: {
+							ctor: '::',
+							_0: _user$project$ReceptionKiosk$bannerTopStyle,
+							_1: {ctor: '[]'}
+						}
+					},
+					{ctor: '[]'}),
+				_1: {
+					ctor: '::',
+					_0: A2(
+						_elm_lang$html$Html$div,
+						{
+							ctor: '::',
+							_0: _user$project$ReceptionKiosk$sceneDivStyle,
+							_1: {ctor: '[]'}
+						},
+						scene),
+					_1: {
+						ctor: '::',
+						_0: _user$project$ReceptionKiosk$navButtons(model),
+						_1: {
+							ctor: '::',
+							_0: A2(
+								_elm_lang$html$Html$img,
+								{
+									ctor: '::',
+									_0: _elm_lang$html$Html_Attributes$src(model.bannerBottomUrl),
+									_1: {
+										ctor: '::',
+										_0: _user$project$ReceptionKiosk$bannerBottomStyle,
+										_1: {ctor: '[]'}
+									}
+								},
+								{ctor: '[]'}),
+							_1: {ctor: '[]'}
+						}
+					}
+				}
+			});
+	});
 var _user$project$ReceptionKiosk$sceneView = F5(
 	function (model, inTitle, inSubtitle, extraContent, buttonSpecs) {
 		var subtitle = A3(_user$project$ReceptionKiosk$replaceAll, inSubtitle, 'ORGNAME', model.orgName);
@@ -16683,19 +16699,15 @@ var _user$project$ReceptionKiosk$sceneView = F5(
 										buttonSpecs)),
 								_1: {
 									ctor: '::',
-									_0: _user$project$ReceptionKiosk$navButtons(model),
-									_1: {
-										ctor: '::',
-										_0: function () {
-											var _p3 = model.error;
-											if (_p3.ctor === 'Just') {
-												return _elm_lang$html$Html$text(_p3._0);
-											} else {
-												return _elm_lang$html$Html$text('');
-											}
-										}(),
-										_1: {ctor: '[]'}
-									}
+									_0: function () {
+										var _p3 = model.error;
+										if (_p3.ctor === 'Just') {
+											return _elm_lang$html$Html$text(_p3._0);
+										} else {
+											return _elm_lang$html$Html$text('');
+										}
+									}(),
+									_1: {ctor: '[]'}
 								}
 							}
 						}
