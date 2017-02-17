@@ -39,6 +39,11 @@ replaceAll : String -> String -> String -> String
 replaceAll theString oldSub newSub =
   Regex.replace Regex.All (regex oldSub ) (\_ -> newSub) theString
 
+djangoizeId : String -> String
+djangoizeId rawId =
+  -- TODO: Replacing spaces handles 90% of cases, but need to handle other forbidden chars.
+  replaceAll rawId " " "_"
+
 
 -----------------------------------------------------------------------------
 -- MODEL
@@ -201,17 +206,19 @@ update msg model =
       -- Pop the top scene off the stack.
       ({model | sceneStack = Maybe.withDefault [Welcome] (List.tail model.sceneStack) }, Cmd.none)
 
-    UpdateFlexId id ->
-      if (String.length id) > 1
-      then
-        let
-          url = "/members/reception/matching-accts/"++id++"/"  -- TODO: Django-ize the id.
-          request = Http.get url decodeMatchingAcctInfo
-          cmd = Http.send UpdateMatchingAccts request
-        in
-          ({model | flexId = id}, cmd)
-      else
-        ({model | matches = [], flexId = id}, Cmd.none )
+    UpdateFlexId rawId ->
+      let id = djangoizeId rawId
+      in
+        if (String.length id) > 1
+        then
+          let
+            url = "/members/reception/matching-accts/"++id++"/"
+            request = Http.get url decodeMatchingAcctInfo
+            cmd = Http.send UpdateMatchingAccts request
+          in
+            ({model | flexId = id}, cmd)
+        else
+          ({model | matches = [], flexId = id}, Cmd.none )
 
 
     UpdateFirstName newVal ->
@@ -394,6 +401,9 @@ view model =
         ( div []
             (List.concat
               [ [sceneTextField model 1 "Your Username or Surname" model.flexId UpdateFlexId, vspace 0]
+              , if List.length model.matches > 0
+                 then [vspace 30, text "Tap your userid, below:", vspace 20]
+                 else [vspace 0]
               , List.map (\acct -> Chip.button [Options.onClick (LogCheckIn acct.memberNum)] [ Chip.content [] [ text acct.userName]]) model.matches
               ]
             )

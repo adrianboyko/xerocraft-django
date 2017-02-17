@@ -15979,6 +15979,9 @@ var _user$project$ReceptionKiosk$replaceAll = F3(
 			},
 			theString);
 	});
+var _user$project$ReceptionKiosk$djangoizeId = function (rawId) {
+	return A3(_user$project$ReceptionKiosk$replaceAll, rawId, ' ', '_');
+};
 var _user$project$ReceptionKiosk$Flags = F5(
 	function (a, b, c, d, e) {
 		return {csrfToken: a, orgName: b, bannerTopUrl: c, bannerBottomUrl: d, discoveryMethodsUrl: e};
@@ -16186,21 +16189,21 @@ var _user$project$ReceptionKiosk$update = F2(
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 			case 'UpdateFlexId':
-				var _p2 = _p1._0;
+				var id = _user$project$ReceptionKiosk$djangoizeId(_p1._0);
 				if (_elm_lang$core$Native_Utils.cmp(
-					_elm_lang$core$String$length(_p2),
+					_elm_lang$core$String$length(id),
 					1) > 0) {
 					var url = A2(
 						_elm_lang$core$Basics_ops['++'],
 						'/members/reception/matching-accts/',
-						A2(_elm_lang$core$Basics_ops['++'], _p2, '/'));
+						A2(_elm_lang$core$Basics_ops['++'], id, '/'));
 					var request = A2(_elm_lang$http$Http$get, url, _user$project$ReceptionKiosk$decodeMatchingAcctInfo);
 					var cmd = A2(_elm_lang$http$Http$send, _user$project$ReceptionKiosk$UpdateMatchingAccts, request);
 					return {
 						ctor: '_Tuple2',
 						_0: _elm_lang$core$Native_Utils.update(
 							model,
-							{flexId: _p2}),
+							{flexId: id}),
 						_1: cmd
 					};
 				} else {
@@ -16210,7 +16213,7 @@ var _user$project$ReceptionKiosk$update = F2(
 							model,
 							{
 								matches: {ctor: '[]'},
-								flexId: _p2
+								flexId: id
 							}),
 						_1: _elm_lang$core$Platform_Cmd$none
 					};
@@ -16700,9 +16703,9 @@ var _user$project$ReceptionKiosk$sceneView = F5(
 								_1: {
 									ctor: '::',
 									_0: function () {
-										var _p3 = model.error;
-										if (_p3.ctor === 'Just') {
-											return _elm_lang$html$Html$text(_p3._0);
+										var _p2 = model.error;
+										if (_p2.ctor === 'Just') {
+											return _elm_lang$html$Html$text(_p2._0);
 										} else {
 											return _elm_lang$html$Html$text('');
 										}
@@ -16716,11 +16719,11 @@ var _user$project$ReceptionKiosk$sceneView = F5(
 			});
 	});
 var _user$project$ReceptionKiosk$view = function (model) {
-	var _p4 = A2(
+	var _p3 = A2(
 		_elm_lang$core$Maybe$withDefault,
 		_user$project$ReceptionKiosk$Welcome,
 		_elm_lang$core$List$head(model.sceneStack));
-	switch (_p4.ctor) {
+	switch (_p3.ctor) {
 		case 'Welcome':
 			return A5(
 				_user$project$ReceptionKiosk$sceneView,
@@ -16776,32 +16779,54 @@ var _user$project$ReceptionKiosk$view = function (model) {
 							},
 							_1: {
 								ctor: '::',
-								_0: A2(
-									_elm_lang$core$List$map,
-									function (acct) {
-										return A2(
-											_debois$elm_mdl$Material_Chip$button,
-											{
-												ctor: '::',
-												_0: _debois$elm_mdl$Material_Options$onClick(
-													_user$project$ReceptionKiosk$LogCheckIn(acct.memberNum)),
-												_1: {ctor: '[]'}
-											},
-											{
-												ctor: '::',
-												_0: A2(
-													_debois$elm_mdl$Material_Chip$content,
-													{ctor: '[]'},
-													{
-														ctor: '::',
-														_0: _elm_lang$html$Html$text(acct.userName),
-														_1: {ctor: '[]'}
-													}),
-												_1: {ctor: '[]'}
-											});
-									},
-									model.matches),
-								_1: {ctor: '[]'}
+								_0: (_elm_lang$core$Native_Utils.cmp(
+									_elm_lang$core$List$length(model.matches),
+									0) > 0) ? {
+									ctor: '::',
+									_0: _user$project$ReceptionKiosk$vspace(30),
+									_1: {
+										ctor: '::',
+										_0: _elm_lang$html$Html$text('Tap your userid, below:'),
+										_1: {
+											ctor: '::',
+											_0: _user$project$ReceptionKiosk$vspace(20),
+											_1: {ctor: '[]'}
+										}
+									}
+								} : {
+									ctor: '::',
+									_0: _user$project$ReceptionKiosk$vspace(0),
+									_1: {ctor: '[]'}
+								},
+								_1: {
+									ctor: '::',
+									_0: A2(
+										_elm_lang$core$List$map,
+										function (acct) {
+											return A2(
+												_debois$elm_mdl$Material_Chip$button,
+												{
+													ctor: '::',
+													_0: _debois$elm_mdl$Material_Options$onClick(
+														_user$project$ReceptionKiosk$LogCheckIn(acct.memberNum)),
+													_1: {ctor: '[]'}
+												},
+												{
+													ctor: '::',
+													_0: A2(
+														_debois$elm_mdl$Material_Chip$content,
+														{ctor: '[]'},
+														{
+															ctor: '::',
+															_0: _elm_lang$html$Html$text(acct.userName),
+															_1: {ctor: '[]'}
+														}),
+													_1: {ctor: '[]'}
+												});
+										},
+										model.matches),
+									_1: {ctor: '[]'}
+								}
 							}
 						})),
 				{ctor: '[]'});
