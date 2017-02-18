@@ -668,8 +668,8 @@ def reception_kiosk_spa(request) -> HttpResponse:
 
 
 def reception_kiosk_matching_accts(request, flexid) -> JsonResponse:
-    usernameQ = Q(auth_user__username__istartswith=flexid)
-    surnameQ = Q(auth_user__last_name__istartswith=flexid)
+    usernameQ = Q(auth_user__username__istartswith=flexid, auth_user__is_active=True)
+    surnameQ = Q(auth_user__last_name__istartswith=flexid, auth_user__is_active=True)
     membs = Member.objects.filter(usernameQ | surnameQ)
 
     if len(membs) > 10:

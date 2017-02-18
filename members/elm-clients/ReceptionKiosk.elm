@@ -10,12 +10,17 @@ import Json.Encode as Enc
 
 import Update.Extra.Infix exposing ((:>))
 
+import Json.Decode.Pipeline exposing (decode, required, hardcoded)
+
+import List.Extra
+
 import Material.Textfield as Textfield
 import Material.Button as Button
 import Material.Toggles as Toggles
 import Material.Chip as Chip
-import Material
 import Material.Options as Options exposing (css)
+import Material.List as Lists
+import Material
 
 
 -----------------------------------------------------------------------------
@@ -75,6 +80,7 @@ type alias DiscoveryMethod =
   { id: Int
   , name: String
   , order: Int
+  , selected: Bool
   }
 
 type alias DiscoveryMethodInfo =
@@ -87,12 +93,24 @@ type alias DiscoveryMethodInfo =
 type alias Acct =
   { userName: String
   , password: String
+  , password2: String  -- The password retyped.
   , memberNum: Maybe Int
   , firstName: String
   , lastName: String
   , email: String
   , isAdult: Bool
   }
+
+blankAcct : Acct
+blankAcct = Acct
+    ""
+    ""
+    ""
+    Nothing
+    ""
+    ""
+    ""
+    False
 
 type alias MatchingAcct =
   { userName: String
@@ -103,16 +121,6 @@ type alias MatchingAcctInfo =
   { target: String
   , matches: List MatchingAcct
   }
-
-blankAcct : Acct
-blankAcct = Acct
-    ""
-    ""
-    Nothing
-    ""
-    ""
-    ""
-    False
 
 type alias Model =
   { csrfToken: String
@@ -167,9 +175,11 @@ type Msg
   | ToggleIsAdult
   | UpdateUserName String
   | UpdatePassword String
+  | UpdatePassword2 String
   | UpdateMatchingAccts (Result Http.Error MatchingAcctInfo)
   | LogCheckIn Int
   | AccDiscoveryMethods (Result Http.Error DiscoveryMethodInfo)  -- "Acc" means "accumulate"
+  | ToggleDiscoveryMethod DiscoveryMethod
 
 findMatchingAccts : Model -> String -> Html Msg
 findMatchingAccts model flexId =
@@ -245,6 +255,10 @@ update msg model =
       let v = model.visitor  -- This is necessary because of a bug in PyCharm elm plugin.
       in ({model | visitor = {v | password = newVal }}, Cmd.none)
 
+    UpdatePassword2 newVal ->
+      let v = model.visitor  -- This is necessary because of a bug in PyCharm elm plugin.
+      in ({model | visitor = {v | password2 = newVal }}, Cmd.none)
+
     UpdateMatchingAccts (Ok {target, matches}) ->
       if target == model.flexId
       then ({model | matches = matches, error = Nothing}, Cmd.none)
@@ -267,6 +281,16 @@ update msg model =
 
     AccDiscoveryMethods (Err error) ->
       ({model | error = Just (toString error)}, Cmd.none)
+
+    ToggleDiscoveryMethod dm ->
+      let
+        replace = List.Extra.replaceIf
+        picker = \x -> x.id == dm.id
+        replacement = { dm | selected = not dm.selected }
+      in
+        -- TODO: This should also add/remove the discovery method choice on the backend.
+        ({model | discoveryMethods = replace picker replacement model.discoveryMethods}, Cmd.none)
+
 
 -----------------------------------------------------------------------------
 -- VIEW
@@ -368,7 +392,22 @@ canvasView model scene =
 
 howDidYouHearChoices : Model -> Html Msg
 howDidYouHearChoices model =
-  div [] (List.map (\dm -> p [] [text dm.name]) model.discoveryMethods)
+  Lists.ul howDidYouHearCss
+    (List.map
+      ( \dm ->
+          Lists.li [css "font-size" "18pt"]
+            [ Lists.content [] [ text dm.name ]
+            , Lists.content2 []
+              [ Toggles.checkbox Mdl [1000+dm.id] model.mdl  -- 1000 establishes an id range for these.
+                  [ Toggles.value dm.selected
+                  , Options.onToggle (ToggleDiscoveryMethod dm)
+                  ]
+                  []
+              ]
+            ]
+      )
+      model.discoveryMethods
+    )
 
 view : Model -> Html Msg
 view model =
@@ -434,9 +473,11 @@ view model =
             [ sceneTextField model 6 "Choose a user name" model.visitor.userName UpdateUserName
             , vspace 0
             , scenePasswordField model 7 "Choose a password" model.visitor.password UpdatePassword
+            , vspace 0
+            , scenePasswordField model 8 "Type password again" model.visitor.password2 UpdatePassword2
             ]
         )
-        [ButtonSpec "OK" HowDidYouHear]
+        [ButtonSpec "Create Account" HowDidYouHear]
 
     HowDidYouHear ->
       sceneView model
@@ -511,10 +552,11 @@ decodeMatchingAcctInfo =
 
 decodeDiscoveryMethod : Dec.Decoder DiscoveryMethod
 decodeDiscoveryMethod =
-  Dec.map3 DiscoveryMethod
-    (Dec.field "id" Dec.int)
-    (Dec.field "name" Dec.string)
-    (Dec.field "order" Dec.int)
+  decode DiscoveryMethod
+    |> required "id" Dec.int
+    |> required "name" Dec.string
+    |> required "order" Dec.int
+    |> hardcoded False
 
 decodeDiscoveryMethodInfo : Dec.Decoder DiscoveryMethodInfo
 decodeDiscoveryMethodInfo =
@@ -619,4 +661,11 @@ navButtonCss =
 sceneChipCss =
   [ css "margin-left" "3px"
   , css "margin-right" "3px"
+  ]
+
+howDidYouHearCss =
+  [ css "width" "400px"
+  , css "margin-left" "auto"
+  , css "margin-right" "auto"
+  , css "margin-top" "80px"
   ]
