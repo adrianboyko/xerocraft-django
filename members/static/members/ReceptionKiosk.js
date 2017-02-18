@@ -17432,6 +17432,211 @@ var _user$project$ReceptionKiosk$bannerBottomStyle = _elm_lang$html$Html_Attribu
 		}
 	});
 var _user$project$ReceptionKiosk$navDivStyle = _user$project$ReceptionKiosk$bannerBottomStyle;
+var _user$project$ReceptionKiosk$waiverHtml = {
+	ctor: '::',
+	_0: A2(
+		_elm_lang$html$Html$p,
+		{
+			ctor: '::',
+			_0: _elm_lang$html$Html_Attributes$style(
+				{
+					ctor: '::',
+					_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'font-size', '20pt'),
+					_1: {
+						ctor: '::',
+						_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'font-weight', 'bold'),
+						_1: {
+							ctor: '::',
+							_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-top', '10px'),
+							_1: {ctor: '[]'}
+						}
+					}
+				}),
+			_1: {ctor: '[]'}
+		},
+		{
+			ctor: '::',
+			_0: _elm_lang$html$Html$text('XEROCRAFT INC. RELEASE AND WAIVER OF LIABILITY, ASSUMPTION OF RISK, AND INDEMNITY CONSENT AGREEMENT'),
+			_1: {
+				ctor: '::',
+				_0: A2(
+					_elm_lang$html$Html$br,
+					{ctor: '[]'},
+					{ctor: '[]'}),
+				_1: {
+					ctor: '::',
+					_0: _elm_lang$html$Html$text('(\'Agreement\')'),
+					_1: {ctor: '[]'}
+				}
+			}
+		}),
+	_1: {
+		ctor: '::',
+		_0: A2(
+			_elm_lang$html$Html$div,
+			{
+				ctor: '::',
+				_0: _elm_lang$html$Html_Attributes$style(
+					{
+						ctor: '::',
+						_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'text-align', 'left'),
+						_1: {
+							ctor: '::',
+							_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-top', '20px'),
+							_1: {ctor: '[]'}
+						}
+					}),
+				_1: {ctor: '[]'}
+			},
+			{
+				ctor: '::',
+				_0: A2(
+					_elm_lang$html$Html$p,
+					{
+						ctor: '::',
+						_0: _elm_lang$html$Html_Attributes$style(
+							{
+								ctor: '::',
+								_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'font-size', '16pt'),
+								_1: {
+									ctor: '::',
+									_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'line-height', '15pt'),
+									_1: {ctor: '[]'}
+								}
+							}),
+						_1: {ctor: '[]'}
+					},
+					{
+						ctor: '::',
+						_0: _elm_lang$html$Html$text('IN CONSIDERATION of being permitted to participate in any way in the activities of Xerocraft Inc. I, for myself or personal representatives, assigns, heirs, and next of kin:'),
+						_1: {ctor: '[]'}
+					}),
+				_1: {
+					ctor: '::',
+					_0: A2(
+						_elm_lang$html$Html$ol,
+						{
+							ctor: '::',
+							_0: _elm_lang$html$Html_Attributes$style(
+								{
+									ctor: '::',
+									_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'font-size', '16pt'),
+									_1: {
+										ctor: '::',
+										_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'line-height', '15pt'),
+										_1: {ctor: '[]'}
+									}
+								}),
+							_1: {ctor: '[]'}
+						},
+						{
+							ctor: '::',
+							_0: A2(
+								_elm_lang$html$Html$li,
+								{
+									ctor: '::',
+									_0: _elm_lang$html$Html_Attributes$style(
+										{
+											ctor: '::',
+											_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-bottom', '15px'),
+											_1: {ctor: '[]'}
+										}),
+									_1: {ctor: '[]'}
+								},
+								{
+									ctor: '::',
+									_0: _elm_lang$html$Html$text('ACKNOWLEDGE, agree, and represent that I understand the nature of Xerocraft inc.\'s activities and that I am sober, qualified, in good health, and in proper physical and mental condition to participate in such Activity. I further agree and warrant that if at any time I believe conditions to be unsafe, I will immediately discontinue further participation in the Activity.'),
+									_1: {ctor: '[]'}
+								}),
+							_1: {
+								ctor: '::',
+								_0: A2(
+									_elm_lang$html$Html$li,
+									{
+										ctor: '::',
+										_0: _elm_lang$html$Html_Attributes$style(
+											{
+												ctor: '::',
+												_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-bottom', '15px'),
+												_1: {ctor: '[]'}
+											}),
+										_1: {ctor: '[]'}
+									},
+									{
+										ctor: '::',
+										_0: _elm_lang$html$Html$text('FULLY UNDERSTAND THAT: (a) '),
+										_1: {
+											ctor: '::',
+											_0: A2(
+												_elm_lang$html$Html$b,
+												{ctor: '[]'},
+												{
+													ctor: '::',
+													_0: _elm_lang$html$Html$text('THESE ACTIVITIES MAY INVOLVE RISKS AND DANGERS OF SERIOUS BODILY INJURY, INCLUDING PERMANENT DISABILITY, AND DEATH '),
+													_1: {ctor: '[]'}
+												}),
+											_1: {
+												ctor: '::',
+												_0: _elm_lang$html$Html$text('(\'RISKS\'); (b) these Risks and dangers may be caused by my own actions or inaction\'s, the actions or inaction\'s of others participating in the Activity, the condition(s) under which the Activity takes place, or THE NEGLIGENCE OF THE \'RELEASEES\' NAMED BELOW; (c) there may be OTHER RISK AND SOCIAL AND ECONOMIC LOSSES either not known to me or not readily foreseeable at this time; and I FULLY ACCEPT AND ASSUME ALL SUCH RISKS AND ALL RESPONSIBILITY FOR LOSSES, COSTS, AND DAMAGES I incur as a result of my participation or that of the minor in the Activity.'),
+												_1: {ctor: '[]'}
+											}
+										}
+									}),
+								_1: {
+									ctor: '::',
+									_0: A2(
+										_elm_lang$html$Html$li,
+										{ctor: '[]'},
+										{
+											ctor: '::',
+											_0: _elm_lang$html$Html$text('HEREBY RELEASE, DISCHARGE, AND COVENANT NOT TO SUE Xerocraft inc., their respective administrators, directors, agents, officers, members, volunteers, and employees, other participants, any sponsors, advertisers, and, if applicable, owner(s) and lessors of premises on which the Activity takes place, (each considered one of the \'RELEASEES\' herein) FROM ALL LIABILITY, CLAIMS, DEMANDS, LOSSES, OR DAMAGES ON OR BY MY ACCOUNT CAUSED OR ALLEGED TO BE CAUSED IN WHOLE OR IN PART BY THE NEGLIGENCE OF THE \'RELEASEES\' OR OTHERWISE, INCLUDING NEGLIGENT RESCUE OPERATIONS AND I FURTHER AGREE that if, despite this RELEASE AND WAIVER OF LIABILITY, ASSUMPTION OF RISK, AND INDEMNITY AGREEMENT I, or anyone on my behalf, makes a claim against any of the Releasees, I WILL INDEMNIFY, SAVE, AND HOLD HARMLESS EACH OF THE RELEASEES from any litigation expenses, attorney fees, loss, liability, damage, or cost which may incur as the result of such claim. I have read this Agreement, fully understand its terms, understand that I have given up substantial rights by signing it and have signed it freely and without inducement or assurance of any nature and intend it to be a complete and unconditional release of all liability to the greatest extent allowed by law and agree that if any portion of this Agreement is held to be invalid the balance, notwithstanding, shall continue in full force and effect.'),
+											_1: {ctor: '[]'}
+										}),
+									_1: {ctor: '[]'}
+								}
+							}
+						}),
+					_1: {
+						ctor: '::',
+						_0: A2(
+							_elm_lang$html$Html$p,
+							{
+								ctor: '::',
+								_0: _elm_lang$html$Html_Attributes$style(
+									{
+										ctor: '::',
+										_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'font-size', '16pt'),
+										_1: {
+											ctor: '::',
+											_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'line-height', '15pt'),
+											_1: {ctor: '[]'}
+										}
+									}),
+								_1: {ctor: '[]'}
+							},
+							{
+								ctor: '::',
+								_0: A2(
+									_elm_lang$html$Html$b,
+									{ctor: '[]'},
+									{
+										ctor: '::',
+										_0: _elm_lang$html$Html$text('MINOR RELEASE.'),
+										_1: {ctor: '[]'}
+									}),
+								_1: {
+									ctor: '::',
+									_0: _elm_lang$html$Html$text('The minor\'s parent and/or legal guardian, understand the nature of Xerocraft inc.\'s activities and the minor\'s experience and capabilities and believe the minor to be qualified, in good health, and in proper physical and mental condition to participate in such activity. I hereby release, discharge, covenant not to sue, and agree to indemnify and save and hold harmless each of the releasee\'s from all liability claims, demands, losses, or damages on the minor\'s account caused or alleged to be caused in whole or in part by the negligence of the \'releasees\' or otherwise, including negligent rescue operation and further agree that if, despite this release, I, the minor, or anyone on the minor\'s behalf makes a claim against any of the releasees named above, I will indemnify, save, and hold harmless each of the releasees from any litigation expenses, attorney fees, loss liability, damage, or any cost which may incur as the result of any such claim.'),
+									_1: {ctor: '[]'}
+								}
+							}),
+						_1: {ctor: '[]'}
+					}
+				}
+			}),
+		_1: {ctor: '[]'}
+	}
+};
 var _user$project$ReceptionKiosk$subscriptions = function (model) {
 	return _elm_lang$core$Platform_Sub$batch(
 		{ctor: '[]'});
@@ -18551,9 +18756,116 @@ var _user$project$ReceptionKiosk$view = function (model) {
 			return A5(
 				_user$project$ReceptionKiosk$sceneView,
 				model,
-				'Waiver',
-				'Please read the waiver and sign in the box.',
-				_elm_lang$html$Html$text(''),
+				'Some Legalese',
+				'Please read and sign the waiver',
+				A2(
+					_elm_lang$html$Html$div,
+					{ctor: '[]'},
+					{
+						ctor: '::',
+						_0: _user$project$ReceptionKiosk$vspace(20),
+						_1: {
+							ctor: '::',
+							_0: A2(
+								_elm_lang$html$Html$div,
+								{
+									ctor: '::',
+									_0: _elm_lang$html$Html_Attributes$id('waiver-box'),
+									_1: {
+										ctor: '::',
+										_0: _elm_lang$html$Html_Attributes$style(
+											{
+												ctor: '::',
+												_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'height', '350px'),
+												_1: {
+													ctor: '::',
+													_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'overflow-y', 'scroll'),
+													_1: {
+														ctor: '::',
+														_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-left', '20px'),
+														_1: {
+															ctor: '::',
+															_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-right', '20px'),
+															_1: {
+																ctor: '::',
+																_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'border', '1px solid #bbbbbb'),
+																_1: {
+																	ctor: '::',
+																	_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'font-size', '16pt'),
+																	_1: {ctor: '[]'}
+																}
+															}
+														}
+													}
+												}
+											}),
+										_1: {ctor: '[]'}
+									}
+								},
+								_user$project$ReceptionKiosk$waiverHtml),
+							_1: {
+								ctor: '::',
+								_0: A2(
+									_elm_lang$html$Html$p,
+									{
+										ctor: '::',
+										_0: _elm_lang$html$Html_Attributes$style(
+											{
+												ctor: '::',
+												_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-top', '50px'),
+												_1: {
+													ctor: '::',
+													_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'font-size', '16pt'),
+													_1: {
+														ctor: '::',
+														_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-bottom', '5px'),
+														_1: {ctor: '[]'}
+													}
+												}
+											}),
+										_1: {ctor: '[]'}
+									},
+									{
+										ctor: '::',
+										_0: _elm_lang$html$Html$text('sign in box below:'),
+										_1: {ctor: '[]'}
+									}),
+								_1: {
+									ctor: '::',
+									_0: A2(
+										_elm_lang$html$Html$div,
+										{
+											ctor: '::',
+											_0: _elm_lang$html$Html_Attributes$id('signature-pad'),
+											_1: {
+												ctor: '::',
+												_0: _elm_lang$html$Html_Attributes$style(
+													{
+														ctor: '::',
+														_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'height', '200px'),
+														_1: {
+															ctor: '::',
+															_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-left', '20px'),
+															_1: {
+																ctor: '::',
+																_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-right', '20px'),
+																_1: {
+																	ctor: '::',
+																	_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'border', '1px solid #bbbbbb'),
+																	_1: {ctor: '[]'}
+																}
+															}
+														}
+													}),
+												_1: {ctor: '[]'}
+											}
+										},
+										{ctor: '[]'}),
+									_1: {ctor: '[]'}
+								}
+							}
+						}
+					}),
 				{
 					ctor: '::',
 					_0: A2(_user$project$ReceptionKiosk$ButtonSpec, 'Accept', _user$project$ReceptionKiosk$Rules),

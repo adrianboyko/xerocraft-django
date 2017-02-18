@@ -18,6 +18,8 @@
 
     <script src="/static/members/js.cookie.js"></script>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/signature_pad/1.5.3/signature_pad.min.js"></script>
+
     <style>
 
         body {
@@ -52,7 +54,7 @@
             "orgName": "{{ org_name }}",
             "bannerTopUrl": "{% static 'xerops/GenericBannerTop_800x155.png' %}",
             "bannerBottomUrl": "{% static 'xerops/GenericBannerBottom_800x84.png' %}",
-            "discoveryMethodsUrl": "{% url 'memb:discoverymethod-list' %}",
+            "discoveryMethodsUrl": "{% url 'memb:discoverymethod-list' %}"
         };
         var myContainer = document.getElementById("myContainer");
         var app = Elm.ReceptionKiosk.embed(myContainer, flags);
