@@ -17432,6 +17432,63 @@ var _user$project$ReceptionKiosk$bannerBottomStyle = _elm_lang$html$Html_Attribu
 		}
 	});
 var _user$project$ReceptionKiosk$navDivStyle = _user$project$ReceptionKiosk$bannerBottomStyle;
+var _user$project$ReceptionKiosk$waiverBoxStyle = function (isSigning) {
+	return _elm_lang$html$Html_Attributes$style(
+		{
+			ctor: '::',
+			_0: A2(
+				_user$project$ReceptionKiosk_ops['=>'],
+				'height',
+				isSigning ? '350px' : '650px'),
+			_1: {
+				ctor: '::',
+				_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'overflow-y', 'scroll'),
+				_1: {
+					ctor: '::',
+					_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-left', '20px'),
+					_1: {
+						ctor: '::',
+						_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-right', '20px'),
+						_1: {
+							ctor: '::',
+							_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'border', '1px solid #bbbbbb'),
+							_1: {
+								ctor: '::',
+								_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'font-size', '16pt'),
+								_1: {
+									ctor: '::',
+									_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'padding', '5px'),
+									_1: {ctor: '[]'}
+								}
+							}
+						}
+					}
+				}
+			}
+		});
+};
+var _user$project$ReceptionKiosk$signaturePadStyle = _elm_lang$html$Html_Attributes$style(
+	{
+		ctor: '::',
+		_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'height', '200px'),
+		_1: {
+			ctor: '::',
+			_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'width', '760px'),
+			_1: {
+				ctor: '::',
+				_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'border', '1px solid #bbbbbb'),
+				_1: {
+					ctor: '::',
+					_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'cursor', 'crosshair'),
+					_1: {
+						ctor: '::',
+						_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'touch-action', 'none'),
+						_1: {ctor: '[]'}
+					}
+				}
+			}
+		}
+	});
 var _user$project$ReceptionKiosk$waiverHtml = {
 	ctor: '::',
 	_0: A2(
@@ -17687,13 +17744,6 @@ var _user$project$ReceptionKiosk$vspace = function (amount) {
 		},
 		{ctor: '[]'});
 };
-var _user$project$ReceptionKiosk$findMatchingAccts = F2(
-	function (model, flexId) {
-		return A2(
-			_elm_lang$html$Html$div,
-			{ctor: '[]'},
-			{ctor: '[]'});
-	});
 var _user$project$ReceptionKiosk$replaceAll = F3(
 	function (theString, oldSub, newSub) {
 		return A4(
@@ -17708,6 +17758,11 @@ var _user$project$ReceptionKiosk$replaceAll = F3(
 var _user$project$ReceptionKiosk$djangoizeId = function (rawId) {
 	return A3(_user$project$ReceptionKiosk$replaceAll, rawId, ' ', '_');
 };
+var _user$project$ReceptionKiosk$initSignaturePad = _elm_lang$core$Native_Platform.outgoingPort(
+	'initSignaturePad',
+	function (v) {
+		return v;
+	});
 var _user$project$ReceptionKiosk$Flags = F5(
 	function (a, b, c, d, e) {
 		return {csrfToken: a, orgName: b, bannerTopUrl: c, bannerBottomUrl: d, discoveryMethodsUrl: e};
@@ -17790,7 +17845,9 @@ var _user$project$ReceptionKiosk$Model = function (a) {
 									return function (j) {
 										return function (k) {
 											return function (l) {
-												return {csrfToken: a, orgName: b, bannerTopUrl: c, bannerBottomUrl: d, discoveryMethodsUrl: e, sceneStack: f, mdl: g, flexId: h, visitor: i, matches: j, discoveryMethods: k, error: l};
+												return function (m) {
+													return {csrfToken: a, orgName: b, bannerTopUrl: c, bannerBottomUrl: d, discoveryMethodsUrl: e, sceneStack: f, mdl: g, flexId: h, visitor: i, matches: j, discoveryMethods: k, isSigning: l, error: m};
+												};
 											};
 										};
 									};
@@ -17805,7 +17862,7 @@ var _user$project$ReceptionKiosk$Model = function (a) {
 };
 var _user$project$ReceptionKiosk$ButtonSpec = F2(
 	function (a, b) {
-		return {title: a, segue: b};
+		return {title: a, msg: b};
 	});
 var _user$project$ReceptionKiosk$Done = {ctor: 'Done'};
 var _user$project$ReceptionKiosk$SupportUs = {ctor: 'SupportUs'};
@@ -17828,13 +17885,16 @@ var _user$project$ReceptionKiosk$init = function (f) {
 				_1: {ctor: '[]'}
 			})(_debois$elm_mdl$Material$model)('')(_user$project$ReceptionKiosk$blankAcct)(
 			{ctor: '[]'})(
-			{ctor: '[]'})(_elm_lang$core$Maybe$Nothing),
+			{ctor: '[]'})(false)(_elm_lang$core$Maybe$Nothing),
 		_1: _elm_lang$core$Platform_Cmd$none
 	};
 };
 var _user$project$ReceptionKiosk$reset = function (m) {
 	return _user$project$ReceptionKiosk$init(
 		A5(_user$project$ReceptionKiosk$Flags, m.csrfToken, m.orgName, m.bannerTopUrl, m.bannerBottomUrl, m.discoveryMethodsUrl));
+};
+var _user$project$ReceptionKiosk$ShowSignaturePad = function (a) {
+	return {ctor: 'ShowSignaturePad', _0: a};
 };
 var _user$project$ReceptionKiosk$ToggleDiscoveryMethod = function (a) {
 	return {ctor: 'ToggleDiscoveryMethod', _0: a};
@@ -17870,6 +17930,9 @@ var _user$project$ReceptionKiosk$UpdateFirstName = function (a) {
 var _user$project$ReceptionKiosk$UpdateFlexId = function (a) {
 	return {ctor: 'UpdateFlexId', _0: a};
 };
+var _user$project$ReceptionKiosk$AfterSceneChangeTo = function (a) {
+	return {ctor: 'AfterSceneChangeTo', _0: a};
+};
 var _user$project$ReceptionKiosk$PopScene = {ctor: 'PopScene'};
 var _user$project$ReceptionKiosk$PushScene = function (a) {
 	return {ctor: 'PushScene', _0: a};
@@ -17884,52 +17947,63 @@ var _user$project$ReceptionKiosk$update = F2(
 			case 'Mdl':
 				return A3(_debois$elm_mdl$Material$update, _user$project$ReceptionKiosk$Mdl, _p1._0, model);
 			case 'PushScene':
+				if (_p1._0.ctor === 'Welcome') {
+					return _user$project$ReceptionKiosk$reset(model);
+				} else {
+					var _p2 = _p1._0;
+					var newModel = _elm_lang$core$Native_Utils.update(
+						model,
+						{
+							sceneStack: {ctor: '::', _0: _p2, _1: model.sceneStack}
+						});
+					return A2(
+						_ccapndave$elm_update_extra$Update_Extra_Infix_ops[':>'],
+						{ctor: '_Tuple2', _0: newModel, _1: _elm_lang$core$Platform_Cmd$none},
+						_user$project$ReceptionKiosk$update(
+							_user$project$ReceptionKiosk$AfterSceneChangeTo(_p2)));
+				}
+			case 'PopScene':
+				var newModel = _elm_lang$core$Native_Utils.update(
+					model,
+					{
+						sceneStack: A2(
+							_elm_lang$core$Maybe$withDefault,
+							{
+								ctor: '::',
+								_0: _user$project$ReceptionKiosk$Welcome,
+								_1: {ctor: '[]'}
+							},
+							_elm_lang$core$List$tail(model.sceneStack))
+					});
+				var newScene = A2(
+					_elm_lang$core$Maybe$withDefault,
+					_user$project$ReceptionKiosk$Welcome,
+					_elm_lang$core$List$head(newModel.sceneStack));
+				return A2(
+					_ccapndave$elm_update_extra$Update_Extra_Infix_ops[':>'],
+					{ctor: '_Tuple2', _0: newModel, _1: _elm_lang$core$Platform_Cmd$none},
+					_user$project$ReceptionKiosk$update(
+						_user$project$ReceptionKiosk$AfterSceneChangeTo(newScene)));
+			case 'AfterSceneChangeTo':
 				switch (_p1._0.ctor) {
-					case 'Welcome':
-						return _user$project$ReceptionKiosk$reset(model);
 					case 'LetsCreate':
 						var url = A2(_elm_lang$core$Basics_ops['++'], model.discoveryMethodsUrl, '?format=json');
 						var request = A2(_elm_lang$http$Http$get, url, _user$project$ReceptionKiosk$decodeDiscoveryMethodInfo);
 						var cmd = _elm_lang$core$Native_Utils.eq(
 							_elm_lang$core$List$length(model.discoveryMethods),
 							0) ? A2(_elm_lang$http$Http$send, _user$project$ReceptionKiosk$AccDiscoveryMethods, request) : _elm_lang$core$Platform_Cmd$none;
+						return {ctor: '_Tuple2', _0: model, _1: cmd};
+					case 'Waiver':
 						return {
 							ctor: '_Tuple2',
 							_0: _elm_lang$core$Native_Utils.update(
 								model,
-								{
-									sceneStack: {ctor: '::', _0: _user$project$ReceptionKiosk$LetsCreate, _1: model.sceneStack}
-								}),
-							_1: cmd
-						};
-					default:
-						return {
-							ctor: '_Tuple2',
-							_0: _elm_lang$core$Native_Utils.update(
-								model,
-								{
-									sceneStack: {ctor: '::', _0: _p1._0, _1: model.sceneStack}
-								}),
+								{isSigning: false}),
 							_1: _elm_lang$core$Platform_Cmd$none
 						};
+					default:
+						return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
 				}
-			case 'PopScene':
-				return {
-					ctor: '_Tuple2',
-					_0: _elm_lang$core$Native_Utils.update(
-						model,
-						{
-							sceneStack: A2(
-								_elm_lang$core$Maybe$withDefault,
-								{
-									ctor: '::',
-									_0: _user$project$ReceptionKiosk$Welcome,
-									_1: {ctor: '[]'}
-								},
-								_elm_lang$core$List$tail(model.sceneStack))
-						}),
-					_1: _elm_lang$core$Platform_Cmd$none
-				};
 			case 'UpdateFlexId':
 				var id = _user$project$ReceptionKiosk$djangoizeId(_p1._0);
 				if (_elm_lang$core$Native_Utils.cmp(
@@ -18100,13 +18174,13 @@ var _user$project$ReceptionKiosk$update = F2(
 						_1: _elm_lang$core$Platform_Cmd$none
 					};
 				}
-			default:
-				var _p2 = _p1._0;
+			case 'ToggleDiscoveryMethod':
+				var _p3 = _p1._0;
 				var replacement = _elm_lang$core$Native_Utils.update(
-					_p2,
-					{selected: !_p2.selected});
+					_p3,
+					{selected: !_p3.selected});
 				var picker = function (x) {
-					return _elm_lang$core$Native_Utils.eq(x.id, _p2.id);
+					return _elm_lang$core$Native_Utils.eq(x.id, _p3.id);
 				};
 				var replace = _elm_community$list_extra$List_Extra$replaceIf;
 				return {
@@ -18117,6 +18191,14 @@ var _user$project$ReceptionKiosk$update = F2(
 							discoveryMethods: A3(replace, picker, replacement, model.discoveryMethods)
 						}),
 					_1: _elm_lang$core$Platform_Cmd$none
+				};
+			default:
+				return {
+					ctor: '_Tuple2',
+					_0: _elm_lang$core$Native_Utils.update(
+						model,
+						{isSigning: true}),
+					_1: _user$project$ReceptionKiosk$initSignaturePad(_p1._0)
 				};
 		}
 	});
@@ -18138,8 +18220,7 @@ var _user$project$ReceptionKiosk$sceneButton = F2(
 					_0: _debois$elm_mdl$Material_Button$raised,
 					_1: {
 						ctor: '::',
-						_0: _debois$elm_mdl$Material_Options$onClick(
-							_user$project$ReceptionKiosk$PushScene(buttonSpec.segue)),
+						_0: _debois$elm_mdl$Material_Options$onClick(buttonSpec.msg),
 						_1: {ctor: '[]'}
 					}
 				},
@@ -18476,9 +18557,9 @@ var _user$project$ReceptionKiosk$sceneView = F5(
 								_1: {
 									ctor: '::',
 									_0: function () {
-										var _p3 = model.error;
-										if (_p3.ctor === 'Just') {
-											return _elm_lang$html$Html$text(_p3._0);
+										var _p4 = model.error;
+										if (_p4.ctor === 'Just') {
+											return _elm_lang$html$Html$text(_p4._0);
 										} else {
 											return _elm_lang$html$Html$text('');
 										}
@@ -18551,11 +18632,11 @@ var _user$project$ReceptionKiosk$howDidYouHearChoices = function (model) {
 			model.discoveryMethods));
 };
 var _user$project$ReceptionKiosk$view = function (model) {
-	var _p4 = A2(
+	var _p5 = A2(
 		_elm_lang$core$Maybe$withDefault,
 		_user$project$ReceptionKiosk$Welcome,
 		_elm_lang$core$List$head(model.sceneStack));
-	switch (_p4.ctor) {
+	switch (_p5.ctor) {
 		case 'Welcome':
 			return A5(
 				_user$project$ReceptionKiosk$sceneView,
@@ -18565,10 +18646,16 @@ var _user$project$ReceptionKiosk$view = function (model) {
 				_elm_lang$html$Html$text(''),
 				{
 					ctor: '::',
-					_0: A2(_user$project$ReceptionKiosk$ButtonSpec, 'First Visit', _user$project$ReceptionKiosk$HaveAcctQ),
+					_0: A2(
+						_user$project$ReceptionKiosk$ButtonSpec,
+						'First Visit',
+						_user$project$ReceptionKiosk$PushScene(_user$project$ReceptionKiosk$HaveAcctQ)),
 					_1: {
 						ctor: '::',
-						_0: A2(_user$project$ReceptionKiosk$ButtonSpec, 'Returning', _user$project$ReceptionKiosk$CheckIn),
+						_0: A2(
+							_user$project$ReceptionKiosk$ButtonSpec,
+							'Returning',
+							_user$project$ReceptionKiosk$PushScene(_user$project$ReceptionKiosk$CheckIn)),
 						_1: {ctor: '[]'}
 					}
 				});
@@ -18581,10 +18668,16 @@ var _user$project$ReceptionKiosk$view = function (model) {
 				_elm_lang$html$Html$text(''),
 				{
 					ctor: '::',
-					_0: A2(_user$project$ReceptionKiosk$ButtonSpec, 'Yes', _user$project$ReceptionKiosk$CheckIn),
+					_0: A2(
+						_user$project$ReceptionKiosk$ButtonSpec,
+						'Yes',
+						_user$project$ReceptionKiosk$PushScene(_user$project$ReceptionKiosk$CheckIn)),
 					_1: {
 						ctor: '::',
-						_0: A2(_user$project$ReceptionKiosk$ButtonSpec, 'No', _user$project$ReceptionKiosk$LetsCreate),
+						_0: A2(
+							_user$project$ReceptionKiosk$ButtonSpec,
+							'No',
+							_user$project$ReceptionKiosk$PushScene(_user$project$ReceptionKiosk$LetsCreate)),
 						_1: {ctor: '[]'}
 					}
 				});
@@ -18702,7 +18795,10 @@ var _user$project$ReceptionKiosk$view = function (model) {
 					}),
 				{
 					ctor: '::',
-					_0: A2(_user$project$ReceptionKiosk$ButtonSpec, 'OK', _user$project$ReceptionKiosk$ChooseUserNameAndPw),
+					_0: A2(
+						_user$project$ReceptionKiosk$ButtonSpec,
+						'OK',
+						_user$project$ReceptionKiosk$PushScene(_user$project$ReceptionKiosk$ChooseUserNameAndPw)),
 					_1: {ctor: '[]'}
 				});
 		case 'ChooseUserNameAndPw':
@@ -18737,7 +18833,10 @@ var _user$project$ReceptionKiosk$view = function (model) {
 					}),
 				{
 					ctor: '::',
-					_0: A2(_user$project$ReceptionKiosk$ButtonSpec, 'Create Account', _user$project$ReceptionKiosk$HowDidYouHear),
+					_0: A2(
+						_user$project$ReceptionKiosk$ButtonSpec,
+						'Create Account',
+						_user$project$ReceptionKiosk$PushScene(_user$project$ReceptionKiosk$HowDidYouHear)),
 					_1: {ctor: '[]'}
 				});
 		case 'HowDidYouHear':
@@ -18749,15 +18848,21 @@ var _user$project$ReceptionKiosk$view = function (model) {
 				_user$project$ReceptionKiosk$howDidYouHearChoices(model),
 				{
 					ctor: '::',
-					_0: A2(_user$project$ReceptionKiosk$ButtonSpec, 'OK', _user$project$ReceptionKiosk$Waiver),
+					_0: A2(
+						_user$project$ReceptionKiosk$ButtonSpec,
+						'OK',
+						_user$project$ReceptionKiosk$PushScene(_user$project$ReceptionKiosk$Waiver)),
 					_1: {ctor: '[]'}
 				});
 		case 'Waiver':
 			return A5(
 				_user$project$ReceptionKiosk$sceneView,
 				model,
-				'Some Legalese',
-				'Please read and sign the waiver',
+				A2(
+					_elm_lang$core$Basics_ops['++'],
+					'Be Careful at ',
+					A2(_elm_lang$core$Basics_ops['++'], model.orgName, '!')),
+				'Please read and sign the following waiver',
 				A2(
 					_elm_lang$html$Html$div,
 					{ctor: '[]'},
@@ -18773,32 +18878,7 @@ var _user$project$ReceptionKiosk$view = function (model) {
 									_0: _elm_lang$html$Html_Attributes$id('waiver-box'),
 									_1: {
 										ctor: '::',
-										_0: _elm_lang$html$Html_Attributes$style(
-											{
-												ctor: '::',
-												_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'height', '350px'),
-												_1: {
-													ctor: '::',
-													_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'overflow-y', 'scroll'),
-													_1: {
-														ctor: '::',
-														_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-left', '20px'),
-														_1: {
-															ctor: '::',
-															_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-right', '20px'),
-															_1: {
-																ctor: '::',
-																_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'border', '1px solid #bbbbbb'),
-																_1: {
-																	ctor: '::',
-																	_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'font-size', '16pt'),
-																	_1: {ctor: '[]'}
-																}
-															}
-														}
-													}
-												}
-											}),
+										_0: _user$project$ReceptionKiosk$waiverBoxStyle(model.isSigning),
 										_1: {ctor: '[]'}
 									}
 								},
@@ -18806,69 +18886,81 @@ var _user$project$ReceptionKiosk$view = function (model) {
 							_1: {
 								ctor: '::',
 								_0: A2(
-									_elm_lang$html$Html$p,
+									_elm_lang$html$Html$div,
 									{
 										ctor: '::',
 										_0: _elm_lang$html$Html_Attributes$style(
 											{
 												ctor: '::',
-												_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-top', '50px'),
-												_1: {
-													ctor: '::',
-													_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'font-size', '16pt'),
-													_1: {
-														ctor: '::',
-														_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-bottom', '5px'),
-														_1: {ctor: '[]'}
-													}
-												}
+												_0: A2(
+													_user$project$ReceptionKiosk_ops['=>'],
+													'display',
+													model.isSigning ? 'block' : 'none'),
+												_1: {ctor: '[]'}
 											}),
 										_1: {ctor: '[]'}
 									},
 									{
 										ctor: '::',
-										_0: _elm_lang$html$Html$text('sign in box below:'),
-										_1: {ctor: '[]'}
-									}),
-								_1: {
-									ctor: '::',
-									_0: A2(
-										_elm_lang$html$Html$div,
-										{
-											ctor: '::',
-											_0: _elm_lang$html$Html_Attributes$id('signature-pad'),
-											_1: {
+										_0: A2(
+											_elm_lang$html$Html$p,
+											{
 												ctor: '::',
 												_0: _elm_lang$html$Html_Attributes$style(
 													{
 														ctor: '::',
-														_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'height', '200px'),
+														_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-top', '50px'),
 														_1: {
 															ctor: '::',
-															_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-left', '20px'),
+															_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'font-size', '16pt'),
 															_1: {
 																ctor: '::',
-																_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-right', '20px'),
-																_1: {
-																	ctor: '::',
-																	_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'border', '1px solid #bbbbbb'),
-																	_1: {ctor: '[]'}
-																}
+																_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-bottom', '5px'),
+																_1: {ctor: '[]'}
 															}
 														}
 													}),
 												_1: {ctor: '[]'}
-											}
-										},
-										{ctor: '[]'}),
-									_1: {ctor: '[]'}
-								}
+											},
+											{
+												ctor: '::',
+												_0: _elm_lang$html$Html$text('sign in box below:'),
+												_1: {ctor: '[]'}
+											}),
+										_1: {
+											ctor: '::',
+											_0: A2(
+												_elm_lang$html$Html$canvas,
+												{
+													ctor: '::',
+													_0: _elm_lang$html$Html_Attributes$id('signature-pad'),
+													_1: {
+														ctor: '::',
+														_0: _user$project$ReceptionKiosk$signaturePadStyle,
+														_1: {ctor: '[]'}
+													}
+												},
+												{ctor: '[]'}),
+											_1: {ctor: '[]'}
+										}
+									}),
+								_1: {ctor: '[]'}
 							}
 						}
 					}),
-				{
+				model.isSigning ? {
 					ctor: '::',
-					_0: A2(_user$project$ReceptionKiosk$ButtonSpec, 'Accept', _user$project$ReceptionKiosk$Rules),
+					_0: A2(
+						_user$project$ReceptionKiosk$ButtonSpec,
+						'Accept',
+						_user$project$ReceptionKiosk$PushScene(_user$project$ReceptionKiosk$Rules)),
+					_1: {ctor: '[]'}
+				} : {
+					ctor: '::',
+					_0: A2(
+						_user$project$ReceptionKiosk$ButtonSpec,
+						'Sign',
+						_user$project$ReceptionKiosk$ShowSignaturePad('signature-pad')),
 					_1: {ctor: '[]'}
 				});
 		case 'Rules':
@@ -18880,7 +18972,10 @@ var _user$project$ReceptionKiosk$view = function (model) {
 				_elm_lang$html$Html$text(''),
 				{
 					ctor: '::',
-					_0: A2(_user$project$ReceptionKiosk$ButtonSpec, 'I Agree', _user$project$ReceptionKiosk$Activity),
+					_0: A2(
+						_user$project$ReceptionKiosk$ButtonSpec,
+						'I Agree',
+						_user$project$ReceptionKiosk$PushScene(_user$project$ReceptionKiosk$Activity)),
 					_1: {ctor: '[]'}
 				});
 		case 'Activity':
@@ -18892,7 +18987,10 @@ var _user$project$ReceptionKiosk$view = function (model) {
 				_elm_lang$html$Html$text(''),
 				{
 					ctor: '::',
-					_0: A2(_user$project$ReceptionKiosk$ButtonSpec, 'OK', _user$project$ReceptionKiosk$SupportUs),
+					_0: A2(
+						_user$project$ReceptionKiosk$ButtonSpec,
+						'OK',
+						_user$project$ReceptionKiosk$PushScene(_user$project$ReceptionKiosk$SupportUs)),
 					_1: {ctor: '[]'}
 				});
 		case 'SupportUs':
@@ -18904,7 +19002,10 @@ var _user$project$ReceptionKiosk$view = function (model) {
 				_elm_lang$html$Html$text(''),
 				{
 					ctor: '::',
-					_0: A2(_user$project$ReceptionKiosk$ButtonSpec, 'OK', _user$project$ReceptionKiosk$Done),
+					_0: A2(
+						_user$project$ReceptionKiosk$ButtonSpec,
+						'OK',
+						_user$project$ReceptionKiosk$PushScene(_user$project$ReceptionKiosk$Done)),
 					_1: {ctor: '[]'}
 				});
 		default:
@@ -18916,7 +19017,10 @@ var _user$project$ReceptionKiosk$view = function (model) {
 				_elm_lang$html$Html$text(''),
 				{
 					ctor: '::',
-					_0: A2(_user$project$ReceptionKiosk$ButtonSpec, 'Yay!', _user$project$ReceptionKiosk$Welcome),
+					_0: A2(
+						_user$project$ReceptionKiosk$ButtonSpec,
+						'Yay!',
+						_user$project$ReceptionKiosk$PushScene(_user$project$ReceptionKiosk$Welcome)),
 					_1: {ctor: '[]'}
 				});
 	}

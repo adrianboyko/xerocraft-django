@@ -1,7 +1,7 @@
-module ReceptionKiosk exposing (..)
+port module ReceptionKiosk exposing (..)
 
-import Html exposing (Html, Attribute, a, div, text, span, button, br, p, img, h1, h2, ol, li, b)
-import Html.Attributes exposing (style, src, id)
+import Html exposing (Html, Attribute, a, div, text, span, button, br, p, img, h1, h2, ol, li, b, canvas)
+import Html.Attributes exposing (style, src, id, tabindex)
 import Regex exposing (regex)
 import Http
 import Task
@@ -134,6 +134,7 @@ type alias Model =
   , visitor: Acct
   , matches: List MatchingAcct  -- Matches to username/surname
   , discoveryMethods: List DiscoveryMethod  -- Fetched from backend
+  , isSigning: Bool
   , error: Maybe String
   }
 
@@ -151,6 +152,7 @@ init f =
       blankAcct
       []
       []
+      False
       Nothing
   , Cmd.none
   )
@@ -168,6 +170,7 @@ type Msg
   = Mdl (Material.Msg Msg)  -- For elm-mdl
   | PushScene Scene
   | PopScene
+  | AfterSceneChangeTo Scene
   | UpdateFlexId String
   | UpdateFirstName String
   | UpdateLastName String
@@ -180,10 +183,10 @@ type Msg
   | LogCheckIn Int
   | AccDiscoveryMethods (Result Http.Error DiscoveryMethodInfo)  -- "Acc" means "accumulate"
   | ToggleDiscoveryMethod DiscoveryMethod
+  | ShowSignaturePad String
 
-findMatchingAccts : Model -> String -> Html Msg
-findMatchingAccts model flexId =
-    div [] []
+
+port initSignaturePad : String -> Cmd msg
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -193,11 +196,26 @@ update msg model =
       Material.update Mdl msg2 model
 
     PushScene Welcome ->
-      -- Segue to "Welcome" is a special case since it re-initializes the scene stack.
+      -- Segue to "Welcome" is a special case since it resets the model.
       reset model
 
-    PushScene LetsCreate ->
-      -- Segue to account creation is a good place to start fetching the "discovery methods" from backend.
+    PushScene nextScene ->
+      -- Push the new scene onto the scene stack.
+      let
+        newModel = {model | sceneStack = nextScene::model.sceneStack }
+      in
+        (newModel, Cmd.none) :> update (AfterSceneChangeTo nextScene)
+
+    PopScene ->
+      -- Pop the top scene off the stack.
+      let
+        newModel = {model | sceneStack = Maybe.withDefault [Welcome] (List.tail model.sceneStack) }
+        newScene = Maybe.withDefault Welcome (List.head newModel.sceneStack)
+      in
+        (newModel, Cmd.none) :> update (AfterSceneChangeTo newScene)
+
+    AfterSceneChangeTo LetsCreate ->
+      -- This is a good place to start fetching the "discovery methods" from backend.
       let
         url = model.discoveryMethodsUrl ++ "?format=json"  -- Easier than an "Accept" header.
         request = Http.get url decodeDiscoveryMethodInfo
@@ -206,15 +224,14 @@ update msg model =
           then Http.send AccDiscoveryMethods request
           else Cmd.none -- Don't fetch if we already have them. Can happen with backward scene navigation.
       in
-        ({model | sceneStack = LetsCreate::model.sceneStack }, cmd)
+        (model, cmd)
 
-    PushScene nextScene ->
-      -- Push the new scene onto the scene stack.
-      ({model | sceneStack = nextScene::model.sceneStack }, Cmd.none)
+    AfterSceneChangeTo Waiver ->
+      ({model | isSigning=False}, Cmd.none)
 
-    PopScene ->
-      -- Pop the top scene off the stack.
-      ({model | sceneStack = Maybe.withDefault [Welcome] (List.tail model.sceneStack) }, Cmd.none)
+    AfterSceneChangeTo newScene ->
+      -- The default is to do nothing unusual after a scene change.
+      (model, Cmd.none)
 
     UpdateFlexId rawId ->
       let id = djangoizeId rawId
@@ -229,7 +246,6 @@ update msg model =
             ({model | flexId = id}, cmd)
         else
           ({model | matches = [], flexId = id}, Cmd.none )
-
 
     UpdateFirstName newVal ->
       let v = model.visitor  -- This is necessary because of a bug in PyCharm elm plugin.
@@ -291,17 +307,20 @@ update msg model =
         -- TODO: This should also add/remove the discovery method choice on the backend.
         ({model | discoveryMethods = replace picker replacement model.discoveryMethods}, Cmd.none)
 
+    ShowSignaturePad canvasId ->
+      ({model | isSigning=True}, initSignaturePad canvasId)
+
 
 -----------------------------------------------------------------------------
 -- VIEW
 -----------------------------------------------------------------------------
 
-type alias ButtonSpec = { title : String, segue: Scene }
+type alias ButtonSpec = { title : String, msg: Msg }
 
 sceneButton : Model -> ButtonSpec -> Html Msg
 sceneButton model buttonSpec =
   Button.render Mdl [0] model.mdl
-    ([ Button.raised, Options.onClick (PushScene buttonSpec.segue)]++viewButtonCss)
+    ([ Button.raised, (Options.onClick buttonSpec.msg)]++viewButtonCss)
     [ text buttonSpec.title ]
 
 sceneTextField : Model -> Int -> String -> String -> (String -> Msg) -> Html Msg
@@ -419,8 +438,8 @@ view model =
         "Welcome!"
         "Is this your first visit?"
         (text "")
-        [ ButtonSpec "First Visit" HaveAcctQ
-        , ButtonSpec "Returning" CheckIn
+        [ ButtonSpec "First Visit" (PushScene HaveAcctQ)
+        , ButtonSpec "Returning" (PushScene CheckIn)
         ]
 
     HaveAcctQ ->
@@ -428,8 +447,8 @@ view model =
         "Great!"
         "Do you already have an account here or on our website?"
         (text "")
-        [ ButtonSpec "Yes" CheckIn
-        , ButtonSpec "No" LetsCreate
+        [ ButtonSpec "Yes" (PushScene CheckIn)
+        , ButtonSpec "No" (PushScene LetsCreate)
         -- TODO: How about a "I don't know" button, here?
         ]
 
@@ -463,7 +482,7 @@ view model =
             , sceneCheckbox model 5 "Check if you are 18 or older!" model.visitor.isAdult ToggleIsAdult
             ]
         )
-        [ButtonSpec "OK" ChooseUserNameAndPw]
+        [ButtonSpec "OK" (PushScene ChooseUserNameAndPw)]
 
     ChooseUserNameAndPw ->
       sceneView model
@@ -477,59 +496,63 @@ view model =
             , scenePasswordField model 8 "Type password again" model.visitor.password2 UpdatePassword2
             ]
         )
-        [ButtonSpec "Create Account" HowDidYouHear]
+        [ButtonSpec "Create Account" (PushScene HowDidYouHear)]
 
     HowDidYouHear ->
       sceneView model
         "Just Wondering"
         "How did you hear about us?"
         (howDidYouHearChoices model)
-        [ButtonSpec "OK" Waiver]
+        [ButtonSpec "OK" (PushScene Waiver)]
 
     Waiver ->
       -- TODO: Don't present this to minors.
       sceneView model
-        "Some Legalese"
-        "Please read and sign the waiver"
+        ("Be Careful at " ++ model.orgName ++ "!")
+        "Please read and sign the following waiver"
         (div []
           [ vspace 20
-          , div [id "waiver-box", style ["height"=>"350px", "overflow-y"=>"scroll", "margin-left"=>"20px", "margin-right"=>"20px", "border" => "1px solid #bbbbbb", "font-size"=>"16pt"]]
+          , div [id "waiver-box", (waiverBoxStyle model.isSigning)]
               waiverHtml
-          , p [style ["margin-top"=>"50px", "font-size"=>"16pt", "margin-bottom"=>"5px"]]
-              [text "sign in box below:"]
-          , div [id "signature-pad", style ["height"=>"200px", "margin-left"=>"20px", "margin-right"=>"20px", "border" => "1px solid #bbbbbb"]]
-              []
+          , div [style ["display"=>if model.isSigning then "block" else "none"]]
+              [ p [style ["margin-top"=>"50px", "font-size"=>"16pt", "margin-bottom"=>"5px"]]
+                [text "sign in box below:"]
+              , canvas [id "signature-pad", signaturePadStyle] []
+              ]
           ]
         )
-        [ButtonSpec "Accept" Rules]
+        ( if model.isSigning
+          then [ButtonSpec "Accept" (PushScene Rules)]
+          else [ButtonSpec "Sign" (ShowSignaturePad "signature-pad")]
+        )
 
     Rules ->
       sceneView model
         "Rules"
         "Please read the rules and check the box to agree."
         (text "")
-        [ButtonSpec "I Agree" Activity]
+        [ButtonSpec "I Agree" (PushScene Activity)]
 
     Activity ->
       sceneView model
         "Today's Activity?"
         "Let us know what you'll be doing:"
         (text "")
-        [ButtonSpec "OK" SupportUs]
+        [ButtonSpec "OK" (PushScene SupportUs)]
 
     SupportUs ->
       sceneView model
         "Please Support Us!"
         "{TODO}"
         (text "")
-        [ButtonSpec "OK" Done]
+        [ButtonSpec "OK" (PushScene Done)]
 
     Done ->
       sceneView model
         "You're Checked In"
         "Have fun!"
         (text "")
-        [ButtonSpec "Yay!" Welcome]
+        [ButtonSpec "Yay!" (PushScene Welcome)]
 
 
 -----------------------------------------------------------------------------
@@ -679,6 +702,24 @@ bannerBottomStyle = style
   ]
 
 navDivStyle = bannerBottomStyle
+
+waiverBoxStyle isSigning = style
+  [ "height" => if isSigning then "350px" else "650px"
+  , "overflow-y" => "scroll"
+  , "margin-left" => "20px"
+  , "margin-right" => "20px"
+  , "border" => "1px solid #bbbbbb"
+  , "font-size" => "16pt"
+  , "padding" => "5px"
+  ]
+
+signaturePadStyle = style
+  [ "height" => "200px"
+  , "width" => "760px"
+  , "border" => "1px solid #bbbbbb"
+  , "cursor" => "crosshair"
+  , "touch-action" => "none"
+  ]
 
 viewButtonCss =
   [ css "margin-left" "10px"
