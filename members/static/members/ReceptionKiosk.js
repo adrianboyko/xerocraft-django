@@ -17176,6 +17176,23 @@ var _elm_lang$http$Http$StringPart = F2(
 	});
 var _elm_lang$http$Http$stringPart = _elm_lang$http$Http$StringPart;
 
+var _user$project$ReceptionKiosk$activityListCss = {
+	ctor: '::',
+	_0: A2(_debois$elm_mdl$Material_Options$css, 'width', '450px'),
+	_1: {
+		ctor: '::',
+		_0: A2(_debois$elm_mdl$Material_Options$css, 'margin-left', 'auto'),
+		_1: {
+			ctor: '::',
+			_0: A2(_debois$elm_mdl$Material_Options$css, 'margin-right', 'auto'),
+			_1: {
+				ctor: '::',
+				_0: A2(_debois$elm_mdl$Material_Options$css, 'margin-top', '80px'),
+				_1: {ctor: '[]'}
+			}
+		}
+	}
+};
 var _user$project$ReceptionKiosk$howDidYouHearCss = {
 	ctor: '::',
 	_0: A2(_debois$elm_mdl$Material_Options$css, 'width', '400px'),
@@ -17251,7 +17268,7 @@ var _user$project$ReceptionKiosk$viewButtonCss = {
 var _user$project$ReceptionKiosk$bottomBannerHeight = '84px';
 var _user$project$ReceptionKiosk$topBannerHeight = '155px';
 var _user$project$ReceptionKiosk$sceneHeight = '1280px';
-var _user$project$ReceptionKiosk$sceneWidth = '800px';
+var _user$project$ReceptionKiosk$sceneWidth = '799px';
 var _user$project$ReceptionKiosk_ops = _user$project$ReceptionKiosk_ops || {};
 _user$project$ReceptionKiosk_ops['=>'] = F2(
 	function (v0, v1) {
@@ -17744,13 +17761,31 @@ var _user$project$ReceptionKiosk$vspace = function (amount) {
 		},
 		{ctor: '[]'});
 };
+var _user$project$ReceptionKiosk$reasonString = F2(
+	function (model, reason) {
+		var _p0 = reason;
+		switch (_p0.ctor) {
+			case 'Curiousity':
+				return A2(_elm_lang$core$Basics_ops['++'], 'Checking out ', model.orgName);
+			case 'ClassParticipant':
+				return 'Attending a class or workshop';
+			case 'MemberPrivileges':
+				return 'Working on a personal project';
+			case 'GuestOfMember':
+				return 'Guest of a paying member';
+			case 'Volunteer':
+				return 'Volunteering or staffing';
+			default:
+				return 'Other';
+		}
+	});
 var _user$project$ReceptionKiosk$replaceAll = F3(
 	function (theString, oldSub, newSub) {
 		return A4(
 			_elm_lang$core$Regex$replace,
 			_elm_lang$core$Regex$All,
 			_elm_lang$core$Regex$regex(oldSub),
-			function (_p0) {
+			function (_p1) {
 				return newSub;
 			},
 			theString);
@@ -17846,7 +17881,9 @@ var _user$project$ReceptionKiosk$Model = function (a) {
 										return function (k) {
 											return function (l) {
 												return function (m) {
-													return {csrfToken: a, orgName: b, bannerTopUrl: c, bannerBottomUrl: d, discoveryMethodsUrl: e, sceneStack: f, mdl: g, flexId: h, visitor: i, matches: j, discoveryMethods: k, isSigning: l, error: m};
+													return function (n) {
+														return {csrfToken: a, orgName: b, bannerTopUrl: c, bannerBottomUrl: d, discoveryMethodsUrl: e, sceneStack: f, mdl: g, flexId: h, visitor: i, matches: j, discoveryMethods: k, isSigning: l, reasonForVisit: m, error: n};
+													};
 												};
 											};
 										};
@@ -17867,7 +17904,6 @@ var _user$project$ReceptionKiosk$ButtonSpec = F2(
 var _user$project$ReceptionKiosk$Done = {ctor: 'Done'};
 var _user$project$ReceptionKiosk$SupportUs = {ctor: 'SupportUs'};
 var _user$project$ReceptionKiosk$Activity = {ctor: 'Activity'};
-var _user$project$ReceptionKiosk$Rules = {ctor: 'Rules'};
 var _user$project$ReceptionKiosk$Waiver = {ctor: 'Waiver'};
 var _user$project$ReceptionKiosk$HowDidYouHear = {ctor: 'HowDidYouHear'};
 var _user$project$ReceptionKiosk$ChooseUserNameAndPw = {ctor: 'ChooseUserNameAndPw'};
@@ -17885,13 +17921,22 @@ var _user$project$ReceptionKiosk$init = function (f) {
 				_1: {ctor: '[]'}
 			})(_debois$elm_mdl$Material$model)('')(_user$project$ReceptionKiosk$blankAcct)(
 			{ctor: '[]'})(
-			{ctor: '[]'})(false)(_elm_lang$core$Maybe$Nothing),
+			{ctor: '[]'})(false)(_elm_lang$core$Maybe$Nothing)(_elm_lang$core$Maybe$Nothing),
 		_1: _elm_lang$core$Platform_Cmd$none
 	};
 };
 var _user$project$ReceptionKiosk$reset = function (m) {
 	return _user$project$ReceptionKiosk$init(
 		A5(_user$project$ReceptionKiosk$Flags, m.csrfToken, m.orgName, m.bannerTopUrl, m.bannerBottomUrl, m.discoveryMethodsUrl));
+};
+var _user$project$ReceptionKiosk$Other = {ctor: 'Other'};
+var _user$project$ReceptionKiosk$Volunteer = {ctor: 'Volunteer'};
+var _user$project$ReceptionKiosk$GuestOfMember = {ctor: 'GuestOfMember'};
+var _user$project$ReceptionKiosk$MemberPrivileges = {ctor: 'MemberPrivileges'};
+var _user$project$ReceptionKiosk$ClassParticipant = {ctor: 'ClassParticipant'};
+var _user$project$ReceptionKiosk$Curiousity = {ctor: 'Curiousity'};
+var _user$project$ReceptionKiosk$UpdateReasonForVisit = function (a) {
+	return {ctor: 'UpdateReasonForVisit', _0: a};
 };
 var _user$project$ReceptionKiosk$ShowSignaturePad = function (a) {
 	return {ctor: 'ShowSignaturePad', _0: a};
@@ -17942,25 +17987,25 @@ var _user$project$ReceptionKiosk$Mdl = function (a) {
 };
 var _user$project$ReceptionKiosk$update = F2(
 	function (msg, model) {
-		var _p1 = msg;
-		switch (_p1.ctor) {
+		var _p2 = msg;
+		switch (_p2.ctor) {
 			case 'Mdl':
-				return A3(_debois$elm_mdl$Material$update, _user$project$ReceptionKiosk$Mdl, _p1._0, model);
+				return A3(_debois$elm_mdl$Material$update, _user$project$ReceptionKiosk$Mdl, _p2._0, model);
 			case 'PushScene':
-				if (_p1._0.ctor === 'Welcome') {
+				if (_p2._0.ctor === 'Welcome') {
 					return _user$project$ReceptionKiosk$reset(model);
 				} else {
-					var _p2 = _p1._0;
+					var _p3 = _p2._0;
 					var newModel = _elm_lang$core$Native_Utils.update(
 						model,
 						{
-							sceneStack: {ctor: '::', _0: _p2, _1: model.sceneStack}
+							sceneStack: {ctor: '::', _0: _p3, _1: model.sceneStack}
 						});
 					return A2(
 						_ccapndave$elm_update_extra$Update_Extra_Infix_ops[':>'],
 						{ctor: '_Tuple2', _0: newModel, _1: _elm_lang$core$Platform_Cmd$none},
 						_user$project$ReceptionKiosk$update(
-							_user$project$ReceptionKiosk$AfterSceneChangeTo(_p2)));
+							_user$project$ReceptionKiosk$AfterSceneChangeTo(_p3)));
 				}
 			case 'PopScene':
 				var newModel = _elm_lang$core$Native_Utils.update(
@@ -17985,7 +18030,7 @@ var _user$project$ReceptionKiosk$update = F2(
 					_user$project$ReceptionKiosk$update(
 						_user$project$ReceptionKiosk$AfterSceneChangeTo(newScene)));
 			case 'AfterSceneChangeTo':
-				switch (_p1._0.ctor) {
+				switch (_p2._0.ctor) {
 					case 'LetsCreate':
 						var url = A2(_elm_lang$core$Basics_ops['++'], model.discoveryMethodsUrl, '?format=json');
 						var request = A2(_elm_lang$http$Http$get, url, _user$project$ReceptionKiosk$decodeDiscoveryMethodInfo);
@@ -18005,7 +18050,7 @@ var _user$project$ReceptionKiosk$update = F2(
 						return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
 				}
 			case 'UpdateFlexId':
-				var id = _user$project$ReceptionKiosk$djangoizeId(_p1._0);
+				var id = _user$project$ReceptionKiosk$djangoizeId(_p2._0);
 				if (_elm_lang$core$Native_Utils.cmp(
 					_elm_lang$core$String$length(id),
 					1) > 0) {
@@ -18043,7 +18088,7 @@ var _user$project$ReceptionKiosk$update = F2(
 						{
 							visitor: _elm_lang$core$Native_Utils.update(
 								v,
-								{firstName: _p1._0})
+								{firstName: _p2._0})
 						}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
@@ -18056,7 +18101,7 @@ var _user$project$ReceptionKiosk$update = F2(
 						{
 							visitor: _elm_lang$core$Native_Utils.update(
 								v,
-								{lastName: _p1._0})
+								{lastName: _p2._0})
 						}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
@@ -18069,7 +18114,7 @@ var _user$project$ReceptionKiosk$update = F2(
 						{
 							visitor: _elm_lang$core$Native_Utils.update(
 								v,
-								{email: _p1._0})
+								{email: _p2._0})
 						}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
@@ -18095,7 +18140,7 @@ var _user$project$ReceptionKiosk$update = F2(
 						{
 							visitor: _elm_lang$core$Native_Utils.update(
 								v,
-								{userName: _p1._0})
+								{userName: _p2._0})
 						}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
@@ -18108,7 +18153,7 @@ var _user$project$ReceptionKiosk$update = F2(
 						{
 							visitor: _elm_lang$core$Native_Utils.update(
 								v,
-								{password: _p1._0})
+								{password: _p2._0})
 						}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
@@ -18121,17 +18166,17 @@ var _user$project$ReceptionKiosk$update = F2(
 						{
 							visitor: _elm_lang$core$Native_Utils.update(
 								v,
-								{password2: _p1._0})
+								{password2: _p2._0})
 						}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 			case 'UpdateMatchingAccts':
-				if (_p1._0.ctor === 'Ok') {
-					return _elm_lang$core$Native_Utils.eq(_p1._0._0.target, model.flexId) ? {
+				if (_p2._0.ctor === 'Ok') {
+					return _elm_lang$core$Native_Utils.eq(_p2._0._0.target, model.flexId) ? {
 						ctor: '_Tuple2',
 						_0: _elm_lang$core$Native_Utils.update(
 							model,
-							{matches: _p1._0._0.matches, error: _elm_lang$core$Maybe$Nothing}),
+							{matches: _p2._0._0.matches, error: _elm_lang$core$Maybe$Nothing}),
 						_1: _elm_lang$core$Platform_Cmd$none
 					} : {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
 				} else {
@@ -18141,7 +18186,7 @@ var _user$project$ReceptionKiosk$update = F2(
 							model,
 							{
 								error: _elm_lang$core$Maybe$Just(
-									_elm_lang$core$Basics$toString(_p1._0._0))
+									_elm_lang$core$Basics$toString(_p2._0._0))
 							}),
 						_1: _elm_lang$core$Platform_Cmd$none
 					};
@@ -18151,10 +18196,10 @@ var _user$project$ReceptionKiosk$update = F2(
 					_ccapndave$elm_update_extra$Update_Extra_Infix_ops[':>'],
 					{ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none},
 					_user$project$ReceptionKiosk$update(
-						_user$project$ReceptionKiosk$PushScene(_user$project$ReceptionKiosk$Done)));
+						_user$project$ReceptionKiosk$PushScene(_user$project$ReceptionKiosk$Activity)));
 			case 'AccDiscoveryMethods':
-				if (_p1._0.ctor === 'Ok') {
-					var methods = A2(_elm_lang$core$Basics_ops['++'], model.discoveryMethods, _p1._0._0.results);
+				if (_p2._0.ctor === 'Ok') {
+					var methods = A2(_elm_lang$core$Basics_ops['++'], model.discoveryMethods, _p2._0._0.results);
 					return {
 						ctor: '_Tuple2',
 						_0: _elm_lang$core$Native_Utils.update(
@@ -18169,18 +18214,18 @@ var _user$project$ReceptionKiosk$update = F2(
 							model,
 							{
 								error: _elm_lang$core$Maybe$Just(
-									_elm_lang$core$Basics$toString(_p1._0._0))
+									_elm_lang$core$Basics$toString(_p2._0._0))
 							}),
 						_1: _elm_lang$core$Platform_Cmd$none
 					};
 				}
 			case 'ToggleDiscoveryMethod':
-				var _p3 = _p1._0;
+				var _p4 = _p2._0;
 				var replacement = _elm_lang$core$Native_Utils.update(
-					_p3,
-					{selected: !_p3.selected});
+					_p4,
+					{selected: !_p4.selected});
 				var picker = function (x) {
-					return _elm_lang$core$Native_Utils.eq(x.id, _p3.id);
+					return _elm_lang$core$Native_Utils.eq(x.id, _p4.id);
 				};
 				var replace = _elm_community$list_extra$List_Extra$replaceIf;
 				return {
@@ -18192,13 +18237,23 @@ var _user$project$ReceptionKiosk$update = F2(
 						}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
-			default:
+			case 'ShowSignaturePad':
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
 						model,
 						{isSigning: true}),
-					_1: _user$project$ReceptionKiosk$initSignaturePad(_p1._0)
+					_1: _user$project$ReceptionKiosk$initSignaturePad(_p2._0)
+				};
+			default:
+				return {
+					ctor: '_Tuple2',
+					_0: _elm_lang$core$Native_Utils.update(
+						model,
+						{
+							reasonForVisit: _elm_lang$core$Maybe$Just(_p2._0)
+						}),
+					_1: _elm_lang$core$Platform_Cmd$none
 				};
 		}
 	});
@@ -18337,12 +18392,8 @@ var _user$project$ReceptionKiosk$sceneCheckbox = F5(
 						_0: _debois$elm_mdl$Material_Options$onToggle(msger),
 						_1: {
 							ctor: '::',
-							_0: _debois$elm_mdl$Material_Toggles$ripple,
-							_1: {
-								ctor: '::',
-								_0: _debois$elm_mdl$Material_Toggles$value(value),
-								_1: {ctor: '[]'}
-							}
+							_0: _debois$elm_mdl$Material_Toggles$value(value),
+							_1: {ctor: '[]'}
 						}
 					},
 					{
@@ -18355,7 +18406,11 @@ var _user$project$ReceptionKiosk$sceneCheckbox = F5(
 									{
 										ctor: '::',
 										_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'font-size', '24pt'),
-										_1: {ctor: '[]'}
+										_1: {
+											ctor: '::',
+											_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-left', '16px'),
+											_1: {ctor: '[]'}
+										}
 									}),
 								_1: {ctor: '[]'}
 							},
@@ -18557,9 +18612,9 @@ var _user$project$ReceptionKiosk$sceneView = F5(
 								_1: {
 									ctor: '::',
 									_0: function () {
-										var _p4 = model.error;
-										if (_p4.ctor === 'Just') {
-											return _elm_lang$html$Html$text(_p4._0);
+										var _p5 = model.error;
+										if (_p5.ctor === 'Just') {
+											return _elm_lang$html$Html$text(_p5._0);
 										} else {
 											return _elm_lang$html$Html$text('');
 										}
@@ -18631,12 +18686,82 @@ var _user$project$ReceptionKiosk$howDidYouHearChoices = function (model) {
 			},
 			model.discoveryMethods));
 };
+var _user$project$ReceptionKiosk$makeActivityList = F2(
+	function (model, reasons) {
+		return A2(
+			_debois$elm_mdl$Material_List$ul,
+			_user$project$ReceptionKiosk$activityListCss,
+			A2(
+				_elm_lang$core$List$indexedMap,
+				F2(
+					function (index, reason) {
+						return A2(
+							_debois$elm_mdl$Material_List$li,
+							{
+								ctor: '::',
+								_0: A2(_debois$elm_mdl$Material_Options$css, 'font-size', '18pt'),
+								_1: {ctor: '[]'}
+							},
+							{
+								ctor: '::',
+								_0: A2(
+									_debois$elm_mdl$Material_List$content,
+									{ctor: '[]'},
+									{
+										ctor: '::',
+										_0: _elm_lang$html$Html$text(
+											A2(_user$project$ReceptionKiosk$reasonString, model, reason)),
+										_1: {ctor: '[]'}
+									}),
+								_1: {
+									ctor: '::',
+									_0: A2(
+										_debois$elm_mdl$Material_List$content2,
+										{ctor: '[]'},
+										{
+											ctor: '::',
+											_0: A5(
+												_debois$elm_mdl$Material_Toggles$radio,
+												_user$project$ReceptionKiosk$Mdl,
+												{
+													ctor: '::',
+													_0: 2000 + index,
+													_1: {ctor: '[]'}
+												},
+												model.mdl,
+												{
+													ctor: '::',
+													_0: _debois$elm_mdl$Material_Toggles$value(
+														function () {
+															var _p6 = model.reasonForVisit;
+															if (_p6.ctor === 'Nothing') {
+																return false;
+															} else {
+																return _elm_lang$core$Native_Utils.eq(_p6._0, reason);
+															}
+														}()),
+													_1: {
+														ctor: '::',
+														_0: _debois$elm_mdl$Material_Options$onToggle(
+															_user$project$ReceptionKiosk$UpdateReasonForVisit(reason)),
+														_1: {ctor: '[]'}
+													}
+												},
+												{ctor: '[]'}),
+											_1: {ctor: '[]'}
+										}),
+									_1: {ctor: '[]'}
+								}
+							});
+					}),
+				reasons));
+	});
 var _user$project$ReceptionKiosk$view = function (model) {
-	var _p5 = A2(
+	var _p7 = A2(
 		_elm_lang$core$Maybe$withDefault,
 		_user$project$ReceptionKiosk$Welcome,
 		_elm_lang$core$List$head(model.sceneStack));
-	switch (_p5.ctor) {
+	switch (_p7.ctor) {
 		case 'Welcome':
 			return A5(
 				_user$project$ReceptionKiosk$sceneView,
@@ -18953,7 +19078,7 @@ var _user$project$ReceptionKiosk$view = function (model) {
 					_0: A2(
 						_user$project$ReceptionKiosk$ButtonSpec,
 						'Accept',
-						_user$project$ReceptionKiosk$PushScene(_user$project$ReceptionKiosk$Rules)),
+						_user$project$ReceptionKiosk$PushScene(_user$project$ReceptionKiosk$Activity)),
 					_1: {ctor: '[]'}
 				} : {
 					ctor: '::',
@@ -18963,34 +19088,46 @@ var _user$project$ReceptionKiosk$view = function (model) {
 						_user$project$ReceptionKiosk$ShowSignaturePad('signature-pad')),
 					_1: {ctor: '[]'}
 				});
-		case 'Rules':
-			return A5(
-				_user$project$ReceptionKiosk$sceneView,
-				model,
-				'Rules',
-				'Please read the rules and check the box to agree.',
-				_elm_lang$html$Html$text(''),
-				{
-					ctor: '::',
-					_0: A2(
-						_user$project$ReceptionKiosk$ButtonSpec,
-						'I Agree',
-						_user$project$ReceptionKiosk$PushScene(_user$project$ReceptionKiosk$Activity)),
-					_1: {ctor: '[]'}
-				});
 		case 'Activity':
 			return A5(
 				_user$project$ReceptionKiosk$sceneView,
 				model,
-				'Today\'s Activity?',
-				'Let us know what you\'ll be doing:',
-				_elm_lang$html$Html$text(''),
+				'Today\'s Activity',
+				'Let us know what you\'ll be doing today',
+				A2(
+					_user$project$ReceptionKiosk$makeActivityList,
+					model,
+					{
+						ctor: '::',
+						_0: _user$project$ReceptionKiosk$Curiousity,
+						_1: {
+							ctor: '::',
+							_0: _user$project$ReceptionKiosk$ClassParticipant,
+							_1: {
+								ctor: '::',
+								_0: _user$project$ReceptionKiosk$MemberPrivileges,
+								_1: {
+									ctor: '::',
+									_0: _user$project$ReceptionKiosk$GuestOfMember,
+									_1: {
+										ctor: '::',
+										_0: _user$project$ReceptionKiosk$Volunteer,
+										_1: {
+											ctor: '::',
+											_0: _user$project$ReceptionKiosk$Other,
+											_1: {ctor: '[]'}
+										}
+									}
+								}
+							}
+						}
+					}),
 				{
 					ctor: '::',
 					_0: A2(
 						_user$project$ReceptionKiosk$ButtonSpec,
 						'OK',
-						_user$project$ReceptionKiosk$PushScene(_user$project$ReceptionKiosk$SupportUs)),
+						_user$project$ReceptionKiosk$PushScene(_user$project$ReceptionKiosk$Done)),
 					_1: {ctor: '[]'}
 				});
 		case 'SupportUs':

@@ -71,7 +71,6 @@ type Scene
   | ChooseUserNameAndPw
   | HowDidYouHear
   | Waiver
-  | Rules
   | Activity
   | SupportUs
   | Done
@@ -122,6 +121,24 @@ type alias MatchingAcctInfo =
   , matches: List MatchingAcct
   }
 
+type ReasonForVisit
+  = Curiousity
+  | ClassParticipant
+  | MemberPrivileges
+  | GuestOfMember
+  | Volunteer
+  | Other
+
+reasonString : Model -> ReasonForVisit -> String
+reasonString model reason =
+  case reason of
+    Curiousity -> "Checking out " ++ model.orgName
+    ClassParticipant -> "Attending a class or workshop"
+    MemberPrivileges -> "Working on a personal project"
+    GuestOfMember -> "Guest of a paying member"
+    Volunteer -> "Volunteering or staffing"
+    Other -> "Other"
+
 type alias Model =
   { csrfToken: String
   , orgName: String
@@ -135,6 +152,7 @@ type alias Model =
   , matches: List MatchingAcct  -- Matches to username/surname
   , discoveryMethods: List DiscoveryMethod  -- Fetched from backend
   , isSigning: Bool
+  , reasonForVisit: Maybe ReasonForVisit
   , error: Maybe String
   }
 
@@ -153,6 +171,7 @@ init f =
       []
       []
       False
+      Nothing
       Nothing
   , Cmd.none
   )
@@ -184,6 +203,7 @@ type Msg
   | AccDiscoveryMethods (Result Http.Error DiscoveryMethodInfo)  -- "Acc" means "accumulate"
   | ToggleDiscoveryMethod DiscoveryMethod
   | ShowSignaturePad String
+  | UpdateReasonForVisit ReasonForVisit
 
 
 port initSignaturePad : String -> Cmd msg
@@ -285,7 +305,7 @@ update msg model =
 
     LogCheckIn memberNum ->
       -- TODO: Log the visit. Might be last feature to be implemented to avoid collecting bogus visits during alpha testing.
-      (model, Cmd.none) :> update (PushScene Done)
+      (model, Cmd.none) :> update (PushScene Activity)
 
     AccDiscoveryMethods (Ok {count, next, previous, results}) ->
       -- Data from backend might be paged, so we need to accumulate the batches as they come.
@@ -309,6 +329,9 @@ update msg model =
 
     ShowSignaturePad canvasId ->
       ({model | isSigning=True}, initSignaturePad canvasId)
+
+    UpdateReasonForVisit reason ->
+      ({model | reasonForVisit = Just reason}, Cmd.none)
 
 
 -----------------------------------------------------------------------------
@@ -351,10 +374,9 @@ sceneCheckbox model index label value msger =
   div [style ["text-align"=>"left", "display"=>"inline-block", "width"=>"400px"]]
     [ Toggles.checkbox Mdl [index] model.mdl
         [ Options.onToggle msger
-        , Toggles.ripple
         , Toggles.value value
         ]
-        [span [style ["font-size"=>"24pt"]] [ text label ]]
+        [span [style ["font-size"=>"24pt", "margin-left"=>"16px"]] [ text label ]]
     ]
 
 navButtons : Model -> Html Msg
@@ -426,6 +448,29 @@ howDidYouHearChoices model =
             ]
       )
       model.discoveryMethods
+    )
+
+makeActivityList : Model -> List ReasonForVisit -> Html Msg
+makeActivityList model reasons =
+  Lists.ul activityListCss
+    (List.indexedMap
+      ( \index reason ->
+          Lists.li [css "font-size" "18pt"]
+            [ Lists.content [] [text (reasonString model reason)]
+            , Lists.content2 []
+              [ Toggles.radio Mdl [2000+index] model.mdl  -- 1000 establishes an id range for these.
+                  [ Toggles.value
+                      ( case model.reasonForVisit of
+                        Nothing -> False
+                        Just r -> r == reason
+                      )
+                  , Options.onToggle (UpdateReasonForVisit reason)
+                  ]
+                  []
+              ]
+            ]
+      )
+      reasons
     )
 
 view : Model -> Html Msg
@@ -507,6 +552,7 @@ view model =
 
     Waiver ->
       -- TODO: Don't present this to minors.
+      -- TODO: Don't present this to people who have already signed.
       sceneView model
         ("Be Careful at " ++ model.orgName ++ "!")
         "Please read and sign the following waiver"
@@ -522,23 +568,24 @@ view model =
           ]
         )
         ( if model.isSigning
-          then [ButtonSpec "Accept" (PushScene Rules)]
+          then [ButtonSpec "Accept" (PushScene Activity)]
           else [ButtonSpec "Sign" (ShowSignaturePad "signature-pad")]
         )
 
-    Rules ->
-      sceneView model
-        "Rules"
-        "Please read the rules and check the box to agree."
-        (text "")
-        [ButtonSpec "I Agree" (PushScene Activity)]
-
     Activity ->
       sceneView model
-        "Today's Activity?"
-        "Let us know what you'll be doing:"
-        (text "")
-        [ButtonSpec "OK" (PushScene SupportUs)]
+        "Today's Activity"
+        "Let us know what you'll be doing today"
+        (makeActivityList model
+          [ Curiousity
+          , ClassParticipant
+          , MemberPrivileges
+          , GuestOfMember
+          , Volunteer
+          , Other
+          ]
+        )
+        [ButtonSpec "OK" (PushScene Done)]
 
     SupportUs ->
       sceneView model
@@ -639,7 +686,7 @@ waiverHtml =
 -- These have resolution 1280 x 800 at about 150ppi.
 -- When testing on desktop, the scene should be about 13.6cm wide.
 
-sceneWidth = "800px"
+sceneWidth = "799px"
 sceneHeight = "1280px"
 topBannerHeight = "155px"
 bottomBannerHeight = "84px"
@@ -745,6 +792,13 @@ sceneChipCss =
 
 howDidYouHearCss =
   [ css "width" "400px"
+  , css "margin-left" "auto"
+  , css "margin-right" "auto"
+  , css "margin-top" "80px"
+  ]
+
+activityListCss =
+  [ css "width" "450px"
   , css "margin-left" "auto"
   , css "margin-right" "auto"
   , css "margin-top" "80px"
