@@ -17265,10 +17265,17 @@ var _user$project$ReceptionKiosk$viewButtonCss = {
 		}
 	}
 };
-var _user$project$ReceptionKiosk$bottomBannerHeight = '84px';
-var _user$project$ReceptionKiosk$topBannerHeight = '155px';
-var _user$project$ReceptionKiosk$sceneHeight = '1280px';
-var _user$project$ReceptionKiosk$sceneWidth = '799px';
+var _user$project$ReceptionKiosk$sceneDivBorderWidth = 1;
+var _user$project$ReceptionKiosk$bottomBannerHeight = 84;
+var _user$project$ReceptionKiosk$topBannerHeight = 155;
+var _user$project$ReceptionKiosk$sceneHeight = 1280;
+var _user$project$ReceptionKiosk$sceneWidth = 800;
+var _user$project$ReceptionKiosk$px = function (num) {
+	return A2(
+		_elm_lang$core$Basics_ops['++'],
+		_elm_lang$core$Basics$toString(num),
+		'px');
+};
 var _user$project$ReceptionKiosk_ops = _user$project$ReceptionKiosk_ops || {};
 _user$project$ReceptionKiosk_ops['=>'] = F2(
 	function (v0, v1) {
@@ -17289,10 +17296,16 @@ var _user$project$ReceptionKiosk$canvasDivStyle = _elm_lang$html$Html_Attributes
 					_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'padding-right', '0'),
 					_1: {
 						ctor: '::',
-						_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'padding-top', _user$project$ReceptionKiosk$topBannerHeight),
+						_0: A2(
+							_user$project$ReceptionKiosk_ops['=>'],
+							'padding-top',
+							_user$project$ReceptionKiosk$px(_user$project$ReceptionKiosk$topBannerHeight)),
 						_1: {
 							ctor: '::',
-							_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'padding-bottom', _user$project$ReceptionKiosk$bottomBannerHeight),
+							_0: A2(
+								_user$project$ReceptionKiosk_ops['=>'],
+								'padding-bottom',
+								_user$project$ReceptionKiosk$px(_user$project$ReceptionKiosk$bottomBannerHeight)),
 							_1: {
 								ctor: '::',
 								_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'position', 'absolute'),
@@ -17335,7 +17348,10 @@ var _user$project$ReceptionKiosk$sceneDivStyle = _elm_lang$html$Html_Attributes$
 					_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'background-color', 'white'),
 					_1: {
 						ctor: '::',
-						_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'width', _user$project$ReceptionKiosk$sceneWidth),
+						_0: A2(
+							_user$project$ReceptionKiosk_ops['=>'],
+							'width',
+							_user$project$ReceptionKiosk$px(_user$project$ReceptionKiosk$sceneWidth - (2 * _user$project$ReceptionKiosk$sceneDivBorderWidth))),
 						_1: {
 							ctor: '::',
 							_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'min-height', '99.8%'),
@@ -17399,7 +17415,7 @@ var _user$project$ReceptionKiosk$bannerTopStyle = _elm_lang$html$Html_Attributes
 			_0: A2(
 				_user$project$ReceptionKiosk_ops['=>'],
 				'margin-top',
-				A2(_elm_lang$core$Basics_ops['++'], '-', _user$project$ReceptionKiosk$topBannerHeight)),
+				_user$project$ReceptionKiosk$px(-1 * _user$project$ReceptionKiosk$topBannerHeight)),
 			_1: {
 				ctor: '::',
 				_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-left', 'auto'),
@@ -17408,10 +17424,16 @@ var _user$project$ReceptionKiosk$bannerTopStyle = _elm_lang$html$Html_Attributes
 					_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-right', 'auto'),
 					_1: {
 						ctor: '::',
-						_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'height', _user$project$ReceptionKiosk$topBannerHeight),
+						_0: A2(
+							_user$project$ReceptionKiosk_ops['=>'],
+							'height',
+							_user$project$ReceptionKiosk$px(_user$project$ReceptionKiosk$topBannerHeight)),
 						_1: {
 							ctor: '::',
-							_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'width', _user$project$ReceptionKiosk$sceneWidth),
+							_0: A2(
+								_user$project$ReceptionKiosk_ops['=>'],
+								'width',
+								_user$project$ReceptionKiosk$px(_user$project$ReceptionKiosk$sceneWidth)),
 							_1: {ctor: '[]'}
 						}
 					}
@@ -17428,7 +17450,7 @@ var _user$project$ReceptionKiosk$bannerBottomStyle = _elm_lang$html$Html_Attribu
 			_0: A2(
 				_user$project$ReceptionKiosk_ops['=>'],
 				'margin-bottom',
-				A2(_elm_lang$core$Basics_ops['++'], '-', _user$project$ReceptionKiosk$bottomBannerHeight)),
+				_user$project$ReceptionKiosk$px(-1 * _user$project$ReceptionKiosk$bottomBannerHeight)),
 			_1: {
 				ctor: '::',
 				_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-left', 'auto'),
@@ -17437,10 +17459,16 @@ var _user$project$ReceptionKiosk$bannerBottomStyle = _elm_lang$html$Html_Attribu
 					_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-right', 'auto'),
 					_1: {
 						ctor: '::',
-						_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'height', _user$project$ReceptionKiosk$bottomBannerHeight),
+						_0: A2(
+							_user$project$ReceptionKiosk_ops['=>'],
+							'height',
+							_user$project$ReceptionKiosk$px(_user$project$ReceptionKiosk$bottomBannerHeight)),
 						_1: {
 							ctor: '::',
-							_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'width', _user$project$ReceptionKiosk$sceneWidth),
+							_0: A2(
+								_user$project$ReceptionKiosk_ops['=>'],
+								'width',
+								_user$project$ReceptionKiosk$px(_user$project$ReceptionKiosk$sceneWidth)),
 							_1: {ctor: '[]'}
 						}
 					}

@@ -682,22 +682,25 @@ waiverHtml =
 
 (=>) = (,)
 
+px : Int -> String
+px num = (toString num) ++ "px"
+
 -- The reception kiosk is being designed to run full-screen on Motorola Xooms.
 -- These have resolution 1280 x 800 at about 150ppi.
 -- When testing on desktop, the scene should be about 13.6cm wide.
 
-sceneWidth = "799px"
-sceneHeight = "1280px"
-topBannerHeight = "155px"
-bottomBannerHeight = "84px"
+sceneWidth = 800
+sceneHeight = 1280
+topBannerHeight = 155
+bottomBannerHeight = 84
 
 canvasDivStyle = style
   [ "font-family" => "Roboto Condensed, Arial, Helvetica"
   , "text-align" => "center"
   , "padding-left" => "0"
   , "padding-right" => "0"
-  , "padding-top" => topBannerHeight
-  , "padding-bottom" => bottomBannerHeight
+  , "padding-top" => px topBannerHeight
+  , "padding-bottom" => px bottomBannerHeight
   , "position" => "absolute"
   , "top" => "0"
   , "bottom" => "0"
@@ -705,12 +708,13 @@ canvasDivStyle = style
   , "right" => "0"
   ]
 
+sceneDivBorderWidth = 1
 sceneDivStyle = style
   [ "margin-left" => "auto"
   , "margin-right" => "auto"
   , "border" => "1px solid #bbbbbb"
   , "background-color" => "white"
-  , "width" => sceneWidth
+  , "width" => px (sceneWidth - 2*sceneDivBorderWidth)
   , "min-height" => "99.8%"
   ]
 
@@ -732,20 +736,20 @@ sceneSubtitleStyle = style
 
 bannerTopStyle = style
   [ "display" => "block"
-  , "margin-top" => ("-"++topBannerHeight)
+  , "margin-top" => px (-1*topBannerHeight)
   , "margin-left" => "auto"
   , "margin-right" => "auto"
-  , "height" => topBannerHeight
-  , "width" => sceneWidth
+  , "height" => px topBannerHeight
+  , "width" => px sceneWidth
   ]
 
 bannerBottomStyle = style
   [ "display" => "block"
-  , "margin-bottom" => ("-"++bottomBannerHeight)
+  , "margin-bottom" => px (-1*bottomBannerHeight)
   , "margin-left" => "auto"
   , "margin-right" => "auto"
-  , "height" => bottomBannerHeight
-  , "width" => sceneWidth
+  , "height" => px bottomBannerHeight
+  , "width" => px sceneWidth
   ]
 
 navDivStyle = bannerBottomStyle
