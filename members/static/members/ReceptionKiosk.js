@@ -17930,7 +17930,6 @@ var _user$project$ReceptionKiosk$ButtonSpec = F2(
 		return {title: a, msg: b};
 	});
 var _user$project$ReceptionKiosk$Done = {ctor: 'Done'};
-var _user$project$ReceptionKiosk$SupportUs = {ctor: 'SupportUs'};
 var _user$project$ReceptionKiosk$Activity = {ctor: 'Activity'};
 var _user$project$ReceptionKiosk$Waiver = {ctor: 'Waiver'};
 var _user$project$ReceptionKiosk$HowDidYouHear = {ctor: 'HowDidYouHear'};
@@ -18531,7 +18530,7 @@ var _user$project$ReceptionKiosk$navButtons = function (model) {
 			_1: {ctor: '[]'}
 		});
 };
-var _user$project$ReceptionKiosk$canvasView = F2(
+var _user$project$ReceptionKiosk$sceneContainerView = F2(
 	function (model, scene) {
 		return A2(
 			_elm_lang$html$Html$div,
@@ -18587,12 +18586,12 @@ var _user$project$ReceptionKiosk$canvasView = F2(
 				}
 			});
 	});
-var _user$project$ReceptionKiosk$sceneView = F5(
+var _user$project$ReceptionKiosk$genericSceneView = F5(
 	function (model, inTitle, inSubtitle, extraContent, buttonSpecs) {
 		var subtitle = A3(_user$project$ReceptionKiosk$replaceAll, inSubtitle, 'ORGNAME', model.orgName);
 		var title = A3(_user$project$ReceptionKiosk$replaceAll, inTitle, 'ORGNAME', model.orgName);
 		return A2(
-			_user$project$ReceptionKiosk$canvasView,
+			_user$project$ReceptionKiosk$sceneContainerView,
 			model,
 			{
 				ctor: '::',
@@ -18655,6 +18654,339 @@ var _user$project$ReceptionKiosk$sceneView = F5(
 				}
 			});
 	});
+var _user$project$ReceptionKiosk$welcomeScene = function (model) {
+	return A5(
+		_user$project$ReceptionKiosk$genericSceneView,
+		model,
+		'Welcome!',
+		'Is this your first visit?',
+		_elm_lang$html$Html$text(''),
+		{
+			ctor: '::',
+			_0: A2(
+				_user$project$ReceptionKiosk$ButtonSpec,
+				'First Visit',
+				_user$project$ReceptionKiosk$PushScene(_user$project$ReceptionKiosk$HaveAcctQ)),
+			_1: {
+				ctor: '::',
+				_0: A2(
+					_user$project$ReceptionKiosk$ButtonSpec,
+					'Returning',
+					_user$project$ReceptionKiosk$PushScene(_user$project$ReceptionKiosk$CheckIn)),
+				_1: {ctor: '[]'}
+			}
+		});
+};
+var _user$project$ReceptionKiosk$haveAcctScene = function (model) {
+	return A5(
+		_user$project$ReceptionKiosk$genericSceneView,
+		model,
+		'Great!',
+		'Do you already have an account here or on our website?',
+		_elm_lang$html$Html$text(''),
+		{
+			ctor: '::',
+			_0: A2(
+				_user$project$ReceptionKiosk$ButtonSpec,
+				'Yes',
+				_user$project$ReceptionKiosk$PushScene(_user$project$ReceptionKiosk$CheckIn)),
+			_1: {
+				ctor: '::',
+				_0: A2(
+					_user$project$ReceptionKiosk$ButtonSpec,
+					'No',
+					_user$project$ReceptionKiosk$PushScene(_user$project$ReceptionKiosk$LetsCreate)),
+				_1: {ctor: '[]'}
+			}
+		});
+};
+var _user$project$ReceptionKiosk$checkInScene = function (model) {
+	return A5(
+		_user$project$ReceptionKiosk$genericSceneView,
+		model,
+		'Let\'s Get You Checked-In!',
+		'Who are you?',
+		A2(
+			_elm_lang$html$Html$div,
+			{ctor: '[]'},
+			_elm_lang$core$List$concat(
+				{
+					ctor: '::',
+					_0: {
+						ctor: '::',
+						_0: A5(_user$project$ReceptionKiosk$sceneTextField, model, 1, 'Your Username or Surname', model.flexId, _user$project$ReceptionKiosk$UpdateFlexId),
+						_1: {
+							ctor: '::',
+							_0: _user$project$ReceptionKiosk$vspace(0),
+							_1: {ctor: '[]'}
+						}
+					},
+					_1: {
+						ctor: '::',
+						_0: (_elm_lang$core$Native_Utils.cmp(
+							_elm_lang$core$List$length(model.matches),
+							0) > 0) ? {
+							ctor: '::',
+							_0: _user$project$ReceptionKiosk$vspace(30),
+							_1: {
+								ctor: '::',
+								_0: _elm_lang$html$Html$text('Tap your userid, below:'),
+								_1: {
+									ctor: '::',
+									_0: _user$project$ReceptionKiosk$vspace(20),
+									_1: {ctor: '[]'}
+								}
+							}
+						} : {
+							ctor: '::',
+							_0: _user$project$ReceptionKiosk$vspace(0),
+							_1: {ctor: '[]'}
+						},
+						_1: {
+							ctor: '::',
+							_0: A2(
+								_elm_lang$core$List$map,
+								function (acct) {
+									return A2(
+										_debois$elm_mdl$Material_Chip$button,
+										{
+											ctor: '::',
+											_0: _debois$elm_mdl$Material_Options$onClick(
+												_user$project$ReceptionKiosk$LogCheckIn(acct.memberNum)),
+											_1: {ctor: '[]'}
+										},
+										{
+											ctor: '::',
+											_0: A2(
+												_debois$elm_mdl$Material_Chip$content,
+												{ctor: '[]'},
+												{
+													ctor: '::',
+													_0: _elm_lang$html$Html$text(acct.userName),
+													_1: {ctor: '[]'}
+												}),
+											_1: {ctor: '[]'}
+										});
+								},
+								model.matches),
+							_1: {ctor: '[]'}
+						}
+					}
+				})),
+		{ctor: '[]'});
+};
+var _user$project$ReceptionKiosk$letsCreateScene = function (model) {
+	return A5(
+		_user$project$ReceptionKiosk$genericSceneView,
+		model,
+		'Let\'s Create an Account!',
+		'Please tell us about yourself:',
+		A2(
+			_elm_lang$html$Html$div,
+			{ctor: '[]'},
+			{
+				ctor: '::',
+				_0: A5(_user$project$ReceptionKiosk$sceneTextField, model, 2, 'Your first name', model.visitor.firstName, _user$project$ReceptionKiosk$UpdateFirstName),
+				_1: {
+					ctor: '::',
+					_0: _user$project$ReceptionKiosk$vspace(0),
+					_1: {
+						ctor: '::',
+						_0: A5(_user$project$ReceptionKiosk$sceneTextField, model, 3, 'Your last name', model.visitor.lastName, _user$project$ReceptionKiosk$UpdateLastName),
+						_1: {
+							ctor: '::',
+							_0: _user$project$ReceptionKiosk$vspace(0),
+							_1: {
+								ctor: '::',
+								_0: A5(_user$project$ReceptionKiosk$sceneTextField, model, 4, 'Your email address', model.visitor.email, _user$project$ReceptionKiosk$UpdateEmail),
+								_1: {
+									ctor: '::',
+									_0: _user$project$ReceptionKiosk$vspace(30),
+									_1: {
+										ctor: '::',
+										_0: A5(_user$project$ReceptionKiosk$sceneCheckbox, model, 5, 'Check if you are 18 or older!', model.visitor.isAdult, _user$project$ReceptionKiosk$ToggleIsAdult),
+										_1: {ctor: '[]'}
+									}
+								}
+							}
+						}
+					}
+				}
+			}),
+		{
+			ctor: '::',
+			_0: A2(
+				_user$project$ReceptionKiosk$ButtonSpec,
+				'OK',
+				_user$project$ReceptionKiosk$PushScene(_user$project$ReceptionKiosk$ChooseUserNameAndPw)),
+			_1: {ctor: '[]'}
+		});
+};
+var _user$project$ReceptionKiosk$chooseUserNameAndPwScene = function (model) {
+	return A5(
+		_user$project$ReceptionKiosk$genericSceneView,
+		model,
+		'Id & Password',
+		'Please chooose a user name and password for your account:',
+		A2(
+			_elm_lang$html$Html$div,
+			{ctor: '[]'},
+			{
+				ctor: '::',
+				_0: A5(_user$project$ReceptionKiosk$sceneTextField, model, 6, 'Choose a user name', model.visitor.userName, _user$project$ReceptionKiosk$UpdateUserName),
+				_1: {
+					ctor: '::',
+					_0: _user$project$ReceptionKiosk$vspace(0),
+					_1: {
+						ctor: '::',
+						_0: A5(_user$project$ReceptionKiosk$scenePasswordField, model, 7, 'Choose a password', model.visitor.password, _user$project$ReceptionKiosk$UpdatePassword),
+						_1: {
+							ctor: '::',
+							_0: _user$project$ReceptionKiosk$vspace(0),
+							_1: {
+								ctor: '::',
+								_0: A5(_user$project$ReceptionKiosk$scenePasswordField, model, 8, 'Type password again', model.visitor.password2, _user$project$ReceptionKiosk$UpdatePassword2),
+								_1: {ctor: '[]'}
+							}
+						}
+					}
+				}
+			}),
+		{
+			ctor: '::',
+			_0: A2(
+				_user$project$ReceptionKiosk$ButtonSpec,
+				'Create Account',
+				_user$project$ReceptionKiosk$PushScene(_user$project$ReceptionKiosk$HowDidYouHear)),
+			_1: {ctor: '[]'}
+		});
+};
+var _user$project$ReceptionKiosk$waiverScene = function (model) {
+	return A5(
+		_user$project$ReceptionKiosk$genericSceneView,
+		model,
+		A2(
+			_elm_lang$core$Basics_ops['++'],
+			'Be Careful at ',
+			A2(_elm_lang$core$Basics_ops['++'], model.orgName, '!')),
+		'Please read and sign the following waiver',
+		A2(
+			_elm_lang$html$Html$div,
+			{ctor: '[]'},
+			{
+				ctor: '::',
+				_0: _user$project$ReceptionKiosk$vspace(20),
+				_1: {
+					ctor: '::',
+					_0: A2(
+						_elm_lang$html$Html$div,
+						{
+							ctor: '::',
+							_0: _elm_lang$html$Html_Attributes$id('waiver-box'),
+							_1: {
+								ctor: '::',
+								_0: _user$project$ReceptionKiosk$waiverBoxStyle(model.isSigning),
+								_1: {ctor: '[]'}
+							}
+						},
+						_user$project$ReceptionKiosk$waiverHtml),
+					_1: {
+						ctor: '::',
+						_0: A2(
+							_elm_lang$html$Html$div,
+							{
+								ctor: '::',
+								_0: _elm_lang$html$Html_Attributes$style(
+									{
+										ctor: '::',
+										_0: A2(
+											_user$project$ReceptionKiosk_ops['=>'],
+											'display',
+											model.isSigning ? 'block' : 'none'),
+										_1: {ctor: '[]'}
+									}),
+								_1: {ctor: '[]'}
+							},
+							{
+								ctor: '::',
+								_0: A2(
+									_elm_lang$html$Html$p,
+									{
+										ctor: '::',
+										_0: _elm_lang$html$Html_Attributes$style(
+											{
+												ctor: '::',
+												_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-top', '50px'),
+												_1: {
+													ctor: '::',
+													_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'font-size', '16pt'),
+													_1: {
+														ctor: '::',
+														_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-bottom', '5px'),
+														_1: {ctor: '[]'}
+													}
+												}
+											}),
+										_1: {ctor: '[]'}
+									},
+									{
+										ctor: '::',
+										_0: _elm_lang$html$Html$text('sign in box below:'),
+										_1: {ctor: '[]'}
+									}),
+								_1: {
+									ctor: '::',
+									_0: A2(
+										_elm_lang$html$Html$canvas,
+										{
+											ctor: '::',
+											_0: _elm_lang$html$Html_Attributes$id('signature-pad'),
+											_1: {
+												ctor: '::',
+												_0: _user$project$ReceptionKiosk$signaturePadStyle,
+												_1: {ctor: '[]'}
+											}
+										},
+										{ctor: '[]'}),
+									_1: {ctor: '[]'}
+								}
+							}),
+						_1: {ctor: '[]'}
+					}
+				}
+			}),
+		model.isSigning ? {
+			ctor: '::',
+			_0: A2(
+				_user$project$ReceptionKiosk$ButtonSpec,
+				'Accept',
+				_user$project$ReceptionKiosk$PushScene(_user$project$ReceptionKiosk$Activity)),
+			_1: {ctor: '[]'}
+		} : {
+			ctor: '::',
+			_0: A2(
+				_user$project$ReceptionKiosk$ButtonSpec,
+				'Sign',
+				_user$project$ReceptionKiosk$ShowSignaturePad('signature-pad')),
+			_1: {ctor: '[]'}
+		});
+};
+var _user$project$ReceptionKiosk$doneScene = function (model) {
+	return A5(
+		_user$project$ReceptionKiosk$genericSceneView,
+		model,
+		'You\'re Checked In',
+		'Have fun!',
+		_elm_lang$html$Html$text(''),
+		{
+			ctor: '::',
+			_0: A2(
+				_user$project$ReceptionKiosk$ButtonSpec,
+				'Yay!',
+				_user$project$ReceptionKiosk$PushScene(_user$project$ReceptionKiosk$Welcome)),
+			_1: {ctor: '[]'}
+		});
+};
 var _user$project$ReceptionKiosk$howDidYouHearChoices = function (model) {
 	return A2(
 		_debois$elm_mdl$Material_List$ul,
@@ -18713,6 +19045,22 @@ var _user$project$ReceptionKiosk$howDidYouHearChoices = function (model) {
 					});
 			},
 			model.discoveryMethods));
+};
+var _user$project$ReceptionKiosk$howDidYouHearScene = function (model) {
+	return A5(
+		_user$project$ReceptionKiosk$genericSceneView,
+		model,
+		'Just Wondering',
+		'How did you hear about us?',
+		_user$project$ReceptionKiosk$howDidYouHearChoices(model),
+		{
+			ctor: '::',
+			_0: A2(
+				_user$project$ReceptionKiosk$ButtonSpec,
+				'OK',
+				_user$project$ReceptionKiosk$PushScene(_user$project$ReceptionKiosk$Waiver)),
+			_1: {ctor: '[]'}
+		});
 };
 var _user$project$ReceptionKiosk$makeActivityList = F2(
 	function (model, reasons) {
@@ -18784,6 +19132,49 @@ var _user$project$ReceptionKiosk$makeActivityList = F2(
 					}),
 				reasons));
 	});
+var _user$project$ReceptionKiosk$activityScene = function (model) {
+	return A5(
+		_user$project$ReceptionKiosk$genericSceneView,
+		model,
+		'Today\'s Activity',
+		'Let us know what you\'ll be doing today',
+		A2(
+			_user$project$ReceptionKiosk$makeActivityList,
+			model,
+			{
+				ctor: '::',
+				_0: _user$project$ReceptionKiosk$Curiousity,
+				_1: {
+					ctor: '::',
+					_0: _user$project$ReceptionKiosk$ClassParticipant,
+					_1: {
+						ctor: '::',
+						_0: _user$project$ReceptionKiosk$MemberPrivileges,
+						_1: {
+							ctor: '::',
+							_0: _user$project$ReceptionKiosk$GuestOfMember,
+							_1: {
+								ctor: '::',
+								_0: _user$project$ReceptionKiosk$Volunteer,
+								_1: {
+									ctor: '::',
+									_0: _user$project$ReceptionKiosk$Other,
+									_1: {ctor: '[]'}
+								}
+							}
+						}
+					}
+				}
+			}),
+		{
+			ctor: '::',
+			_0: A2(
+				_user$project$ReceptionKiosk$ButtonSpec,
+				'OK',
+				_user$project$ReceptionKiosk$PushScene(_user$project$ReceptionKiosk$Done)),
+			_1: {ctor: '[]'}
+		});
+};
 var _user$project$ReceptionKiosk$view = function (model) {
 	var _p7 = A2(
 		_elm_lang$core$Maybe$withDefault,
@@ -18791,403 +19182,23 @@ var _user$project$ReceptionKiosk$view = function (model) {
 		_elm_lang$core$List$head(model.sceneStack));
 	switch (_p7.ctor) {
 		case 'Welcome':
-			return A5(
-				_user$project$ReceptionKiosk$sceneView,
-				model,
-				'Welcome!',
-				'Is this your first visit?',
-				_elm_lang$html$Html$text(''),
-				{
-					ctor: '::',
-					_0: A2(
-						_user$project$ReceptionKiosk$ButtonSpec,
-						'First Visit',
-						_user$project$ReceptionKiosk$PushScene(_user$project$ReceptionKiosk$HaveAcctQ)),
-					_1: {
-						ctor: '::',
-						_0: A2(
-							_user$project$ReceptionKiosk$ButtonSpec,
-							'Returning',
-							_user$project$ReceptionKiosk$PushScene(_user$project$ReceptionKiosk$CheckIn)),
-						_1: {ctor: '[]'}
-					}
-				});
+			return _user$project$ReceptionKiosk$welcomeScene(model);
 		case 'HaveAcctQ':
-			return A5(
-				_user$project$ReceptionKiosk$sceneView,
-				model,
-				'Great!',
-				'Do you already have an account here or on our website?',
-				_elm_lang$html$Html$text(''),
-				{
-					ctor: '::',
-					_0: A2(
-						_user$project$ReceptionKiosk$ButtonSpec,
-						'Yes',
-						_user$project$ReceptionKiosk$PushScene(_user$project$ReceptionKiosk$CheckIn)),
-					_1: {
-						ctor: '::',
-						_0: A2(
-							_user$project$ReceptionKiosk$ButtonSpec,
-							'No',
-							_user$project$ReceptionKiosk$PushScene(_user$project$ReceptionKiosk$LetsCreate)),
-						_1: {ctor: '[]'}
-					}
-				});
+			return _user$project$ReceptionKiosk$haveAcctScene(model);
 		case 'CheckIn':
-			return A5(
-				_user$project$ReceptionKiosk$sceneView,
-				model,
-				'Let\'s Get You Checked-In!',
-				'Who are you?',
-				A2(
-					_elm_lang$html$Html$div,
-					{ctor: '[]'},
-					_elm_lang$core$List$concat(
-						{
-							ctor: '::',
-							_0: {
-								ctor: '::',
-								_0: A5(_user$project$ReceptionKiosk$sceneTextField, model, 1, 'Your Username or Surname', model.flexId, _user$project$ReceptionKiosk$UpdateFlexId),
-								_1: {
-									ctor: '::',
-									_0: _user$project$ReceptionKiosk$vspace(0),
-									_1: {ctor: '[]'}
-								}
-							},
-							_1: {
-								ctor: '::',
-								_0: (_elm_lang$core$Native_Utils.cmp(
-									_elm_lang$core$List$length(model.matches),
-									0) > 0) ? {
-									ctor: '::',
-									_0: _user$project$ReceptionKiosk$vspace(30),
-									_1: {
-										ctor: '::',
-										_0: _elm_lang$html$Html$text('Tap your userid, below:'),
-										_1: {
-											ctor: '::',
-											_0: _user$project$ReceptionKiosk$vspace(20),
-											_1: {ctor: '[]'}
-										}
-									}
-								} : {
-									ctor: '::',
-									_0: _user$project$ReceptionKiosk$vspace(0),
-									_1: {ctor: '[]'}
-								},
-								_1: {
-									ctor: '::',
-									_0: A2(
-										_elm_lang$core$List$map,
-										function (acct) {
-											return A2(
-												_debois$elm_mdl$Material_Chip$button,
-												{
-													ctor: '::',
-													_0: _debois$elm_mdl$Material_Options$onClick(
-														_user$project$ReceptionKiosk$LogCheckIn(acct.memberNum)),
-													_1: {ctor: '[]'}
-												},
-												{
-													ctor: '::',
-													_0: A2(
-														_debois$elm_mdl$Material_Chip$content,
-														{ctor: '[]'},
-														{
-															ctor: '::',
-															_0: _elm_lang$html$Html$text(acct.userName),
-															_1: {ctor: '[]'}
-														}),
-													_1: {ctor: '[]'}
-												});
-										},
-										model.matches),
-									_1: {ctor: '[]'}
-								}
-							}
-						})),
-				{ctor: '[]'});
+			return _user$project$ReceptionKiosk$checkInScene(model);
 		case 'LetsCreate':
-			return A5(
-				_user$project$ReceptionKiosk$sceneView,
-				model,
-				'Let\'s Create an Account!',
-				'Please tell us about yourself:',
-				A2(
-					_elm_lang$html$Html$div,
-					{ctor: '[]'},
-					{
-						ctor: '::',
-						_0: A5(_user$project$ReceptionKiosk$sceneTextField, model, 2, 'Your first name', model.visitor.firstName, _user$project$ReceptionKiosk$UpdateFirstName),
-						_1: {
-							ctor: '::',
-							_0: _user$project$ReceptionKiosk$vspace(0),
-							_1: {
-								ctor: '::',
-								_0: A5(_user$project$ReceptionKiosk$sceneTextField, model, 3, 'Your last name', model.visitor.lastName, _user$project$ReceptionKiosk$UpdateLastName),
-								_1: {
-									ctor: '::',
-									_0: _user$project$ReceptionKiosk$vspace(0),
-									_1: {
-										ctor: '::',
-										_0: A5(_user$project$ReceptionKiosk$sceneTextField, model, 4, 'Your email address', model.visitor.email, _user$project$ReceptionKiosk$UpdateEmail),
-										_1: {
-											ctor: '::',
-											_0: _user$project$ReceptionKiosk$vspace(30),
-											_1: {
-												ctor: '::',
-												_0: A5(_user$project$ReceptionKiosk$sceneCheckbox, model, 5, 'Check if you are 18 or older!', model.visitor.isAdult, _user$project$ReceptionKiosk$ToggleIsAdult),
-												_1: {ctor: '[]'}
-											}
-										}
-									}
-								}
-							}
-						}
-					}),
-				{
-					ctor: '::',
-					_0: A2(
-						_user$project$ReceptionKiosk$ButtonSpec,
-						'OK',
-						_user$project$ReceptionKiosk$PushScene(_user$project$ReceptionKiosk$ChooseUserNameAndPw)),
-					_1: {ctor: '[]'}
-				});
+			return _user$project$ReceptionKiosk$letsCreateScene(model);
 		case 'ChooseUserNameAndPw':
-			return A5(
-				_user$project$ReceptionKiosk$sceneView,
-				model,
-				'Id & Password',
-				'Please chooose a user name and password for your account:',
-				A2(
-					_elm_lang$html$Html$div,
-					{ctor: '[]'},
-					{
-						ctor: '::',
-						_0: A5(_user$project$ReceptionKiosk$sceneTextField, model, 6, 'Choose a user name', model.visitor.userName, _user$project$ReceptionKiosk$UpdateUserName),
-						_1: {
-							ctor: '::',
-							_0: _user$project$ReceptionKiosk$vspace(0),
-							_1: {
-								ctor: '::',
-								_0: A5(_user$project$ReceptionKiosk$scenePasswordField, model, 7, 'Choose a password', model.visitor.password, _user$project$ReceptionKiosk$UpdatePassword),
-								_1: {
-									ctor: '::',
-									_0: _user$project$ReceptionKiosk$vspace(0),
-									_1: {
-										ctor: '::',
-										_0: A5(_user$project$ReceptionKiosk$scenePasswordField, model, 8, 'Type password again', model.visitor.password2, _user$project$ReceptionKiosk$UpdatePassword2),
-										_1: {ctor: '[]'}
-									}
-								}
-							}
-						}
-					}),
-				{
-					ctor: '::',
-					_0: A2(
-						_user$project$ReceptionKiosk$ButtonSpec,
-						'Create Account',
-						_user$project$ReceptionKiosk$PushScene(_user$project$ReceptionKiosk$HowDidYouHear)),
-					_1: {ctor: '[]'}
-				});
+			return _user$project$ReceptionKiosk$chooseUserNameAndPwScene(model);
 		case 'HowDidYouHear':
-			return A5(
-				_user$project$ReceptionKiosk$sceneView,
-				model,
-				'Just Wondering',
-				'How did you hear about us?',
-				_user$project$ReceptionKiosk$howDidYouHearChoices(model),
-				{
-					ctor: '::',
-					_0: A2(
-						_user$project$ReceptionKiosk$ButtonSpec,
-						'OK',
-						_user$project$ReceptionKiosk$PushScene(_user$project$ReceptionKiosk$Waiver)),
-					_1: {ctor: '[]'}
-				});
+			return _user$project$ReceptionKiosk$howDidYouHearScene(model);
 		case 'Waiver':
-			return A5(
-				_user$project$ReceptionKiosk$sceneView,
-				model,
-				A2(
-					_elm_lang$core$Basics_ops['++'],
-					'Be Careful at ',
-					A2(_elm_lang$core$Basics_ops['++'], model.orgName, '!')),
-				'Please read and sign the following waiver',
-				A2(
-					_elm_lang$html$Html$div,
-					{ctor: '[]'},
-					{
-						ctor: '::',
-						_0: _user$project$ReceptionKiosk$vspace(20),
-						_1: {
-							ctor: '::',
-							_0: A2(
-								_elm_lang$html$Html$div,
-								{
-									ctor: '::',
-									_0: _elm_lang$html$Html_Attributes$id('waiver-box'),
-									_1: {
-										ctor: '::',
-										_0: _user$project$ReceptionKiosk$waiverBoxStyle(model.isSigning),
-										_1: {ctor: '[]'}
-									}
-								},
-								_user$project$ReceptionKiosk$waiverHtml),
-							_1: {
-								ctor: '::',
-								_0: A2(
-									_elm_lang$html$Html$div,
-									{
-										ctor: '::',
-										_0: _elm_lang$html$Html_Attributes$style(
-											{
-												ctor: '::',
-												_0: A2(
-													_user$project$ReceptionKiosk_ops['=>'],
-													'display',
-													model.isSigning ? 'block' : 'none'),
-												_1: {ctor: '[]'}
-											}),
-										_1: {ctor: '[]'}
-									},
-									{
-										ctor: '::',
-										_0: A2(
-											_elm_lang$html$Html$p,
-											{
-												ctor: '::',
-												_0: _elm_lang$html$Html_Attributes$style(
-													{
-														ctor: '::',
-														_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-top', '50px'),
-														_1: {
-															ctor: '::',
-															_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'font-size', '16pt'),
-															_1: {
-																ctor: '::',
-																_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-bottom', '5px'),
-																_1: {ctor: '[]'}
-															}
-														}
-													}),
-												_1: {ctor: '[]'}
-											},
-											{
-												ctor: '::',
-												_0: _elm_lang$html$Html$text('sign in box below:'),
-												_1: {ctor: '[]'}
-											}),
-										_1: {
-											ctor: '::',
-											_0: A2(
-												_elm_lang$html$Html$canvas,
-												{
-													ctor: '::',
-													_0: _elm_lang$html$Html_Attributes$id('signature-pad'),
-													_1: {
-														ctor: '::',
-														_0: _user$project$ReceptionKiosk$signaturePadStyle,
-														_1: {ctor: '[]'}
-													}
-												},
-												{ctor: '[]'}),
-											_1: {ctor: '[]'}
-										}
-									}),
-								_1: {ctor: '[]'}
-							}
-						}
-					}),
-				model.isSigning ? {
-					ctor: '::',
-					_0: A2(
-						_user$project$ReceptionKiosk$ButtonSpec,
-						'Accept',
-						_user$project$ReceptionKiosk$PushScene(_user$project$ReceptionKiosk$Activity)),
-					_1: {ctor: '[]'}
-				} : {
-					ctor: '::',
-					_0: A2(
-						_user$project$ReceptionKiosk$ButtonSpec,
-						'Sign',
-						_user$project$ReceptionKiosk$ShowSignaturePad('signature-pad')),
-					_1: {ctor: '[]'}
-				});
+			return _user$project$ReceptionKiosk$waiverScene(model);
 		case 'Activity':
-			return A5(
-				_user$project$ReceptionKiosk$sceneView,
-				model,
-				'Today\'s Activity',
-				'Let us know what you\'ll be doing today',
-				A2(
-					_user$project$ReceptionKiosk$makeActivityList,
-					model,
-					{
-						ctor: '::',
-						_0: _user$project$ReceptionKiosk$Curiousity,
-						_1: {
-							ctor: '::',
-							_0: _user$project$ReceptionKiosk$ClassParticipant,
-							_1: {
-								ctor: '::',
-								_0: _user$project$ReceptionKiosk$MemberPrivileges,
-								_1: {
-									ctor: '::',
-									_0: _user$project$ReceptionKiosk$GuestOfMember,
-									_1: {
-										ctor: '::',
-										_0: _user$project$ReceptionKiosk$Volunteer,
-										_1: {
-											ctor: '::',
-											_0: _user$project$ReceptionKiosk$Other,
-											_1: {ctor: '[]'}
-										}
-									}
-								}
-							}
-						}
-					}),
-				{
-					ctor: '::',
-					_0: A2(
-						_user$project$ReceptionKiosk$ButtonSpec,
-						'OK',
-						_user$project$ReceptionKiosk$PushScene(_user$project$ReceptionKiosk$Done)),
-					_1: {ctor: '[]'}
-				});
-		case 'SupportUs':
-			return A5(
-				_user$project$ReceptionKiosk$sceneView,
-				model,
-				'Please Support Us!',
-				'{TODO}',
-				_elm_lang$html$Html$text(''),
-				{
-					ctor: '::',
-					_0: A2(
-						_user$project$ReceptionKiosk$ButtonSpec,
-						'OK',
-						_user$project$ReceptionKiosk$PushScene(_user$project$ReceptionKiosk$Done)),
-					_1: {ctor: '[]'}
-				});
+			return _user$project$ReceptionKiosk$activityScene(model);
 		default:
-			return A5(
-				_user$project$ReceptionKiosk$sceneView,
-				model,
-				'You\'re Checked In',
-				'Have fun!',
-				_elm_lang$html$Html$text(''),
-				{
-					ctor: '::',
-					_0: A2(
-						_user$project$ReceptionKiosk$ButtonSpec,
-						'Yay!',
-						_user$project$ReceptionKiosk$PushScene(_user$project$ReceptionKiosk$Welcome)),
-					_1: {ctor: '[]'}
-				});
+			return _user$project$ReceptionKiosk$doneScene(model);
 	}
 };
 var _user$project$ReceptionKiosk$main = _elm_lang$html$Html$programWithFlags(

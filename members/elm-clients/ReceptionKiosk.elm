@@ -72,7 +72,6 @@ type Scene
   | HowDidYouHear
   | Waiver
   | Activity
-  | SupportUs
   | Done
 
 type alias DiscoveryMethod =
@@ -338,6 +337,21 @@ update msg model =
 -- VIEW
 -----------------------------------------------------------------------------
 
+view : Model -> Html Msg
+view model =
+  -- Default of "Welcome" elegantly guards against stack underflow, which should not occur.
+  case Maybe.withDefault Welcome (List.head model.sceneStack) of
+
+    Welcome -> welcomeScene model
+    HaveAcctQ -> haveAcctScene model
+    CheckIn -> checkInScene model
+    LetsCreate -> letsCreateScene model
+    ChooseUserNameAndPw -> chooseUserNameAndPwScene model
+    HowDidYouHear -> howDidYouHearScene model
+    Waiver -> waiverScene model
+    Activity -> activityScene model
+    Done -> doneScene model
+
 type alias ButtonSpec = { title : String, msg: Msg }
 
 sceneButton : Model -> ButtonSpec -> Html Msg
@@ -405,13 +419,13 @@ hspace : Int -> Html Msg
 hspace amount =
   div [style ["display" => "inline-block", "width" => (toString amount ++ "px")]] []
 
-sceneView: Model -> String -> String -> Html Msg -> List ButtonSpec -> Html Msg
-sceneView model inTitle inSubtitle extraContent buttonSpecs =
+genericSceneView: Model -> String -> String -> Html Msg -> List ButtonSpec -> Html Msg
+genericSceneView model inTitle inSubtitle extraContent buttonSpecs =
   let
     title = replaceAll inTitle "ORGNAME" model.orgName
     subtitle = replaceAll inSubtitle "ORGNAME" model.orgName
   in
-    canvasView model
+    sceneContainerView model
       [ p [sceneTitleStyle] [text title]
       , p [sceneSubtitleStyle] [text subtitle]
       , extraContent
@@ -422,14 +436,104 @@ sceneView model inTitle inSubtitle extraContent buttonSpecs =
           Nothing -> text ""
       ]
 
-canvasView: Model -> List (Html Msg) -> Html Msg
-canvasView model scene =
+sceneContainerView: Model -> List (Html Msg) -> Html Msg
+sceneContainerView model scene =
   div [canvasDivStyle]
     [ img [src model.bannerTopUrl, bannerTopStyle] []
     , div [sceneDivStyle] scene
     , navButtons model
     , img [src model.bannerBottomUrl, bannerBottomStyle] []
     ]
+
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+welcomeScene : Model -> Html Msg
+welcomeScene model =
+  genericSceneView model
+    "Welcome!"
+    "Is this your first visit?"
+    (text "")
+    [ ButtonSpec "First Visit" (PushScene HaveAcctQ)
+    , ButtonSpec "Returning" (PushScene CheckIn)
+    ]
+
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+haveAcctScene : Model -> Html Msg
+haveAcctScene model =
+  genericSceneView model
+    "Great!"
+    "Do you already have an account here or on our website?"
+    (text "")
+    [ ButtonSpec "Yes" (PushScene CheckIn)
+    , ButtonSpec "No" (PushScene LetsCreate)
+    -- TODO: How about a "I don't know" button, here?
+    ]
+
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+checkInScene : Model -> Html Msg
+checkInScene model =
+  genericSceneView model
+    "Let's Get You Checked-In!"
+    "Who are you?"
+    ( div []
+        (List.concat
+          [ [sceneTextField model 1 "Your Username or Surname" model.flexId UpdateFlexId, vspace 0]
+          , if List.length model.matches > 0
+             then [vspace 30, text "Tap your userid, below:", vspace 20]
+             else [vspace 0]
+          , List.map (\acct -> Chip.button [Options.onClick (LogCheckIn acct.memberNum)] [ Chip.content [] [ text acct.userName]]) model.matches
+          ]
+        )
+    )
+    []  -- No buttons
+
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+letsCreateScene : Model -> Html Msg
+letsCreateScene model =
+  genericSceneView model
+    "Let's Create an Account!"
+    "Please tell us about yourself:"
+    ( div []
+        [ sceneTextField model 2 "Your first name" model.visitor.firstName UpdateFirstName
+        , vspace 0
+        , sceneTextField model 3 "Your last name" model.visitor.lastName UpdateLastName
+        , vspace 0
+        , sceneTextField model 4 "Your email address" model.visitor.email UpdateEmail
+        , vspace 30
+        , sceneCheckbox model 5 "Check if you are 18 or older!" model.visitor.isAdult ToggleIsAdult
+        ]
+    )
+    [ButtonSpec "OK" (PushScene ChooseUserNameAndPw)]
+
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+chooseUserNameAndPwScene : Model -> Html Msg
+chooseUserNameAndPwScene model =
+  genericSceneView model
+    "Id & Password"
+    "Please chooose a user name and password for your account:"
+    ( div []
+        [ sceneTextField model 6 "Choose a user name" model.visitor.userName UpdateUserName
+        , vspace 0
+        , scenePasswordField model 7 "Choose a password" model.visitor.password UpdatePassword
+        , vspace 0
+        , scenePasswordField model 8 "Type password again" model.visitor.password2 UpdatePassword2
+        ]
+    )
+    [ButtonSpec "Create Account" (PushScene HowDidYouHear)]
+
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+howDidYouHearScene : Model -> Html Msg
+howDidYouHearScene model =
+  genericSceneView model
+    "Just Wondering"
+    "How did you hear about us?"
+    (howDidYouHearChoices model)
+    [ButtonSpec "OK" (PushScene Waiver)]
 
 howDidYouHearChoices : Model -> Html Msg
 howDidYouHearChoices model =
@@ -449,6 +553,49 @@ howDidYouHearChoices model =
       )
       model.discoveryMethods
     )
+
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+waiverScene : Model -> Html Msg
+waiverScene model =
+  -- TODO: Don't present this to minors.
+  -- TODO: Don't present this to people who have already signed.
+  genericSceneView model
+    ("Be Careful at " ++ model.orgName ++ "!")
+    "Please read and sign the following waiver"
+    (div []
+      [ vspace 20
+      , div [id "waiver-box", (waiverBoxStyle model.isSigning)]
+          waiverHtml
+      , div [style ["display"=>if model.isSigning then "block" else "none"]]
+          [ p [style ["margin-top"=>"50px", "font-size"=>"16pt", "margin-bottom"=>"5px"]]
+            [text "sign in box below:"]
+          , canvas [id "signature-pad", signaturePadStyle] []
+          ]
+      ]
+    )
+    ( if model.isSigning
+      then [ButtonSpec "Accept" (PushScene Activity)]
+      else [ButtonSpec "Sign" (ShowSignaturePad "signature-pad")]
+    )
+
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+activityScene : Model -> Html Msg
+activityScene model =
+  genericSceneView model
+    "Today's Activity"
+    "Let us know what you'll be doing today"
+    (makeActivityList model
+      [ Curiousity
+      , ClassParticipant
+      , MemberPrivileges
+      , GuestOfMember
+      , Volunteer
+      , Other
+      ]
+    )
+    [ButtonSpec "OK" (PushScene Done)]
 
 makeActivityList : Model -> List ReasonForVisit -> Html Msg
 makeActivityList model reasons =
@@ -473,133 +620,15 @@ makeActivityList model reasons =
       reasons
     )
 
-view : Model -> Html Msg
-view model =
-  -- Default of "Welcome" elegantly guards against stack underflow, which should not occur.
-  case Maybe.withDefault Welcome (List.head model.sceneStack) of
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-    Welcome ->
-      sceneView model
-        "Welcome!"
-        "Is this your first visit?"
-        (text "")
-        [ ButtonSpec "First Visit" (PushScene HaveAcctQ)
-        , ButtonSpec "Returning" (PushScene CheckIn)
-        ]
-
-    HaveAcctQ ->
-      sceneView model
-        "Great!"
-        "Do you already have an account here or on our website?"
-        (text "")
-        [ ButtonSpec "Yes" (PushScene CheckIn)
-        , ButtonSpec "No" (PushScene LetsCreate)
-        -- TODO: How about a "I don't know" button, here?
-        ]
-
-    CheckIn ->
-      sceneView model
-        "Let's Get You Checked-In!"
-        "Who are you?"
-        ( div []
-            (List.concat
-              [ [sceneTextField model 1 "Your Username or Surname" model.flexId UpdateFlexId, vspace 0]
-              , if List.length model.matches > 0
-                 then [vspace 30, text "Tap your userid, below:", vspace 20]
-                 else [vspace 0]
-              , List.map (\acct -> Chip.button [Options.onClick (LogCheckIn acct.memberNum)] [ Chip.content [] [ text acct.userName]]) model.matches
-              ]
-            )
-        )
-        []  -- No buttons
-
-    LetsCreate ->
-      sceneView model
-        "Let's Create an Account!"
-        "Please tell us about yourself:"
-        ( div []
-            [ sceneTextField model 2 "Your first name" model.visitor.firstName UpdateFirstName
-            , vspace 0
-            , sceneTextField model 3 "Your last name" model.visitor.lastName UpdateLastName
-            , vspace 0
-            , sceneTextField model 4 "Your email address" model.visitor.email UpdateEmail
-            , vspace 30
-            , sceneCheckbox model 5 "Check if you are 18 or older!" model.visitor.isAdult ToggleIsAdult
-            ]
-        )
-        [ButtonSpec "OK" (PushScene ChooseUserNameAndPw)]
-
-    ChooseUserNameAndPw ->
-      sceneView model
-        "Id & Password"
-        "Please chooose a user name and password for your account:"
-        ( div []
-            [ sceneTextField model 6 "Choose a user name" model.visitor.userName UpdateUserName
-            , vspace 0
-            , scenePasswordField model 7 "Choose a password" model.visitor.password UpdatePassword
-            , vspace 0
-            , scenePasswordField model 8 "Type password again" model.visitor.password2 UpdatePassword2
-            ]
-        )
-        [ButtonSpec "Create Account" (PushScene HowDidYouHear)]
-
-    HowDidYouHear ->
-      sceneView model
-        "Just Wondering"
-        "How did you hear about us?"
-        (howDidYouHearChoices model)
-        [ButtonSpec "OK" (PushScene Waiver)]
-
-    Waiver ->
-      -- TODO: Don't present this to minors.
-      -- TODO: Don't present this to people who have already signed.
-      sceneView model
-        ("Be Careful at " ++ model.orgName ++ "!")
-        "Please read and sign the following waiver"
-        (div []
-          [ vspace 20
-          , div [id "waiver-box", (waiverBoxStyle model.isSigning)]
-              waiverHtml
-          , div [style ["display"=>if model.isSigning then "block" else "none"]]
-              [ p [style ["margin-top"=>"50px", "font-size"=>"16pt", "margin-bottom"=>"5px"]]
-                [text "sign in box below:"]
-              , canvas [id "signature-pad", signaturePadStyle] []
-              ]
-          ]
-        )
-        ( if model.isSigning
-          then [ButtonSpec "Accept" (PushScene Activity)]
-          else [ButtonSpec "Sign" (ShowSignaturePad "signature-pad")]
-        )
-
-    Activity ->
-      sceneView model
-        "Today's Activity"
-        "Let us know what you'll be doing today"
-        (makeActivityList model
-          [ Curiousity
-          , ClassParticipant
-          , MemberPrivileges
-          , GuestOfMember
-          , Volunteer
-          , Other
-          ]
-        )
-        [ButtonSpec "OK" (PushScene Done)]
-
-    SupportUs ->
-      sceneView model
-        "Please Support Us!"
-        "{TODO}"
-        (text "")
-        [ButtonSpec "OK" (PushScene Done)]
-
-    Done ->
-      sceneView model
-        "You're Checked In"
-        "Have fun!"
-        (text "")
-        [ButtonSpec "Yay!" (PushScene Welcome)]
+doneScene : Model -> Html Msg
+doneScene model =
+  genericSceneView model
+    "You're Checked In"
+    "Have fun!"
+    (text "")
+    [ButtonSpec "Yay!" (PushScene Welcome)]
 
 
 -----------------------------------------------------------------------------
