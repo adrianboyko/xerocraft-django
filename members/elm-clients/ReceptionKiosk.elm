@@ -202,10 +202,12 @@ type Msg
   | AccDiscoveryMethods (Result Http.Error DiscoveryMethodInfo)  -- "Acc" means "accumulate"
   | ToggleDiscoveryMethod DiscoveryMethod
   | ShowSignaturePad String
+  | ClearSignaturePad String
   | UpdateReasonForVisit ReasonForVisit
 
 
-port initSignaturePad : String -> Cmd msg
+port initSignaturePad : String -> Cmd msg  -- String is ID of canvas to be used
+port clearSignaturePad : String -> Cmd msg  --
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -328,6 +330,9 @@ update msg model =
 
     ShowSignaturePad canvasId ->
       ({model | isSigning=True}, initSignaturePad canvasId)
+
+    ClearSignaturePad canvasId ->
+      (model, clearSignaturePad canvasId)
 
     UpdateReasonForVisit reason ->
       ({model | reasonForVisit = Just reason}, Cmd.none)
@@ -523,7 +528,7 @@ chooseUserNameAndPwScene model =
         , scenePasswordField model 8 "Type password again" model.visitor.password2 UpdatePassword2
         ]
     )
-    [ButtonSpec "Create Account" (PushScene HowDidYouHear)]
+    [ButtonSpec "OK" (PushScene HowDidYouHear)]
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
@@ -575,7 +580,7 @@ waiverScene model =
       ]
     )
     ( if model.isSigning
-      then [ButtonSpec "Accept" (PushScene Activity)]
+      then [ButtonSpec "Accept" (PushScene Activity), ButtonSpec "Clear" (ClearSignaturePad "signature-pad")]
       else [ButtonSpec "Sign" (ShowSignaturePad "signature-pad")]
     )
 
@@ -784,7 +789,7 @@ bannerBottomStyle = style
 navDivStyle = bannerBottomStyle
 
 waiverBoxStyle isSigning = style
-  [ "height" => if isSigning then "350px" else "650px"
+  [ "height" => if isSigning then "300px" else "600px"
   , "overflow-y" => "scroll"
   , "margin-left" => "20px"
   , "margin-right" => "20px"

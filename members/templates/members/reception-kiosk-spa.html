@@ -64,22 +64,38 @@
             "bannerBottomUrl": "{% static 'xerops/GenericBannerBottom_800x84.png' %}",
             "discoveryMethodsUrl": "{% url 'memb:discoverymethod-list' %}"
         };
+
+        var signaturePad = null;
+        var ctx = null;
+
+        function initSignaturePad(canvasId) {
+            var canv = document.getElementById(canvasId);
+            ctx = canv.getContext("2d");
+            ctx.scale(0.395, 0.75);  // WHAT? WHY? Found these values by trial & error.
+
+            var bg = new Image();
+            bg.src = "{% static 'members/SignatureBox.png' %}";
+            bg.onload = function() {
+                ctx.drawImage(bg, 0, 0);
+            };
+            var opts = {
+                /*backgroundColor: 'rgba(255, 255, 255, 0)',*/
+                penColor: 'rgb(0, 0, 0)'
+            };
+            signaturePad = new SignaturePad(canv, opts);
+        }
+
+        function clearSignaturePad(canvasId) {
+            ctx.scale(1.0/0.395, 1.0/0.75);  // WHAT? WHY? Found these values by trial & error.
+            signaturePad.clear();
+            initSignaturePad(canvasId);
+        }
+
         var myContainer = document.getElementById("myContainer");
         var app = Elm.ReceptionKiosk.embed(myContainer, flags);
 
-        var signaturePad = null;
-        app.ports.initSignaturePad.subscribe(
-            function(canvasId) {
-                var opts = {
-                    backgroundColor: 'rgba(255, 255, 255, 0)',
-                    penColor: 'rgb(0, 0, 0)'
-                };
-                var canv = document.getElementById(canvasId);
-                var ctx = canv.getContext("2d");
-                ctx.scale(0.395, 0.75);  // WHAT? WHY? Found these values by trial & error.
-                signaturePad = new SignaturePad(canv, opts);
-            }
-        );
+        app.ports.initSignaturePad.subscribe(initSignaturePad);
+        app.ports.clearSignaturePad.subscribe(clearSignaturePad);
 
     </script>
 </body>

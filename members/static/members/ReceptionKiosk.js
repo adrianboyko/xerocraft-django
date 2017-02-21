@@ -17484,7 +17484,7 @@ var _user$project$ReceptionKiosk$waiverBoxStyle = function (isSigning) {
 			_0: A2(
 				_user$project$ReceptionKiosk_ops['=>'],
 				'height',
-				isSigning ? '350px' : '650px'),
+				isSigning ? '300px' : '600px'),
 			_1: {
 				ctor: '::',
 				_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'overflow-y', 'scroll'),
@@ -17826,6 +17826,11 @@ var _user$project$ReceptionKiosk$initSignaturePad = _elm_lang$core$Native_Platfo
 	function (v) {
 		return v;
 	});
+var _user$project$ReceptionKiosk$clearSignaturePad = _elm_lang$core$Native_Platform.outgoingPort(
+	'clearSignaturePad',
+	function (v) {
+		return v;
+	});
 var _user$project$ReceptionKiosk$Flags = F5(
 	function (a, b, c, d, e) {
 		return {csrfToken: a, orgName: b, bannerTopUrl: c, bannerBottomUrl: d, discoveryMethodsUrl: e};
@@ -17964,6 +17969,9 @@ var _user$project$ReceptionKiosk$ClassParticipant = {ctor: 'ClassParticipant'};
 var _user$project$ReceptionKiosk$Curiousity = {ctor: 'Curiousity'};
 var _user$project$ReceptionKiosk$UpdateReasonForVisit = function (a) {
 	return {ctor: 'UpdateReasonForVisit', _0: a};
+};
+var _user$project$ReceptionKiosk$ClearSignaturePad = function (a) {
+	return {ctor: 'ClearSignaturePad', _0: a};
 };
 var _user$project$ReceptionKiosk$ShowSignaturePad = function (a) {
 	return {ctor: 'ShowSignaturePad', _0: a};
@@ -18271,6 +18279,12 @@ var _user$project$ReceptionKiosk$update = F2(
 						model,
 						{isSigning: true}),
 					_1: _user$project$ReceptionKiosk$initSignaturePad(_p2._0)
+				};
+			case 'ClearSignaturePad':
+				return {
+					ctor: '_Tuple2',
+					_0: model,
+					_1: _user$project$ReceptionKiosk$clearSignaturePad(_p2._0)
 				};
 			default:
 				return {
@@ -18856,7 +18870,7 @@ var _user$project$ReceptionKiosk$chooseUserNameAndPwScene = function (model) {
 			ctor: '::',
 			_0: A2(
 				_user$project$ReceptionKiosk$ButtonSpec,
-				'Create Account',
+				'OK',
 				_user$project$ReceptionKiosk$PushScene(_user$project$ReceptionKiosk$HowDidYouHear)),
 			_1: {ctor: '[]'}
 		});
@@ -18961,7 +18975,14 @@ var _user$project$ReceptionKiosk$waiverScene = function (model) {
 				_user$project$ReceptionKiosk$ButtonSpec,
 				'Accept',
 				_user$project$ReceptionKiosk$PushScene(_user$project$ReceptionKiosk$Activity)),
-			_1: {ctor: '[]'}
+			_1: {
+				ctor: '::',
+				_0: A2(
+					_user$project$ReceptionKiosk$ButtonSpec,
+					'Clear',
+					_user$project$ReceptionKiosk$ClearSignaturePad('signature-pad')),
+				_1: {ctor: '[]'}
+			}
 		} : {
 			ctor: '::',
 			_0: A2(
