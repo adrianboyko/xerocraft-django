@@ -100,15 +100,16 @@ type alias Acct =
   }
 
 blankAcct : Acct
-blankAcct = Acct
-    ""
-    ""
-    ""
-    Nothing
-    ""
-    ""
-    ""
-    False
+blankAcct =
+  { userName = ""
+  , password = ""
+  , password2 = ""
+  , memberNum = Nothing
+  , firstName = ""
+  , lastName = ""
+  , email = ""
+  , isAdult = False
+  }
 
 type alias MatchingAcct =
   { userName: String
@@ -152,6 +153,7 @@ type alias Model =
   , discoveryMethods: List DiscoveryMethod  -- Fetched from backend
   , isSigning: Bool
   , reasonForVisit: Maybe ReasonForVisit
+  , badPasswordMessage: Maybe String
   , error: Maybe String
   }
 
@@ -170,6 +172,7 @@ init f =
       []
       []
       False
+      Nothing
       Nothing
       Nothing
   , Cmd.none
@@ -204,6 +207,7 @@ type Msg
   | ShowSignaturePad String
   | ClearSignaturePad String
   | UpdateReasonForVisit ReasonForVisit
+  | CheckPassword
 
 
 port initSignaturePad : String -> Cmd msg  -- String is ID of canvas to be used
@@ -337,6 +341,22 @@ update msg model =
     UpdateReasonForVisit reason ->
       ({model | reasonForVisit = Just reason}, Cmd.none)
 
+    CheckPassword ->
+      let
+        pwMismatch = model.visitor.password /= model.visitor.password2
+        pwBlank = String.length model.visitor.password == 0
+        pwTooShort = String.length model.visitor.password < 5
+        pwProblem = pwMismatch || pwBlank || pwTooShort
+        badPwMsg =
+          if pwMismatch then Just "The password fields don't match"
+          else if pwBlank then Just "The password fields are blank."
+          else if pwTooShort then Just "The password must be at least 5 characters long."
+          else Nothing
+        newState = {model | badPasswordMessage = badPwMsg}
+      in
+        if pwProblem
+        then (newState, Cmd.none)
+        else (newState, Cmd.none) :> update (PushScene HowDidYouHear)
 
 -----------------------------------------------------------------------------
 -- VIEW
@@ -518,17 +538,33 @@ letsCreateScene model =
 chooseUserNameAndPwScene : Model -> Html Msg
 chooseUserNameAndPwScene model =
   genericSceneView model
-    "Id & Password"
-    "Please chooose a user name and password for your account:"
+    "Account Details"
+    "Provide an id and password for your account:"
     ( div []
         [ sceneTextField model 6 "Choose a user name" model.visitor.userName UpdateUserName
         , vspace 0
         , scenePasswordField model 7 "Choose a password" model.visitor.password UpdatePassword
         , vspace 0
         , scenePasswordField model 8 "Type password again" model.visitor.password2 UpdatePassword2
+        , badPassword model
         ]
     )
-    [ButtonSpec "OK" (PushScene HowDidYouHear)]
+    [ButtonSpec "OK" CheckPassword]
+
+
+badPassword : Model -> Html Msg
+badPassword model =
+  case model.badPasswordMessage of
+    Just message ->
+      div [style ["color"=>"red"]]
+        [ vspace 40
+        , span [style ["font-size"=>"24pt"]] [text "Oops!"]
+        , vspace 10
+        , span [style ["font-size"=>"20pt"]] [text message]
+        ]
+    Nothing ->
+      text ""
+
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
