@@ -153,7 +153,7 @@ type alias Model =
   , discoveryMethods: List DiscoveryMethod  -- Fetched from backend
   , isSigning: Bool
   , reasonForVisit: Maybe ReasonForVisit
-  , badPasswordMessage: Maybe String
+  , validationMessages: List String
   , error: Maybe String
   }
 
@@ -173,7 +173,7 @@ init f =
       []
       False
       Nothing
-      Nothing
+      []
       Nothing
   , Cmd.none
   )
@@ -207,8 +207,8 @@ type Msg
   | ShowSignaturePad String
   | ClearSignaturePad String
   | UpdateReasonForVisit ReasonForVisit
-  | CheckPassword
-
+  | ValidateUserIdAndPw
+  | ValidateUserNameUniqueness (Result Http.Error MatchingAcctInfo)
 
 port initSignaturePad : String -> Cmd msg  -- String is ID of canvas to be used
 port clearSignaturePad : String -> Cmd msg  --
@@ -341,22 +341,12 @@ update msg model =
     UpdateReasonForVisit reason ->
       ({model | reasonForVisit = Just reason}, Cmd.none)
 
-    CheckPassword ->
-      let
-        pwMismatch = model.visitor.password /= model.visitor.password2
-        pwBlank = String.length model.visitor.password == 0
-        pwTooShort = String.length model.visitor.password < 5
-        pwProblem = pwMismatch || pwBlank || pwTooShort
-        badPwMsg =
-          if pwMismatch then Just "The password fields don't match"
-          else if pwBlank then Just "The password fields are blank."
-          else if pwTooShort then Just "The password must be at least 5 characters long."
-          else Nothing
-        newState = {model | badPasswordMessage = badPwMsg}
-      in
-        if pwProblem
-        then (newState, Cmd.none)
-        else (newState, Cmd.none) :> update (PushScene HowDidYouHear)
+    ValidateUserIdAndPw ->
+      validateUserIdAndPw model
+
+    ValidateUserNameUniqueness result ->
+      validateUserNameUniqueness model result
+
 
 -----------------------------------------------------------------------------
 -- VIEW
@@ -470,6 +460,20 @@ sceneContainerView model scene =
     , img [src model.bannerBottomUrl, bannerBottomStyle] []
     ]
 
+sceneValidationMsgs: List String -> Html Msg
+sceneValidationMsgs msgs =
+  if msgs == [] then text ""
+  else
+      div [style ["color"=>"red"]]
+        (List.concat
+          [ [ span [style ["font-size"=>"24pt"]] [text "Oh Oh!"], vspace 15 ]
+          , List.map
+              (\msg -> p [style ["font-size"=>"20pt"]] [text msg])
+              msgs
+          , [ span [style ["font-size"=>"20pt"]] [text "Please correct these issues and try again."] ]
+          ]
+        )
+
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 welcomeScene : Model -> Html Msg
@@ -546,24 +550,49 @@ chooseUserNameAndPwScene model =
         , scenePasswordField model 7 "Choose a password" model.visitor.password UpdatePassword
         , vspace 0
         , scenePasswordField model 8 "Type password again" model.visitor.password2 UpdatePassword2
-        , badPassword model
+        , vspace 30
+        , sceneValidationMsgs model.validationMessages
         ]
     )
-    [ButtonSpec "OK" CheckPassword]
+    [ButtonSpec "OK" ValidateUserIdAndPw]
 
+validateUserIdAndPw : Model -> (Model, Cmd Msg)
+validateUserIdAndPw model =
+  let
+    pwMismatch = model.visitor.password /= model.visitor.password2
+    pwShort = String.length model.visitor.password < 6
+    userNameShort = String.length model.visitor.userName < 4
+    msgs = List.concat
+      [ if pwMismatch then ["The password fields don't match"] else []
+      , if pwShort then ["The password must be at least 6 characters long."] else []
+      , if userNameShort then ["The user name must be at least 4 characters long."] else []
+      ]
+  in
+    if List.length msgs > 0
+    then
+      ({model | validationMessages = msgs}, Cmd.none)
+    else
+      let
+        url = "/members/reception/matching-accts/"++model.visitor.userName++"/"
+        request = Http.get url decodeMatchingAcctInfo
+        cmd = Http.send ValidateUserNameUniqueness request
+      in
+        ({model | validationMessages = []}, cmd)
 
-badPassword : Model -> Html Msg
-badPassword model =
-  case model.badPasswordMessage of
-    Just message ->
-      div [style ["color"=>"red"]]
-        [ vspace 40
-        , span [style ["font-size"=>"24pt"]] [text "Oops!"]
-        , vspace 10
-        , span [style ["font-size"=>"20pt"]] [text message]
-        ]
-    Nothing ->
-      text ""
+validateUserNameUniqueness: Model -> Result Http.Error MatchingAcctInfo -> (Model, Cmd Msg)
+validateUserNameUniqueness model result =
+  case result of
+    Ok {target, matches} ->
+      let
+        matchingNames = List.map (\x -> String.toLower x.userName) matches
+        chosenName = String.toLower model.visitor.userName
+      in
+        if List.member chosenName matchingNames then
+          ({model | error = Nothing, validationMessages = ["That user name is already in use."]}, Cmd.none)
+        else
+          ({model | error = Nothing}, Cmd.none) :> update (PushScene HowDidYouHear)
+    Err error ->
+      ({model | error = Just (toString error)}, Cmd.none)
 
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
