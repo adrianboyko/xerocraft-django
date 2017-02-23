@@ -367,49 +367,19 @@ view model =
     Activity -> activityScene model
     Done -> doneScene model
 
-type alias ButtonSpec = { title : String, msg: Msg }
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-sceneButton : Model -> ButtonSpec -> Html Msg
-sceneButton model buttonSpec =
-  Button.render Mdl [0] model.mdl
-    ([ Button.raised, (Options.onClick buttonSpec.msg)]++viewButtonCss)
-    [ text buttonSpec.title ]
-
-sceneTextField : Model -> Int -> String -> String -> (String -> Msg) -> Html Msg
-sceneTextField model index hint value msger =
-  Textfield.render Mdl [index] model.mdl
-    [ Textfield.label hint
-    , Textfield.floatingLabel
-    , Textfield.value value
-    , Options.onInput msger
-    , css "width" "500px"
-    ]
-    (text "spam") -- What is this Html Msg argument?
-
-scenePasswordField : Model -> Int -> String -> String -> (String -> Msg) -> Html Msg
-scenePasswordField model index hint value msger =
-  Textfield.render Mdl [index] model.mdl
-    [ Textfield.label hint
-    , Textfield.password
-    , Textfield.floatingLabel
-    , Textfield.value value
-    , Options.onInput msger
-    ]
-    (text "spam") -- What is this Html Msg argument?
-
-sceneCheckbox : Model -> Int -> String -> Bool -> Msg -> Html Msg
-sceneCheckbox model index label value msger =
-  -- Toggle.checkbox doesn't seem to handle centering very well. The following div compensates for that.
-  div [style ["text-align"=>"left", "display"=>"inline-block", "width"=>"400px"]]
-    [ Toggles.checkbox Mdl [index] model.mdl
-        [ Options.onToggle msger
-        , Toggles.value value
-        ]
-        [span [style ["font-size"=>"24pt", "margin-left"=>"16px"]] [ text label ]]
+wizardView: Model -> List (Html Msg) -> Html Msg
+wizardView model scene =
+  div [canvasDivStyle]
+    [ img [src model.bannerTopUrl, bannerTopStyle] []
+    , div [sceneDivStyle] scene
+    , wizardNavButtons model
+    , img [src model.bannerBottomUrl, bannerBottomStyle] []
     ]
 
-navButtons : Model -> Html Msg
-navButtons model =
+wizardNavButtons : Model -> Html Msg
+wizardNavButtons model =
   div [navDivStyle]
     (
     if List.length model.sceneStack > 1
@@ -426,6 +396,78 @@ navButtons model =
       [text ""]
     )
 
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+genericSceneView: Model -> String -> String -> Html Msg -> List ButtonSpec -> Html Msg
+genericSceneView model title subtitle extraContent buttonSpecs =
+  wizardView model
+    [ p [sceneTitleStyle] [text title]
+    , p [sceneSubtitleStyle] [text subtitle]
+    , extraContent
+    , vspace 50
+    , div [] (List.map (sceneButton model) buttonSpecs)
+    , case model.error of
+        Just err -> text err
+        Nothing -> text ""
+    ]
+
+type alias ButtonSpec = { title : String, msg: Msg }
+sceneButton : Model -> ButtonSpec -> Html Msg
+sceneButton model buttonSpec =
+  Button.render Mdl [0] model.mdl
+    ([ Button.raised, (Options.onClick buttonSpec.msg)]++viewButtonCss)
+    [ text buttonSpec.title ]
+
+sceneGenericTextField : Model -> Int -> String -> String -> (String -> Msg) -> List (Textfield.Property Msg) -> Html Msg
+sceneGenericTextField model index hint value msger options =
+  Textfield.render Mdl [index] model.mdl
+    ( [ Textfield.label hint
+      , Textfield.floatingLabel
+      , Textfield.value value
+      , Options.onInput msger
+      , css "width" "500px"
+      ]
+    ++ options
+    )
+    (text "spam") -- What is this Html Msg argument?
+
+sceneTextField : Model -> Int -> String -> String -> (String -> Msg) -> Html Msg
+sceneTextField model index hint value msger =
+  sceneGenericTextField model index hint value msger []
+
+scenePasswordField : Model -> Int -> String -> String -> (String -> Msg) -> Html Msg
+scenePasswordField model index hint value msger =
+  sceneGenericTextField model index hint value msger [Textfield.password]
+
+sceneEmailField : Model -> Int -> String -> String -> (String -> Msg) -> Html Msg
+sceneEmailField model index hint value msger =
+  sceneGenericTextField model index hint value msger [Textfield.email]
+
+sceneCheckbox : Model -> Int -> String -> Bool -> Msg -> Html Msg
+sceneCheckbox model index label value msger =
+  -- Toggle.checkbox doesn't seem to handle centering very well. The following div compensates for that.
+  div [style ["text-align"=>"left", "display"=>"inline-block", "width"=>"400px"]]
+    [ Toggles.checkbox Mdl [index] model.mdl
+        [ Options.onToggle msger
+        , Toggles.value value
+        ]
+        [span [style ["font-size"=>"24pt", "margin-left"=>"16px"]] [ text label ]]
+    ]
+
+sceneValidationMsgs: List String -> Html Msg
+sceneValidationMsgs msgs =
+  if msgs == [] then text ""
+  else
+      div []
+        (List.concat
+          [ [ span [style ["font-size"=>"32pt"]] [text "Whoops!"], vspace 15 ]
+          , List.map
+              (\msg -> p [style ["color"=>"red", "font-size"=>"22pt"]] [text msg])
+              msgs
+          , [ span [] [text "Please correct these issues and try again."] ]
+          ]
+        )
+
 vspace : Int -> Html Msg
 vspace amount =
   div [style ["height" => (toString amount ++ "px")]] []
@@ -433,46 +475,6 @@ vspace amount =
 hspace : Int -> Html Msg
 hspace amount =
   div [style ["display" => "inline-block", "width" => (toString amount ++ "px")]] []
-
-genericSceneView: Model -> String -> String -> Html Msg -> List ButtonSpec -> Html Msg
-genericSceneView model inTitle inSubtitle extraContent buttonSpecs =
-  let
-    title = replaceAll inTitle "ORGNAME" model.orgName
-    subtitle = replaceAll inSubtitle "ORGNAME" model.orgName
-  in
-    sceneContainerView model
-      [ p [sceneTitleStyle] [text title]
-      , p [sceneSubtitleStyle] [text subtitle]
-      , extraContent
-      , vspace 50
-      , div [] (List.map (sceneButton model) buttonSpecs)
-      , case model.error of
-          Just err -> text err
-          Nothing -> text ""
-      ]
-
-sceneContainerView: Model -> List (Html Msg) -> Html Msg
-sceneContainerView model scene =
-  div [canvasDivStyle]
-    [ img [src model.bannerTopUrl, bannerTopStyle] []
-    , div [sceneDivStyle] scene
-    , navButtons model
-    , img [src model.bannerBottomUrl, bannerBottomStyle] []
-    ]
-
-sceneValidationMsgs: List String -> Html Msg
-sceneValidationMsgs msgs =
-  if msgs == [] then text ""
-  else
-      div [style ["color"=>"red"]]
-        (List.concat
-          [ [ span [style ["font-size"=>"24pt"]] [text "Oh Oh!"], vspace 15 ]
-          , List.map
-              (\msg -> p [style ["font-size"=>"20pt"]] [text msg])
-              msgs
-          , [ span [style ["font-size"=>"20pt"]] [text "Please correct these issues and try again."] ]
-          ]
-        )
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
@@ -530,7 +532,7 @@ letsCreateScene model =
         , vspace 0
         , sceneTextField model 3 "Your last name" model.visitor.lastName UpdateLastName
         , vspace 0
-        , sceneTextField model 4 "Your email address" model.visitor.email UpdateEmail
+        , sceneEmailField model 4 "Your email address" model.visitor.email UpdateEmail
         , vspace 30
         , sceneCheckbox model 5 "Check if you are 18 or older!" model.visitor.isAdult ToggleIsAdult
         ]
@@ -564,8 +566,8 @@ validateUserIdAndPw model =
     userNameShort = String.length model.visitor.userName < 4
     msgs = List.concat
       [ if pwMismatch then ["The password fields don't match"] else []
-      , if pwShort then ["The password must be at least 6 characters long."] else []
-      , if userNameShort then ["The user name must be at least 4 characters long."] else []
+      , if pwShort then ["The password must have at least 6 characters."] else []
+      , if userNameShort then ["The user name must have at least 4 characters."] else []
       ]
   in
     if List.length msgs > 0
@@ -593,7 +595,6 @@ validateUserNameUniqueness model result =
           ({model | error = Nothing}, Cmd.none) :> update (PushScene HowDidYouHear)
     Err error ->
       ({model | error = Just (toString error)}, Cmd.none)
-
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
