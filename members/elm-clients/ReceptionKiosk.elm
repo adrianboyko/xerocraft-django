@@ -1,7 +1,7 @@
 port module ReceptionKiosk exposing (..)
 
 import Html exposing (Html, Attribute, a, div, text, span, button, br, p, img, h1, h2, ol, li, b, canvas)
-import Html.Attributes exposing (style, src, id, tabindex)
+import Html.Attributes exposing (style, src, id, tabindex, width, height)
 import Regex exposing (regex)
 import Http
 import Task
@@ -98,6 +98,7 @@ type alias Acct =
   , lastName: String
   , email: String
   , isAdult: Bool
+  , signature : String  -- This is a data URL
   }
 
 blankAcct : Acct
@@ -110,6 +111,7 @@ blankAcct =
   , lastName = ""
   , email = ""
   , isAdult = False
+  , signature = ""
   }
 
 type alias MatchingAcct =
@@ -210,9 +212,13 @@ type Msg
   | UpdateReasonForVisit ReasonForVisit
   | ValidateUserIdAndPw
   | ValidateUserNameUniqueness (Result Http.Error MatchingAcctInfo)
+  | GetSignature
+  | UpdateSignature String  -- String is a data URL representation of an image.
 
-port initSignaturePad : String -> Cmd msg  -- String is ID of canvas to be used
-port clearSignaturePad : String -> Cmd msg  --
+port initSignaturePad : (String, String) -> Cmd msg  -- 1) ID of canvas to be used, 2) data URL of image or ""
+port clearSignaturePad : String -> Cmd msg
+port sendSignatureImage : String -> Cmd msg  -- "image/png", "image/jpeg", or "image/svg+xml"
+port signatureImage : (String -> msg) -> Sub msg  -- requested signature data arrives via this port
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -334,7 +340,7 @@ update msg model =
         ({model | discoveryMethods = replace picker replacement model.discoveryMethods}, Cmd.none)
 
     ShowSignaturePad canvasId ->
-      ({model | isSigning=True}, initSignaturePad canvasId)
+      ({model | isSigning=True}, initSignaturePad (canvasId, model.visitor.signature))
 
     ClearSignaturePad canvasId ->
       (model, clearSignaturePad canvasId)
@@ -347,6 +353,17 @@ update msg model =
 
     ValidateUserNameUniqueness result ->
       validateUserNameUniqueness model result
+
+    GetSignature ->
+      (model, sendSignatureImage "image/png")
+
+    UpdateSignature dataUrl ->
+      let
+        v = model.visitor  -- This is necessary because of a bug in PyCharm elm plugin.
+        newModel = {model | visitor = {v | signature = dataUrl }}
+      in
+        -- TODO: Should create account here.
+        (newModel, Cmd.none) :> update (PushScene Activity)
 
 
 -----------------------------------------------------------------------------
@@ -643,13 +660,17 @@ waiverScene model =
       , div [style ["display"=>if model.isSigning then "block" else "none"]]
           [ p [style ["margin-top"=>"50px", "font-size"=>"16pt", "margin-bottom"=>"5px"]]
             [text "sign in box below:"]
-          , canvas [id "signature-pad", signaturePadStyle] []
+          , canvas [width 760, height 200, id "signature-pad", signaturePadStyle] []
           ]
       ]
     )
-    ( if model.isSigning
-      then [ButtonSpec "Accept" (PushScene Activity), ButtonSpec "Clear" (ClearSignaturePad "signature-pad")]
-      else [ButtonSpec "Sign" (ShowSignaturePad "signature-pad")]
+    ( if model.isSigning then
+        [ ButtonSpec "Accept" GetSignature
+        , ButtonSpec "Clear" (ClearSignaturePad "signature-pad")
+        ]
+      else
+        [ ButtonSpec "Sign" (ShowSignaturePad "signature-pad")
+        ]
     )
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
@@ -712,6 +733,7 @@ subscriptions: Model -> Sub Msg
 subscriptions model =
   Sub.batch
     [
+        signatureImage UpdateSignature
     ]
 
 

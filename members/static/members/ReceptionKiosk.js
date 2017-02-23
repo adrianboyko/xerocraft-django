@@ -17739,10 +17739,6 @@ var _user$project$ReceptionKiosk$waiverHtml = {
 		_1: {ctor: '[]'}
 	}
 };
-var _user$project$ReceptionKiosk$subscriptions = function (model) {
-	return _elm_lang$core$Platform_Sub$batch(
-		{ctor: '[]'});
-};
 var _user$project$ReceptionKiosk$hspace = function (amount) {
 	return A2(
 		_elm_lang$html$Html$div,
@@ -17888,7 +17884,7 @@ var _user$project$ReceptionKiosk$reasonString = F2(
 				return 'Other';
 		}
 	});
-var _user$project$ReceptionKiosk$blankAcct = {userName: '', password: '', password2: '', memberNum: _elm_lang$core$Maybe$Nothing, firstName: '', lastName: '', email: '', isAdult: false};
+var _user$project$ReceptionKiosk$blankAcct = {userName: '', password: '', password2: '', memberNum: _elm_lang$core$Maybe$Nothing, firstName: '', lastName: '', email: '', isAdult: false, signature: ''};
 var _user$project$ReceptionKiosk$replaceAll = F3(
 	function (theString, oldSub, newSub) {
 		return A4(
@@ -17906,13 +17902,19 @@ var _user$project$ReceptionKiosk$djangoizeId = function (rawId) {
 var _user$project$ReceptionKiosk$initSignaturePad = _elm_lang$core$Native_Platform.outgoingPort(
 	'initSignaturePad',
 	function (v) {
-		return v;
+		return [v._0, v._1];
 	});
 var _user$project$ReceptionKiosk$clearSignaturePad = _elm_lang$core$Native_Platform.outgoingPort(
 	'clearSignaturePad',
 	function (v) {
 		return v;
 	});
+var _user$project$ReceptionKiosk$sendSignatureImage = _elm_lang$core$Native_Platform.outgoingPort(
+	'sendSignatureImage',
+	function (v) {
+		return v;
+	});
+var _user$project$ReceptionKiosk$signatureImage = _elm_lang$core$Native_Platform.incomingPort('signatureImage', _elm_lang$core$Json_Decode$string);
 var _user$project$ReceptionKiosk$Flags = F5(
 	function (a, b, c, d, e) {
 		return {csrfToken: a, orgName: b, bannerTopUrl: c, bannerBottomUrl: d, discoveryMethodsUrl: e};
@@ -17957,9 +17959,9 @@ var _user$project$ReceptionKiosk$decodeDiscoveryMethodInfo = A5(
 		_elm_lang$core$Json_Decode$field,
 		'results',
 		_elm_lang$core$Json_Decode$list(_user$project$ReceptionKiosk$decodeDiscoveryMethod)));
-var _user$project$ReceptionKiosk$Acct = F8(
-	function (a, b, c, d, e, f, g, h) {
-		return {userName: a, password: b, password2: c, memberNum: d, firstName: e, lastName: f, email: g, isAdult: h};
+var _user$project$ReceptionKiosk$Acct = F9(
+	function (a, b, c, d, e, f, g, h, i) {
+		return {userName: a, password: b, password2: c, memberNum: d, firstName: e, lastName: f, email: g, isAdult: h, signature: i};
 	});
 var _user$project$ReceptionKiosk$MatchingAcct = F2(
 	function (a, b) {
@@ -18052,6 +18054,18 @@ var _user$project$ReceptionKiosk$GuestOfMember = {ctor: 'GuestOfMember'};
 var _user$project$ReceptionKiosk$MemberPrivileges = {ctor: 'MemberPrivileges'};
 var _user$project$ReceptionKiosk$ClassParticipant = {ctor: 'ClassParticipant'};
 var _user$project$ReceptionKiosk$Curiousity = {ctor: 'Curiousity'};
+var _user$project$ReceptionKiosk$UpdateSignature = function (a) {
+	return {ctor: 'UpdateSignature', _0: a};
+};
+var _user$project$ReceptionKiosk$subscriptions = function (model) {
+	return _elm_lang$core$Platform_Sub$batch(
+		{
+			ctor: '::',
+			_0: _user$project$ReceptionKiosk$signatureImage(_user$project$ReceptionKiosk$UpdateSignature),
+			_1: {ctor: '[]'}
+		});
+};
+var _user$project$ReceptionKiosk$GetSignature = {ctor: 'GetSignature'};
 var _user$project$ReceptionKiosk$ValidateUserNameUniqueness = function (a) {
 	return {ctor: 'ValidateUserNameUniqueness', _0: a};
 };
@@ -18445,7 +18459,8 @@ var _user$project$ReceptionKiosk$update = F2(
 					_0: _elm_lang$core$Native_Utils.update(
 						model,
 						{isSigning: true}),
-					_1: _user$project$ReceptionKiosk$initSignaturePad(_p2._0)
+					_1: _user$project$ReceptionKiosk$initSignaturePad(
+						{ctor: '_Tuple2', _0: _p2._0, _1: model.visitor.signature})
 				};
 			case 'ClearSignaturePad':
 				return {
@@ -18465,8 +18480,28 @@ var _user$project$ReceptionKiosk$update = F2(
 				};
 			case 'ValidateUserIdAndPw':
 				return _user$project$ReceptionKiosk$validateUserIdAndPw(model);
-			default:
+			case 'ValidateUserNameUniqueness':
 				return A2(_user$project$ReceptionKiosk$validateUserNameUniqueness, model, _p2._0);
+			case 'GetSignature':
+				return {
+					ctor: '_Tuple2',
+					_0: model,
+					_1: _user$project$ReceptionKiosk$sendSignatureImage('image/png')
+				};
+			default:
+				var v = model.visitor;
+				var newModel = _elm_lang$core$Native_Utils.update(
+					model,
+					{
+						visitor: _elm_lang$core$Native_Utils.update(
+							v,
+							{signature: _p2._0})
+					});
+				return A2(
+					_ccapndave$elm_update_extra$Update_Extra_Infix_ops[':>'],
+					{ctor: '_Tuple2', _0: newModel, _1: _elm_lang$core$Platform_Cmd$none},
+					_user$project$ReceptionKiosk$update(
+						_user$project$ReceptionKiosk$PushScene(_user$project$ReceptionKiosk$Activity)));
 		}
 	});
 var _user$project$ReceptionKiosk$validateUserNameUniqueness = F2(
@@ -18872,11 +18907,19 @@ var _user$project$ReceptionKiosk$waiverScene = function (model) {
 										_elm_lang$html$Html$canvas,
 										{
 											ctor: '::',
-											_0: _elm_lang$html$Html_Attributes$id('signature-pad'),
+											_0: _elm_lang$html$Html_Attributes$width(760),
 											_1: {
 												ctor: '::',
-												_0: _user$project$ReceptionKiosk$signaturePadStyle,
-												_1: {ctor: '[]'}
+												_0: _elm_lang$html$Html_Attributes$height(200),
+												_1: {
+													ctor: '::',
+													_0: _elm_lang$html$Html_Attributes$id('signature-pad'),
+													_1: {
+														ctor: '::',
+														_0: _user$project$ReceptionKiosk$signaturePadStyle,
+														_1: {ctor: '[]'}
+													}
+												}
 											}
 										},
 										{ctor: '[]'}),
@@ -18889,10 +18932,7 @@ var _user$project$ReceptionKiosk$waiverScene = function (model) {
 			}),
 		model.isSigning ? {
 			ctor: '::',
-			_0: A2(
-				_user$project$ReceptionKiosk$ButtonSpec,
-				'Accept',
-				_user$project$ReceptionKiosk$PushScene(_user$project$ReceptionKiosk$Activity)),
+			_0: A2(_user$project$ReceptionKiosk$ButtonSpec, 'Accept', _user$project$ReceptionKiosk$GetSignature),
 			_1: {
 				ctor: '::',
 				_0: A2(

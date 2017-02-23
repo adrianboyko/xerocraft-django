@@ -66,36 +66,41 @@
         };
 
         var signaturePad = null;
-        var ctx = null;
-
-        function initSignaturePad(canvasId) {
-            var canv = document.getElementById(canvasId);
-            ctx = canv.getContext("2d");
-            ctx.scale(0.395, 0.75);  // WHAT? WHY? Found these values by trial & error.
-
-            var bg = new Image();
-            bg.src = "{% static 'members/SignatureBox.png' %}";
-            bg.onload = function() {
-                ctx.drawImage(bg, 0, 0);
-            };
-            var opts = {
-                /*backgroundColor: 'rgba(255, 255, 255, 0)',*/
-                penColor: 'rgb(0, 0, 0)'
-            };
-            signaturePad = new SignaturePad(canv, opts);
-        }
-
-        function clearSignaturePad(canvasId) {
-            ctx.scale(1.0/0.395, 1.0/0.75);  // WHAT? WHY? Found these values by trial & error.
-            signaturePad.clear();
-            initSignaturePad(canvasId);
-        }
-
+        var signatureCanvas = null;
         var myContainer = document.getElementById("myContainer");
         var app = Elm.ReceptionKiosk.embed(myContainer, flags);
 
+        function addSignatureBackground(imageUrl) {
+            var bg = new Image();
+            if (imageUrl == "") imageUrl = "{% static 'members/SignatureBox.png' %}";
+            bg.src = imageUrl;
+            bg.onload = function() {
+                signatureCanvas.getContext("2d").drawImage(bg, 0, 0);
+            };
+        }
+
+        function initSignaturePad(canvasIdAndImageData) {
+            canvasId = canvasIdAndImageData[0];
+            imageUrl = canvasIdAndImageData[1];
+            signatureCanvas = document.getElementById(canvasId);
+            addSignatureBackground(imageUrl);
+            var opts = { penColor: 'rgb(0, 0, 0)' };
+            signaturePad = new SignaturePad(signatureCanvas, opts);
+        }
+
+        function clearSignaturePad(canvasId) {
+            signaturePad.clear();
+            addSignatureBackground("");
+        }
+
+        function sendSignatureImage(imgType) {
+            if (imgType == "image/png") app.ports.signatureImage.send(signaturePad.toDataURL());
+            else app.ports.signatureImage.send(signaturePad.toDataURL(imgType));
+        }
+
         app.ports.initSignaturePad.subscribe(initSignaturePad);
         app.ports.clearSignaturePad.subscribe(clearSignaturePad);
+        app.ports.sendSignatureImage.subscribe(sendSignatureImage);
 
     </script>
 </body>
