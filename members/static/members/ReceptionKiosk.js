@@ -17794,16 +17794,7 @@ var _user$project$ReceptionKiosk$sceneValidationMsgs = function (msgs) {
 		msgs,
 		{ctor: '[]'}) ? _elm_lang$html$Html$text('') : A2(
 		_elm_lang$html$Html$div,
-		{
-			ctor: '::',
-			_0: _elm_lang$html$Html_Attributes$style(
-				{
-					ctor: '::',
-					_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'color', 'red'),
-					_1: {ctor: '[]'}
-				}),
-			_1: {ctor: '[]'}
-		},
+		{ctor: '[]'},
 		_elm_lang$core$List$concat(
 			{
 				ctor: '::',
@@ -17816,14 +17807,14 @@ var _user$project$ReceptionKiosk$sceneValidationMsgs = function (msgs) {
 							_0: _elm_lang$html$Html_Attributes$style(
 								{
 									ctor: '::',
-									_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'font-size', '24pt'),
+									_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'font-size', '32pt'),
 									_1: {ctor: '[]'}
 								}),
 							_1: {ctor: '[]'}
 						},
 						{
 							ctor: '::',
-							_0: _elm_lang$html$Html$text('Oh Oh!'),
+							_0: _elm_lang$html$Html$text('Whoops!'),
 							_1: {ctor: '[]'}
 						}),
 					_1: {
@@ -17844,8 +17835,12 @@ var _user$project$ReceptionKiosk$sceneValidationMsgs = function (msgs) {
 									_0: _elm_lang$html$Html_Attributes$style(
 										{
 											ctor: '::',
-											_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'font-size', '20pt'),
-											_1: {ctor: '[]'}
+											_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'color', 'red'),
+											_1: {
+												ctor: '::',
+												_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'font-size', '22pt'),
+												_1: {ctor: '[]'}
+											}
 										}),
 									_1: {ctor: '[]'}
 								},
@@ -17862,16 +17857,7 @@ var _user$project$ReceptionKiosk$sceneValidationMsgs = function (msgs) {
 							ctor: '::',
 							_0: A2(
 								_elm_lang$html$Html$span,
-								{
-									ctor: '::',
-									_0: _elm_lang$html$Html_Attributes$style(
-										{
-											ctor: '::',
-											_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'font-size', '20pt'),
-											_1: {ctor: '[]'}
-										}),
-									_1: {ctor: '[]'}
-								},
+								{ctor: '[]'},
 								{
 									ctor: '::',
 									_0: _elm_lang$html$Html$text('Please correct these issues and try again.'),
@@ -18031,6 +18017,7 @@ var _user$project$ReceptionKiosk$ButtonSpec = F2(
 	function (a, b) {
 		return {title: a, msg: b};
 	});
+var _user$project$ReceptionKiosk$AnyScene = {ctor: 'AnyScene'};
 var _user$project$ReceptionKiosk$Done = {ctor: 'Done'};
 var _user$project$ReceptionKiosk$Activity = {ctor: 'Activity'};
 var _user$project$ReceptionKiosk$Waiver = {ctor: 'Waiver'};
@@ -18088,14 +18075,14 @@ var _user$project$ReceptionKiosk$validateUserIdAndPw = function (model) {
 				ctor: '::',
 				_0: pwShort ? {
 					ctor: '::',
-					_0: 'The password must be at least 6 characters long.',
+					_0: 'The password must have at least 6 characters.',
 					_1: {ctor: '[]'}
 				} : {ctor: '[]'},
 				_1: {
 					ctor: '::',
 					_0: userNameShort ? {
 						ctor: '::',
-						_0: 'The user name must be at least 4 characters long.',
+						_0: 'The user name must have at least 4 characters.',
 						_1: {ctor: '[]'}
 					} : {ctor: '[]'},
 					_1: {ctor: '[]'}
@@ -18236,17 +18223,33 @@ var _user$project$ReceptionKiosk$update = F2(
 						var cmd = _elm_lang$core$Native_Utils.eq(
 							_elm_lang$core$List$length(model.discoveryMethods),
 							0) ? A2(_elm_lang$http$Http$send, _user$project$ReceptionKiosk$AccDiscoveryMethods, request) : _elm_lang$core$Platform_Cmd$none;
-						return {ctor: '_Tuple2', _0: model, _1: cmd};
+						return A2(
+							_ccapndave$elm_update_extra$Update_Extra_Infix_ops[':>'],
+							{ctor: '_Tuple2', _0: model, _1: cmd},
+							_user$project$ReceptionKiosk$update(
+								_user$project$ReceptionKiosk$AfterSceneChangeTo(_user$project$ReceptionKiosk$AnyScene)));
 					case 'Waiver':
+						return A2(
+							_ccapndave$elm_update_extra$Update_Extra_Infix_ops[':>'],
+							{
+								ctor: '_Tuple2',
+								_0: _elm_lang$core$Native_Utils.update(
+									model,
+									{isSigning: false}),
+								_1: _elm_lang$core$Platform_Cmd$none
+							},
+							_user$project$ReceptionKiosk$update(
+								_user$project$ReceptionKiosk$AfterSceneChangeTo(_user$project$ReceptionKiosk$AnyScene)));
+					default:
 						return {
 							ctor: '_Tuple2',
 							_0: _elm_lang$core$Native_Utils.update(
 								model,
-								{isSigning: false}),
+								{
+									validationMessages: {ctor: '[]'}
+								}),
 							_1: _elm_lang$core$Platform_Cmd$none
 						};
-					default:
-						return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
 				}
 			case 'UpdateFlexId':
 				var id = _user$project$ReceptionKiosk$djangoizeId(_p2._0);
@@ -18514,174 +18517,7 @@ var _user$project$ReceptionKiosk$validateUserNameUniqueness = F2(
 			};
 		}
 	});
-var _user$project$ReceptionKiosk$sceneButton = F2(
-	function (model, buttonSpec) {
-		return A5(
-			_debois$elm_mdl$Material_Button$render,
-			_user$project$ReceptionKiosk$Mdl,
-			{
-				ctor: '::',
-				_0: 0,
-				_1: {ctor: '[]'}
-			},
-			model.mdl,
-			A2(
-				_elm_lang$core$Basics_ops['++'],
-				{
-					ctor: '::',
-					_0: _debois$elm_mdl$Material_Button$raised,
-					_1: {
-						ctor: '::',
-						_0: _debois$elm_mdl$Material_Options$onClick(buttonSpec.msg),
-						_1: {ctor: '[]'}
-					}
-				},
-				_user$project$ReceptionKiosk$viewButtonCss),
-			{
-				ctor: '::',
-				_0: _elm_lang$html$Html$text(buttonSpec.title),
-				_1: {ctor: '[]'}
-			});
-	});
-var _user$project$ReceptionKiosk$sceneTextField = F5(
-	function (model, index, hint, value, msger) {
-		return A5(
-			_debois$elm_mdl$Material_Textfield$render,
-			_user$project$ReceptionKiosk$Mdl,
-			{
-				ctor: '::',
-				_0: index,
-				_1: {ctor: '[]'}
-			},
-			model.mdl,
-			{
-				ctor: '::',
-				_0: _debois$elm_mdl$Material_Textfield$label(hint),
-				_1: {
-					ctor: '::',
-					_0: _debois$elm_mdl$Material_Textfield$floatingLabel,
-					_1: {
-						ctor: '::',
-						_0: _debois$elm_mdl$Material_Textfield$value(value),
-						_1: {
-							ctor: '::',
-							_0: _debois$elm_mdl$Material_Options$onInput(msger),
-							_1: {
-								ctor: '::',
-								_0: A2(_debois$elm_mdl$Material_Options$css, 'width', '500px'),
-								_1: {ctor: '[]'}
-							}
-						}
-					}
-				}
-			},
-			_elm_lang$html$Html$text('spam'));
-	});
-var _user$project$ReceptionKiosk$scenePasswordField = F5(
-	function (model, index, hint, value, msger) {
-		return A5(
-			_debois$elm_mdl$Material_Textfield$render,
-			_user$project$ReceptionKiosk$Mdl,
-			{
-				ctor: '::',
-				_0: index,
-				_1: {ctor: '[]'}
-			},
-			model.mdl,
-			{
-				ctor: '::',
-				_0: _debois$elm_mdl$Material_Textfield$label(hint),
-				_1: {
-					ctor: '::',
-					_0: _debois$elm_mdl$Material_Textfield$password,
-					_1: {
-						ctor: '::',
-						_0: _debois$elm_mdl$Material_Textfield$floatingLabel,
-						_1: {
-							ctor: '::',
-							_0: _debois$elm_mdl$Material_Textfield$value(value),
-							_1: {
-								ctor: '::',
-								_0: _debois$elm_mdl$Material_Options$onInput(msger),
-								_1: {ctor: '[]'}
-							}
-						}
-					}
-				}
-			},
-			_elm_lang$html$Html$text('spam'));
-	});
-var _user$project$ReceptionKiosk$sceneCheckbox = F5(
-	function (model, index, label, value, msger) {
-		return A2(
-			_elm_lang$html$Html$div,
-			{
-				ctor: '::',
-				_0: _elm_lang$html$Html_Attributes$style(
-					{
-						ctor: '::',
-						_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'text-align', 'left'),
-						_1: {
-							ctor: '::',
-							_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'display', 'inline-block'),
-							_1: {
-								ctor: '::',
-								_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'width', '400px'),
-								_1: {ctor: '[]'}
-							}
-						}
-					}),
-				_1: {ctor: '[]'}
-			},
-			{
-				ctor: '::',
-				_0: A5(
-					_debois$elm_mdl$Material_Toggles$checkbox,
-					_user$project$ReceptionKiosk$Mdl,
-					{
-						ctor: '::',
-						_0: index,
-						_1: {ctor: '[]'}
-					},
-					model.mdl,
-					{
-						ctor: '::',
-						_0: _debois$elm_mdl$Material_Options$onToggle(msger),
-						_1: {
-							ctor: '::',
-							_0: _debois$elm_mdl$Material_Toggles$value(value),
-							_1: {ctor: '[]'}
-						}
-					},
-					{
-						ctor: '::',
-						_0: A2(
-							_elm_lang$html$Html$span,
-							{
-								ctor: '::',
-								_0: _elm_lang$html$Html_Attributes$style(
-									{
-										ctor: '::',
-										_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'font-size', '24pt'),
-										_1: {
-											ctor: '::',
-											_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-left', '16px'),
-											_1: {ctor: '[]'}
-										}
-									}),
-								_1: {ctor: '[]'}
-							},
-							{
-								ctor: '::',
-								_0: _elm_lang$html$Html$text(label),
-								_1: {ctor: '[]'}
-							}),
-						_1: {ctor: '[]'}
-					}),
-				_1: {ctor: '[]'}
-			});
-	});
-var _user$project$ReceptionKiosk$navButtons = function (model) {
+var _user$project$ReceptionKiosk$wizardNavButtons = function (model) {
 	return A2(
 		_elm_lang$html$Html$div,
 		{
@@ -18698,7 +18534,7 @@ var _user$project$ReceptionKiosk$navButtons = function (model) {
 				_user$project$ReceptionKiosk$Mdl,
 				{
 					ctor: '::',
-					_0: 0,
+					_0: 10000,
 					_1: {ctor: '[]'}
 				},
 				model.mdl,
@@ -18729,7 +18565,7 @@ var _user$project$ReceptionKiosk$navButtons = function (model) {
 						_user$project$ReceptionKiosk$Mdl,
 						{
 							ctor: '::',
-							_0: 0,
+							_0: 10001,
 							_1: {ctor: '[]'}
 						},
 						model.mdl,
@@ -18760,7 +18596,7 @@ var _user$project$ReceptionKiosk$navButtons = function (model) {
 			_1: {ctor: '[]'}
 		});
 };
-var _user$project$ReceptionKiosk$sceneContainerView = F2(
+var _user$project$ReceptionKiosk$wizardView = F2(
 	function (model, scene) {
 		return A2(
 			_elm_lang$html$Html$div,
@@ -18795,7 +18631,7 @@ var _user$project$ReceptionKiosk$sceneContainerView = F2(
 						scene),
 					_1: {
 						ctor: '::',
-						_0: _user$project$ReceptionKiosk$navButtons(model),
+						_0: _user$project$ReceptionKiosk$wizardNavButtons(model),
 						_1: {
 							ctor: '::',
 							_0: A2(
@@ -18816,12 +18652,39 @@ var _user$project$ReceptionKiosk$sceneContainerView = F2(
 				}
 			});
 	});
+var _user$project$ReceptionKiosk$sceneButton = F2(
+	function (model, buttonSpec) {
+		return A5(
+			_debois$elm_mdl$Material_Button$render,
+			_user$project$ReceptionKiosk$Mdl,
+			{
+				ctor: '::',
+				_0: 0,
+				_1: {ctor: '[]'}
+			},
+			model.mdl,
+			A2(
+				_elm_lang$core$Basics_ops['++'],
+				{
+					ctor: '::',
+					_0: _debois$elm_mdl$Material_Button$raised,
+					_1: {
+						ctor: '::',
+						_0: _debois$elm_mdl$Material_Options$onClick(buttonSpec.msg),
+						_1: {ctor: '[]'}
+					}
+				},
+				_user$project$ReceptionKiosk$viewButtonCss),
+			{
+				ctor: '::',
+				_0: _elm_lang$html$Html$text(buttonSpec.title),
+				_1: {ctor: '[]'}
+			});
+	});
 var _user$project$ReceptionKiosk$genericSceneView = F5(
-	function (model, inTitle, inSubtitle, extraContent, buttonSpecs) {
-		var subtitle = A3(_user$project$ReceptionKiosk$replaceAll, inSubtitle, 'ORGNAME', model.orgName);
-		var title = A3(_user$project$ReceptionKiosk$replaceAll, inTitle, 'ORGNAME', model.orgName);
+	function (model, title, subtitle, extraContent, buttonSpecs) {
 		return A2(
-			_user$project$ReceptionKiosk$sceneContainerView,
+			_user$project$ReceptionKiosk$wizardView,
 			model,
 			{
 				ctor: '::',
@@ -18928,172 +18791,6 @@ var _user$project$ReceptionKiosk$haveAcctScene = function (model) {
 					_user$project$ReceptionKiosk$PushScene(_user$project$ReceptionKiosk$LetsCreate)),
 				_1: {ctor: '[]'}
 			}
-		});
-};
-var _user$project$ReceptionKiosk$checkInScene = function (model) {
-	return A5(
-		_user$project$ReceptionKiosk$genericSceneView,
-		model,
-		'Let\'s Get You Checked-In!',
-		'Who are you?',
-		A2(
-			_elm_lang$html$Html$div,
-			{ctor: '[]'},
-			_elm_lang$core$List$concat(
-				{
-					ctor: '::',
-					_0: {
-						ctor: '::',
-						_0: A5(_user$project$ReceptionKiosk$sceneTextField, model, 1, 'Your Username or Surname', model.flexId, _user$project$ReceptionKiosk$UpdateFlexId),
-						_1: {
-							ctor: '::',
-							_0: _user$project$ReceptionKiosk$vspace(0),
-							_1: {ctor: '[]'}
-						}
-					},
-					_1: {
-						ctor: '::',
-						_0: (_elm_lang$core$Native_Utils.cmp(
-							_elm_lang$core$List$length(model.matches),
-							0) > 0) ? {
-							ctor: '::',
-							_0: _user$project$ReceptionKiosk$vspace(30),
-							_1: {
-								ctor: '::',
-								_0: _elm_lang$html$Html$text('Tap your userid, below:'),
-								_1: {
-									ctor: '::',
-									_0: _user$project$ReceptionKiosk$vspace(20),
-									_1: {ctor: '[]'}
-								}
-							}
-						} : {
-							ctor: '::',
-							_0: _user$project$ReceptionKiosk$vspace(0),
-							_1: {ctor: '[]'}
-						},
-						_1: {
-							ctor: '::',
-							_0: A2(
-								_elm_lang$core$List$map,
-								function (acct) {
-									return A2(
-										_debois$elm_mdl$Material_Chip$button,
-										{
-											ctor: '::',
-											_0: _debois$elm_mdl$Material_Options$onClick(
-												_user$project$ReceptionKiosk$LogCheckIn(acct.memberNum)),
-											_1: {ctor: '[]'}
-										},
-										{
-											ctor: '::',
-											_0: A2(
-												_debois$elm_mdl$Material_Chip$content,
-												{ctor: '[]'},
-												{
-													ctor: '::',
-													_0: _elm_lang$html$Html$text(acct.userName),
-													_1: {ctor: '[]'}
-												}),
-											_1: {ctor: '[]'}
-										});
-								},
-								model.matches),
-							_1: {ctor: '[]'}
-						}
-					}
-				})),
-		{ctor: '[]'});
-};
-var _user$project$ReceptionKiosk$letsCreateScene = function (model) {
-	return A5(
-		_user$project$ReceptionKiosk$genericSceneView,
-		model,
-		'Let\'s Create an Account!',
-		'Please tell us about yourself:',
-		A2(
-			_elm_lang$html$Html$div,
-			{ctor: '[]'},
-			{
-				ctor: '::',
-				_0: A5(_user$project$ReceptionKiosk$sceneTextField, model, 2, 'Your first name', model.visitor.firstName, _user$project$ReceptionKiosk$UpdateFirstName),
-				_1: {
-					ctor: '::',
-					_0: _user$project$ReceptionKiosk$vspace(0),
-					_1: {
-						ctor: '::',
-						_0: A5(_user$project$ReceptionKiosk$sceneTextField, model, 3, 'Your last name', model.visitor.lastName, _user$project$ReceptionKiosk$UpdateLastName),
-						_1: {
-							ctor: '::',
-							_0: _user$project$ReceptionKiosk$vspace(0),
-							_1: {
-								ctor: '::',
-								_0: A5(_user$project$ReceptionKiosk$sceneTextField, model, 4, 'Your email address', model.visitor.email, _user$project$ReceptionKiosk$UpdateEmail),
-								_1: {
-									ctor: '::',
-									_0: _user$project$ReceptionKiosk$vspace(30),
-									_1: {
-										ctor: '::',
-										_0: A5(_user$project$ReceptionKiosk$sceneCheckbox, model, 5, 'Check if you are 18 or older!', model.visitor.isAdult, _user$project$ReceptionKiosk$ToggleIsAdult),
-										_1: {ctor: '[]'}
-									}
-								}
-							}
-						}
-					}
-				}
-			}),
-		{
-			ctor: '::',
-			_0: A2(
-				_user$project$ReceptionKiosk$ButtonSpec,
-				'OK',
-				_user$project$ReceptionKiosk$PushScene(_user$project$ReceptionKiosk$ChooseUserNameAndPw)),
-			_1: {ctor: '[]'}
-		});
-};
-var _user$project$ReceptionKiosk$chooseUserNameAndPwScene = function (model) {
-	return A5(
-		_user$project$ReceptionKiosk$genericSceneView,
-		model,
-		'Account Details',
-		'Provide an id and password for your account:',
-		A2(
-			_elm_lang$html$Html$div,
-			{ctor: '[]'},
-			{
-				ctor: '::',
-				_0: A5(_user$project$ReceptionKiosk$sceneTextField, model, 6, 'Choose a user name', model.visitor.userName, _user$project$ReceptionKiosk$UpdateUserName),
-				_1: {
-					ctor: '::',
-					_0: _user$project$ReceptionKiosk$vspace(0),
-					_1: {
-						ctor: '::',
-						_0: A5(_user$project$ReceptionKiosk$scenePasswordField, model, 7, 'Choose a password', model.visitor.password, _user$project$ReceptionKiosk$UpdatePassword),
-						_1: {
-							ctor: '::',
-							_0: _user$project$ReceptionKiosk$vspace(0),
-							_1: {
-								ctor: '::',
-								_0: A5(_user$project$ReceptionKiosk$scenePasswordField, model, 8, 'Type password again', model.visitor.password2, _user$project$ReceptionKiosk$UpdatePassword2),
-								_1: {
-									ctor: '::',
-									_0: _user$project$ReceptionKiosk$vspace(30),
-									_1: {
-										ctor: '::',
-										_0: _user$project$ReceptionKiosk$sceneValidationMsgs(model.validationMessages),
-										_1: {ctor: '[]'}
-									}
-								}
-							}
-						}
-					}
-				}
-			}),
-		{
-			ctor: '::',
-			_0: A2(_user$project$ReceptionKiosk$ButtonSpec, 'OK', _user$project$ReceptionKiosk$ValidateUserIdAndPw),
-			_1: {ctor: '[]'}
 		});
 };
 var _user$project$ReceptionKiosk$waiverScene = function (model) {
@@ -19226,6 +18923,320 @@ var _user$project$ReceptionKiosk$doneScene = function (model) {
 				_user$project$ReceptionKiosk$ButtonSpec,
 				'Yay!',
 				_user$project$ReceptionKiosk$PushScene(_user$project$ReceptionKiosk$Welcome)),
+			_1: {ctor: '[]'}
+		});
+};
+var _user$project$ReceptionKiosk$sceneGenericTextField = F6(
+	function (model, index, hint, value, msger, options) {
+		return A5(
+			_debois$elm_mdl$Material_Textfield$render,
+			_user$project$ReceptionKiosk$Mdl,
+			{
+				ctor: '::',
+				_0: index,
+				_1: {ctor: '[]'}
+			},
+			model.mdl,
+			A2(
+				_elm_lang$core$Basics_ops['++'],
+				{
+					ctor: '::',
+					_0: _debois$elm_mdl$Material_Textfield$label(hint),
+					_1: {
+						ctor: '::',
+						_0: _debois$elm_mdl$Material_Textfield$floatingLabel,
+						_1: {
+							ctor: '::',
+							_0: _debois$elm_mdl$Material_Textfield$value(value),
+							_1: {
+								ctor: '::',
+								_0: _debois$elm_mdl$Material_Options$onInput(msger),
+								_1: {
+									ctor: '::',
+									_0: A2(_debois$elm_mdl$Material_Options$css, 'width', '500px'),
+									_1: {ctor: '[]'}
+								}
+							}
+						}
+					}
+				},
+				options),
+			_elm_lang$html$Html$text('spam'));
+	});
+var _user$project$ReceptionKiosk$sceneTextField = F5(
+	function (model, index, hint, value, msger) {
+		return A6(
+			_user$project$ReceptionKiosk$sceneGenericTextField,
+			model,
+			index,
+			hint,
+			value,
+			msger,
+			{ctor: '[]'});
+	});
+var _user$project$ReceptionKiosk$checkInScene = function (model) {
+	return A5(
+		_user$project$ReceptionKiosk$genericSceneView,
+		model,
+		'Let\'s Get You Checked-In!',
+		'Who are you?',
+		A2(
+			_elm_lang$html$Html$div,
+			{ctor: '[]'},
+			_elm_lang$core$List$concat(
+				{
+					ctor: '::',
+					_0: {
+						ctor: '::',
+						_0: A5(_user$project$ReceptionKiosk$sceneTextField, model, 1, 'Your Username or Surname', model.flexId, _user$project$ReceptionKiosk$UpdateFlexId),
+						_1: {
+							ctor: '::',
+							_0: _user$project$ReceptionKiosk$vspace(0),
+							_1: {ctor: '[]'}
+						}
+					},
+					_1: {
+						ctor: '::',
+						_0: (_elm_lang$core$Native_Utils.cmp(
+							_elm_lang$core$List$length(model.matches),
+							0) > 0) ? {
+							ctor: '::',
+							_0: _user$project$ReceptionKiosk$vspace(30),
+							_1: {
+								ctor: '::',
+								_0: _elm_lang$html$Html$text('Tap your userid, below:'),
+								_1: {
+									ctor: '::',
+									_0: _user$project$ReceptionKiosk$vspace(20),
+									_1: {ctor: '[]'}
+								}
+							}
+						} : {
+							ctor: '::',
+							_0: _user$project$ReceptionKiosk$vspace(0),
+							_1: {ctor: '[]'}
+						},
+						_1: {
+							ctor: '::',
+							_0: A2(
+								_elm_lang$core$List$map,
+								function (acct) {
+									return A2(
+										_debois$elm_mdl$Material_Chip$button,
+										{
+											ctor: '::',
+											_0: _debois$elm_mdl$Material_Options$onClick(
+												_user$project$ReceptionKiosk$LogCheckIn(acct.memberNum)),
+											_1: {ctor: '[]'}
+										},
+										{
+											ctor: '::',
+											_0: A2(
+												_debois$elm_mdl$Material_Chip$content,
+												{ctor: '[]'},
+												{
+													ctor: '::',
+													_0: _elm_lang$html$Html$text(acct.userName),
+													_1: {ctor: '[]'}
+												}),
+											_1: {ctor: '[]'}
+										});
+								},
+								model.matches),
+							_1: {ctor: '[]'}
+						}
+					}
+				})),
+		{ctor: '[]'});
+};
+var _user$project$ReceptionKiosk$scenePasswordField = F5(
+	function (model, index, hint, value, msger) {
+		return A6(
+			_user$project$ReceptionKiosk$sceneGenericTextField,
+			model,
+			index,
+			hint,
+			value,
+			msger,
+			{
+				ctor: '::',
+				_0: _debois$elm_mdl$Material_Textfield$password,
+				_1: {ctor: '[]'}
+			});
+	});
+var _user$project$ReceptionKiosk$chooseUserNameAndPwScene = function (model) {
+	return A5(
+		_user$project$ReceptionKiosk$genericSceneView,
+		model,
+		'Account Details',
+		'Provide an id and password for your account:',
+		A2(
+			_elm_lang$html$Html$div,
+			{ctor: '[]'},
+			{
+				ctor: '::',
+				_0: A5(_user$project$ReceptionKiosk$sceneTextField, model, 6, 'Choose a user name', model.visitor.userName, _user$project$ReceptionKiosk$UpdateUserName),
+				_1: {
+					ctor: '::',
+					_0: _user$project$ReceptionKiosk$vspace(0),
+					_1: {
+						ctor: '::',
+						_0: A5(_user$project$ReceptionKiosk$scenePasswordField, model, 7, 'Choose a password', model.visitor.password, _user$project$ReceptionKiosk$UpdatePassword),
+						_1: {
+							ctor: '::',
+							_0: _user$project$ReceptionKiosk$vspace(0),
+							_1: {
+								ctor: '::',
+								_0: A5(_user$project$ReceptionKiosk$scenePasswordField, model, 8, 'Type password again', model.visitor.password2, _user$project$ReceptionKiosk$UpdatePassword2),
+								_1: {
+									ctor: '::',
+									_0: _user$project$ReceptionKiosk$vspace(30),
+									_1: {
+										ctor: '::',
+										_0: _user$project$ReceptionKiosk$sceneValidationMsgs(model.validationMessages),
+										_1: {ctor: '[]'}
+									}
+								}
+							}
+						}
+					}
+				}
+			}),
+		{
+			ctor: '::',
+			_0: A2(_user$project$ReceptionKiosk$ButtonSpec, 'OK', _user$project$ReceptionKiosk$ValidateUserIdAndPw),
+			_1: {ctor: '[]'}
+		});
+};
+var _user$project$ReceptionKiosk$sceneEmailField = F5(
+	function (model, index, hint, value, msger) {
+		return A6(
+			_user$project$ReceptionKiosk$sceneGenericTextField,
+			model,
+			index,
+			hint,
+			value,
+			msger,
+			{
+				ctor: '::',
+				_0: _debois$elm_mdl$Material_Textfield$email,
+				_1: {ctor: '[]'}
+			});
+	});
+var _user$project$ReceptionKiosk$sceneCheckbox = F5(
+	function (model, index, label, value, msger) {
+		return A2(
+			_elm_lang$html$Html$div,
+			{
+				ctor: '::',
+				_0: _elm_lang$html$Html_Attributes$style(
+					{
+						ctor: '::',
+						_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'text-align', 'left'),
+						_1: {
+							ctor: '::',
+							_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'display', 'inline-block'),
+							_1: {
+								ctor: '::',
+								_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'width', '400px'),
+								_1: {ctor: '[]'}
+							}
+						}
+					}),
+				_1: {ctor: '[]'}
+			},
+			{
+				ctor: '::',
+				_0: A5(
+					_debois$elm_mdl$Material_Toggles$checkbox,
+					_user$project$ReceptionKiosk$Mdl,
+					{
+						ctor: '::',
+						_0: index,
+						_1: {ctor: '[]'}
+					},
+					model.mdl,
+					{
+						ctor: '::',
+						_0: _debois$elm_mdl$Material_Options$onToggle(msger),
+						_1: {
+							ctor: '::',
+							_0: _debois$elm_mdl$Material_Toggles$value(value),
+							_1: {ctor: '[]'}
+						}
+					},
+					{
+						ctor: '::',
+						_0: A2(
+							_elm_lang$html$Html$span,
+							{
+								ctor: '::',
+								_0: _elm_lang$html$Html_Attributes$style(
+									{
+										ctor: '::',
+										_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'font-size', '24pt'),
+										_1: {
+											ctor: '::',
+											_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-left', '16px'),
+											_1: {ctor: '[]'}
+										}
+									}),
+								_1: {ctor: '[]'}
+							},
+							{
+								ctor: '::',
+								_0: _elm_lang$html$Html$text(label),
+								_1: {ctor: '[]'}
+							}),
+						_1: {ctor: '[]'}
+					}),
+				_1: {ctor: '[]'}
+			});
+	});
+var _user$project$ReceptionKiosk$letsCreateScene = function (model) {
+	return A5(
+		_user$project$ReceptionKiosk$genericSceneView,
+		model,
+		'Let\'s Create an Account!',
+		'Please tell us about yourself:',
+		A2(
+			_elm_lang$html$Html$div,
+			{ctor: '[]'},
+			{
+				ctor: '::',
+				_0: A5(_user$project$ReceptionKiosk$sceneTextField, model, 2, 'Your first name', model.visitor.firstName, _user$project$ReceptionKiosk$UpdateFirstName),
+				_1: {
+					ctor: '::',
+					_0: _user$project$ReceptionKiosk$vspace(0),
+					_1: {
+						ctor: '::',
+						_0: A5(_user$project$ReceptionKiosk$sceneTextField, model, 3, 'Your last name', model.visitor.lastName, _user$project$ReceptionKiosk$UpdateLastName),
+						_1: {
+							ctor: '::',
+							_0: _user$project$ReceptionKiosk$vspace(0),
+							_1: {
+								ctor: '::',
+								_0: A5(_user$project$ReceptionKiosk$sceneEmailField, model, 4, 'Your email address', model.visitor.email, _user$project$ReceptionKiosk$UpdateEmail),
+								_1: {
+									ctor: '::',
+									_0: _user$project$ReceptionKiosk$vspace(30),
+									_1: {
+										ctor: '::',
+										_0: A5(_user$project$ReceptionKiosk$sceneCheckbox, model, 5, 'Check if you are 18 or older!', model.visitor.isAdult, _user$project$ReceptionKiosk$ToggleIsAdult),
+										_1: {ctor: '[]'}
+									}
+								}
+							}
+						}
+					}
+				}
+			}),
+		{
+			ctor: '::',
+			_0: A2(
+				_user$project$ReceptionKiosk$ButtonSpec,
+				'OK',
+				_user$project$ReceptionKiosk$PushScene(_user$project$ReceptionKiosk$ChooseUserNameAndPw)),
 			_1: {ctor: '[]'}
 		});
 };
@@ -19439,8 +19450,10 @@ var _user$project$ReceptionKiosk$view = function (model) {
 			return _user$project$ReceptionKiosk$waiverScene(model);
 		case 'Activity':
 			return _user$project$ReceptionKiosk$activityScene(model);
-		default:
+		case 'Done':
 			return _user$project$ReceptionKiosk$doneScene(model);
+		default:
+			return _elm_lang$html$Html$text('');
 	}
 };
 var _user$project$ReceptionKiosk$main = _elm_lang$html$Html$programWithFlags(

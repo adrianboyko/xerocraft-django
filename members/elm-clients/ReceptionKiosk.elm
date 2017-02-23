@@ -73,6 +73,7 @@ type Scene
   | Waiver
   | Activity
   | Done
+  | AnyScene  -- This is a pseudo scene, not an actual visual scene.
 
 type alias DiscoveryMethod =
   { id: Int
@@ -249,14 +250,14 @@ update msg model =
           then Http.send AccDiscoveryMethods request
           else Cmd.none -- Don't fetch if we already have them. Can happen with backward scene navigation.
       in
-        (model, cmd)
+        (model, cmd) :> update (AfterSceneChangeTo AnyScene)
 
     AfterSceneChangeTo Waiver ->
-      ({model | isSigning=False}, Cmd.none)
+      ({model | isSigning=False}, Cmd.none) :> update (AfterSceneChangeTo AnyScene)
 
     AfterSceneChangeTo newScene ->
-      -- The default is to do nothing unusual after a scene change.
-      (model, Cmd.none)
+      -- Default action is to clear out any validation messages.
+      ({model | validationMessages = []}, Cmd.none)
 
     UpdateFlexId rawId ->
       let id = djangoizeId rawId
@@ -366,6 +367,7 @@ view model =
     Waiver -> waiverScene model
     Activity -> activityScene model
     Done -> doneScene model
+    AnyScene -> text ""  -- We will never get here. "AnyScene" is a pseudo scene.
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
@@ -384,11 +386,11 @@ wizardNavButtons model =
     (
     if List.length model.sceneStack > 1
     then
-      [ Button.render Mdl [0] model.mdl
+      [ Button.render Mdl [10000] model.mdl
           ([Button.flat, Options.onClick PopScene]++navButtonCss)
           [text "Back"]
       , hspace 600
-      , Button.render Mdl [0] model.mdl
+      , Button.render Mdl [10001] model.mdl
           ([Button.flat, Options.onClick (PushScene Welcome)]++navButtonCss)
           [text "Quit"]
       ]
