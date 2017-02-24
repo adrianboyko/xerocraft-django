@@ -16,7 +16,7 @@ import requests
 __author__ = 'adrian'
 
 # IMPORTANT: Check SERVER URL before commit. Don't commit test server.
-SERVER = "http://www.xerocraft.org/"  # https is not available
+SERVER = "https://www.xerocraft.org/"
 ACTION_URL = SERVER+"actions.php"
 
 

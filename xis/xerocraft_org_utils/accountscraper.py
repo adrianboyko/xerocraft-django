@@ -11,12 +11,10 @@ import lxml.html
 import requests
 
 # Local
-from xis.xerocraft_org_utils.xerocraftscraper import XerocraftScraper
+from xis.xerocraft_org_utils.xerocraftscraper import XerocraftScraper, SERVER
 
 __author__ = 'adrian'
 
-# IMPORTANT: Check SERVER URL before commit. Don't commit test server.
-SERVER = "http://www.xerocraft.org/"  # https is not available
 ACTION_URL = SERVER+"actions.php"
 
 EMAIL_KEY = "Email address"

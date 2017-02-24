@@ -4,7 +4,7 @@ Thanks for visiting Xerocraft on {{bad_visit.when | date:"D M d"}} at {{bad_visi
 
 {% if paid_membership %}Your most recent paid membership ended on {{paid_membership.end_date | date:"D M d, Y"}}.{% endif %}
 
-{% if paid_membership.nudge_count > 1 %}This is renewal reminder #{{paid_membership.nudge_count}}! {% endif %}To renew your membership, please visit http://xerocraft.org/membership.php
+{% if paid_membership.nudge_count > 1 %}This is renewal reminder #{{paid_membership.nudge_count}}! {% endif %}To renew your membership, please visit https://www.xerocraft.org/membership.php
 
 If you believe any of this information is in error, please reply to this email with details.
 

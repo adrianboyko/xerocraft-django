@@ -22,7 +22,7 @@ class PaypalScraper(XerocraftScraper):
 
         # Get the data from the treasurer tools page:
         pw = os.environ['XEROCRAFT_WEBSITE_TREASURER_PW']
-        url = "http://www.xerocraft.org/treasurer.php"
+        url = "https://www.xerocraft.org/treasurer.php"
         response = self.session.post(url,data={"L": pw, "Submit": "Submit"})  # type: Response
         try:
             response.raise_for_status()
