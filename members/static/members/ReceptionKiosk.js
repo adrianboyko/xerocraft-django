@@ -17484,7 +17484,7 @@ var _user$project$ReceptionKiosk$waiverBoxStyle = function (isSigning) {
 			_0: A2(
 				_user$project$ReceptionKiosk_ops['=>'],
 				'height',
-				isSigning ? '300px' : '600px'),
+				isSigning ? '200px' : '600px'),
 			_1: {
 				ctor: '::',
 				_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'overflow-y', 'scroll'),
@@ -17532,6 +17532,16 @@ var _user$project$ReceptionKiosk$signaturePadStyle = _elm_lang$html$Html_Attribu
 					}
 				}
 			}
+		}
+	});
+var _user$project$ReceptionKiosk$errorMsgStyle = _elm_lang$html$Html_Attributes$style(
+	{
+		ctor: '::',
+		_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'color', 'red'),
+		_1: {
+			ctor: '::',
+			_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'font-size', '22pt'),
+			_1: {ctor: '[]'}
 		}
 	});
 var _user$project$ReceptionKiosk$waiverHtml = {
@@ -17828,16 +17838,7 @@ var _user$project$ReceptionKiosk$sceneValidationMsgs = function (msgs) {
 								_elm_lang$html$Html$p,
 								{
 									ctor: '::',
-									_0: _elm_lang$html$Html_Attributes$style(
-										{
-											ctor: '::',
-											_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'color', 'red'),
-											_1: {
-												ctor: '::',
-												_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'font-size', '22pt'),
-												_1: {ctor: '[]'}
-											}
-										}),
+									_0: _user$project$ReceptionKiosk$errorMsgStyle,
 									_1: {ctor: '[]'}
 								},
 								{
@@ -18054,6 +18055,9 @@ var _user$project$ReceptionKiosk$GuestOfMember = {ctor: 'GuestOfMember'};
 var _user$project$ReceptionKiosk$MemberPrivileges = {ctor: 'MemberPrivileges'};
 var _user$project$ReceptionKiosk$ClassParticipant = {ctor: 'ClassParticipant'};
 var _user$project$ReceptionKiosk$Curiousity = {ctor: 'Curiousity'};
+var _user$project$ReceptionKiosk$AccountCreationResult = function (a) {
+	return {ctor: 'AccountCreationResult', _0: a};
+};
 var _user$project$ReceptionKiosk$UpdateSignature = function (a) {
 	return {ctor: 'UpdateSignature', _0: a};
 };
@@ -18488,33 +18492,186 @@ var _user$project$ReceptionKiosk$update = F2(
 					_0: model,
 					_1: _user$project$ReceptionKiosk$sendSignatureImage('image/png')
 				};
-			default:
+			case 'UpdateSignature':
+				var _p5 = _p2._0;
+				var enc = _elm_lang$http$Http$encodeUri;
+				var eq = F2(
+					function (key, value) {
+						return A2(
+							_elm_lang$core$Basics_ops['++'],
+							key,
+							A2(_elm_lang$core$Basics_ops['++'], '=', value));
+					});
+				var fullName = A2(
+					_elm_lang$core$String$join,
+					' ',
+					{
+						ctor: '::',
+						_0: model.visitor.firstName,
+						_1: {
+							ctor: '::',
+							_0: model.visitor.lastName,
+							_1: {ctor: '[]'}
+						}
+					});
+				var formData = A2(
+					_elm_lang$core$String$join,
+					'&',
+					{
+						ctor: '::',
+						_0: A2(eq, 'action', 'CheckInFirstTime'),
+						_1: {
+							ctor: '::',
+							_0: A2(
+								eq,
+								'UserInfo-Name',
+								enc(fullName)),
+							_1: {
+								ctor: '::',
+								_0: A2(
+									eq,
+									'UserInfo-Username',
+									enc(model.visitor.userName)),
+								_1: {
+									ctor: '::',
+									_0: A2(
+										eq,
+										'UserInfo-Email',
+										enc(model.visitor.email)),
+									_1: {
+										ctor: '::',
+										_0: A2(
+											eq,
+											'UserInfo-Password',
+											enc(model.visitor.password)),
+										_1: {
+											ctor: '::',
+											_0: A2(eq, 'passwordShow', '1'),
+											_1: {
+												ctor: '::',
+												_0: A2(
+													eq,
+													'signature-uri',
+													enc(_p5)),
+												_1: {ctor: '[]'}
+											}
+										}
+									}
+								}
+							}
+						}
+					});
+				var url = 'https://www.xerocraft.org/kfritz/checkinActions2.php';
+				var request = _elm_lang$http$Http$request(
+					{
+						method: 'POST',
+						headers: {ctor: '[]'},
+						url: url,
+						body: A2(_elm_lang$http$Http$stringBody, 'application/x-www-form-urlencoded', formData),
+						expect: _elm_lang$http$Http$expectString,
+						timeout: _elm_lang$core$Maybe$Nothing,
+						withCredentials: false
+					});
+				var cmd = A2(_elm_lang$http$Http$send, _user$project$ReceptionKiosk$AccountCreationResult, request);
 				var v = model.visitor;
 				var newModel = _elm_lang$core$Native_Utils.update(
 					model,
 					{
 						visitor: _elm_lang$core$Native_Utils.update(
 							v,
-							{signature: _p2._0})
+							{signature: _p5})
 					});
-				return A2(
-					_ccapndave$elm_update_extra$Update_Extra_Infix_ops[':>'],
-					{ctor: '_Tuple2', _0: newModel, _1: _elm_lang$core$Platform_Cmd$none},
-					_user$project$ReceptionKiosk$update(
-						_user$project$ReceptionKiosk$PushScene(_user$project$ReceptionKiosk$Activity)));
+				return {ctor: '_Tuple2', _0: newModel, _1: cmd};
+			default:
+				if (_p2._0.ctor === 'Ok') {
+					var _p9 = _p2._0._0;
+					var tagRegex = _elm_lang$core$Regex$regex('<[^>]*>');
+					var deTag = A3(
+						_elm_lang$core$Regex$replace,
+						_elm_lang$core$Regex$All,
+						tagRegex,
+						function (_p6) {
+							return '';
+						});
+					var msgRegex = _elm_lang$core$Regex$regex('<div id=\\\"Message\\\">.*</div>');
+					var msgsFound = A3(
+						_elm_lang$core$Regex$find,
+						_elm_lang$core$Regex$AtMost(1),
+						msgRegex,
+						_p9);
+					var msg = function () {
+						var _p7 = _elm_lang$core$List$head(msgsFound);
+						if (_p7.ctor === 'Nothing') {
+							return '';
+						} else {
+							return deTag(_p7._0.match);
+						}
+					}();
+					var userNameInUseIndicator = '<h2></h2>';
+					var successIndicator = '<h1>You have successfully registered your check in! Welcome to Xerocraft!</h1>';
+					var _p8 = msg;
+					switch (_p8) {
+						case 'You have successfully registered your check in! Welcome to Xerocraft!':
+							return A2(
+								_ccapndave$elm_update_extra$Update_Extra_Infix_ops[':>'],
+								{
+									ctor: '_Tuple2',
+									_0: _elm_lang$core$Native_Utils.update(
+										model,
+										{
+											error: _elm_lang$core$Maybe$Nothing,
+											sceneStack: {ctor: '[]'}
+										}),
+									_1: _elm_lang$core$Platform_Cmd$none
+								},
+								_user$project$ReceptionKiosk$update(
+									_user$project$ReceptionKiosk$PushScene(_user$project$ReceptionKiosk$Activity)));
+						case '':
+							return {
+								ctor: '_Tuple2',
+								_0: _elm_lang$core$Native_Utils.update(
+									model,
+									{
+										error: _elm_lang$core$Maybe$Just(_p9)
+									}),
+								_1: _elm_lang$core$Platform_Cmd$none
+							};
+						default:
+							return {
+								ctor: '_Tuple2',
+								_0: _elm_lang$core$Native_Utils.update(
+									model,
+									{
+										error: _elm_lang$core$Maybe$Just(msg)
+									}),
+								_1: _elm_lang$core$Platform_Cmd$none
+							};
+					}
+				} else {
+					return {
+						ctor: '_Tuple2',
+						_0: _elm_lang$core$Native_Utils.update(
+							model,
+							{
+								error: _elm_lang$core$Maybe$Just(
+									_elm_lang$core$Basics$toString(_p2._0._0))
+							}),
+						_1: _elm_lang$core$Platform_Cmd$none
+					};
+				}
 		}
 	});
 var _user$project$ReceptionKiosk$validateUserNameUniqueness = F2(
 	function (model, result) {
-		var _p5 = result;
-		if (_p5.ctor === 'Ok') {
+		var _p10 = result;
+		if (_p10.ctor === 'Ok') {
 			var chosenName = _elm_lang$core$String$toLower(model.visitor.userName);
 			var matchingNames = A2(
 				_elm_lang$core$List$map,
 				function (x) {
 					return _elm_lang$core$String$toLower(x.userName);
 				},
-				_p5._0.matches);
+				_p10._0.matches);
 			return A2(_elm_lang$core$List$member, chosenName, matchingNames) ? {
 				ctor: '_Tuple2',
 				_0: _elm_lang$core$Native_Utils.update(
@@ -18546,7 +18703,7 @@ var _user$project$ReceptionKiosk$validateUserNameUniqueness = F2(
 					model,
 					{
 						error: _elm_lang$core$Maybe$Just(
-							_elm_lang$core$Basics$toString(_p5._0))
+							_elm_lang$core$Basics$toString(_p10._0))
 					}),
 				_1: _elm_lang$core$Platform_Cmd$none
 			};
@@ -18757,24 +18914,33 @@ var _user$project$ReceptionKiosk$genericSceneView = F5(
 							_0: _user$project$ReceptionKiosk$vspace(50),
 							_1: {
 								ctor: '::',
-								_0: A2(
-									_elm_lang$html$Html$div,
-									{ctor: '[]'},
-									A2(
-										_elm_lang$core$List$map,
-										_user$project$ReceptionKiosk$sceneButton(model),
-										buttonSpecs)),
+								_0: function () {
+									var _p11 = model.error;
+									if (_p11.ctor === 'Just') {
+										return _user$project$ReceptionKiosk$sceneValidationMsgs(
+											{
+												ctor: '::',
+												_0: _p11._0,
+												_1: {ctor: '[]'}
+											});
+									} else {
+										return _elm_lang$html$Html$text('');
+									}
+								}(),
 								_1: {
 									ctor: '::',
-									_0: function () {
-										var _p6 = model.error;
-										if (_p6.ctor === 'Just') {
-											return _elm_lang$html$Html$text(_p6._0);
-										} else {
-											return _elm_lang$html$Html$text('');
-										}
-									}(),
-									_1: {ctor: '[]'}
+									_0: (!_elm_lang$core$Native_Utils.eq(model.error, _elm_lang$core$Maybe$Nothing)) ? _user$project$ReceptionKiosk$vspace(50) : _elm_lang$html$Html$text(''),
+									_1: {
+										ctor: '::',
+										_0: A2(
+											_elm_lang$html$Html$div,
+											{ctor: '[]'},
+											A2(
+												_elm_lang$core$List$map,
+												_user$project$ReceptionKiosk$sceneButton(model),
+												buttonSpecs)),
+										_1: {ctor: '[]'}
+									}
 								}
 							}
 						}
@@ -18877,54 +19043,26 @@ var _user$project$ReceptionKiosk$waiverScene = function (model) {
 							{
 								ctor: '::',
 								_0: A2(
-									_elm_lang$html$Html$p,
+									_elm_lang$html$Html$canvas,
 									{
 										ctor: '::',
-										_0: _elm_lang$html$Html_Attributes$style(
-											{
-												ctor: '::',
-												_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-top', '50px'),
-												_1: {
-													ctor: '::',
-													_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'font-size', '16pt'),
-													_1: {
-														ctor: '::',
-														_0: A2(_user$project$ReceptionKiosk_ops['=>'], 'margin-bottom', '5px'),
-														_1: {ctor: '[]'}
-													}
-												}
-											}),
-										_1: {ctor: '[]'}
-									},
-									{
-										ctor: '::',
-										_0: _elm_lang$html$Html$text('sign in box below:'),
-										_1: {ctor: '[]'}
-									}),
-								_1: {
-									ctor: '::',
-									_0: A2(
-										_elm_lang$html$Html$canvas,
-										{
+										_0: _elm_lang$html$Html_Attributes$width(760),
+										_1: {
 											ctor: '::',
-											_0: _elm_lang$html$Html_Attributes$width(760),
+											_0: _elm_lang$html$Html_Attributes$height(200),
 											_1: {
 												ctor: '::',
-												_0: _elm_lang$html$Html_Attributes$height(200),
+												_0: _elm_lang$html$Html_Attributes$id('signature-pad'),
 												_1: {
 													ctor: '::',
-													_0: _elm_lang$html$Html_Attributes$id('signature-pad'),
-													_1: {
-														ctor: '::',
-														_0: _user$project$ReceptionKiosk$signaturePadStyle,
-														_1: {ctor: '[]'}
-													}
+													_0: _user$project$ReceptionKiosk$signaturePadStyle,
+													_1: {ctor: '[]'}
 												}
 											}
-										},
-										{ctor: '[]'}),
-									_1: {ctor: '[]'}
-								}
+										}
+									},
+									{ctor: '[]'}),
+								_1: {ctor: '[]'}
 							}),
 						_1: {ctor: '[]'}
 					}
@@ -19402,11 +19540,11 @@ var _user$project$ReceptionKiosk$makeActivityList = F2(
 													ctor: '::',
 													_0: _debois$elm_mdl$Material_Toggles$value(
 														function () {
-															var _p7 = model.reasonForVisit;
-															if (_p7.ctor === 'Nothing') {
+															var _p12 = model.reasonForVisit;
+															if (_p12.ctor === 'Nothing') {
 																return false;
 															} else {
-																return _elm_lang$core$Native_Utils.eq(_p7._0, reason);
+																return _elm_lang$core$Native_Utils.eq(_p12._0, reason);
 															}
 														}()),
 													_1: {
@@ -19469,11 +19607,11 @@ var _user$project$ReceptionKiosk$activityScene = function (model) {
 		});
 };
 var _user$project$ReceptionKiosk$view = function (model) {
-	var _p8 = A2(
+	var _p13 = A2(
 		_elm_lang$core$Maybe$withDefault,
 		_user$project$ReceptionKiosk$Welcome,
 		_elm_lang$core$List$head(model.sceneStack));
-	switch (_p8.ctor) {
+	switch (_p13.ctor) {
 		case 'Welcome':
 			return _user$project$ReceptionKiosk$welcomeScene(model);
 		case 'HaveAcctQ':

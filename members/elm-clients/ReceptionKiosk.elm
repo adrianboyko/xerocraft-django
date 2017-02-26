@@ -214,6 +214,7 @@ type Msg
   | ValidateUserNameUniqueness (Result Http.Error MatchingAcctInfo)
   | GetSignature
   | UpdateSignature String  -- String is a data URL representation of an image.
+  | AccountCreationResult (Result Http.Error String)
 
 port initSignaturePad : (String, String) -> Cmd msg  -- 1) ID of canvas to be used, 2) data URL of image or ""
 port clearSignaturePad : String -> Cmd msg
@@ -361,10 +362,64 @@ update msg model =
       let
         v = model.visitor  -- This is necessary because of a bug in PyCharm elm plugin.
         newModel = {model | visitor = {v | signature = dataUrl }}
+        url = "https://www.xerocraft.org/kfritz/checkinActions2.php"
+        fullName = String.join " " [model.visitor.firstName, model.visitor.lastName]
+        eq = \key value -> key++"="++value
+        enc = Http.encodeUri
+        formData = String.join "&"
+          [ eq "action" "CheckInFirstTime"
+          , eq "UserInfo-Name" (enc fullName)
+          , eq "UserInfo-Username" (enc model.visitor.userName)
+          , eq "UserInfo-Email" (enc model.visitor.email)
+          , eq "UserInfo-Password" (enc model.visitor.password)
+          , eq "passwordShow" "1"
+          , eq "signature-uri" (enc dataUrl)
+          ]
+        request = Http.request
+          { method = "POST"
+          , headers = []
+          , url = url
+          , body = Http.stringBody "application/x-www-form-urlencoded" formData
+          , expect = Http.expectString
+          , timeout = Nothing
+          , withCredentials = False
+          }
+        cmd = Http.send AccountCreationResult request
       in
-        -- TODO: Should create account here.
-        (newModel, Cmd.none) :> update (PushScene Activity)
+        (newModel, cmd)
 
+    AccountCreationResult (Ok htmlResponseBody) ->
+      let
+        successIndicator = "<h1>You have successfully registered your check in! Welcome to Xerocraft!</h1>"
+        userNameInUseIndicator = "<h2></h2>"
+        -- Seems to present errors in div#Message.
+        -- E.g. <div id="Message"><h2>This username is already being used.</h2></div>
+        msgRegex = regex "<div id=\\\"Message\\\">.*</div>"
+        tagRegex = regex "<[^>]*>"
+        deTag = Regex.replace Regex.All tagRegex (\_->"")
+        msgsFound = Regex.find (Regex.AtMost 1) msgRegex htmlResponseBody
+        msg = case List.head msgsFound of
+          Nothing -> ""
+          Just m -> deTag m.match
+      in
+        case msg of
+          "You have successfully registered your check in! Welcome to Xerocraft!" ->
+            -- This is the result we wanted. We now clear the scene stack since account creation was
+            -- successfully completed and we don't want the user backtracking into it again.
+            ({model | error = Nothing, sceneStack = []}, Cmd.none) :> update (PushScene Activity)
+          "" ->
+            -- Couldn't find a message so dump the entire response body as a debugging aid.
+            -- We don't expect this to happen.
+            ({model | error = Just htmlResponseBody}, Cmd.none)
+          _ ->
+            -- All other messages are treated as errors and reported as such to user.
+            -- Many of the possible errors are validation related so we shouldn't see them if
+            -- the client-side validation in earlier scenes was effective.
+            ({model | error = Just msg}, Cmd.none)
+
+    AccountCreationResult (Err error) ->
+      -- These will be http errors.
+      ({model | error = Just (toString error)}, Cmd.none)
 
 -----------------------------------------------------------------------------
 -- VIEW
@@ -424,17 +479,18 @@ genericSceneView model title subtitle extraContent buttonSpecs =
     , p [sceneSubtitleStyle] [text subtitle]
     , extraContent
     , vspace 50
-    , div [] (List.map (sceneButton model) buttonSpecs)
     , case model.error of
-        Just err -> text err
+        Just err -> sceneValidationMsgs [err]
         Nothing -> text ""
+    , if model.error /= Nothing then vspace 50 else text ""
+    , div [] (List.map (sceneButton model) buttonSpecs)
     ]
 
 type alias ButtonSpec = { title : String, msg: Msg }
 sceneButton : Model -> ButtonSpec -> Html Msg
 sceneButton model buttonSpec =
   Button.render Mdl [0] model.mdl
-    ([ Button.raised, (Options.onClick buttonSpec.msg)]++viewButtonCss)
+    ([ Button.raised, Options.onClick buttonSpec.msg]++viewButtonCss)
     [ text buttonSpec.title ]
 
 sceneGenericTextField : Model -> Int -> String -> String -> (String -> Msg) -> List (Textfield.Property Msg) -> Html Msg
@@ -481,7 +537,7 @@ sceneValidationMsgs msgs =
         (List.concat
           [ [ span [style ["font-size"=>"32pt"]] [text "Whoops!"], vspace 15 ]
           , List.map
-              (\msg -> p [style ["color"=>"red", "font-size"=>"22pt"]] [text msg])
+              (\msg -> p [errorMsgStyle] [text msg])
               msgs
           , [ span [] [text "Please correct these issues and try again."] ]
           ]
@@ -655,13 +711,9 @@ waiverScene model =
     "Please read and sign the following waiver"
     (div []
       [ vspace 20
-      , div [id "waiver-box", (waiverBoxStyle model.isSigning)]
-          waiverHtml
+      , div [id "waiver-box", waiverBoxStyle model.isSigning] waiverHtml
       , div [style ["display"=>if model.isSigning then "block" else "none"]]
-          [ p [style ["margin-top"=>"50px", "font-size"=>"16pt", "margin-bottom"=>"5px"]]
-            [text "sign in box below:"]
-          , canvas [width 760, height 200, id "signature-pad", signaturePadStyle] []
-          ]
+          [ canvas [width 760, height 200, id "signature-pad", signaturePadStyle] [] ]
       ]
     )
     ( if model.isSigning then
@@ -879,7 +931,7 @@ bannerBottomStyle = style
 navDivStyle = bannerBottomStyle
 
 waiverBoxStyle isSigning = style
-  [ "height" => if isSigning then "300px" else "600px"
+  [ "height" => if isSigning then "200px" else "600px"
   , "overflow-y" => "scroll"
   , "margin-left" => "20px"
   , "margin-right" => "20px"
@@ -894,6 +946,11 @@ signaturePadStyle = style
   , "border" => "1px solid #bbbbbb"
   , "cursor" => "crosshair"
   , "touch-action" => "none"
+  ]
+
+errorMsgStyle = style
+  [ "color"=>"red"
+  , "font-size"=>"22pt"
   ]
 
 viewButtonCss =
