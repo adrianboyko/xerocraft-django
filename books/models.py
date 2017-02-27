@@ -151,6 +151,7 @@ try:
     ACCT_EXPENSE_BUSINESS = Account.objects.get(name="Expense, Business")
     ACCT_REVENUE_DONATION = Account.objects.get(name="Revenue, Cash Donations")
     ACCT_REVENUE_MEMBERSHIP = Account.objects.get(name="Revenue, Membership")
+    ACCT_REVENUE_DISCOUNT = Account.objects.get(name="Revenue, Discount Donations")
 except Account.DoesNotExist as e:
     logger.exception("Couldn't find account.")
 
@@ -1361,7 +1362,7 @@ class ExpenseLineItem(models.Model, JournalLiner):
         help_text="The date on which the expense was incurred.")
 
     amount = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
-        help_text="The dollar amount for this line item.")
+        help_text="The dollar amount for this line item BEFORE any discount.")
 
     discount = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False, default=0.00,
         help_text="Any CHARITABLE discount applied to this purchase.")
@@ -1417,13 +1418,13 @@ class ExpenseLineItem(models.Model, JournalLiner):
         je2.prebatch(JournalEntryLineItem(
             account=self.account,
             action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
-            amount=self.amount+self.discount,  # The actual expense amount INCLUDES the discount.
+            amount=self.amount,  # Recall, amount is the full amount BEFORE discount.
         ))
-        if self.discount > Decimal(0.00):
+        if self.discount > Decimal(0.00):  # Note, this is for CHARITABLE discounts against goods or services.
             je2.prebatch(JournalEntryLineItem(
-                account=ACCT_REVENUE_DONATION,
+                account=ACCT_REVENUE_DISCOUNT,
                 action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
-                amount=self.discount,  # The actual expense amount INCLUDES the discount.
+                amount=self.discount,
             ))
 
         if je.id == -1:
