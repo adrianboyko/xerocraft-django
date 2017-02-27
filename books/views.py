@@ -120,7 +120,7 @@ def revenues_and_expenses_from_journal(request):
     if not request.user.member.is_tagged_with("Director"):
         return HttpResponse("This page is for Directors only.")
 
-    start = date(2016, 1, 1)
+    start = date(2015, 1, 1)
     end = date.today()
 
     def get_data(category, factor):
