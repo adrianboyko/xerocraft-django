@@ -1284,6 +1284,7 @@ class ExpenseTransaction(Journaler):
         total = Decimal(0.0)
         for lineitem in self.expenselineitem_set.all():
             total += lineitem.amount
+            total -= lineitem.discount
         for claimref in self.expenseclaimreference_set.all():
             total += claimref.portion if claimref.portion is not None else claimref.claim.amount
         return total

@@ -801,6 +801,7 @@ class ExpenseTransactionAdmin(JournalerAdmin):
         'recipient_email',
         'method_detail', # For check numbers
         'expensetransactionnote__content',
+        'expenselineitem__description'
 
         #TODO: Add line item descriptions?
         #TODO: Add expense claim line item descriptions?
