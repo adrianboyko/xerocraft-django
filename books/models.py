@@ -426,6 +426,7 @@ class Entity(models.Model):
     class Meta:
         verbose_name = "Non-Member Entity"
         verbose_name_plural = "Non-Member Entities"
+        ordering = ['name']
 
 
 class EntityNote(Note):
@@ -1131,16 +1132,22 @@ class ExpenseClaim(Journaler):
     submit = models.BooleanField(default=False,
         help_text="(Re)submit the claim for processing and reimbursement.")
 
+    donate_reimbursement = models.BooleanField(default=False,
+        help_text="Claimant will not receive a payment. Reimbursement will become a donation.")
+
     def reimbursed(self) -> Decimal:
         """
         :return: The sum total of all reimbursements.
         """
         total = Decimal(0.0)
-        for ref in self.expenseclaimreference_set.all():
-            if ref.portion is not None:
-                total += ref.portion
-            else:
-                total += self.amount
+        if self.donate_reimbursement:
+            total = self.amount
+        else:
+            for ref in self.expenseclaimreference_set.all():
+                if ref.portion is not None:
+                    total += ref.portion
+                else:
+                    total += self.amount
         return total
 
     def remaining(self) -> Decimal:
@@ -1192,7 +1199,7 @@ class ExpenseClaim(Journaler):
         # )
         """
         Unfortunately, due to the way that Expense Claims were misused as a sort of
-        account in themselves, I'm unable to make sensible journale entries out of them.
+        account in themselves, I'm unable to make sensible journal entries out of them.
         Instead, a journal entry will be made for each individual line item. This will
         date the transaction at the time of the purchase which is EARLIER than the date
         on which the claim was made, but it's close enough and will have to do.
@@ -1401,17 +1408,26 @@ class ExpenseLineItem(models.Model, JournalLiner):
         # Every line item associated with an ExpenseClaim will get its own JournalEntry, created here.
 
         if je.id == -1:
+            assert self.claim is not None
 
             je2 = JournalEntry(
                 when=self.expense_date,
                 source_url=je.source_url  # The fake je has source_url specified.
             )
 
-            je2.prebatch(JournalEntryLineItem(
-                account=ACCT_LIABILITY_PAYABLE,
-                action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
-                amount=self.amount,
-            ))
+            if self.claim.donate_reimbursement:
+                je2.prebatch(JournalEntryLineItem(
+                    account=ACCT_REVENUE_DONATION,
+                    action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
+                    amount=self.amount,
+                ))
+
+            else:
+                je2.prebatch(JournalEntryLineItem(
+                    account=ACCT_LIABILITY_PAYABLE,
+                    action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
+                    amount=self.amount,
+                ))
 
         else:
             je2 = je

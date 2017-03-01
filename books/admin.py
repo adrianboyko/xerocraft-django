@@ -130,6 +130,8 @@ class AccountAdmin(VersionAdmin):
 
     list_filter = ['category', 'type']
 
+    search_fields = ['description', 'name']
+
 
 class AccountForAccountGroup_Inline(admin.TabularInline):
 
@@ -657,6 +659,7 @@ class ExpenseClaimAdmin(JournalerAdmin):
         'claimant',
         ('amount', 'checksum'),
         ('when_submitted', 'submit'),
+        'donate_reimbursement',
     ]
     ordering = ['-when_submitted']
     readonly_fields = ['id', 'when_submitted', 'checksum']
