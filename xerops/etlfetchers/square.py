@@ -137,7 +137,7 @@ class Fetcher(AbstractFetcher):
         "Bag of Chips": "Food/Drink",
         "RBar": "Food/Drink",
 
-        "Refill Soda Account": "Refill Soda Account",
+        "Refill Soda Account": "Refill Soda Account (DON'T USE)",
         "Bracelet, 3D Printed": "3D Print",
         "1 M4T Raffle Tkt": "1 Jim Click Raffle Ticket",
 
@@ -146,9 +146,12 @@ class Fetcher(AbstractFetcher):
         "General": "Materials, Laser Cutter",
         "Acrylic for Laser Cutter": "Materials, Laser Cutter",
         "Acrylic For Laser Cutter": "Materials, Laser Cutter",
+        "MDF Sheet for Laser Cutter": "Materials, Laser Cutter",
 
-        "Assorted Electronics": "Electronics",
-        "Assortment": "Electronics",
+        "Assorted Electronics": "Materials, Electronics",
+        "Assortment": "Materials, Electronics",
+
+        "Magnet": "Materials, Miscellaneous",
     }
 
     def _process_other_item(self, sale, item, item_num):
@@ -191,6 +194,7 @@ class Fetcher(AbstractFetcher):
         "Holiday Gift Card (6 months)",
         "Holiday Gift Card (3 months)",
         "3 Month Gift Card",
+        "2 Month Gift Card",
         "1 Month Gift Card",
     ]
 
