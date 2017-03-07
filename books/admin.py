@@ -545,6 +545,7 @@ class SaleAdmin(JournalerAdmin):
         'payer_acct__email',
         'salenote__content',
         'monetarydonation__earmark__name',
+        'total_paid_by_customer',
         '^ctrlid',
     ]
     list_filter = ['payment_method', 'sale_date']
