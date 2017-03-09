@@ -82,7 +82,7 @@ class JournalerAdmin(DjangoObjectActions, VersionAdmin):
 
     viewjournal_action.label = "Journal Entries"
     viewjournal_action.short_description = "View the journal entries (accounting) for this transaction."
-    change_actions = ['viewjournal_action']
+    #change_actions = ['viewjournal_action']
 
     view_on_site = False
 
@@ -220,6 +220,8 @@ class DonationAdmin(ModelMailerAdmin, VersionAdmin):
         '^donator_acct__username',
         'donator_acct__email',
     ]
+
+    change_actions = ['email_action']  # DjangoObjectActions
 
     class Media:
         css = {
@@ -370,6 +372,8 @@ class InvoiceAdmin(JournalerAdmin):
         'user__email',
     ]
 
+    change_actions = ['viewjournal_action']  # DjangoObjectActions
+
     class Media:
         css = {
             "all": ("abutils/admin-tabular-inline.css",)  # This hides "denormalized object descs", to use Wojciech's term.
@@ -476,7 +480,7 @@ class OtherItemTypeAdmin(VersionAdmin):
 
 
 @admin.register(Sale)
-class SaleAdmin(JournalerAdmin):
+class SaleAdmin(JournalerAdmin, ModelMailerAdmin):
 
     form = get_ChecksumAdminForm(Sale)
 
@@ -521,6 +525,7 @@ class SaleAdmin(JournalerAdmin):
         ('payment_method','method_detail'),
         ('total_paid_by_customer', 'checksum'),
         ('processing_fee', 'fee_payer'),
+        'send_receipt',
         'protected',
         'ctrlid',
     ]
@@ -550,6 +555,8 @@ class SaleAdmin(JournalerAdmin):
     ]
     list_filter = ['payment_method', 'sale_date']
     date_hierarchy = 'sale_date'
+
+    change_actions = ['viewjournal_action', 'email_action']  # DjangoObjectActions
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -680,6 +687,8 @@ class ExpenseClaimAdmin(JournalerAdmin):
         'expenselineitem__account__name',
     ]
     raw_id_fields = ['claimant']
+
+    change_actions = ['viewjournal_action']  # DjangoObjectActions
 
     class Media:
         css = {
@@ -844,6 +853,8 @@ class ExpenseTransactionAdmin(JournalerAdmin):
     ]
 
     raw_id_fields = ['recipient_acct', 'recipient_entity']
+
+    change_actions = ['viewjournal_action']  # DjangoObjectActions
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =

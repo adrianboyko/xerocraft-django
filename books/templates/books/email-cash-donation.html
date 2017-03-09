@@ -10,10 +10,10 @@
   table[class=layout_table] tbody tr td.header_image img{width:300px !important;height:auto !important;}
 }
 a{color:#37aadc}
-p{font-family:Arial, Helvetica, sans-serif;font-size:14px;line-height:22px;}
-span{font-family:Arial, Helvetica, sans-serif;font-size:14px;line-height:22px;}
+p{font-family:Arial, Helvetica, sans-serif;font-size:14px;}
+span{font-family:Arial, Helvetica, sans-serif;font-size:14px;}
 
-table#items{width:90%;border-collapse:collapse;margin:1em 0;}
+table#items{width:97%;border-collapse:collapse;margin:1em 0;}
 table#items th, table#items td{padding:.3em;border:2px solid #fff;}
 
 </style>
@@ -45,31 +45,40 @@ table#items th, table#items td{padding:.3em;border:2px solid #fff;}
           <tr>
           <td align="center">
             <p>
-                {% if first_name %}
-                Hi {{first_name}}!
-                <br/><br/>
-                {% endif %}
-                This is a receipt for <u>physical</u> items donated to Xerocraft by <b>{{full_name}}</b>
-                on <b>{{donation.donation_date}}</b>. Associated <u>monetary</u> donations, if any, will be itemized
-                on a separate receipt which you might already have received from one of our online payment
-                processors (Square, 2Checkout, WePay, etc). A list of donated items follows:
+                Cash Donation Receipt<br/>
+                For donations made by <b>{{full_name}}</b> on <b>{{sale.sale_date}}</b><br/>
+                A list of donated amounts follows:
             </p>
             <table id="items">
                 <tr>
-                    <th style="text-align:left;" bgcolor="#328aa4" color="#ffffff"><span>&nbsp;Description&nbsp;</span></th>
-                    <th style="text-align:right;" bgcolor="#328aa4" color="#ffffff"><span>&nbsp;Value&nbsp;</span></th>
+                    <th style="text-align:left;" bgcolor="#328aa4" color="#ffffff"><span>Donated&nbsp;</span></th>
+                    <th style="text-align:left;" bgcolor="#328aa4" color="#ffffff"><span>Earmark&nbsp;</span></th>
+                    <th style="text-align:left;" bgcolor="#328aa4" color="#ffffff"><span>Reward&nbsp;</span></th>
+                    <th style="text-align:left;" bgcolor="#328aa4" color="#ffffff"><span>Deductible&nbsp;</span></th>
                 </tr>
                 {% for item in items %}
                 <tr>
-                    <td style="text-align:left" bgcolor="#e5f1f4"><span>&nbsp;{{item.description}}&nbsp;</span></td>
-                    <td style="text-align:right" bgcolor="#e5f1f4"><span>&nbsp;${{item.value}}&nbsp;</span></td>
+                    <td style="text-align:left" bgcolor="#e5f1f4"><span>${{item.amount}}</span></td>
+                    <td style="text-align:left" bgcolor="#e5f1f4"><span>{{item.earmark|default:"General"}}</span></td>
+                    <td style="text-align:left" bgcolor="#e5f1f4"><span>
+                        {{item.reward|default:"None"}}
+                        {% if item.reward %} valued at ${{ item.reward.fair_mkt_value }}{% endif %}
+                    </span></td>
+                    <td style="text-align:left" bgcolor="#e5f1f4"><span>${{item.deductible}}</span></td>
                 </tr>
                 {% endfor %}
             </table>
             <p>
-                Item values, above, were determined by the donor. Xerocraft Inc. is an Arizona non-profit
-                corporation with federal 501(c)3 status and is eligible to receive tax-deductible donations.
-                Xerocraft's EIN 45&#2011;4604522. If you have any questions please contact
+                Xerocraft Inc. is an Arizona non-profit corporation with federal 501(c)3 status
+                and is eligible to receive tax-deductible donations. Xerocraft's EIN is 45&#x2011;4604522.
+            </p>
+            <p>
+                When a reward is associated with a cash donation, the amount eligible for tax
+                deduction may be less than the donated amount! The eligible amount appears in the
+                "deductible" column.
+            </p>
+            <p>
+                If you have any questions please contact
                 <a href="mailto:treasurer@xerocraft.org">treasurer@xerocraft.org</a>.
             </p>
             <p>Thanks for supporting Xerocraft with your donation!</p>

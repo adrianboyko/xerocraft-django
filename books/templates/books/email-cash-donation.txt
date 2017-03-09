@@ -1,0 +1,21 @@
+Cash Donation Receipt
+For donations made by {{full_name}} on {{sale.sale_date}}
+A list of donated amounts follows:
+
+{% for item in items %}
+Amount: ${{item.amount}}
+Earmark: {{item.earmark|default:"General"}}
+Reward: {{item.reward|default:"None"}}{% if item.reward %} valued at ${{ item.reward.fair_mkt_value }}{% endif %}
+Deductible: ${{item.deductible}}
+
+{% endfor %}
+Xerocraft Inc. is an Arizona non-profit corporation with federal 501(c)3 status
+and is eligible to receive tax-deductible donations. Xerocraft's EIN is 45-4604522.
+
+When a reward is associated with a cash donation, the amount eligible for tax
+deduction may be less than the donated amount! The eligible amount for each
+donation is shown as "deductible."
+
+If you have any questions please contact treasurer@xerocraft.org
+
+Thanks for supporting Xerocraft with your donation!

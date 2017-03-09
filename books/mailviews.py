@@ -2,49 +2,62 @@
 # Standard
 
 # Third Party
+from django.contrib.auth.models import User
 
 # Local
 from modelmailer.mailviews import MailView, register
-from .models import Donation
+from books.models import Donation, Sale
 
 TREASURER = "Xerocraft Treasurer <treasurer@xerocraft.org>"
 XIS = "Xerocraft Systems <xis@xerocraft.org>"
 
 
-@register(Donation)
-class DonationMailView(MailView):
+def _email(trans_desc_str: str, email_str: str, acct: User):
+    email = None
+    if email_str != "":
+        email = email_str
+    elif acct is not None and acct.email != "":
+        email = acct.email
+    if email is None:
+        raise RuntimeWarning("Cannot determine email addr for: %s" % trans_desc_str)
+    return email
 
-    def get_email_spec(self, target: Donation) -> dict:
-        donation = target
+
+def _first_name(name: str, acct: User):
+    first_name = None
+    # TODO: Could use person name parser here to get first name from "name"
+    if acct is not None:
+        first_name = acct.first_name
+        if first_name == "":
+            first_name = None
+    return first_name
+
+
+def _full_name(name: str, acct: User):
+    full_name = None
+    if name != "":
+        full_name = name
+    elif acct is not None:
+        full_name = "{} {}".format(acct.first_name, acct.last_name).strip()
+        if full_name == "":
+            full_name = None
+    return full_name
+
+
+@register(Donation)
+class PhysicalDonationMailView(MailView):
+
+    def get_email_spec(self, donation: Donation) -> dict:
         acct = donation.donator_acct
 
-        donor_email = None
-        if donation.donator_email != "":
-            donor_email = donation.donator_email
-        elif acct is not None and acct.email != "":
-            donor_email = acct.email
-
-        if donor_email is None:
-            raise RuntimeWarning("Cannot determine donor's email addr for: %s", target)
-
-        first_name = None
-        if acct is not None:
-            first_name = acct.first_name
-            if first_name == "":
-                first_name = None
-
-        full_name = None
-        if donation.donator_name != "":
-            full_name = donation.donator_name
-        elif acct is not None:
-            full_name = "{} {}".format(acct.first_name, acct.last_name).strip()
-            if full_name == "":
-                full_name = None
+        donor_email = _email(str(donation), donation.donator_email, acct)
+        first_name = _first_name(donation.donator_name, acct)
+        full_name = _full_name(donation.donator_name, acct)
 
         spec = {
             'sender': "Xerocraft Systems <xis@xerocraft.org>",
             'recipients': [donor_email],
-            'subject': "Receipt for Donation to Xerocraft",
+            'subject': "Receipt for Physical Donation to Xerocraft",
             'bccs': [TREASURER, XIS],
             'template': "books/email-phys-donation",  # Name without .html or .txt extension
             'parameters': {
@@ -54,6 +67,40 @@ class DonationMailView(MailView):
                 'items': donation.donateditem_set.all(),
             },
             'info-for-log':"Receipt for physical donation #{} sent to {}.".format(donation.pk, donor_email)
+        }
+        return spec
+
+
+# Following class is registered to "Sale" but it only emails a receipt for the cash donation portion of a sale.
+@register(Sale)
+class CashDonationMailView(MailView):
+
+    def get_email_spec(self, sale: Sale) -> dict:
+        acct = sale.payer_acct
+
+        donor_email = _email(str(sale), sale.payer_email, acct)
+        first_name = _first_name(sale.payer_name, acct)
+        full_name = _full_name(sale.payer_name, acct)
+
+        items = sale.monetarydonation_set.all()
+        for item in items:
+            item.deductible = item.amount
+            if item.reward is not None:
+                item.deductible -= item.reward.fair_mkt_value
+
+        spec = {
+            'sender': "Xerocraft Systems <xis@xerocraft.org>",
+            'recipients': [donor_email],
+            'subject': "Receipt for Cash Donation to Xerocraft",
+            'bccs': [TREASURER, XIS],
+            'template': "books/email-cash-donation",  # Name without .html or .txt extension
+            'parameters': {
+                'first_name': first_name,
+                'full_name': full_name,
+                'sale': sale,
+                'items': items,
+            },
+            'info-for-log':"Receipt for monetary donation in sale #{} sent to {}.".format(sale.pk, donor_email)
         }
         return spec
 

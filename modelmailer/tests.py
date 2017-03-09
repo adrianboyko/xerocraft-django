@@ -5,7 +5,7 @@ from django.test import TestCase, TransactionTestCase
 from django.core import mail
 
 # Local
-from books.mailviews import DonationMailView
+from books.mailviews import PhysicalDonationMailView
 from books.models import Donation
 from modelmailer.mailviews import MailView
 
@@ -15,16 +15,16 @@ class DonationTests(TestCase):
 
     def test_normal(self):
         don = Donation.objects.create(donator_name="Frank", donator_email="frank@example.com")
-        mv = DonationMailView()
+        mv = PhysicalDonationMailView()
         self.assertTrue(mv.send(don))
         self.assertEqual(len(mail.outbox), 1)
-        self.assertEqual(MailView.for_model(Donation), DonationMailView)
+        self.assertEqual(MailView.for_model(Donation), PhysicalDonationMailView)
 
     def test_bad_input(self):
-        mv = DonationMailView()
+        mv = PhysicalDonationMailView()
         self.assertFalse(mv.send(None))
 
     def test_no_email_addr(self):
         don = Donation.objects.create(donator_name="Frank", donator_email="")
-        mv = DonationMailView()
+        mv = PhysicalDonationMailView()
         self.assertFalse(mv.send(don))

@@ -15,11 +15,14 @@ class ModelMailerAdmin(DjangoObjectActions):
     # TODO: email_action needs to be more elaborate, offering html view, text view
     # and ability to immediately send email message. This is a minimal first step.
     def email_action(self, request, obj: Model):
-        mailview_cls = MailView.for_model(type(obj))
-        mailview = mailview_cls()
-        html = mailview.get_html(obj)
-        return HttpResponse(html)
+        try:
+            mailview_cls = MailView.for_model(type(obj))
+            mailview = mailview_cls()
+            html = mailview.get_html(obj)
+            return HttpResponse(html)
+        except RuntimeWarning as e:
+            return HttpResponse(str(e))
 
     email_action.label = "Email"
     email_action.short_description = "View/send email representation of object."
-    change_actions = ('email_action',)
+    #change_actions = ('email_action',)

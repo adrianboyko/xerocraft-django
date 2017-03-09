@@ -714,6 +714,10 @@ class Sale(Journaler):
         null=False, blank=False, default=FEE_PAID_BY_US,
         help_text="Who paid the processing fee (if any)?")
 
+    # send_receipt will eventually be obsoleted by modelmailer app. Remove at that time.
+    send_receipt = models.BooleanField(default=False,
+        help_text="(Re)send a DONATION receipt to the donor. Note: Will send at night.")
+
     ctrlid = models.CharField(max_length=40, null=False, blank=False, default=next_sale_ctrlid,
         help_text="Payment processor's id for this payment.")
 
