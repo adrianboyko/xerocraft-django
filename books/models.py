@@ -961,6 +961,17 @@ class MonetaryDonation(models.Model, JournalLiner):
     def __str__(self):
         return str("$"+str(self.amount))
 
+    def clean(self):
+        super().clean()
+
+        if self.earmark is not None:
+            if "campaign" not in self.earmark.name.lower():
+                raise ValidationError(_("Account chosen must be a fundraising campaign."))
+            if self.earmark.category is not Account.CAT_REVENUE:
+                 raise ValidationError(_("Account chosen must have category REVENUE."))
+            if self.earmark.type is not Account.TYPE_CREDIT:
+                raise ValidationError(_("Account chosen must have type CREDIT."))
+
     def create_journalentry_lineitems(self, je: JournalEntry):
         je.prebatch(JournalEntryLineItem(
             account=ACCT_REVENUE_DONATION,
