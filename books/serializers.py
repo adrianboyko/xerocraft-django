@@ -61,6 +61,7 @@ class MonetaryDonationSerializer(serializers.ModelSerializer):
             'id',
             'sale',
             'amount',
+            'earmark',
             'ctrlid',
             'protected',
         )
