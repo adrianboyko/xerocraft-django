@@ -12,7 +12,13 @@ import requests
 # Local
 from xerops.etlfetchers.abstractfetcher import AbstractFetcher
 from members.models import Membership
-from books.models import Sale, MonetaryDonation
+from books.models import Sale, MonetaryDonation, Account
+
+
+try:
+    ACCT_KMKR_CAMPAIGN = Account.objects.get(name="Revenue, KMKR Fundraising Campaign")
+except Account.DoesNotExist as e:
+    raise RuntimeError("Couldn't find account: "+str(e))
 
 
 def date2timestamp(datex: date) -> int:
@@ -26,13 +32,15 @@ class Fetcher(AbstractFetcher):
     # ONE-TIME CHARGES
     # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-    def _process_donation(self, sale, checkout):
+    def _process_donation(self, sale, checkout, earmark=None):
 
         don = MonetaryDonation()
         don.ctrlid = "{}:{}".format(self.CTRLID_PREFIX, checkout['checkout_id'])
         don.sale = Sale(id=sale.id)
         don.amount = sale.total_paid_by_customer
         if checkout['fee_payer'] == 'payer': don.amount -= sale.processing_fee
+        if earmark is not None:
+            don.earmark = earmark
         self.upsert(don)
 
     def _process_membership_sale(self, sale, checkout, months, family):
@@ -113,6 +121,11 @@ class Fetcher(AbstractFetcher):
                 elif desc.endswith("+ 6 family member"): family = 6
                 else: family = 0
                 self._process_membership_sale(sale, checkout, months, family)
+                continue
+
+            if desc in ["Xerocraft KMKR Radio Donation", "Single Maketopolis Ticket Purchase"]:
+                # The Maketopolis tickets were for KMKR's musical portion of the event.
+                self._process_donation(sale, checkout, ACCT_KMKR_CAMPAIGN)
                 continue
 
             if desc.endswith("Event Payment") \
@@ -252,5 +265,6 @@ class Fetcher(AbstractFetcher):
     def fetch(self):
 
         self._process_subscription_data()
-        for account in self.accounts: self._process_checkout_data(account)
+        for account in self.accounts:
+            self._process_checkout_data(account)
         self._fetch_complete()
