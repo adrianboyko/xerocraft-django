@@ -120,8 +120,14 @@ class MemberAdmin(VersionAdmin):
             'nudge_count',
         ]
 
+    def _active(self, obj) -> bool:
+        return obj.auth_user.is_active
+    _active.boolean = True
+    _active.short_description = 'active'
+
     list_display = [
         'pk',
+        '_active',
         'username',
         'first_name',
         'last_name',
