@@ -472,7 +472,6 @@ def make_InvoiceBase(help: Dict[str, str]):
             return "XIS{0:05d}".format(self.pk)
 
         def clean(self):
-            super().clean_fields()
 
             if self.user is None and self.entity is None:
                 raise ValidationError(_("Either user or entity must be specified."))
@@ -498,6 +497,7 @@ recv_invoice_help = {
     "description":  "Description of goods and/or services we delivered to them.",
     "account":      "The revenue account associated with this invoice.",
 }
+
 
 @register_journaler()
 class ReceivableInvoice(make_InvoiceBase(recv_invoice_help)):
@@ -581,6 +581,7 @@ class PayableInvoice(make_InvoiceBase(payable_invoice_help)):
         self.create_lineitems_for(je)
         Journaler.batch(je)
 
+
 class PayableInvoiceNote(Note):
 
     invoice = models.ForeignKey(PayableInvoice,
@@ -614,13 +615,13 @@ class ReceivableInvoiceLineItem(InvoiceLineItem, JournalLiner):
         help_text="The receivable invoice on which this line item appears.")
 
     def clean(self):
-        super().clean_fields()
+        if self.account is not None:  # Req'd but not guaranteed to set yet.
 
-        if self.account.category is not Account.CAT_REVENUE:
-             raise ValidationError(_("Account chosen must have category REVENUE."))
+            if self.account.category is not Account.CAT_REVENUE:
+                 raise ValidationError(_("Account chosen must have category REVENUE."))
 
-        if self.account.type is not Account.TYPE_CREDIT:
-            raise ValidationError(_("Account chosen must have type CREDIT."))
+            if self.account.type is not Account.TYPE_CREDIT:
+                raise ValidationError(_("Account chosen must have type CREDIT."))
 
     def create_journalentry_lineitems(self, je: JournalEntry):
         je.prebatch(JournalEntryLineItem(
@@ -637,13 +638,13 @@ class PayableInvoiceLineItem(InvoiceLineItem, JournalLiner):
         help_text="The payable invoice on which this line item appears.")
 
     def clean(self):
-        super().clean_fields()
+        if self.account is not None:  # Req'd but not guaranteed to set yet.
 
-        if self.account.category not in [Account.CAT_EXPENSE, Account.CAT_ASSET]:
-             raise ValidationError(_("Account chosen must have category EXPENSE or ASSET."))
+            if self.account.category not in [Account.CAT_EXPENSE, Account.CAT_ASSET]:
+                 raise ValidationError(_("Account chosen must have category EXPENSE or ASSET."))
 
-        if self.account.type is not Account.TYPE_DEBIT:
-            raise ValidationError(_("Account chosen must have type DEBIT."))
+            if self.account.type is not Account.TYPE_DEBIT:
+                raise ValidationError(_("Account chosen must have type DEBIT."))
 
     def create_journalentry_lineitems(self, je: JournalEntry):
         je.prebatch(JournalEntryLineItem(
@@ -794,7 +795,6 @@ class Sale(Journaler):
         return total
 
     def clean(self):
-        super().clean_fields()
 
         # The following is a noncritical constraint, enforced here:
         if self.processing_fee == Decimal(0.00) and self.fee_payer != self.FEE_PAID_BY_NOBODY:
@@ -930,7 +930,6 @@ class MonetaryDonationReward(models.Model):
         help_text="Description of the reward.")
 
     def clean(self):
-        super().clean_fields()
 
         if self.cost_to_org > self.min_donation:
             raise ValidationError(_("Min donation should cover the cost of the reward."))
@@ -969,7 +968,6 @@ class MonetaryDonation(models.Model, JournalLiner):
         return str("$"+str(self.amount))
 
     def clean(self):
-        super().clean_fields()
 
         if self.earmark is not None:
             if "campaign" not in self.earmark.name.lower():
@@ -1040,13 +1038,13 @@ class Campaign(models.Model):
         help_text="A description of the campaign and why people should donate to it.")
 
     def clean(self):
-        super().clean_fields()
+        if self.account is not None:  # Req'd but not guaranteed to set yet.
 
-        if self.account.category is not Account.CAT_REVENUE:
-             raise ValidationError(_("Account chosen must have category REVENUE."))
+            if self.account.category is not Account.CAT_REVENUE:
+                 raise ValidationError(_("Account chosen must have category REVENUE."))
 
-        if self.account.type is not Account.TYPE_CREDIT:
-            raise ValidationError(_("Account chosen must have type CREDIT."))
+            if self.account.type is not Account.TYPE_CREDIT:
+                raise ValidationError(_("Account chosen must have type CREDIT."))
 
     def __str__(self):
         return self.name
@@ -1093,7 +1091,6 @@ class Donation(models.Model):
         return "{} on {}".format(name, self.donation_date)
 
     def clean(self):
-        super().clean_fields()
 
         if self.send_receipt:
             if self.donator_acct is None:
@@ -1290,8 +1287,6 @@ class ExpenseTransaction(Journaler):
         return dict(ExpenseTransaction.PAID_BY_CHOICES)[self.payment_method]
 
     def clean(self):
-        super().clean_fields()
-
         recip_spec_count = 0
         recip_spec_count += int(self.recipient_acct is not None)
         recip_spec_count += int(self.recipient_entity is not None)
@@ -1412,10 +1407,10 @@ class ExpenseLineItem(models.Model, JournalLiner):
         return "${} on {}".format(self.amount, self.expense_date)
 
     def clean(self):
-        super().clean_fields()
+        if self.account is not None:  # Req'd but not guaranteed to set yet.
 
-        if self.account.category not in [Account.CAT_EXPENSE, Account.CAT_ASSET]:
-            raise ValidationError(_("Account chosen must have category EXPENSE or ASSET."))
+            if self.account.category not in [Account.CAT_EXPENSE, Account.CAT_ASSET]:
+                raise ValidationError(_("Account chosen must have category EXPENSE or ASSET."))
 
     def dbcheck(self):
         # Relationships can't be checked in clean but can be checked later in a "db check" operation.
