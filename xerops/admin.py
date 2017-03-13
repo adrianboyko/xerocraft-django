@@ -12,6 +12,7 @@ class CustomUserAdmin(UserAdmin):
         new_list_display.remove('is_staff')
         new_list_display = ['pk', 'is_active'] + new_list_display  # 'some_function'
         UserAdmin.list_display = new_list_display
+        UserAdmin.list_display_links = ['username']
 
     # Function to count objects of each user from another Model (where user is FK)
     # def some_function(self, obj):
