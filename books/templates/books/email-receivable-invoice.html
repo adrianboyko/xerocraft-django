@@ -1,0 +1,110 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Invoice</title>
+<style type="text/css">
+@media(max-width:480px){
+  table[class=main_table],table[class=layout_table]{width:300px !important;}
+  table[class=layout_table] tbody tr td.header_image img{width:300px !important;height:auto !important;}
+}
+a{color:#37aadc}
+p{font-family:Arial, Helvetica, sans-serif;font-size:14px;line-height:18px;}
+h1{font-family:Arial, Helvetica, sans-serif;font-size:28px;line-height:22px; color:#888888;}
+h2{font-family:Arial, Helvetica, sans-serif;font-size:16px;line-height:18px;}
+span{font-family:Arial, Helvetica, sans-serif;font-size:14px;line-height:22px;}
+
+table#items{width:90%;border-collapse:collapse;margin:1em 0;}
+table#items th, table#items td{padding:.3em;border:2px solid #fff;}
+
+</style>
+</head>
+<body>
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tbody>
+<tr>
+<td align="center" valign="top">
+<!--  M A I N T A B L E  S T A R T  -->
+<table border="0" cellpadding="0" cellspacing="0" class="main_table" width="600">
+    <tbody>
+    <tr>
+    <td>
+      <!--  L A Y O U T _ T A B L E  S T A R T  -->
+    <table border="0" cellpadding="0" cellspacing="0" class="layout_table" style="border-collapse:collapse;border:1px solid #CCCCCC;" width="100%" >
+      <tbody>
+      <!--  H E A D E R R O W  S T A R T  -->
+      <tr>
+      <td align="left" class="header_image"><img height="120" src="https://wiki.xerocraft.org/images/9/98/Blueprint_Banner_Top_600x120.png" width="600" style="border:0;display:block;"></td>
+      </tr>
+      <!--  H E A D E R R O W  E N D  -->
+      <tr><td style="font-size:13px;line-height:13px;margin:0;padding:0;">&nbsp;</td></tr>
+      <!--  B O D Y R O W  S T A R T  -->
+      <tr>
+      <td align="center" valign="top">
+        <table align="center" border="0" cellpadding="0" cellspacing="0" width="90%">
+          <tbody>
+          <tr>
+          <td align="center">
+            <h1>
+                Invoice #{{ invoice.invoice_number_str }}</h1>
+            <h2>
+                To: {{ full_name }}
+                <br/>Invoice Date: {{ invoice.invoice_date }}
+                <br/>Amount Due: ${{ invoice.amount }}
+            </h2>
+            </p>
+            <p>{{ invoice.description }}</p>
+            <table id="items">
+                <tr>
+                    <th style="text-align:left;" bgcolor="#328aa4" color="#ffffff"><span>&nbsp;Description&nbsp;</span></th>
+                    <th style="text-align:right;" bgcolor="#328aa4" color="#ffffff"><span>&nbsp;Amount&nbsp;</span></th>
+                </tr>
+                {% for item in items %}
+                <tr>
+                    <td style="text-align:left" bgcolor="#e5f1f4"><span>&nbsp;{{item.description}}&nbsp;</span></td>
+                    <td style="text-align:right" bgcolor="#e5f1f4"><span>&nbsp;${{item.amount}}&nbsp;</span></td>
+                </tr>
+                {% endfor %}
+                <tr>
+                    <td style="text-align:left" bgcolor="#e5f1f4"><span>&nbsp;Tax (Xerocraft is a tax-exempt non-profit)</span></td>
+                    <td style="text-align:right" bgcolor="#e5f1f4"><span>&nbsp;$0.00&nbsp;</span></td>
+                </tr>
+            </table>
+            <p>
+                Payment is due within 30 days of invoice date.
+                <br/>Make checks payable to "Xerocraft, Inc" and mail to:
+                <br/>101 W 6th St #101, Tucson, AZ 85701
+
+            </p>
+            <p>
+                If you have any questions please contact
+                <a href="mailto:treasurer@xerocraft.org">treasurer@xerocraft.org</a>.
+          </td>
+          </tr>
+          </tbody>
+        </table>
+      </td>
+      </tr>
+      <!--  B O D Y R O W  E N D  -->
+      <tr><td style="font-size:13px;line-height:13px;margin:0;padding:0;">&nbsp;</td></tr>
+      <!--  F O O T E R R O W  S T A R T  -->
+      <tr>
+      <td align="left" class="header_image"><a href="https://www.xerocraft.org/"><img height="67" src="https://wiki.xerocraft.org/images/f/fd/Blueprint_Banner%2C_Bottom%2C_600x67.png" width="600" style="border:0;display:block;" alt="Sent via SparkPost"></a></td>
+      </tr>
+      <!--  F O O T E R R O W  E N D  -->
+      </tbody>
+    </table>
+    <!--  L A Y O U T _ T A B L E  E N D  -->
+    </td>
+    </tr>
+    </tbody>
+</table>
+<!--  M A I N _ T A B L E  E N D  -->
+</td>
+</tr>
+</tbody>
+</table>
+</body>
+</html>
+

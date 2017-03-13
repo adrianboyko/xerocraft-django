@@ -467,6 +467,10 @@ def make_InvoiceBase(help: Dict[str, str]):
             else:
                 return self.user.username
 
+        @property
+        def invoice_number_str(self) -> str:
+            return "XIS{0:05d}".format(self.pk)
+
         def clean(self):
             super().clean_fields()
 
@@ -497,6 +501,9 @@ recv_invoice_help = {
 
 @register_journaler()
 class ReceivableInvoice(make_InvoiceBase(recv_invoice_help)):
+
+    send_invoice = models.BooleanField(default=False,
+        help_text="(Re)send the invoice via email. Note: Will be sent at night.")
 
     def checksum(self) -> Decimal:
         """

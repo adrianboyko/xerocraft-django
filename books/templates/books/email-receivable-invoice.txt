@@ -1,0 +1,18 @@
+Invoice #{{ invoice.invoice_number_str }}
+To: {{ full_name }}
+Invoice Date: {{ invoice.invoice_date }}
+Amount Due: ${{ invoice.amount }}
+
+{{ invoice.description }}
+{% for item in items %}
+${{item.amount}} for {{item.description}}
+{% endfor %}
+$0.00 Tax (Xerocraft is a tax-exempt non-profit)
+
+Payment is due within 30 days of invoice date.
+
+Please make checks payable to "Xerocraft, Inc" and mail to 101 W 6th St #101, Tucson, AZ 85701
+
+If you have any questions please contact treasurer@xerocraft.org.
+
+Thank You!

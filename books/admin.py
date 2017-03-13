@@ -381,7 +381,7 @@ class InvoiceAdmin(JournalerAdmin):
 
 
 @admin.register(ReceivableInvoice)
-class ReceivableInvoiceAdmin(InvoiceAdmin):
+class ReceivableInvoiceAdmin(InvoiceAdmin, ModelMailerAdmin):
 
     def name_col(self, obj:ReceivableInvoice):
         return name_colfunc(obj.user, obj.entity)
@@ -391,6 +391,9 @@ class ReceivableInvoiceAdmin(InvoiceAdmin):
 
     inlines = [ReceivableInvoiceNoteInline, ReceivableInvoiceLineItemAdmin]
     list_filter = [make_InvoiceStatusFilter('receivable')]
+
+    fields = InvoiceAdmin.fields + ['send_invoice']
+    change_actions = ['viewjournal_action', 'email_action']  # DjangoObjectActions
 
 
 @admin.register(PayableInvoice)

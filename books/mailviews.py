@@ -6,11 +6,12 @@ from django.contrib.auth.models import User
 
 # Local
 from modelmailer.mailviews import MailView, register
-from books.models import Donation, Sale
+from books.models import Donation, Sale, ReceivableInvoice
 
 TREASURER = "Xerocraft Treasurer <treasurer@xerocraft.org>"
 XIS = "Xerocraft Systems <xis@xerocraft.org>"
-
+BCCS = [TREASURER, XIS]
+#BCCS = [XIS]  # Don't bother Treasurer when testing.
 
 def _email(trans_desc_str: str, email_str: str, acct: User):
     email = None
@@ -44,6 +45,8 @@ def _full_name(name: str, acct: User):
     return full_name
 
 
+# -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
 @register(Donation)
 class PhysicalDonationMailView(MailView):
 
@@ -58,7 +61,7 @@ class PhysicalDonationMailView(MailView):
             'sender': "Xerocraft Systems <xis@xerocraft.org>",
             'recipients': [donor_email],
             'subject': "Receipt for Physical Donation to Xerocraft",
-            'bccs': [TREASURER, XIS],
+            'bccs': BCCS,
             'template': "books/email-phys-donation",  # Name without .html or .txt extension
             'parameters': {
                 'first_name': first_name,
@@ -70,6 +73,8 @@ class PhysicalDonationMailView(MailView):
         }
         return spec
 
+
+# -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 # Following class is registered to "Sale" but it only emails a receipt for the cash donation portion of a sale.
 @register(Sale)
@@ -92,7 +97,7 @@ class CashDonationMailView(MailView):
             'sender': "Xerocraft Systems <xis@xerocraft.org>",
             'recipients': [donor_email],
             'subject': "Receipt for Cash Donation to Xerocraft",
-            'bccs': [TREASURER, XIS],
+            'bccs': BCCS,
             'template': "books/email-cash-donation",  # Name without .html or .txt extension
             'parameters': {
                 'first_name': first_name,
@@ -105,4 +110,33 @@ class CashDonationMailView(MailView):
         return spec
 
 
+# -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
+# Following class is registered to "Sale" but it only emails a receipt for the cash donation portion of a sale.
+@register(ReceivableInvoice)
+class ReceivableInvoiceMailView(MailView):
+
+    def get_email_spec(self, rinv: ReceivableInvoice) -> dict:
+        acct = rinv.user
+        ent = rinv.entity
+        ent_email = "" if ent is None else ent.email
+        ent_name = "" if ent is None else ent.name
+
+        email = _email(str(rinv), ent_email, acct)
+        full_name = _full_name(ent_name, acct)
+
+        spec = {
+            'sender': "Xerocraft Systems <xis@xerocraft.org>",
+            'recipients': [email],
+            'subject': "Invoice {}, Payable to Xerocraft".format(rinv.invoice_number_str),
+            'bccs': BCCS,
+            'template': "books/email-receivable-invoice",  # Name without .html or .txt extension
+            'parameters': {
+                'full_name': full_name,
+                'invoice': rinv,
+                'notes': rinv.receivableinvoicenote_set.all(),
+                'items': rinv.receivableinvoicelineitem_set.all(),
+            },
+            'info-for-log':"Receivable Invoice #{} sent to {}.".format(rinv.pk, email)
+        }
+        return spec
