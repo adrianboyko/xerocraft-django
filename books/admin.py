@@ -4,7 +4,7 @@ from decimal import Decimal
 
 # Third Party
 from django.contrib.auth.models import User
-from django.db.models import Case, When, Sum, F, Value
+from django.db.models import Case, When, Sum, F, Value, Q
 from django.db.models.functions import Coalesce
 from django.contrib import admin
 from django.db import models
@@ -620,7 +620,9 @@ class ClaimStatusFilter(admin.SimpleListFilter):
 
         if self.value() == 'open':
             # An claim with total paid < amount claimed is "open"
-            return self.annotate_total_paid(queryset).filter(total_paid__lt=F('amount'))
+            return self.annotate_total_paid(queryset)\
+                .filter(total_paid__lt=F('amount'))\
+                .filter(donate_reimbursement=False)
 
         if self.value() == 'submitted':
             # "Submitted" is the same as "open" but also has a non-null submission date.
@@ -628,7 +630,10 @@ class ClaimStatusFilter(admin.SimpleListFilter):
 
         if self.value() == 'closed':
             # Anything that has been fully paid is "closed", whether submission date is null or not.
-            return self.annotate_total_paid(queryset).filter(total_paid=F('amount'))
+            # Anything marked as "donate reimbursement" is "closed", whether submission date is null or not.
+            return self.annotate_total_paid(queryset).filter(
+                Q(total_paid=F('amount')) | Q(donate_reimbursement=True)
+            )
 
 
 @admin.register(ExpenseClaim)
