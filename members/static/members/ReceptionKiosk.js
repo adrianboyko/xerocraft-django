@@ -18646,7 +18646,7 @@ var _user$project$ReceptionKiosk_HowDidYouHearScene$view = function (kioskModel)
 			_0: A2(
 				_user$project$ReceptionKiosk_SceneUtils$ButtonSpec,
 				'OK',
-				_user$project$ReceptionKiosk_Types$Push(_user$project$ReceptionKiosk_Types$Waiver)),
+				_user$project$ReceptionKiosk_Types$Push(_user$project$ReceptionKiosk_Types$ReasonForVisit)),
 			_1: {ctor: '[]'}
 		});
 };
@@ -18946,7 +18946,7 @@ var _user$project$ReceptionKiosk_NewUserScene$validateUserNameUnique = F2(
 						badNews: {ctor: '[]'}
 					}),
 				_1: _user$project$ReceptionKiosk_SceneUtils$send(
-					_user$project$ReceptionKiosk_Types$Push(_user$project$ReceptionKiosk_Types$HowDidYouHear))
+					_user$project$ReceptionKiosk_Types$Push(_user$project$ReceptionKiosk_Types$Waiver))
 			};
 		} else {
 			return {
@@ -19733,7 +19733,7 @@ var _user$project$ReceptionKiosk_WaiverScene$update = F2(
 										badNews: {ctor: '[]'}
 									}),
 								_1: _user$project$ReceptionKiosk_SceneUtils$send(
-									_user$project$ReceptionKiosk_Types$Push(_user$project$ReceptionKiosk_Types$ReasonForVisit))
+									_user$project$ReceptionKiosk_Types$Push(_user$project$ReceptionKiosk_Types$HowDidYouHear))
 							};
 						case '':
 							return {

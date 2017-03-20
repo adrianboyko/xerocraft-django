@@ -86,7 +86,7 @@ update msg kioskModel =
           "You have successfully registered your check in! Welcome to Xerocraft!" ->
             -- This is the result we wanted. We now clear the scene stack since account creation was
             -- successfully completed and we don't want the user backtracking into it again.
-            ({sceneModel | badNews = []}, send (Push ReasonForVisit))
+            ({sceneModel | badNews = []}, send (Push HowDidYouHear))
           "" ->
             -- Couldn't find a message so dump the entire response body as a debugging aid.
             -- We don't expect this to happen.

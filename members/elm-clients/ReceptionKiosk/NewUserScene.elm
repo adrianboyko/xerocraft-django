@@ -79,7 +79,7 @@ validateUserNameUnique sceneModel result =
         if List.member chosenName matchingNames then
           ({sceneModel | badNews = ["That user name is already in use."]}, Cmd.none)
         else
-          ({sceneModel | badNews = []}, send (Push HowDidYouHear))
+          ({sceneModel | badNews = []}, send (Push Waiver))
     Err error ->
       ({sceneModel | badNews = [toString error]}, Cmd.none)
 

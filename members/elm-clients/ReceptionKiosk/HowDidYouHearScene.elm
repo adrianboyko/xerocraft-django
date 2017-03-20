@@ -70,7 +70,7 @@ view kioskModel =
     "Just Wondering"
     "How did you hear about us?"
     (howDidYouHearChoices kioskModel)
-    [ButtonSpec "OK" (Push Waiver)]
+    [ButtonSpec "OK" (Push ReasonForVisit)]
 
 howDidYouHearChoices : Model -> Html Msg
 howDidYouHearChoices kioskModel =
