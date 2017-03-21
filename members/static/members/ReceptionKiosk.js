@@ -16888,6 +16888,763 @@ var _elm_community$list_extra$List_Extra$init = function () {
 var _elm_community$list_extra$List_Extra$last = _elm_community$list_extra$List_Extra$foldl1(
 	_elm_lang$core$Basics$flip(_elm_lang$core$Basics$always));
 
+var _elm_lang$core$Native_Bitwise = function() {
+
+return {
+	and: F2(function and(a, b) { return a & b; }),
+	or: F2(function or(a, b) { return a | b; }),
+	xor: F2(function xor(a, b) { return a ^ b; }),
+	complement: function complement(a) { return ~a; },
+	shiftLeftBy: F2(function(offset, a) { return a << offset; }),
+	shiftRightBy: F2(function(offset, a) { return a >> offset; }),
+	shiftRightZfBy: F2(function(offset, a) { return a >>> offset; })
+};
+
+}();
+
+var _elm_lang$core$Bitwise$shiftRightZfBy = _elm_lang$core$Native_Bitwise.shiftRightZfBy;
+var _elm_lang$core$Bitwise$shiftRightBy = _elm_lang$core$Native_Bitwise.shiftRightBy;
+var _elm_lang$core$Bitwise$shiftLeftBy = _elm_lang$core$Native_Bitwise.shiftLeftBy;
+var _elm_lang$core$Bitwise$complement = _elm_lang$core$Native_Bitwise.complement;
+var _elm_lang$core$Bitwise$xor = _elm_lang$core$Native_Bitwise.xor;
+var _elm_lang$core$Bitwise$or = _elm_lang$core$Native_Bitwise.or;
+var _elm_lang$core$Bitwise$and = _elm_lang$core$Native_Bitwise.and;
+
+var _elm_community$string_extra$String_Extra$nonEmpty = function (string) {
+	return _elm_lang$core$String$isEmpty(string) ? _elm_lang$core$Maybe$Nothing : _elm_lang$core$Maybe$Just(string);
+};
+var _elm_community$string_extra$String_Extra$replacementCodePoint = 65533;
+var _elm_community$string_extra$String_Extra$toCodePoints = function (string) {
+	var allCodeUnits = A2(
+		_elm_lang$core$List$map,
+		_elm_lang$core$Char$toCode,
+		_elm_lang$core$String$toList(string));
+	var combineAndReverse = F2(
+		function (codeUnits, accumulated) {
+			combineAndReverse:
+			while (true) {
+				var _p0 = codeUnits;
+				if (_p0.ctor === '[]') {
+					return accumulated;
+				} else {
+					var _p4 = _p0._0;
+					var _p3 = _p0._1;
+					if ((_elm_lang$core$Native_Utils.cmp(_p4, 0) > -1) && (_elm_lang$core$Native_Utils.cmp(_p4, 55295) < 1)) {
+						var _v1 = _p3,
+							_v2 = {ctor: '::', _0: _p4, _1: accumulated};
+						codeUnits = _v1;
+						accumulated = _v2;
+						continue combineAndReverse;
+					} else {
+						if ((_elm_lang$core$Native_Utils.cmp(_p4, 55296) > -1) && (_elm_lang$core$Native_Utils.cmp(_p4, 56319) < 1)) {
+							var _p1 = _p3;
+							if (_p1.ctor === '[]') {
+								return {ctor: '::', _0: _elm_community$string_extra$String_Extra$replacementCodePoint, _1: accumulated};
+							} else {
+								var _p2 = _p1._0;
+								if ((_elm_lang$core$Native_Utils.cmp(_p2, 56320) > -1) && (_elm_lang$core$Native_Utils.cmp(_p2, 57343) < 1)) {
+									var codePoint = (65536 + ((_p4 - 55296) * 1024)) + (_p2 - 56320);
+									var _v4 = _p1._1,
+										_v5 = {ctor: '::', _0: codePoint, _1: accumulated};
+									codeUnits = _v4;
+									accumulated = _v5;
+									continue combineAndReverse;
+								} else {
+									var _v6 = _p3,
+										_v7 = {ctor: '::', _0: _elm_community$string_extra$String_Extra$replacementCodePoint, _1: accumulated};
+									codeUnits = _v6;
+									accumulated = _v7;
+									continue combineAndReverse;
+								}
+							}
+						} else {
+							if ((_elm_lang$core$Native_Utils.cmp(_p4, 57344) > -1) && (_elm_lang$core$Native_Utils.cmp(_p4, 65535) < 1)) {
+								var _v8 = _p3,
+									_v9 = {ctor: '::', _0: _p4, _1: accumulated};
+								codeUnits = _v8;
+								accumulated = _v9;
+								continue combineAndReverse;
+							} else {
+								var _v10 = _p3,
+									_v11 = {ctor: '::', _0: _elm_community$string_extra$String_Extra$replacementCodePoint, _1: accumulated};
+								codeUnits = _v10;
+								accumulated = _v11;
+								continue combineAndReverse;
+							}
+						}
+					}
+				}
+			}
+		});
+	return _elm_lang$core$List$reverse(
+		A2(
+			combineAndReverse,
+			allCodeUnits,
+			{ctor: '[]'}));
+};
+var _elm_community$string_extra$String_Extra$fromCodePoints = function (allCodePoints) {
+	var splitAndReverse = F2(
+		function (codePoints, accumulated) {
+			splitAndReverse:
+			while (true) {
+				var _p5 = codePoints;
+				if (_p5.ctor === '[]') {
+					return accumulated;
+				} else {
+					var _p7 = _p5._1;
+					var _p6 = _p5._0;
+					if ((_elm_lang$core$Native_Utils.cmp(_p6, 0) > -1) && (_elm_lang$core$Native_Utils.cmp(_p6, 55295) < 1)) {
+						var _v13 = _p7,
+							_v14 = {ctor: '::', _0: _p6, _1: accumulated};
+						codePoints = _v13;
+						accumulated = _v14;
+						continue splitAndReverse;
+					} else {
+						if ((_elm_lang$core$Native_Utils.cmp(_p6, 65536) > -1) && (_elm_lang$core$Native_Utils.cmp(_p6, 1114111) < 1)) {
+							var subtracted = _p6 - 65536;
+							var leading = (subtracted >> 10) + 55296;
+							var trailing = (subtracted & 1023) + 56320;
+							var _v15 = _p7,
+								_v16 = {
+								ctor: '::',
+								_0: trailing,
+								_1: {ctor: '::', _0: leading, _1: accumulated}
+							};
+							codePoints = _v15;
+							accumulated = _v16;
+							continue splitAndReverse;
+						} else {
+							if ((_elm_lang$core$Native_Utils.cmp(_p6, 57344) > -1) && (_elm_lang$core$Native_Utils.cmp(_p6, 65535) < 1)) {
+								var _v17 = _p7,
+									_v18 = {ctor: '::', _0: _p6, _1: accumulated};
+								codePoints = _v17;
+								accumulated = _v18;
+								continue splitAndReverse;
+							} else {
+								var _v19 = _p7,
+									_v20 = {ctor: '::', _0: _elm_community$string_extra$String_Extra$replacementCodePoint, _1: accumulated};
+								codePoints = _v19;
+								accumulated = _v20;
+								continue splitAndReverse;
+							}
+						}
+					}
+				}
+			}
+		});
+	var allCodeUnits = _elm_lang$core$List$reverse(
+		A2(
+			splitAndReverse,
+			allCodePoints,
+			{ctor: '[]'}));
+	return _elm_lang$core$String$fromList(
+		A2(_elm_lang$core$List$map, _elm_lang$core$Char$fromCode, allCodeUnits));
+};
+var _elm_community$string_extra$String_Extra$fromFloat = _elm_lang$core$Basics$toString;
+var _elm_community$string_extra$String_Extra$fromInt = _elm_lang$core$Basics$toString;
+var _elm_community$string_extra$String_Extra$leftOfBack = F2(
+	function (pattern, string) {
+		return A2(
+			_elm_lang$core$Maybe$withDefault,
+			'',
+			A2(
+				_elm_lang$core$Maybe$map,
+				A2(_elm_lang$core$Basics$flip, _elm_lang$core$String$left, string),
+				_elm_lang$core$List$head(
+					_elm_lang$core$List$reverse(
+						A2(_elm_lang$core$String$indexes, pattern, string)))));
+	});
+var _elm_community$string_extra$String_Extra$rightOfBack = F2(
+	function (pattern, string) {
+		return A2(
+			_elm_lang$core$Maybe$withDefault,
+			'',
+			A2(
+				_elm_lang$core$Maybe$map,
+				function (_p8) {
+					return A3(
+						_elm_lang$core$Basics$flip,
+						_elm_lang$core$String$dropLeft,
+						string,
+						A2(
+							F2(
+								function (x, y) {
+									return x + y;
+								}),
+							_elm_lang$core$String$length(pattern),
+							_p8));
+				},
+				_elm_lang$core$List$head(
+					_elm_lang$core$List$reverse(
+						A2(_elm_lang$core$String$indexes, pattern, string)))));
+	});
+var _elm_community$string_extra$String_Extra$firstResultHelp = F2(
+	function ($default, list) {
+		firstResultHelp:
+		while (true) {
+			var _p9 = list;
+			if (_p9.ctor === '[]') {
+				return $default;
+			} else {
+				if (_p9._0.ctor === 'Just') {
+					return _p9._0._0;
+				} else {
+					var _v22 = $default,
+						_v23 = _p9._1;
+					$default = _v22;
+					list = _v23;
+					continue firstResultHelp;
+				}
+			}
+		}
+	});
+var _elm_community$string_extra$String_Extra$firstResult = function (list) {
+	return A2(_elm_community$string_extra$String_Extra$firstResultHelp, '', list);
+};
+var _elm_community$string_extra$String_Extra$leftOf = F2(
+	function (pattern, string) {
+		return A2(
+			_elm_lang$core$String$join,
+			'',
+			A2(
+				_elm_lang$core$List$map,
+				function (_p10) {
+					return _elm_community$string_extra$String_Extra$firstResult(
+						function (_) {
+							return _.submatches;
+						}(_p10));
+				},
+				A3(
+					_elm_lang$core$Regex$find,
+					_elm_lang$core$Regex$AtMost(1),
+					_elm_lang$core$Regex$regex(
+						A2(
+							_elm_lang$core$Basics_ops['++'],
+							'^(.*?)',
+							_elm_lang$core$Regex$escape(pattern))),
+					string)));
+	});
+var _elm_community$string_extra$String_Extra$rightOf = F2(
+	function (pattern, string) {
+		return A2(
+			_elm_lang$core$String$join,
+			'',
+			A2(
+				_elm_lang$core$List$map,
+				function (_p11) {
+					return _elm_community$string_extra$String_Extra$firstResult(
+						function (_) {
+							return _.submatches;
+						}(_p11));
+				},
+				A3(
+					_elm_lang$core$Regex$find,
+					_elm_lang$core$Regex$AtMost(1),
+					_elm_lang$core$Regex$regex(
+						A2(
+							_elm_lang$core$Basics_ops['++'],
+							_elm_lang$core$Regex$escape(pattern),
+							'(.*)$')),
+					string)));
+	});
+var _elm_community$string_extra$String_Extra$pluralize = F3(
+	function (singular, plural, count) {
+		return _elm_lang$core$Native_Utils.eq(count, 1) ? A2(_elm_lang$core$Basics_ops['++'], '1 ', singular) : A2(
+			_elm_lang$core$Basics_ops['++'],
+			_elm_lang$core$Basics$toString(count),
+			A2(_elm_lang$core$Basics_ops['++'], ' ', plural));
+	});
+var _elm_community$string_extra$String_Extra$stripTags = function (string) {
+	return A4(
+		_elm_lang$core$Regex$replace,
+		_elm_lang$core$Regex$All,
+		_elm_lang$core$Regex$regex('<\\/?[^>]+>'),
+		_elm_lang$core$Basics$always(''),
+		string);
+};
+var _elm_community$string_extra$String_Extra$toSentenceHelper = F3(
+	function (lastPart, sentence, list) {
+		toSentenceHelper:
+		while (true) {
+			var _p12 = list;
+			if (_p12.ctor === '[]') {
+				return sentence;
+			} else {
+				if (_p12._1.ctor === '[]') {
+					return A2(
+						_elm_lang$core$Basics_ops['++'],
+						sentence,
+						A2(_elm_lang$core$Basics_ops['++'], lastPart, _p12._0));
+				} else {
+					var _v25 = lastPart,
+						_v26 = A2(
+						_elm_lang$core$Basics_ops['++'],
+						sentence,
+						A2(_elm_lang$core$Basics_ops['++'], ', ', _p12._0)),
+						_v27 = _p12._1;
+					lastPart = _v25;
+					sentence = _v26;
+					list = _v27;
+					continue toSentenceHelper;
+				}
+			}
+		}
+	});
+var _elm_community$string_extra$String_Extra$toSentenceBaseCase = function (list) {
+	var _p13 = list;
+	_v28_2:
+	do {
+		if (_p13.ctor === '::') {
+			if (_p13._1.ctor === '[]') {
+				return _p13._0;
+			} else {
+				if (_p13._1._1.ctor === '[]') {
+					return A2(
+						_elm_lang$core$Basics_ops['++'],
+						_p13._0,
+						A2(_elm_lang$core$Basics_ops['++'], ' and ', _p13._1._0));
+				} else {
+					break _v28_2;
+				}
+			}
+		} else {
+			break _v28_2;
+		}
+	} while(false);
+	return '';
+};
+var _elm_community$string_extra$String_Extra$toSentenceOxford = function (list) {
+	var _p14 = list;
+	if (((_p14.ctor === '::') && (_p14._1.ctor === '::')) && (_p14._1._1.ctor === '::')) {
+		return A3(
+			_elm_community$string_extra$String_Extra$toSentenceHelper,
+			', and ',
+			A2(
+				_elm_lang$core$Basics_ops['++'],
+				_p14._0,
+				A2(_elm_lang$core$Basics_ops['++'], ', ', _p14._1._0)),
+			{ctor: '::', _0: _p14._1._1._0, _1: _p14._1._1._1});
+	} else {
+		return _elm_community$string_extra$String_Extra$toSentenceBaseCase(list);
+	}
+};
+var _elm_community$string_extra$String_Extra$toSentence = function (list) {
+	var _p15 = list;
+	if (((_p15.ctor === '::') && (_p15._1.ctor === '::')) && (_p15._1._1.ctor === '::')) {
+		return A3(
+			_elm_community$string_extra$String_Extra$toSentenceHelper,
+			' and ',
+			A2(
+				_elm_lang$core$Basics_ops['++'],
+				_p15._0,
+				A2(_elm_lang$core$Basics_ops['++'], ', ', _p15._1._0)),
+			{ctor: '::', _0: _p15._1._1._0, _1: _p15._1._1._1});
+	} else {
+		return _elm_community$string_extra$String_Extra$toSentenceBaseCase(list);
+	}
+};
+var _elm_community$string_extra$String_Extra$ellipsisWith = F3(
+	function (howLong, append, string) {
+		return (_elm_lang$core$Native_Utils.cmp(
+			_elm_lang$core$String$length(string),
+			howLong) < 1) ? string : A2(
+			_elm_lang$core$Basics_ops['++'],
+			A2(
+				_elm_lang$core$String$left,
+				howLong - _elm_lang$core$String$length(append),
+				string),
+			append);
+	});
+var _elm_community$string_extra$String_Extra$ellipsis = F2(
+	function (howLong, string) {
+		return A3(_elm_community$string_extra$String_Extra$ellipsisWith, howLong, '...', string);
+	});
+var _elm_community$string_extra$String_Extra$countOccurrences = F2(
+	function (needle, haystack) {
+		return (_elm_lang$core$Native_Utils.eq(
+			_elm_lang$core$String$length(needle),
+			0) || _elm_lang$core$Native_Utils.eq(
+			_elm_lang$core$String$length(haystack),
+			0)) ? 0 : _elm_lang$core$List$length(
+			A2(_elm_lang$core$String$indexes, needle, haystack));
+	});
+var _elm_community$string_extra$String_Extra$unindent = function (multilineSting) {
+	var isNotWhitespace = function ($char) {
+		return (!_elm_lang$core$Native_Utils.eq(
+			$char,
+			_elm_lang$core$Native_Utils.chr(' '))) && (!_elm_lang$core$Native_Utils.eq(
+			$char,
+			_elm_lang$core$Native_Utils.chr('\t')));
+	};
+	var countLeadingWhitespace = F2(
+		function (count, line) {
+			countLeadingWhitespace:
+			while (true) {
+				var _p16 = _elm_lang$core$String$uncons(line);
+				if (_p16.ctor === 'Nothing') {
+					return count;
+				} else {
+					var _p18 = _p16._0._1;
+					var _p17 = _p16._0._0;
+					switch (_p17.valueOf()) {
+						case ' ':
+							var _v33 = count + 1,
+								_v34 = _p18;
+							count = _v33;
+							line = _v34;
+							continue countLeadingWhitespace;
+						case '\t':
+							var _v35 = count + 1,
+								_v36 = _p18;
+							count = _v35;
+							line = _v36;
+							continue countLeadingWhitespace;
+						default:
+							return count;
+					}
+				}
+			}
+		});
+	var lines = _elm_lang$core$String$lines(multilineSting);
+	var minLead = A2(
+		_elm_lang$core$Maybe$withDefault,
+		0,
+		_elm_lang$core$List$minimum(
+			A2(
+				_elm_lang$core$List$map,
+				countLeadingWhitespace(0),
+				A2(
+					_elm_lang$core$List$filter,
+					_elm_lang$core$String$any(isNotWhitespace),
+					lines))));
+	return A2(
+		_elm_lang$core$String$join,
+		'\n',
+		A2(
+			_elm_lang$core$List$map,
+			_elm_lang$core$String$dropLeft(minLead),
+			lines));
+};
+var _elm_community$string_extra$String_Extra$dasherize = function (string) {
+	return _elm_lang$core$String$toLower(
+		A4(
+			_elm_lang$core$Regex$replace,
+			_elm_lang$core$Regex$All,
+			_elm_lang$core$Regex$regex('[_-\\s]+'),
+			_elm_lang$core$Basics$always('-'),
+			A4(
+				_elm_lang$core$Regex$replace,
+				_elm_lang$core$Regex$All,
+				_elm_lang$core$Regex$regex('([A-Z])'),
+				function (_p19) {
+					return A2(
+						_elm_lang$core$String$append,
+						'-',
+						function (_) {
+							return _.match;
+						}(_p19));
+				},
+				_elm_lang$core$String$trim(string))));
+};
+var _elm_community$string_extra$String_Extra$underscored = function (string) {
+	return _elm_lang$core$String$toLower(
+		A4(
+			_elm_lang$core$Regex$replace,
+			_elm_lang$core$Regex$All,
+			_elm_lang$core$Regex$regex('[_-\\s]+'),
+			_elm_lang$core$Basics$always('_'),
+			A4(
+				_elm_lang$core$Regex$replace,
+				_elm_lang$core$Regex$All,
+				_elm_lang$core$Regex$regex('([a-z\\d])([A-Z]+)'),
+				function (_p20) {
+					return A2(
+						_elm_lang$core$String$join,
+						'_',
+						A2(
+							_elm_lang$core$List$filterMap,
+							_elm_lang$core$Basics$identity,
+							function (_) {
+								return _.submatches;
+							}(_p20)));
+				},
+				_elm_lang$core$String$trim(string))));
+};
+var _elm_community$string_extra$String_Extra$unsurround = F2(
+	function (wrap, string) {
+		if (A2(_elm_lang$core$String$startsWith, wrap, string) && A2(_elm_lang$core$String$endsWith, wrap, string)) {
+			var length = _elm_lang$core$String$length(wrap);
+			return A2(
+				_elm_lang$core$String$dropRight,
+				length,
+				A2(_elm_lang$core$String$dropLeft, length, string));
+		} else {
+			return string;
+		}
+	});
+var _elm_community$string_extra$String_Extra$unquote = function (string) {
+	return A2(_elm_community$string_extra$String_Extra$unsurround, '\"', string);
+};
+var _elm_community$string_extra$String_Extra$surround = F2(
+	function (wrap, string) {
+		return A2(
+			_elm_lang$core$Basics_ops['++'],
+			wrap,
+			A2(_elm_lang$core$Basics_ops['++'], string, wrap));
+	});
+var _elm_community$string_extra$String_Extra$quote = function (string) {
+	return A2(_elm_community$string_extra$String_Extra$surround, '\"', string);
+};
+var _elm_community$string_extra$String_Extra$camelize = function (string) {
+	return A4(
+		_elm_lang$core$Regex$replace,
+		_elm_lang$core$Regex$All,
+		_elm_lang$core$Regex$regex('[-_\\s]+(.)?'),
+		function (_p21) {
+			var _p22 = _p21;
+			var _p23 = _p22.submatches;
+			if ((_p23.ctor === '::') && (_p23._0.ctor === 'Just')) {
+				return _elm_lang$core$String$toUpper(_p23._0._0);
+			} else {
+				return '';
+			}
+		},
+		_elm_lang$core$String$trim(string));
+};
+var _elm_community$string_extra$String_Extra$isBlank = function (string) {
+	return A2(
+		_elm_lang$core$Regex$contains,
+		_elm_lang$core$Regex$regex('^\\s*$'),
+		string);
+};
+var _elm_community$string_extra$String_Extra$clean = function (string) {
+	return _elm_lang$core$String$trim(
+		A4(
+			_elm_lang$core$Regex$replace,
+			_elm_lang$core$Regex$All,
+			_elm_lang$core$Regex$regex('\\s\\s+'),
+			_elm_lang$core$Basics$always(' '),
+			string));
+};
+var _elm_community$string_extra$String_Extra$softBreakRegexp = function (width) {
+	return _elm_lang$core$Regex$regex(
+		A2(
+			_elm_lang$core$Basics_ops['++'],
+			'.{1,',
+			A2(
+				_elm_lang$core$Basics_ops['++'],
+				_elm_lang$core$Basics$toString(width),
+				'}(\\s+|$)|\\S+?(\\s+|$)')));
+};
+var _elm_community$string_extra$String_Extra$softEllipsis = F2(
+	function (howLong, string) {
+		return (_elm_lang$core$Native_Utils.cmp(
+			_elm_lang$core$String$length(string),
+			howLong) < 1) ? string : A3(
+			_elm_lang$core$Basics$flip,
+			_elm_lang$core$String$append,
+			'...',
+			A4(
+				_elm_lang$core$Regex$replace,
+				_elm_lang$core$Regex$All,
+				_elm_lang$core$Regex$regex('([\\.,;:\\s])+$'),
+				_elm_lang$core$Basics$always(''),
+				A2(
+					_elm_lang$core$String$join,
+					'',
+					A2(
+						_elm_lang$core$List$map,
+						function (_) {
+							return _.match;
+						},
+						A3(
+							_elm_lang$core$Regex$find,
+							_elm_lang$core$Regex$AtMost(1),
+							_elm_community$string_extra$String_Extra$softBreakRegexp(howLong),
+							string)))));
+	});
+var _elm_community$string_extra$String_Extra$softBreak = F2(
+	function (width, string) {
+		return (_elm_lang$core$Native_Utils.cmp(width, 0) < 1) ? {ctor: '[]'} : A2(
+			_elm_lang$core$List$map,
+			function (_) {
+				return _.match;
+			},
+			A3(
+				_elm_lang$core$Regex$find,
+				_elm_lang$core$Regex$All,
+				_elm_community$string_extra$String_Extra$softBreakRegexp(width),
+				string));
+	});
+var _elm_community$string_extra$String_Extra$softWrapWith = F3(
+	function (width, separator, string) {
+		return A2(
+			_elm_lang$core$String$join,
+			separator,
+			A2(_elm_community$string_extra$String_Extra$softBreak, width, string));
+	});
+var _elm_community$string_extra$String_Extra$softWrap = F2(
+	function (width, string) {
+		return A3(_elm_community$string_extra$String_Extra$softWrapWith, width, '\n', string);
+	});
+var _elm_community$string_extra$String_Extra$breaker = F3(
+	function (width, string, acc) {
+		breaker:
+		while (true) {
+			var _p24 = string;
+			if (_p24 === '') {
+				return _elm_lang$core$List$reverse(acc);
+			} else {
+				var _v40 = width,
+					_v41 = A2(_elm_lang$core$String$dropLeft, width, string),
+					_v42 = {
+					ctor: '::',
+					_0: A3(_elm_lang$core$String$slice, 0, width, string),
+					_1: acc
+				};
+				width = _v40;
+				string = _v41;
+				acc = _v42;
+				continue breaker;
+			}
+		}
+	});
+var _elm_community$string_extra$String_Extra$break = F2(
+	function (width, string) {
+		return (_elm_lang$core$Native_Utils.eq(width, 0) || _elm_lang$core$Native_Utils.eq(string, '')) ? {
+			ctor: '::',
+			_0: string,
+			_1: {ctor: '[]'}
+		} : A3(
+			_elm_community$string_extra$String_Extra$breaker,
+			width,
+			string,
+			{ctor: '[]'});
+	});
+var _elm_community$string_extra$String_Extra$wrapWith = F3(
+	function (width, separator, string) {
+		return A2(
+			_elm_lang$core$String$join,
+			separator,
+			A2(_elm_community$string_extra$String_Extra$break, width, string));
+	});
+var _elm_community$string_extra$String_Extra$wrap = F2(
+	function (width, string) {
+		return A3(_elm_community$string_extra$String_Extra$wrapWith, width, '\n', string);
+	});
+var _elm_community$string_extra$String_Extra$replaceSlice = F4(
+	function (substitution, start, end, string) {
+		return A2(
+			_elm_lang$core$Basics_ops['++'],
+			A3(_elm_lang$core$String$slice, 0, start, string),
+			A2(
+				_elm_lang$core$Basics_ops['++'],
+				substitution,
+				A3(
+					_elm_lang$core$String$slice,
+					end,
+					_elm_lang$core$String$length(string),
+					string)));
+	});
+var _elm_community$string_extra$String_Extra$insertAt = F3(
+	function (insert, pos, string) {
+		return A4(_elm_community$string_extra$String_Extra$replaceSlice, insert, pos, pos, string);
+	});
+var _elm_community$string_extra$String_Extra$replace = F3(
+	function (search, substitution, string) {
+		return A4(
+			_elm_lang$core$Regex$replace,
+			_elm_lang$core$Regex$All,
+			_elm_lang$core$Regex$regex(
+				_elm_lang$core$Regex$escape(search)),
+			function (_p25) {
+				return substitution;
+			},
+			string);
+	});
+var _elm_community$string_extra$String_Extra$changeCase = F2(
+	function (mutator, word) {
+		return A2(
+			_elm_lang$core$Maybe$withDefault,
+			'',
+			A2(
+				_elm_lang$core$Maybe$map,
+				function (_p26) {
+					var _p27 = _p26;
+					return A2(
+						_elm_lang$core$String$cons,
+						mutator(_p27._0),
+						_p27._1);
+				},
+				_elm_lang$core$String$uncons(word)));
+	});
+var _elm_community$string_extra$String_Extra$toSentenceCase = function (word) {
+	return A2(_elm_community$string_extra$String_Extra$changeCase, _elm_lang$core$Char$toUpper, word);
+};
+var _elm_community$string_extra$String_Extra$toTitleCase = function (ws) {
+	var uppercaseMatch = A3(
+		_elm_lang$core$Regex$replace,
+		_elm_lang$core$Regex$All,
+		_elm_lang$core$Regex$regex('\\w+'),
+		function (_p28) {
+			return _elm_community$string_extra$String_Extra$toSentenceCase(
+				function (_) {
+					return _.match;
+				}(_p28));
+		});
+	return A4(
+		_elm_lang$core$Regex$replace,
+		_elm_lang$core$Regex$All,
+		_elm_lang$core$Regex$regex('^([a-z])|\\s+([a-z])'),
+		function (_p29) {
+			return uppercaseMatch(
+				function (_) {
+					return _.match;
+				}(_p29));
+		},
+		ws);
+};
+var _elm_community$string_extra$String_Extra$classify = function (string) {
+	return _elm_community$string_extra$String_Extra$toSentenceCase(
+		A3(
+			_elm_community$string_extra$String_Extra$replace,
+			' ',
+			'',
+			_elm_community$string_extra$String_Extra$camelize(
+				A4(
+					_elm_lang$core$Regex$replace,
+					_elm_lang$core$Regex$All,
+					_elm_lang$core$Regex$regex('[\\W_]'),
+					_elm_lang$core$Basics$always(' '),
+					string))));
+};
+var _elm_community$string_extra$String_Extra$humanize = function (string) {
+	return _elm_community$string_extra$String_Extra$toSentenceCase(
+		_elm_lang$core$String$toLower(
+			_elm_lang$core$String$trim(
+				A4(
+					_elm_lang$core$Regex$replace,
+					_elm_lang$core$Regex$All,
+					_elm_lang$core$Regex$regex('_id$|[-_\\s]+'),
+					_elm_lang$core$Basics$always(' '),
+					A4(
+						_elm_lang$core$Regex$replace,
+						_elm_lang$core$Regex$All,
+						_elm_lang$core$Regex$regex('[A-Z]'),
+						function (_p30) {
+							return A2(
+								_elm_lang$core$String$append,
+								'-',
+								function (_) {
+									return _.match;
+								}(_p30));
+						},
+						string)))));
+};
+var _elm_community$string_extra$String_Extra$decapitalize = function (word) {
+	return A2(_elm_community$string_extra$String_Extra$changeCase, _elm_lang$core$Char$toLower, word);
+};
+
 var _elm_lang$http$Native_Http = function() {
 
 
@@ -17423,9 +18180,9 @@ var _user$project$ReceptionKiosk_Types$HowDidYouHearModel = F2(
 	function (a, b) {
 		return {discoveryMethods: a, badNews: b};
 	});
-var _user$project$ReceptionKiosk_Types$NewMemberModel = F4(
-	function (a, b, c, d) {
-		return {firstName: a, lastName: b, email: c, isAdult: d};
+var _user$project$ReceptionKiosk_Types$NewMemberModel = F5(
+	function (a, b, c, d, e) {
+		return {firstName: a, lastName: b, email: c, isAdult: d, badNews: e};
 	});
 var _user$project$ReceptionKiosk_Types$NewUserModel = F4(
 	function (a, b, c, d) {
@@ -17494,6 +18251,7 @@ var _user$project$ReceptionKiosk_Types$ToggleDiscoveryMethod = function (a) {
 var _user$project$ReceptionKiosk_Types$AccDiscoveryMethods = function (a) {
 	return {ctor: 'AccDiscoveryMethods', _0: a};
 };
+var _user$project$ReceptionKiosk_Types$Validate = {ctor: 'Validate'};
 var _user$project$ReceptionKiosk_Types$ToggleIsAdult = {ctor: 'ToggleIsAdult'};
 var _user$project$ReceptionKiosk_Types$UpdateEmail = function (a) {
 	return {ctor: 'UpdateEmail', _0: a};
@@ -18715,6 +19473,21 @@ var _user$project$ReceptionKiosk_HowDidYouHearScene$init = function (flags) {
 	return {ctor: '_Tuple2', _0: sceneModel, _1: request};
 };
 
+var _user$project$ReceptionKiosk_NewMemberScene$emailRegex = function () {
+	var dchar = '[a-z0-9-]';
+	var alnum = '[a-z0-9]';
+	var echar = '[a-z0-9!#$%&\'*+/=?^_`{|}~-]';
+	var emailRegexStr = A3(
+		_elm_community$string_extra$String_Extra$replace,
+		'D',
+		dchar,
+		A3(
+			_elm_community$string_extra$String_Extra$replace,
+			'A',
+			alnum,
+			A3(_elm_community$string_extra$String_Extra$replace, 'E', echar, 'E+(?:\\.E+)*@(?:A(?:D*A)?\\.)+A(?:D*A)?')));
+	return _elm_lang$core$Regex$regex(emailRegexStr);
+}();
 var _user$project$ReceptionKiosk_NewMemberScene$view = function (kioskModel) {
 	var sceneModel = kioskModel.newMemberModel;
 	return A5(
@@ -18779,7 +19552,18 @@ var _user$project$ReceptionKiosk_NewMemberScene$view = function (kioskModel) {
 											'Check if you are 18 or older!',
 											sceneModel.isAdult,
 											_user$project$ReceptionKiosk_Types$NewMemberVector(_user$project$ReceptionKiosk_Types$ToggleIsAdult)),
-										_1: {ctor: '[]'}
+										_1: {
+											ctor: '::',
+											_0: _user$project$ReceptionKiosk_SceneUtils$vspace(
+												(_elm_lang$core$Native_Utils.cmp(
+													_elm_lang$core$List$length(sceneModel.badNews),
+													0) > 0) ? 40 : 0),
+											_1: {
+												ctor: '::',
+												_0: _user$project$ReceptionKiosk_SceneUtils$formatBadNews(sceneModel.badNews),
+												_1: {ctor: '[]'}
+											}
+										}
 									}
 								}
 							}
@@ -18792,9 +19576,55 @@ var _user$project$ReceptionKiosk_NewMemberScene$view = function (kioskModel) {
 			_0: A2(
 				_user$project$ReceptionKiosk_SceneUtils$ButtonSpec,
 				'OK',
-				_user$project$ReceptionKiosk_Types$Push(_user$project$ReceptionKiosk_Types$NewUser)),
+				_user$project$ReceptionKiosk_Types$NewMemberVector(_user$project$ReceptionKiosk_Types$Validate)),
 			_1: {ctor: '[]'}
 		});
+};
+var _user$project$ReceptionKiosk_NewMemberScene$validate = function (sceneModel) {
+	var emailInvalid = !A2(_elm_lang$core$Regex$contains, _user$project$ReceptionKiosk_NewMemberScene$emailRegex, sceneModel.email);
+	var lNameShort = _elm_lang$core$Native_Utils.eq(
+		_elm_lang$core$String$length(sceneModel.lastName),
+		0);
+	var fNameShort = _elm_lang$core$Native_Utils.eq(
+		_elm_lang$core$String$length(sceneModel.firstName),
+		0);
+	var msgs = _elm_lang$core$List$concat(
+		{
+			ctor: '::',
+			_0: fNameShort ? {
+				ctor: '::',
+				_0: 'Please provide your first name.',
+				_1: {ctor: '[]'}
+			} : {ctor: '[]'},
+			_1: {
+				ctor: '::',
+				_0: lNameShort ? {
+					ctor: '::',
+					_0: 'Please provide your last name.',
+					_1: {ctor: '[]'}
+				} : {ctor: '[]'},
+				_1: {
+					ctor: '::',
+					_0: emailInvalid ? {
+						ctor: '::',
+						_0: 'Your email address is not valid.',
+						_1: {ctor: '[]'}
+					} : {ctor: '[]'},
+					_1: {ctor: '[]'}
+				}
+			}
+		});
+	var cmd = (_elm_lang$core$Native_Utils.cmp(
+		_elm_lang$core$List$length(msgs),
+		0) > 0) ? _elm_lang$core$Platform_Cmd$none : _user$project$ReceptionKiosk_SceneUtils$send(
+		_user$project$ReceptionKiosk_Types$Push(_user$project$ReceptionKiosk_Types$NewUser));
+	return {
+		ctor: '_Tuple2',
+		_0: _elm_lang$core$Native_Utils.update(
+			sceneModel,
+			{badNews: msgs}),
+		_1: cmd
+	};
 };
 var _user$project$ReceptionKiosk_NewMemberScene$update = F2(
 	function (msg, kioskModel) {
@@ -18825,7 +19655,7 @@ var _user$project$ReceptionKiosk_NewMemberScene$update = F2(
 						{email: _p3._0}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
-			default:
+			case 'ToggleIsAdult':
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
@@ -18833,10 +19663,18 @@ var _user$project$ReceptionKiosk_NewMemberScene$update = F2(
 						{isAdult: !sceneModel.isAdult}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
+			default:
+				return _user$project$ReceptionKiosk_NewMemberScene$validate(sceneModel);
 		}
 	});
 var _user$project$ReceptionKiosk_NewMemberScene$init = function (flags) {
-	var model = {firstName: '', lastName: '', email: '', isAdult: false};
+	var model = {
+		firstName: '',
+		lastName: '',
+		email: '',
+		isAdult: false,
+		badNews: {ctor: '[]'}
+	};
 	return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
 };
 
@@ -19697,33 +20535,26 @@ var _user$project$ReceptionKiosk_WaiverScene$update = F2(
 				};
 			default:
 				if (_p0._0.ctor === 'Ok') {
-					var _p6 = _p0._0._0;
+					var _p5 = _p0._0._0;
 					var tagRegex = _elm_lang$core$Regex$regex('<[^>]*>');
-					var deTag = A3(
-						_elm_lang$core$Regex$replace,
-						_elm_lang$core$Regex$All,
-						tagRegex,
-						function (_p3) {
-							return '';
-						});
 					var msgRegex = _elm_lang$core$Regex$regex('<div id=\\\"Message\\\">.*</div>');
 					var msgsFound = A3(
 						_elm_lang$core$Regex$find,
 						_elm_lang$core$Regex$AtMost(1),
 						msgRegex,
-						_p6);
+						_p5);
 					var msg = function () {
-						var _p4 = _elm_lang$core$List$head(msgsFound);
-						if (_p4.ctor === 'Nothing') {
+						var _p3 = _elm_lang$core$List$head(msgsFound);
+						if (_p3.ctor === 'Nothing') {
 							return '';
 						} else {
-							return deTag(_p4._0.match);
+							return _elm_community$string_extra$String_Extra$stripTags(_p3._0.match);
 						}
 					}();
 					var userNameInUseIndicator = '<h2></h2>';
 					var successIndicator = '<h1>You have successfully registered your check in! Welcome to Xerocraft!</h1>';
-					var _p5 = msg;
-					switch (_p5) {
+					var _p4 = msg;
+					switch (_p4) {
 						case 'You have successfully registered your check in! Welcome to Xerocraft!':
 							return {
 								ctor: '_Tuple2',
@@ -19743,7 +20574,7 @@ var _user$project$ReceptionKiosk_WaiverScene$update = F2(
 									{
 										badNews: {
 											ctor: '::',
-											_0: _p6,
+											_0: _elm_community$string_extra$String_Extra$stripTags(_p5),
 											_1: {ctor: '[]'}
 										}
 									}),
@@ -19787,9 +20618,9 @@ var _user$project$ReceptionKiosk_WaiverScene$subscriptions = function (model) {
 		{
 			ctor: '::',
 			_0: _user$project$ReceptionKiosk_WaiverScene$signatureImage(
-				function (_p7) {
+				function (_p6) {
 					return _user$project$ReceptionKiosk_Types$WaiverVector(
-						_user$project$ReceptionKiosk_Types$UpdateSignature(_p7));
+						_user$project$ReceptionKiosk_Types$UpdateSignature(_p6));
 				}),
 			_1: {ctor: '[]'}
 		});

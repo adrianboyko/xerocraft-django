@@ -2,10 +2,12 @@
 module ReceptionKiosk.NewMemberScene exposing (init, update, view)
 
 -- Standard
-import Html exposing (Html, div)
+import Html exposing (..)
 import Http
+import Regex exposing (..)
 
 -- Third Party
+import String.Extra as SE
 
 -- Local
 import ReceptionKiosk.Backend as Backend
@@ -23,6 +25,7 @@ init flags =
    , lastName = ""
    , email = ""
    , isAdult = False
+   , badNews = []
    }
   in (model, Cmd.none)
 
@@ -47,6 +50,26 @@ update msg kioskModel =
     ToggleIsAdult ->
       ({sceneModel | isAdult = not sceneModel.isAdult}, Cmd.none)
 
+    Validate ->
+      validate sceneModel
+
+validate : NewMemberModel -> (NewMemberModel, Cmd Msg)
+validate sceneModel =
+  let
+    fNameShort = String.length sceneModel.firstName == 0
+    lNameShort = String.length sceneModel.lastName == 0
+    emailInvalid = not (contains emailRegex sceneModel.email)
+    msgs = List.concat
+      [ if fNameShort then ["Please provide your first name."] else []
+      , if lNameShort then ["Please provide your last name."] else []
+      , if emailInvalid then ["Your email address is not valid."] else []
+      ]
+    cmd = if List.length msgs > 0
+      then Cmd.none
+      else send (Push NewUser)
+  in
+    ({sceneModel | badNews = msgs}, cmd)
+
 -----------------------------------------------------------------------------
 -- VIEW
 -----------------------------------------------------------------------------
@@ -65,7 +88,25 @@ view kioskModel =
         , sceneEmailField kioskModel 4 "Your email address" sceneModel.email (NewMemberVector << UpdateEmail)
         , vspace 30
         , sceneCheckbox kioskModel 5 "Check if you are 18 or older!" sceneModel.isAdult (NewMemberVector ToggleIsAdult)
+        , vspace (if List.length sceneModel.badNews > 0 then 40 else 0)
+        , formatBadNews sceneModel.badNews
         ]
     )
-    [ButtonSpec "OK" (Push NewUser)]
+    [ButtonSpec "OK" (NewMemberVector Validate)]
 
+-----------------------------------------------------------------------------
+-- UTILITIES
+-----------------------------------------------------------------------------
+
+emailRegex : Regex
+emailRegex =
+  let
+    echar = "[a-z0-9!#$%&'*+/=?^_`{|}~-]"  -- email part
+    alnum = "[a-z0-9]"  -- alpha numeric
+    dchar = "[a-z0-9-]"  -- domain part
+    emailRegexStr = "E+(?:\\.E+)*@(?:A(?:D*A)?\\.)+A(?:D*A)?"
+      |> SE.replace "E" echar
+      |> SE.replace "A" alnum
+      |> SE.replace "D" dchar
+  in
+    regex emailRegexStr

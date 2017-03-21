@@ -7,6 +7,7 @@ import Html.Attributes exposing (..)
 import Regex exposing (regex)
 
 -- Third Party
+import String.Extra exposing (..)
 
 -- Local
 import ReceptionKiosk.Types exposing (..)
@@ -76,11 +77,10 @@ update msg kioskModel =
         -- E.g. <div id="Message"><h2>This username is already being used.</h2></div>
         msgRegex = regex "<div id=\\\"Message\\\">.*</div>"
         tagRegex = regex "<[^>]*>"
-        deTag = Regex.replace Regex.All tagRegex (\_->"")
         msgsFound = Regex.find (Regex.AtMost 1) msgRegex htmlResponseBody
         msg = case List.head msgsFound of
           Nothing -> ""
-          Just m -> deTag m.match
+          Just m -> stripTags m.match
       in
         case msg of
           "You have successfully registered your check in! Welcome to Xerocraft!" ->
@@ -90,7 +90,7 @@ update msg kioskModel =
           "" ->
             -- Couldn't find a message so dump the entire response body as a debugging aid.
             -- We don't expect this to happen.
-            ({sceneModel | badNews = [htmlResponseBody]}, Cmd.none)
+            ({sceneModel | badNews = [stripTags htmlResponseBody]}, Cmd.none)
           _ ->
             -- All other messages are treated as errors and reported as such to user.
             -- Many of the possible errors are validation related so we shouldn't see them if

@@ -60,6 +60,7 @@ type alias NewMemberModel =
   , lastName: String
   , email: String
   , isAdult: Bool
+  , badNews: List String
   }
 
 type alias NewUserModel =
@@ -126,6 +127,7 @@ type NewMemberMsg
   | UpdateLastName String
   | UpdateEmail String
   | ToggleIsAdult
+  | Validate
 
 type NewUserMsg
   = ValidateUserNameAndPw
