@@ -872,18 +872,29 @@ class ExpenseTransactionAdmin(JournalerAdmin):
 # These allow StackedInlines in other apps to be hooked into this Books app.
 # This approach keeps the dependencies one-way *towards* Books.
 
-class Sellable:
-
+class Inlineable:
     model_cls = None
+    container_cls = None
 
-    def __init__(self, model_cls):
+    def __init__(self, model_cls, container_cls):
         if not issubclass(model_cls, models.Model):
             raise ValueError('Wrapped class must subclass django.db.models.Model.')
         self.model_cls = model_cls
+        self.container_cls = container_cls
 
     def __call__(self, inline_cls):
         inline_cls.model = self.model_cls
         if not issubclass(inline_cls, admin.StackedInline):
             raise ValueError('Wrapped class must subclass django.contrib.admin.StackedInline.')
-        admin.site._registry[Sale].inlines.append(inline_cls)
+        admin.site._registry[self.container_cls].inlines.append(inline_cls)
         return inline_cls
+
+
+class Sellable(Inlineable):
+    def __init__(self, model_cls):
+        super().__init__(model_cls, Sale)
+
+
+class Invoiceable(Inlineable):
+    def __init__(self, model_cls):
+        super().__init__(model_cls, ReceivableInvoice)
