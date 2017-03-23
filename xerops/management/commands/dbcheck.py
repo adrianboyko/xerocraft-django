@@ -43,21 +43,23 @@ class DbCheck(unittest.TestCase):
                 obj_count = 0
                 model_err_count = 0
                 errstr = ""
-                for obj in model.objects.all():
+                for obj in model.objects.all():  # TODO: Call model.objs_for_dbcheck() instead, if it exists.
+                    # if type(obj).__name__ != "JournalEntry": continue
                     try:
                         obj.full_clean()
                         if hasattr(obj, "dbcheck"): obj.dbcheck()
+                    except ValidationError as e:
+                        problems.append("{} #{}, {} {}".format(modelname, obj.pk, obj, e.messages))
+                        model_err_count += 1
+                        total_err_count += 1
+                        continue
+                    finally:
                         obj_count += 1
                         if obj_count % 10 == 0:
                             progress = obj_count/total_obj_count
                             errstr = ", *** {} ERRS ***".format(model_err_count) if model_err_count > 0 else ""
                             print("\r{}, {:.0%} done{}".format(model_info_str, progress, errstr), end="")
                             sys.stdout.flush()
-                    except ValidationError as e:
-                        problems.append("{} #{}, {} {}".format(modelname, obj.pk, obj, e.messages))
-                        model_err_count += 1
-                        total_err_count += 1
-                        continue
                 print("\r{}{}".format(model_info_str, errstr), end="")
                 # Above string is shorter than the string it replaces. So print some spaces to clear out leftover:
                 print("                     ")
