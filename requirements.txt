@@ -26,6 +26,8 @@ django-webpack-loader==0.3.0
 freezegun==0.3.7
 gunicorn==19.3.0
 icalendar==3.9.1
+inflection==0.3.1
+
 -e git+https://github.com/tgs/nptime.git@d8866bd76e0fcabc45674c69cee30380731d4acd#egg=nptime
 lxml==3.6.1
 nameparser==0.3.11
@@ -34,7 +36,9 @@ oauthlib==1.0.3
 
 # -e git://github.com/bkeating/python-payflowpro.git#egg=python_payflowpro
 
-paypalrestsdk==1.11.7
+paypalrestsdk==1.11.7  # This is for other PayPal payment mechanisms.
+paypal==1.2.5  # This is for PayPal Express, used by Facebook
+
 Pillow==2.9.0
 psycopg2==2.6.2
 pyflakes==1.3.0
