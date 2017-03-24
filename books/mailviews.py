@@ -112,7 +112,6 @@ class CashDonationMailView(MailView):
 
 # -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-# Following class is registered to "Sale" but it only emails a receipt for the cash donation portion of a sale.
 @register(ReceivableInvoice)
 class ReceivableInvoiceMailView(MailView):
 
@@ -125,6 +124,13 @@ class ReceivableInvoiceMailView(MailView):
         email = _email(str(rinv), ent_email, acct)
         full_name = _full_name(ent_name, acct)
 
+        items2 = []
+        link_names = rinv.link_names_of_relevant_children()
+        for link_name in link_names:
+            children = getattr(rinv, link_name).all()
+            for child in children:
+                items2.append(child)
+
         spec = {
             'sender': "Xerocraft Systems <xis@xerocraft.org>",
             'recipients': [email],
@@ -136,6 +142,7 @@ class ReceivableInvoiceMailView(MailView):
                 'invoice': rinv,
                 'notes': rinv.receivableinvoicenote_set.all(),
                 'items': rinv.receivableinvoicelineitem_set.all(),
+                'items2': items2,
             },
             'info-for-log':"Receivable Invoice #{} sent to {}.".format(rinv.pk, email)
         }

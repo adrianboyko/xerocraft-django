@@ -18,7 +18,8 @@ from django.utils.translation import ugettext_lazy as _
 
 # Local
 from books.models import (
-    Account, Sale, JournalEntry, JournalEntryLineItem, Journaler, JournalLiner,
+    Account, Sale, ReceivableInvoice,
+    JournalEntry, JournalEntryLineItem, Journaler, JournalLiner,
     ACCT_REVENUE_MEMBERSHIP, ACCT_LIABILITY_UNEARNED_MSHIP_REVENUE
 )
 from abutils.utils import generate_ctrlid
@@ -141,9 +142,14 @@ class Member(models.Model):
         self.save()
         return b64
 
-    def is_tagged_with(self, tag_name):
-        '''Determine if member has a tag with the given tag-name.'''
-        return True if tag_name in [x.name for x in self.tags.all()] else False
+    def is_tagged_with(self, tag_or_tagname) -> bool:
+        '''Determine if member is tagged with the given tag or tag-name.'''
+        if type(tag_or_tagname) is Tag:
+            tag = tag_or_tagname  # type: Tag
+            return tag in self.tags.all()
+        elif type(tag_or_tagname) is str:
+            tagname = tag_or_tagname  # type: String
+            return tagname in [x.name for x in self.tags.all()]
 
     def can_tag_with(self, tag):
         '''Determine if member can tag others with tags having given tag-name.'''
@@ -442,84 +448,6 @@ def next_paidmembership_ctrlid():
     return "ERROR"
 
 
-class GroupMembership(models.Model, JournalLiner):
-
-    group_tag = models.ForeignKey(Tag, null=False, blank=False,
-        on_delete=models.PROTECT,  # A group membership's tag should be changed before deleting the unwanted tag.
-        help_text="The group to which this membership applies, defined by a tag.")
-
-    start_date = models.DateField(null=False, blank=False,
-        help_text="The first day on which the membership is valid.")
-
-    end_date = models.DateField(null=False, blank=False,
-        help_text="The last day on which the membership is valid.")
-
-    max_members = models.IntegerField(default=None, null=True, blank=True,
-        help_text="The maximum number of members to which this group membership can be applied. Blank if no limit.")
-
-    # A membership can be sold. Sale related fields: sale, sale_price
-
-    sale = models.ForeignKey(Sale, null=False, blank=False,
-        on_delete=models.CASCADE,  # Line items are parts of the sale so they should be deleted.
-        help_text="The sale on which this group membership appears as a line item, if any.")
-
-    sale_price = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
-        help_text="The price at which this item sold.")
-
-    def __str__(self):
-        return "{}, {} to {}".format(self.group_tag, self.start_date, self.end_date)
-
-    def matches(self, membership):
-        if membership.start_date      != self.start_date: return False
-        if membership.end_date        != self.end_date: return False
-        if membership.membership_type != membership.MT_GROUP: return False
-        return True
-
-    def copy_to(self, membership):
-        membership.start_date      = self.start_date
-        membership.end_date        = self.end_date
-        membership.membership_type = Membership.MT_GROUP
-        membership.save()
-
-    def get_or_create_membership_for(self, member):
-        """Get or create a membership and ensure that it matches the group membership's parameters."""
-
-        defaults = {
-            'start_date':      self.start_date,
-            'end_date':        self.end_date,
-            'membership_type': Membership.MT_GROUP
-        }
-        membership, created = Membership.objects.get_or_create(member=member, group=self, defaults=defaults)
-        if created or not self.matches(membership): self.copy_to(membership)
-        return membership
-
-    def sync_memberships(self):
-        # Create or update the membership for each person in the group:
-        for member in self.group_tag.members.all():
-            # Following ensures that the membership is synched
-            self.get_or_create_membership_for(member)
-        # Deletion of memberships for people who are no longer in the group will be handled in
-            # a signal handler for Tagging deletions.
-
-    def clean(self):
-        if self.start_date >= self.end_date:
-            raise ValidationError(_("End date must be later than start date."))
-
-    def dbcheck(self):
-        for mship in self.membership_set.all():
-            if self.start_date != mship.start_date or self.end_date != mship.end_date:
-                raise ValidationError(_("Start/end dates for covered memberships must match start/end dates for group membership."))
-            if mship.membership_type != Membership.MT_GROUP:
-                raise ValidationError(_("Individual memberships covered by a group membership must have type GROUP."))
-
-    def create_journalentry_lineitems(self, je: JournalEntry):
-        je.prebatch(JournalEntryLineItem(
-            account=ACCT_REVENUE_MEMBERSHIP,
-            action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
-            amount=self.sale_price,
-        ))
-
-
 class MembershipGiftCard(models.Model):
 
     redemption_code = models.CharField(max_length=20, unique=True, null=False, blank=False,
@@ -580,7 +508,141 @@ class MembershipGiftCardRedemption(models.Model):
 # MEMBERSHIP
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-class Membership(models.Model, JournalLiner):
+class MembershipJournalLiner(JournalLiner):
+
+    def create_membership_jelis(self, je: JournalEntry):
+
+        # Interestingly, this case requires that we create a number of future revenue recognition
+        # journal entries, in addition to the line items we create for the sale's journal entry.
+
+        def recognize_revenue(date_to_recognize, amount):
+
+            je2 = JournalEntry(  # Calling it "je2" so it doesn't shadow outer "je".
+                when=date_to_recognize,
+                source_url=je.source_url
+            )
+
+            je2.prebatch(JournalEntryLineItem(
+                account=ACCT_REVENUE_MEMBERSHIP,
+                action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
+                amount=amount,
+            ))
+
+            je2.prebatch(JournalEntryLineItem(
+                account=ACCT_LIABILITY_UNEARNED_MSHIP_REVENUE,
+                action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
+                amount=amount,
+            ))
+
+            Journaler.batch(je2)
+
+        je.prebatch(JournalEntryLineItem(
+            account=ACCT_LIABILITY_UNEARNED_MSHIP_REVENUE,
+            action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
+            amount=self.sale_price,
+        ))
+
+        mship_duration = self.end_date - self.start_date  # type: timedelta
+        mship_days = mship_duration.days + 1
+        rev_per_day = self.sale_price / Decimal(mship_days)
+        curr_date = self.start_date
+        rev_acc = Decimal(0.00)
+        while curr_date <= self.end_date:
+            rev_acc += rev_per_day
+            if is_last_day_of_month(curr_date) or curr_date == self.end_date:
+                recognize_revenue(curr_date, rev_acc)
+                rev_acc = Decimal(0.00)
+            curr_date += timedelta(days=1)
+
+
+class GroupMembership(models.Model, MembershipJournalLiner):
+
+    group_tag = models.ForeignKey(Tag, null=False, blank=False,
+        on_delete=models.PROTECT,  # A group membership's tag should be changed before deleting the unwanted tag.
+        help_text="The group to which this membership applies, defined by a tag.")
+
+    start_date = models.DateField(null=False, blank=False,
+        help_text="The first day on which the membership is valid.")
+
+    end_date = models.DateField(null=False, blank=False,
+        help_text="The last day on which the membership is valid.")
+
+    max_members = models.IntegerField(default=None, null=True, blank=True,
+        help_text="The maximum number of members to which this group membership can be applied. Blank if no limit.")
+
+    # A membership can be sold. Sale related fields: sale, sale_price
+
+    sale = models.ForeignKey(Sale, null=True, blank=True, default=None,
+        on_delete=models.CASCADE,  # Line items are parts of the sale, so they should be deleted.
+        help_text="The sale on which this group membership appears as a line item, if any.")
+
+    invoice = models.ForeignKey(ReceivableInvoice, null=True, blank=True, default=None,
+        on_delete=models.CASCADE,  # Line items are parts of the invoice, so they should be deleted.
+        help_text="The receivable invoice that includes this line item, if any.")
+
+    sale_price = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
+        help_text="The price at which this item sold.")
+
+    def __str__(self):
+        return "{}, {} to {}".format(self.group_tag, self.start_date, self.end_date)
+
+    def matches(self, membership):
+        if membership.start_date      != self.start_date: return False
+        if membership.end_date        != self.end_date: return False
+        if membership.membership_type != membership.MT_GROUP: return False
+        return True
+
+    def copy_to(self, membership):
+        membership.start_date      = self.start_date
+        membership.end_date        = self.end_date
+        membership.membership_type = Membership.MT_GROUP
+        membership.save()
+
+    def get_or_create_membership_for(self, member):
+        """Get or create a membership and ensure that it matches the group membership's parameters."""
+
+        defaults = {
+            'start_date':      self.start_date,
+            'end_date':        self.end_date,
+            'membership_type': Membership.MT_GROUP
+        }
+        membership, created = Membership.objects.get_or_create(member=member, group=self, defaults=defaults)
+        if created or not self.matches(membership): self.copy_to(membership)
+        return membership
+
+    def sync_memberships(self):
+        # Create or update the membership for each person in the group:
+        for member in self.group_tag.members.all():
+            # Following ensures that the membership is synched
+            self.get_or_create_membership_for(member)
+        # Deletion of memberships for people who are no longer in the group will be handled in
+            # a signal handler for Tagging deletions.
+
+    def clean(self):
+        if self.start_date >= self.end_date:
+            raise ValidationError(_("End date must be later than start date."))
+
+        if self.sale is None and self.invoice is None:
+            # I don't know that we'll be comp'ing these.
+            raise ValidationError(_("Group membership must be part of an invoice or sale."))
+
+    def dbcheck(self):
+        for mship in self.membership_set.all():
+            if self.start_date != mship.start_date or self.end_date != mship.end_date:
+                raise ValidationError(_("Start/end dates for covered memberships must match start/end dates for group membership."))
+            if mship.membership_type != Membership.MT_GROUP:
+                raise ValidationError(_("Individual memberships covered by a group membership must have type GROUP."))
+
+    def create_journalentry_lineitems(self, je: JournalEntry):
+        self.create_membership_jelis(je)
+        # je.prebatch(JournalEntryLineItem(
+        #     account=ACCT_REVENUE_MEMBERSHIP,
+        #     action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
+        #     amount=self.sale_price,
+        # ))
+
+
+class Membership(models.Model, MembershipJournalLiner):
 
     # A membership can arise from redemption of a gift card.
     redemption = models.ForeignKey(MembershipGiftCardRedemption, null=True, blank=True, default=None,
@@ -677,8 +739,16 @@ class Membership(models.Model, JournalLiner):
     def dbcheck(self):
         if self.redemption is not None and self.membership_type != self.MT_GIFTCARD:
             raise ValidationError(_("Memberships that result from gift card redemptions should have type 'Gift Card'"))
-        if self.group is not None and self.membership_type != self.MT_GROUP:
-            raise ValidationError(_("Memberships that result from group purchases should have type 'Group'"))
+
+        if self.group is not None:
+            if self.membership_type != self.MT_GROUP:
+                raise ValidationError(_("Memberships that result from group purchases should have type 'Group'"))
+            if not self.member.is_tagged_with(self.group.group_tag):
+                raise ValidationError(_("Invalid membership. Member must be tagged with the group's tag."))
+
+        if self.membership_type == self.MT_GROUP:
+            if self.group is None:
+                raise ValidationError(_("Membership has type group but is not linked to one."))
 
     def clean(self):
         zero_sale_price_types = [self.MT_GIFTCARD, self.MT_COMPLIMENTARY, self.MT_GROUP]
@@ -701,49 +771,12 @@ class Membership(models.Model, JournalLiner):
         ordering = ['start_date']
 
     def create_journalentry_lineitems(self, je: JournalEntry):
+        self.create_membership_jelis(je)
 
-        # Interestingly, this case requires that we create a number of future revenue recognition
-        # journal entries, in addition to the line items we create for the sale's journal entry.
 
-        def recognize_revenue(date_to_recognize, amount):
-
-            je2 = JournalEntry(  # Calling it "je2" so it doesn't shadow outer "je".
-                when=date_to_recognize,
-                source_url=je.source_url
-            )
-
-            je2.prebatch(JournalEntryLineItem(
-                account=ACCT_REVENUE_MEMBERSHIP,
-                action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
-                amount=amount,
-            ))
-
-            je2.prebatch(JournalEntryLineItem(
-                account=ACCT_LIABILITY_UNEARNED_MSHIP_REVENUE,
-                action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
-                amount=amount,
-            ))
-
-            Journaler.batch(je2)
-
-        je.prebatch(JournalEntryLineItem(
-            account=ACCT_LIABILITY_UNEARNED_MSHIP_REVENUE,
-            action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
-            amount=self.sale_price,
-        ))
-
-        mship_duration = self.end_date - self.start_date  # type: timedelta
-        mship_days = mship_duration.days + 1
-        rev_per_day = self.sale_price / Decimal(mship_days)
-        curr_date = self.start_date
-        rev_acc = Decimal(0.00)
-        while curr_date <= self.end_date:
-            rev_acc += rev_per_day
-            if is_last_day_of_month(curr_date) or curr_date == self.end_date:
-                recognize_revenue(curr_date, rev_acc)
-                rev_acc = Decimal(0.00)
-            curr_date += timedelta(days=1)
-
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# Discovery method
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 class DiscoveryMethod(models.Model):
     """Different ways that members learn about us. E.g. 'Tucson Meet Yourself', 'Radio', 'TV', 'Website', etc """

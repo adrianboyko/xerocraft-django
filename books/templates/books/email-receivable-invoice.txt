@@ -7,6 +7,9 @@ Amount Due: ${{ invoice.amount }}
 {% for item in items %}
 ${{item.amount}} for {{item.description}}
 {% endfor %}
+{% for item in items2 %}
+${{item.sale_price}} for {{item|verbose_name}}, {{item}}
+{% endfor %}
 $0.00 Tax (Xerocraft is a tax-exempt non-profit)
 
 Payment is due within 30 days of invoice date.

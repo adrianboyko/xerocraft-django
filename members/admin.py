@@ -7,7 +7,7 @@ from django.utils.translation import ugettext_lazy as _
 from reversion.admin import VersionAdmin
 
 # Local
-from books.admin import Sellable
+from books.admin import Sellable, Invoiceable
 from members.models import (
     Tag, Pushover, Tagging, VisitEvent,
     Member, Membership, GroupMembership,
@@ -387,7 +387,7 @@ class MembershipLineItem(admin.StackedInline):
     ]
     raw_id_fields = ['member']
 
-
+@Invoiceable(GroupMembership)
 @Sellable(GroupMembership)
 class GroupMembershipLineItem(admin.StackedInline):
     extra = 0
