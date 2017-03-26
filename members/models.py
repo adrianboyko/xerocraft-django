@@ -559,7 +559,7 @@ class GroupMembership(models.Model, MembershipJournalLiner):
 
     group_tag = models.ForeignKey(Tag, null=False, blank=False,
         on_delete=models.PROTECT,  # A group membership's tag should be changed before deleting the unwanted tag.
-        help_text="The group to which this membership applies, defined by a tag.")
+        help_text="Group membership is initially populated with the set of people having this tag.")
 
     start_date = models.DateField(null=False, blank=False,
         help_text="The first day on which the membership is valid.")
@@ -569,6 +569,8 @@ class GroupMembership(models.Model, MembershipJournalLiner):
 
     max_members = models.IntegerField(default=None, null=True, blank=True,
         help_text="The maximum number of members to which this group membership can be applied. Blank if no limit.")
+
+    members_covered = models.ManyToManyField(Member, through='Membership')
 
     # A membership can be sold. Sale related fields: sale, sale_price
 
@@ -586,39 +588,20 @@ class GroupMembership(models.Model, MembershipJournalLiner):
     def __str__(self):
         return "{}, {} to {}".format(self.group_tag, self.start_date, self.end_date)
 
-    def matches(self, membership):
+    def matches_terms_of(self, membership: 'Membership'):
         if membership.start_date      != self.start_date: return False
         if membership.end_date        != self.end_date: return False
         if membership.membership_type != membership.MT_GROUP: return False
         return True
 
-    def copy_to(self, membership):
+    def copy_terms_to(self, membership: 'Membership'):
         membership.start_date      = self.start_date
         membership.end_date        = self.end_date
         membership.membership_type = Membership.MT_GROUP
         membership.save()
 
-    def get_or_create_membership_for(self, member):
-        """Get or create a membership and ensure that it matches the group membership's parameters."""
-
-        defaults = {
-            'start_date':      self.start_date,
-            'end_date':        self.end_date,
-            'membership_type': Membership.MT_GROUP
-        }
-        membership, created = Membership.objects.get_or_create(member=member, group=self, defaults=defaults)
-        if created or not self.matches(membership): self.copy_to(membership)
-        return membership
-
-    def sync_memberships(self):
-        # Create or update the membership for each person in the group:
-        for member in self.group_tag.members.all():
-            # Following ensures that the membership is synched
-            self.get_or_create_membership_for(member)
-        # Deletion of memberships for people who are no longer in the group will be handled in
-            # a signal handler for Tagging deletions.
-
     def clean(self):
+
         if self.start_date >= self.end_date:
             raise ValidationError(_("End date must be later than start date."))
 
@@ -701,7 +684,7 @@ class Membership(models.Model, MembershipJournalLiner):
         # In the gift-card redemption context I don't want to confuse admin users by requiring them to provide
         # a sale price of $0. So I'll let this default to zero even though it must be non-zero in other contexts.
         default=Decimal(0.0),
-        help_text="The price at which this item sold.")
+        help_text="The price at which this item sold, if it's part of a sale.")
 
     # ETL related fields: ctrlid, protected
 
@@ -751,6 +734,9 @@ class Membership(models.Model, MembershipJournalLiner):
                 raise ValidationError(_("Membership has type group but is not linked to one."))
 
     def clean(self):
+        if self.group is not None:
+            self.group.copy_terms_to(self)
+
         zero_sale_price_types = [self.MT_GIFTCARD, self.MT_COMPLIMENTARY, self.MT_GROUP]
 
         # Note: start and end date are equal for a one day membership.

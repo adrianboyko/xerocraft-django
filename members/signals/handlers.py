@@ -40,7 +40,6 @@ def create_default_member(sender, **kwargs):
 # VISIT
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-
 @receiver(pre_save, sender=VisitEvent)  # Making this PRE-save because I want to get latest before save.
 def note_checkin(sender, **kwargs):
     try:
@@ -149,12 +148,14 @@ def note_login(sender, user, request, **kwargs):  # https://code.djangoproject.c
 @receiver(post_save, sender=GroupMembership)
 def group_membership_post_save(sender, **kwargs):
     gm = kwargs.get('instance')
-    gm.sync_memberships()
+    if gm.membership_set.count() == 0:
+        for taggee in gm.group_tag.members.all():  # type Member
+            Membership.objects.create(
+                member=taggee,
+                group=gm,
+                start_date=gm.start_date,
+                end_date=gm.end_date,
+                membership_type=Membership.MT_GROUP
+            )
 
-
-@receiver(pre_delete, sender=GroupMembership)
-def group_membership_pre_delete(sender, **kwargs):
-    gm = kwargs.get('instance')
-    for membership in gm.membership_set.all():
-        membership.delete()
 

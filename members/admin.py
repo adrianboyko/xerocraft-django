@@ -4,6 +4,9 @@
 # Third Party
 from django.contrib import admin
 from django.utils.translation import ugettext_lazy as _
+from django.utils.html import format_html
+from django.core.urlresolvers import reverse
+
 from reversion.admin import VersionAdmin
 
 # Local
@@ -324,6 +327,7 @@ class GroupMembershipAdmin(VersionAdmin):
             'end_date'
         ]
         raw_id_fields = ['member']
+        readonly_fields = ['membership_type', 'start_date', 'end_date']
 
     inlines = [MembershipInline]
 
@@ -387,14 +391,24 @@ class MembershipLineItem(admin.StackedInline):
     ]
     raw_id_fields = ['member']
 
+
 @Invoiceable(GroupMembership)
 @Sellable(GroupMembership)
 class GroupMembershipLineItem(admin.StackedInline):
     extra = 0
+
+    def details(self, obj):
+        app = obj._meta.app_label
+        mod = obj._meta.model_name
+        url_str = reverse('admin:{}_{}_change'.format(app, mod), args=(obj.id,))
+        return format_html("<a href='{}'>View All Group Membership Info</a>", url_str)
+
     fields = [
         'sale_price',
         'group_tag',
         ('start_date', 'end_date'),
         'max_members',
+        'details'
     ]
 
+    readonly_fields = ['details']
