@@ -1279,9 +1279,12 @@ class ExpenseTransaction(Journaler):
         help_text="The payment method used.")
     payment_method.verbose_name = "Method"
 
-    method_detail = models.CharField(max_length=40, blank=True,
+    method_detail = models.CharField(max_length=40, blank=True, null=True,
         help_text="Optional detail specific to the payment method. Check# for check payments.")
     method_detail.verbose_name = "Detail"
+
+    class Meta:
+        unique_together = ('payment_method', 'method_detail')
 
     def payment_method_verbose(self):
         return dict(ExpenseTransaction.PAID_BY_CHOICES)[self.payment_method]
