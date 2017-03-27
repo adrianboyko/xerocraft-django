@@ -124,12 +124,15 @@ class ReceivableInvoiceMailView(MailView):
         email = _email(str(rinv), ent_email, acct)
         full_name = _full_name(ent_name, acct)
 
+        items1 = rinv.receivableinvoicelineitem_set.all()
+
         items2 = []
         link_names = rinv.link_names_of_relevant_children()
         for link_name in link_names:
             children = getattr(rinv, link_name).all()
             for child in children:
                 items2.append(child)
+        items2 = set(items2) - set(items1)
 
         spec = {
             'sender': "Xerocraft Systems <xis@xerocraft.org>",
@@ -141,7 +144,7 @@ class ReceivableInvoiceMailView(MailView):
                 'full_name': full_name,
                 'invoice': rinv,
                 'notes': rinv.receivableinvoicenote_set.all(),
-                'items': rinv.receivableinvoicelineitem_set.all(),
+                'items': items1,
                 'items2': items2,
             },
             'info-for-log':"Receivable Invoice #{} sent to {}.".format(rinv.pk, email)

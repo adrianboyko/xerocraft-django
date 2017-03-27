@@ -330,6 +330,7 @@ class PayableInvoiceNoteInline(NoteInline):
 
 
 class ReceivableInvoiceLineItemAdmin(admin.TabularInline):
+    extra = 0
     model = ReceivableInvoiceLineItem
     raw_id_fields = ['account']
 
