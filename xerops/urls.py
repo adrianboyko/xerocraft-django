@@ -49,7 +49,7 @@ urlpatterns = [
     # DJANGO REST FRAMEWORK API
     url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
 
-    url(r'^helpdesk/', include('helpdesk.urls')),
+    url(r'^helpdesk/', include('helpdesk.urls', namespace="help")),
 
     # The following is for auto-renewal of "letsencrypt" SSL certs
     url(r'^', include(sabayon_urls)),

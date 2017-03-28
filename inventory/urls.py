@@ -2,6 +2,8 @@ from django.conf.urls import url
 
 from . import views
 
+app_name = "inventory"  # This is the app namespace not the app name.
+
 urlpatterns = [
 
     # For all members:

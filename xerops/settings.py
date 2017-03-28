@@ -122,14 +122,14 @@ INSTALLED_APPS += (
     'modelmailer',
     'django_sabayon',
 
-    'markdown_deux',  # for helpdesk
-    'bootstrapform',  # for helpdesk
+    #'markdown_deux',  # for helpdesk
+    #'bootstrapform',  # for helpdesk
     'helpdesk',
 )
 
 SITE_ID = 1  # For django.contrib.sites
 
-MIDDLEWARE_CLASSES = (
+MIDDLEWARE = (
     'reversion.middleware.RevisionMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',

@@ -2,6 +2,8 @@ from django.conf.urls import url, include
 from . import views
 from rest_framework import routers
 
+app_name = "books"  # This is the app namespace not the app name.
+
 router = routers.DefaultRouter()
 router.register(r'sales', views.SaleViewSet)
 router.register(r'sale-notes', views.SaleNoteViewSet)

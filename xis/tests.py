@@ -19,12 +19,12 @@ class TestAuthentication(TestCase):
     def test_xerocraft_org_auth(self):
         # Note: Since test DB is empty, authentication uses AccountScraper.
         # User.objects.count() is used to check for successful scraping.
-        self.assertEquals(User.objects.count(), 0)
+        self.assertEqual(User.objects.count(), 0)
         id = os.environ['XEROCRAFT_WEBSITE_ADMIN_ID']
         pw = os.environ['XEROCRAFT_WEBSITE_ADMIN_PW']
         user = authenticate(username=id, password=pw)
         self.assertIsNotNone(user)
-        self.assertEquals(User.objects.count(), 1)
+        self.assertEqual(User.objects.count(), 1)
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =

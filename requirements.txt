@@ -5,7 +5,7 @@ boto==2.42.0
 
 coverage==4.2
 defusedxml==0.4.1
-Django==1.10.5
+Django==1.10.6
 django-crispy-forms==1.6.1
 django-debug-toolbar==1.4
 django-filter==1.0.1

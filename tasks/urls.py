@@ -8,6 +8,8 @@ from rest_framework import routers
 import tasks.views as views
 import tasks.restapi.views as restviews
 
+app_name = "tasks"  # This is the app namespace not the app name.
+
 router = routers.DefaultRouter()
 router.register(r'tasks', restviews.TaskViewSet)
 router.register(r'claims', restviews.ClaimViewSet)

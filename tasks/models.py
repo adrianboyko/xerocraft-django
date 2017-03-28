@@ -372,8 +372,8 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
                     )
 
                     # Many-to-many fields:
-                    t.eligible_claimants =self.eligible_claimants.all()
-                    t.eligible_tags      =self.eligible_tags.all()
+                    t.eligible_claimants.set(self.eligible_claimants.all())
+                    t.eligible_tags.set(self.eligible_tags.all())
 
                     if self.default_claimant is not None:
                         t.create_default_claim()

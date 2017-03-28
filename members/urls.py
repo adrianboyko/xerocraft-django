@@ -2,6 +2,8 @@ from django.conf.urls import url, include
 from . import views
 from rest_framework import routers
 
+app_name = "members"  # This is the app namespace not the app name.
+
 router = routers.DefaultRouter()
 router.register(r'members', views.MemberViewSet)
 router.register(r'memberships', views.MembershipViewSet)
