@@ -6,6 +6,7 @@ boto==2.42.0
 coverage==4.2
 defusedxml==0.4.1
 Django==1.10.6
+django-bootstrap-form==3.2.1
 django-crispy-forms==1.6.1
 django-debug-toolbar==1.4
 django-filter==1.0.1
@@ -14,6 +15,7 @@ django-filter==1.0.1
 -e git+https://github.com/adrianboyko/django-helpdesk.git@maint_0.1.18#egg=django-helpdesk
 
 django-jenkins==0.110.0
+django-markdown-deux==1.0.5
 django-object-actions==0.8.2
 
 # Must be 2.0.0 or greater because we're using Django 1.8
