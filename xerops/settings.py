@@ -122,8 +122,8 @@ INSTALLED_APPS += (
     'modelmailer',
     'django_sabayon',
 
-    #'markdown_deux',  # for helpdesk
-    #'bootstrapform',  # for helpdesk
+    'markdown_deux',  # for helpdesk
+    'bootstrapform',  # for helpdesk
     'helpdesk',
 )
 
