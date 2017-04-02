@@ -1188,6 +1188,7 @@ class ExpenseClaim(Journaler):
         total = Decimal(0.0)
         for lineitem in self.expenselineitem_set.all():
             total += lineitem.amount
+            total -= lineitem.discount
         return total
 
     # def is_reimbursed(self):
@@ -1446,7 +1447,7 @@ class ExpenseLineItem(models.Model, JournalLiner):
                 je2.prebatch(JournalEntryLineItem(
                     account=ACCT_LIABILITY_PAYABLE,
                     action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
-                    amount=self.amount,
+                    amount=self.amount-self.discount,
                 ))
 
         else:
