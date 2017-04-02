@@ -8,6 +8,7 @@ import re
 from datetime import datetime, date, timedelta
 from decimal import Decimal
 from typing import Union, Tuple
+import abc
 
 # Third Party
 from django.db import models
@@ -148,7 +149,7 @@ class Member(models.Model):
             tag = tag_or_tagname  # type: Tag
             return tag in self.tags.all()
         elif type(tag_or_tagname) is str:
-            tagname = tag_or_tagname  # type: String
+            tagname = tag_or_tagname  # type: str
             return tagname in [x.name for x in self.tags.all()]
 
     def can_tag_with(self, tag):
@@ -508,7 +509,21 @@ class MembershipGiftCardRedemption(models.Model):
 # MEMBERSHIP
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-class MembershipJournalLiner(JournalLiner):
+class MembershipJournalLiner(JournalLiner, models.Model):
+    __metaclass__ = abc.ABCMeta
+
+    start_date = models.DateField(null=False, blank=False, default=date.today,
+        help_text="The first day on which the membership is valid.")
+
+    end_date = models.DateField(null=False, blank=False, default=date.today,
+        help_text="The last day on which the membership is valid.")
+
+    sale_price = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
+        default=Decimal(0.0),
+        help_text="The price at which this item sold.")
+
+    class Meta:
+        abstract = True
 
     def create_membership_jelis(self, je: JournalEntry):
 
@@ -555,17 +570,11 @@ class MembershipJournalLiner(JournalLiner):
             curr_date += timedelta(days=1)
 
 
-class GroupMembership(models.Model, MembershipJournalLiner):
+class GroupMembership(MembershipJournalLiner):
 
     group_tag = models.ForeignKey(Tag, null=False, blank=False,
         on_delete=models.PROTECT,  # A group membership's tag should be changed before deleting the unwanted tag.
         help_text="Group membership is initially populated with the set of people having this tag.")
-
-    start_date = models.DateField(null=False, blank=False,
-        help_text="The first day on which the membership is valid.")
-
-    end_date = models.DateField(null=False, blank=False,
-        help_text="The last day on which the membership is valid.")
 
     max_members = models.IntegerField(default=None, null=True, blank=True,
         help_text="The maximum number of members to which this group membership can be applied. Blank if no limit.")
@@ -581,9 +590,6 @@ class GroupMembership(models.Model, MembershipJournalLiner):
     invoice = models.ForeignKey(ReceivableInvoice, null=True, blank=True, default=None,
         on_delete=models.CASCADE,  # Line items are parts of the invoice, so they should be deleted.
         help_text="The receivable invoice that includes this line item, if any.")
-
-    sale_price = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
-        help_text="The price at which this item sold.")
 
     def __str__(self):
         return "{}, {} to {}".format(self.group_tag, self.start_date, self.end_date)
@@ -625,7 +631,7 @@ class GroupMembership(models.Model, MembershipJournalLiner):
         # ))
 
 
-class Membership(models.Model, MembershipJournalLiner):
+class Membership(MembershipJournalLiner):
 
     # A membership can arise from redemption of a gift card.
     redemption = models.ForeignKey(MembershipGiftCardRedemption, null=True, blank=True, default=None,
@@ -668,23 +674,11 @@ class Membership(models.Model, MembershipJournalLiner):
         null=False, blank=False, default=MT_REGULAR,
         help_text="The type of membership.")
 
-    start_date = models.DateField(null=False, blank=False, default=date.today,
-        help_text="The first day on which the membership is valid.")
-
-    end_date = models.DateField(null=False, blank=False, default=date.today,
-        help_text="The last day on which the membership is valid.")
-
-    # A membership can be sold. Sale related fields: sale, sale_price
+    # A membership can be sold. Sale related fields: sale (below), sale_price (inherited)
 
     sale = models.ForeignKey(Sale, null=True, blank=True, default=None,
         on_delete=models.CASCADE,  # Line items are parts of the sale so they should be deleted.
         help_text="The sale that includes this line item, if any. E.g. comp memberships don't have a corresponding sale.")
-
-    sale_price = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
-        # In the gift-card redemption context I don't want to confuse admin users by requiring them to provide
-        # a sale price of $0. So I'll let this default to zero even though it must be non-zero in other contexts.
-        default=Decimal(0.0),
-        help_text="The price at which this item sold, if it's part of a sale.")
 
     # ETL related fields: ctrlid, protected
 
