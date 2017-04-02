@@ -4,6 +4,7 @@ import socket
 import sys
 from imp import find_module  # TODO: imp is deprecated
 from importlib import import_module
+from typing import Type
 
 # Third Party
 from django.db.models import Model
@@ -24,15 +25,15 @@ def generate_hex_string(length, uniqueness_check=None):
         return generate_hex_string(length, uniqueness_check)
 
 
-def generate_ctrlid(model: Model) -> str:
-    """Generate a unique ctrlid for the given model."""
+def generate_ctrlid(modelcls: Type[Model]) -> str:
+    """Generate a unique ctrlid for the given model class."""
     # TODO: Move this to ETL App if that refactorization is pursued.
     def is_unique(ctrlid: str) -> bool:
-        if not hasattr(model, "ctrlid"):
+        if not hasattr(modelcls, "ctrlid"):
             # This is necessary to support initialization of new blank databases.
             return True
         else:
-            return model.objects.filter(ctrlid=ctrlid).count() == 0
+            return modelcls.objects.filter(ctrlid=ctrlid).count() == 0
     return "GEN:" + generate_hex_string(8, is_unique)
 
 
