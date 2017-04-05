@@ -7,7 +7,7 @@ import hashlib
 import re
 from datetime import datetime, date, timedelta
 from decimal import Decimal
-from typing import Union, Tuple
+from typing import Union, Tuple, Optional
 import abc
 
 # Third Party
@@ -281,20 +281,42 @@ class Member(models.Model):
 
 class Pushover(models.Model):
 
+    # This model was originally created for Pushover but is now generalized to other types of notification.
+
+    MECH_PUSHOVER = "PSH"
+    MECH_EML2SMS = "EML"
+    MECH_CHOICES = [
+        (MECH_PUSHOVER, "Pushover"),
+        (MECH_EML2SMS, "Email-to-SMS Gateway"),
+    ]
+
     who = models.ForeignKey(Member,
         on_delete=models.CASCADE,  # If a member is deleted, it doesn't make sense to keep their pushover info.
         help_text="The member to whom this tagging info applies.")
 
+    mechanism = models.CharField(max_length=3, choices=MECH_CHOICES, default=MECH_PUSHOVER)
+
     key = models.CharField(max_length=30, null=False, blank=False,
-        help_text="The member's User Key on Pushover.com")
+        help_text="User Key for Pushover, phone number for Text.")
 
     @staticmethod
-    def getkey(member: Member):
+    def can_notify(member: Member) -> bool:
         try:
             p = Pushover.objects.get(who=member)
+            return True
+        except Pushover.DoesNotExist:
+            return False
+
+    @staticmethod
+    def getkey(member: Member, mechanism: str = MECH_PUSHOVER) -> Optional[str]:
+        try:
+            p = Pushover.objects.get(who=member, mechanism=mechanism)
             return p.key
         except Pushover.DoesNotExist:
             return None
+
+    class Meta:
+        verbose_name = "Notification Mechanism"
 
 
 class Tagging(models.Model):

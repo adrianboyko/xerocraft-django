@@ -31,6 +31,7 @@ def notify(
     if not pushover_available:
         return
 
+    # TODO: Code currently only uses Pushover mechanism. Should be updated to use alternate mechanisms.
     try:
         target_key = Pushover.objects.get(who=target_member).key
     except Pushover.DoesNotExist:

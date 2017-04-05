@@ -96,15 +96,6 @@ def maintenance_nag(sender, **kwargs):
             recurring_task_template__missed_date_action=RecurringTaskTemplate.MDA_SLIDE_SELF_AND_LATER,
         )
 
-        # Bail out if the member doesn't have a pushover key.
-        if Pushover.getkey(visit.who) is None:
-            if len(tasks) > 0:
-                logger.info(
-                    "Wanted to notify %s of task(s) but Pushover key not available.",
-                    visit.who.friendly_name
-                )
-            return
-
         # Nag by sending a notification for each task the member could work.
         for task in tasks:  # type: Task
 

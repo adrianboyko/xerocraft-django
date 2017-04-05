@@ -25,12 +25,6 @@ class TagAdmin(VersionAdmin):
     fields = ['name','meaning']
 
 
-@admin.register(Pushover)
-class PushoverAdmin(VersionAdmin):
-    list_display = ['pk', 'who', 'key']
-    raw_id_fields = ['who']
-
-
 @admin.register(Tagging)
 class TaggingAdmin(VersionAdmin):
 
@@ -123,6 +117,11 @@ class MemberAdmin(VersionAdmin):
             'nudge_count',
         ]
 
+    class PushoverInline(admin.TabularInline):
+        model = Pushover
+        extra = 0
+        fields = ['who', 'mechanism', 'key']
+
     def _active(self, obj) -> bool:
         return obj.auth_user.is_active
     _active.boolean = True
@@ -166,7 +165,7 @@ class MemberAdmin(VersionAdmin):
 
     list_filter = [MemberTypeFilter]
 
-    inlines = [MemberNoteInline, TaggingForMember, MembershipInline]
+    inlines = [MemberNoteInline, TaggingForMember, PushoverInline, MembershipInline]
 
     class Media:
         css = {
