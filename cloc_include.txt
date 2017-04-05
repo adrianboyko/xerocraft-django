@@ -1,5 +1,6 @@
 abutils
 books
+flock
 inventory
 members
 modelmailer

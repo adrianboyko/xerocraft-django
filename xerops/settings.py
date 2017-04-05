@@ -316,7 +316,7 @@ HELPDESK_KB_ENABLED = False
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # JENKINS
 
-PROJECT_APPS = ('abutils', 'books', 'inventory', 'members', 'modelmailer', 'tasks', 'xerops', 'xis')
+PROJECT_APPS = ('abutils', 'books', 'flock', 'inventory', 'members', 'modelmailer', 'tasks', 'xerops', 'xis')
 
 JENKINS_TASKS = (
     # 'django_jenkins.tasks.run_pep8',
