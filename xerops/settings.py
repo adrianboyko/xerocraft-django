@@ -121,6 +121,7 @@ INSTALLED_APPS += (
     'reversion',
     'modelmailer',
     'django_sabayon',
+    'flock',
 
     'markdown_deux',  # for helpdesk
     'bootstrapform',  # for helpdesk

@@ -2,10 +2,12 @@
 
 # Standard
 from decimal import Decimal
+from datetime import date, timedelta
 
 # Third-party
 from django.db import models
 from django.contrib.auth.models import User
+from django.utils import timezone
 
 # Local
 
@@ -82,6 +84,23 @@ class TimePattern(models.Model):
 class Person(Entity):
     """An instructor, organizer, student, etc."""
     django_user = models.ForeignKey(User, models.CASCADE, null=False, blank=False)
+    rest_time = models.IntegerField(default=1, help_text="Minimum days between meetings.")
+
+    @property
+    def most_recent_meeting_date(self) -> date:
+        try:
+            # noinspection PyUnresolvedReferences
+            eim = EntityInMeeting.objects\
+                .filter(entity=self.entity_ptr, meeting__starts__lt=timezone.now())\
+                .latest('meeting__starts')  # type: EntityInMeeting
+            return eim.meeting.starts
+        except EntityInMeeting.DoesNotExist:
+            return date.min
+
+    @property
+    def is_resting(self) -> bool:
+        time_since_last_meeting = timezone.now() - self.most_recent_meeting_date
+        return time_since_last_meeting < timedelta(days=self.rest_time)
 
 
 class Resource(Entity):
@@ -147,13 +166,13 @@ class Meeting(models.Model):
     status = models.CharField(max_length=3, choices=STATUS_CHOICES, default=STATUS_VERIFYING)
 
     starts = models.DateTimeField(null=False, blank=False)
-    duration = models.DecimalField(max_digits=4, decimal_places=2, null=False)
+    duration = models.DecimalField(max_digits=4, decimal_places=2, null=False, blank=False)
 
-    asked_instructor = models.DateField(default=None)
-    asked_assistants = models.DateField(default=None)
-    asked_students = models.DateField(default=None)
-    invoiced_students = models.DateField(default=None)
-    asked_for_resources = models.DateField(default=None)  # Maybe at same time we invoice.
+    asked_instructor = models.DateField(default=None, null=True, blank=True)
+    asked_assistants = models.DateField(default=None, null=True, blank=True)
+    asked_students = models.DateField(default=None, null=True, blank=True)
+    invoiced_students = models.DateField(default=None, null=True, blank=True)
+    asked_for_resources = models.DateField(default=None, null=True, blank=True)  # Maybe at same time we invoice.
 
     instructor_is_go = models.BooleanField(default=False)
     assistants_are_go = models.BooleanField(default=False)
@@ -161,7 +180,9 @@ class Meeting(models.Model):
     students_have_paid = models.BooleanField(default=False)  # I.e. more than min required.
     resources_are_go = models.BooleanField(default=False)
 
-    seats_still_available = models.IntegerField()
+    @property
+    def student_seats_available(self):
+        return 0  # TODO: Real implementation
 
 
 class EntityInMeeting(models.Model):
