@@ -24,7 +24,7 @@ class XerocraftScraper(object):
 
     def __init__(self):
         super().__init__()
-        self.logger = logging.getLogger("xerocraft-django")
+        self.logger = logging.getLogger("xis")
         self.session = requests.session()
 
     # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =

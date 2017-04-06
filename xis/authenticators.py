@@ -20,7 +20,7 @@ class XerocraftBackend(ModelBackend):
 
         identifier = username  # Given "username" is actually a more generic identifier.
         session = requests.session()
-        logger = logging.getLogger("xerocraft-django")
+        logger = logging.getLogger("xis")
         server = "https://www.xerocraft.org/"  # Allows easy switching to test site. IMPORTANT: Restore before commit
         action_url = server+"actions.php"
 

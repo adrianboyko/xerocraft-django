@@ -260,6 +260,22 @@ LOGGING = {
         }
     },
     'loggers': {
+        'bezewy-ops': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+        'books': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+        'flock': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+        'members': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
         'modelmailer': {
             'handlers': ['console'],
             'level': 'INFO',
@@ -268,18 +284,10 @@ LOGGING = {
             'handlers': ['console'],
             'level': 'INFO',
         },
-        'members': {
+        'xis': {
             'handlers': ['console'],
             'level': 'INFO',
         },
-        'xerocraft-django': {
-            'handlers': ['console'],
-            'level': 'INFO',
-        },
-        'books': {
-            'handlers': ['console'],
-            'level': 'INFO',
-        }
     }
 }
 
