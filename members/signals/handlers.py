@@ -24,6 +24,7 @@ logger = logging.getLogger("members")
 
 @receiver(post_save, sender=User)
 def create_default_member(sender, **kwargs):
+    """Whenever a User is created, create a corresponding Member and give it a Member tag."""
     if kwargs.get('created', True):
 
         m,_ = Member.objects.get_or_create(auth_user=kwargs.get('instance'))
@@ -89,14 +90,7 @@ def email_for_saved_tagging(sender, **kwargs):
         #TODO: Send email to other members with the same can_tag privilege informing them.
         pass
 
-
-# TODO: When a tagging is deleted:
-# See if there's a membership based on a group membership that should be deleted/modified.
-# @receiver(pre_delete, sender=Tagging)
-# def group_membership_pre_delete(sender, **kwargs):
-#     gm = kwargs.get('instance')
-#     for membership in gm.membership_set.all():
-#         membership.delete()
+# NOTE: DO NOT attempt to automatically manage group memberships here.
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -113,32 +107,32 @@ def link_membership_to_member(sender, **kwargs):
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# LOGIN
+# LOGIN (No longer of interest)
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-@receiver(user_logged_in)
-def note_login(sender, user, request, **kwargs):  # https://code.djangoproject.com/ticket/22111
-    try:
-        ip = get_ip_address(request)
-        if ip is None:
-            # IP is none when connecting from Client in tests.
-            # TODO: Assert that this is a dev machine?
-            return
-        logger.info("Login: %s at %s" % (user, ip))
-        MemberLogin.objects.create(member=user.member, ip=ip)
-
-        # TODO: Shouldn't have a hard-coded userid here. Make configurable, perhaps with tags.
-        recipient = Member.objects.get(auth_user__username='adrianb')
-        if recipient.auth_user != user:
-            message = "{}\n{}".format(user.username, ip)
-            notifications.notify(recipient, "Log-In", message)
-
-    except Exception as e:
-        # Failures here should not prevent the login from completing normally.
-        try:
-            logger.error("Problem noting login of %s from %s: %s", str(user), str(ip), str(e))
-        except Exception as e2:
-            logger.error("Problem noting login exception: %s", str(e2))
+# @receiver(user_logged_in)
+# def note_login(sender, user, request, **kwargs):  # https://code.djangoproject.com/ticket/22111
+#     try:
+#         ip = get_ip_address(request)
+#         if ip is None:
+#             # IP is none when connecting from Client in tests.
+#             # TODO: Assert that this is a dev machine?
+#             return
+#         logger.info("Login: %s at %s" % (user, ip))
+#         MemberLogin.objects.create(member=user.member, ip=ip)
+#
+#         # TODO: Shouldn't have a hard-coded userid here. Make configurable, perhaps with tags.
+#         recipient = Member.objects.get(auth_user__username='adrianb')
+#         if recipient.auth_user != user:
+#             message = "{}\n{}".format(user.username, ip)
+#             notifications.notify(recipient, "Log-In", message)
+#
+#     except Exception as e:
+#         # Failures here should not prevent the login from completing normally.
+#         try:
+#             logger.error("Problem noting login of %s from %s: %s", str(user), str(ip), str(e))
+#         except Exception as e2:
+#             logger.error("Problem noting login exception: %s", str(e2))
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -147,6 +141,9 @@ def note_login(sender, user, request, **kwargs):  # https://code.djangoproject.c
 
 @receiver(post_save, sender=GroupMembership)
 def group_membership_post_save(sender, **kwargs):
+    """Create the initial memberships based on the CURRENT taggings."""
+    # Any further changes should be made through Admin.
+
     gm = kwargs.get('instance')
     if gm.membership_set.count() == 0:
         for taggee in gm.group_tag.members.all():  # type Member

@@ -23,7 +23,6 @@ from icalendar import Calendar, Event, vCalAddress, vText
 from tasks.forms import Desktop_TimeSheetForm
 from tasks.models import Task, Nag, Claim, Work, WorkNote, Worker, TimeWindowedObject
 from members.models import Member, VisitEvent
-from members.signals.handlers import note_login
 from members.views import kiosk_visitevent_contentprovider
 
 
@@ -269,12 +268,6 @@ def verify_claim(request, task_pk, claim_pk, will_do, auth_token):
 
     assert nag.who == claimant
     assert(claim in nag.claims.all())
-
-    # Can't do the following because error: 'User' object has no attribute 'backend'
-    # if not request.user.is_authenticated():
-    #     login(request, claimant.auth_user)
-    # So do this instead:
-    note_login(None, claimant.auth_user, request)
 
     if will_do == "Y":  # The default claimant verifies they will do the work.
         try:
