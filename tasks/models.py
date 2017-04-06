@@ -3,8 +3,9 @@
 import logging
 import abc
 from decimal import Decimal
-from datetime import date, timedelta, datetime
+from datetime import date, timedelta, datetime  # TODO: Replace datetime with django.utils.timezone
 import re
+from typing import Optional
 
 # Third party
 from django.db import models
@@ -901,6 +902,23 @@ class Worker(models.Model):
 
     @property
     def is_active(self): return self.member.is_active
+
+    @classmethod
+    def scheduled_receptionist(cls) -> Optional[mm.Member]:
+        """Returns the currently scheduled receptionis, or None."""
+        receptionTaskNames = [
+            # TODO: Make this configurable. These are Xerocraft specific task names.
+            "Open, Staff",
+            "Open, Staff, Close",
+            "Staff, Close",
+        ]
+        for claim in Claim.objects.filter(claimed_task__scheduled_date=date.today()).all():
+            if claim.claimed_task.short_desc not in receptionTaskNames:
+                continue
+            dur_into_claim = datetime.now() - claim.window_start_datetime()  # type: timedelta
+            if dur_into_claim > timedelta(0) and dur_into_claim < claim.claimed_duration:
+                if claim.status in [Claim.STAT_CURRENT, Claim.STAT_WORKING]:
+                    return claim.claiming_member
 
     class Meta:
         ordering = [

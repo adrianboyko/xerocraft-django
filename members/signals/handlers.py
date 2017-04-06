@@ -38,47 +38,6 @@ def create_default_member(sender, **kwargs):
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# VISIT
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-@receiver(pre_save, sender=VisitEvent)  # Making this PRE-save because I want to get latest before save.
-def note_checkin(sender, **kwargs):
-    try:
-        if kwargs.get('created', True):
-            visit = kwargs.get('instance')
-
-            # We're only interested in arrivals
-            if visit.event_type != VisitEvent.EVT_ARRIVAL:
-                return
-
-            # TODO: Shouldn't have a hard-coded userid here. Make configurable, perhaps with tags.
-            recipient = Member.objects.get(auth_user__username='adrianb')
-            if visit.who == recipient:
-                # No need to inform the recipient that they're visiting
-                return
-
-            # RFID checkin systems may fire multiple times. Skip checkin if "too close" to the prev checkin time.
-            try:
-                recent_visit = VisitEvent.objects.filter(who=visit.who, event_type=VisitEvent.EVT_ARRIVAL).latest('when')
-                delta = visit.when - recent_visit.when
-            except VisitEvent.DoesNotExist:
-                delta = timedelta.max
-            if delta < timedelta(hours=1):
-                return
-
-            vname = "{} {}".format(visit.who.first_name, visit.who.last_name).strip()
-            vname = "Anonymous" if len(vname) == "" else vname
-            vstat = "Paid" if visit.who.is_currently_paid() else "Unpaid"
-
-            message = "{}\n{}\n{}".format(visit.who.username, vname, vstat)
-            notifications.notify(recipient, "Check-In", message)
-
-    except Exception as e:
-        # Makes sure that problems here do not prevent the visit event from being saved!
-        logger.error("Problem in note_checkin: %s", str(e))
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # TAGGING
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

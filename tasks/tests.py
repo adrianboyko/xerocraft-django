@@ -20,7 +20,7 @@ from rest_framework.test import APIRequestFactory
 from rest_framework.test import force_authenticate
 
 # Local
-from tasks.models import RecurringTaskTemplate, Task, TaskNote, Claim, Work, WorkNote, Nag, Snippet
+from tasks.models import RecurringTaskTemplate, Task, TaskNote, Claim, Work, WorkNote, Nag, Snippet, Worker
 from members.models import Member, Tag, VisitEvent
 import tasks.restapi as restapi
 
@@ -28,6 +28,8 @@ ONEDAY = timedelta(days=1)
 TWODAYS   = 2 * ONEDAY
 THREEDAYS = 3 * ONEDAY
 FOURDAYS  = 4 * ONEDAY
+
+ONEHOUR = timedelta(hours=1)
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -917,7 +919,46 @@ class TestSnippets(TestCase):
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # Miscellaneous
 
-    class TestMisc(TestCase):
+class TestScheduledReceptionist(TestCase):
 
-        def test_with_dbcheck_command(self):
-            call_command('addmissingworkers')
+    def setUp(self):
+        user = User.objects.create_user(username='admin', password='123', email='')  # type User
+        self.member = user.member
+
+        self.task = Task.objects.create(
+            short_desc="Open, Staff, Close",
+            max_work=timedelta(hours=2),
+            max_workers=1,
+            work_start_time=time(17,0,0),
+            work_duration=timedelta(hours=2),
+            scheduled_date=date.today(),
+            orig_sched_date=date.today(),
+        )
+        self.task.full_clean()
+
+        self.claim = Claim.objects.create(
+            status=Claim.STAT_CURRENT,
+            claiming_member=self.member,
+            claimed_task=self.task,
+            claimed_duration=timedelta(hours=1.5),
+            claimed_start_time=self.task.work_start_time,
+        )
+        self.claim.full_clean()
+
+    def test_cases(self):
+        cases = [
+            (None, -1*ONEDAY),
+            (None, -1*ONEHOUR),
+            (self.member, ONEHOUR),
+            (None, 3*ONEHOUR),
+            (None, ONEDAY)
+        ]
+        for result, delta in cases:
+            with freeze_time(self.task.window_start_datetime() + delta):
+                self.assertEqual(Worker.scheduled_receptionist(), result)
+
+
+class TestMisc(TestCase):
+
+    def test_with_dbcheck_command(self):
+        call_command('addmissingworkers')
