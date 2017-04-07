@@ -260,7 +260,7 @@ LOGGING = {
         }
     },
     'loggers': {
-        'bezewy-ops': {
+        'xerops': {
             'handlers': ['console'],
             'level': 'INFO',
         },

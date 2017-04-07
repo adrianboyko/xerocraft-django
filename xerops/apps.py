@@ -2,7 +2,7 @@ from django.apps import AppConfig
 
 
 class BezewyOpsAppConfig(AppConfig):
-    name = 'bezewy-ops'
+    name = 'xerops'
     verbose_name = 'Bezewy Ops'
 
     def ready(self):
