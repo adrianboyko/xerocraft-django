@@ -26,20 +26,20 @@ def notify(
   title: str,
   message: str,
   url: str = None,
-  url_title: str = None):
+  url_title: str = None) -> bool:
 
     if not pushover_available:
-        return
+        return False
 
     # TODO: Code currently only uses Pushover mechanism. Should be updated to use alternate mechanisms.
     try:
         target_key = Pushover.objects.get(who=target_member).key
-    except Pushover.DoesNotExist:
-        logger.error("Couldn't send msg to %s since there's no pushover key for them.", str(target_member))
-        return
-
-    try:
         client = pushover.Client(target_key)
         client.send_message(message, title=title, url=url, url_title=url_title)
+        return True
+    except Pushover.DoesNotExist:
+        logger.warning("Couldn't send msg to %s since there's no pushover key for them.", str(target_member))
+        return False
     except Exception as e:
         logger.error("Couldn't send msg to %s because %s", str(target_member), str(e))
+        return False
