@@ -96,7 +96,11 @@ def maintenance_nag(sender, **kwargs):
             recurring_task_template__missed_date_action=RecurringTaskTemplate.MDA_SLIDE_SELF_AND_LATER,
         )
 
-        # Nag by sending a notification for each task the member could work.
+        # We're going to want to send msgs to a manager to let them know that people were asked to do the work.
+        # TODO: Shouldn't have a hard-coded userid here. Make configurable, perhaps with tags.
+        mgr = Member.objects.get(auth_user__username='adrianb')
+
+        # Nag the visitor by sending a notification for each task they could work.
         for task in tasks:  # type: Task
 
             # Create the nag
@@ -121,7 +125,7 @@ def maintenance_nag(sender, **kwargs):
 
             relative = reverse('task:note-task-done', kwargs={'task_pk': task.id, 'auth_token': b64})
             # Send the notification
-            notifications.notify(
+            was_sent = notifications.notify(
                 visit.who,
                 task.short_desc,
                 message,
@@ -129,15 +133,17 @@ def maintenance_nag(sender, **kwargs):
                 url_title="I Did It!",
             )
 
-            # Send a notification to manager(s) to let them know that somebody was asked to do the task.
-            # TODO: Shouldn't have a hard-coded userid here. Make configurable, perhaps with tags.
-            mgr = Member.objects.get(auth_user__username='adrianb')
-            if visit.who != mgr:
-                notifications.notify(
-                    mgr,
-                    task.short_desc,
-                    visit.who.friendly_name + " was asked to work this task.",
-                )
+            if was_sent:
+                # Let manager know:
+                if visit.who != mgr:
+                    notifications.notify(
+                        mgr,
+                        task.short_desc,
+                        visit.who.friendly_name + " was asked to work this task.",
+                    )
+            else:
+                # If the notification wasn't sent, then the user wasn't actually nagged.
+                nag.delete()
 
     except Exception as e:
         # Makes sure that problems here do not prevent subsequent processing.
