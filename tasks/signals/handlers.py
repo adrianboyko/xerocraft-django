@@ -22,8 +22,8 @@ def unused(x): x  # To suppress unused argument warnings.
 
 
 @receiver(post_save, sender=Tagging)
-def act_on_new_tag(_sender, **kwargs):
-    unused(_sender)
+def act_on_new_tag(sender, **kwargs):
+    unused(sender)
     if kwargs.get('created', True):
         pass
         """ TODO: Check to see if this new tagging makes the tagged_member eligible for a task
@@ -32,15 +32,15 @@ def act_on_new_tag(_sender, **kwargs):
 
 
 @receiver(post_save, sender=Member)
-def create_default_worker(_sender, **kwargs):
-    unused(_sender)
+def create_default_worker(sender, **kwargs):
+    unused(sender)
     if kwargs.get('created', True):
         w, _ = Worker.objects.get_or_create(member=kwargs.get('instance'))
 
 
 @receiver(pre_save, sender=Claim)
-def staffing_update_notification(_sender, **kwargs):
-    unused(_sender)
+def staffing_update_notification(sender, **kwargs):
+    unused(sender)
     try:
         if kwargs.get('created', True):
             claim = kwargs.get('instance')  # type: Claim
@@ -74,9 +74,9 @@ HOST = "https://" + Site.objects.get_current().domain
 
 
 @receiver(pre_save, sender=VisitEvent)  # Making this PRE-save because I want to get latest before save.
-def notify_staff_of_checkin(_sender, **kwargs):
+def notify_staff_of_checkin(sender, **kwargs):
     """Notify a staffer of a visitor's paid status when that visitor checks in."""
-    unused(_sender)
+    unused(sender)
     try:
         if kwargs.get('created', True):
             visit = kwargs.get('instance')
@@ -111,8 +111,8 @@ def notify_staff_of_checkin(_sender, **kwargs):
 
 
 @receiver(post_save, sender=VisitEvent)
-def maintenance_nag(_sender, **kwargs):
-    unused(_sender)
+def maintenance_nag(sender, **kwargs):
+    unused(sender)
     try:
         visit = kwargs.get('instance')  # type: VisitEvent
 
