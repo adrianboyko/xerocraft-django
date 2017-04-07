@@ -9,7 +9,7 @@ from django.core.urlresolvers import reverse
 from django.contrib.sites.models import Site
 
 # Local
-from members.models import Member, Tagging, VisitEvent, Pushover
+from members.models import Member, Tagging, VisitEvent
 from tasks.models import Task, Worker, Claim, Nag, RecurringTaskTemplate
 import members.notifications as notifications
 
@@ -18,8 +18,12 @@ __author__ = 'Adrian'
 logger = logging.getLogger("tasks")
 
 
+def unused(x): x  # To suppress unused argument warnings.
+
+
 @receiver(post_save, sender=Tagging)
-def act_on_new_tag(sender, **kwargs):
+def act_on_new_tag(_sender, **kwargs):
+    unused(_sender)
     if kwargs.get('created', True):
         pass
         """ TODO: Check to see if this new tagging makes the tagged_member eligible for a task
@@ -28,13 +32,15 @@ def act_on_new_tag(sender, **kwargs):
 
 
 @receiver(post_save, sender=Member)
-def create_default_worker(sender, **kwargs):
+def create_default_worker(_sender, **kwargs):
+    unused(_sender)
     if kwargs.get('created', True):
-        w,_ = Worker.objects.get_or_create(member=kwargs.get('instance'))
+        w, _ = Worker.objects.get_or_create(member=kwargs.get('instance'))
 
 
 @receiver(pre_save, sender=Claim)
-def staffing_update_notification(sender, **kwargs):
+def staffing_update_notification(_sender, **kwargs):
+    unused(_sender)
     try:
         if kwargs.get('created', True):
             claim = kwargs.get('instance')  # type: Claim
@@ -67,8 +73,46 @@ def staffing_update_notification(sender, **kwargs):
 HOST = "https://" + Site.objects.get_current().domain
 
 
+@receiver(pre_save, sender=VisitEvent)  # Making this PRE-save because I want to get latest before save.
+def notify_staff_of_checkin(_sender, **kwargs):
+    """Notify a staffer of a visitor's paid status when that visitor checks in."""
+    unused(_sender)
+    try:
+        if kwargs.get('created', True):
+            visit = kwargs.get('instance')
+
+            # We're only interested in arrivals
+            if visit.event_type != VisitEvent.EVT_ARRIVAL:
+                return
+
+            recipient = Worker.scheduled_receptionist()
+            if recipient is None:
+                return
+
+            # RFID checkin systems may fire multiple times. Skip checkin if "too close" to the prev checkin time.
+            try:
+                recent_visit = VisitEvent.objects.filter(who=visit.who, event_type=VisitEvent.EVT_ARRIVAL).latest('when')
+                delta = visit.when - recent_visit.when
+            except VisitEvent.DoesNotExist:
+                delta = timedelta.max
+            if delta < timedelta(hours=1):
+                return
+
+            vname = "{} {}".format(visit.who.first_name, visit.who.last_name).strip()
+            vname = "Anonymous" if len(vname) == "" else vname
+            vstat = "Paid" if visit.who.is_currently_paid() else "Unpaid"
+
+            message = "{}\n{}\n{}".format(visit.who.username, vname, vstat)
+            notifications.notify(recipient, "Check-In", message)
+
+    except Exception as e:
+        # Makes sure that problems here do not prevent the visit event from being saved!
+        logger.error("Problem in note_checkin: %s", str(e))
+
+
 @receiver(post_save, sender=VisitEvent)
-def maintenance_nag(sender, **kwargs):
+def maintenance_nag(_sender, **kwargs):
+    unused(_sender)
     try:
         visit = kwargs.get('instance')  # type: VisitEvent
 
@@ -148,4 +192,3 @@ def maintenance_nag(sender, **kwargs):
     except Exception as e:
         # Makes sure that problems here do not prevent subsequent processing.
         logger.error("Problem in maintenance_nag: %s", str(e))
-
