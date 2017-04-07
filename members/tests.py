@@ -23,6 +23,7 @@ from members.notifications import pushover_available
 from members.management.commands.membershipnudge import Command as MembershipNudgeCmd
 import members.views as views
 
+
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 class TestMemberNag(TestCase):
@@ -44,7 +45,7 @@ class TestMemberNag(TestCase):
             self.memb.clean()
             self.memb.save()
 
-            visit = VisitEvent.objects.create(
+            VisitEvent.objects.create(
                 who=self.memb,
                 when=timezone.now() - timedelta(days=1),  # membernag looks at previous day's visits.
                 method=VisitEvent.METHOD_RFID,
@@ -127,7 +128,7 @@ class TestMembers(TestCase):
     def setUp(self):
         ab = User.objects.create_user(username='fake1', first_name="Andrew", last_name="Baker", password="fake1")
 
-    #TODO: Remove this test if TestMemberValidity can be made to work.
+    # TODO: Remove this test if TestMemberValidity can be made to work.
     def test_member_validity(self):
         for u in User.objects.all():
             m = u.member
@@ -139,8 +140,8 @@ class TestMembers(TestCase):
             m = u.member
             self.assertTrue(m is not None)
             tag_names = [x.name for x in m.tags.all()]
-            self.assertTrue("Member" in tag_names) # Every member should have this tag.
-            self.assertTrue(m.auth_user is not None) # Every member should be connected to a Django user.
+            self.assertTrue("Member" in tag_names)  # Every member should have this tag.
+            self.assertTrue(m.auth_user is not None)  # Every member should be connected to a Django user.
 
 
 class TestCardsAndApi(TestCase):
@@ -162,7 +163,7 @@ class TestCardsAndApi(TestCase):
 
     def test_member_details_is_staff(self):
         tag = Tag.objects.create(name="Staff", meaning="spam")
-        tagging = Tagging.objects.create(tagged_member=self.m2, tag=tag, authorizing_member=self.m2)
+        Tagging.objects.create(tagged_member=self.m2, tag=tag, authorizing_member=self.m2)
         c = Client()
         path = "/members/api/member-details/%s_%s/" % (self.str1, self.str2)
         response = c.get(path)
@@ -246,13 +247,13 @@ class TestRestApi_Member(TestCase):
         self.assertTrue(logged_in)
 
     def test_get_self(self):
-        urlstr = reverse("memb:member-detail", kwargs={'pk':self.caller.auth_user.pk})
+        urlstr = reverse("memb:member-detail", kwargs={'pk': self.caller.auth_user.member.pk})
         response = self.client.get(urlstr)
         # Any member should be able to see their own private fields:
         self.assertContains(response, "caller@example.com")
 
     def test_get_other_as_regular(self):
-        urlstr = reverse("memb:member-detail", kwargs={'pk':self.poi.auth_user.pk})
+        urlstr = reverse("memb:member-detail", kwargs={'pk': self.poi.auth_user.member.pk})
         response = self.client.get(urlstr)
         # Regular member should not be able to see private field of another member.
         self.assertNotContains(response, "poi@example.com")
@@ -260,7 +261,7 @@ class TestRestApi_Member(TestCase):
     def test_get_as_director(self):
         tag = Tag.objects.create(name="Director", meaning="spam")
         Tagging.objects.create(tagged_member=self.caller, tag=tag)
-        urlstr = reverse("memb:member-detail", kwargs={'pk': self.poi.auth_user.pk})
+        urlstr = reverse("memb:member-detail", kwargs={'pk': self.poi.auth_user.member.pk})
         response = self.client.get(urlstr)
         # Director should be able to see private field of another member.
         self.assertContains(response, "poi@example.com")
@@ -268,7 +269,7 @@ class TestRestApi_Member(TestCase):
     def test_get_as_staff(self):
         tag = Tag.objects.create(name="Staff", meaning="spam")
         Tagging.objects.create(tagged_member=self.caller, tag=tag)
-        urlstr = reverse("memb:member-detail", kwargs={'pk': self.poi.auth_user.pk})
+        urlstr = reverse("memb:member-detail", kwargs={'pk': self.poi.auth_user.member.pk})
         response = self.client.get(urlstr)
         # Staff should be able to see private field of another member.
         self.assertContains(response, "poi@example.com")
@@ -381,7 +382,7 @@ class RfidEntry(TestCase):
         Membership.objects.create(
             member=self.memb,
             start_date=date.today()-timedelta(days=7),
-            end_date = date.today()+timedelta(days=7),
+            end_date=date.today()+timedelta(days=7),
         )
         path = reverse('memb:rfid-entry-requested', args=[self.registered_card])
         response = self.client.get(path)
@@ -396,7 +397,7 @@ class RfidEntry(TestCase):
         Membership.objects.create(
             member=self.memb,
             start_date=date.today()-timedelta(days=14),
-            end_date = date.today()-timedelta(days=7),
+            end_date=date.today()-timedelta(days=7),
         )
         path = reverse('memb:rfid-entry-requested', args=[self.registered_card])
         response = self.client.get(path)
