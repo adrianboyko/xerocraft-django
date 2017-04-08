@@ -2,7 +2,7 @@
 
 # Standard
 from decimal import Decimal
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 # Third-party
 from django.db import models
@@ -11,10 +11,103 @@ from django.utils import timezone
 
 # Local
 
+LONG_AGO = timezone.now()-timedelta(days=3650)
 
-class Entity(models.Model):
-    """Entities can play a role in a Proposal or a Meeting."""
-    pass
+
+class Person(models.Model):
+    """An instructor, organizer, student, etc."""
+    django_user = models.ForeignKey(User, models.CASCADE, null=False, blank=False)
+    rest_time = models.IntegerField(default=1, help_text="Minimum days between classes.")
+
+    @property
+    def most_recent_class_start(self) -> date:
+        try:
+            pisc = PersonInScheduledClass.objects\
+                .filter(
+                  person=self,
+                  scheduled_class__starts__lt=timezone.now(),
+                  scheduled_class__status=ScheduledClass.STATUS_VERIFIED
+                )\
+                .latest('scheduled_class__starts')  # type: PersonInScheduledClass
+            return pisc.scheduled_class.starts
+        except PersonInScheduledClass.DoesNotExist:
+            return LONG_AGO
+
+    @property
+    def is_resting(self) -> bool:
+        time_since_last_class = timezone.now() - self.most_recent_class_start
+        return time_since_last_class < timedelta(days=self.rest_time)
+
+
+class Resource(models.Model):
+    """A room, a machine, etc."""
+    name = models.CharField(max_length=80)
+    short_description = models.CharField(max_length=240)
+    long_description = models.TextField(max_length=2048)
+    managers_email = models.EmailField(help_text="If blank, instructors will need to manually book the resource.")
+
+
+class ResourceControl(models.Model):
+
+    TYPE_OWNER = "OWN"  # Controls availability of the resource and can grant 'manager' privs.
+    TYPE_MANAGER = "MGR"  # Same as 'owner' but can't grant 'manager' privs.
+    TYPE_CHOICES = [(TYPE_OWNER, "Owner"), (TYPE_MANAGER, "Manager")]
+
+    person = models.ForeignKey(Person, models.CASCADE, null=False, blank=False)
+    resource = models.ForeignKey(Resource, models.CASCADE, null=False, blank=False)
+    type = models.CharField(max_length=3, choices=TYPE_CHOICES, null=False, blank=False)
+
+
+class ClassTemplate(models.Model):
+
+    name = models.CharField(max_length=80, null=False, blank=False)
+    short_description = models.CharField(max_length=240, null=False, blank=False)
+    long_description = models.TextField(max_length=2048, null=False, blank=False)
+    duration = models.DecimalField(max_digits=4, decimal_places=2, null=False, blank=False)
+    min_students_required = models.IntegerField()
+    max_students_allowed = models.IntegerField()
+    max_students_for_teacher = models.IntegerField()
+    additional_students_per_ta = models.IntegerField()
+
+    def instantiate(self, scheduled_start: datetime) -> 'ScheduledClass':
+        sc = ScheduledClass.objects.create(
+            class_template=self,
+            starts=scheduled_start,
+            duration=self.duration,
+            status=ScheduledClass.STATUS_VERIFYING,
+        )
+        for pict in self.personinclasstemplate_set.all():
+            PersonInScheduledClass.objects.create(
+                scheduled_class=sc,
+                person=pict.person,
+                role=pict.role
+            )
+        return sc
+
+
+class PersonInClassTemplate(models.Model):
+
+    ROLE_TEACHER = "TCH"
+    ROLE_ASSISTANT = "HLP"
+    ROLE_STUDENT = "STU"
+    ROLE_CHOICES = [
+        (ROLE_TEACHER, "Teacher"),
+        (ROLE_ASSISTANT, "Teaching Assistant"),
+        (ROLE_STUDENT, "Student"),
+    ]
+
+    person = models.ForeignKey(Person, models.CASCADE, null=False, blank=False)
+    class_template = models.ForeignKey(ClassTemplate, models.CASCADE, null=False, blank=False)
+    role = models.CharField(max_length=3, choices=ROLE_CHOICES, null=False, blank=False)
+    last_verified = models.DateField(auto_now_add=True, null=False, blank=False)
+    time_patterns = models.ManyToManyField('TimePattern')
+
+
+class ResourceInClassTemplate(models.Model):
+
+    resource = models.ForeignKey(Resource, models.CASCADE, null=False, blank=False)
+    class_template = models.ForeignKey(ClassTemplate, models.CASCADE, null=False, blank=False)
+    time_patterns = models.ManyToManyField('TimePattern')
 
 
 class TimePattern(models.Model):
@@ -70,7 +163,10 @@ class TimePattern(models.Model):
     minute = models.IntegerField(choices=[(i, i) for i in range(0, 60)], null=False, blank=False)
     morning = models.BooleanField(default=False)
     duration = models.DecimalField(max_digits=3, decimal_places=2, null=False, blank=False)
-    entity = models.ForeignKey(Entity, models.CASCADE, null=False, blank=False)
+
+    # Each time pattern belongs to a specific Person or Resource. Only set one of these two:
+    person = models.ForeignKey(PersonInClassTemplate, models.CASCADE, null=True, blank=True)
+    resource = models.ForeignKey(ResourceInClassTemplate, models.CASCADE, null=True, blank=True)
 
     def __str__(self) -> str:
         return "{} {} @ {}:{} {} for {} hour{}".format(
@@ -81,77 +177,7 @@ class TimePattern(models.Model):
         )
 
 
-class Person(Entity):
-    """An instructor, organizer, student, etc."""
-    django_user = models.ForeignKey(User, models.CASCADE, null=False, blank=False)
-    rest_time = models.IntegerField(default=1, help_text="Minimum days between meetings.")
-
-    @property
-    def most_recent_meeting_date(self) -> date:
-        try:
-            # noinspection PyUnresolvedReferences
-            eim = EntityInMeeting.objects\
-                .filter(entity=self.entity_ptr, meeting__starts__lt=timezone.now())\
-                .latest('meeting__starts')  # type: EntityInMeeting
-            return eim.meeting.starts
-        except EntityInMeeting.DoesNotExist:
-            return date.min
-
-    @property
-    def is_resting(self) -> bool:
-        time_since_last_meeting = timezone.now() - self.most_recent_meeting_date
-        return time_since_last_meeting < timedelta(days=self.rest_time)
-
-
-class Resource(Entity):
-    """A room, a machine, etc."""
-    name = models.CharField(max_length=80)
-    short_description = models.CharField(max_length=240)
-    long_description = models.TextField(max_length=2048)
-    managers_email = models.EmailField(help_text="If blank, instructors will need to manually book the resource.")
-
-
-class ResourceControl(models.Model):
-
-    TYPE_OWNER = "OWN"  # Controls availability of the resource and can grant 'manager' privs.
-    TYPE_MANAGER = "MGR"  # Same as 'owner' but can't grant 'manager' privs.
-    TYPE_CHOICES = [(TYPE_OWNER, "Owner"), (TYPE_MANAGER, "Manager")]
-
-    person = models.ForeignKey(Person, models.CASCADE, null=False, blank=False)
-    resource = models.ForeignKey(Resource, models.CASCADE, null=False, blank=False)
-    type = models.CharField(max_length=3, choices=TYPE_CHOICES, null=False, blank=False)
-
-
-class Proposal(models.Model):
-    name = models.CharField(max_length=80)
-    short_description = models.CharField(max_length=240)
-    long_description = models.TextField(max_length=2048)
-    min_students_required = models.IntegerField()
-    max_students_allowed = models.IntegerField()
-    max_students_for_teacher = models.IntegerField()
-    additional_students_per_ta = models.IntegerField()
-
-
-class EntityInProposal(models.Model):
-    entity = models.ForeignKey(Entity, models.CASCADE, null=False, blank=False)
-    proposal = models.ForeignKey(Proposal, models.CASCADE, null=False, blank=False)
-    last_verified = models.DateField(auto_now_add=True, null=False, blank=False)
-
-
-class PersonInProposal(EntityInProposal):
-
-    ROLE_TEACHER = "TCH"
-    ROLE_ASSISTANT = "HLP"
-    ROLE_STUDENT = "STU"
-    ROLE_CHOICES = [
-        (ROLE_TEACHER, "Teacher"),
-        (ROLE_ASSISTANT, "Teaching Assistant"),
-        (ROLE_STUDENT, "Student"),
-    ]
-    role = models.CharField(max_length=3, choices=ROLE_CHOICES, null=False, blank=False)
-
-
-class Meeting(models.Model):
+class ScheduledClass(models.Model):
 
     STATUS_VERIFYING = "SO?"
     STATUS_VERIFIED = "G2G"
@@ -162,9 +188,8 @@ class Meeting(models.Model):
         (STATUS_FAILED, "People and/or resources weren't available"),
     ]
 
-    proposal = models.ForeignKey(Proposal, models.CASCADE, null=False, blank=False)
+    class_template = models.ForeignKey(ClassTemplate, models.CASCADE, null=False, blank=False)
     status = models.CharField(max_length=3, choices=STATUS_CHOICES, default=STATUS_VERIFYING)
-
     starts = models.DateTimeField(null=False, blank=False)
     duration = models.DecimalField(max_digits=4, decimal_places=2, null=False, blank=False)
 
@@ -174,33 +199,38 @@ class Meeting(models.Model):
     invoiced_students = models.DateField(default=None, null=True, blank=True)
     asked_for_resources = models.DateField(default=None, null=True, blank=True)  # Maybe at same time we invoice.
 
-    instructor_is_go = models.BooleanField(default=False)
-    assistants_are_go = models.BooleanField(default=False)
-    students_are_go = models.BooleanField(default=False)  # I.e. more than min required.
-    students_have_paid = models.BooleanField(default=False)  # I.e. more than min required.
-    resources_are_go = models.BooleanField(default=False)
+    @property
+    def student_seats_total(self) -> int:
+        """Determine how many seats are available given instructor and assistant statuses. Varies with time."""
+        piscs = PersonInScheduledClass.objects.filter(
+            scheduled_class=self,
+            role__in=[PersonInClassTemplate.ROLE_TEACHER, PersonInClassTemplate.ROLE_ASSISTANT],
+            status=PersonInScheduledClass.STATUS_APPROVED,
+        ).all()
+        total = 0
+        for pisc in piscs:  # type: PersonInScheduledClass
+            if pisc.role == PersonInClassTemplate.ROLE_ASSISTANT:
+                total += self.class_template.additional_students_per_ta
+            if pisc.role == PersonInClassTemplate.ROLE_TEACHER:
+                total += self.class_template.max_students_for_teacher
+        return min(total, self.class_template.max_students_allowed)
 
     @property
-    def student_seats_available(self):
-        return 0  # TODO: Real implementation
+    def student_seats_taken(self) -> int:
+        if self.status == ScheduledClass.STATUS_FAILED:
+            return 0
 
 
-class EntityInMeeting(models.Model):
-    entity = models.ForeignKey(Entity, models.CASCADE, null=False, blank=False)
-    meeting = models.ForeignKey(Meeting, models.CASCADE, null=False, blank=False)
-    last_updated = models.DateField(null=False, blank=False, auto_now_add=True)
+class PersonInScheduledClass(models.Model):
 
-
-class PersonInMeeting(EntityInMeeting):
-
-    STATUS_GOOD = "GUD"      # Time of meeting is good for person so we'll be asking them to attend.
-    STATUS_BAD = "BAD"       # Time of meeting is bad for person but we *might* ask them to attend.
+    STATUS_GOOD = "GUD"      # Time of class is good for person so we'll be asking them to attend.
+    STATUS_BAD = "BAD"       # Time of class is bad for person but we *might* ask them to attend.
     STATUS_ASKED = "SO?"     # We have asked the person if they'd like to attend.
     STATUS_MAYBE = "MAB"     # We might nag them further to turn them yes or no.
     STATUS_NO = "NOP"        # The person will not attend.
     STATUS_YES = "YES"       # The person WILL attend. Instructors/assitants skip this state and go to APPROVED.
     STATUS_INVOICED = "INV"  # The person has been invoiced.
-    STATUS_APPROVED = "G2G"  # The person has paid (if required) and is approved to attend the meeting.
+    STATUS_APPROVED = "G2G"  # The person has paid (if required) and is approved to attend the class.
     STATUS_CHOICES = [
         (STATUS_GOOD, "Will ask person to attend"),
         (STATUS_BAD, "Might ask person to attend"),
@@ -212,10 +242,17 @@ class PersonInMeeting(EntityInMeeting):
         (STATUS_APPROVED, "Person has been approved to attend")
     ]
 
+    person = models.ForeignKey(Person, models.CASCADE, null=False, blank=False)
+    scheduled_class = models.ForeignKey(ScheduledClass, models.CASCADE, null=False, blank=False)
+    last_updated = models.DateField(null=False, blank=False, auto_now_add=True)
     status = models.CharField(max_length=3, null=False)
 
+    # Role, below, should be initially copied from the corresponding ClassTemplate.
+    # The role can be modified later, if required, e.g. if an assistant will sub for the instructor.
+    role = models.CharField(max_length=3, choices=PersonInClassTemplate.ROLE_CHOICES, null=False)
 
-class ResourceInMeeting(EntityInMeeting):
+
+class ResourceInScheduledClass(models.Model):
 
     STATUS_NOT_YET_RESERVED = "NOT"  # This state is for resources that need to be manually booked by instructor.
     STATUS_ASKED_MANAGERS = "SO?"  # This state is for resources that can be automatically booked via email.
@@ -227,4 +264,6 @@ class ResourceInMeeting(EntityInMeeting):
     ]
 
     resource = models.ForeignKey(Resource, models.CASCADE, null=False, blank=False)
+    scheduled_class = models.ForeignKey(ScheduledClass, models.CASCADE, null=False, blank=False)
+    last_updated = models.DateField(null=False, blank=False, auto_now_add=True)
     status = models.CharField(max_length=3, choices=STATUS_CHOICES, null=False, blank=False)
