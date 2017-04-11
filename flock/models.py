@@ -8,6 +8,8 @@ from datetime import date, datetime, timedelta
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
+from django.core.exceptions import ValidationError
+from django.utils.translation import ugettext_lazy as _
 
 # Local
 
@@ -38,19 +40,32 @@ class Person(models.Model):
         time_since_last_class = timezone.now() - self.most_recent_class_start
         return time_since_last_class < timedelta(days=self.rest_time)
 
+    def note_timepattern_change(self):
+        for pict in self.personinclasstemplate_set.all():  # type: PersonInClassTemplate
+            # Only notify the ClassTemplates for which self's involvement doesn't have specific patterns.
+            if len(pict.time_patterns) == 0:
+                pict.class_template.note_timepattern_change()
+
 
 class Resource(models.Model):
     """A room, a machine, etc."""
+
     name = models.CharField(max_length=80)
     short_description = models.CharField(max_length=240)
     long_description = models.TextField(max_length=2048)
     managers_email = models.EmailField(help_text="If blank, instructors will need to manually book the resource.")
 
+    def note_timepattern_change(self):
+        for rict in self.resourceinclasstemplate_set.all():  # type: ResourceInClassTemplate
+            # Only notify the ClassTemplates for which self's involvement doesn't have specific patterns.
+            if len(rict.time_patterns) == 0:
+                rict.class_template.note_timepattern_change()
+
 
 class ResourceControl(models.Model):
 
-    TYPE_OWNER = "OWN"  # Controls availability of the resource and can grant 'manager' privs.
-    TYPE_MANAGER = "MGR"  # Same as 'owner' but can't grant 'manager' privs.
+    TYPE_OWNER = "OWN"  # Controls availability of the resource and can grant 'manager' privileges.
+    TYPE_MANAGER = "MGR"  # Same as 'owner' but can't grant 'manager' privileges.
     TYPE_CHOICES = [(TYPE_OWNER, "Owner"), (TYPE_MANAGER, "Manager")]
 
     person = models.ForeignKey(Person, models.CASCADE, null=False, blank=False)
@@ -84,9 +99,30 @@ class ClassTemplate(models.Model):
             )
         return sc
 
+    @property
+    def interested_student_count(self) -> int:
+        return self.personinclasstemplate_set.filter(role=PersonInClassTemplate.ROLE_STUDENT).count()
+
+    def evaluate_situation(self):
+        if self.interested_student_count > self.min_students_required:
+            pass
+
+    def note_timepattern_change(self):
+        self.evaluate_situation()
+
+    def note_personinclasstemplate_change(self):
+        self.evaluate_situation()
+
+    def note_resourceinclasstemplate_change(self):
+        self.evaluate_situation()
+
+    def __str__(self):
+        return self.name
+
 
 class PersonInClassTemplate(models.Model):
 
+    ROLE_ORGANIZER = "ORG"  # Might want to organize templates before there's a teacher, to collect students.
     ROLE_TEACHER = "TCH"
     ROLE_ASSISTANT = "HLP"
     ROLE_STUDENT = "STU"
@@ -100,14 +136,24 @@ class PersonInClassTemplate(models.Model):
     class_template = models.ForeignKey(ClassTemplate, models.CASCADE, null=False, blank=False)
     role = models.CharField(max_length=3, choices=ROLE_CHOICES, null=False, blank=False)
     last_verified = models.DateField(auto_now_add=True, null=False, blank=False)
+
+    # If time_patterns is empty, ALL of the person's time patterns will be used.
     time_patterns = models.ManyToManyField('TimePattern')
+
+    def note_personinclasstemplate_change(self):
+        self.class_template.note_personinclasstemplate_change()
 
 
 class ResourceInClassTemplate(models.Model):
 
     resource = models.ForeignKey(Resource, models.CASCADE, null=False, blank=False)
     class_template = models.ForeignKey(ClassTemplate, models.CASCADE, null=False, blank=False)
+
+    # If time_patterns is empty, ALL of the resource's time patterns will be used.
     time_patterns = models.ManyToManyField('TimePattern')
+
+    def note_resourceinclasstemplate_change(self):
+        self.class_template.note_resourceinclasstemplate_change()
 
 
 class TimePattern(models.Model):
@@ -165,12 +211,32 @@ class TimePattern(models.Model):
     duration = models.DecimalField(max_digits=3, decimal_places=2, null=False, blank=False)
 
     # Each time pattern belongs to a specific Person or Resource. Only set one of these two:
-    person = models.ForeignKey(PersonInClassTemplate, models.CASCADE, null=True, blank=True)
-    resource = models.ForeignKey(ResourceInClassTemplate, models.CASCADE, null=True, blank=True)
+    person = models.ForeignKey(Person, models.CASCADE, null=True, blank=True)
+    resource = models.ForeignKey(Resource, models.CASCADE, null=True, blank=True)
+
+    def note_timepattern_change(self):
+
+        # Notify the ClassTemplates which are directly associated with this time pattern:
+        for pict in self.personinclasstemplate_set.all():
+            pict.class_template.note_timepattern_change()
+        for rict in self.resourceinclasstemplate_set.all():
+            rict.class_template.note_timepattern_change()
+
+        # Notify the owner of this time pattern so it can notify other indirectly affected ClassTemplates:
+        if self.person is not None:
+            self.person.note_timepattern_change()
+        if self.resource is not None:
+            self.resource.note_timepattern_change()
+
+    def clean(self):
+        p = self.person is None
+        r = self.resource is None
+        if p == r:
+            raise ValidationError(_("TimePattern must be owned by a Person XOR a Resource!"))
 
     def __str__(self) -> str:
         return "{} {} @ {}:{} {} for {} hour{}".format(
-            self.wom_dict, self.dow_dict,
+            self.wom_dict[self.wom], self.dow_dict[self.dow],
             self.hour, self.minute, "AM" if self.morning else "PM",
             self.duration,
             "s" if self.duration != Decimal("1.0") else ""
