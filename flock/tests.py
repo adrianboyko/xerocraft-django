@@ -1,6 +1,6 @@
 
 # Standard
-from datetime import date, timedelta
+from datetime import datetime, date, timedelta
 from decimal import Decimal
 
 # Third-party
@@ -8,6 +8,8 @@ from django.test import TestCase
 from django.contrib.auth.models import User
 from django.utils import timezone
 from freezegun import freeze_time
+import pytz
+import pyinter as inter
 
 # Local
 from .models import (
@@ -120,6 +122,30 @@ class TestStudentCounts(TestCase):
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+class TestTimePattern(TestCase):
+
+    def test_interval_set(self):
+        timezone.activate(pytz.timezone("America/Phoenix"))
+        p = make_person("person")  # type:Person
+        tp = TimePattern.objects.create(
+            person=p,
+            disposition=TimePattern.DISPOSITION_AVAILABLE,
+            wom=TimePattern.WOM_EVERY,
+            dow=TimePattern.DOW_TUE,
+            hour=6, minute=00, morning=False,
+            duration=4.0
+        )  # type: TimePattern
+        iset = tp.as_interval_set(timezone.datetime(2017, 4, 1), timezone.datetime(2017, 4, 28))
+        expected = inter.IntervalSet([
+            inter.closed(1491354000, 1491368400),  # Wed, 05 Apr 2017 01:00:00 to 05:00:00 GMT
+            inter.closed(1491958800, 1491973200),  # Wed, 12 Apr 2017 01:00:00 to 05:00:00 GMT
+            inter.closed(1492563600, 1492578000),  # Wed, 19 Apr 2017 01:00:00 to 05:00:00 GMT
+            inter.closed(1493168400, 1493182800),  # Wed, 25 Apr 2017 01:00:00 to 05:00:00 GMT
+        ])
+        self.assertEqual(iset, expected)
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 class Scenario001(TestCase):
 
     def test(self):
@@ -127,7 +153,7 @@ class Scenario001(TestCase):
         # +-------------+
         # | January 1st |
         # +-------------+
-        with freeze_time(timezone.datetime(2017,1,1)):
+        with freeze_time(pytz.utc.localize(datetime(2017, 1, 1))):
 
             # Teacher joins service and provides their availability info.
 
@@ -157,7 +183,7 @@ class Scenario001(TestCase):
         # +--------------+
         # | January 10th |
         # +--------------+
-        with freeze_time(timezone.datetime(2017,1,10)):
+        with freeze_time(pytz.utc.localize(datetime(2017, 1, 10))):
 
             # The teacher creates a class template requiring 2 students.
 
@@ -184,7 +210,7 @@ class Scenario001(TestCase):
         # +--------------+
         # | January 11th |
         # +--------------+
-        with freeze_time(timezone.datetime(2017,1,11)):
+        with freeze_time(pytz.utc.localize(datetime(2017, 1, 11))):
 
             # Student #1 expresses interest in the class but still hasn't provided availability info.
 
@@ -200,7 +226,7 @@ class Scenario001(TestCase):
         # +--------------+
         # | February 1st |
         # +--------------+
-        with freeze_time(timezone.datetime(2017, 2, 1)):
+        with freeze_time(pytz.utc.localize(datetime(2017, 2, 1))):
 
             # Student #2 joins the service, provides their availability info, and expresses interest in the course.
 

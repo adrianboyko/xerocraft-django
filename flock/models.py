@@ -10,14 +10,18 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 from django.utils.translation import ugettext_lazy as _
+import pyinter as inter
+import pytz
 
 # Local
+from abutils.time import *
 
 LONG_AGO = timezone.now()-timedelta(days=3650)
 
 
 class Person(models.Model):
     """An instructor, organizer, student, etc."""
+
     django_user = models.ForeignKey(User, models.CASCADE, null=False, blank=False)
     rest_time = models.IntegerField(default=1, help_text="Minimum days between classes.")
 
@@ -227,6 +231,42 @@ class TimePattern(models.Model):
             self.person.note_timepattern_change()
         if self.resource is not None:
             self.resource.note_timepattern_change()
+
+    def as_interval_set(self, starting: date, ending: date) -> inter.IntervalSet:
+        """
+            Return an interval set representation of the TimePattern between two bounds.
+            
+            The intervals are closed and expressed using Unix timestamps (the number of seconds 
+            since 1970-01-01 UTC, not counting leap seconds). Since TimePattern defines an infinite
+            sequence of intervals across all time, this function takes a starting date and ending date.
+            Only those intervals with start times that fall between the starting and ending date are 
+            returned in the interval set result.            
+        """
+        dow_dict = {"Mo": 0, "Tu": 1, "We": 2, "Th": 3, "Fr": 4, "Sa": 5, "Su": 6}
+
+        # REVIEW: Is there a more efficient implementation that uses dateutil.rrule?
+
+        epoch = pytz.utc.localize(datetime(1970, 1, 1, 0, 0, 0))
+        tz = timezone.get_current_timezone()
+        iset = inter.IntervalSet([])  # type: inter.IntervalSet
+        d = starting - timedelta(days=1)  # type: date
+        while d <= ending:
+            d = d + timedelta(days=1)
+            if dow_dict[self.dow] != d.weekday():
+                continue
+            if self.wom == self.WOM_LAST and not is_last_day_of_month(d):
+                continue
+            if self.wom not in [self.WOM_LAST, self.WOM_EVERY]:
+                nth = int(self.wom)
+                if is_nth_day(d, nth, dow_dict[self.dow]):
+                    continue
+            am_pm_adjust = 0 if self.morning else 12
+            inter_start_dt = tz.localize(datetime(d.year, d.month, d.day, self.hour+am_pm_adjust, self.minute))
+            inter_start = int((inter_start_dt - epoch).total_seconds())
+            inter_end = int(inter_start + self.duration*3600)
+            iset.add(inter.closed(inter_start, inter_end))
+
+        return iset
 
     def clean(self):
         p = self.person is None
