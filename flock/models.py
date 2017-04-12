@@ -44,6 +44,15 @@ class Person(models.Model):
         time_since_last_class = timezone.now() - self.most_recent_class_start
         return time_since_last_class < timedelta(days=self.rest_time)
 
+    def get_availability(self, start: date, finish: date) -> inter.IntervalSet:
+        available = inter.IntervalSet([])
+        unavailable = inter.IntervalSet([])
+        for pos_tp in self.timepattern_set.filter(disposition=TimePattern.DISPOSITION_AVAILABLE).all():
+            available += pos_tp.as_interval_set(start, finish)
+        for neg_tp in self.timepattern_set.filter(disposition=TimePattern.DISPOSITION_UNAVAILABLE).all():
+            unavailable += neg_tp.as_interval_set(start, finish)
+        return available - unavailable
+
     def note_timepattern_change(self):
         for pict in self.personinclasstemplate_set.all():  # type: PersonInClassTemplate
             # Only notify the ClassTemplates for which self's involvement doesn't have specific patterns.
@@ -232,7 +241,7 @@ class TimePattern(models.Model):
         if self.resource is not None:
             self.resource.note_timepattern_change()
 
-    def as_interval_set(self, starting: date, ending: date) -> inter.IntervalSet:
+    def as_interval_set(self, start: date, finish: date) -> inter.IntervalSet:
         """
             Return an interval set representation of the TimePattern between two bounds.
             
@@ -249,17 +258,22 @@ class TimePattern(models.Model):
         epoch = pytz.utc.localize(datetime(1970, 1, 1, 0, 0, 0))
         tz = timezone.get_current_timezone()
         iset = inter.IntervalSet([])  # type: inter.IntervalSet
-        d = starting - timedelta(days=1)  # type: date
-        while d <= ending:
+        d = start - timedelta(days=1)  # type: date
+        while d <= finish:
             d = d + timedelta(days=1)
+
             if dow_dict[self.dow] != d.weekday():
                 continue
-            if self.wom == self.WOM_LAST and not is_last_day_of_month(d):
-                continue
+
+            if self.wom == self.WOM_LAST:
+                if not is_last_xxxday_of_month(d):
+                    continue
+
             if self.wom not in [self.WOM_LAST, self.WOM_EVERY]:
                 nth = int(self.wom)
-                if is_nth_day(d, nth, dow_dict[self.dow]):
+                if not is_nth_xxxday_of_month(d, nth):
                     continue
+
             am_pm_adjust = 0 if self.morning else 12
             inter_start_dt = tz.localize(datetime(d.year, d.month, d.day, self.hour+am_pm_adjust, self.minute))
             inter_start = int((inter_start_dt - epoch).total_seconds())

@@ -124,18 +124,40 @@ class TestStudentCounts(TestCase):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 class TestTimePattern(TestCase):
 
-    def test_interval_set(self):
-        timezone.activate(pytz.timezone("America/Phoenix"))
-        p = make_person("person")  # type:Person
-        tp = TimePattern.objects.create(
-            person=p,
+    range_start = datetime(2017, 4, 1)
+    range_finish = datetime(2017, 4, 28)
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.p = make_person("person")  # type:Person
+        cls.tp = TimePattern.objects.create(
+            person=cls.p,
             disposition=TimePattern.DISPOSITION_AVAILABLE,
             wom=TimePattern.WOM_EVERY,
             dow=TimePattern.DOW_TUE,
             hour=6, minute=00, morning=False,
             duration=4.0
         )  # type: TimePattern
-        iset = tp.as_interval_set(timezone.datetime(2017, 4, 1), timezone.datetime(2017, 4, 28))
+        cls.tpx = TimePattern.objects.create(
+            person=cls.p,
+            disposition=TimePattern.DISPOSITION_UNAVAILABLE,
+            wom=TimePattern.WOM_2ND,
+            dow=TimePattern.DOW_TUE,
+            hour=6, minute=00, morning=False,
+            duration=4.0
+        )  # type: TimePattern
+
+    def setUp(self):
+        self.old_tz = timezone.get_current_timezone()
+        # The test(s) would behave differently in different time zones.
+        # Therefor, we need to specify one so we get consistent, testable results.
+        timezone.activate(pytz.timezone("America/Phoenix"))
+
+    def tearDown(self):
+        timezone.activate(self.old_tz)
+
+    def test_interval_set(self):
+        iset = self.tp.as_interval_set(self.range_start, self.range_finish)
         expected = inter.IntervalSet([
             inter.closed(1491354000, 1491368400),  # Wed, 05 Apr 2017 01:00:00 to 05:00:00 GMT
             inter.closed(1491958800, 1491973200),  # Wed, 12 Apr 2017 01:00:00 to 05:00:00 GMT
@@ -143,6 +165,16 @@ class TestTimePattern(TestCase):
             inter.closed(1493168400, 1493182800),  # Wed, 25 Apr 2017 01:00:00 to 05:00:00 GMT
         ])
         self.assertEqual(iset, expected)
+
+    def test_persons_availability(self):
+        avail = self.p.get_availability(self.range_start, self.range_finish)  # type: inter.IntervalSet
+        expected = inter.IntervalSet([
+            inter.closed(1491354000, 1491368400),  # Wed, 05 Apr 2017 01:00:00 to 05:00:00 GMT
+            # inter.closed(1491958800, 1491973200),  # Wed, 12 Apr 2017 01:00:00 to 05:00:00 GMT Second Tuesday!
+            inter.closed(1492563600, 1492578000),  # Wed, 19 Apr 2017 01:00:00 to 05:00:00 GMT
+            inter.closed(1493168400, 1493182800),  # Wed, 25 Apr 2017 01:00:00 to 05:00:00 GMT
+        ])
+        self.assertEqual(avail, expected)
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
