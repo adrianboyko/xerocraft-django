@@ -7,15 +7,19 @@ import calendar
 # Local
 
 
-def is_last_day_of_month(curr_date: date):
-    next_day = curr_date + timedelta(days=1)  # type: date
-    return next_day.month != curr_date.month
+def is_very_last_day_of_month(some_date: date) -> bool:
+    future_day = some_date + timedelta(days=1)  # type: date
+    return future_day.month != some_date.month
 
 
-# E.g. is_nth_day(date.today(), 3, 3) returns true if today is the 3rd Thursday of the month.
-# Note that Monday is 0, Tuesday is 1, etc...
-def is_nth_day(date_in_question: date, nth: int, daynum: int) -> bool:
-    return date_in_question == calendar.Calendar(nth).monthdatescalendar(
-        date_in_question.year,
-        date_in_question.month
-    )[daynum][0]
+def is_last_xxxday_of_month(some_date: date) -> bool:
+    """True if the given date is the last {mon|tues|...|sun}day of the month"""
+    future_xxxday = some_date + timedelta(days=7)  # type: date
+    return future_xxxday.month != some_date.month
+
+
+def is_nth_xxxday_of_month(some_date: date, nth: int) -> bool:
+    """True if the given date is the nth {mon|tues|...|sun}day of the month"""
+    past_xxxday = some_date - nth * timedelta(days=7)  # type: date
+    result = is_last_xxxday_of_month(past_xxxday)
+    return result

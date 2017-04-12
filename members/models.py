@@ -24,7 +24,7 @@ from books.models import (
     ACCT_REVENUE_MEMBERSHIP, ACCT_LIABILITY_UNEARNED_MSHIP_REVENUE
 )
 from abutils.utils import generate_ctrlid
-from abutils.time import is_last_day_of_month
+from abutils.time import is_very_last_day_of_month
 
 TZ = timezone.get_default_timezone()
 
@@ -586,7 +586,7 @@ class MembershipJournalLiner(JournalLiner, models.Model):
         rev_acc = Decimal(0.00)
         while curr_date <= self.end_date:
             rev_acc += rev_per_day
-            if is_last_day_of_month(curr_date) or curr_date == self.end_date:
+            if is_very_last_day_of_month(curr_date) or curr_date == self.end_date:
                 recognize_revenue(curr_date, rev_acc)
                 rev_acc = Decimal(0.00)
             curr_date += timedelta(days=1)
