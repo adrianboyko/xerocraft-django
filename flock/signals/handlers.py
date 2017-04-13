@@ -8,7 +8,11 @@ from django.db.models.signals import m2m_changed, pre_save, pre_delete, post_sav
 from django.dispatch import receiver
 
 # Local
-from ..models import PersonInClassTemplate, ResourceInClassTemplate, TimePattern
+from ..models import (
+    Person, PersonInClassTemplate,
+    Resource, ResourceInClassTemplate,
+    TimePattern,
+)
 
 __author__ = 'Adrian'
 
@@ -29,12 +33,4 @@ def post_resourceinclasstemplate_save(sender, **kwargs):
 def post_timepattern_save(sender, **kwargs):
     instance = kwargs.get('instance')  # type: TimePattern
     instance.note_timepattern_change()
-
-
-@receiver(m2m_changed, sender=PersonInClassTemplate.time_patterns.through)
-def person_time_patterns_changed(sender, **kwargs):
-    if sender == PersonInClassTemplate.time_patterns.through:
-        print("PiCT time patterns changed!")
-    else:
-        print("Unhandled save of " + sender.__name__)
 

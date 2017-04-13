@@ -3,7 +3,7 @@
 # Standard
 from decimal import Decimal
 from datetime import date, datetime, timedelta
-from typing import List
+from typing import Union
 
 # Third-party
 from django.db import models
@@ -11,8 +11,8 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 from django.utils.translation import ugettext_lazy as _
-import pyinter as inter
-import pyinter.extrema as extrema
+from pyinter import Interval, IntervalSet, open, closed
+from pyinter.extrema import INFINITY, NEGATIVE_INFINITY
 import pytz
 
 # Local
@@ -21,18 +21,25 @@ from abutils.time import *
 LONG_AGO = timezone.now()-timedelta(days=3650)
 FAR_FUTURE = timezone.now()+timedelta(days=3650)
 
-
-def _get_availability(time_patterns: List['TimePattern'], range_begin: date, range_end: date) -> inter.IntervalSet:
-    available = inter.IntervalSet([])
-    unavailable = inter.IntervalSet([])
-    for pos_tp in time_patterns.filter(disposition=TimePattern.DISPOSITION_AVAILABLE).all():
-        available += pos_tp.as_interval_set(range_begin, range_end)
-    for neg_tp in time_patterns.filter(disposition=TimePattern.DISPOSITION_UNAVAILABLE).all():
-        unavailable += neg_tp.as_interval_set(range_begin, range_end)
-    return available - unavailable
+ConcreteEntity = Union['Person', 'Resource']
 
 
-class Person(models.Model):
+class Entity(models.Model):
+
+    def get_availability(self: ConcreteEntity, range_begin: date, range_end: date) -> IntervalSet:
+        available = IntervalSet([])
+        unavailable = IntervalSet([])
+        for pos_tp in self.timepattern_set.filter(disposition=TimePattern.DISPOSITION_AVAILABLE).all():
+            available += pos_tp.as_interval_set(range_begin, range_end)
+        for neg_tp in self.timepattern_set.filter(disposition=TimePattern.DISPOSITION_UNAVAILABLE).all():
+            unavailable += neg_tp.as_interval_set(range_begin, range_end)
+        return available - unavailable
+
+    class Meta:
+        abstract = True
+
+
+class Person(Entity):
     """An instructor, organizer, student, etc."""
 
     django_user = models.ForeignKey(User, models.CASCADE, null=False, blank=False)
@@ -57,17 +64,12 @@ class Person(models.Model):
         time_since_last_class = timezone.now() - self.most_recent_class_start
         return time_since_last_class < timedelta(days=self.rest_time)
 
-    def get_availability(self, range_begin: date, range_end: date) -> inter.IntervalSet:
-        return _get_availability(self.timepattern_set, range_begin, range_end)
-
     def note_timepattern_change(self):
         for pict in self.personinclasstemplate_set.all():  # type: PersonInClassTemplate
-            # Only notify the ClassTemplates for which self's involvement doesn't have specific patterns.
-            if len(pict.time_patterns) == 0:
-                pict.class_template.note_timepattern_change()
+            pict.class_template.note_timepattern_change()
 
 
-class Resource(models.Model):
+class Resource(Entity):
     """A room, a machine, etc."""
 
     name = models.CharField(max_length=80)
@@ -75,14 +77,9 @@ class Resource(models.Model):
     long_description = models.TextField(max_length=2048)
     managers_email = models.EmailField(help_text="If blank, instructors will need to manually book the resource.")
 
-    def get_availability(self, range_begin: date, range_end: date) -> inter.IntervalSet:
-        return _get_availability(self.timepattern_set, range_begin, range_end)
-
     def note_timepattern_change(self):
         for rict in self.resourceinclasstemplate_set.all():  # type: ResourceInClassTemplate
-            # Only notify the ClassTemplates for which self's involvement doesn't have specific patterns.
-            if len(rict.time_patterns) == 0:
-                rict.class_template.note_timepattern_change()
+            rict.class_template.note_timepattern_change()
 
 
 class ResourceControl(models.Model):
@@ -130,19 +127,19 @@ class ClassTemplate(models.Model):
         if self.interested_student_count > self.min_students_required:
             pass
 
-    def possible_times(self, range_begin: date, range_end: date) -> inter.IntervalSet:
-        possibilities = inter.IntervalSet([inter.open(extrema.NEGATIVE_INFINITY, extrema.INFINITY)])
+    def possible_times(self, range_begin: date, range_end: date) -> IntervalSet:
+        possibilities = IntervalSet([open(NEGATIVE_INFINITY, INFINITY)])
         for pict in self.personinclasstemplate_set.all():  # type: PersonInClassTemplate
-            person_availability = pict.get_availability(range_begin, range_end)
+            person_availability = pict.person.get_availability(range_begin, range_end)
             if len(person_availability) > 0:
                 possibilities = possibilities.intersection(person_availability)
         for rict in self.resourceinclasstemplate_set.all():  # type: ResourceInClassTemplate
-            resource_availability = rict.get_availability(range_begin, range_end)
+            resource_availability = rict.resource.get_availability(range_begin, range_end)
             if len(resource_availability) > 0:
-                possibilities = possibilities.intersection(person_availability)
-        too_short = inter.IntervalSet([])
-        for p in possibilities:  # type: inter.Interval
-            if p.upper_value != extrema.INFINITY and p.lower_value != extrema.NEGATIVE_INFINITY:
+                possibilities = possibilities.intersection(resource_availability)
+        too_short = IntervalSet([])
+        for p in possibilities:  # type: Interval
+            if p.upper_value != INFINITY and p.lower_value != NEGATIVE_INFINITY:
                 if p.upper_value - p.lower_value < self.duration*3600:
                     too_short.add(p)
         return possibilities - too_short
@@ -177,15 +174,6 @@ class PersonInClassTemplate(models.Model):
     role = models.CharField(max_length=3, choices=ROLE_CHOICES, null=False, blank=False)
     last_verified = models.DateField(auto_now_add=True, null=False, blank=False)
 
-    # If time_patterns is empty, ALL of the person's time patterns will be used.
-    time_patterns = models.ManyToManyField('TimePattern')
-
-    def get_availability(self, range_begin: date, range_end: date):
-        if self.time_patterns.count() > 0:
-            return _get_availability(self.time_patterns, range_begin, range_end)
-        else:
-            return self.person.get_availability(range_begin, range_end)
-
     def note_personinclasstemplate_change(self):
         self.class_template.note_personinclasstemplate_change()
 
@@ -194,15 +182,6 @@ class ResourceInClassTemplate(models.Model):
 
     resource = models.ForeignKey(Resource, models.CASCADE, null=False, blank=False)
     class_template = models.ForeignKey(ClassTemplate, models.CASCADE, null=False, blank=False)
-
-    # If time_patterns is empty, ALL of the resource's time patterns will be used.
-    time_patterns = models.ManyToManyField('TimePattern')
-
-    def get_availability(self, range_begin: date, range_end: date):
-        if self.time_patterns.count() > 0:
-            return _get_availability(self.time_patterns, range_begin, range_end)
-        else:
-            return self.resource.get_availability(range_begin, range_end)
 
     def note_resourceinclasstemplate_change(self):
         self.class_template.note_resourceinclasstemplate_change()
@@ -268,19 +247,13 @@ class TimePattern(models.Model):
 
     def note_timepattern_change(self):
 
-        # Notify the ClassTemplates which are directly associated with this time pattern:
-        for pict in self.personinclasstemplate_set.all():
-            pict.class_template.note_timepattern_change()
-        for rict in self.resourceinclasstemplate_set.all():
-            rict.class_template.note_timepattern_change()
-
         # Notify the owner of this time pattern so it can notify other indirectly affected ClassTemplates:
         if self.person is not None:
             self.person.note_timepattern_change()
         if self.resource is not None:
             self.resource.note_timepattern_change()
 
-    def as_interval_set(self, start: date, finish: date) -> inter.IntervalSet:
+    def as_interval_set(self, start: date, finish: date) -> IntervalSet:
         """
             Return an interval set representation of the TimePattern between two bounds.
             
@@ -296,7 +269,7 @@ class TimePattern(models.Model):
 
         epoch = pytz.utc.localize(datetime(1970, 1, 1, 0, 0, 0))
         tz = timezone.get_current_timezone()
-        iset = inter.IntervalSet([])  # type: inter.IntervalSet
+        iset = IntervalSet([])  # type: IntervalSet
         d = start - timedelta(days=1)  # type: date
         while d <= finish:
             d = d + timedelta(days=1)
@@ -317,7 +290,7 @@ class TimePattern(models.Model):
             inter_start_dt = tz.localize(datetime(d.year, d.month, d.day, self.hour+am_pm_adjust, self.minute))
             inter_start = int((inter_start_dt - epoch).total_seconds())
             inter_end = int(inter_start + self.duration*3600)
-            iset.add(inter.closed(inter_start, inter_end))
+            iset.add(closed(inter_start, inter_end))
 
         return iset
 
@@ -426,3 +399,7 @@ class ResourceInScheduledClass(models.Model):
     scheduled_class = models.ForeignKey(ScheduledClass, models.CASCADE, null=False, blank=False)
     last_updated = models.DateField(null=False, blank=False, auto_now_add=True)
     status = models.CharField(max_length=3, choices=STATUS_CHOICES, null=False, blank=False)
+
+
+# class IntervalOfAvailability(models.Model):
+#     pass
