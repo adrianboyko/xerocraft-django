@@ -10,6 +10,7 @@ from django.utils import timezone
 from freezegun import freeze_time
 import pytz
 import pyinter as inter
+import pyinter.extrema as extrema
 
 # Local
 from .models import (
@@ -124,8 +125,8 @@ class TestStudentCounts(TestCase):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 class TestTimePattern(TestCase):
 
-    range_start = datetime(2017, 4, 1)
-    range_finish = datetime(2017, 4, 28)
+    range_start = date(2017, 4, 1)
+    range_finish = date(2017, 4, 28)
 
     @classmethod
     def setUpTestData(cls):
@@ -175,6 +176,19 @@ class TestTimePattern(TestCase):
             inter.closed(1493168400, 1493182800),  # Wed, 25 Apr 2017 01:00:00 to 05:00:00 GMT
         ])
         self.assertEqual(avail, expected)
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+class TestClassTemplatePossibilities(TestCase):
+
+    def test(self):
+        ct = make_class_template()
+        range_begin = date.today()
+        range_end = range_begin + timedelta(days=30)
+        possibilities = ct.possible_times(range_begin, range_end)
+        # The studentsin the class returned by make_class_template have NO availability info, so:
+        expected = inter.IntervalSet([inter.open(extrema.NEGATIVE_INFINITY, extrema.INFINITY)])
+        self.assertEqual(possibilities, expected)
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -238,6 +252,10 @@ class Scenario001(TestCase):
             pict.full_clean()
 
             self.assertEqual(ct.interested_student_count, 0)
+            self.assertEqual(
+                ct.possible_times(date(2017, 1, 11), date(2017, 3, 11)),
+                teach.get_availability(date(2017, 1, 11), date(2017, 3, 11))
+            )
 
         # +--------------+
         # | January 11th |
@@ -253,7 +271,11 @@ class Scenario001(TestCase):
             )
             pict.full_clean()
 
-        self.assertEqual(ct.interested_student_count, 1)
+            self.assertEqual(ct.interested_student_count, 1)
+            self.assertEqual(
+                ct.possible_times(date(2017, 1, 12), date(2017, 3, 12)),
+                teach.get_availability(date(2017, 1, 12), date(2017, 3, 12))
+            )
 
         # +--------------+
         # | February 1st |
@@ -281,4 +303,6 @@ class Scenario001(TestCase):
 
             self.assertEqual(ct.interested_student_count, 2)
 
-            # We COULD now have enough interested students, depending on Student #1's (unknown) availability.
+            for p in [teach, stud2]:
+                for interval in ct.possible_times(date(2017, 2, 2), date(2017, 4, 2)):
+                    self.assertTrue(interval in p.get_availability(date(2017, 2, 2), date(2017, 4, 2)))
