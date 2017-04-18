@@ -1,5 +1,6 @@
 # Standard
 import time
+from typing import Optional
 
 # Third Party
 from django.core.management import call_command
@@ -13,7 +14,7 @@ from rest_framework.authtoken.models import Token
 from rq import Queue
 
 # Local
-from members.models import Membership
+from members.models import Membership, VisitEvent
 from xerops.worker import conn
 
 __author__ = 'Adrian'
@@ -150,14 +151,30 @@ q = Queue(connection=conn)
 
 
 def scrape_checkins():
-    for i in range(4):
+
+    def getmax() -> Optional[VisitEvent]:
+        try:
+            return VisitEvent.objects.latest('when')
+        except VisitEvent.DoesNotExist:
+            return None
+
+    prevmax = getmax()
+
+    # Scrape a new check-in. Try up to 16 times.
+    for i in range(16):
+        time.sleep(1)
         call_command("scrapecheckins")
-        time.sleep(5)
+        newmax = getmax()
+        if prevmax is None:
+            if newmax is not None:
+                return
+        elif newmax is not None:  # prevmax and newmax are both not None
+            if newmax.when > prevmax.when:
+                return
 
 
 def scrape_xerocraft_org_checkins(request) -> JsonResponse:
-    # Can't rely on this being called so I'm making it a no-op, for now.
-    #result = q.enqueue(scrape_checkins)
+    result = q.enqueue(scrape_checkins)
     return JsonResponse({'result': "success"})
 
 
