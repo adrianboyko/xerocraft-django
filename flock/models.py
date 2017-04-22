@@ -3,7 +3,8 @@
 # Standard
 from decimal import Decimal
 from datetime import date, datetime, timedelta
-from typing import Union
+from typing import Union, List, Set, Optional
+import math
 
 # Third-party
 from django.db import models
@@ -18,8 +19,14 @@ import pytz
 # Local
 from abutils.time import *
 
+# Types
+TimeStamp = int
+DurationInSeconds = int
+
 LONG_AGO = timezone.now()-timedelta(days=3650)
 FAR_FUTURE = timezone.now()+timedelta(days=3650)
+DUR_15_MINS_IN_SECS = 15 * 60
+ANALYSIS_RESOLUTION_IN_SECS = DUR_15_MINS_IN_SECS
 
 ConcreteEntity = Union['Person', 'Resource']
 
@@ -31,6 +38,10 @@ class Entity(models.Model):
         unavailable = IntervalSet([])
         for pos_tp in self.timepattern_set.filter(disposition=TimePattern.DISPOSITION_AVAILABLE).all():
             available += pos_tp.as_interval_set(range_begin, range_end)
+        if available.empty():
+            # If no positive timepatterns have been specified then we'll say that the pos part is infinite.
+            # This makes it easy to specify things like "always available except Fridays."
+            available = open(NEGATIVE_INFINITY, INFINITY)
         for neg_tp in self.timepattern_set.filter(disposition=TimePattern.DISPOSITION_UNAVAILABLE).all():
             unavailable += neg_tp.as_interval_set(range_begin, range_end)
         return available - unavailable
@@ -93,6 +104,85 @@ class ResourceControl(models.Model):
     type = models.CharField(max_length=3, choices=TYPE_CHOICES, null=False, blank=False)
 
 
+class GroupAvailability(object):
+    """A situation in which people and resources are collectively available."""
+
+    def __init__(self,
+      available_picts: List['PersonInClassTemplate'],
+      available_ricts: List['ResourceInClassTemplate'],
+      start: TimeStamp):
+        self.available_picts = available_picts
+        self.available_ricts = available_ricts
+        self.start = start  # type: TimeStamp
+        self.end = None  # type: Optional[TimeStmamp]  # Situation starts as a point in time.
+        self.teachers_needed = None  # type: Optional[int]
+        self.assistants_needed = None  # type: Optional[int]
+        self.students_needed = None  # type: Optional[int]
+        self.resources_available = None  # type: Optional[bool]
+        self.is_potential_solution = None  # type: Optional[bool]
+
+    @property
+    def duration(self) -> Optional[DurationInSeconds]:
+        if self.end is None:
+            return None
+        else:
+            return self.end - self.start
+
+    def evaluate(self, ct: 'ClassTemplate'):
+
+        # Get a person count grouped by role:
+        teacher_count = 0
+        assistant_count = 0
+        student_count = 0
+        for pict in self.available_picts:
+            assert pict.class_template == ct
+            if pict.role == pict.ROLE_TEACHER:
+                # There can be more than one available teacher, even though only one will be needed.
+                teacher_count += 1
+            elif pict.role == pict.ROLE_ASSISTANT:
+                assistant_count += 1
+            elif pict.role == pict.ROLE_STUDENT:
+                student_count += 1
+
+        # Consider the teacher situation:
+        if teacher_count == 0:
+            self.teachers_needed = 1
+            # There's no point in considering anything else if there's no teacher, so:
+            return
+        else:
+            self.teachers_needed = 0
+
+        # Consider the student situation:
+        self.students_needed = max(0, ct.min_students_required - student_count)
+        if self.students_needed > 0:
+            # There's no point in considering anything else if we don't have enough students, so:
+            return
+
+        # Consider the teaching assistant situation:
+        assistants_must_handle = max(0, ct.min_students_required - ct.max_students_for_teacher)
+        self.assistants_needed = math.ceil(assistants_must_handle / ct.additional_students_per_ta)
+        if self.assistants_needed > assistant_count:
+            # There's no point in considering anything else if we don't have enough TAs, so:
+            return
+
+        # For now, the logic for resources is that all of them are required.
+        required_resources = set([x.resource for x in ct.resourceinclasstemplate_set.all()])
+        available_resources = set([x.resource for x in self.available_ricts])
+        self.resources_available = required_resources == available_resources
+        if not self.resources_available:
+            # There's no point in considering anything else if we don't have the req'd resources, so:
+            return
+
+        # Consider the duration of this situation vs the duration of the class.
+        self.is_potential_solution = self.duration >= ct.duration*3600
+        if not self.is_potential_solution:
+            return
+
+        # If we've made it this far, it means that we have a *potential* solution!
+        # Whether or not it's an *actual* solution depends on RSVPs from people/resources.
+        # The number of students that can be accomodated may depend on the TA RSVPs.
+
+
 class ClassTemplate(models.Model):
 
     name = models.CharField(max_length=80, null=False, blank=False)
@@ -127,22 +217,73 @@ class ClassTemplate(models.Model):
         if self.interested_student_count > self.min_students_required:
             pass
 
-    def possible_times(self, range_begin: date, range_end: date) -> IntervalSet:
-        possibilities = IntervalSet([open(NEGATIVE_INFINITY, INFINITY)])
-        for pict in self.personinclasstemplate_set.all():  # type: PersonInClassTemplate
-            person_availability = pict.person.get_availability(range_begin, range_end)
-            if len(person_availability) > 0:
-                possibilities = possibilities.intersection(person_availability)
-        for rict in self.resourceinclasstemplate_set.all():  # type: ResourceInClassTemplate
-            resource_availability = rict.resource.get_availability(range_begin, range_end)
-            if len(resource_availability) > 0:
-                possibilities = possibilities.intersection(resource_availability)
-        too_short = IntervalSet([])
-        for p in possibilities:  # type: Interval
-            if p.upper_value != INFINITY and p.lower_value != NEGATIVE_INFINITY:
-                if p.upper_value - p.lower_value < self.duration*3600:
-                    too_short.add(p)
-        return possibilities - too_short
+    def find_potential_solutions(self, range_begin: date, range_end: date) -> Set[GroupAvailability]:
+
+        class PiCT(PersonInClassTemplate):
+            """Subclass adds a few fields that are specific to this method."""
+            def __init__(self):
+                super().__init__()
+                self.run_begin = None  # type: TimeStamp
+                self.run_end = None  # type: TimeStamp
+                self.availability = None  # type: IntervalSet
+
+        class RiCT(ResourceInClassTemplate):
+            """Currently just an alias but might be used for additional method-specific fields."""
+            pass
+
+        picts = set()  # type: Set[PiCT]
+        for pict in self.personinclasstemplate_set.all():  # type: PiCT
+            pict.availability = pict.person.get_availability(range_begin, range_end)
+            picts.add(pict)
+
+        ricts = set()  # type: Set[RiCT]
+        for rict in self.resourceinclasstemplate_set.all():  # type: RiCT
+            rict.availability = rict.resource.get_availability(range_begin, range_end)
+            ricts.add(rict)
+
+        begin_dt = datetime(range_begin.year, range_begin.month, range_begin.day, 0, 0, 0)  # type: datetime
+        end_dt = datetime(range_end.year, range_end.month, range_end.day, 23, 59, 59)  # type: datetime
+        begin = int(pytz.utc.localize(begin_dt).timestamp())  # type: TimeStamp
+        end = int(pytz.utc.localize(end_dt).timestamp())  # type: TimeStamp
+
+        results = set()  # type: Set[GroupAvailability]
+        runners = set()  # type: Set[PiCT]
+
+        for t in range(begin, end, ANALYSIS_RESOLUTION_IN_SECS):
+
+            # For now, we'll only consider cases times when ALL the resources are available.
+            # I.e. This doesn't handle the cases such as: ONE of the TWO suitable classrooms are available.
+            ricts_available = set(filter(lambda x: t in x.availability, ricts))  # type: Set[RiCT]
+            if ricts_available != ricts:
+                continue
+
+            picts_available = set(filter(lambda x: t in x.availability, picts))  # type: Set[PiCT]
+            new_runners = picts_available - runners  # type: Set[PiCT]
+            done_runners = runners - picts_available  # type: Set[PiCT]
+            runners = runners.union(new_runners) - done_runners
+
+            for new_runner in new_runners:  # type: PiCT
+                new_runner.run_begin = t
+
+            start_times_for_done_runners = set()  # type: Set[TimeStamp]
+            for done_runner in done_runners:  # type: PiCT
+                done_runner.run_end = t - ANALYSIS_RESOLUTION_IN_SECS  # Last availability was ONE TICK AGO.
+                start_times_for_done_runners.add(done_runner.run_begin)
+
+            for start_time in start_times_for_done_runners:  # type: TimeStamp
+                picts_in_span = set()
+                for done_runner in done_runners:  # type: PiCT
+                    if start_time in done_runner.availability:
+                        picts_in_span.add(done_runner)
+                ga = GroupAvailability(list(picts_in_span), list(ricts), start_time)
+                ga.end = t - ANALYSIS_RESOLUTION_IN_SECS  # Last availability was ONE TICK AGO.
+                ga.evaluate(self)
+                if ga.is_potential_solution:
+                    results.add(ga)
+
+        # TODO: Also run through loop logic with hardcoded new_runners = {} and done_runners = runners.
+        # TODO: Doing so should find any boundary solutions on the end of the range.
+        return results
 
     def note_timepattern_change(self):
         self.evaluate_situation()

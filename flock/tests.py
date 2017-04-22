@@ -181,14 +181,59 @@ class TestTimePattern(TestCase):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 class TestClassTemplatePossibilities(TestCase):
 
-    def test(self):
+    def test1(self):
         ct = make_class_template()
+        ct.min_students_required = 2
+        ct.save()
+        for pict in ct.personinclasstemplate_set.all():
+            TimePattern.objects.create(
+                person=pict.person,
+                disposition=TimePattern.DISPOSITION_AVAILABLE,
+                wom=TimePattern.WOM_EVERY,
+                dow=TimePattern.DOW_TUE,
+                hour=6, minute=00, morning=False,
+                duration=2.0
+            )
         range_begin = date.today()
         range_end = range_begin + timedelta(days=30)
-        possibilities = ct.possible_times(range_begin, range_end)
-        # The studentsin the class returned by make_class_template have NO availability info, so:
-        expected = inter.IntervalSet([inter.open(extrema.NEGATIVE_INFINITY, extrema.INFINITY)])
-        self.assertEqual(possibilities, expected)
+        solutions = ct.find_potential_solutions(range_begin, range_end)
+        self.assertEqual(len(solutions), 4)
+
+    def test2(self):
+        ct = make_class_template()
+        ct.min_students_required = 2
+        ct.save()
+        for pict in ct.personinclasstemplate_set.all():
+            TimePattern.objects.create(
+                person=pict.person,
+                disposition=TimePattern.DISPOSITION_AVAILABLE,
+                wom=TimePattern.WOM_EVERY,
+                dow=TimePattern.DOW_TUE,
+                hour=6, minute=00, morning=False,
+                duration=1.0  # Interested people aren't available enough.
+            )
+        range_begin = date.today()
+        range_end = range_begin + timedelta(days=30)
+        solutions = ct.find_potential_solutions(range_begin, range_end)
+        self.assertEqual(len(solutions), 0)
+
+    def test3(self):
+        ct = make_class_template()
+        ct.min_students_required = 3  # Not enough interested students
+        ct.save()
+        for pict in ct.personinclasstemplate_set.all():
+            TimePattern.objects.create(
+                person=pict.person,
+                disposition=TimePattern.DISPOSITION_AVAILABLE,
+                wom=TimePattern.WOM_EVERY,
+                dow=TimePattern.DOW_TUE,
+                hour=6, minute=00, morning=False,
+                duration=2.0
+            )
+        range_begin = date.today()
+        range_end = range_begin + timedelta(days=30)
+        solutions = ct.find_potential_solutions(range_begin, range_end)
+        self.assertEqual(len(solutions), 0)
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -252,10 +297,6 @@ class Scenario001(TestCase):
             pict.full_clean()
 
             self.assertEqual(ct.interested_student_count, 0)
-            self.assertEqual(
-                ct.possible_times(date(2017, 1, 11), date(2017, 3, 11)),
-                teach.get_availability(date(2017, 1, 11), date(2017, 3, 11))
-            )
 
         # +--------------+
         # | January 11th |
@@ -272,10 +313,6 @@ class Scenario001(TestCase):
             pict.full_clean()
 
             self.assertEqual(ct.interested_student_count, 1)
-            self.assertEqual(
-                ct.possible_times(date(2017, 1, 12), date(2017, 3, 12)),
-                teach.get_availability(date(2017, 1, 12), date(2017, 3, 12))
-            )
 
         # +--------------+
         # | February 1st |
@@ -303,6 +340,3 @@ class Scenario001(TestCase):
 
             self.assertEqual(ct.interested_student_count, 2)
 
-            for p in [teach, stud2]:
-                for interval in ct.possible_times(date(2017, 2, 2), date(2017, 4, 2)):
-                    self.assertTrue(interval in p.get_availability(date(2017, 2, 2), date(2017, 4, 2)))
