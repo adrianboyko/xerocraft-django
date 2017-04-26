@@ -182,58 +182,64 @@ class TestTimePattern(TestCase):
 class TestClassTemplatePossibilities(TestCase):
 
     def test1(self):
-        ct = make_class_template()
-        ct.min_students_required = 2
-        ct.save()
-        for pict in ct.personinclasstemplate_set.all():
-            TimePattern.objects.create(
-                person=pict.person,
-                disposition=TimePattern.DISPOSITION_AVAILABLE,
-                wom=TimePattern.WOM_EVERY,
-                dow=TimePattern.DOW_TUE,
-                hour=6, minute=00, morning=False,
-                duration=2.0
-            )
-        range_begin = date.today()
-        range_end = range_begin + timedelta(days=30)
-        solutions = ct.find_potential_solutions(range_begin, range_end)
-        self.assertEqual(len(solutions), 4)
+        pit = pytz.utc.localize(datetime(2017, 2, 1))
+        with freeze_time(pit):
+            ct = make_class_template()
+            ct.min_students_required = 2
+            ct.save()
+            for pict in ct.personinclasstemplate_set.all():
+                TimePattern.objects.create(
+                    person=pict.person,
+                    disposition=TimePattern.DISPOSITION_AVAILABLE,
+                    wom=TimePattern.WOM_EVERY,
+                    dow=TimePattern.DOW_TUE,
+                    hour=6, minute=00, morning=False,
+                    duration=2.0
+                )
+            range_begin = date.today()
+            range_end = range_begin + timedelta(days=30)
+            solutions = ct.find_potential_solutions(range_begin, range_end)
+            self.assertEqual(len(solutions), 4)
 
     def test2(self):
-        ct = make_class_template()
-        ct.min_students_required = 2
-        ct.save()
-        for pict in ct.personinclasstemplate_set.all():
-            TimePattern.objects.create(
-                person=pict.person,
-                disposition=TimePattern.DISPOSITION_AVAILABLE,
-                wom=TimePattern.WOM_EVERY,
-                dow=TimePattern.DOW_TUE,
-                hour=6, minute=00, morning=False,
-                duration=1.0  # Interested people aren't available enough.
-            )
-        range_begin = date.today()
-        range_end = range_begin + timedelta(days=30)
-        solutions = ct.find_potential_solutions(range_begin, range_end)
-        self.assertEqual(len(solutions), 0)
+        pit = pytz.utc.localize(datetime(2017, 2, 1))
+        with freeze_time(pit):
+            ct = make_class_template()
+            ct.min_students_required = 2
+            ct.save()
+            for pict in ct.personinclasstemplate_set.all():
+                TimePattern.objects.create(
+                    person=pict.person,
+                    disposition=TimePattern.DISPOSITION_AVAILABLE,
+                    wom=TimePattern.WOM_EVERY,
+                    dow=TimePattern.DOW_TUE,
+                    hour=6, minute=00, morning=False,
+                    duration=1.0  # Interested people aren't available enough.
+                )
+            range_begin = date.today()
+            range_end = range_begin + timedelta(days=30)
+            solutions = ct.find_potential_solutions(range_begin, range_end)
+            self.assertEqual(len(solutions), 0)
 
     def test3(self):
-        ct = make_class_template()
-        ct.min_students_required = 3  # Not enough interested students
-        ct.save()
-        for pict in ct.personinclasstemplate_set.all():
-            TimePattern.objects.create(
-                person=pict.person,
-                disposition=TimePattern.DISPOSITION_AVAILABLE,
-                wom=TimePattern.WOM_EVERY,
-                dow=TimePattern.DOW_TUE,
-                hour=6, minute=00, morning=False,
-                duration=2.0
-            )
-        range_begin = date.today()
-        range_end = range_begin + timedelta(days=30)
-        solutions = ct.find_potential_solutions(range_begin, range_end)
-        self.assertEqual(len(solutions), 0)
+        pit = pytz.utc.localize(datetime(2017, 2, 1))
+        with freeze_time(pit):
+            ct = make_class_template()
+            ct.min_students_required = 3  # Not enough interested students
+            ct.save()
+            for pict in ct.personinclasstemplate_set.all():
+                TimePattern.objects.create(
+                    person=pict.person,
+                    disposition=TimePattern.DISPOSITION_AVAILABLE,
+                    wom=TimePattern.WOM_EVERY,
+                    dow=TimePattern.DOW_TUE,
+                    hour=6, minute=00, morning=False,
+                    duration=2.0
+                )
+            range_begin = date.today()
+            range_end = range_begin + timedelta(days=30)
+            solutions = ct.find_potential_solutions(range_begin, range_end)
+            self.assertEqual(len(solutions), 0)
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -244,37 +250,39 @@ class Scenario001(TestCase):
         # +-------------+
         # | January 1st |
         # +-------------+
-        with freeze_time(pytz.utc.localize(datetime(2017, 1, 1))):
+        pit = pytz.utc.localize(datetime(2017, 1, 1))
+        with freeze_time(pit):
 
             # Teacher joins service and provides their availability info.
 
             teach = make_person("teach")  # type:Person
-            tp1 = TimePattern.objects.create(
+            tp = TimePattern.objects.create(
                 person=teach,
                 disposition=TimePattern.DISPOSITION_AVAILABLE,
                 wom=TimePattern.WOM_EVERY,
                 dow=TimePattern.DOW_TUE,
                 hour=6, minute=00, morning=False,
-                duration=4.0
+                duration=Decimal('3.0')
             )  # type: TimePattern
-            tp1.full_clean()
-            tp2 = TimePattern.objects.create(
+            tp.full_clean()
+            tp = TimePattern.objects.create(
                 person=teach,
                 disposition=TimePattern.DISPOSITION_AVAILABLE,
                 wom=TimePattern.WOM_EVERY,
                 dow=TimePattern.DOW_THU,
                 hour=6, minute=00, morning=False,
-                duration=4.0
+                duration=Decimal('4.0')
             )  # type: TimePattern
-            tp2.full_clean()
+            tp.full_clean()
 
-            # Student #1 joins service but does NOT provide availability info.
+            # Student #1 joins service.
             stud1 = make_person("student1")  # type:Person
 
         # +--------------+
         # | January 10th |
         # +--------------+
-        with freeze_time(pytz.utc.localize(datetime(2017, 1, 10))):
+        pit = pytz.utc.localize(datetime(2017, 1, 10))  # type: datetime
+        with freeze_time(pit):
 
             # The teacher creates a class template requiring 2 students.
 
@@ -285,7 +293,7 @@ class Scenario001(TestCase):
                 min_students_required=2,
                 max_students_allowed=4,
                 max_students_for_teacher=4,
-                additional_students_per_ta=0,
+                additional_students_per_ta=1,
                 duration=Decimal("2.0"),
             )  # type: ClassTemplate
             ct.full_clean()
@@ -297,13 +305,16 @@ class Scenario001(TestCase):
             pict.full_clean()
 
             self.assertEqual(ct.interested_student_count, 0)
+            solutions = ct.find_potential_solutions(pit.date(), pit.date() + timedelta(days=28))
+            self.assertEqual(len(solutions), 0)
 
         # +--------------+
         # | January 11th |
         # +--------------+
-        with freeze_time(pytz.utc.localize(datetime(2017, 1, 11))):
+        pit = pytz.utc.localize(datetime(2017, 1, 11))  # type: datetime
+        with freeze_time(pit):
 
-            # Student #1 expresses interest in the class but still hasn't provided availability info.
+            # Student #1 expresses interest in the class.
 
             pict = PersonInClassTemplate.objects.create(
                 person=stud1,
@@ -313,11 +324,14 @@ class Scenario001(TestCase):
             pict.full_clean()
 
             self.assertEqual(ct.interested_student_count, 1)
+            solutions = ct.find_potential_solutions(pit.date(), pit.date() + timedelta(days=28))
+            self.assertEqual(len(solutions), 0)
 
         # +--------------+
         # | February 1st |
         # +--------------+
-        with freeze_time(pytz.utc.localize(datetime(2017, 2, 1))):
+        pit = pytz.utc.localize(datetime(2017, 2, 1))  # type: datetime
+        with freeze_time(pit):
 
             # Student #2 joins the service, provides their availability info, and expresses interest in the course.
 
@@ -339,4 +353,46 @@ class Scenario001(TestCase):
             pict.full_clean()
 
             self.assertEqual(ct.interested_student_count, 2)
+            solutions = ct.find_potential_solutions(pit.date(), pit.date() + timedelta(days=28))
+            actual = {x.timespan.lower_value for x in solutions}
+            expected = {
+                1487296800,  # 2/16/2017, 7:00 PM GMT-7:00
+            }
+            self.assertEqual(actual, expected)  # 2/16/2017, 7:00 PM GMT-7:00
 
+        # +--------------+
+        # | February 2nd |
+        # +--------------+
+        pit = pytz.utc.localize(datetime(2017, 2, 2))  # type: datetime
+        with freeze_time(pit):
+
+            # Student #3 joins the service, provides their availability info, and expresses interest in the course.
+
+            stud3 = make_person("student3")  # type:Person
+            tp = TimePattern.objects.create(
+                person=stud3,
+                disposition=TimePattern.DISPOSITION_AVAILABLE,
+                wom=TimePattern.WOM_EVERY,
+                dow=TimePattern.DOW_TUE,
+                hour=7, minute=00, morning=False,
+                duration=3.0
+            )  # type: TimePattern
+            tp.full_clean()
+            pict = PersonInClassTemplate.objects.create(
+                person=stud3,
+                class_template=ct,
+                role=PersonInClassTemplate.ROLE_STUDENT,
+            )  # type: PersonInClassTemplate
+            pict.full_clean()
+
+            self.assertEqual(ct.interested_student_count, 3)
+            solutions = ct.find_potential_solutions(pit.date(), pit.date() + timedelta(days=28))
+            actual = {x.timespan.lower_value for x in solutions}
+            expected = {
+                1486519200,  # 02/07/2017, 7:00 PM GMT-7:00  (Tu)
+                1487124000,  # 02/14/2017, 7:00 PM GMT-7:00  (Tu)
+                1487296800,  # 02/16/2017, 7:00 PM GMT-7:00  (Thurs)
+                1487728800,  # 02/21/2017, 7:00 PM GMT-7:00  (Tu)
+                1488333600,  # 02/28/2017, 7:00 PM GMT-7:00  (Tu)
+            }
+            self.assertEqual(actual, expected)
