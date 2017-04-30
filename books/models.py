@@ -1284,8 +1284,9 @@ class ExpenseTransaction(Journaler):
         help_text="Optional detail specific to the payment method. Check# for check payments.")
     method_detail.verbose_name = "Detail"
 
-    class Meta:
-        unique_together = ('payment_method', 'method_detail')
+    # Can't do the unique constraint because electronic and cash payments don't have detail.
+    # class Meta:
+    #     unique_together = ('payment_method', 'method_detail')
 
     def payment_method_verbose(self):
         return dict(ExpenseTransaction.PAID_BY_CHOICES)[self.payment_method]
@@ -1301,6 +1302,7 @@ class ExpenseTransaction(Journaler):
         if self.payment_method == self.PAID_BY_CHECK \
           and self.method_detail > "" and not self.method_detail.isnumeric():
             raise ValidationError(_("Detail for check payments should only be the bare check number without # or other text."))
+          # TODO: Check for duplicate check number here?
 
         if self.payment_method == self.PAID_BY_CASH and self.method_detail > "":
             raise ValidationError(_("Cash payments shouldn't have detail. Cash is cash."))
