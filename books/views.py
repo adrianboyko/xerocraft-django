@@ -1,19 +1,19 @@
 
 # Standard
-from datetime import date, datetime
+from datetime import date  #, datetime
+from logging import getLogger
 
 # Third Party
 from django.shortcuts import render
 from rest_framework import viewsets
 from django.http.response import HttpResponse
 from django.contrib.auth.decorators import login_required
-import numpy as np
-from dateutil.parser import parse
+# import numpy as np
+# from dateutil.parser import parse
 
 # Local
 from .models import (
     Account,
-    ExpenseLineItem,
     Sale, SaleNote,
     MonetaryDonation,
     OtherItem, OtherItemType,
@@ -24,6 +24,8 @@ from .serializers import (
     MonetaryDonationSerializer,
     OtherItemSerializer, OtherItemTypeSerializer
 )
+
+_logger = getLogger("books")
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -148,3 +150,9 @@ def revenues_and_expenses_from_journal(request):
     }
     return render(request, 'books/cumulative-rev-exp-chart.html', params)
 
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+def squareup_webhook(request):
+    _logger.info(request.body)
+    return HttpResponse("Ok")

@@ -17,6 +17,9 @@ urlpatterns = [
     # url(r'^cumulative-vs-date-chart/2/$', views.cumulative_vs_date_chart, name='cumulative-vs-date-chart'),
     url(r'^cumulative-rev-exp-chart/$', views.revenues_and_expenses_from_journal, name='cumulative-rev-exp-chart'),
 
+    # Webhooks for Payment Processors
+    url(r'^squareup/$', views.squareup_webhook, name='squareup_webhook'),
+
     # DJANGO REST FRAMEWORK API
     url(r'^', include(router.urls)),
 ]
