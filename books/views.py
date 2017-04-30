@@ -8,6 +8,7 @@ from django.shortcuts import render
 from rest_framework import viewsets
 from django.http.response import HttpResponse
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.csrf import csrf_exempt
 # import numpy as np
 # from dateutil.parser import parse
 
@@ -153,6 +154,7 @@ def revenues_and_expenses_from_journal(request):
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
+@csrf_exempt
 def squareup_webhook(request):
     _logger.info(request.body)
     return HttpResponse("Ok")
