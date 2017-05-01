@@ -368,7 +368,7 @@ XEROPS_CONFIG = {
 
     # The name of the organization that your XerOps instance serves:
     'ORG_NAME': "Xerocraft",
-    'ORG_NAME_POSSESSIVE':"Xerocraft's",
+    'ORG_NAME_POSSESSIVE': "Xerocraft's",
 
     # Set the XEROPS_FACILITY_PUBLIC_IP environment variable to either:
     # (1) A DNS name that resolves to the facility's public IP
@@ -397,4 +397,6 @@ XEROPS_INVENTORY_CONFIG = {
 
 XEROPS_BOOKS_CONFIG = {
     # Configuration specific to the "books" app.
+    'SQUAREUP_LOCATION_ID': os.getenv('SQUAREUP_LOCATION_ID', None),
+    'SQUAREUP_APIV1_TOKEN': os.getenv('SQUAREUP_APIV1_TOKEN', None),
 }

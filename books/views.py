@@ -25,6 +25,8 @@ from .serializers import (
     MonetaryDonationSerializer,
     OtherItemSerializer, OtherItemTypeSerializer
 )
+import members.notifications as notifications  # Temporary
+from members.models import Member  # Temporary
 
 _logger = getLogger("books")
 
@@ -156,5 +158,11 @@ def revenues_and_expenses_from_journal(request):
 
 @csrf_exempt
 def squareup_webhook(request):
+
     _logger.info(request.body)
+
+    # Send it to me via Pushover, for now.
+    recipient = Member.objects.get(auth_user__username='adrianb')
+    notifications.notify(recipient, "SquareUp WebHook", request.body)
+
     return HttpResponse("Ok")
