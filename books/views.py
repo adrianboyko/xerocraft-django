@@ -2,6 +2,7 @@
 # Standard
 from datetime import date  #, datetime
 from logging import getLogger
+import json
 
 # Third Party
 from django.shortcuts import render
@@ -9,6 +10,9 @@ from rest_framework import viewsets
 from django.http.response import HttpResponse
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth import settings
+import requests
+
 # import numpy as np
 # from dateutil.parser import parse
 
@@ -30,6 +34,7 @@ from members.models import Member  # Temporary
 
 _logger = getLogger("books")
 
+SQUAREUP_APIV1_TOKEN = settings.XEROPS_BOOKS_CONFIG['SQUAREUP_APIV1_TOKEN']
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
@@ -161,8 +166,32 @@ def squareup_webhook(request):
 
     _logger.info(request.body)
 
-    # Send it to me via Pushover, for now.
+    # For sending notice via Pushover:
     recipient = Member.objects.get(auth_user__username='adrianb')
-    notifications.notify(recipient, "SquareUp WebHook", request.body)
 
-    return HttpResponse("Ok")
+    json_body = json.loads(request.body.decode())
+    location_id = json_body['location_id']
+    payment_id = json_body['entity_id']
+    event_type = json_body['event_type']
+
+    get_headers = {
+        'Authorization': "Bearer " + SQUAREUP_APIV1_TOKEN,
+        'Accept': "application/json",
+    }
+
+    try:
+        payment_url = "https://connect.squareup.com/v1/{}/payments/{}".format(location_id, payment_id)
+        response = requests.get(payment_url, headers=get_headers)
+        response.raise_for_status()
+        itemizations = json.loads(response.text)['itemizations']
+        for item in itemizations:
+            sku = item['item_detail']['sku']
+            qty = int(float(item['quantity']))
+            msg = "{}, qty {}".format(sku, qty)
+            notifications.notify(recipient, "SquareUp Purchase", msg)
+
+        return HttpResponse("Ok")
+    except requests.exceptions.ConnectionError:
+        _logger.error("Couldn't purchase info from SquareUp.")
+        return HttpResponse("Error")
+
