@@ -24,7 +24,7 @@ class BooksAppConfig(AppConfig):
 
     def activate_squareup_webhooks(self):
         if SQUAREUP_APIV1_TOKEN is None or SQUAREUP_APIV1_TOKEN is None:
-            _logger.info("SquareUp API V1 Token and/or Location ID not set in environment.")
+            _logger.info("SquareUp API V1 Token and/or Location ID not set.")
             return
         try:
             put_headers = {
