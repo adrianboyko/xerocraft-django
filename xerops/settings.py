@@ -113,6 +113,7 @@ INSTALLED_APPS += (
     'members',
     'tasks',
     'inventory',
+    'soda',
     'crispy_forms',
     'social.apps.django_app.default',
     'rest_framework',
@@ -171,6 +172,8 @@ TEMPLATES = [
             os.path.join(BASE_DIR, 'tasks/templates/'),
             os.path.join(BASE_DIR, 'members/templates/'),
             os.path.join(BASE_DIR, 'inventory/templates/'),
+            os.path.join(BASE_DIR, 'flock/templates/'),
+            os.path.join(BASE_DIR, 'soda/templates/'),
         ],
         'APP_DIRS': True,
         'OPTIONS': {
@@ -280,6 +283,10 @@ LOGGING = {
             'handlers': ['console'],
             'level': 'INFO',
         },
+        'soda': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
         'tasks': {
             'handlers': ['console'],
             'level': 'INFO',
@@ -324,7 +331,18 @@ HELPDESK_KB_ENABLED = False
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # JENKINS
 
-PROJECT_APPS = ('abutils', 'books', 'flock', 'inventory', 'members', 'modelmailer', 'tasks', 'xerops', 'xis')
+PROJECT_APPS = (
+    'abutils',
+    'books',
+    'flock',
+    'inventory',
+    'members',
+    'modelmailer',
+    'soda',
+    'tasks',
+    'xerops',
+    'xis',
+)
 
 JENKINS_TASKS = (
     # 'django_jenkins.tasks.run_pep8',
@@ -399,4 +417,13 @@ XEROPS_BOOKS_CONFIG = {
     # Configuration specific to the "books" app.
     'SQUAREUP_LOCATION_ID': os.getenv('SQUAREUP_LOCATION_ID', None),
     'SQUAREUP_APIV1_TOKEN': os.getenv('SQUAREUP_APIV1_TOKEN', None),
+}
+
+XEROPS_SODA_CONFIG = {
+    # Configuration specific to the "soda" app.
+    'MQTT_SERVER': os.getenv('CLOUDMQTT_SERVER',None),
+    'MQTT_PORT': os.getenv('CLOUDMQTT_PORT', None),
+    'MQTT_USER': os.getenv('CLOUDMQTT_USER', None),
+    'MQTT_PW': os.getenv('CLOUDMQTT_PW', None),
+    'MQTT_TOPIC': "xerocraft/soda/vend"
 }

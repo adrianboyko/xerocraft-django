@@ -35,6 +35,7 @@ lxml==3.6.1
 nameparser==0.3.11
 numpy==1.11.2
 oauthlib==1.0.3
+paho-mqtt==1.2.3
 
 # -e git://github.com/bkeating/python-payflowpro.git#egg=python_payflowpro
 
