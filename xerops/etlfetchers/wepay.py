@@ -151,6 +151,9 @@ class Fetcher(AbstractFetcher):
             }
             response = self.session.post(URL, post_data, headers=self.auth_headers)
             checkouts = response.json()
+            if "error" in checkouts:
+                print("\nCheckouts for acct {}: {}".format(account, checkouts))
+                return
             self._process_checkouts(checkouts)
 
     # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
