@@ -49,6 +49,14 @@ class AbstractFetcher(object):
         mm.MembershipGiftCardReference: ms.MembershipGiftCardReferenceSerializer,
     }
 
+    CREDIT_CARD_NAME_MAP = {
+        "VISA": "Visa",
+        "MASTER_CARD": "MC",
+        "MASTERCARD": "MC",
+        "AMERICAN_EXPRESS": "Amex",
+        "DISCOVER": "Disc"
+    }
+
     djangosession = Session()
 
     progress_count = 0
