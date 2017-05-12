@@ -476,7 +476,7 @@ def inside_facility_only(function):
     return wrap
 
 
-#@inside_facility_only
+@inside_facility_only
 def rfid_entry_requested(request, rfid_cardnum):
 
     member = Member.get_by_card_str(rfid_cardnum)
@@ -501,7 +501,7 @@ def rfid_entry_requested(request, rfid_cardnum):
     return JsonResponse(json)
 
 
-#@inside_facility_only
+@inside_facility_only
 def rfid_entry_granted(request, rfid_cardnum):
     member = Member.get_by_card_str(rfid_cardnum)
     if member is not None:
@@ -517,7 +517,7 @@ def rfid_entry_granted(request, rfid_cardnum):
     return JsonResponse({'success': "Information noted."})
 
 
-#@inside_facility_only
+@inside_facility_only
 def rfid_entry_denied(request, rfid_cardnum):
     return JsonResponse({'success': "Information noted."})
 
