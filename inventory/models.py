@@ -2,9 +2,11 @@
 
 # Standard
 from pytz import timezone
+from decimal import Decimal
 
 # Third Party
 from django.db import models
+from django.utils import timezone
 
 # Local
 from members.models import Member
@@ -21,7 +23,7 @@ class Location(models.Model):
     z = models.FloatField(null=True, blank=True,
         help_text="An ordinate in some coordinate system to help locate the location.")
 
-    short_desc = models.CharField(max_length=40, null=True, blank=True,
+    short_desc = models.CharField(max_length=40, blank=False, default="ERROR: NEEDS DESC",
         help_text="A short description/name for the location.")
 
     def __str__(self):
@@ -52,22 +54,37 @@ class Shop(models.Model):
         return self.name
 
 
-class Tool(models.Model):
-    """Represents a tool, machine, etc. Not consumable."""
-
-    name = models.CharField(max_length=40, blank=False,
-        help_text="The resource's name or a short description.")
-
-    shop = models.ForeignKey(Shop, null=True, blank=True,
-        on_delete=models.SET_NULL,
-        help_text="The shop that owns or stocks the resource.")
-
-    public_info = models.URLField(null=True, blank=True,
-        help_text="A link to the public wiki page about this tool.")
+class TaggedItem(models.Model):
 
     location = models.ForeignKey(Location, null=True, blank=True,
         on_delete=models.SET_NULL,
-        help_text="The location of the resource.")
+        help_text="The location of the item.")
+
+    short_desc = models.CharField(max_length=40, blank=False, default="ERROR: NEEDS DESC",
+        help_text="The items name or a short description.")
+
+    created = models.DateField(null=False, blank=False, default=timezone.now,
+        help_text="Date/time on which the item was tagged.")
+
+    ok_to_move = models.BooleanField(default=True,
+        help_text="Is it OK to carefully move the item to another location without involving owner?")
+
+    is_in_inventoried_space = models.BooleanField(default=True,
+        help_text="True if the item is in our inventoried space/building(s). False if the owner has taken it home.")
+
+    class Meta:
+        abstract = True
+
+
+class Tool(TaggedItem):
+    """Represents a tool, machine, etc. Not consumable."""
+
+    shop = models.ForeignKey(Shop, null=True, blank=True,
+        on_delete=models.SET_NULL,
+        help_text="The shop that owns the tool.")
+
+    public_info = models.URLField(null=True, blank=True,
+        help_text="A link to the public wiki page about this tool.")
 
     TS_GOOD     = "G"  # The tool is in good shape.
     TS_DEGRADED = "D"  # The tool works but certain issues should be noted. See VALID ToolIssues.
@@ -80,82 +97,49 @@ class Tool(models.Model):
     status = models.CharField(max_length=1, choices=TOOL_STATUS_CHOICES, default=TS_GOOD,
         help_text = "Status of the tool. If DEGRADED or UNUSABLE see Tool Issues.")
 
+    is_loaned = models.BooleanField(default=False,
+        help_text="Checked if this tool is on loan to us. Unchecked if we own it.")
+
+    loaned_by = models.ForeignKey(Member, on_delete=models.PROTECT, null=True, default=None,
+        help_text="If tool is loaned, this is the member who loaned it to us.")
+
+    loan_terms = models.TextField(max_length=1024, default="",
+        help_text="If tool is loaned, these are the terms specified by the loaner.")
+
     def __str__(self):
-        toolname = self.name if self.name != "" else "?"
+        toolname = self.short_desc if self.short_desc != "" else "?"
         shopname = self.shop.name if self.shop is not None and self.shop.name != "" else "?"
         return "{} in {}".format(toolname, shopname)
 
 
-class ToolIssue(models.Model):
-
-    tool = models.ForeignKey(Tool, null=False, blank=False,
-        on_delete=models.CASCADE,
-        help_text="The member that reported the issue.")
-
-    reporter = models.ForeignKey(Member, null=True, blank=True,
-        on_delete=models.SET_NULL,
-        help_text="The member that reported the issue.")
-
-    short_desc = models.CharField(max_length=40, blank=False,
-        help_text="A short description of the issue. In depth description can go in a note.")
-
-    IT_NEW       = "N"  # The issue has been entered but no further action has been taken.
-    IT_VALIDATED = "V"  # The issue has been validated by the shop manager.
-    IT_CLOSED    = "C"  # The issue has been closed (either dealt with or rejected)
-    ISSUE_TYPE_CHOICES = [
-        (IT_NEW,       "New Issue"),
-        (IT_VALIDATED, "Validated"),
-        (IT_CLOSED,    "Closed"),
-    ]
-    status = models.CharField(max_length=1, choices=ISSUE_TYPE_CHOICES, default=IT_NEW,
-        help_text = "Status of the issue. Set to CLOSED if issue is invalid or if the issue has been dealt with.")
-
-    def __str__(self):
-        return "{} issue #{}".format(self.tool.name, self.id)
-
-
-class ToolIssueNote(models.Model):
-
-    toolIssue = models.ForeignKey(ToolIssue, null=False, blank=False,
-        on_delete=models.CASCADE,
-        help_text="Any kind of note about the tool issue.")
-
-    # Note will become anonymous if author is deleted or author is blank.
-    author = models.ForeignKey(Member, null=True, blank=True,
-        on_delete=models.SET_NULL,
-        help_text="The member who wrote this note.")
-
-    when_written = models.DateTimeField(null=False, auto_now_add=True,
-        help_text="The date and time when the note was written.")
-
-    content = models.TextField(max_length=2048,
-        help_text="Anything you want to say about the tool issue.")
-
-    def __str__(self):
-        return "Issue note #{}".format(self.id)
-
-
-class ParkingPermit(models.Model):
+class ParkingPermit(TaggedItem):
 
     owner = models.ForeignKey(Member, null=False, blank=False, on_delete=models.PROTECT,
         related_name="permits_owned",
         help_text="The member who owns the parked item.")
 
-    created = models.DateField(null=False, blank=False, auto_now_add=True,
-        help_text="Date/time on which the parking permit was created.")
-
-    short_desc = models.CharField(max_length=40, blank=False,
-        help_text="A short description of the item parked.")
-
-    ok_to_move = models.BooleanField(default=True,
-        help_text="Is it OK to carefully move the item to another location without involving owner?")
-
     approving_member = models.ForeignKey(Member, null=True, blank=True, on_delete=models.SET_NULL,
         related_name="permits_approved",
         help_text="The paying member who approved the parking of this item.")
 
-    is_in_inventoried_space = models.BooleanField(default=True,
-        help_text="True if the item is in our inventoried space/building(s). False if the owner has taken it home.")
+    price_per_period = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
+        default=Decimal("0.00"),
+        help_text="The price per unit time for this permit.")
+
+    PERIOD_NA      = "/"
+    PERIOD_WEEK    = "W"
+    PERIOD_MONTH   = "M"
+    PERIOD_QUARTER = "Q"
+    PERIOD_QUARTER = "Y"
+    PERIOD_CHOICES = [
+        (PERIOD_NA,      "N/A"),
+        (PERIOD_WEEK,    "Weeks"),
+        (PERIOD_MONTH,   "Months"),
+        (PERIOD_QUARTER, "Quarters"),
+        (PERIOD_QUARTER, "Years"),
+    ]
+    billing_period = models.CharField(max_length=1, choices=PERIOD_CHOICES, default=PERIOD_NA,
+        help_text = "The price per period will be billed at this frequency.")
 
     def __str__(self):
         return "P%04d, %s %s, '%s'" % (
@@ -163,27 +147,27 @@ class ParkingPermit(models.Model):
             self.owner.auth_user.first_name, self.owner.auth_user.last_name,
             self.short_desc)
 
-    class Meta:
-        ordering = ['owner', 'pk', 'created']
-        unique_together = ('owner', 'created', 'short_desc')
 
-
-class PermitRenewal(models.Model):
+class ParkingPermitPayment(models.Model):
 
     # Intentionally NOT adding a "who" field. Only item owner should renew.
 
     permit = models.ForeignKey(ParkingPermit, null=False, blank=False,
         on_delete=models.CASCADE, related_name='renewals',
-        help_text="The parking permit that was renewed.")
+        help_text="The parking permit for which the payment was made.")
 
-    when = models.DateField(null=False, blank=False,
-        help_text="Date on which the parking permit was renewed.")
+    start_date = models.DateField(null=False, blank=False,
+        help_text="Permit is valid FROM this date, inclusive.")
+
+    end_date = models.DateField(null=False, blank=False,
+        help_text="Permit is valid TO this date, inclusive.")
 
     def __str__(self):
-        return "P%04d renewed on %s" % (self.permit.pk, self.when.isoformat())
+        values = (self.permit.pk, self.start_date.isoformat(), self.end_date.isoformat())
+        return "P%04d payment %s to %s" % values
 
     class Meta:
-        ordering = ['permit', 'when']
+        ordering = ['permit', 'start_date']
 
 
 class PermitScan(models.Model):
@@ -197,7 +181,7 @@ class PermitScan(models.Model):
         help_text="The member who scanned the permit.")
 
     when = models.DateTimeField(null=False, blank=False,
-        help_text="Date/time on which the parking permit was created.")
+        help_text="Date/time on which the permit was scanned.")
 
     where = models.ForeignKey(Location, null=False, blank=False, on_delete=models.PROTECT,
         help_text="The location at which the parking permit was scanned.")
@@ -211,3 +195,29 @@ class PermitScan(models.Model):
 
     class Meta:
         ordering = ['where','when']
+
+#
+# class RentedSpace(models.Model):
+#
+#     begins = models.DateField(null=False, blank=False, auto_now_add=True,
+#         help_text="The date on which the paid storage ")
+#
+#     ends = models.DateField(null=False, blank=False, auto_now_add=True,
+#         help_text="Date/time on which the parking permit was created.")
+#
+#     short_desc = models.CharField(max_length=40, blank=False,
+#         help_text="A short description of the item parked.")
+#
+#     ok_to_move = models.BooleanField(default=True,
+#         help_text="Is it OK to carefully move the item to another location without involving owner?")
+#
+#     def __str__(self):
+#         return "P%04d, %s %s, '%s'" % (
+#             self.pk,
+#             self.owner.auth_user.first_name, self.owner.auth_user.last_name,
+#             self.short_desc)
+#
+#     class Meta:
+#         ordering = ['owner', 'pk', 'created']
+#         unique_together = ('owner', 'created', 'short_desc')
+#

@@ -7,12 +7,14 @@ from django.utils.html import format_html
 from reversion.admin import VersionAdmin
 
 # Local
-from inventory.models import PermitScan, PermitRenewal, ParkingPermit, Location, \
-    Shop, Tool, ToolIssue, ToolIssueNote
+from inventory.models import (
+    PermitScan, ParkingPermitPayment, ParkingPermit,
+    Location, Shop, Tool
+)
 
 
-class PermitRenewalInline(admin.TabularInline):
-    model = PermitRenewal
+class ParkingPermitPaymentInline(admin.TabularInline):
+    model = ParkingPermitPayment
     extra = 0
 
     class Media:
@@ -34,11 +36,27 @@ class PermitScanInline(admin.TabularInline):
 
 @admin.register(ParkingPermit)
 class ParkingPermitAdmin(VersionAdmin):
-    list_display = ['pk', 'short_desc', 'owner', 'created', 'ok_to_move', 'is_in_inventoried_space']
-    fields = ['short_desc', 'owner', 'created', 'ok_to_move', 'is_in_inventoried_space']
+    list_display = [
+        'pk',
+        'short_desc',
+        'owner',
+        'ok_to_move',
+        'is_in_inventoried_space',
+        'price_per_period',
+        'billing_period',
+    ]
+    list_display_links = ['pk', 'short_desc']
+    fields = [
+        ('short_desc', 'created'),
+        ('owner', 'approving_member'),
+        'location',
+        'ok_to_move',
+        'is_in_inventoried_space',
+        ('price_per_period', 'billing_period'),
+    ]
     readonly_fields = ['created']
-    inlines = [PermitRenewalInline, PermitScanInline]
-    raw_id_fields = ['owner']
+    inlines = [ParkingPermitPaymentInline, PermitScanInline]
+    raw_id_fields = ['owner', 'approving_member', 'location']
 
     search_fields = [
         '^owner__auth_user__first_name',
@@ -56,11 +74,11 @@ class PermitScanAdmin(VersionAdmin):
 
 @admin.register(Location)
 class LocationAdmin(VersionAdmin):
-    pass
+    search_fields = ['short_desc']
 
 
-@admin.register(PermitRenewal)
-class PermitRenewalAdmin(VersionAdmin):
+@admin.register(ParkingPermitPayment)
+class ParkingPermitPaymentAdmin(VersionAdmin):
     pass
 
 
@@ -77,7 +95,7 @@ class ToolInline(admin.TabularInline):
     model = Tool
     extra = 0
 
-    fields = ['status', 'name', 'location', 'more_info']
+    fields = ['status', 'short_desc', 'location', 'more_info']
     readonly_fields = ['more_info']
 
 
@@ -100,22 +118,6 @@ class ShopAdmin(VersionAdmin):
         }
 
 
-class ToolIssueInline(admin.TabularInline):
-    model = ToolIssue
-    extra = 0
-
-    def more_info(self, obj):
-        if obj.id is None:
-            return "n/a"
-        else:
-            # TODO: Use reverse as in the answer at http://stackoverflow.com/questions/2857001
-            url_str = "/admin/inventory/toolissue/{}".format(obj.id)
-            return format_html("<a href='{}'>Issue Details</a>", url_str)
-
-    readonly_fields = ['more_info']
-    raw_id_fields = ['reporter']
-
-
 @admin.register(Tool)
 class ToolAdmin(VersionAdmin):
 
@@ -125,51 +127,21 @@ class ToolAdmin(VersionAdmin):
     def backup_mgr(self, obj):
         return obj.shop.backup_manager
 
-    list_display = ['pk', 'name', 'status', 'shop', 'manager', 'backup_mgr', 'location']
+    list_display = ['pk', 'short_desc', 'status', 'shop', 'manager', 'backup_mgr', 'loaned_by', 'location']
 
-    list_display_links = ['pk', 'name']
+    list_display_links = ['pk', 'short_desc']
 
-    list_filter = ['status', 'shop']
+    list_filter = ['status', 'shop', 'is_loaned']
 
     fields = [
-        ('name', 'shop', 'status'),
+        ('short_desc', 'shop', 'status'),
         ('public_info', 'location'),
     ]
 
-    search_fields = ['name']
-
-    inlines = [ToolIssueInline]
+    search_fields = ['short_desc']
 
     class Media:
         css = {
             "all": ("abutils/admin-tabular-inline.css",)  # This hides "denormalized object descs", to use Wojciech's term.
         }
 
-
-class ToolIssueNoteInline(admin.StackedInline):
-    model = ToolIssueNote
-    extra = 0
-    raw_id_fields = ['author']
-    fields = [
-        ('author', 'when_written'),
-        'content'
-    ]
-    readonly_fields = ['when_written']
-
-
-@admin.register(ToolIssue)
-class ToolIssueAdmin(VersionAdmin):
-
-    def shop(self, obj): # Req'd because can't use 'tool__shop' in list_display.
-        return obj.tool.shop
-
-    list_display = ['pk', 'tool', 'shop', 'reporter', 'short_desc', 'status', ]
-    list_filter = ['status', 'tool__shop']
-
-    fields = [
-        'tool',
-        ('reporter', 'short_desc'),
-        'status',
-    ]
-    inlines = [ToolIssueNoteInline]
-    raw_id_fields = ['reporter']
