@@ -1,4 +1,12 @@
+
+# Standard
+import os
+
+# Third-party
 from django.core.management.base import BaseCommand, CommandError
+
+# Local
+
 
 __author__ = 'adrian'
 
@@ -12,9 +20,14 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
 
         print("")
+
+        rest_token = input("REST API token: ")
+        # rest_token = os.getenv('XEROPS_ETL_REST_TOKEN', None)
+
         fetchers = input("Fetchers: ").split()
         # fetchers = ["xerops.etlfetchers.paypal"]
-        rest_token = input("REST API token: ")
+        # fetchers = ["xerops.etlfetchers.wepay"]
+        # fetchers = ["xerops.etlfetchers.square_v2"]
 
         fetchers = [__import__(x, fromlist=["Fetcher"]) for x in fetchers]
         fetchers = [getattr(x, 'Fetcher') for x in fetchers]
