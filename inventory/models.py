@@ -205,11 +205,14 @@ class PermitScan(models.Model):
 
 class ConsumableToStock(models.Model):
 
-    short_desc = models.CharField(max_length=40, blank=False,
-        help_text="The items name or a short description.")
+    short_desc = models.CharField(max_length=60, blank=False,
+        help_text="The item's name or a short description.")
 
     obtain_from = models.CharField(max_length=40, blank=False,
         help_text="A suggested retailer to obtain the item from.")
+
+    product_url = models.URLField(null=True, blank=True,
+        help_text="If to be purchased online, specify an URL at the preferred store.")
 
     min_level = models.IntegerField(
         help_text="Restock when inventory reaches this low level.")

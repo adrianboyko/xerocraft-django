@@ -170,7 +170,7 @@ class ConsumableToStockAdmin(VersionAdmin):
 
     fields = [
         'short_desc',
-        'obtain_from',
+        ('obtain_from', 'product_url'),
         ('min_level', 'min_level_unit'),
         'for_shop',
         'stocker',
@@ -180,3 +180,8 @@ class ConsumableToStockAdmin(VersionAdmin):
     list_filter = ['obtain_from']
 
     raw_id_fields = ['stocker']
+
+    class Media:
+        css = {
+            "all": ("inventory/styles.css",)
+        }
