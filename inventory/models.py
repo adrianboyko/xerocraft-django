@@ -6,7 +6,7 @@ from decimal import Decimal
 
 # Third Party
 from django.db import models
-from django.utils import timezone
+from django.utils import timezone as dutz
 
 # Local
 from members.models import Member
@@ -23,7 +23,7 @@ class Location(models.Model):
     z = models.FloatField(null=True, blank=True,
         help_text="An ordinate in some coordinate system to help locate the location.")
 
-    short_desc = models.CharField(max_length=40, blank=False, default="ERROR: NEEDS DESC",
+    short_desc = models.CharField(max_length=40, blank=False,
         help_text="A short description/name for the location.")
 
     def __str__(self):
@@ -60,10 +60,10 @@ class TaggedItem(models.Model):
         on_delete=models.SET_NULL,
         help_text="The location of the item.")
 
-    short_desc = models.CharField(max_length=40, blank=False, default="ERROR: NEEDS DESC",
+    short_desc = models.CharField(max_length=40, blank=False,
         help_text="The items name or a short description.")
 
-    created = models.DateField(null=False, blank=False, default=timezone.now,
+    created = models.DateField(null=False, blank=False, default=dutz.now,
         help_text="Date/time on which the item was tagged.")
 
     ok_to_move = models.BooleanField(default=True,
@@ -130,13 +130,13 @@ class ParkingPermit(TaggedItem):
     PERIOD_WEEK    = "W"
     PERIOD_MONTH   = "M"
     PERIOD_QUARTER = "Q"
-    PERIOD_QUARTER = "Y"
+    PERIOD_YEAR    = "Y"
     PERIOD_CHOICES = [
         (PERIOD_NA,      "N/A"),
         (PERIOD_WEEK,    "Weeks"),
         (PERIOD_MONTH,   "Months"),
         (PERIOD_QUARTER, "Quarters"),
-        (PERIOD_QUARTER, "Years"),
+        (PERIOD_YEAR,    "Years"),
     ]
     billing_period = models.CharField(max_length=1, choices=PERIOD_CHOICES, default=PERIOD_NA,
         help_text = "The price per period will be billed at this frequency.")
@@ -161,6 +161,8 @@ class ParkingPermitPayment(models.Model):
 
     end_date = models.DateField(null=False, blank=False,
         help_text="Permit is valid TO this date, inclusive.")
+
+    # TODO: Needs sale related fields.
 
     def __str__(self):
         values = (self.permit.pk, self.start_date.isoformat(), self.end_date.isoformat())
@@ -199,25 +201,32 @@ class PermitScan(models.Model):
 #
 # class RentedSpace(models.Model):
 #
-#     begins = models.DateField(null=False, blank=False, auto_now_add=True,
-#         help_text="The date on which the paid storage ")
-#
-#     ends = models.DateField(null=False, blank=False, auto_now_add=True,
-#         help_text="Date/time on which the parking permit was created.")
-#
-#     short_desc = models.CharField(max_length=40, blank=False,
-#         help_text="A short description of the item parked.")
-#
-#     ok_to_move = models.BooleanField(default=True,
-#         help_text="Is it OK to carefully move the item to another location without involving owner?")
-#
-#     def __str__(self):
-#         return "P%04d, %s %s, '%s'" % (
-#             self.pk,
-#             self.owner.auth_user.first_name, self.owner.auth_user.last_name,
-#             self.short_desc)
-#
-#     class Meta:
-#         ordering = ['owner', 'pk', 'created']
-#         unique_together = ('owner', 'created', 'short_desc')
-#
+
+
+class ConsumableToStock(models.Model):
+
+    short_desc = models.CharField(max_length=40, blank=False,
+        help_text="The items name or a short description.")
+
+    obtain_from = models.CharField(max_length=40, blank=False,
+        help_text="A suggested retailer to obtain the item from.")
+
+    min_level = models.IntegerField(
+        help_text="Restock when inventory reaches this low level.")
+
+    min_level_unit = models.CharField(max_length=10, blank=False,
+        help_text="Unit of restock.")
+
+    for_shop = models.ForeignKey(Shop, null=True, blank=True,
+        on_delete=models.SET_NULL,
+        help_text="The shop that requested that this item be stocked.")
+
+    restock_required = models.BooleanField(default=False,
+        help_text="Set this if you notice that a restock is required.")
+
+    stocker = models.ForeignKey(Member, null=True, blank=True,
+        on_delete=models.SET_NULL,
+        help_text="The Quartermaster if blank, else their delegate.")
+
+    class Meta:
+        verbose_name_plural = "Consumables to stock"

@@ -9,7 +9,8 @@ from reversion.admin import VersionAdmin
 # Local
 from inventory.models import (
     PermitScan, ParkingPermitPayment, ParkingPermit,
-    Location, Shop, Tool
+    Location, Shop, Tool,
+    ConsumableToStock
 )
 
 
@@ -134,14 +135,48 @@ class ToolAdmin(VersionAdmin):
     list_filter = ['status', 'shop', 'is_loaned']
 
     fields = [
-        ('short_desc', 'shop', 'status'),
-        ('public_info', 'location'),
+        'short_desc',
+        'shop',
+        'status',
+        'public_info',
+        'location',
     ]
 
     search_fields = ['short_desc']
+
+    raw_id_fields = ['location']
 
     class Media:
         css = {
             "all": ("abutils/admin-tabular-inline.css",)  # This hides "denormalized object descs", to use Wojciech's term.
         }
 
+
+@admin.register(ConsumableToStock)
+class ConsumableToStockAdmin(VersionAdmin):
+
+    list_display = [
+        'pk',
+        'short_desc',
+        'min_level',
+        'min_level_unit',
+        'for_shop',
+        'stocker',
+        'restock_required',
+        'obtain_from',
+    ]
+
+    list_display_links = ['pk', 'short_desc']
+
+    fields = [
+        'short_desc',
+        'obtain_from',
+        ('min_level', 'min_level_unit'),
+        'for_shop',
+        'stocker',
+        'restock_required',
+    ]
+
+    list_filter = ['obtain_from']
+
+    raw_id_fields = ['stocker']
