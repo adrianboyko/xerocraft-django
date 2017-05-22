@@ -2,8 +2,8 @@
 
 # Standard
 from decimal import Decimal
-from datetime import date, datetime, timedelta
-from typing import Union, List, Set, Optional
+from datetime import datetime
+from typing import Union, List, Set, Dict, Type
 import math
 import calendar
 
@@ -29,6 +29,7 @@ FAR_FUTURE = timezone.now()+timedelta(days=3650)
 
 ConcreteEntity = Union['Person', 'Resource']
 ConcreteEntityInClassTemplate = Union['PersonInClassTemplate', 'ResourceInClassTemplate']
+ConcreteEntityInScheduledClass = Union['PersonInScheduledClass', 'ResourceInScheduledClass']
 
 
 # dt2ts is from http://stackoverflow.com/questions/5067218/get-utc-timestamp-in-python-with-datetime
@@ -63,26 +64,6 @@ class Person(Entity):
     """An instructor, organizer, student, etc."""
 
     django_user = models.ForeignKey(User, models.CASCADE, null=False, blank=False)
-    rest_time = models.IntegerField(default=1, help_text="Minimum days between classes.")
-
-    @property
-    def most_recent_class_start(self) -> date:
-        try:
-            pisc = PersonInScheduledClass.objects\
-                .filter(
-                  person=self,
-                  scheduled_class__starts__lt=timezone.now(),
-                  scheduled_class__status=ScheduledClass.STATUS_VERIFIED
-                )\
-                .latest('scheduled_class__starts')  # type: PersonInScheduledClass
-            return pisc.scheduled_class.starts
-        except PersonInScheduledClass.DoesNotExist:
-            return LONG_AGO
-
-    @property
-    def is_resting(self) -> bool:
-        time_since_last_class = timezone.now() - self.most_recent_class_start
-        return time_since_last_class < timedelta(days=self.rest_time)
 
     def note_timepattern_change(self):
         for pict in self.personinclasstemplate_set.all():  # type: PersonInClassTemplate
@@ -123,6 +104,20 @@ class GroupAvailability(object):
         self.entity_involvements = eicts
         self.timespan = timespan
 
+        # Group into roles:
+        self._entities_of_role = dict()  # type: Dict['EintityInClassTemplate', List['EntityInClassTempate']]
+        for eict in self.entity_involvements:
+            r = eict.entitys_role
+            if not r in self._entities_of_role:
+                self._entities_of_role[r] = []
+            self._entities_of_role[r].append(eict)
+
+    def entities_of_role(self, role: str):
+        if not role in self._entities_of_role:
+            return []
+        else:
+            return self._entities_of_role[role]
+
     def __str__(self):
         result = " / ".join([str(eict.entity) for eict in self.entity_involvements]) + " / " + str(self.timespan)
         return result
@@ -139,19 +134,25 @@ class ClassTemplate(models.Model):
     max_students_for_teacher = models.IntegerField()
     additional_students_per_ta = models.IntegerField()
 
-    def instantiate(self, scheduled_start: datetime) -> 'ScheduledClass':
+    def instantiate(self, ga: GroupAvailability) -> 'ScheduledClass':
+        start_dt = datetime.fromtimestamp(ga.timespan.lower_value, timezone.utc)
         sc = ScheduledClass.objects.create(
             class_template=self,
-            starts=scheduled_start,
+            starts=start_dt,
             duration=self.duration,
             status=ScheduledClass.STATUS_VERIFYING,
         )
-        for pict in self.personinclasstemplate_set.all():
-            PersonInScheduledClass.objects.create(
+        m = {
+            PersonInClassTemplate: PersonInScheduledClass,
+            ResourceInClassTemplate: ResourceInScheduledClass
+        }  # type: Dict[Type[EntityInClassTemplate], Type[EntityInScheduledClass]]
+        for eict in ga.entity_involvements:  # type: EntityInClassTemplate
+            m[type(eict)].objects.create(
                 scheduled_class=sc,
-                person=pict.person,
-                role=pict.role
+                person=eict.entity,
+                role=eict.entitys_role
             )
+
         return sc
 
     @property
@@ -159,32 +160,23 @@ class ClassTemplate(models.Model):
         return self.personinclasstemplate_set.filter(role=PersonInClassTemplate.ROLE_STUDENT).count()
 
     def evaluate_situation(self):
-        if self.interested_student_count > self.min_students_required:
-            pass
+        eval_window_begin = timezone.now().date()  # type: date
+        eval_window_end = eval_window_begin + timedelta(days=28)  # type: date
+        solutions = self.find_potential_solutions(eval_window_begin, eval_window_end)
+        for solution in solutions:  # type: GroupAvailability
+            # TODO: Check for existing duplicate ScheduledClasses! This is a complex operation.
+            self.instantiate(solution)
 
-    def is_actionable_solution(self, candidate_group_availability: GroupAvailability) -> bool:
-        candidate_eicts = candidate_group_availability.entity_involvements  # type: List[EntityInClassTemplate]
-        candidate_timespan = candidate_group_availability.timespan  # type: Interval
+    def is_potential_solution(self, group_availability: GroupAvailability) -> bool:
+        candidate_timespan = group_availability.timespan  # type: Interval
+        PICT = PersonInClassTemplate
+        RICT = ResourceInClassTemplate
 
-    # Get a entity count grouped by role:
-        teacher_count = 0
-        assistant_count = 0
-        student_count = 0
-        resource_count = 0
-
-        for eict in candidate_eicts:
-            assert eict.class_template == self
-            if eict.entitys_role == PersonInClassTemplate.ROLE_TEACHER:
-                # There can be more than one available teacher, even though only one will be needed.
-                teacher_count += 1
-            elif eict.entitys_role == PersonInClassTemplate.ROLE_ASSISTANT:
-                assistant_count += 1
-            elif eict.entitys_role == PersonInClassTemplate.ROLE_STUDENT:
-                student_count += 1
-            elif eict.entitys_role == ResourceInClassTemplate.ROLE_REQUIRED:
-                resource_count += 1
-            else:
-                pass  # TODO: Log unrecognized role
+        # Get counts per role:
+        teacher_count = len(group_availability.entities_of_role(PICT.ROLE_TEACHER))
+        assistant_count = len(group_availability.entities_of_role(PICT.ROLE_ASSISTANT))
+        student_count = len(group_availability.entities_of_role(PICT.ROLE_STUDENT))
+        resource_count = len(group_availability.entities_of_role(RICT.ROLE_REQUIRED))
 
         # Consider the teacher situation:
         if teacher_count == 0:
@@ -256,7 +248,7 @@ class ClassTemplate(models.Model):
                 candidate_timespan = candidate_timespan.intersect(ival)
                 candidate_eicts.append(eict)
             ga = GroupAvailability(candidate_eicts, candidate_timespan)
-            if self.is_actionable_solution(ga):
+            if self.is_potential_solution(ga):
                 results.add(ga)
                 #print(ga)
 
@@ -276,6 +268,22 @@ class ClassTemplate(models.Model):
 
 
 class EntityInClassTemplate(models.Model):
+
+    class_template = models.ForeignKey(ClassTemplate, models.CASCADE, null=False, blank=False)
+
+    @property
+    def entity(self) -> ConcreteEntity:
+        raise NotImplementedError()
+
+    @property
+    def entitys_role(self) -> str:
+        raise NotImplementedError()
+
+    class Meta:
+        abstract = True
+
+
+class EntityInScheduledClass(models.Model):
 
     class_template = models.ForeignKey(ClassTemplate, models.CASCADE, null=False, blank=False)
 
@@ -476,12 +484,6 @@ class ScheduledClass(models.Model):
     status = models.CharField(max_length=3, choices=STATUS_CHOICES, default=STATUS_VERIFYING)
     starts = models.DateTimeField(null=False, blank=False)
     duration = models.DecimalField(max_digits=4, decimal_places=2, null=False, blank=False)
-
-    asked_instructor = models.DateField(default=None, null=True, blank=True)
-    asked_assistants = models.DateField(default=None, null=True, blank=True)
-    asked_students = models.DateField(default=None, null=True, blank=True)
-    invoiced_students = models.DateField(default=None, null=True, blank=True)
-    asked_for_resources = models.DateField(default=None, null=True, blank=True)  # Maybe at same time we invoice.
 
     @property
     def student_seats_total(self) -> int:
