@@ -5,7 +5,6 @@ from decimal import Decimal
 from datetime import datetime
 from typing import Union, List, Set, Dict, Type
 import math
-import calendar
 
 # Third-party
 from django.db import models
@@ -40,20 +39,33 @@ def dt2ts(dt: datetime) -> TimeStamp:
 
 class Entity(models.Model):
 
+    @property
+    def scheduled_class_involvements(self) -> List['EntityInScheduledClass']:
+        raise NotImplementedError()
+
     def get_availability(self: ConcreteEntity, range_begin: date, range_end: date) -> IntervalSet:
         available = IntervalSet([])
         unavailable = IntervalSet([])
+
+        # Determine availability and unavailability according to entity's settings:
         for pos_tp in self.timepattern_set.filter(disposition=TimePattern.DISPOSITION_AVAILABLE).all():
             available += pos_tp.as_interval_set(range_begin, range_end)
         if available.empty():
             # If no positive timepatterns have been specified then we'll say that the pos part is infinite.
             # This makes it easy to specify things like "always available" and "always available except Fridays."
             # For the purpose of this method, "infite" translates to range_begin to range_end.
-            range_begin_ts = dt2ts(pytz.utc.localize(datetime(range_begin.year, range_begin.month, range_begin.day)))
-            range_end_ts = dt2ts(pytz.utc.localize(datetime(range_end.year, range_end.month, range_end.day)))
+            make_ts = lambda d: dt2ts(pytz.utc.localize(datetime(d.year, d.month, d.day)))
+            range_begin_ts = make_ts(range_begin)  # type: TimeStamp
+            range_end_ts = make_ts(range_end)  # type: TimeStamp
             available.add(closed(range_begin_ts, range_end_ts))
         for neg_tp in self.timepattern_set.filter(disposition=TimePattern.DISPOSITION_UNAVAILABLE).all():
             unavailable += neg_tp.as_interval_set(range_begin, range_end)
+
+        # Determine additional unavailability due to entity being involved in a scheduled class:
+        for involvement in self.scheduled_class_involvements:  # type: EntityInScheduledClass
+            if involvement.entitys_status == EntityInScheduledClass.STATUS_G2G:
+                pass  # TODO
+
         return available - unavailable
 
     class Meta:
@@ -64,6 +76,10 @@ class Person(Entity):
     """An instructor, organizer, student, etc."""
 
     django_user = models.ForeignKey(User, models.CASCADE, null=False, blank=False)
+
+    @property
+    def scheduled_class_involvements(self) -> List['EntityInScheduledClass']:
+        return self.personinscheduledclass_set.all()
 
     def note_timepattern_change(self):
         for pict in self.personinclasstemplate_set.all():  # type: PersonInClassTemplate
@@ -80,6 +96,10 @@ class Resource(Entity):
     short_description = models.CharField(max_length=240)
     long_description = models.TextField(max_length=2048)
     managers_email = models.EmailField(help_text="If blank, instructors will need to manually book the resource.")
+
+    @property
+    def scheduled_class_involvements(self) -> List['EntityInScheduledClass']:
+        return self.resourceinscheduledclass_set.all()
 
     def note_timepattern_change(self):
         for rict in self.resourceinclasstemplate_set.all():  # type: ResourceInClassTemplate
@@ -108,12 +128,12 @@ class GroupAvailability(object):
         self._entities_of_role = dict()  # type: Dict['EintityInClassTemplate', List['EntityInClassTempate']]
         for eict in self.entity_involvements:
             r = eict.entitys_role
-            if not r in self._entities_of_role:
+            if r not in self._entities_of_role:
                 self._entities_of_role[r] = []
             self._entities_of_role[r].append(eict)
 
     def entities_of_role(self, role: str):
-        if not role in self._entities_of_role:
+        if role not in self._entities_of_role:
             return []
         else:
             return self._entities_of_role[role]
@@ -135,19 +155,30 @@ class ClassTemplate(models.Model):
     additional_students_per_ta = models.IntegerField()
 
     def instantiate(self, ga: GroupAvailability) -> 'ScheduledClass':
-        start_dt = datetime.fromtimestamp(ga.timespan.lower_value, timezone.utc)
+
+        EiCT = EntityInClassTemplate  # type alias
+        EiSC = EntityInScheduledClass  # type alias
+
+        start_dt = datetime.fromtimestamp(ga.timespan.lower_value, timezone.utc)  # type: datetime
+
+        exists = ScheduledClass.objects.filter(starts=start_dt, class_template=self).all()
+        assert len(exists) in [0, 1]
+        if len(exists) == 1:
+            # The class is already scheduled in this timeslot.
+            return exists.first()
+
         sc = ScheduledClass.objects.create(
             class_template=self,
             starts=start_dt,
             duration=self.duration,
             status=ScheduledClass.STATUS_VERIFYING,
         )
-        m = {
+        role_map = {
             PersonInClassTemplate: PersonInScheduledClass,
             ResourceInClassTemplate: ResourceInScheduledClass
-        }  # type: Dict[Type[EntityInClassTemplate], Type[EntityInScheduledClass]]
-        for eict in ga.entity_involvements:  # type: EntityInClassTemplate
-            m[type(eict)].objects.create(
+        }  # type: Dict[Type[EiCT], Type[EiSC]]
+        for eict in ga.entity_involvements:  # type: EiCT
+            role_map[type(eict)].objects.create(
                 scheduled_class=sc,
                 person=eict.entity,
                 role=eict.entitys_role
@@ -212,7 +243,7 @@ class ClassTemplate(models.Model):
         EiCT = EntityInClassTemplate
 
         class Event(object):
-            def __init__(self, timestamp: TimeStamp, interval:Interval, islower:bool, eict:EiCT):
+            def __init__(self, timestamp: TimeStamp, interval: Interval, islower: bool, eict: EiCT):
                 self.timestamp = timestamp
                 self.interval = interval
                 self.islower = islower
@@ -250,7 +281,7 @@ class ClassTemplate(models.Model):
             ga = GroupAvailability(candidate_eicts, candidate_timespan)
             if self.is_potential_solution(ga):
                 results.add(ga)
-                #print(ga)
+                # print(ga)
 
         return results
 
@@ -285,7 +316,9 @@ class EntityInClassTemplate(models.Model):
 
 class EntityInScheduledClass(models.Model):
 
-    class_template = models.ForeignKey(ClassTemplate, models.CASCADE, null=False, blank=False)
+    scheduled_class = models.ForeignKey('ScheduledClass', models.CASCADE, null=False, blank=False)
+
+    STATUS_G2G = "G2G"
 
     @property
     def entity(self) -> ConcreteEntity:
@@ -293,6 +326,10 @@ class EntityInScheduledClass(models.Model):
 
     @property
     def entitys_role(self) -> str:
+        raise NotImplementedError()
+
+    @property
+    def entitys_status(self) -> str:
         raise NotImplementedError()
 
     class Meta:
@@ -491,7 +528,7 @@ class ScheduledClass(models.Model):
         piscs = PersonInScheduledClass.objects.filter(
             scheduled_class=self,
             role__in=[PersonInClassTemplate.ROLE_TEACHER, PersonInClassTemplate.ROLE_ASSISTANT],
-            status=PersonInScheduledClass.STATUS_APPROVED,
+            status=PersonInScheduledClass.STATUS_G2G,
         ).all()
         total = 0
         for pisc in piscs:  # type: PersonInScheduledClass
@@ -507,53 +544,69 @@ class ScheduledClass(models.Model):
             return 0
 
 
-class PersonInScheduledClass(models.Model):
+class PersonInScheduledClass(EntityInScheduledClass):
 
-    STATUS_GOOD = "GUD"      # Time of class is good for person so we'll be asking them to attend.
-    STATUS_BAD = "BAD"       # Time of class is bad for person but we *might* ask them to attend.
-    STATUS_ASKED = "SO?"     # We have asked the person if they'd like to attend.
-    STATUS_MAYBE = "MAB"     # We might nag them further to turn them yes or no.
-    STATUS_NO = "NOP"        # The person will not attend.
-    STATUS_YES = "YES"       # The person WILL attend. Instructors/assitants skip this state and go to APPROVED.
-    STATUS_INVOICED = "INV"  # The person has been invoiced.
-    STATUS_APPROVED = "G2G"  # The person has paid (if required) and is approved to attend the class.
+    STATUS_VERIFYING = "SO?"  # We are attempting to find out if they'd like to attend.
+    STATUS_MAYBE = "MAB"      # We might nag them further to turn them yes or no.
+    STATUS_NO = "NOP"         # The person will not attend.
+    STATUS_YES = "YES"        # The person WILL attend. Instructors/assitants skip this state and go to APPROVED.
+    STATUS_INVOICED = "INV"   # The person has been invoiced.
+    STATUS_G2G = EntityInScheduledClass.STATUS_G2G  # The person has paid (if required) and is approved to attend the class.
     STATUS_CHOICES = [
-        (STATUS_GOOD, "Will ask person to attend"),
-        (STATUS_BAD, "Might ask person to attend"),
-        (STATUS_ASKED, "Person has been asked if they'll attend"),
-        (STATUS_MAYBE, "Person says that they MIGHT attend"),
-        (STATUS_NO, "Person says that they will NOT attend"),
-        (STATUS_YES, "Person says that they WILL attend"),
-        (STATUS_INVOICED, "Person has been invoiced"),
-        (STATUS_APPROVED, "Person has been approved to attend")
+        (STATUS_VERIFYING, "Verifying"),
+        (STATUS_MAYBE, "Maybe"),
+        (STATUS_NO, "No"),
+        (STATUS_YES, "Yes"),
+        (STATUS_INVOICED, "Invoiced"),
+        (STATUS_G2G, "Good to Go")
     ]
 
     person = models.ForeignKey(Person, models.CASCADE, null=False, blank=False)
-    scheduled_class = models.ForeignKey(ScheduledClass, models.CASCADE, null=False, blank=False)
     last_updated = models.DateField(null=False, blank=False, auto_now_add=True)
-    status = models.CharField(max_length=3, null=False)
+    status = models.CharField(max_length=3, null=False, choices=STATUS_CHOICES)
 
     # Role, below, should be initially copied from the corresponding ClassTemplate.
     # The role can be modified later, if required, e.g. if an assistant will sub for the instructor.
     role = models.CharField(max_length=3, choices=PersonInClassTemplate.ROLE_CHOICES, null=False)
 
+    @property
+    def entity(self) -> ConcreteEntity:
+        return self.person
 
-class ResourceInScheduledClass(models.Model):
+    @property
+    def entitys_role(self) -> str:
+        return self.role
 
-    STATUS_NOT_YET_RESERVED = "NOT"  # This state is for resources that need to be manually booked by instructor.
-    STATUS_ASKED_MANAGERS = "SO?"  # This state is for resources that can be automatically booked via email.
-    STATUS_RESERVED = "G2G"
+    @property
+    def entitys_status(self) -> str:
+        return self.status
+
+
+class ResourceInScheduledClass(EntityInScheduledClass):
+
+    STATUS_VERIFYING = "SO?"  # This state is for resources that need to be manually booked by instructor.
+    STATUS_G2G = EntityInScheduledClass.STATUS_G2G  # The resource is committed to the class.
     STATUS_CHOICES = [
-        (STATUS_NOT_YET_RESERVED, "Not yet reserved"),
-        (STATUS_ASKED_MANAGERS, "Waiting for approval"),
-        (STATUS_RESERVED, "Resource is reserved"),
+        (STATUS_VERIFYING, "Verifying"),
+        (STATUS_G2G, "Good to Go"),
     ]
 
     resource = models.ForeignKey(Resource, models.CASCADE, null=False, blank=False)
-    scheduled_class = models.ForeignKey(ScheduledClass, models.CASCADE, null=False, blank=False)
     last_updated = models.DateField(null=False, blank=False, auto_now_add=True)
     status = models.CharField(max_length=3, choices=STATUS_CHOICES, null=False, blank=False)
 
+    @property
+    def entity(self) -> ConcreteEntity:
+        return self.resource
+
+    @property
+    def entitys_role(self) -> str:
+        return "RES"
+
+    @property
+    def entitys_status(self) -> str:
+        return self.status
+
 
 # class IntervalOfAvailability(models.Model):
-#     pass
+#   pass

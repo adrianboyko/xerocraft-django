@@ -90,7 +90,7 @@ class TestStudentCounts(TestCase):
         self.assertEqual(scheduled_class.student_seats_total, 0)
 
         for pisc in scheduled_class.personinscheduledclass_set.all():
-            pisc.status = PersonInScheduledClass.STATUS_APPROVED
+            pisc.status = PersonInScheduledClass.STATUS_G2G
             pisc.save()
 
         self.assertEqual(scheduled_class.student_seats_total, 9)
