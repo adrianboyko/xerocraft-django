@@ -13,6 +13,9 @@ https://docs.djangoproject.com/en/1.8/ref/settings/
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
 import uuid
+import sys
+
+TESTING = 'test' in sys.argv or 'jenkins' in sys.argv
 
 DEVHOSTS = [
     238402988951122,  # Adrian Linux
@@ -407,6 +410,7 @@ XEROPS_MEMBERS_CONFIG = {
 
 XEROPS_TASKS_CONFIG = {
     # Configuration specific to the "tasks" app.
+    'USER_VOLUNTEER': "adrian"  # The Volunteer Coordinator's username.
 }
 
 XEROPS_INVENTORY_CONFIG = {

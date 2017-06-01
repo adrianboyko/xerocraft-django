@@ -1,7 +1,17 @@
-from members.models import Member, Pushover
+
+# Standard
 import os
-import pushover
 import logging
+from typing import Optional
+
+# Third-party
+import pushover
+from django.conf import settings
+
+# Local
+from members.models import Member, Pushover
+
+TESTING = getattr(settings, 'TESTING', False)
 
 logger = logging.getLogger("members")
 
@@ -28,6 +38,12 @@ def notify(
   url: str = None,
   url_title: str = None) -> bool:
 
+    if TESTING:
+        notify.MOST_RECENT_MEMBER = target_member
+        notify.MOST_RECENT_TITLE = title
+        notify.MOST_RECENT_MESSSAGE = message
+        return True
+
     if not pushover_available:
         return False
 
@@ -43,3 +59,8 @@ def notify(
     except Exception as e:
         logger.error("Couldn't send msg to %s because %s", str(target_member), str(e))
         return False
+
+# These were added to support testing:
+notify.MOST_RECENT_TITLE = None  # type: Optional[str]
+notify.MOST_RECENT_MESSSAGE = None  # type: Optional[str]
+notify.MOST_RECENT_MEMBER = None # type: Optional[Member]

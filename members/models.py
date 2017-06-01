@@ -419,6 +419,24 @@ class VisitEvent(models.Model):
     sync1 = models.BooleanField(default=False,
         help_text="True if this event has been sync'ed to 'other system #1'")
 
+    def debounced(self) -> bool:
+        """
+        RFID checkin systems may fire multiple times. Skip checkin if "too close" to the prev checkin time.
+        This method is analogous with "button debouncing" in electronics, hence the name.
+        Returns True if visit should be considered, else false.
+        """
+        try:
+            prev_criteria = {
+                'who': self.who,
+                'event_type': self.event_type,
+                'when__lt': self.when
+            }
+            recent_visit = VisitEvent.objects.filter(**prev_criteria).latest('when')
+            delta = self.when - recent_visit.when
+        except VisitEvent.DoesNotExist:
+            delta = timedelta.max
+        return delta > timedelta(hours=1)
+
     def __str__(self):
         return "%s, %s, %s" % (self.when.isoformat()[:10], self.who, self.event_type)
 

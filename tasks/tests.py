@@ -10,6 +10,8 @@ from django.test import TestCase, TransactionTestCase, LiveServerTestCase, Clien
 from django.contrib.auth.models import User
 from django.contrib.admin import site
 from django.core.management import call_command
+from django.utils import timezone
+from django.conf import settings
 from freezegun import freeze_time
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
@@ -23,6 +25,9 @@ from rest_framework.test import force_authenticate
 from tasks.models import RecurringTaskTemplate, Task, TaskNote, Claim, Work, WorkNote, Nag, Snippet, Worker
 from members.models import Member, Tag, VisitEvent
 import tasks.restapi as restapi
+from members.notifications import notify
+
+USER_VOLUNTEER = settings.XEROPS_TASKS_CONFIG.get("USER_VOLUNTEER", None)
 
 ONEDAY = timedelta(days=1)
 TWODAYS   = 2 * ONEDAY
@@ -914,6 +919,59 @@ class TestSnippets(TestCase):
         expected_expansion = test_string % Snippet.BAD_SNIPPET_REF_STR
         result = Snippet.expand(unexpanded)
         self.assertEqual(result, expected_expansion)
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# Notifications
+
+class TestNotifications(TestCase):
+
+    def setUp(self):
+        # Worker
+        self.worker_user = User.objects.create_user(username='worker', password='123', email='')  # type User
+        self.worker_member = self.worker_user.member
+        # Manager
+        self.manager_user = User.objects.create_user(username=USER_VOLUNTEER, password='123', email='')  # type User
+        self.manager_member = self.manager_user.member
+        notify.MOST_RECENT_MEMBER = None
+        notify.MOST_RECENT_TITLE = None
+        notify.MOST_RECENT_MESSAGE = None
+
+    def test_testability(self):  # TODO: This should be in members.tests
+        title = "TITLE"
+        message = "MESSAGE"
+        notify(self.manager_member, title, message)
+        self.assertEqual(notify.MOST_RECENT_MEMBER, self.manager_member)
+        self.assertEqual(notify.MOST_RECENT_TITLE, title)
+        self.assertEqual(notify.MOST_RECENT_MESSSAGE, message)
+
+    def test_arrival_of_scheduled_worker(self):
+        start_datetime = timezone.now() + timedelta(minutes=15)  # type: datetime
+        task = Task.objects.create(
+            owner=self.manager_member,
+            priority=Task.PRIO_HIGH,
+            short_desc="Test Task",
+            work_start_time=start_datetime.time(),
+            max_work=timedelta(hours=2),
+            scheduled_date=start_datetime.date(),
+            orig_sched_date = start_datetime.date(),
+        )
+        task.clean()
+        claim = Claim.objects.create(
+            claimed_task=task,
+            claiming_member=self.worker_member,
+            claimed_start_time=start_datetime.time(),
+            claimed_duration=timedelta(hours=1),
+            status=Claim.STAT_CURRENT,
+        )
+        claim.clean()
+        VisitEvent.objects.create(
+            who=self.worker_member,
+            event_type=VisitEvent.EVT_ARRIVAL
+        )
+        self.assertEqual(notify.MOST_RECENT_MEMBER, self.manager_member)
+        self.assertTrue("Arrived" in notify.MOST_RECENT_TITLE)
+        self.assertTrue("Scheduled" in notify.MOST_RECENT_MESSSAGE)
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
