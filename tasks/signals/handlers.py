@@ -9,6 +9,7 @@ from django.core.urlresolvers import reverse
 from django.contrib.sites.models import Site
 from django.conf import settings
 from django.utils import timezone
+from django.utils.timezone import localtime
 
 # Local
 from members.models import Member, Tagging, VisitEvent
@@ -118,10 +119,16 @@ def maintenance_nag(sender, **kwargs):
             return
 
         # Only act on a member's first visit of the day.
+        start_of_today = localtime(timezone.now()).replace(
+            hour=4,  # For the purpose of this nag, I'm going to say that day begins at 4am.
+            minute=0,
+            second=0,
+            microsecond=0,
+        )
         num_visits_today = VisitEvent.objects.filter(
             who=visit.who,
             event_type=VisitEvent.EVT_ARRIVAL,
-            when__gte=date.today(),
+            when__gte=start_of_today,
         ).count()
         if num_visits_today > 1:
             return
