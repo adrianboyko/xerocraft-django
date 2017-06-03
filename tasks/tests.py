@@ -946,6 +946,7 @@ class TestNotifications(TestCase):
         self.assertEqual(notify.MOST_RECENT_MESSSAGE, message)
 
     def test_arrival_of_scheduled_worker(self):
+        VisitEvent.objects.all().delete()
         start_datetime = timezone.now() + timedelta(minutes=15)  # type: datetime
         task = Task.objects.create(
             owner=self.manager_member,
