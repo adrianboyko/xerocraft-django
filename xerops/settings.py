@@ -410,7 +410,7 @@ XEROPS_MEMBERS_CONFIG = {
 
 XEROPS_TASKS_CONFIG = {
     # Configuration specific to the "tasks" app.
-    'USER_VOLUNTEER': "adrian"  # The Volunteer Coordinator's username.
+    'USER_VOLUNTEER': "adrianb"  # The Volunteer Coordinator's username.
 }
 
 XEROPS_INVENTORY_CONFIG = {
