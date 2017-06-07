@@ -1,5 +1,6 @@
 
 # Standard
+import math
 
 # Third Party
 from django.contrib import admin
@@ -153,12 +154,27 @@ class ToolAdmin(VersionAdmin):
         }
 
 
+def pluralize(s: str, n: int) -> str:
+    if n == 1:
+        return s
+    if " of " in s:
+        if "x of " in s:
+            return s.replace("x of", "xes of")
+        else:
+            return s.replace(" of ", "s of ")
+    else:
+        if s.endswith("x"):
+            return s+"es"
+        else:
+            return s+"s"
+
+
 @admin.register(ConsumableToStock)
 class ConsumableToStockAdmin(VersionAdmin):
 
     class StatusFilter(admin.SimpleListFilter):
         title = "Status"
-        parameter_name = "buystat"
+        parameter_name = "stat"
 
         def lookups(self, request, model_admin):
             return (
@@ -172,10 +188,11 @@ class ConsumableToStockAdmin(VersionAdmin):
             if self.value() == 'BUY':
                 return queryset.filter(curr_level__lt=F('min_level'))
 
-
     def restock_field(self, obj:ConsumableToStock) -> str:
         if obj.curr_level < obj.min_level:
-            return "Need {} {}".format(obj.min_level-obj.curr_level, obj.level_unit)
+            n = math.ceil(obj.min_level-obj.curr_level)  # type: int
+            s = pluralize(obj.level_unit, n)  # type: str
+            return "Buy {} {}".format(n, s)
         else:
             return "OK"
 

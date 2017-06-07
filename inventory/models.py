@@ -214,10 +214,12 @@ class ConsumableToStock(models.Model):
     product_url = models.URLField(null=True, blank=True,
         help_text="If to be purchased online, specify an URL at the preferred store.")
 
-    curr_level = models.IntegerField(null=False, blank=False, default=0,
+    curr_level = models.DecimalField(null=False, blank=False, default=Decimal("0"),
+        max_digits=6, decimal_places=2,
         help_text="The current inventory level *in the warehouse* (not displayed for sale) ")
 
-    min_level = models.IntegerField(null=False, blank=False, default=0,
+    min_level = models.DecimalField(null=False, blank=False, default=Decimal("0"),
+        max_digits=6, decimal_places=2,
         help_text="Restock when inventory level *in the warehouse* (not displayed for sale) reaches this low level")
 
     level_unit = models.CharField(max_length=20, blank=False,
