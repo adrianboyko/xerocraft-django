@@ -214,18 +214,18 @@ class ConsumableToStock(models.Model):
     product_url = models.URLField(null=True, blank=True,
         help_text="If to be purchased online, specify an URL at the preferred store.")
 
-    min_level = models.IntegerField(
-        help_text="Restock when inventory reaches this low level.")
+    curr_level = models.IntegerField(null=False, blank=False, default=0,
+        help_text="The current inventory level *in the warehouse* (not displayed for sale) ")
 
-    min_level_unit = models.CharField(max_length=10, blank=False,
-        help_text="Unit of restock.")
+    min_level = models.IntegerField(null=False, blank=False, default=0,
+        help_text="Restock when inventory level *in the warehouse* (not displayed for sale) reaches this low level")
+
+    level_unit = models.CharField(max_length=20, blank=False,
+        help_text="The units used for level values")
 
     for_shop = models.ForeignKey(Shop, null=True, blank=True,
         on_delete=models.SET_NULL,
         help_text="The shop that requested that this item be stocked.")
-
-    restock_required = models.BooleanField(default=False,
-        help_text="Set this if you notice that a restock is required.")
 
     stocker = models.ForeignKey(Member, null=True, blank=True,
         on_delete=models.SET_NULL,

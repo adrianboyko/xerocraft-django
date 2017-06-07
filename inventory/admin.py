@@ -3,6 +3,7 @@
 
 # Third Party
 from django.contrib import admin
+from django.db.models import F
 from django.utils.html import format_html
 from reversion.admin import VersionAdmin
 
@@ -155,14 +156,40 @@ class ToolAdmin(VersionAdmin):
 @admin.register(ConsumableToStock)
 class ConsumableToStockAdmin(VersionAdmin):
 
+    class StatusFilter(admin.SimpleListFilter):
+        title = "Status"
+        parameter_name = "buystat"
+
+        def lookups(self, request, model_admin):
+            return (
+                ('OK', "Stock Level OK"),
+                ('BUY', "Need to Buy"),
+            )
+
+        def queryset(self, request, queryset):
+            if self.value() == 'OK':
+                return queryset.filter(curr_level__gte=F('min_level'))
+            if self.value() == 'BUY':
+                return queryset.filter(curr_level__lt=F('min_level'))
+
+
+    def restock_field(self, obj:ConsumableToStock) -> str:
+        if obj.curr_level < obj.min_level:
+            return "Need {} {}".format(obj.min_level-obj.curr_level, obj.level_unit)
+        else:
+            return "OK"
+
+    restock_field.short_description = "Status"
+
     list_display = [
         'pk',
         'short_desc',
+        'curr_level',
         'min_level',
-        'min_level_unit',
+        'level_unit',
         'for_shop',
         'stocker',
-        'restock_required',
+        'restock_field',
         'obtain_from',
     ]
 
@@ -171,15 +198,16 @@ class ConsumableToStockAdmin(VersionAdmin):
     fields = [
         'short_desc',
         ('obtain_from', 'product_url'),
-        ('min_level', 'min_level_unit'),
+        ('curr_level', 'min_level', 'level_unit'),
         'for_shop',
         'stocker',
-        'restock_required',
     ]
 
-    list_filter = ['obtain_from']
+    list_filter = ['obtain_from', StatusFilter]
 
     raw_id_fields = ['stocker']
+
+    search_fields = ['short_desc']
 
     class Media:
         css = {
