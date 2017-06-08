@@ -15,7 +15,7 @@ from members.models import (
     Tag, Pushover, Tagging, VisitEvent,
     Member, Membership, GroupMembership,
     MemberNote, MemberLogin, MembershipGiftCardRedemption,
-    MembershipGiftCard, MembershipGiftCardReference,
+    MembershipGiftCard, MembershipGiftCardReference, MembershipCampaign,
     DiscoveryMethod, WifiMacDetected
 )
 
@@ -204,6 +204,21 @@ class MemberLoginAdmin(VersionAdmin):
     ordering = ['-when']
 
 
+@admin.register(MembershipCampaign)
+class MembershipCampaignAdmin(VersionAdmin):
+
+    list_display = [
+        'pk',
+        'name',
+        'description',
+    ]
+
+    list_display_links = [
+        'pk',
+        'name',
+    ]
+
+
 @admin.register(MembershipGiftCard)
 class MembershipGiftCardAdmin(VersionAdmin):
 
@@ -223,6 +238,7 @@ class MembershipGiftCardAdmin(VersionAdmin):
     list_display = [
         'pk',
         'redemption_code',
+        'campaign',
         'price',
         'month_duration',
         'day_duration',

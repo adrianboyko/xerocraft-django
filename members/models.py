@@ -489,7 +489,22 @@ def next_paidmembership_ctrlid():
     return "ERROR"
 
 
+class MembershipCampaign(models.Model):
+
+    name = models.CharField(max_length=20, unique=True, null=False, blank=False,
+        help_text="The name of the campaign.")
+
+    description = models.TextField(max_length=1024,
+        help_text="Some information about the campaign.")
+
+    def __str__(self):
+        return self.name
+
+    
 class MembershipGiftCard(models.Model):
+
+    campaign = models.ForeignKey(MembershipCampaign, null=True, blank=True,
+        help_text="The membership campaign that this card/code belongs to, if any.")
 
     redemption_code = models.CharField(max_length=20, unique=True, null=False, blank=False,
         help_text="A random string printed on the card, used during card redemption / membership activation.")
