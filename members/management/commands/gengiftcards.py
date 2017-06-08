@@ -15,7 +15,7 @@ from members.models import MembershipGiftCard
 
 class Command(BaseCommand):
 
-    help = "Email reports of new taggings are sent to members that authorized those taggings."
+    help = "Generates a sheet of stickers for the back of gift cards."
 
     # These values are for Avery 8660, Avery 5630, 3M 3500-B, 3M 3400-B, or equivalent.
     page_height   = 11.0000 * inch  # 11"
