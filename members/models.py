@@ -593,13 +593,13 @@ class MembershipJournalLiner(JournalLiner, models.Model):
             )
 
             je2.prebatch(JournalEntryLineItem(
-                account=ACCT_REVENUE_MEMBERSHIP,
+                account=Account.get(ACCT_REVENUE_MEMBERSHIP),
                 action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
                 amount=amount,
             ))
 
             je2.prebatch(JournalEntryLineItem(
-                account=ACCT_LIABILITY_UNEARNED_MSHIP_REVENUE,
+                account=Account.get(ACCT_LIABILITY_UNEARNED_MSHIP_REVENUE),
                 action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
                 amount=amount,
             ))
@@ -607,7 +607,7 @@ class MembershipJournalLiner(JournalLiner, models.Model):
             Journaler.batch(je2)
 
         je.prebatch(JournalEntryLineItem(
-            account=ACCT_LIABILITY_UNEARNED_MSHIP_REVENUE,
+            account=Account.get(ACCT_LIABILITY_UNEARNED_MSHIP_REVENUE),
             action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
             amount=self.sale_price,
         ))
@@ -680,7 +680,7 @@ class GroupMembership(MembershipJournalLiner):
     def create_journalentry_lineitems(self, je: JournalEntry):
         self.create_membership_jelis(je)
         # je.prebatch(JournalEntryLineItem(
-        #     account=ACCT_REVENUE_MEMBERSHIP,
+        #     account=Account.get(ACCT_REVENUE_MEMBERSHIP),
         #     action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
         #     amount=self.sale_price,
         # ))
@@ -864,7 +864,7 @@ class MembershipGiftCardReference(models.Model, JournalLiner):
 
     def create_journalentry_lineitems(self, je: JournalEntry):
         je.prebatch(JournalEntryLineItem(
-            account=ACCT_REVENUE_MEMBERSHIP,
+            account=Account.get(ACCT_REVENUE_MEMBERSHIP),
             action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
             amount=self.sale_price,
         ))

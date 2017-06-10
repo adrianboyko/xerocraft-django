@@ -25,6 +25,16 @@ logger = getLogger("books")
 
 ORG_NAME = settings.XEROPS_CONFIG['ORG_NAME']
 
+ACCT_LIABILITY_PAYABLE = "Accounts Payable"
+ACCT_LIABILITY_UNEARNED_MSHIP_REVENUE = "Unearned Membership Revenue"
+ACCT_ASSET_RECEIVABLE = "Accounts Receivable"
+ACCT_ASSET_CASH = "Cash"
+ACCT_EXPENSE_BUSINESS = "Expense, Business"
+ACCT_REVENUE_DONATION = "Revenue, Cash Donations"
+ACCT_REVENUE_MEMBERSHIP = "Revenue, Membership"
+ACCT_REVENUE_DISCOUNT = "Revenue, Discount Donations"
+
+
 # class PayerAKA(models.Model):
 #     """ Intended primarily to record name variations that are used in payments, etc. """
 #
@@ -87,6 +97,11 @@ class Account(models.Model):
     name = models.CharField(max_length=40, blank=True,
         help_text="Name of the account.")
 
+    parent = models.ForeignKey('self', null=True, blank=True,
+        default=None,
+        on_delete=models.PROTECT,
+        help_text="The parent account for this account, if any.")
+
     CAT_ASSET     = "A"
     CAT_LIABILITY = "L"
     CAT_EQUITY    = "Q"
@@ -120,6 +135,19 @@ class Account(models.Model):
     description = models.TextField(max_length=1024,
         help_text="A discussion of the account's purpose. What is it for? What is it NOT for?")
 
+    acct_cache = dict()  # type: Dict[str, Account]
+
+    @staticmethod
+    def get(acct_name: str) -> 'Account':
+        if acct_name in Account.acct_cache:
+            return Account.acct_cache[acct_name]
+        try:
+            acct = Account.objects.get(name=acct_name)
+            Account.acct_cache[acct_name] = acct
+            return acct
+        except Account.DoesNotExist as e:
+            logger.exception("Couldn't find account named " + acct_name)
+
     def __str__(self):
         return self.name
 
@@ -142,18 +170,6 @@ class AccountGroup(models.Model):
 
     class Meta:
         ordering = ['name']
-
-try:
-    ACCT_LIABILITY_PAYABLE = Account.objects.get(name="Accounts Payable")
-    ACCT_LIABILITY_UNEARNED_MSHIP_REVENUE = Account.objects.get(name="Unearned Membership Revenue")
-    ACCT_ASSET_RECEIVABLE = Account.objects.get(name="Accounts Receivable")
-    ACCT_ASSET_CASH = Account.objects.get(name="Cash")
-    ACCT_EXPENSE_BUSINESS = Account.objects.get(name="Expense, Business")
-    ACCT_REVENUE_DONATION = Account.objects.get(name="Revenue, Cash Donations")
-    ACCT_REVENUE_MEMBERSHIP = Account.objects.get(name="Revenue, Membership")
-    ACCT_REVENUE_DISCOUNT = Account.objects.get(name="Revenue, Discount Donations")
-except Account.DoesNotExist as e:
-    logger.exception("Couldn't find account.")
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -526,7 +542,7 @@ class ReceivableInvoice(make_InvoiceBase(recv_invoice_help)):
             source_url=self.get_absolute_url(),
         )
         je.prebatch(JournalEntryLineItem(
-            account=ACCT_ASSET_RECEIVABLE,
+            account=Account.get(ACCT_ASSET_RECEIVABLE),
             action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
             amount=self.amount
         ))
@@ -553,6 +569,10 @@ payable_invoice_help = {
 @register_journaler()
 class PayableInvoice(make_InvoiceBase(payable_invoice_help)):
 
+    subject_to_1099 = models.BooleanField(default="False",
+        verbose_name="1099",
+        help_text="Check if this invoice is subject to 1099-MISC reporting requirements.")
+
     def checksum(self) -> Decimal:
         """
         :return: The sum total of all line items. Should match self.amount.
@@ -574,7 +594,7 @@ class PayableInvoice(make_InvoiceBase(payable_invoice_help)):
             source_url=self.get_absolute_url(),
         )
         je.prebatch(JournalEntryLineItem(
-            account=ACCT_LIABILITY_PAYABLE,
+            account=Account.get(ACCT_LIABILITY_PAYABLE),
             action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
             amount=self.amount
         ))
@@ -830,14 +850,14 @@ class Sale(Journaler):
             source_url=self.get_absolute_url(),
         )
         je.prebatch(JournalEntryLineItem(
-            account=ACCT_ASSET_CASH,
+            account=Account.get(ACCT_ASSET_CASH),
             action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
             amount=self.total_paid_by_customer-self.processing_fee
         ))
         if self.processing_fee > Decimal(0.00):
             if self.fee_payer == self.FEE_PAID_BY_US:
                 je.prebatch(JournalEntryLineItem(
-                    account=ACCT_EXPENSE_BUSINESS,
+                    account=Account.get(ACCT_EXPENSE_BUSINESS),
                     action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
                     amount=self.processing_fee
                 ))
@@ -979,7 +999,7 @@ class MonetaryDonation(models.Model, JournalLiner):
 
     def create_journalentry_lineitems(self, je: JournalEntry):
         je.prebatch(JournalEntryLineItem(
-            account=ACCT_REVENUE_DONATION,
+            account=Account.get(ACCT_REVENUE_DONATION),
             action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
             amount=self.amount,
         ))
@@ -1009,7 +1029,7 @@ class ReceivableInvoiceReference(models.Model, JournalLiner):
             amount = self.portion
 
         je.prebatch(JournalEntryLineItem(
-            account=ACCT_ASSET_RECEIVABLE,
+            account=Account.get(ACCT_ASSET_RECEIVABLE),
             action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
             amount=amount,
         ))
@@ -1333,7 +1353,7 @@ class ExpenseTransaction(Journaler):
             source_url=self.get_absolute_url()
         )
         je.prebatch(JournalEntryLineItem(
-            account=ACCT_ASSET_CASH,
+            account=Account.get(ACCT_ASSET_CASH),
             action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
             amount=self.amount_paid
         ))
@@ -1364,7 +1384,7 @@ class ExpenseClaimReference(models.Model, JournalLiner):
             amount = self.portion
 
         je.prebatch(JournalEntryLineItem(
-            account=ACCT_LIABILITY_PAYABLE,
+            account=Account.get(ACCT_LIABILITY_PAYABLE),
             action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
             amount=amount,
         ))
@@ -1440,14 +1460,14 @@ class ExpenseLineItem(models.Model, JournalLiner):
 
             if self.claim.donate_reimbursement:
                 je2.prebatch(JournalEntryLineItem(
-                    account=ACCT_REVENUE_DONATION,
+                    account=Account.get(ACCT_REVENUE_DONATION),
                     action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
                     amount=self.amount,
                 ))
 
             else:
                 je2.prebatch(JournalEntryLineItem(
-                    account=ACCT_LIABILITY_PAYABLE,
+                    account=Account.get(ACCT_LIABILITY_PAYABLE),
                     action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
                     amount=self.amount-self.discount,
                 ))
@@ -1462,7 +1482,7 @@ class ExpenseLineItem(models.Model, JournalLiner):
         ))
         if self.discount > Decimal(0.00):  # Note, this is for CHARITABLE discounts against goods or services.
             je2.prebatch(JournalEntryLineItem(
-                account=ACCT_REVENUE_DISCOUNT,
+                account=Account.get(ACCT_REVENUE_DISCOUNT),
                 action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
                 amount=self.discount,
             ))
@@ -1503,7 +1523,7 @@ class PayableInvoiceReference(models.Model, JournalLiner):
             amount = self.portion
 
         je.prebatch(JournalEntryLineItem(
-            account=ACCT_LIABILITY_PAYABLE,
+            account=Account.get(ACCT_LIABILITY_PAYABLE),
             action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
             amount=amount,
         ))

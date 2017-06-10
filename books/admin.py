@@ -1,6 +1,5 @@
 
 # Standard
-from decimal import Decimal
 
 # Third Party
 from django.contrib.auth.models import User
@@ -11,6 +10,7 @@ from django.db import models
 from django.utils.html import format_html
 from django import forms
 from django.utils.translation import ugettext_lazy as _
+from django.core.urlresolvers import reverse
 from reversion.admin import VersionAdmin
 from django_object_actions import DjangoObjectActions
 
@@ -29,6 +29,7 @@ from books.models import (
 from modelmailer.admin import ModelMailerAdmin
 from books.views import journalentry_view
 
+
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # UTILITIES
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -43,6 +44,15 @@ def name_colfunc(user: User, ent: Entity):
         n = ent.name
         result = n if len(n) > len(result) else result
     return result
+
+
+def get_url_str(obj):
+    app = obj._meta.app_label
+    mod = obj._meta.model_name
+    url_name = 'admin:{}_{}_change'.format(app, mod)
+    url_str = reverse(url_name, args=[obj.id])
+    return url_str
+
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # Checksum Admin Form
@@ -82,9 +92,10 @@ class JournalerAdmin(DjangoObjectActions, VersionAdmin):
 
     viewjournal_action.label = "Journal Entries"
     viewjournal_action.short_description = "View the journal entries (accounting) for this transaction."
-    #change_actions = ['viewjournal_action']
+    # change_actions = ['viewjournal_action']
 
     view_on_site = False
+
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # NOTES
@@ -109,28 +120,51 @@ class NoteInline(admin.StackedInline):
 @admin.register(Account)
 class AccountAdmin(VersionAdmin):
 
-    search_fields = ['name', 'description']
+    class SubAccountInline(admin.TabularInline):
+
+        def sub_link(self, obj) -> str:
+            url_str = get_url_str(obj)
+            return format_html("<a href='{}'>{}</a>", url_str, obj.name)
+        sub_link.allow_tags = True
+        sub_link.short_description = "Name"
+
+        model = Account
+        extra = 0
+        fields = ['pk', 'sub_link', 'manager', 'description']
+        readonly_fields = ['pk', 'sub_link', 'manager', 'description']
+        verbose_name = "Subaccount"
+        verbose_name_plural = "Subaccounts"
+
+    inlines = [SubAccountInline]
 
     list_display = [
         'pk',
         'name',
+        'parent',
         'category', 'type',
         'manager',
         'description',
     ]
 
     fields = [
-        'name',
+        ('name', 'parent'),
         ('category', 'type'),
         'manager',
         'description',
     ]
 
-    raw_id_fields = ['manager']
+    raw_id_fields = ['manager', 'parent']
 
     list_filter = ['category', 'type']
 
     search_fields = ['description', 'name']
+
+    class Media:
+        css = {
+            "all": (
+                "abutils/admin-tabular-inline.css",  # Hides "denormalized obj descs", to use Woj's term.
+            )
+        }
 
 
 class AccountForAccountGroup_Inline(admin.TabularInline):
@@ -232,7 +266,7 @@ class DonationAdmin(ModelMailerAdmin, VersionAdmin):
         }
 
 
-class CampaignNoteInline(admin.TabularInline): # Can't inherit from NoteInline b/c of extra field.
+class CampaignNoteInline(admin.TabularInline):  # Can't inherit from NoteInline b/c of extra field.
     model = CampaignNote
     fields = ['author', 'is_public', 'content']
     extra = 0
@@ -384,7 +418,7 @@ class InvoiceAdmin(JournalerAdmin):
 @admin.register(ReceivableInvoice)
 class ReceivableInvoiceAdmin(InvoiceAdmin, ModelMailerAdmin):
 
-    def name_col(self, obj:ReceivableInvoice):
+    def name_col(self, obj: ReceivableInvoice):
         return name_colfunc(obj.user, obj.entity)
     name_col.short_description = "To"
 
@@ -400,40 +434,44 @@ class ReceivableInvoiceAdmin(InvoiceAdmin, ModelMailerAdmin):
 @admin.register(PayableInvoice)
 class PayableInvoiceAdmin(InvoiceAdmin):
 
-    def name_col(self, obj:ReceivableInvoice):
+    def name_col(self, obj: ReceivableInvoice):
         return name_colfunc(obj.user, obj.entity)
     name_col.short_description = "From"
 
     form = get_ChecksumAdminForm(PayableInvoice)
 
     inlines = [PayableInvoiceNoteInline, PayableInvoiceLineItemAdmin]
-    list_filter = [make_InvoiceStatusFilter('payable')]
+    list_filter = [make_InvoiceStatusFilter('payable'), 'subject_to_1099']
+
+    list_display = [
+        'id',
+        'invoice_date',
+        'name_col',
+        'amount',
+        'subject_to_1099',
+        'description',
+    ]
+
+    fields = [
+        'id',
+        'invoice_date',
+        ('user', 'entity'),
+        ('amount', 'checksum'),
+        'description',
+        'subject_to_1099',
+    ]
 
 
 class ReceivableInvoiceReferenceInline(admin.StackedInline):
     model = ReceivableInvoiceReference
     extra = 0
-
-    def invoice_link(self, obj):  # TODO: Obsolete because Admin now automatically links?
-        # TODO: Use reverse as in the answer at http://stackoverflow.com/questions/2857001
-        url_str = "/admin/books/receivableinvoice/{}".format(obj.invoice.id)
-        return format_html("<a href='{}'>View Invoice</a>", url_str)
-
     raw_id_fields = ['invoice']
-    readonly_fields = ['invoice_link']
 
 
 class PayableInvoiceReferenceInline(admin.StackedInline):
     model = PayableInvoiceReference
     extra = 0
-
-    def invoice_link(self, obj):  # TODO: Obsolete because Admin now automatically links?
-        # TODO: Use reverse as in the answer at http://stackoverflow.com/questions/2857001
-        url_str = "/admin/books/payableinvoice/{}".format(obj.invoice.id)
-        return format_html("<a href='{}'>View Invoice</a>", url_str)
-
     raw_id_fields = ['invoice']
-    readonly_fields = ['invoice_link']
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
