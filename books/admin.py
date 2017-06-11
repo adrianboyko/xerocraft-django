@@ -222,7 +222,7 @@ class AccountLinkAdmin(VersionAdmin):
 
 @admin.register(Budget)
 class BudgetAdmin(VersionAdmin):
-    list_display = ['pk', 'name', 'begins', 'ends', 'from_acct', 'to_acct']
+    list_display = ['pk', 'name', 'begins', 'ends', 'amount', 'from_acct', 'to_acct']
     list_display_links = ['pk', 'name']
     raw_id_fields = ['from_acct', 'to_acct']
 
