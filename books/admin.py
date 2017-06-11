@@ -128,6 +128,12 @@ class AccountAdmin(VersionAdmin):
         sub_link.allow_tags = True
         sub_link.short_description = "Name"
 
+        def has_add_permission(self, request):
+            return False
+
+        def has_delete_permission(self, request, obj=None):
+            return False
+
         model = Account
         extra = 0
         fields = ['pk', 'sub_link', 'manager', 'description']
