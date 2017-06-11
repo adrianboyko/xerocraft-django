@@ -210,14 +210,24 @@ class Budget(models.Model):
         help_text="The acct TO which funds will be transferred.")
 
     begins = models.DateField(null=False, blank=False,
-        help_text="Date of first transfer.")
+        help_text="Date of first monthly transfer.")
 
     ends = models.DateField(null=False, blank=False,
-        help_text="Date of last transfer.")
+        help_text="Date of last monthly transfer.")
 
     amount = models.DecimalField(max_digits=7, decimal_places=2, null=False, blank=False,
-        help_text="The amount to transfer.",
+        help_text="The amount of each transfer.",
         validators=[MinValueValidator(Decimal('0.00'))])
+
+    def __str__(self):
+        return self.name
+
+    def clean(self):
+        if self.begins.day != 1:
+            raise ValidationError({'begins': ["Please choose a date which is the 1st of some month."]})
+        if self.ends.day != 1:
+            raise ValidationError({'ends': ["Please choose a date which is the 1st of some month."]})
+        # TODO: Might also want to check that accounts are either "Cash" or descendants of "Cash"
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
