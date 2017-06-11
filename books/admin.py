@@ -16,10 +16,11 @@ from django_object_actions import DjangoObjectActions
 
 # Local
 from books.models import (
-    Account, DonationNote, MonetaryDonation, DonatedItem, Donation, MonetaryDonationReward,
+    Account, AccountLink, Budget,
+    DonationNote, MonetaryDonation, DonatedItem, Donation, MonetaryDonationReward,
     Sale, SaleNote, OtherItem, OtherItemType, ExpenseTransaction,
     ExpenseTransactionNote, ExpenseClaim, ExpenseClaimNote,
-    ExpenseClaimReference, ExpenseLineItem, AccountGroup,
+    ExpenseClaimReference, ExpenseLineItem,
     ReceivableInvoice, ReceivableInvoiceNote, ReceivableInvoiceReference, ReceivableInvoiceLineItem,
     PayableInvoice, PayableInvoiceNote, PayableInvoiceReference, PayableInvoiceLineItem,
     Entity, EntityNote,
@@ -141,7 +142,39 @@ class AccountAdmin(VersionAdmin):
         verbose_name = "Subaccount"
         verbose_name_plural = "Subaccounts"
 
-    inlines = [SubAccountInline]
+    class ForwardLinkedAcctInline(admin.TabularInline):
+
+        def has_add_permission(self, request):
+            return False
+
+        def has_delete_permission(self, request, obj=None):
+            return False
+
+        model = AccountLink
+        fk_name = 'subj_acct'
+        extra = 0
+        fields = ['link_verb', 'obj_acct',]
+        readonly_fields = ['subj_acct', 'link_verb', 'obj_acct',]
+        verbose_name = "Forward linked account"
+        verbose_name_plural = "Forward linked accounts"
+
+    class ReverseLinkedAcctInline(admin.TabularInline):
+
+        def has_add_permission(self, request):
+            return False
+
+        def has_delete_permission(self, request, obj=None):
+            return False
+
+        model = AccountLink
+        fk_name = 'obj_acct'
+        extra = 0
+        fields = ['subj_acct', 'link_verb',]
+        readonly_fields = ['subj_acct', 'link_verb', 'obj_acct',]
+        verbose_name = "Reverse linked account"
+        verbose_name_plural = "Reverse linked accounts"
+
+    inlines = [SubAccountInline, ForwardLinkedAcctInline, ReverseLinkedAcctInline]
 
     list_display = [
         'pk',
@@ -173,33 +206,21 @@ class AccountAdmin(VersionAdmin):
         }
 
 
-class AccountForAccountGroup_Inline(admin.TabularInline):
-
-    def acct_desc(self, obj):
-        return obj.account.description
-    acct_desc.short_description = "Account description"
-
-    model = AccountGroup.accounts.through
-    model._meta.verbose_name = "Account"
-    model._meta.verbose_name_plural = "Accounts"
-    extra = 0
-    fields = ["account", "acct_desc"]
-    readonly_fields = ["acct_desc"]
-    raw_id_fields = ["account"]
+@admin.register(AccountLink)
+class AccountLinkAdmin(VersionAdmin):
+    list_display = ['pk', 'subj_acct', 'link_verb', 'obj_acct']
+    raw_id_fields = ['subj_acct', 'obj_acct']
+    search_fields = ['subj_acct__name', 'obj_acct__name']
+    list_filter = ['link_verb']
 
 
-@admin.register(AccountGroup)
-class AccountGroupAdmin(VersionAdmin):
-    list_display = ['pk', 'name', 'description']
-    fields = ['name', 'description']
-    inlines = [AccountForAccountGroup_Inline]
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# BUDGET
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-    class Media:
-        css = {
-            "all": (
-                "abutils/admin-tabular-inline.css",  # Hides "denormalized obj descs", to use Woj's term.
-            )
-        }
+@admin.register(Budget)
+class BudgetAdmin(VersionAdmin):
+    raw_id_fields = ['from_acct', 'to_acct']
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =

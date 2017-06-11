@@ -162,21 +162,62 @@ class Account(models.Model):
         ordering = ['name']
 
 
-class AccountGroup(models.Model):
-    name = models.CharField(max_length=40, blank=True,
-        help_text="Name of the group.")
+class AccountLink(models.Model):
 
-    description = models.TextField(max_length=1024,
-        help_text="The group's purpose, e.g. 'This acct group corresponds to a budget line item.'")
+    subj_acct = models.ForeignKey(Account, null=False, blank=False,
+        related_name='subj_link_set',
+        on_delete=models.PROTECT,
+        help_text="The subject account in this link.")
 
-    accounts = models.ManyToManyField(to=Account,
-        help_text="The accounts that are part of this group.")
+    obj_acct = models.ForeignKey(Account, null=False, blank=False,
+        related_name='obj_link_set',
+        on_delete=models.PROTECT,
+        help_text="The object account in this link.")
+
+    LINKVERB_FUNDS = "FUNDS"
+    LINKVERB_CHOICES = [
+        (LINKVERB_FUNDS, "Funds"),
+    ]
+    link_verb = models.CharField(max_length=5, choices=LINKVERB_CHOICES,
+        null=False, blank=False,
+        help_text="The type of link between the accounts. Subject acct 'verbs' object acct.")
 
     def __str__(self):
-        return self.name
+        return "{} {} {}".format(self.subj_acct.name, self.link_verb, self.obj_acct.name)
 
     class Meta:
-        ordering = ['name']
+        ordering = ['subj_acct', 'link_verb', 'obj_acct']
+        unique_together = ['subj_acct', 'link_verb', 'obj_acct']
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# BUDGET - Transfers from more-general to more-specific cash accounts
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+class Budget(models.Model):
+
+    name = models.CharField(max_length=40, blank=False,
+        help_text="Name of the budget.")
+
+    from_acct = models.ForeignKey(Account, null=False, blank=False,
+        related_name='from_budget_set',
+        on_delete=models.PROTECT,
+        help_text="The acct FROM which funds will be transferred.")
+
+    to_acct = models.ForeignKey(Account, null=False, blank=False,
+        related_name='to_budget_set',
+        on_delete=models.PROTECT,
+        help_text="The acct TO which funds will be transferred.")
+
+    begins = models.DateField(null=False, blank=False,
+        help_text="Date of first transfer.")
+
+    ends = models.DateField(null=False, blank=False,
+        help_text="Date of last transfer.")
+
+    amount = models.DecimalField(max_digits=7, decimal_places=2, null=False, blank=False,
+        help_text="The amount to transfer.",
+        validators=[MinValueValidator(Decimal('0.00'))])
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
