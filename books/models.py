@@ -151,6 +151,13 @@ class Account(models.Model):
     def __str__(self):
         return self.name
 
+    def dbcheck(self):
+        if self.parent is not None:
+            if self.parent.category != self.category:
+                raise ValidationError("Subaccount must have the same category as it's parent.")
+            if self.parent.type != self.type:
+                raise ValidationError("Subaccount must have the same type as it's parent.")
+
     class Meta:
         ordering = ['name']
 
