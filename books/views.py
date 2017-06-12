@@ -2,12 +2,14 @@
 # Standard
 from datetime import date  #, datetime
 from logging import getLogger
+from typing import List
 import json
 
 # Third Party
 from django.shortcuts import render
 from rest_framework import viewsets
 from django.http.response import HttpResponse
+from django.http.request import HttpRequest
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import settings
@@ -195,3 +197,32 @@ def squareup_webhook(request):
         _logger.error("Couldn't purchase info from SquareUp.")
         return HttpResponse("Error")
 
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+def chart_of_accounts(request: HttpRequest):
+
+    def flatten_and_label(accts: List[Account]) -> List[Account]:
+        result = []
+        for acct in accts:
+            result.append(acct)
+            subaccts = list(acct.account_set.all())
+            for acct in flatten_and_label(subaccts):
+                result.append(acct)
+        return result
+
+    asset_root_accts = list(Account.objects.filter(parent=None, category=Account.CAT_ASSET))  # type: List[Account]
+    expense_root_accts = list(Account.objects.filter(parent=None, category=Account.CAT_EXPENSE))  # type: List[Account]
+    liability_root_accts = list(Account.objects.filter(parent=None, category=Account.CAT_LIABILITY))  # type: List[Account]
+    equity_root_accts = list(Account.objects.filter(parent=None, category=Account.CAT_EQUITY))  # type: List[Account]
+    revenue_root_accts = list(Account.objects.filter(parent=None, category=Account.CAT_REVENUE))  # type: List[Account]
+
+    params = {
+        'asset_accts': flatten_and_label(asset_root_accts),
+        'expense_accts': flatten_and_label(expense_root_accts),
+        'liability_accts': flatten_and_label(liability_root_accts),
+        'equity_accts': flatten_and_label(equity_root_accts),
+        'revenue_accts': flatten_and_label(revenue_root_accts),
+    }
+
+    return render(request, 'books/chart-of-accounts.html', params)
