@@ -8,9 +8,9 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/jquery-treetable/3.2.0/css/jquery.treetable.theme.default.min.css" rel="stylesheet" type="text/css" />
     <style>
         #coa { width:auto; margin-left:30px; margin-top:30px; }
+        .acctname { }
         .acctpk { text-align:right; }
         .accttype { font-weight: bold; }
-
     </style>
 </head>
 
@@ -22,46 +22,46 @@
     <table id="coa" class="treetable" style="width:auto"><tbody>
         <tr class="accttype" data-tt-id="asset"><td colspan="3">Asset Accounts</td></tr>
         {% for acct in asset_accts %}
-            <tr data-tt-id="{{ acct.pk }}" data-tt-parent-id="{{ acct.parent_id|default:"asset" }}">
-                <td class="acctname">{{ acct.name }}</td>
-                <td class="acctpk">{{ acct.pk }}</td>
-                <td class="acctmgr">{{ acct.manager|default:"-" }}</td>
+            <tr data-tt-id="{{acct.pk}}" data-tt-parent-id="{{acct.parent_id|default:"asset"}}">
+                <td class="acctname" title='{{acct.description}}'>{{acct.name}}</td>
+                <td class="acctpk">{{acct.pk}}</td>
+                <td class="acctmgr">{{acct.manager|default:"-"}}</td>
             </tr>
         {% endfor %}
 
         <tr class="accttype" data-tt-id="expense"><td colspan="3">Expense Accounts</td></tr>
         {% for acct in expense_accts %}
-            <tr data-tt-id="{{ acct.pk }}" data-tt-parent-id="{{ acct.parent_id|default:"expense" }}">
-                <td class="acctname">{{ acct.name }}</td>
-                <td class="acctpk">{{ acct.pk }}</td>
-                <td class="acctmgr">{{ acct.manager|default:"-" }}</td>
+            <tr data-tt-id="{{acct.pk}}" data-tt-parent-id="{{acct.parent_id|default:"expense"}}">
+                <td class="acctname" title='{{acct.description}}'>{{acct.name}}</td>
+                <td class="acctpk">{{acct.pk}}</td>
+                <td class="acctmgr">{{acct.manager|default:"-"}}</td>
             </tr>
         {% endfor %}
 
         <tr class="accttype" data-tt-id="liability"><td colspan="3">Liability Accounts</td></tr>
         {% for acct in liability_accts %}
-            <tr data-tt-id="{{ acct.pk }}" data-tt-parent-id="{{ acct.parent_id|default:"liability" }}">
-                <td class="acctname">{{ acct.name }}</td>
-                <td class="acctpk">{{ acct.pk }}</td>
-                <td class="acctmgr">{{ acct.manager|default:"-" }}</td>
+            <tr data-tt-id="{{acct.pk}}" data-tt-parent-id="{{acct.parent_id|default:"liability"}}">
+                <td class="acctname" title='{{acct.description}}'>{{acct.name}}</td>
+                <td class="acctpk">{{acct.pk}}</td>
+                <td class="acctmgr">{{acct.manager|default:"-"}}</td>
             </tr>
         {% endfor %}
 
         <tr class="accttype" data-tt-id="equity"><td colspan="3">Equity Accounts</td></tr>
         {% for acct in equity_accts %}
-            <tr data-tt-id="{{ acct.pk }}" data-tt-parent-id="{{ acct.parent_id|default:"equity" }}">
-                <td class="acctname">{{ acct.name }}</td>
-                <td class="acctpk">{{ acct.pk }}</td>
-                <td class="acctmgr">{{ acct.manager|default:"-" }}</td>
+            <tr data-tt-id="{{acct.pk}}" data-tt-parent-id="{{acct.parent_id|default:"equity"}}">
+                <td class="acctname" title='{{acct.description}}'>{{acct.name}}</td>
+                <td class="acctpk">{{acct.pk}}</td>
+                <td class="acctmgr">{{acct.manager|default:"-"}}</td>
             </tr>
         {% endfor %}
 
         <tr class="accttype" data-tt-id="revenue"><td colspan="3">Revenue Accounts</td></tr>
         {% for acct in revenue_accts %}
-            <tr data-tt-id="{{ acct.pk }}" data-tt-parent-id="{{ acct.parent_id|default:"revenue" }}">
-                <td class="acctname">{{ acct.name }}</td>
-                <td class="acctpk">{{ acct.pk }}</td>
-                <td class="acctmgr">{{ acct.manager|default:"-" }}</td>
+            <tr data-tt-id="{{acct.pk}}" data-tt-parent-id="{{acct.parent_id|default:"revenue"}}">
+                <td class="acctname" title='{{acct.description}}'>{{acct.name}}</td>
+                <td class="acctpk">{{acct.pk}}</td>
+                <td class="acctmgr">{{acct.manager|default:"-"}}</td>
             </tr>
         {% endfor %}
 
