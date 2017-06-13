@@ -191,7 +191,7 @@ class AccountLink(models.Model):
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-# BUDGET - Transfers from more-general to more-specific cash accounts
+# BUDGET and CASH TRANSFERS
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 class Budget(models.Model):
@@ -228,6 +228,40 @@ class Budget(models.Model):
         if self.ends.day != 1:
             raise ValidationError({'ends': ["Please choose a date which is the 1st of some month."]})
         # TODO: Might also want to check that accounts are either "Cash" or descendants of "Cash"
+
+
+class CashTransfer(models.Model):
+
+    from_acct = models.ForeignKey(Account, null=False, blank=False,
+        related_name='from_xfer_set',
+        on_delete=models.PROTECT,
+        help_text="The acct FROM which funds were transferred.")
+
+    to_acct = models.ForeignKey(Account, null=False, blank=False,
+        related_name='to_xfer_set',
+        on_delete=models.PROTECT,
+        help_text="The acct TO which funds were transferred.")
+
+    when = models.DateField(null=False, blank=False,
+        help_text="Date of the transfer.")
+
+    amount = models.DecimalField(max_digits=7, decimal_places=2, null=False, blank=False,
+        help_text="The amount of the transfer.",
+        validators=[MinValueValidator(Decimal('0.00'))])
+
+    why = models.CharField(max_length=80, blank=False,
+        help_text="A short explanation of the transfer.")
+
+    budget = models.ForeignKey(Budget, null=True, blank=True, default=None,
+        on_delete=models.PROTECT,
+        help_text="The associated budget, if any. Normally blank for manual transfers.")
+
+    def clean(self):
+        pass
+        # TODO: Might also want to check that accounts are either "Cash" or descendants of "Cash"
+
+    class Meta:
+        unique_together = ['from_acct', 'to_acct', 'when', 'why']
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -533,7 +567,7 @@ def make_InvoiceBase(help: Dict[str, str]):
             help_text=help["amount"])
 
         description = models.TextField(max_length=1024,
-            help_text = help["description"])
+            help_text=help["description"])
 
         def name(self):
             if self.entity is not None:

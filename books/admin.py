@@ -1,5 +1,6 @@
 
 # Standard
+from datetime import date
 
 # Third Party
 from django.contrib.auth.models import User
@@ -13,10 +14,11 @@ from django.utils.translation import ugettext_lazy as _
 from django.core.urlresolvers import reverse
 from reversion.admin import VersionAdmin
 from django_object_actions import DjangoObjectActions
+from dateutil.relativedelta import relativedelta
 
 # Local
 from books.models import (
-    Account, AccountLink, Budget,
+    Account, AccountLink, Budget, CashTransfer,
     DonationNote, MonetaryDonation, DonatedItem, Donation, MonetaryDonationReward,
     Sale, SaleNote, OtherItem, OtherItemType, ExpenseTransaction,
     ExpenseTransactionNote, ExpenseClaim, ExpenseClaimNote,
@@ -217,14 +219,61 @@ class AccountLinkAdmin(VersionAdmin):
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-# BUDGET
+# BUDGET and CASH TRANSFERS
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+@admin.register(CashTransfer)
+class CashTransferAdmin(VersionAdmin):
+    list_display = ['pk', 'when', 'amount', 'from_acct', 'to_acct', 'why']
+    list_display_links = ['pk', 'when']
+    raw_id_fields = ['from_acct', 'to_acct']
+
 
 @admin.register(Budget)
 class BudgetAdmin(VersionAdmin):
+
+    class CashTransferInline(admin.TabularInline):
+
+        def has_add_permission(self, request):
+            return False
+
+        def has_delete_permission(self, request, obj=None):
+            return False
+
+        model = CashTransfer
+        extra = 0
+        fields = ['when', 'amount', 'from_acct', 'to_acct', 'why']
+        readonly_fields = ['when', 'amount', 'from_acct', 'to_acct', 'why']
+        verbose_name = "Associated cash transfer"
+        verbose_name_plural = "Associated cash transfers"
+
+    def apply_selected_budgets(self, request, queryset):
+        for budget in queryset:  # type: Budget
+            budget.cashtransfer_set.all().delete()
+            d = budget.begins  # type: date
+            while d <= budget.ends:
+                CashTransfer.objects.create(
+                    budget=budget,
+                    from_acct=budget.from_acct,
+                    to_acct=budget.to_acct,
+                    amount=budget.amount,
+                    why="Per budget.",
+                    when=d,
+                )
+                d += relativedelta(months=1)
+
+    actions = ['apply_selected_budgets']
     list_display = ['pk', 'name', 'begins', 'ends', 'amount', 'from_acct', 'to_acct']
     list_display_links = ['pk', 'name']
     raw_id_fields = ['from_acct', 'to_acct']
+    inlines = [CashTransferInline]
+
+    class Media:
+        css = {
+            "all": (
+                "abutils/admin-tabular-inline.css",  # Hides "denormalized obj descs", to use Woj's term.
+            )
+        }
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
