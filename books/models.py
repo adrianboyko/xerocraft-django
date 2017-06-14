@@ -1448,6 +1448,8 @@ class ExpenseTransaction(Journaler):
             total -= lineitem.discount
         for claimref in self.expenseclaimreference_set.all():
             total += claimref.portion if claimref.portion is not None else claimref.claim.amount
+        for payable in self.payableinvoicereference_set.all():
+            total += payable.portion if payable.portion is not None else payable.invoice.amount
         return total
 
     def dbcheck(self):

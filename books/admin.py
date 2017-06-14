@@ -544,13 +544,13 @@ class PayableInvoiceAdmin(InvoiceAdmin):
     ]
 
 
-class ReceivableInvoiceReferenceInline(admin.StackedInline):
+class ReceivableInvoiceReferenceInline(admin.TabularInline):
     model = ReceivableInvoiceReference
     extra = 0
     raw_id_fields = ['invoice']
 
 
-class PayableInvoiceReferenceInline(admin.StackedInline):
+class PayableInvoiceReferenceInline(admin.TabularInline):
     model = PayableInvoiceReference
     extra = 0
     raw_id_fields = ['invoice']
@@ -976,6 +976,11 @@ class ExpenseTransactionAdmin(JournalerAdmin):
     raw_id_fields = ['recipient_acct', 'recipient_entity']
 
     change_actions = ['viewjournal_action']  # DjangoObjectActions
+
+    class Media:
+        css = {
+            "all": ("abutils/admin-tabular-inline.css",)  # This hides "denormalized object descs", to use Wojciech's term.
+        }
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
