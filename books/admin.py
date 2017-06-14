@@ -223,10 +223,11 @@ class AccountLinkAdmin(VersionAdmin):
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 @admin.register(CashTransfer)
-class CashTransferAdmin(VersionAdmin):
+class CashTransferAdmin(JournalerAdmin):
     list_display = ['pk', 'when', 'amount', 'from_acct', 'to_acct', 'why']
-    list_display_links = ['pk', 'when']
+    list_display_links = ['pk']
     raw_id_fields = ['from_acct', 'to_acct']
+    change_actions = ['viewjournal_action']  # DjangoObjectActions
 
 
 @admin.register(Budget)
@@ -252,14 +253,15 @@ class BudgetAdmin(VersionAdmin):
             budget.cashtransfer_set.all().delete()
             d = budget.begins  # type: date
             while d <= budget.ends:
-                CashTransfer.objects.create(
+                ct = CashTransfer.objects.create(
                     budget=budget,
                     from_acct=budget.from_acct,
                     to_acct=budget.to_acct,
                     amount=budget.amount,
                     why="Per budget.",
                     when=d,
-                )
+                )  # type: CashTransfer
+                ct.journal_one_transaction()
                 d += relativedelta(months=1)
 
     actions = ['apply_selected_budgets']

@@ -191,80 +191,6 @@ class AccountLink(models.Model):
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-# BUDGET and CASH TRANSFERS
-# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-
-class Budget(models.Model):
-
-    name = models.CharField(max_length=40, blank=False,
-        help_text="Name of the budget.")
-
-    from_acct = models.ForeignKey(Account, null=False, blank=False,
-        related_name='from_budget_set',
-        on_delete=models.PROTECT,
-        help_text="The acct FROM which funds will be transferred.")
-
-    to_acct = models.ForeignKey(Account, null=False, blank=False,
-        related_name='to_budget_set',
-        on_delete=models.PROTECT,
-        help_text="The acct TO which funds will be transferred.")
-
-    begins = models.DateField(null=False, blank=False,
-        help_text="Date of first monthly transfer.")
-
-    ends = models.DateField(null=False, blank=False,
-        help_text="Date of last monthly transfer.")
-
-    amount = models.DecimalField(max_digits=7, decimal_places=2, null=False, blank=False,
-        help_text="The amount of each transfer.",
-        validators=[MinValueValidator(Decimal('0.00'))])
-
-    def __str__(self):
-        return self.name
-
-    def clean(self):
-        if self.begins.day != 1:
-            raise ValidationError({'begins': ["Please choose a date which is the 1st of some month."]})
-        if self.ends.day != 1:
-            raise ValidationError({'ends': ["Please choose a date which is the 1st of some month."]})
-        # TODO: Might also want to check that accounts are either "Cash" or descendants of "Cash"
-
-
-class CashTransfer(models.Model):
-
-    from_acct = models.ForeignKey(Account, null=False, blank=False,
-        related_name='from_xfer_set',
-        on_delete=models.PROTECT,
-        help_text="The acct FROM which funds were transferred.")
-
-    to_acct = models.ForeignKey(Account, null=False, blank=False,
-        related_name='to_xfer_set',
-        on_delete=models.PROTECT,
-        help_text="The acct TO which funds were transferred.")
-
-    when = models.DateField(null=False, blank=False,
-        help_text="Date of the transfer.")
-
-    amount = models.DecimalField(max_digits=7, decimal_places=2, null=False, blank=False,
-        help_text="The amount of the transfer.",
-        validators=[MinValueValidator(Decimal('0.00'))])
-
-    why = models.CharField(max_length=80, blank=False,
-        help_text="A short explanation of the transfer.")
-
-    budget = models.ForeignKey(Budget, null=True, blank=True, default=None,
-        on_delete=models.PROTECT,
-        help_text="The associated budget, if any. Normally blank for manual transfers.")
-
-    def clean(self):
-        pass
-        # TODO: Might also want to check that accounts are either "Cash" or descendants of "Cash"
-
-    class Meta:
-        unique_together = ['from_acct', 'to_acct', 'when', 'why']
-
-
-# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # JOURNAL - The journal is generated (and regenerated) from other models
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
@@ -375,9 +301,9 @@ class Journaler(models.Model):
 
     __metaclass__ = abc.ABCMeta
 
-    _batch = list()  # type:List[JournalEntry]
+    _batch = list()  # type: List[JournalEntry]
     _link_names_of_relevant_children = None
-    _unbalanced_journal_entries = list()  # type:List[JournalEntry]
+    _unbalanced_journal_entries = list()  # type: List[JournalEntry]
     _grand_total_debits = Decimal(0.00)
     _grand_total_credits = Decimal(0.00)
 
@@ -517,6 +443,98 @@ def register_journaler():
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# BUDGET and CASH TRANSFERS
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+class Budget(models.Model):
+
+    name = models.CharField(max_length=40, blank=False,
+        help_text="Name of the budget.")
+
+    from_acct = models.ForeignKey(Account, null=False, blank=False,
+        related_name='from_budget_set',
+        on_delete=models.PROTECT,
+        help_text="The acct FROM which funds will be transferred.")
+
+    to_acct = models.ForeignKey(Account, null=False, blank=False,
+        related_name='to_budget_set',
+        on_delete=models.PROTECT,
+        help_text="The acct TO which funds will be transferred.")
+
+    begins = models.DateField(null=False, blank=False,
+        help_text="Date of first monthly transfer.")
+
+    ends = models.DateField(null=False, blank=False,
+        help_text="Date of last monthly transfer.")
+
+    amount = models.DecimalField(max_digits=7, decimal_places=2, null=False, blank=False,
+        help_text="The amount of each transfer.",
+        validators=[MinValueValidator(Decimal('0.00'))])
+
+    def __str__(self):
+        return self.name
+
+    def clean(self):
+        if self.begins.day != 1:
+            raise ValidationError({'begins': ["Please choose a date which is the 1st of some month."]})
+        if self.ends.day != 1:
+            raise ValidationError({'ends': ["Please choose a date which is the 1st of some month."]})
+        # TODO: Might also want to check that accounts are either "Cash" or descendants of "Cash"
+
+
+@register_journaler()
+class CashTransfer(Journaler):
+
+    from_acct = models.ForeignKey(Account, null=False, blank=False,
+        related_name='from_xfer_set',
+        on_delete=models.PROTECT,
+        help_text="The acct FROM which funds were transferred.")
+
+    to_acct = models.ForeignKey(Account, null=False, blank=False,
+        related_name='to_xfer_set',
+        on_delete=models.PROTECT,
+        help_text="The acct TO which funds were transferred.")
+
+    when = models.DateField(null=False, blank=False,
+        help_text="Date of the transfer.")
+
+    amount = models.DecimalField(max_digits=7, decimal_places=2, null=False, blank=False,
+        help_text="The amount of the transfer.",
+        validators=[MinValueValidator(Decimal('0.00'))])
+
+    why = models.CharField(max_length=80, blank=False,
+        help_text="A short explanation of the transfer.")
+
+    budget = models.ForeignKey(Budget, null=True, blank=True, default=None,
+        on_delete=models.PROTECT,
+        help_text="The associated budget, if any. Normally blank for manual transfers.")
+
+    def clean(self):
+        pass
+        # TODO: Might also want to check that accounts are either "Cash" or descendants of "Cash"
+
+    def _create_journalentries(self):
+        je = JournalEntry(
+            when=self.when,
+            source_url=self.get_absolute_url(),
+        )
+        je.prebatch(JournalEntryLineItem(
+            account=self.from_acct,
+            action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
+            amount=self.amount
+        ))
+        je.prebatch(JournalEntryLineItem(
+            account=self.to_acct,
+            action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
+            amount=self.amount
+        ))
+        Journaler.batch(je)
+
+    class Meta:
+        unique_together = ['from_acct', 'to_acct', 'when', 'why']
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # ENTITY - Any person or organization that is not a member.
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
@@ -640,6 +658,7 @@ class ReceivableInvoice(make_InvoiceBase(recv_invoice_help)):
         ))
         self.create_lineitems_for(je)
         Journaler.batch(je)
+
 
 class ReceivableInvoiceNote(Note):
 
