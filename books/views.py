@@ -20,7 +20,7 @@ import requests
 
 # Local
 from .models import (
-    Account,
+    Account, ACCT_ASSET_CASH,
     Sale, SaleNote,
     MonetaryDonation,
     OtherItem, OtherItemType,
@@ -37,6 +37,7 @@ from members.models import Member  # Temporary
 _logger = getLogger("books")
 
 SQUAREUP_APIV1_TOKEN = settings.XEROPS_BOOKS_CONFIG['SQUAREUP_APIV1_TOKEN']
+
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
@@ -226,3 +227,42 @@ def chart_of_accounts(request: HttpRequest):
     }
 
     return render(request, 'books/chart-of-accounts.html', params)
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+@login_required
+def cash_balances_vs_time(request):
+
+    # TODO: Turn this into a @directors_only decorator that uses @login_required
+    # REVIEW: This creates a dependency on "members". Review members/books relationship.
+    if not request.user.member.is_tagged_with("Director"):
+        return HttpResponse("This page is for Directors only.")
+
+    start = date(2015, 1, 1)
+    end = date.today()
+
+    def get_data_pts(acct: Account):
+        data = []
+        for jeli in JournalEntryLineItem.objects.filter(
+          account=acct,
+          journal_entry__when__gte=start,
+          journal_entry__when__lte=end):  # type: JournalEntryLineItem
+            factor = 1.0 if jeli.action == jeli.ACTION_BALANCE_INCREASE else -1.0
+            pt = [jeli.journal_entry.when.isoformat(), factor * float(jeli.amount)]
+            data.append(pt)
+        return data
+
+    cash_root = Account.get(ACCT_ASSET_CASH)  # type: Account
+    cash_accts = cash_root.subaccounts  # type: List[Account]
+    cash_accts.append(cash_root)  # type: List[Account]
+
+    pts = []
+    for acct in cash_accts:
+        pts.extend(get_data_pts(acct))
+    pts = _acc(pts)
+
+    params = {'pts': pts}
+
+    return render(request, 'books/cash-balances-vs-time.html', params)
+

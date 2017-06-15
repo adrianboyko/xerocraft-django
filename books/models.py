@@ -147,6 +147,15 @@ class Account(models.Model):
             return acct
         except Account.DoesNotExist as e:
             logger.exception("Couldn't find account named " + acct_name)
+            raise
+
+    @property
+    def subaccounts(self) -> List['Account']:
+        result = []  # type: List['Account']
+        for subacct in self.account_set.all():
+            result.append(subacct)
+            result.extend(subacct.subaccounts)
+        return result
 
     def __str__(self):
         return self.name
