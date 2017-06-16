@@ -25,15 +25,14 @@ logger = getLogger("books")
 
 ORG_NAME = settings.XEROPS_CONFIG['ORG_NAME']
 
-ACCT_LIABILITY_PAYABLE = "Accounts Payable"
-ACCT_LIABILITY_UNEARNED_MSHIP_REVENUE = "Unearned Membership Revenue"
-ACCT_ASSET_RECEIVABLE = "Accounts Receivable"
-ACCT_ASSET_CASH = "Cash"
-ACCT_EXPENSE_BUSINESS = "Expense, Business"
-ACCT_REVENUE_DONATION = "Revenue, Cash Donations"
-ACCT_REVENUE_MEMBERSHIP = "Revenue, Membership"
-ACCT_REVENUE_DISCOUNT = "Revenue, Discount Donations"
-
+ACCT_LIABILITY_PAYABLE = 39
+ACCT_LIABILITY_UNEARNED_MSHIP_REVENUE = 46
+ACCT_ASSET_RECEIVABLE = 40
+ACCT_ASSET_CASH = 1
+ACCT_EXPENSE_BUSINESS = 30
+ACCT_REVENUE_DONATION = 35  # General Donations.
+ACCT_REVENUE_MEMBERSHIP = 6
+ACCT_REVENUE_DISCOUNT = 49
 
 # class PayerAKA(models.Model):
 #     """ Intended primarily to record name variations that are used in payments, etc. """
@@ -138,15 +137,15 @@ class Account(models.Model):
     acct_cache = dict()  # type: Dict[str, Account]
 
     @staticmethod
-    def get(acct_name: str) -> 'Account':
-        if acct_name in Account.acct_cache:
-            return Account.acct_cache[acct_name]
+    def get(acct_num: int) -> 'Account':
+        if acct_num in Account.acct_cache:
+            return Account.acct_cache[acct_num]
         try:
-            acct = Account.objects.get(name=acct_name)
-            Account.acct_cache[acct_name] = acct
+            acct = Account.objects.get(id=acct_num)
+            Account.acct_cache[acct_num] = acct
             return acct
         except Account.DoesNotExist as e:
-            logger.exception("Couldn't find account named " + acct_name)
+            logger.exception("Couldn't find account #{} ".format(acct_num))
             raise
 
     @property
@@ -156,6 +155,13 @@ class Account(models.Model):
             result.append(subacct)
             result.extend(subacct.subaccounts)
         return result
+
+    def is_subaccount_of(self, other: 'Account') -> bool:
+        if self.parent is None:
+            return False
+        if self.parent == other:
+            return True
+        return self.parent.is_subaccount_of(other)
 
     def __str__(self):
         return self.name
@@ -1090,8 +1096,9 @@ class MonetaryDonation(models.Model, JournalLiner):
         help_text="The amount donated.")
 
     earmark = models.ForeignKey(Account, null=True, blank=True,
-        on_delete=models.SET_NULL,  # In the unlikely evt that acct vanishes, just point to null.
-        help_text="The account for which this donation is earmarked.")
+        default=ACCT_REVENUE_DONATION,
+        on_delete=models.PROTECT,
+        help_text="Specify a donation subaccount, when possible.")
 
     reward = models.ForeignKey(MonetaryDonationReward, null=True, blank=True, default=None,
         on_delete=models.PROTECT,  # Don't allow a reward to be deleted if donations point to it.
@@ -1108,18 +1115,25 @@ class MonetaryDonation(models.Model, JournalLiner):
         return str("$"+str(self.amount))
 
     def clean(self):
-
         if self.earmark is not None:
-            if "campaign" not in self.earmark.name.lower():
-                raise ValidationError(_("Account chosen must be a fundraising campaign."))
+            donation_root_acct = Account.get(ACCT_REVENUE_DONATION)
+            if not self.earmark.is_subaccount_of(donation_root_acct):
+                msg = "Account chosen must be a subaccount of {}.".format(donation_root_acct.name)
+                raise ValidationError({'earmark': [msg]})
             if self.earmark.category is not Account.CAT_REVENUE:
-                 raise ValidationError(_("Account chosen must have category REVENUE."))
+                msg = "Account chosen must have category REVENUE."
+                raise ValidationError({'earmark': [msg]})
             if self.earmark.type is not Account.TYPE_CREDIT:
-                raise ValidationError(_("Account chosen must have type CREDIT."))
+                msg = "Account chosen must have type CREDIT."
+                raise ValidationError({'earmark': [msg]})
 
     def create_journalentry_lineitems(self, je: JournalEntry):
+
+        # TODO: I'd like the cash side of this to go to a subacct of cash if the revenue acct is related to one.
+        # But how? Stop IncomeTransaction from creating the cash line item and force JournalLiners to do so?
+
         je.prebatch(JournalEntryLineItem(
-            account=Account.get(ACCT_REVENUE_DONATION),
+            account=self.earmark,
             action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
             amount=self.amount,
         ))

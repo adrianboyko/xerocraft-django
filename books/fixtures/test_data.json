@@ -1,0 +1,26 @@
+[
+{
+    "model": "books.account",
+    "pk": 1,
+    "fields": {
+        "name": "Cash",
+        "parent": null,
+        "category": "A",
+        "type": "D",
+        "manager": null,
+        "description": "None."
+    }
+},
+{
+    "model": "books.account",
+    "pk": 35,
+    "fields": {
+        "name": "Monetary Donations",
+        "parent": null,
+        "category": "R",
+        "type": "C",
+        "manager": null,
+        "description": "None."
+    }
+}
+]

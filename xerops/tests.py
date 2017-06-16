@@ -2,10 +2,8 @@
 # Standard
 
 # Third Party
-from django.test import TestCase, TransactionTestCase, Client, RequestFactory
+from django.test import TestCase
 from django.contrib import admin
-from django.apps import apps
-from django.core.exceptions import ValidationError
 from django.core.management import call_command
 
 # Local
@@ -34,13 +32,16 @@ class TestAdminConfig(TestCase):
 
     def test_admin_fieldname_lists(self):
 
-        def check_fieldname(fieldname, model_class, admin_obj):
+        def check_fieldname(fieldname: str, model_class, admin_obj):
             if not isinstance(fieldname, str): return
             fieldname = fieldname.replace("^", "")
             print("       field: %s" % fieldname)
-            if fieldname in dir(model_class): return
-            if fieldname in dir(admin_obj): return
-            model_class.objects.filter(**{fieldname:None})
+            if fieldname in dir(model_class):
+                return
+            if fieldname in dir(admin_obj):
+                return
+            fieldname = fieldname.strip("=")
+            model_class.objects.filter(**{fieldname: None})
 
         for model_class, admin_obj in admin.site._registry.items():
 
@@ -49,7 +50,8 @@ class TestAdminConfig(TestCase):
             # Check lists of field names
             for list_name in ADMIN_FIELDNAME_LISTS:
                 list_of_fieldnames = getattr(admin_obj, list_name)
-                if list_of_fieldnames is None: continue
+                if list_of_fieldnames is None:
+                    continue
                 print("    list: %s" % list_name)
                 for fieldname in list_of_fieldnames:
                     check_fieldname(fieldname, model_class, admin_obj)
@@ -61,7 +63,6 @@ class TestAdminConfig(TestCase):
                 check_fieldname(fieldname, model_class, admin_obj)
 
             # Check fieldsets, which is a special case.
-            fieldsets = getattr(admin_obj, 'fieldsets')
             fieldsets = admin_obj.fieldsets
             if fieldsets is not None:
                 for fieldset_name, field_options in fieldsets:
