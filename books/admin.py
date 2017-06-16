@@ -27,7 +27,8 @@ from books.models import (
     PayableInvoice, PayableInvoiceNote, PayableInvoiceReference, PayableInvoiceLineItem,
     Entity, EntityNote,
     Campaign, CampaignNote,
-    Journaler
+    Journaler,
+    BankAccount, BankAccountBalance
 )
 from modelmailer.admin import ModelMailerAdmin
 from books.views import journalentry_view
@@ -981,6 +982,22 @@ class ExpenseTransactionAdmin(JournalerAdmin):
         css = {
             "all": ("abutils/admin-tabular-inline.css",)  # This hides "denormalized object descs", to use Wojciech's term.
         }
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# BANK ACCOUNTS AND BALANCES
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+@admin.register(BankAccount)
+class BankAccountAdmin(VersionAdmin):
+    pass
+
+
+@admin.register(BankAccountBalance)
+class BankAccountBalanceAdmin(VersionAdmin):
+    list_display = ['pk', 'bank_account', 'when', 'balance']
+    list_filter = ['bank_account',]
+    date_hierarchy = 'when'
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =

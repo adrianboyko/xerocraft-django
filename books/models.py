@@ -1649,3 +1649,33 @@ class PayableInvoiceReference(models.Model, JournalLiner):
             action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
             amount=amount,
         ))
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# BANK ACCOUNTS AND THEIR BALANCES (for comparison with and audit of books)
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+class BankAccount(models.Model):
+
+    name = models.CharField(max_length=40, unique=True,
+        help_text="A short name for the bank account.")
+
+    description = models.TextField(max_length=1024,
+        help_text="A description of the bank account, the reason it exists, etc.")
+
+    def __str__(self):
+        return self.name
+
+
+class BankAccountBalance(models.Model):
+
+    bank_account = models.ForeignKey(BankAccount, null=False, blank=False,
+        on_delete=models.PROTECT,
+        help_text="The account with this balance."
+    )
+
+    when = models.DateField(null=False, blank=False,
+        help_text="The date on which the balance was recorded.")
+
+    balance = models.DecimalField(max_digits=8, decimal_places=2, null=False, blank=False,
+        help_text="The dollar balance on the given date.")
