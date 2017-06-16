@@ -201,7 +201,7 @@ class AccountAdmin(VersionAdmin):
 
     list_filter = ['category', 'type']
 
-    search_fields = ['description', 'name']
+    search_fields = ['=id', 'description', 'name']
 
     class Media:
         css = {
