@@ -70,12 +70,6 @@ class AccountScraper(XerocraftScraper):
                 user_changed = True
 
         if user_changed:
-            # This (hopefully temporary) check protects against bogus duplicate usernames on xerocraft.org.
-            check_user = User.objects.get(username=user.username)  # type: User
-            if check_user.pk != user.pk:
-                self.logger.error("Username collision! Update aborted.")
-                return
-            # End of (hopefully temporary) check
             user.save()
 
         extra_changed = False
@@ -87,12 +81,6 @@ class AccountScraper(XerocraftScraper):
             user_social_auth.save()
 
     def create_account(self, attrs) -> User:
-
-        # Added this (hopefully temporary) check when xerocraft.org developed a duplicate username key.
-        if User.objects.filter(username=attrs[DJANGO_USERNAME_KEY]).count() > 0:
-            self.logger.error("Name collision: %s == %s", attrs[DJANGO_USERNAME_KEY], attrs[USERNAME_KEY])
-            attrs[DJANGO_USERNAME_KEY] += "_DELETE_ME"
-        # End of (hopefully temporary) check
 
         new_user = User.objects.create(
             username=attrs[DJANGO_USERNAME_KEY],
