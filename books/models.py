@@ -934,7 +934,7 @@ class Sale(Journaler):
                 line_total = Decimal(0.0)
                 if hasattr(line_item, 'amount'): line_total += line_item.amount
                 elif hasattr(line_item, 'sale_price'): line_total += line_item.sale_price
-                if hasattr(line_item, 'qty_sold'): line_total *= line_item.qty_sold
+                if hasattr(line_item, 'qty_sold'): line_total *= (line_item.qty_sold or Decimal('1'))
                 total += line_total
         for invref in self.receivableinvoicereference_set.all():
             total += invref.portion if invref.portion is not None else invref.invoice.amount
@@ -1033,8 +1033,8 @@ class OtherItem(models.Model, JournalLiner):
     sale_price = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
         help_text="The UNIT price at which this/these item(s) sold.")
 
-    qty_sold = models.IntegerField(null=False, blank=False, default=1,
-        help_text="The quantity of the item sold.")
+    qty_sold = models.IntegerField(null=True, blank=True, default=None,
+        help_text="The quantity of the item sold. Leave blank if quantity is not known.")
 
     # ETL related fields: sale, sale_price, qty_sol
     ctrlid = models.CharField(max_length=40, null=False, blank=False, unique=True,
@@ -1051,7 +1051,7 @@ class OtherItem(models.Model, JournalLiner):
         je.prebatch(JournalEntryLineItem(
             account=self.type.revenue_acct,
             action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
-            amount=self.sale_price*self.qty_sold,
+            amount=self.sale_price * (self.qty_sold or Decimal('1')),
         ))
 
 
@@ -1115,18 +1115,17 @@ class MonetaryDonation(models.Model, JournalLiner):
         return str("$"+str(self.amount))
 
     def clean(self):
-        if self.earmark is not None:
-            donation_root_acct = Account.get(ACCT_REVENUE_DONATION)
-            if self.earmark != donation_root_acct:
-                if not self.earmark.is_subaccount_of(donation_root_acct):
-                    msg = "Account chosen must be a subaccount of {}.".format(donation_root_acct.name)
-                    raise ValidationError({'earmark': [msg]})
-            if self.earmark.category is not Account.CAT_REVENUE:
-                msg = "Account chosen must have category REVENUE."
+        donation_root_acct = Account.get(ACCT_REVENUE_DONATION)
+        if self.earmark != donation_root_acct:
+            if not self.earmark.is_subaccount_of(donation_root_acct):
+                msg = "Account chosen must be a subaccount of {}.".format(donation_root_acct.name)
                 raise ValidationError({'earmark': [msg]})
-            if self.earmark.type is not Account.TYPE_CREDIT:
-                msg = "Account chosen must have type CREDIT."
-                raise ValidationError({'earmark': [msg]})
+        if self.earmark.category is not Account.CAT_REVENUE:
+            msg = "Account chosen must have category REVENUE."
+            raise ValidationError({'earmark': [msg]})
+        if self.earmark.type is not Account.TYPE_CREDIT:
+            msg = "Account chosen must have type CREDIT."
+            raise ValidationError({'earmark': [msg]})
 
     def create_journalentry_lineitems(self, je: JournalEntry):
 
