@@ -1095,7 +1095,7 @@ class MonetaryDonation(models.Model, JournalLiner):
     amount = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
         help_text="The amount donated.")
 
-    earmark = models.ForeignKey(Account, null=True, blank=True,
+    earmark = models.ForeignKey(Account, null=False, blank=False,
         default=ACCT_REVENUE_DONATION,
         on_delete=models.PROTECT,
         help_text="Specify a donation subaccount, when possible.")
@@ -1117,9 +1117,10 @@ class MonetaryDonation(models.Model, JournalLiner):
     def clean(self):
         if self.earmark is not None:
             donation_root_acct = Account.get(ACCT_REVENUE_DONATION)
-            if not self.earmark.is_subaccount_of(donation_root_acct):
-                msg = "Account chosen must be a subaccount of {}.".format(donation_root_acct.name)
-                raise ValidationError({'earmark': [msg]})
+            if self.earmark != donation_root_acct:
+                if not self.earmark.is_subaccount_of(donation_root_acct):
+                    msg = "Account chosen must be a subaccount of {}.".format(donation_root_acct.name)
+                    raise ValidationError({'earmark': [msg]})
             if self.earmark.category is not Account.CAT_REVENUE:
                 msg = "Account chosen must have category REVENUE."
                 raise ValidationError({'earmark': [msg]})
