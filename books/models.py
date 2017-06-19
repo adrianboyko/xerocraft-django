@@ -3,7 +3,7 @@
 # Standard
 from datetime import date
 from decimal import Decimal
-from typing import Dict, List
+from typing import Dict, List, Optional
 import abc
 from logging import getLogger
 
@@ -17,6 +17,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.conf import settings
 from nameparser import HumanName
 from django.core.urlresolvers import reverse
+from dateutil.relativedelta import relativedelta
 
 # Local
 from abutils.utils import generate_ctrlid
@@ -458,10 +459,11 @@ def register_journaler():
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-# BUDGET and CASH TRANSFERS
+# BUDGET
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-class Budget(models.Model):
+@register_journaler()
+class Budget(Journaler):
 
     name = models.CharField(max_length=40, blank=False,
         help_text="Name of the budget.")
@@ -486,6 +488,26 @@ class Budget(models.Model):
         help_text="The amount of each transfer.",
         validators=[MinValueValidator(Decimal('0.00'))])
 
+    def _create_journalentries(self):
+        d = self.begins  # type: date
+        while d <= self.ends:
+            je = JournalEntry(
+                when=d,
+                source_url=self.get_absolute_url(),
+            )
+            je.prebatch(JournalEntryLineItem(
+                account=self.from_acct,
+                action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
+                amount=self.amount
+            ))
+            je.prebatch(JournalEntryLineItem(
+                account=self.to_acct,
+                action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
+                amount=self.amount
+            ))
+            Journaler.batch(je)
+            d += relativedelta(months=1)
+
     def __str__(self):
         return self.name
 
@@ -495,58 +517,6 @@ class Budget(models.Model):
         if self.ends.day != 1:
             raise ValidationError({'ends': ["Please choose a date which is the 1st of some month."]})
         # TODO: Might also want to check that accounts are either "Cash" or descendants of "Cash"
-
-
-@register_journaler()
-class CashTransfer(Journaler):
-
-    from_acct = models.ForeignKey(Account, null=False, blank=False,
-        related_name='from_xfer_set',
-        on_delete=models.PROTECT,
-        help_text="The acct FROM which funds were transferred.")
-
-    to_acct = models.ForeignKey(Account, null=False, blank=False,
-        related_name='to_xfer_set',
-        on_delete=models.PROTECT,
-        help_text="The acct TO which funds were transferred.")
-
-    when = models.DateField(null=False, blank=False,
-        help_text="Date of the transfer.")
-
-    amount = models.DecimalField(max_digits=7, decimal_places=2, null=False, blank=False,
-        help_text="The amount of the transfer.",
-        validators=[MinValueValidator(Decimal('0.00'))])
-
-    why = models.CharField(max_length=80, blank=False,
-        help_text="A short explanation of the transfer.")
-
-    budget = models.ForeignKey(Budget, null=True, blank=True, default=None,
-        on_delete=models.PROTECT,
-        help_text="The associated budget, if any. Normally blank for manual transfers.")
-
-    def clean(self):
-        pass
-        # TODO: Might also want to check that accounts are either "Cash" or descendants of "Cash"
-
-    def _create_journalentries(self):
-        je = JournalEntry(
-            when=self.when,
-            source_url=self.get_absolute_url(),
-        )
-        je.prebatch(JournalEntryLineItem(
-            account=self.from_acct,
-            action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
-            amount=self.amount
-        ))
-        je.prebatch(JournalEntryLineItem(
-            account=self.to_acct,
-            action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
-            amount=self.amount
-        ))
-        Journaler.batch(je)
-
-    class Meta:
-        unique_together = ['from_acct', 'to_acct', 'when', 'why']
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -964,11 +934,23 @@ class Sale(Journaler):
         if not checksum_matches:
             raise ValidationError(_("Total of line items must match amount transaction."))
 
+    @property
+    def payer_str(self) -> Optional[str]:
+        if self.payer_name > "":
+            return self.payer_name
+        elif self.payer_acct is not None:
+            return str(self.payer_acct.member)
+        elif self.payer_email > "":
+            return self.payer_email
+        else:
+            return None
+
     def __str__(self):
-        if self.payer_name > "": return "{} sale to {}".format(self.sale_date, self.payer_name)
-        elif self.payer_acct is not None: return "{} sale to {}".format(self.sale_date, self.payer_acct)
-        elif self.payer_email > "": return "{} sale to {}".format(self.sale_date, self.payer_email)
-        else: return "{} sale".format(self.sale_date)
+        payer_str = self.payer_str
+        if payer_str is not None:
+            return "{} sale to {}".format(self.sale_date, payer_str)
+        else:
+            return "{} sale to Unk Person".format(self.sale_date)
 
     def _create_journalentries(self):
         je = JournalEntry(
@@ -1100,6 +1082,13 @@ class MonetaryDonation(models.Model, JournalLiner):
         on_delete=models.PROTECT,
         help_text="Specify a donation subaccount, when possible.")
 
+    # I'm only doing this so that CampaignAdmin can show MonetaryDonation inlines.
+    # It should be safe to delete this 'campaign' field if somebody has a better idea.
+    campaign = models.ForeignKey('Campaign', null=True, blank=True,
+        default=None,
+        on_delete=models.SET_NULL,
+        help_text="This is a denormalized field and will be maintained by code.")
+
     reward = models.ForeignKey(MonetaryDonationReward, null=True, blank=True, default=None,
         on_delete=models.PROTECT,  # Don't allow a reward to be deleted if donations point to it.
         help_text="The reward given to the donor, if any.")
@@ -1126,17 +1115,32 @@ class MonetaryDonation(models.Model, JournalLiner):
         if self.earmark.type is not Account.TYPE_CREDIT:
             msg = "Account chosen must have type CREDIT."
             raise ValidationError({'earmark': [msg]})
+        if self.earmark.campaign_as_revenue is not None:
+            # Denormalization. See comments on field, above.
+            self.campaign = self.earmark.campaign_as_revenue
 
     def create_journalentry_lineitems(self, je: JournalEntry):
-
-        # TODO: I'd like the cash side of this to go to a subacct of cash if the revenue acct is related to one.
-        # But how? Stop IncomeTransaction from creating the cash line item and force JournalLiners to do so?
 
         je.prebatch(JournalEntryLineItem(
             account=self.earmark,
             action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
             amount=self.amount,
         ))
+
+        # If this donation is contributing to a fund raising campaign then
+        # shuffle cash from the top-level cash acct to the campaign's cash fund.
+        campaign = self.earmark.campaign_as_revenue  # type: Campaign
+        if campaign is not None:
+            je.prebatch(JournalEntryLineItem(
+                account=Account.get(ACCT_ASSET_CASH),
+                action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
+                amount=self.amount,
+            ))
+            je.prebatch(JournalEntryLineItem(
+                account=campaign.cash_account,
+                action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
+                amount=self.amount,
+            ))
 
 
 class ReceivableInvoiceReference(models.Model, JournalLiner):
@@ -1184,20 +1188,31 @@ class Campaign(models.Model):
     target_amount = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
         help_text="The total amount that needs to be collected in donations.")
 
-    account = models.ForeignKey(Account, null=False, blank=False,
+    # TODO: Set null/blank to False after fixing existing campaigns.
+    revenue_account = models.OneToOneField(Account, null=True, blank=True,
+        related_name='campaign_as_revenue',
         on_delete=models.PROTECT,  # Don't allow deletion of account if campaign still exists.
-        help_text="The account used by this campaign.")
+        help_text="The revenue account used by this campaign.")
+
+    # TODO: Set null/blank to False after fixing existing campaigns.
+    cash_account = models.OneToOneField(Account, null=True, blank=True,
+        related_name='campaign_as_cash',
+        on_delete=models.PROTECT,  # Don't allow deletion of account if campaign still exists.
+        help_text="The cash account used by this campaign.")
 
     description = models.TextField(max_length=1024,
         help_text="A description of the campaign and why people should donate to it.")
 
     def clean(self):
-        if self.account is not None:  # Req'd but not guaranteed to set yet.
-
-            if self.account.category is not Account.CAT_REVENUE:
+        if self.revenue_account is not None:  # Req'd but not guaranteed to set yet.
+            if self.revenue_account.category is not Account.CAT_REVENUE:
                  raise ValidationError(_("Account chosen must have category REVENUE."))
-
-            if self.account.type is not Account.TYPE_CREDIT:
+            if self.revenue_account.type is not Account.TYPE_CREDIT:
+                raise ValidationError(_("Account chosen must have type CREDIT."))
+        if self.cash_account is not None:  # Req'd but not guaranteed to set yet.
+            if self.cash_account.category is not Account.CAT_ASSET:
+                 raise ValidationError(_("Account chosen must have category REVENUE."))
+            if self.cash_account.type is not Account.TYPE_DEBIT:
                 raise ValidationError(_("Account chosen must have type CREDIT."))
 
     def __str__(self):

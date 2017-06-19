@@ -14,11 +14,10 @@ from django.utils.translation import ugettext_lazy as _
 from django.core.urlresolvers import reverse
 from reversion.admin import VersionAdmin
 from django_object_actions import DjangoObjectActions
-from dateutil.relativedelta import relativedelta
 
 # Local
 from books.models import (
-    Account, AccountLink, Budget, CashTransfer,
+    Account, AccountLink, Budget,
     DonationNote, MonetaryDonation, DonatedItem, Donation, MonetaryDonationReward,
     Sale, SaleNote, OtherItem, OtherItemType, ExpenseTransaction,
     ExpenseTransactionNote, ExpenseClaim, ExpenseClaimNote,
@@ -220,56 +219,17 @@ class AccountLinkAdmin(VersionAdmin):
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-# BUDGET and CASH TRANSFERS
+# BUDGET
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-@admin.register(CashTransfer)
-class CashTransferAdmin(JournalerAdmin):
-    list_display = ['pk', 'when', 'amount', 'from_acct', 'to_acct', 'why']
-    list_display_links = ['pk']
-    raw_id_fields = ['from_acct', 'to_acct']
-    change_actions = ['viewjournal_action']  # DjangoObjectActions
-
-
 @admin.register(Budget)
-class BudgetAdmin(VersionAdmin):
+class BudgetAdmin(JournalerAdmin):
 
-    class CashTransferInline(admin.TabularInline):
-
-        def has_add_permission(self, request):
-            return False
-
-        def has_delete_permission(self, request, obj=None):
-            return False
-
-        model = CashTransfer
-        extra = 0
-        fields = ['when', 'amount', 'from_acct', 'to_acct', 'why']
-        readonly_fields = ['when', 'amount', 'from_acct', 'to_acct', 'why']
-        verbose_name = "Associated cash transfer"
-        verbose_name_plural = "Associated cash transfers"
-
-    def apply_selected_budgets(self, request, queryset):
-        for budget in queryset:  # type: Budget
-            budget.cashtransfer_set.all().delete()
-            d = budget.begins  # type: date
-            while d <= budget.ends:
-                ct = CashTransfer.objects.create(
-                    budget=budget,
-                    from_acct=budget.from_acct,
-                    to_acct=budget.to_acct,
-                    amount=budget.amount,
-                    why="Per budget.",
-                    when=d,
-                )  # type: CashTransfer
-                ct.journal_one_transaction()
-                d += relativedelta(months=1)
-
-    actions = ['apply_selected_budgets']
     list_display = ['pk', 'name', 'begins', 'ends', 'amount', 'from_acct', 'to_acct']
     list_display_links = ['pk', 'name']
+    fields = ['name', 'begins', 'ends', 'amount', 'from_acct', 'to_acct']
     raw_id_fields = ['from_acct', 'to_acct']
-    inlines = [CashTransferInline]
+    change_actions = ['viewjournal_action']  # DjangoObjectActions
 
     class Media:
         css = {
@@ -349,19 +309,50 @@ class DonationAdmin(ModelMailerAdmin, VersionAdmin):
         }
 
 
-class CampaignNoteInline(admin.TabularInline):  # Can't inherit from NoteInline b/c of extra field.
-    model = CampaignNote
-    fields = ['author', 'is_public', 'content']
-    extra = 0
-    raw_id_fields = ['author']
-
-
 @admin.register(Campaign)
 class CampaignAdmin(VersionAdmin):
-    list_display = ['pk', 'name', 'target_amount', 'account']
+
+    class CampaignNoteInline(admin.TabularInline):  # Can't inherit from NoteInline b/c of extra field.
+        model = CampaignNote
+        fields = ['author', 'is_public', 'content']
+        extra = 0
+        raw_id_fields = ['author']
+
+    class MonetaryDonationInlineForCampaign(admin.TabularInline):
+        model = MonetaryDonation
+
+        def has_add_permission(self, request):
+            return False
+
+        def has_delete_permission(self, request, obj=None):
+            return False
+
+        def when_field(self, obj):
+            return str(obj.sale.sale_date)
+        when_field.short_description = "Date"
+
+        def who_field(self, obj):
+            return obj.sale.payer_str
+        who_field.short_description = "Who"
+
+        fields = [
+            'when_field',
+            'who_field',
+            'amount',
+            'reward',
+        ]
+        readonly_fields = [
+            'when_field',
+            'who_field',
+            'amount',
+            'reward',
+        ]
+        extra = 0
+
+    list_display = ['pk', 'name', 'target_amount', 'cash_account', 'revenue_account']
     list_display_links = ['pk', 'name']
-    raw_id_fields = ['account']
-    inlines = [CampaignNoteInline]
+    raw_id_fields = ['cash_account', 'revenue_account']
+    inlines = [CampaignNoteInline, MonetaryDonationInlineForCampaign]
 
     class Media:
         css = {
