@@ -520,6 +520,64 @@ class Budget(Journaler):
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# CASH TRANSFERS
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+@register_journaler()
+class CashTransfer(Journaler):
+
+    from_acct = models.ForeignKey(Account, null=False, blank=False,
+        related_name='from_xfer_set',
+        on_delete=models.PROTECT,
+        help_text="The acct FROM which funds were transferred.")
+
+    to_acct = models.ForeignKey(Account, null=False, blank=False,
+        related_name='to_xfer_set',
+        on_delete=models.PROTECT,
+        help_text="The acct TO which funds were transferred.")
+
+    when = models.DateField(null=False, blank=False,
+        help_text="Date of the transfer.")
+
+    amount = models.DecimalField(max_digits=7, decimal_places=2, null=False, blank=False,
+        help_text="The amount of the transfer.",
+        validators=[MinValueValidator(Decimal('0.00'))])
+
+    why = models.CharField(max_length=80, blank=False,
+        help_text="A short explanation of the transfer.")
+
+    def clean(self):
+        cash_root_acct = Account.get(ACCT_ASSET_CASH)
+        if self.from_acct != cash_root_acct:
+            if not self.from_acct.is_subaccount_of(cash_root_acct):
+                msg = "Account chosen must be a subaccount of {}.".format(cash_root_acct.name)
+                raise ValidationError({'from_acct': [msg]})
+        if self.to_acct != cash_root_acct:
+            if not self.to_acct.is_subaccount_of(cash_root_acct):
+                msg = "Account chosen must be a subaccount of {}.".format(cash_root_acct.name)
+                raise ValidationError({'to_acct': [msg]})
+
+    def _create_journalentries(self):
+        je = JournalEntry(
+            when=self.when,
+            source_url=self.get_absolute_url(),
+        )
+        je.prebatch(JournalEntryLineItem(
+            account=self.from_acct,
+            action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
+            amount=self.amount
+        ))
+        je.prebatch(JournalEntryLineItem(
+            account=self.to_acct,
+            action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
+            amount=self.amount
+        ))
+        Journaler.batch(je)
+
+    class Meta:
+        unique_together = ['from_acct', 'to_acct', 'when', 'why']
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # ENTITY - Any person or organization that is not a member.
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
@@ -1115,9 +1173,7 @@ class MonetaryDonation(models.Model, JournalLiner):
         if self.earmark.type is not Account.TYPE_CREDIT:
             msg = "Account chosen must have type CREDIT."
             raise ValidationError({'earmark': [msg]})
-        if self.earmark.campaign_as_revenue is not None:
-            # Denormalization. See comments on field, above.
-            self.campaign = self.earmark.campaign_as_revenue
+        # NOTE: self.campaign is set in a signal handler.
 
     def create_journalentry_lineitems(self, je: JournalEntry):
 
@@ -1188,14 +1244,12 @@ class Campaign(models.Model):
     target_amount = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
         help_text="The total amount that needs to be collected in donations.")
 
-    # TODO: Set null/blank to False after fixing existing campaigns.
-    revenue_account = models.OneToOneField(Account, null=True, blank=True,
+    revenue_account = models.OneToOneField(Account, null=False, blank=False,
         related_name='campaign_as_revenue',
         on_delete=models.PROTECT,  # Don't allow deletion of account if campaign still exists.
         help_text="The revenue account used by this campaign.")
 
-    # TODO: Set null/blank to False after fixing existing campaigns.
-    cash_account = models.OneToOneField(Account, null=True, blank=True,
+    cash_account = models.OneToOneField(Account, null=False, blank=False,
         related_name='campaign_as_cash',
         on_delete=models.PROTECT,  # Don't allow deletion of account if campaign still exists.
         help_text="The cash account used by this campaign.")

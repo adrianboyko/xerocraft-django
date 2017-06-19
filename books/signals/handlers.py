@@ -1,6 +1,12 @@
-from django.db.models.signals import post_save, pre_save, pre_delete
+
+# Standard
+
+# Third Party
+from django.db.models.signals import pre_save
 from django.dispatch import receiver
-from books.models import Sale
+
+# Local
+from books.models import Sale, MonetaryDonation, Campaign
 
 __author__ = 'Adrian'
 
@@ -17,4 +23,18 @@ def link_sale_to_user(sender, **kwargs):
         if not sale.protected:
             sale.link_to_user()
 
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# MONETARY DONATION
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+@receiver(pre_save, sender=MonetaryDonation)
+def link_donation_to_campaign(sender, **kwargs):
+    donation = kwargs.get('instance')  # type: MonetaryDonation
+    try:
+        if donation.earmark.campaign_as_revenue is not None:
+            # This is a denormalization. See comments on model.
+            donation.campaign = donation.earmark.campaign_as_revenue
+    except Campaign.DoesNotExist:
+        pass
 

@@ -17,7 +17,7 @@ from django_object_actions import DjangoObjectActions
 
 # Local
 from books.models import (
-    Account, AccountLink, Budget,
+    Account, AccountLink, Budget, CashTransfer,
     DonationNote, MonetaryDonation, DonatedItem, Donation, MonetaryDonationReward,
     Sale, SaleNote, OtherItem, OtherItemType, ExpenseTransaction,
     ExpenseTransactionNote, ExpenseClaim, ExpenseClaimNote,
@@ -237,6 +237,18 @@ class BudgetAdmin(JournalerAdmin):
                 "abutils/admin-tabular-inline.css",  # Hides "denormalized obj descs", to use Woj's term.
             )
         }
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# CASH TRANSFERS
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+@admin.register(CashTransfer)
+class CashTransferAdmin(JournalerAdmin):
+    list_display = ['pk', 'when', 'amount', 'from_acct', 'to_acct', 'why']
+    list_display_links = ['pk']
+    raw_id_fields = ['from_acct', 'to_acct']
+    change_actions = ['viewjournal_action']  # DjangoObjectActions
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
