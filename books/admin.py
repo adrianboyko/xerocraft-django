@@ -678,6 +678,8 @@ class SaleAdmin(JournalerAdmin, ModelMailerAdmin):
         'payer_acct__email',
         'salenote__content',
         'monetarydonation__earmark__name',
+        'otheritem__type__name',
+        'otheritem__type__revenue_acct__name',
         'total_paid_by_customer',
         '^ctrlid',
     ]
