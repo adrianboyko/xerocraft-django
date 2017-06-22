@@ -13,15 +13,15 @@
 
       function drawBalanceChart() {
         drawChart(false, "chart", "Balance vs Date", ["Date", "Balance"],
-          [{% for theDate, theBalance in pts %}
+          [{% for theDate, theBalance in xis_pts %}
             [new Date('{{theDate}}'), {{theBalance}}],{% endfor %}
           ]
         )
       }
 
-      function drawChart(includeTrend, theDivId, title, columnNames, pts) {
+      function drawChart(includeTrend, theDivId, title, columnNames, xis_pts) {
         var data = google.visualization.arrayToDataTable(
-          [columnNames].concat(pts)
+          [columnNames].concat(xis_pts)
         );
 
         var options = {

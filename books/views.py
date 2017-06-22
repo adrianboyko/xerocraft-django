@@ -242,7 +242,7 @@ def cash_balances_vs_time(request):
     start = date(2015, 1, 1)
     end = date.today()
 
-    def get_data_pts(acct: Account):
+    def get_xis_pts_for(acct: Account):
         data = []
         for jeli in JournalEntryLineItem.objects.filter(
           account=acct,
@@ -254,15 +254,14 @@ def cash_balances_vs_time(request):
         return data
 
     cash_root = Account.get(ACCT_ASSET_CASH)  # type: Account
-    cash_accts = cash_root.subaccounts  # type: List[Account]
-    cash_accts.append(cash_root)  # type: List[Account]
+    xis_accts = cash_root.subaccounts  # type: List[Account]
+    xis_accts.append(cash_root)  # type: List[Account]
+    xis_pts = []
+    for acct in xis_accts:
+        xis_pts.extend(get_xis_pts_for(acct))
+    xis_pts = _acc(xis_pts)
 
-    pts = []
-    for acct in cash_accts:
-        pts.extend(get_data_pts(acct))
-    pts = _acc(pts)
-
-    params = {'pts': pts}
+    params = {'xis_pts': xis_pts}
 
     return render(request, 'books/cash-balances-vs-time.html', params)
 
