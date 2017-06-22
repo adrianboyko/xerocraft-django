@@ -104,11 +104,12 @@ class JournalerAdmin(DjangoObjectActions, VersionAdmin):
 # NOTES
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-class NoteInline(admin.StackedInline):
+class NoteInline(admin.TabularInline):
 
-    fields = ['author', 'content']
+    fields = ['needs_attn', 'content']
 
-    readonly_fields = ['author']
+    readonly_fields = []
+    raw_id_fields = []
 
     extra = 0
 
@@ -687,6 +688,15 @@ class SaleAdmin(JournalerAdmin, ModelMailerAdmin):
     date_hierarchy = 'sale_date'
 
     change_actions = ['viewjournal_action', 'email_action']  # DjangoObjectActions
+
+
+    class Media:
+        css = {
+            "all": (
+                "books/admin.css",  # Sizes "description" to a more reasonable height.
+                "abutils/admin-tabular-inline.css",  # Hides "denormalized obj descs", to use Woj's term.
+            )
+        }
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =

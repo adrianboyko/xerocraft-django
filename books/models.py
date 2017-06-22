@@ -3,8 +3,8 @@
 # Standard
 from datetime import date
 from decimal import Decimal
-from typing import Dict, List, Optional
-import abc
+from typing import Dict, List, Optional, Tuple
+from abc import abstractmethod, ABCMeta
 from logging import getLogger
 
 # Third party
@@ -74,12 +74,27 @@ def next_otheritem_ctrlid() -> str:
 
 class Note(models.Model):
 
+    __metaclass__ = ABCMeta
+
     author = models.ForeignKey(User, null=True, blank=True,
         on_delete=models.SET_NULL,  # Keep the note even if the user is deleted.
         help_text="The user who wrote this note.")
 
     content = models.TextField(max_length=2048,
         help_text="Anything you want to say about the item on which this note appears.")
+
+    needs_attn = models.BooleanField(default=False,
+        help_text="Check this to indicate that further action is required from some human.")
+
+    def subject_url(self) -> str:
+        content_type = ContentType.objects.get_for_model(self.subject.__class__)
+        url_name = "admin:{}_{}_change".format(content_type.app_label, content_type.model)
+        return reverse(url_name, args=[str(self.subject.id)])
+
+    @property
+    @abstractmethod
+    def subject(self):
+        pass
 
     def __str__(self):
         return self.content[:40]
@@ -221,6 +236,9 @@ class JournalEntry(models.Model):
     when = models.DateField(null=False, blank=False,
         help_text="The date of the transaction.")
 
+    unbalanced = models.BooleanField(default=False,
+        help_text="Indicates that the entry is unbalanced. Human intervention required, if true.")
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Prebatched lineitems are JournalEntryLineItems that are waiting for their associated
@@ -240,7 +258,7 @@ class JournalEntry(models.Model):
             JournalLiner.batch(jeli)
         self.prebatched_lineitems = []
 
-    def debits_and_credits(self):
+    def debit_and_credit_totals(self) -> Tuple[Decimal, Decimal]:
         total_debits = Decimal(0.0)
         total_credits = Decimal(0.0)
         for line in self.journalentrylineitem_set.all():  # type: JournalEntryLineItem
@@ -250,9 +268,33 @@ class JournalEntry(models.Model):
                 total_debits += line.amount
         return total_debits, total_credits
 
+    def debits_and_credits(self) -> Tuple[List['JournalEntryLineItem'], List['JournalEntryLineItem']]:
+        debit_lis = []  # type: List[JournalEntryLineItem]
+        credit_lis = []  # type: List[JournalEntryLineItem]
+        for line in self.journalentrylineitem_set.all():  # type: JournalEntryLineItem
+            if line.iscredit():
+                credit_lis.append(line)
+            else:
+                debit_lis.append(line)
+        return debit_lis, credit_lis
+
+    def debits(self) -> List['JournalEntryLineItem']:
+        lis = []  # type: List[JournalEntryLineItem]
+        for line in self.journalentrylineitem_set.all():  # type: JournalEntryLineItem
+            if line.isdebit():
+                lis.append(line)
+        return lis
+
+    def credits(self) -> List['JournalEntryLineItem']:
+        lis = []  # type: List[JournalEntryLineItem]
+        for line in self.journalentrylineitem_set.all():  # type: JournalEntryLineItem
+            if line.iscredit():
+                lis.append(line)
+        return lis
+
     def dbcheck(self):
         # Relationships can't be checked in clean but can be checked later in a "db check" operation.
-        total_debits, total_credits = self.debits_and_credits()
+        total_debits, total_credits = self.debit_and_credit_totals()
         if total_credits != total_debits:
             raise ValidationError(
                 _("Total credits do not equal total debits (dr {} != cr {}.").format(total_debits, total_credits)
@@ -315,7 +357,7 @@ class JournalEntryLineItem(models.Model):
 
 class Journaler(models.Model):
 
-    __metaclass__ = abc.ABCMeta
+    __metaclass__ = ABCMeta
 
     _batch = list()  # type: List[JournalEntry]
     _link_names_of_relevant_children = None
@@ -337,7 +379,7 @@ class Journaler(models.Model):
             self._create_journalentries()
 
     # Each journaler will have its own logic for creating a journal entry.
-    @abc.abstractmethod
+    @abstractmethod
     def _create_journalentries(self):
         """
         Create JournalEntry instances associated with this Journaler.
@@ -400,7 +442,7 @@ class Journaler(models.Model):
                 cls._grand_total_debits += jeli.amount
         if balance != Decimal(0.00):
             cls._unbalanced_journal_entries.append(je)
-            # TODO: Perhaps set an IsUnbalanced field to True instead?
+            je.unbalanced = True
         cls._batch.append(je)
         if len(cls._batch) > 1000:
             cls.save_batch()
@@ -416,19 +458,18 @@ class Journaler(models.Model):
         Journaler.save_batch()
         JournalLiner.save_batch()
 
-
     @classmethod
     def get_unbalanced_journal_entries(cls):
         return cls._unbalanced_journal_entries
 
 
 class JournalLiner:
-    __metaclass__ = abc.ABCMeta
+    __metaclass__ = ABCMeta
 
     _batch = list()  # type:List[JournalEntryLineItem]
 
     # Each journal liner will have its own logic for creating its line items in the specified entry.
-    @abc.abstractmethod
+    @abstractmethod
     def create_journalentry_lineitems(self, je: JournalEntry):
         raise NotImplementedError
 
@@ -603,6 +644,10 @@ class EntityNote(Note):
     entity = models.ForeignKey(Entity,
         on_delete=models.CASCADE,  # No point in keeping the note if the entity is gone.
         help_text="The entity to which the note pertains.")
+
+    @property
+    def subject(self):
+        return self.entity
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -1038,6 +1083,10 @@ class SaleNote(Note):
         on_delete=models.CASCADE,  # No point in keeping the note if the sale is gone.
         help_text="The sale to which the note pertains.")
 
+    @property
+    def subject(self):
+        return self.sale
+
 
 class OtherItemType(models.Model):
     """Cans of soda, bumper stickers, materials, etc."""
@@ -1185,18 +1234,21 @@ class MonetaryDonation(models.Model, JournalLiner):
 
         # If this donation is contributing to a fund raising campaign then
         # shuffle cash from the top-level cash acct to the campaign's cash fund.
-        campaign = self.earmark.campaign_as_revenue  # type: Campaign
-        if campaign is not None:
-            je.prebatch(JournalEntryLineItem(
-                account=Account.get(ACCT_ASSET_CASH),
-                action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
-                amount=self.amount,
-            ))
-            je.prebatch(JournalEntryLineItem(
-                account=campaign.cash_account,
-                action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
-                amount=self.amount,
-            ))
+        try:
+            campaign = self.earmark.campaign_as_revenue  # type: Campaign
+            if campaign is not None:
+                je.prebatch(JournalEntryLineItem(
+                    account=Account.get(ACCT_ASSET_CASH),
+                    action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
+                    amount=self.amount,
+                ))
+                je.prebatch(JournalEntryLineItem(
+                    account=campaign.cash_account,
+                    action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
+                    amount=self.amount,
+                ))
+        except Campaign.DoesNotExist:
+            pass
 
 
 class ReceivableInvoiceReference(models.Model, JournalLiner):
@@ -1282,6 +1334,10 @@ class CampaignNote(Note):
         on_delete=models.CASCADE,  # No point in keeping the update if the campaign is deleted.
         help_text="The campaign to which this public update applies.")
 
+    @property
+    def subject(self):
+        return self.campaign
+
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # PHYSICAL (NOT MONETARY) DONATIONS
@@ -1336,6 +1392,10 @@ class DonationNote(Note):
     donation = models.ForeignKey(Donation,
         on_delete=models.CASCADE,  # No point in keeping the note if the donation is deleted.
         help_text="The donation to which this note applies.")
+
+    @property
+    def subject(self):
+        return self.donation
 
 
 class DonatedItem(models.Model):
@@ -1701,6 +1761,10 @@ class ExpenseTransactionNote(Note):
     exp = models.ForeignKey(ExpenseTransaction,
         on_delete=models.CASCADE,  # No point in keeping the note if the transaction is gone.
         help_text="The expense transaction to which the note pertains.")
+
+    @property
+    def subject(self):
+        return self.exp
 
 
 class PayableInvoiceReference(models.Model, JournalLiner):

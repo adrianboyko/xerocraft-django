@@ -265,3 +265,16 @@ def cash_balances_vs_time(request):
 
     return render(request, 'books/cash-balances-vs-time.html', params)
 
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+@login_required
+def items_needing_attn(request):
+
+    sale_notes = SaleNote.objects.filter(needs_attn=True).all()
+    journal_entries = JournalEntry.objects.filter(unbalanced=True).all()
+    params = {
+        'sale_notes': sale_notes,
+        'journal_entries': journal_entries,
+    }
+    return render(request, 'books/items-needing-attn.html', params)

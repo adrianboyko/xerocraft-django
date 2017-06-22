@@ -1,0 +1,59 @@
+{% extends 'admin/base.html' %}
+{% load i18n l10n admin_urls %}
+{% block branding %}<h1 id="site-name">Xerocraft Django Admin</h1>{% endblock %}
+
+{% block breadcrumbs %}
+    <div class="breadcrumbs">
+        <a href="{% url 'admin:index' %}">{% trans 'Home' %}</a> &rsaquo;
+        <a href="{% url 'admin:app_list' 'books' %}">Books</a> &rsaquo;
+        {%  comment %}Link to list of objects of same time as journaler.{% endcomment %}
+        Bad Items
+    </div>
+{% endblock %}
+
+{% block content %}
+
+    {% if sale_notes %}
+        <h2>Income Transaction Issues</h2>
+        {% for note in sale_notes %}
+            <div style="margin-left:10px;">
+                <a href="{{ note.subject_url }}">{{ note.subject }}</a>:<br/>
+                {{ note.content }}<br/>
+                <br/>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    {% if journal_entries %}
+        <h2 style="margin-bottom:0px;">Unbalanced Journal Entries</h2>
+        <p style="margin-top:0px;">Might be redundant with any warnings above.</p>
+        {% for je in journal_entries %}
+            <a href="{{ je.source_url }}">{{ je }}</a> doesn't balance:<br/>
+
+            {% if je.debits %}
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Debits
+                {% for li in je.debits %}
+                    <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                    ${{ li.amount }}
+                    {% if li.action == '>' %}increase{% else %}decrease{% endif %}
+                    to '{{ li.account }}'
+                {% endfor %}
+                <br/>
+            {% endif %}
+
+            {% if je.credits %}
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Credits
+                {% for li in je.credits %}
+                    <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                    ${{ li.amount }}
+                    {% if li.action == '>' %}increase{% else %}decrease{% endif %}
+                    to '{{ li.account }}'
+                {% endfor %}
+                <br/>
+            {% endif %}
+
+            <br/>
+        {% endfor %}
+    {% endif %}
+
+{% endblock %}
