@@ -754,6 +754,9 @@ class ReceivableInvoiceNote(Note):
         on_delete=models.CASCADE,  # No point in keeping the note if the invoice is gone.
         help_text="The invoice to which the note pertains.")
 
+    @property
+    def subject(self):
+        return self.invoice
 
 payable_invoice_help = {
     "invoice_date": "The date of the invoice.",
@@ -806,6 +809,10 @@ class PayableInvoiceNote(Note):
     invoice = models.ForeignKey(PayableInvoice,
         on_delete=models.CASCADE,  # No point in keeping the note if the invoice is gone.
         help_text="The invoice to which the note pertains.")
+
+    @property
+    def subject(self):
+        return self.invoice
 
 
 class InvoiceLineItem(models.Model):
@@ -1517,6 +1524,10 @@ class ExpenseClaimNote(Note):
     claim = models.ForeignKey(ExpenseClaim,
         on_delete=models.CASCADE,  # No point in keeping the note if the claim is gone.
         help_text="The claim to which the note pertains.")
+
+    @property
+    def subject(self):
+        return self.claim
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =

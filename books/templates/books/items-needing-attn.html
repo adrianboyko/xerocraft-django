@@ -13,9 +13,9 @@
 
 {% block content %}
 
-    {% if sale_notes %}
-        <h2>Income Transaction Issues</h2>
-        {% for note in sale_notes %}
+    {% if notes_needing_attn %}
+        <h2>Notes Needing Attention</h2>
+        {% for note in notes_needing_attn %}
             <div style="margin-left:10px;">
                 <a href="{{ note.subject_url }}">{{ note.subject }}</a>:<br/>
                 {{ note.content }}<br/>
@@ -24,10 +24,10 @@
         {% endfor %}
     {% endif %}
 
-    {% if journal_entries %}
+    {% if unbalanced_journal_entries %}
         <h2 style="margin-bottom:0px;">Unbalanced Journal Entries</h2>
-        <p style="margin-top:0px;">Might be redundant with any warnings above.</p>
-        {% for je in journal_entries %}
+        <p style="margin-top:0px;">Some might be redundant with notes above, if any.</p>
+        {% for je in unbalanced_journal_entries %}
             <a href="{{ je.source_url }}">{{ je }}</a> doesn't balance:<br/>
 
             {% if je.debits %}

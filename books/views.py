@@ -21,7 +21,7 @@ import requests
 # Local
 from .models import (
     Account, ACCT_ASSET_CASH,
-    Sale, SaleNote,
+    Sale, SaleNote, Note,
     MonetaryDonation,
     OtherItem, OtherItemType,
     Journaler, JournalEntry, JournalEntryLineItem
@@ -271,10 +271,15 @@ def cash_balances_vs_time(request):
 @login_required
 def items_needing_attn(request):
 
-    sale_notes = SaleNote.objects.filter(needs_attn=True).all()
-    journal_entries = JournalEntry.objects.filter(unbalanced=True).all()
+
+    notes_needing_attn = []
+    for note_class in Note.__subclasses__():
+        notes = note_class.objects.filter(needs_attn=True).all()
+        notes_needing_attn.extend(list(notes))
+
+    unbalanced_journal_entries = JournalEntry.objects.filter(unbalanced=True).all()
     params = {
-        'sale_notes': sale_notes,
-        'journal_entries': journal_entries,
+        'notes_needing_attn': notes_needing_attn,
+        'unbalanced_journal_entries': unbalanced_journal_entries,
     }
     return render(request, 'books/items-needing-attn.html', params)
