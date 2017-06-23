@@ -21,19 +21,19 @@ __author__ = 'Adrian'
 
 
 def index(request):
-    return render(request, 'xerops/xerocraft-home.html',{})
+    return render(request, 'xerops/xerocraft-home.html', {})
 
 
 def credits(request):
-    return render(request, 'xerops/credits.html',{})
+    return render(request, 'xerops/credits.html', {})
 
 
 @login_required
-def director_menu(request):
+def accounting_menu(request):
     if not request.user.member.is_tagged_with("Director"):
         return HttpResponse("This page is for Directors only.")
     else:
-        return render(request, 'xerops/director-menu.html',{})
+        return render(request, 'xerops/accounting-menu.html', {})
 
 
 # Based on code from http://www.tangowithdjango.com/book/chapters/login.html

@@ -1,0 +1,109 @@
+
+{% load staticfiles %}
+
+<head>
+    <title>Accounting</title>
+    <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=PT Sans Narrow">
+
+    <style>
+        body {
+            margin-left:20pt;
+            margin-right:20pt;
+            text-align:center;
+            font-family: "PT Sans Narrow", "Arial", "Helvetica";
+            background-color: #f8f8f8;
+        }
+        @keyframes glow {
+            00%, 01% {filter: drop-shadow(0px 0px 0px rgba(255,0,0,0.5));}
+            01%, 02% {filter: drop-shadow(0px 0px 5px rgba(255,0,0,0.5));}
+            02%, 03% {filter: drop-shadow(0px 0px 0px rgba(255,0,0,0.5));}
+            03%, 04% {filter: drop-shadow(0px 0px 5px rgba(255,0,0,0.5));}
+            04%, 05% {filter: drop-shadow(0px 0px 0px rgba(255,0,0,0.5));}
+            05%, 08% {filter: drop-shadow(0px 0px 5px rgba(255,0,0,0.5));}
+            08%, 20% {filter: drop-shadow(0px 0px 5px rgba(255,0,0,0.5));}
+            20%, 100% {filter: drop-shadow(0px 0px 0px rgba(255,0,0,0.5));}
+        }
+
+        #x {
+            width: 140px;
+            height: 134px;
+            margin-top: 8%;
+            margin-right: 0px;
+            margin-bottom: 35px;
+            animation-name: glow;
+            animation-delay: 1s;
+            animation-duration: 3s;
+            animation-iteration-count: 2;
+        }
+
+        h1 { font-size:22pt; margin-top:50px; }
+        h2 { font-size:14pt; margin-top:20px; margin-bottom:0; }
+        ul { font-size:10pt; }
+        img { width:40px; margin-right:0pt; }
+        td { vertical-align:center; text-align:center; width:33%; }
+        span { font-size:10pt; font-weight:normal; }
+        span.exp { color:red; }
+
+        #logout {
+            display: inline-block;
+            padding: 11px;
+            background-color: #ffb3b3;
+            border-radius: 8px;
+        }
+
+        h2#logout a {
+            color: black;
+            text-decoration: none;
+        }
+
+
+    </style>
+
+</head>
+
+<body style="text-align:center">
+
+    <img id="x" src="{% static 'xerops/Big Bold X.png' %}" alt="Xerocraft Logo"/>
+
+<table style="width:50%;" align="center">
+    <tr>
+        <td>
+            <h2>Member Count<br/>Versus Date</h2>
+            <a href="/members/desktop/member-count-vs-date/">chart</a>
+        </td>
+        <td>
+            <h2>Monthly Earned<br/>M'ship Revenue</h2>
+            <a href="/members/desktop/earned-membership-revenue/">chart</a> or
+            <a href="/members/csv/monthly-accrued-membership/">csv</a>
+
+        </td>
+        <td>
+            <h2>Revenue &amp; Expenses<br/>Versus Date</h2>
+            <a href="/books/cumulative-rev-exp-chart/">chart</a>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <a href="/books/chart-of-accounts/"><h2>Chart of<br/>Accounts</h2></a>
+        </td>
+        <td>
+            <h2 style="margin-top:40px;"><a href="/">Main Menu</a></h2>
+        </td>
+        <td>
+            <a href="/books/items-needing-attn/"><h2>Items Needing<br/>Attention</h2></a>
+        </td>
+    </tr>
+
+</table>
+
+    {% if user.is_authenticated %}
+        <br/><br/>
+        <h2 id="logout">
+            <a href="/logout/">Logout {{ request.user }}</a>
+        </h2>
+    {% endif %}
+
+</body>
+
+
+

@@ -30,7 +30,7 @@ urlpatterns = [
     url(r'^$', views.index),
     url(r'^test/$', views.test),
     url(r'^login/$', views.login),
-    url(r'^director-menu/$', views.director_menu),
+    url(r'^accounting-menu/$', views.accounting_menu),
     url(r'^membership-status/(?P<provider>[-_.a-zA-Z0-9]+)/(?P<id>[-@+._a-zA-Z0-9]+)/$', views.api_get_membership_info),
     url(r'^scrape-xerocraft-org-checkins/$', views.scrape_xerocraft_org_checkins),
     url(r'^paypal-webhook', views.paypal_webhook, name="paypal-webhook"),
