@@ -1062,6 +1062,19 @@ class Sale(Journaler):
         else:
             return "{} sale to Unk Person".format(self.sale_date)
 
+    def cash_for_item_after_fees(self, item_price: Decimal) -> Decimal:
+        if self.fee_payer == self.FEE_PAID_BY_CUSTOMER:
+            total_of_item_prices = self.total_paid_by_customer - self.processing_fee
+        elif self.fee_payer == self.FEE_PAID_BY_US:
+            total_of_item_prices = self.total_paid_by_customer
+        else:
+            assert self.fee_payer == self.FEE_PAID_BY_NOBODY
+            total_of_item_prices = self.total_paid_by_customer
+
+        item_fraction = item_price / total_of_item_prices
+        item_share_of_fee = item_fraction * self.processing_fee
+        return item_price - item_share_of_fee
+
     def _create_journalentries(self):
         je = JournalEntry(
             when=self.sale_date,
@@ -1082,6 +1095,36 @@ class Sale(Journaler):
 
         self.create_lineitems_for(je)
         Journaler.batch(je)
+
+
+class SaleLineItem:  # TODO: This class is not yet used but could simplify some of the logic in this module.
+
+    __metaclass__ = ABCMeta
+
+    # sale = models.ForeignKey(Sale,
+    #     on_delete=models.CASCADE,  # No point in keeping the line item if the sale is gone.
+    #     help_text="The sale for which this is a line item.")
+    #
+    # sale_price = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
+    #     help_text="The UNIT price at which this/these item(s) sold.")
+    #
+    # qty_sold = models.IntegerField(null=True, blank=True, default=None,
+    #     help_text="The quantity of the item sold. Leave blank if quantity is not known.")
+
+    @property
+    @abstractmethod
+    def sale(self) -> Sale:
+        raise NotImplementedError("Must be implemented in subclass.")
+
+    @property
+    @abstractmethod
+    def sale_price(self) -> Decimal:
+        raise NotImplementedError("Must be implemented in subclass.")
+
+    @property
+    @abstractmethod
+    def qty_sold(self) -> Optional[int]:
+        raise NotImplementedError("Must be implemented in subclass.")
 
 
 class SaleNote(Note):
@@ -1243,16 +1286,17 @@ class MonetaryDonation(models.Model, JournalLiner):
         # shuffle cash from the top-level cash acct to the campaign's cash fund.
         try:
             campaign = self.earmark.campaign_as_revenue  # type: Campaign
+            net_donation = self.sale.cash_for_item_after_fees(self.amount)
             if campaign is not None:
                 je.prebatch(JournalEntryLineItem(
                     account=Account.get(ACCT_ASSET_CASH),
                     action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
-                    amount=self.amount,
+                    amount=net_donation,
                 ))
                 je.prebatch(JournalEntryLineItem(
                     account=campaign.cash_account,
                     action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
-                    amount=self.amount,
+                    amount=net_donation,
                 ))
         except Campaign.DoesNotExist:
             pass
