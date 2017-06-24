@@ -17,7 +17,7 @@ from django_object_actions import DjangoObjectActions
 
 # Local
 from books.models import (
-    Account, AccountLink, Budget, CashTransfer,
+    Account, Budget, CashTransfer,
     DonationNote, MonetaryDonation, DonatedItem, Donation, MonetaryDonationReward,
     Sale, SaleNote, OtherItem, OtherItemType, ExpenseTransaction,
     ExpenseTransactionNote, ExpenseClaim, ExpenseClaimNote,
@@ -145,39 +145,7 @@ class AccountAdmin(VersionAdmin):
         verbose_name = "Subaccount"
         verbose_name_plural = "Subaccounts"
 
-    class ForwardLinkedAcctInline(admin.TabularInline):
-
-        def has_add_permission(self, request):
-            return False
-
-        def has_delete_permission(self, request, obj=None):
-            return False
-
-        model = AccountLink
-        fk_name = 'subj_acct'
-        extra = 0
-        fields = ['link_verb', 'obj_acct',]
-        readonly_fields = ['subj_acct', 'link_verb', 'obj_acct',]
-        verbose_name = "Forward linked account"
-        verbose_name_plural = "Forward linked accounts"
-
-    class ReverseLinkedAcctInline(admin.TabularInline):
-
-        def has_add_permission(self, request):
-            return False
-
-        def has_delete_permission(self, request, obj=None):
-            return False
-
-        model = AccountLink
-        fk_name = 'obj_acct'
-        extra = 0
-        fields = ['subj_acct', 'link_verb',]
-        readonly_fields = ['subj_acct', 'link_verb', 'obj_acct',]
-        verbose_name = "Reverse linked account"
-        verbose_name_plural = "Reverse linked accounts"
-
-    inlines = [SubAccountInline, ForwardLinkedAcctInline, ReverseLinkedAcctInline]
+    inlines = [SubAccountInline]
 
     list_display = [
         'pk',
@@ -211,14 +179,6 @@ class AccountAdmin(VersionAdmin):
         }
 
 
-@admin.register(AccountLink)
-class AccountLinkAdmin(VersionAdmin):
-    list_display = ['pk', 'subj_acct', 'link_verb', 'obj_acct']
-    raw_id_fields = ['subj_acct', 'obj_acct']
-    search_fields = ['subj_acct__name', 'obj_acct__name']
-    list_filter = ['link_verb']
-
-
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # BUDGET
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -226,11 +186,19 @@ class AccountLinkAdmin(VersionAdmin):
 @admin.register(Budget)
 class BudgetAdmin(JournalerAdmin):
 
+    class CoveredAcctInline(admin.TabularInline):
+        model = Budget.for_accts.through
+        model._meta.verbose_name = "Covered Account"
+        model._meta.verbose_name_plural = "Covered Accounts"
+        raw_id_fields = ['account']
+        extra = 0
+
     list_display = ['pk', 'name', 'begins', 'ends', 'amount', 'from_acct', 'to_acct']
     list_display_links = ['pk', 'name']
     fields = ['name', 'begins', 'ends', 'amount', 'from_acct', 'to_acct']
     raw_id_fields = ['from_acct', 'to_acct']
     change_actions = ['viewjournal_action']  # DjangoObjectActions
+    inlines = [CoveredAcctInline]
 
     class Media:
         css = {

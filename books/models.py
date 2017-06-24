@@ -193,34 +193,6 @@ class Account(models.Model):
         ordering = ['name']
 
 
-class AccountLink(models.Model):
-
-    subj_acct = models.ForeignKey(Account, null=False, blank=False,
-        related_name='subj_link_set',
-        on_delete=models.PROTECT,
-        help_text="The subject account in this link.")
-
-    obj_acct = models.ForeignKey(Account, null=False, blank=False,
-        related_name='obj_link_set',
-        on_delete=models.PROTECT,
-        help_text="The object account in this link.")
-
-    LINKVERB_FUNDS = "FUNDS"
-    LINKVERB_CHOICES = [
-        (LINKVERB_FUNDS, "Funds"),
-    ]
-    link_verb = models.CharField(max_length=5, choices=LINKVERB_CHOICES,
-        null=False, blank=False,
-        help_text="The type of link between the accounts. Subject acct 'verbs' object acct.")
-
-    def __str__(self):
-        return "{} {} {}".format(self.subj_acct.name, self.link_verb, self.obj_acct.name)
-
-    class Meta:
-        ordering = ['subj_acct', 'link_verb', 'obj_acct']
-        unique_together = ['subj_acct', 'link_verb', 'obj_acct']
-
-
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # JOURNAL - The journal is generated (and regenerated) from other models
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -518,6 +490,9 @@ class Budget(Journaler):
         related_name='to_budget_set',
         on_delete=models.PROTECT,
         help_text="The acct TO which funds will be transferred.")
+
+    for_accts = models.ManyToManyField(Account, blank=True,
+        help_text="The account(s) ultimately funded by this budget.")
 
     begins = models.DateField(null=False, blank=False,
         help_text="Date of first monthly transfer.")
