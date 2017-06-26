@@ -1,0 +1,59 @@
+{% extends 'admin/base.html' %}
+{% load i18n l10n admin_urls %}
+{% block branding %}<h1 id="site-name">Xerocraft Django Admin</h1>{% endblock %}
+
+{% block extrastyle %}
+    <style>
+        tr:nth-child(even) {background-color: #f2f2f2}
+        th {
+            font-size:10pt;
+            font-weight:normal;
+            background-color: #79aec8;
+            color: white;
+        }
+        .right {
+          text-align: right;
+          margin-right: 1em;
+        }
+
+        .left {
+          text-align: left;
+          margin-left: 1em;
+        }
+    </style>
+{% endblock %}
+
+{% block breadcrumbs %}
+    <div class="breadcrumbs">
+        <a href="{% url 'admin:index' %}">{% trans 'Home' %}</a> &rsaquo;
+        <a href="{% url 'admin:app_list' 'books' %}">Books</a> &rsaquo;
+        Acct History
+    </div>
+{% endblock %}
+
+{% block content %}
+
+        <h2>{{acct.name}}</h2>
+        <br/>
+        <table>
+        <tr>
+            <th>Date</th>
+            <th class="right">Decrease</th>
+            <th class="right">Increase</th>
+            <th class="right">Balance</th>
+        </tr>
+        <tr>
+            <td colspan="3"></td>
+            <td class="right">{{start_balance}}</td>
+        </tr>
+        {% for jeli in jelis %}
+            <tr>
+                <td>{{jeli.journal_entry.when}}</td>
+                <td class="right">{% if jeli.sign < 0 %}<a href="{{jeli.journal_entry.source_url}}">{{jeli.amount}}</a>{% endif %}</td>
+                <td class="right">{% if jeli.sign > 0 %}<a href="{{jeli.journal_entry.source_url}}">{{jeli.amount}}</a>{% endif %}</td>
+                <td class="right">{{jeli.total}}</td>
+            </tr>
+        {% endfor %}
+        </table>
+
+{% endblock %}

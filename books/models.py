@@ -1775,6 +1775,25 @@ class ExpenseLineItem(models.Model, JournalLiner):
             action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
             amount=self.amount,  # Recall, amount is the full amount BEFORE discount.
         ))
+
+        # If the expense is against an acct that's part of a budget,
+        # return the general cash and take from the budget fund instead.
+        budgets = self.account.budget_set.all()  # type: List[Budget]
+        assert len(budgets) <= 1
+        if len(budgets) == 1:
+            budget = budgets[0]  # type: Budget
+            if budget is not None:
+                je2.prebatch(JournalEntryLineItem(
+                    account=Account.get(ACCT_ASSET_CASH),
+                    action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
+                    amount=self.amount,
+                ))
+                je2.prebatch(JournalEntryLineItem(
+                    account=budget.to_acct,
+                    action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
+                    amount=self.amount,
+                ))
+
         if self.discount > Decimal(0.00):  # Note, this is for CHARITABLE discounts against goods or services.
             je2.prebatch(JournalEntryLineItem(
                 account=Account.get(ACCT_REVENUE_DISCOUNT),

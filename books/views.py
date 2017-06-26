@@ -1,9 +1,10 @@
 
 # Standard
-from datetime import date  #, datetime
+from datetime import date, datetime
 from logging import getLogger
 from typing import List
 import json
+from decimal import Decimal
 
 # Third Party
 from django.shortcuts import render
@@ -13,6 +14,7 @@ from django.http.request import HttpRequest
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import settings
+from django.shortcuts import get_object_or_404
 import requests
 
 # import numpy as np
@@ -271,7 +273,6 @@ def cash_balances_vs_time(request):
 @login_required
 def items_needing_attn(request):
 
-
     notes_needing_attn = []
     for note_class in Note.__subclasses__():
         notes = note_class.objects.filter(needs_attn=True).all()
@@ -283,3 +284,47 @@ def items_needing_attn(request):
         'unbalanced_journal_entries': unbalanced_journal_entries,
     }
     return render(request, 'books/items-needing-attn.html', params)
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+@login_required
+def account_history(request, account_pk: int, begin_date: str, end_date: str):
+
+    acct = get_object_or_404(Account, id=account_pk)
+
+    begin_year = int(begin_date[0:4])
+    begin_month = int(begin_date[4:6])
+    begin_day = int(begin_date[6:8])
+    end_year = int(end_date[0:4])
+    end_month = int(end_date[4:6])
+    end_day = int(end_date[6:8])
+    begin_date = date(year=begin_year, month=begin_month, day=begin_day)
+    end_date = date(year=end_year, month=end_month, day=end_day)
+    end_date = min(end_date, date.today())
+
+    jelis = list(JournalEntryLineItem.objects.filter(
+        account=account_pk,
+        journal_entry__when__gte=begin_date,
+        journal_entry__when__lte=end_date,
+    ))
+
+    jelis.sort(key=lambda x: x.journal_entry.when)
+
+    jelis_with_total = []
+    start_balance = Decimal("0.00")
+    running_total = start_balance
+    for jeli in jelis:
+        jeli.sign = Decimal("+1") if jeli.action == jeli.ACTION_BALANCE_INCREASE else Decimal("-1")
+        running_total += jeli.sign * jeli.amount
+        jeli.total = running_total
+        jelis_with_total.append(jeli)
+
+    del jelis
+
+    params = {
+        'acct': acct,
+        'start_balance': start_balance,
+        'jelis': jelis_with_total,
+    }
+    return render(request, 'books/account-history.html', params)
