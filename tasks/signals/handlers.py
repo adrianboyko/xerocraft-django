@@ -1,6 +1,6 @@
 # Standard
 import logging
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 # Third Party
 from django.db.models.signals import pre_save, post_save
@@ -219,11 +219,11 @@ def notify_manager_re_staff_arrival(sender, **kwargs):
                 return
 
             if visit.debounced():
-
                 claims = Claim.objects.filter(
                     claiming_member=visit.who,
                     claimed_task__priority=Task.PRIO_HIGH,
-                    claimed_task__scheduled_date=timezone.now().date(),
+                    claimed_task__scheduled_date=datetime.now().date(),
+                    status=Claim.STAT_CURRENT,
                     # TODO: Is a window around the claimed start time necessary?
                 )
 

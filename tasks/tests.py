@@ -947,21 +947,23 @@ class TestNotifications(TestCase):
 
     def test_arrival_of_scheduled_worker(self):
         VisitEvent.objects.all().delete()
-        start_datetime = timezone.now() + timedelta(minutes=15)  # type: datetime
+        tz = timezone.get_current_timezone()
+        start_dt = datetime.now() + timedelta(minutes=15)  # type: datetime
+        start_dt = tz.localize(start_dt)  # type: datetime
         task = Task.objects.create(
             owner=self.manager_member,
             priority=Task.PRIO_HIGH,
             short_desc="Test Task",
-            work_start_time=start_datetime.time(),
+            work_start_time=start_dt.time(),
             max_work=timedelta(hours=2),
-            scheduled_date=start_datetime.date(),
-            orig_sched_date = start_datetime.date(),
+            scheduled_date=start_dt.date(),
+            orig_sched_date = start_dt.date(),
         )
         task.clean()
         claim = Claim.objects.create(
             claimed_task=task,
             claiming_member=self.worker_member,
-            claimed_start_time=start_datetime.time(),
+            claimed_start_time=start_dt.time(),
             claimed_duration=timedelta(hours=1),
             status=Claim.STAT_CURRENT,
         )
