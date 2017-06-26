@@ -9,6 +9,7 @@ Django==1.10.6
 django-bootstrap-form==3.2.1
 django-crispy-forms==1.6.1
 django-debug-toolbar==1.4
+django-extensions==1.7.9
 django-filter==1.0.1
 
 #django-helpdesk==0.1.18
@@ -65,5 +66,6 @@ six==1.10.0
 sparkpost==1.3.2
 -e git+https://github.com/adrianboyko/2checkout-python.git@3.x#egg=twocheckout
 typing==3.5.0.1
+Werkzeug==0.12.2
 wheel==0.24.0
 whitenoise==3.2.1

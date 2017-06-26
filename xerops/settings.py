@@ -65,13 +65,16 @@ ALLOWED_HOSTS = (
 )
 if ISDEVHOST:
     ALLOWED_HOSTS += (
+        '127.0.0.1',
         'localhost',
     )
 
 LOGIN_URL = "/login/"
 LOGIN_REDIRECT_URL = "/"
 
-# Setup support for proxy headers
+if not TESTING:
+    SECURE_SSL_REDIRECT = True
+
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
@@ -105,6 +108,7 @@ if ISDEVHOST:
     # So I'm putting all the development and WIP stuff here.
     INSTALLED_APPS += (
         'django_jenkins',
+        'django_extensions',
         #'debug_toolbar',
     )
 
