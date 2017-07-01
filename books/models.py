@@ -1500,42 +1500,40 @@ class ExpenseClaim(Journaler):
             total -= lineitem.discount
         return total
 
-    # def is_reimbursed(self):
-    #     """
-    #     :return: True if claim has been reimbursed
-    #     """
-    #     return len(self.expenseclaimreference_set.all()) > 0
-    # is_reimbursed.boolean = True
-
     def __str__(self):
         return "${} for {}".format(self.amount, self.claimant)
 
     def dbcheck(self):
-        if  self.amount != self.checksum():
+        if self.amount != self.checksum():
             raise ValidationError(_("Total of line items must match amount of claim."))
 
     def _create_journalentries(self):
 
-        # self.journal_entry = JournalEntry.objects.create(
-        #     when=self.invoice_date
-        # )
-        # ar = Account.objects.get(name="Accounts Payable")  # TODO: Acct name can't be hard-coded?
-        # JournalEntryLineItem.objects.create(
-        #     journal_entry=self.journal_entry,
-        #     account=ar,
-        #     action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
-        #     amount=self.amount
-        # )
-        """
-        Unfortunately, due to the way that Expense Claims were misused as a sort of
-        account in themselves, I'm unable to make sensible journal entries out of them.
-        Instead, a journal entry will be made for each individual line item. This will
-        date the transaction at the time of the purchase which is EARLIER than the date
-        on which the claim was made, but it's close enough and will have to do.
-        """
-        self.create_lineitems_for(
-            JournalEntry(id=-1, source_url=self.get_absolute_url()),
-        )
+        source_url = self.get_absolute_url()
+
+        for eli in self.expenselineitem_set.all():  # type: ExpenseLineItem
+            je = JournalEntry(
+                when=eli.expense_date,
+                source_url=source_url
+            )
+            if self.donate_reimbursement:
+                je.prebatch(JournalEntryLineItem(
+                    account=Account.get(ACCT_REVENUE_DONATION),
+                    action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
+                    amount=eli.amount,
+                ))
+            else:
+                je.prebatch(JournalEntryLineItem(
+                    account=Account.get(ACCT_LIABILITY_PAYABLE),
+                    action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
+                    amount=eli.amount-eli.discount,
+                ))
+            je.prebatch(JournalEntryLineItem(
+                account=eli.account,
+                action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
+                amount=eli.amount-eli.discount,
+            ))
+            Journaler.batch(je)
 
 
 class ExpenseClaimNote(Note):
@@ -1642,7 +1640,6 @@ class ExpenseTransaction(Journaler):
         return "${} by {}".format(self.amount_paid, self.payment_method_verbose())
 
     def _create_journalentries(self):
-        # Child models will also contribute to this journal entry but that's handled by "generatejournal"
         je = JournalEntry(
             when=self.payment_date,
             source_url=self.get_absolute_url()
@@ -1653,6 +1650,13 @@ class ExpenseTransaction(Journaler):
             amount=self.amount_paid
         ))
         self.create_lineitems_for(je)
+        # The following is not handled by the previous line:
+        for eli in self.expenselineitem_set.all():
+            je.prebatch(JournalEntryLineItem(
+                account=eli.account,
+                action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
+                amount=eli.amount
+            ))
         Journaler.batch(je)
 
 
@@ -1673,16 +1677,16 @@ class ExpenseClaimReference(models.Model, JournalLiner):
 
     def create_journalentry_lineitems(self, je: JournalEntry):
 
-        amount = self.claim.amount
-
-        if self.portion is not None:
-            amount = self.portion
+        amount = self.portion if self.portion is not None else self.claim.amount
 
         je.prebatch(JournalEntryLineItem(
             account=Account.get(ACCT_LIABILITY_PAYABLE),
             action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
             amount=amount,
         ))
+
+        for eli in self.claim.expenselineitem_set.all():
+            eli.create_journalentry_lineitems(je, amount / self.claim.amount)
 
 
 class ExpenseLineItem(models.Model, JournalLiner):
@@ -1738,43 +1742,7 @@ class ExpenseLineItem(models.Model, JournalLiner):
         if self.claim is None and self.exp is None:
             raise ValidationError(_("Expense line item must be part of a claim or transaction."))
 
-    def create_journalentry_lineitems(self, je: JournalEntry):
-        # Note: Sometimes entry will be real and sometimes it won't. This is intentional if undesirable.
-        # When entry has id > 0, this line item is part of an ExpenseTransaction.
-        # When entry has id == -1, this line item is part of an ExpenseClaim but journal entries are not
-        # being created for ExpenseClaims because they were misused. See comments in ExpenseClaim.
-        # Every line item associated with an ExpenseClaim will get its own JournalEntry, created here.
-
-        if je.id == -1:
-            assert self.claim is not None
-
-            je2 = JournalEntry(
-                when=self.expense_date,
-                source_url=je.source_url  # The fake je has source_url specified.
-            )
-
-            if self.claim.donate_reimbursement:
-                je2.prebatch(JournalEntryLineItem(
-                    account=Account.get(ACCT_REVENUE_DONATION),
-                    action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
-                    amount=self.amount,
-                ))
-
-            else:
-                je2.prebatch(JournalEntryLineItem(
-                    account=Account.get(ACCT_LIABILITY_PAYABLE),
-                    action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
-                    amount=self.amount-self.discount,
-                ))
-
-        else:
-            je2 = je
-
-        je2.prebatch(JournalEntryLineItem(
-            account=self.account,
-            action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
-            amount=self.amount,  # Recall, amount is the full amount BEFORE discount.
-        ))
+    def create_journalentry_lineitems(self, je: JournalEntry, factor=Decimal("1")):
 
         # If the expense is against an acct that's part of a budget,
         # return the general cash and take from the budget fund instead.
@@ -1783,26 +1751,23 @@ class ExpenseLineItem(models.Model, JournalLiner):
         if len(budgets) == 1:
             budget = budgets[0]  # type: Budget
             if budget is not None:
-                je2.prebatch(JournalEntryLineItem(
+                je.prebatch(JournalEntryLineItem(
                     account=Account.get(ACCT_ASSET_CASH),
                     action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
-                    amount=self.amount,
+                    amount=factor*self.amount,
                 ))
-                je2.prebatch(JournalEntryLineItem(
+                je.prebatch(JournalEntryLineItem(
                     account=budget.to_acct,
                     action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
-                    amount=self.amount,
+                    amount=factor*self.amount,
                 ))
 
         if self.discount > Decimal(0.00):  # Note, this is for CHARITABLE discounts against goods or services.
-            je2.prebatch(JournalEntryLineItem(
+            je.prebatch(JournalEntryLineItem(
                 account=Account.get(ACCT_REVENUE_DISCOUNT),
                 action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
                 amount=self.discount,
             ))
-
-        if je.id == -1:
-            Journaler.batch(je2)
 
 
 class ExpenseTransactionNote(Note):
