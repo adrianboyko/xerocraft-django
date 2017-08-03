@@ -50,7 +50,8 @@ class TimeWindowedObject(object):
     def window_start_datetime(self):
         windate = self.window_sched_date()
         # If window_sched_date() is None, it means that the task can be done any day. So default to today.
-        if windate is None: windate = datetime.now().date()
+        if windate is None:
+            windate = datetime.now().date()
         return datetime.combine(windate, self.window_start_time())
 
     def window_end_datetime(self):
@@ -74,8 +75,10 @@ class TimeWindowedObject(object):
             now = datetime.now()
             start = self.window_start_datetime() + start_leeway
             end = self.window_end_datetime() + end_leeway
-            if start > now: return False
-            if end < now: return False
+            if start > now:
+                return False
+            if end < now:
+                return False
 
         return self.in_daterange_now()
 
@@ -157,21 +160,21 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
         help_text="Some recurring tasks (e.g. classes) have a default a default claimant (e.g. the instructor).")
 
     # Weekday of month:
-    first = models.BooleanField(default=False)  #, help_text="Task will recur on first weekday in the month.")
-    second = models.BooleanField(default=False)  #, help_text="Task will recur on second weekday in the month.")
-    third = models.BooleanField(default=False)  #, help_text="Task will recur on third weekday in the month.")
-    fourth = models.BooleanField(default=False)  #, help_text="Task will recur on fourth weekday in the month.")
-    last = models.BooleanField(default=False)  #, help_text="Task will recur on last weekday in the month. This will be 4th or 5th weekday, depending on calendar.")
-    every = models.BooleanField(default=False)  #, help_text="Task recur every week")
+    first = models.BooleanField(default=False)  # , help_text="Task will recur on first weekday in the month.")
+    second = models.BooleanField(default=False)  # , help_text="Task will recur on second weekday in the month.")
+    third = models.BooleanField(default=False)  # , help_text="Task will recur on third weekday in the month.")
+    fourth = models.BooleanField(default=False)  # , help_text="Task will recur on fourth weekday in the month.")
+    last = models.BooleanField(default=False)  # , help_text="Task will recur on last weekday in the month. This will be 4th or 5th weekday, depending on calendar.")
+    every = models.BooleanField(default=False)  # , help_text="Task recur every week")
 
     # Day of week:
-    monday = models.BooleanField(default=False)  #, help_text="Task will recur on Monday.")
-    tuesday = models.BooleanField(default=False)  #, help_text="Task will recur on Tuesday.")
-    wednesday = models.BooleanField(default=False)  #, help_text="Task will recur on Wednesday.")
-    thursday = models.BooleanField(default=False)  #, help_text="Task will recur on Thursday.")
-    friday = models.BooleanField(default=False)  #, help_text="Task will recur on Friday.")
-    saturday = models.BooleanField(default=False)  #, help_text="Task will recur a Saturday.")
-    sunday = models.BooleanField(default=False)  #, help_text="Task will recur a Sunday.")
+    monday = models.BooleanField(default=False)  # , help_text="Task will recur on Monday.")
+    tuesday = models.BooleanField(default=False)  # , help_text="Task will recur on Tuesday.")
+    wednesday = models.BooleanField(default=False)  # , help_text="Task will recur on Wednesday.")
+    thursday = models.BooleanField(default=False)  # , help_text="Task will recur on Thursday.")
+    friday = models.BooleanField(default=False)  # , help_text="Task will recur on Friday.")
+    saturday = models.BooleanField(default=False)  # , help_text="Task will recur a Saturday.")
+    sunday = models.BooleanField(default=False)  # , help_text="Task will recur a Sunday.")
 
     # Month of year:
     jan = models.BooleanField(default=True)
@@ -223,7 +226,7 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
         if len(self.instances.all()) == 0:
             # Nothing is scheduled yet but nothing can be scheduled before start_date.
             # So, pretend that day before start_date is the greatest scheduled date.
-            result = self.start_date + timedelta(days = -1)
+            result = self.start_date + timedelta(days=-1)
             return result
 
         scheduled_dates = map(lambda x: x.scheduled_date, self.instances.all())
@@ -240,7 +243,7 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
     def date_matches_template_intervals(self, date_considered: date):
         last_date = self.greatest_scheduled_date()
         days_since = date_considered - last_date
-        return days_since.days >= self.repeat_interval # >= instead of == b/c of a bootstrapping scenario.
+        return days_since.days >= self.repeat_interval  # >= instead of == b/c of a bootstrapping scenario.
 
     def date_matches_template_certain_days(self, d: date):
 
@@ -256,41 +259,45 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
         def is_last_xday(d):
             """ Return a value which indicates whether date d is the LAST <x>day of the month. """
             month = d.month
-            d += timedelta(weeks = +1)
+            d += timedelta(weeks=+1)
             return d.month != month  # Don't use gt because 1 is not gt 12
 
-        month_matches = (d.month==1 and self.jan) \
-            or (d.month==2 and self.feb) \
-            or (d.month==3 and self.mar) \
-            or (d.month==4 and self.apr) \
-            or (d.month==5 and self.may) \
-            or (d.month==6 and self.jun) \
-            or (d.month==7 and self.jul) \
-            or (d.month==8 and self.aug) \
-            or (d.month==9 and self.sep) \
-            or (d.month==10 and self.oct) \
-            or (d.month==11 and self.nov) \
-            or (d.month==12 and self.dec)
-        if not month_matches: return False
+        month_matches = (d.month == 1 and self.jan) \
+            or (d.month == 2 and self.feb) \
+            or (d.month == 3 and self.mar) \
+            or (d.month == 4 and self.apr) \
+            or (d.month == 5 and self.may) \
+            or (d.month == 6 and self.jun) \
+            or (d.month == 7 and self.jul) \
+            or (d.month == 8 and self.aug) \
+            or (d.month == 9 and self.sep) \
+            or (d.month == 10 and self.oct) \
+            or (d.month == 11 and self.nov) \
+            or (d.month == 12 and self.dec)
+        if not month_matches:
+            return False
 
-        dow_num = d.weekday() # day-of-week number
-        day_matches = (dow_num==0 and self.monday) \
-            or (dow_num==1 and self.tuesday) \
-            or (dow_num==2 and self.wednesday) \
-            or (dow_num==3 and self.thursday) \
-            or (dow_num==4 and self.friday) \
-            or (dow_num==5 and self.saturday) \
-            or (dow_num==6 and self.sunday)
-        if not day_matches: return False  # Doesn't match template if day-of-week doesn't match.
-        if self.every: return True  # Does match if it happens every week and the day-of-week matches.
-        if is_last_xday(d) and self.last: return True # Check for last <x>day match.
+        dow_num = d.weekday()  # day-of-week number
+        day_matches = (dow_num == 0 and self.monday) \
+            or (dow_num == 1 and self.tuesday) \
+            or (dow_num == 2 and self.wednesday) \
+            or (dow_num == 3 and self.thursday) \
+            or (dow_num == 4 and self.friday) \
+            or (dow_num == 5 and self.saturday) \
+            or (dow_num == 6 and self.sunday)
+        if not day_matches:
+            return False  # Doesn't match template if day-of-week doesn't match.
+        if self.every:
+            return True  # Does match if it happens every week and the day-of-week matches.
+        if is_last_xday(d) and self.last:
+            return True  # Check for last <x>day match.
 
         # Otherwise, figure out the ordinal and see if we match it.
         ord_num = nth_xday(d)
-        ordinal_matches = (ord_num==1 and self.first) \
-            or (ord_num==2 and self.second) \
-            or (ord_num==3 and self.third) \
-            or (ord_num==4 and self.fourth)
+        ordinal_matches = (ord_num == 1 and self.first) \
+            or (ord_num == 2 and self.second) \
+            or (ord_num == 3 and self.third) \
+            or (ord_num == 4 and self.fourth)
 
         return ordinal_matches
 
@@ -338,7 +345,8 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
         Does nothing if the template is not active.
         """
 
-        if not self.active: return
+        if not self.active:
+            return
 
         # Earliest possible date to schedule is "day after GSD" or "today", whichever is later.
         # Note that curr gets inc'ed at start of while, so we need "GSD" and "yesterday" here.
@@ -383,7 +391,8 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
 
                 except Exception as e:
                     logger.error("Couldn't create %s on %s because %s", self.short_desc, curr, str(e))
-                    if t is not None: t.delete()
+                    if t is not None:
+                        t.delete()
 
     def recurrence_str(self):
         days_of_week = self.repeats_on_certain_days()
@@ -430,15 +439,15 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
 class Claim(models.Model, TimeWindowedObject):
 
     claimed_task = models.ForeignKey('Task', null=False,
-        on_delete=models.CASCADE, # The claim means nothing if the task is gone.
+        on_delete=models.CASCADE,  # The claim means nothing if the task is gone.
         help_text="The task against which the claim to work is made.")
 
     claiming_member = models.ForeignKey(mm.Member,
-        on_delete = models.CASCADE, # The claim means nothing if the member is gone.
-        help_text = "The member claiming the task.")
+        on_delete=models.CASCADE,  # The claim means nothing if the member is gone.
+        help_text="The member claiming the task.")
 
     stake_date = models.DateField(auto_now_add=True,
-        help_text = "The date on which the member staked this claim.")
+        help_text="The date on which the member staked this claim.")
 
     claimed_start_time = models.TimeField(null=True, blank=True,
         help_text="If the task specifies a start time and duration, this must fall within that time span. Otherwise it should be blank.")
@@ -465,7 +474,7 @@ class Claim(models.Model, TimeWindowedObject):
         (STAT_UNINTERESTED, "Uninterested"),
     ]
     status = models.CharField(max_length=1, choices=CLAIM_STATUS_CHOICES, null=False, blank=False,
-        help_text = "The status of this claim.")
+        help_text="The status of this claim.")
 
     def clean(self):
         task = self.claimed_task; claim = self  # Makes it easier to read clean logic.
@@ -493,11 +502,20 @@ class Claim(models.Model, TimeWindowedObject):
         return claimants
 
     # Implementation of TimeWindowedObject abstract methods:
-    def window_start_time(self): return self.claimed_start_time
-    def window_duration(self): return self.claimed_duration
-    def window_sched_date(self): return self.claimed_task.scheduled_date
-    def window_short_desc(self): return self.claimed_task.short_desc
-    def window_deadline(self): return self.claimed_task.deadline
+    def window_start_time(self):
+        return self.claimed_start_time
+
+    def window_duration(self):
+        return self.claimed_duration
+
+    def window_sched_date(self):
+        return self.claimed_task.scheduled_date
+
+    def window_short_desc(self):
+        return self.claimed_task.short_desc
+
+    def window_deadline(self):
+        return self.claimed_task.deadline
 
     def __str__(self):
         return "%s, %s, %s" % (
@@ -519,14 +537,14 @@ class Work(models.Model):
     # is asserting that they worked inside whatever time constraints the task had.
 
     claim = models.ForeignKey('Claim', null=False, blank=False,
-        on_delete=models.PROTECT, # We don't want to lose data about work done.
+        on_delete=models.PROTECT,  # We don't want to lose data about work done.
         help_text="The claim against which the work is being reported.")
 
     work_date = models.DateField(null=False, blank=False,
         help_text="The date on which the work was done.")
 
     work_duration = models.DurationField(null=False, blank=False,
-        help_text = "The amount of time the member spent working.")
+        help_text="The amount of time the member spent working.")
 
     def clean(self):
         work = self; claim = work.claim; task = claim.claimed_task  # Makes it easier to read logic, below:
@@ -562,8 +580,8 @@ class Task(make_TaskMixin("Tasks"), TimeWindowedObject):
     claimants = models.ManyToManyField(mm.Member, through=Claim, related_name="tasks_claimed",
         help_text="The people who say they are going to work on this task.")
 
-    #workers = models.ManyToManyField(mm.Member, through=Work, related_name="tasks_worked",
-    #    help_text="The people who have actually posted hours against this task.")
+    # workers = models.ManyToManyField(mm.Member, through=Work, related_name="tasks_worked",
+    #     help_text="The people who have actually posted hours against this task.")
 
     # TODO: If reviewer is None, setting status to REVIEWABLE should skip to DONE.
     STAT_ACTIVE     = "A"  # The task is (or will be) workable.
@@ -577,7 +595,7 @@ class Task(make_TaskMixin("Tasks"), TimeWindowedObject):
         (STAT_CANCELED,   "Canceled"),
     ]
     status = models.CharField(max_length=1, choices=TASK_STATUS_CHOICES, null=False, blank=False, default=STAT_ACTIVE,
-        help_text = "The status of this task.")
+        help_text="The status of this task.")
 
     recurring_task_template = models.ForeignKey(RecurringTaskTemplate, null=True, blank=True, related_name="instances",
         on_delete=models.PROTECT)  # Existing code assumes that every task has a template.
@@ -649,7 +667,7 @@ class Task(make_TaskMixin("Tasks"), TimeWindowedObject):
     ACTION_UNSTAFF = "U"  # Member abandons task
     ACTION_VERIFY = "V"   # Member verifies provisional staffing status
 
-    def possible_actions_for(self, member:mm.Member):
+    def possible_actions_for(self, member: mm.Member):
         actions = set()
 
         if self.is_active() and self.scheduled_date >= date.today():
@@ -682,7 +700,7 @@ class Task(make_TaskMixin("Tasks"), TimeWindowedObject):
         return self.claimant_set(Claim.STAT_CURRENT)
 
     @deprecated  # Use claimant_set instead
-    def uninterested_claimants(self): # Use claimant_set instead
+    def uninterested_claimants(self):  # Use claimant_set instead
         return self.claimant_set(Claim.STAT_UNINTERESTED)
 
     def claimant_set(self, status):
@@ -777,11 +795,20 @@ class Task(make_TaskMixin("Tasks"), TimeWindowedObject):
     scheduled_weekday.short_description = "Weekday"
 
     # Implementation of TimeWindowedObject abstract methods:
-    def window_start_time(self): return self.work_start_time
-    def window_duration(self): return self.work_duration
-    def window_sched_date(self): return self.scheduled_date
-    def window_short_desc(self): return self.short_desc
-    def window_deadline(self): return self.deadline
+    def window_start_time(self):
+        return self.work_start_time
+
+    def window_duration(self):
+        return self.work_duration
+
+    def window_sched_date(self):
+        return self.scheduled_date
+
+    def window_short_desc(self):
+        return self.short_desc
+
+    def window_deadline(self):
+        return self.deadline
 
     def __str__(self):
         when = ""
@@ -819,9 +846,9 @@ class TaskNote(models.Model):
     task = models.ForeignKey(Task, related_name='notes',
         on_delete=models.CASCADE)  # The note is useless if the task is deleted.
 
-    CRITICAL = "C" # The note describes a critical issue that must be resolved. E.g. work estimate is too low.
-    RESOLVED = "R" # The note was previously listed as CRITICAL but the issue has been resolved.
-    INFO = "I" # The note is purely informational.
+    CRITICAL = "C"  # The note describes a critical issue that must be resolved. E.g. work estimate is too low.
+    RESOLVED = "R"  # The note was previously listed as CRITICAL but the issue has been resolved.
+    INFO = "I"  # The note is purely informational.
     NOTE_TYPE_CHOICES = [
         (CRITICAL, "Critical"),
         (RESOLVED, "Resolved"),
@@ -842,8 +869,8 @@ class Nag(models.Model):
         help_text="The claim that the member was asked to verify.")
 
     who = models.ForeignKey(mm.Member, null=True,
-        on_delete=models.SET_NULL, # The member might still respond to the nag email, so don't delete.
-        help_text = "The member who was nagged.")
+        on_delete=models.SET_NULL,  # The member might still respond to the nag email, so don't delete.
+        help_text="The member who was nagged.")
 
     # Saving as MD5 provides some protection against read-only attacks.
     auth_token_md5 = models.CharField(max_length=32, null=False, blank=False,
@@ -943,6 +970,7 @@ class WorkNote(models.Model):
     work = models.ForeignKey(Work, related_name='notes',
         on_delete=models.CASCADE)  # Notes about work are useless if work is deleted.
 
+
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # UNAVAILABILITY
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -959,6 +987,7 @@ class UnavailableDates(models.Model):
     end_date = models.DateField(
         help_text="The last date (inclusive) on which the person will be unavailable.")
 
+
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Text Snippets
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -972,7 +1001,8 @@ class Snippet(models.Model):
     name = models.CharField(max_length=40, blank=False,
         help_text="The name of the snippet.",
         validators=[
-            RegexValidator(snippet_name_regex,
+            RegexValidator(
+                snippet_name_regex,
                 message="Name must only contain letters, numbers, and dashes.",
                 code="invalid_name"
             )
