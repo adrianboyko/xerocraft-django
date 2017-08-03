@@ -17,7 +17,7 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
 from django.views.decorators.csrf import ensure_csrf_cookie
-from icalendar import Calendar, Event, vCalAddress, vText
+from icalendar import Calendar, Event
 
 # Local
 from tasks.forms import Desktop_TimeSheetForm
@@ -70,13 +70,13 @@ def visitevent_arrival_content(member, member_card_str, visit_event_type):
             working_today.append((claim.claimed_task, task_button_text(claim)))
 
     # Find today's unclaimed tasks:
-    for task in Task.objects.filter(status=Task.STAT_ACTIVE, scheduled_date=date.today()):
+    for task in Task.objects.filter(status=Task.STAT_ACTIVE, scheduled_date=date.today()):  # type: Task
         if not task.in_window_now(start_leeway=-halfhour): continue
         if member in task.all_eligible_claimants() and task.claimants.count() == 0:
             unclaimed_today.append((task, task_button_text(task)))
 
     # Find unclaimed tasks with no scheduled date:
-    for task in Task.objects.filter(status=Task.STAT_ACTIVE, scheduled_date__isnull=True):
+    for task in Task.objects.filter(status=Task.STAT_ACTIVE, scheduled_date__isnull=True):  # type: Task
         if not task.in_window_now(start_leeway=-halfhour): continue
         if member in task.all_eligible_claimants() and task.claimants.count() == 0:
             unclaimed_anytime.append((task, task_button_text(task)))
@@ -541,7 +541,7 @@ def _new_calendar(name):
     return cal
 
 
-def _add_event(cal, task, request):
+def _add_event(cal, task: Task, request):
 
     # NOTE: We could add task workers as attendees, but the calendar format insists that these
     # be email addresses and we don't want to expose personal information about the workers.
@@ -578,7 +578,7 @@ def _ical_response(cal):
 
 def _gen_tasks_for(member):
     """For the given member, generate all future tasks and past tasks in last 60 days"""
-    for task in member.tasks_claimed.filter(scheduled_date__gte=datetime.now()-timedelta(days=60)):
+    for task in member.tasks_claimed.filter(scheduled_date__gte=datetime.now()-timedelta(days=60)):  # type: Task
         if task.scheduled_date is None or task.work_start_time is None or task.work_duration is None:
             continue
         yield task
@@ -591,7 +591,7 @@ def _gen_all_tasks() -> Generator[Task, None, None]:
         .filter(scheduled_date__gte=datetime.now()-timedelta(days=60))\
         .prefetch_related("claim_set")
 
-    for task in qset:
+    for task in qset:  # type: Task
         if task.scheduled_date is None or task.work_start_time is None or task.work_duration is None:
             continue
         yield task
@@ -614,15 +614,15 @@ def member_calendar(request, token):
         raise Http404("No such calendar")
 
     cal = _new_calendar("My Xerocraft Tasks")
-    for task in _gen_tasks_for(member):
+    for task in _gen_tasks_for(member):  # type: Task
         _add_event(cal, task, request)
-        #TODO: Add ALARM
+        # TODO: Add ALARM
     return _ical_response(cal)
 
 
 def ops_calendar(request):
     cal = _new_calendar("All {} Tasks".format(_ORG_NAME_POSSESSIVE))
-    for task in _gen_all_tasks():
+    for task in _gen_all_tasks():  # type: Task
         _add_event(cal, task, request)
         # Intentionally lacks ALARM
     return _ical_response(cal)
@@ -631,7 +631,7 @@ def ops_calendar(request):
 def ops_calendar_staffed(request) -> HttpResponse:
     """A calendar containing tasks that have been verified as staffed."""
     cal = _new_calendar("{} Staffed Tasks".format(_ORG_NAME_POSSESSIVE))
-    for task in _gen_all_tasks():
+    for task in _gen_all_tasks():  # type: Task
         if task.is_fully_claimed() and task.all_claims_verified():
             _add_event(cal, task, request)
             # Intentionally lacks ALARM
@@ -641,7 +641,7 @@ def ops_calendar_staffed(request) -> HttpResponse:
 def ops_calendar_provisional(request) -> HttpResponse:
     """A calendar containing provisionally staffed (i.e. claims not yet verified) tasks."""
     cal = _new_calendar("{} Provisionally Staffed Tasks".format(_ORG_NAME_POSSESSIVE))
-    for task in _gen_all_tasks():
+    for task in _gen_all_tasks():  # type: Task
         if task.is_fully_claimed() and not task.all_claims_verified():
             _add_event(cal, task, request)
             # Intentionally lacks ALARM
@@ -651,7 +651,7 @@ def ops_calendar_provisional(request) -> HttpResponse:
 def ops_calendar_unstaffed(request) -> HttpResponse:
     """A calendar containing tasks that are not even provisionally staffed."""
     cal = _new_calendar("{} Unstaffed Tasks".format(_ORG_NAME_POSSESSIVE))
-    for task in _gen_all_tasks():
+    for task in _gen_all_tasks():  # type: Task
         if not task.is_fully_claimed():
             _add_event(cal, task, request)
             # Intentionally lacks ALARM
