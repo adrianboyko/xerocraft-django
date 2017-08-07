@@ -729,6 +729,11 @@ class Membership(MembershipJournalLiner):
         null=False, blank=False, default=MT_REGULAR,
         help_text="The type of membership.")
 
+    # Note: If a previously granted key CANNOT be used, it should generally be returned.
+    # RFID access control systems might check this field when deciding whether to grant access to space.
+    key_allowed = models.BooleanField(default=False,
+        help_text="True if the membership allows use of a previously granted key, if any.")
+
     # A membership can be sold. Sale related fields: sale (below), sale_price (inherited)
 
     sale = models.ForeignKey(Sale, null=True, blank=True, default=None,
@@ -798,6 +803,11 @@ class Membership(MembershipJournalLiner):
 
         if self.membership_type in zero_sale_price_types and self.sale_price != 0:
             raise ValidationError(_("Sale price should be $0 for this membership type."))
+
+        if self.membership_type == self.MT_WORKTRADE:
+            # The requirements for holding a key are the same as the requirements for a Work Trade membership.
+            # Note that setting this to True DOES NOT imply that the member does or should hold a key.
+            self.key_allowed = True
 
     def __str__(self):
         return "%s, %s to %s" % (self.member, self.start_date, self.end_date)

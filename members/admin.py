@@ -301,6 +301,7 @@ class MembershipAdmin(VersionAdmin):
         'pk',
         'member',
         'type_fmt',
+        'key_allowed',
         'start_date',
         'end_date',
         'sale_price',
@@ -309,7 +310,7 @@ class MembershipAdmin(VersionAdmin):
 
     fields = [
         'member',
-        'membership_type',
+        ('membership_type','key_allowed'),
         ('start_date', 'end_date'),
         'sale_price',
         ('when_nudged', 'nudge_count'),
