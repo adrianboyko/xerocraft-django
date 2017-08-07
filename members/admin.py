@@ -10,10 +10,10 @@ from django.core.urlresolvers import reverse
 from reversion.admin import VersionAdmin
 
 # Local
-from books.admin import Sellable, Invoiceable
+from books.admin import Sellable, Invoiceable, sale_link
 from members.models import (
     Tag, Pushover, Tagging, VisitEvent,
-    Member, Membership, GroupMembership,
+    Member, Membership, GroupMembership, KeyFee,
     MemberNote, MemberLogin, MembershipGiftCardRedemption,
     MembershipGiftCard, MembershipGiftCardReference, MembershipCampaign,
     DiscoveryMethod, WifiMacDetected
@@ -43,6 +43,11 @@ class TaggingAdmin(VersionAdmin):
 
 @admin.register(VisitEvent)
 class VisitEventAdmin(admin.ModelAdmin):  # No need to version events.
+
+    def has_add_permission(self, request):
+        return False
+        # These are created by automated processes, not humans.
+
     ordering = ['-when']
     list_display = ['pk', 'when', 'who', 'event_type', 'method', 'sync1']
     #readonly_fields = ['when', 'who', 'event_type', 'method', 'sync1']
@@ -55,8 +60,14 @@ class VisitEventAdmin(admin.ModelAdmin):  # No need to version events.
     date_hierarchy = 'when'
     raw_id_fields = ['who']
 
+
 @admin.register(WifiMacDetected)
 class WifiMacDetectedAdmin(admin.ModelAdmin):  # No need to version events.
+
+    def has_add_permission(self, request):
+        return False
+        # These are created by automated processes, not humans.
+
     list_display = ['pk', 'mac', 'when']
     list_filter = ['when']
     date_hierarchy = 'when'
@@ -98,6 +109,14 @@ class MemberNoteInline(admin.TabularInline):
 
 @admin.register(Member)
 class MemberAdmin(VersionAdmin):
+
+    def has_add_permission(self, request):
+        return False
+        # Add users instead, which drives creation of a Member.
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+        # Deactivate users instead.
 
     class MembershipInline(admin.TabularInline):
         model = Membership
@@ -199,6 +218,11 @@ class PaymentLinkedFilter(admin.SimpleListFilter):
 
 @admin.register(MemberLogin)
 class MemberLoginAdmin(VersionAdmin):
+
+    def has_add_permission(self, request):
+        return False
+        # These are created by automated processes, not humans.
+
     list_display = ['pk', 'member', 'when', 'ip']
     raw_id_fields = ['member']
     ordering = ['-when']
@@ -279,6 +303,15 @@ class MembershipGiftCardRedemptionAdmin(VersionAdmin):
 
 @admin.register(Membership)
 class MembershipAdmin(VersionAdmin):
+
+    def has_add_permission(self, request):
+        return False
+        # Create an IncomeTransaction (Sale) instead, with membership as a line item.
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+        # Don't. Deleting these messes up bookkeeping.
+
     ordering = ['-start_date']
     date_hierarchy = 'start_date'
     list_filter = [
@@ -301,7 +334,6 @@ class MembershipAdmin(VersionAdmin):
         'pk',
         'member',
         'type_fmt',
-        'key_allowed',
         'start_date',
         'end_date',
         'sale_price',
@@ -310,7 +342,7 @@ class MembershipAdmin(VersionAdmin):
 
     fields = [
         'member',
-        ('membership_type','key_allowed'),
+        'membership_type',
         ('start_date', 'end_date'),
         'sale_price',
         ('when_nudged', 'nudge_count'),
@@ -332,6 +364,14 @@ class MembershipAdmin(VersionAdmin):
 
 @admin.register(GroupMembership)
 class GroupMembershipAdmin(VersionAdmin):
+
+    def has_add_permission(self, request):
+        return False
+        # Create an IncomeTransaction (Sale) instead, with group membership as a line item.
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+        # Don't. Deleting these messes up bookkeeping.
 
     class MembershipInline(admin.TabularInline):
         model = Membership
@@ -375,6 +415,42 @@ class GroupMembershipAdmin(VersionAdmin):
         }
 
 
+#@admin.register(KeyFee)
+class KeyFeeAdmin(VersionAdmin):
+
+    sale_link = sale_link  # imported from books
+
+    list_display = [
+        'pk',
+        'sale_price',
+        'membership',
+        'start_date',
+        'end_date',
+        'sale_link',
+    ]
+
+    fields = [
+        'sale_price',
+        'membership',
+        ('start_date', 'end_date'),
+        'sale_link',
+    ]
+
+    raw_id_fields = ['membership',]
+    readonly_fields = ['sale_price']
+
+    def has_add_permission(self, request):
+        return False
+        # Instead, create an IncomeTransaction (Sale) with key fee as a line item.
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+        # Deleting would mess up bookkeeping.
+
+    # def has_change_permission(self, request, obj=None):
+    # I want to make these read only through KeyFeeAdmin, but then they completely vanish.
+
+
 @admin.register(DiscoveryMethod)
 class DiscoveryMethodAdmin(VersionAdmin):
     list_display = ['pk', 'order', 'name']
@@ -406,6 +482,18 @@ class MembershipLineItem(admin.StackedInline):
         'protected',
     ]
     raw_id_fields = ['member']
+
+
+@Sellable(KeyFee)
+class KeeFeeLineItem(admin.StackedInline):
+    extra = 0
+    fields = [
+        'sale_price',
+        'membership',
+        ('start_date', 'end_date'),
+        'protected',
+    ]
+    raw_id_fields = ['membership']
 
 
 @Invoiceable(GroupMembership)

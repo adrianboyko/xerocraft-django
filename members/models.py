@@ -42,6 +42,11 @@ def next_membership_ctrlid() -> str:
     return generate_ctrlid(Membership)
 
 
+def next_keyfee_ctrlid() -> str:
+    """Provides an arbitrary default value for the ctrlid field, necessary when data is being entered manually."""
+    return generate_ctrlid(KeyFee)
+
+
 def next_giftcardref_ctrlid() -> str:
     """Provides an arbitrary default value for the ctrlid field, necessary when data is being entered manually."""
     return generate_ctrlid(MembershipGiftCardReference)
@@ -574,7 +579,7 @@ class MembershipJournalLiner(JournalLiner, models.Model):
         help_text="The last day on which the membership is valid.")
 
     sale_price = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
-        default=Decimal(0.0),
+        default=Decimal("0.00"),
         help_text="The price at which this item sold.")
 
     class Meta:
@@ -616,12 +621,12 @@ class MembershipJournalLiner(JournalLiner, models.Model):
         mship_days = mship_duration.days + 1
         rev_per_day = self.sale_price / Decimal(mship_days)
         curr_date = self.start_date
-        rev_acc = Decimal(0.00)
+        rev_acc = Decimal("0.00")
         while curr_date <= self.end_date:
             rev_acc += rev_per_day
             if is_very_last_day_of_month(curr_date) or curr_date == self.end_date:
                 recognize_revenue(curr_date, rev_acc)
-                rev_acc = Decimal(0.00)
+                rev_acc = Decimal("0.00")
             curr_date += timedelta(days=1)
 
 
@@ -729,11 +734,6 @@ class Membership(MembershipJournalLiner):
         null=False, blank=False, default=MT_REGULAR,
         help_text="The type of membership.")
 
-    # Note: If a previously granted key CANNOT be used, it should generally be returned.
-    # RFID access control systems might check this field when deciding whether to grant access to space.
-    key_allowed = models.BooleanField(default=False,
-        help_text="True if the membership allows use of a previously granted key, if any.")
-
     # A membership can be sold. Sale related fields: sale (below), sale_price (inherited)
 
     sale = models.ForeignKey(Sale, null=True, blank=True, default=None,
@@ -804,11 +804,6 @@ class Membership(MembershipJournalLiner):
         if self.membership_type in zero_sale_price_types and self.sale_price != 0:
             raise ValidationError(_("Sale price should be $0 for this membership type."))
 
-        if self.membership_type == self.MT_WORKTRADE:
-            # The requirements for holding a key are the same as the requirements for a Work Trade membership.
-            # Note that setting this to True DOES NOT imply that the member does or should hold a key.
-            self.key_allowed = True
-
     def __str__(self):
         return "%s, %s to %s" % (self.member, self.start_date, self.end_date)
 
@@ -818,6 +813,39 @@ class Membership(MembershipJournalLiner):
     def create_journalentry_lineitems(self, je: JournalEntry):
         self.create_membership_jelis(je)
 
+
+class KeyFee(MembershipJournalLiner):
+    """
+    Some key holders satisfy the requirements to hold a key by paying an additional fee above membership dues.
+    This can't be a boolean on the membership because the key fee might be paid by a different person than
+    the one that pays for the membership (e.g. sponsored member that earns a key).
+    """
+    # There must be an underlying membership associated with the key fee.
+    membership = models.OneToOneField(Membership, null=True, blank=True, default=None,
+        on_delete=models.SET_NULL,  # Self needs to be kept for bookkeeping.
+        help_text="The associated membership. MUST be specified, eventually!")
+
+    # KeyFees are sold so they have Sale related fields: sale, sale_price (inherited)
+
+    sale = models.ForeignKey(Sale, null=True, blank=True, default=None,
+        on_delete=models.CASCADE,  # Line items are parts of the sale so they should be deleted.
+        help_text="The sale that includes this line item.")
+
+    # ETL related fields: ctrlid, protected
+
+    ctrlid = models.CharField(max_length=40, null=False, blank=False, unique=True,
+        default=next_keyfee_ctrlid,
+        help_text="Payment processor's id for this line item if it was part of an online purchase.")
+
+    protected = models.BooleanField(default=False,
+        help_text="Protect against further auto processing by ETL, etc. Prevents overwrites of manually entered data.")
+
+    def create_journalentry_lineitems(self, je: JournalEntry):
+        self.create_membership_jelis(je)
+
+# The help_text inherited from MembershipJournalLiner for these fields isn't quite right. Adjustments:
+KeyFee._meta.get_field('start_date').help_text = "Start date of portion of membership covered by this fee."
+KeyFee._meta.get_field('end_date').help_text = "End date of portion of membership covered by this fee."
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # Discovery method
