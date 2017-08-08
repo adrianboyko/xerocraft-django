@@ -827,7 +827,7 @@ class KeyFee(MembershipJournalLiner):
 
     # KeyFees are sold so they have Sale related fields: sale, sale_price (inherited)
 
-    sale = models.ForeignKey(Sale, null=True, blank=True, default=None,
+    sale = models.ForeignKey(Sale, null=False, blank=False,
         on_delete=models.CASCADE,  # Line items are parts of the sale so they should be deleted.
         help_text="The sale that includes this line item.")
 
@@ -842,6 +842,32 @@ class KeyFee(MembershipJournalLiner):
 
     def create_journalentry_lineitems(self, je: JournalEntry):
         self.create_membership_jelis(je)
+
+    def clean(self):
+        # Range covered should be a subset of the membership
+        if self.membership is not None:
+            def msg(x): return "{} must be inside the date range covered by the membership.".format(x)
+            if self.start_date < self.membership.start_date:
+                raise ValidationError({'start_date': [msg("Start date")]})
+            if self.end_date > self.membership.end_date:
+                raise ValidationError({'end_date': [msg("End date")]})
+
+        # Should not point to a Work Trade membership because they don't need to pay the fee.
+        if self.membership is not None and self.membership.membership_type == self.membership.MT_WORKTRADE:
+            msg = "If person has a Work Trade membership, they don't need to pay the Key Fee!"
+            raise ValidationError({'membership': [msg]})
+
+        # Note: start and end date are equal for a one day membership.
+        if self.start_date > self.end_date:
+            raise ValidationError("End date must be later than or equal to start date.")
+
+    def dbcheck(self):
+        if self.membership is None:
+            msg = "Every key fee must be linked to a membership since it's impossible to hold a key without one."
+            raise ValidationError(msg)
+
+    def __str__(self):
+        return "${} key holder fee covering {} to {}.".format(self.sale_price, self.start_date, self.end_date)
 
 # The help_text inherited from MembershipJournalLiner for these fields isn't quite right. Adjustments:
 KeyFee._meta.get_field('start_date').help_text = "Start date of portion of membership covered by this fee."
