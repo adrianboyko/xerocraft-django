@@ -4,7 +4,8 @@ import math
 
 # Third Party
 from django.contrib import admin
-from django.db.models import F
+from django.db.models import F, DecimalField
+from django.forms import NumberInput
 from django.utils.html import format_html
 from reversion.admin import VersionAdmin
 
@@ -230,3 +231,8 @@ class ConsumableToStockAdmin(VersionAdmin):
         css = {
             "all": ("inventory/styles.css",)
         }
+
+    # curr_level and min_level should have steps of 0.25. They're DecimalFields.
+    formfield_overrides = {
+        DecimalField: {'widget': NumberInput(attrs={'step': 0.25})},
+    }
