@@ -23,12 +23,12 @@ import Json.Decode.Pipeline exposing (decode, required, hardcoded)
 
 djangoizeId : String -> String
 djangoizeId rawId =
-  -- TODO: Replacing spaces handles 90% of cases, but need to handle other forbidden chars.
-  replaceAll rawId " " "_"
+  -- Django allows alphanumeric, _, @, +, . and -.
+  replaceAll rawId "[^-a-zA-Z0-9_@+.]" "_"
 
 replaceAll : String -> String -> String -> String
 replaceAll theString oldSub newSub =
-  Regex.replace Regex.All (regex oldSub ) (\_ -> newSub) theString
+  Regex.replace Regex.All (regex oldSub) (\_ -> newSub) theString
 
 getDiscoveryMethods : String -> (Result Http.Error DiscoveryMethodInfo -> msg) -> Cmd msg
 getDiscoveryMethods url thing =
