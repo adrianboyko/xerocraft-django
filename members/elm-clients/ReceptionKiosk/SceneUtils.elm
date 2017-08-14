@@ -13,6 +13,7 @@ import Material.Toggles as Toggles
 import Material.Chip as Chip
 import Material.Options as Options exposing (css)
 import Material.List as Lists
+import List.Nonempty
 
 -- Local
 import ReceptionKiosk.Types exposing (..)
@@ -40,7 +41,7 @@ frameNavButtons : Model -> Html Msg
 frameNavButtons model =
   div [navDivStyle]
     (
-    if List.length model.sceneStack > 1
+    if not (List.Nonempty.isSingleton model.sceneStack)
     then
       [ Button.render MdlVector [10000] model.mdl
           ([Button.flat, Options.onClick Pop]++navButtonCss)

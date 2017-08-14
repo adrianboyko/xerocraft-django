@@ -7,7 +7,7 @@ import Regex exposing (regex)
 import Http
 
 -- Third party
-import List.Extra
+import List.Nonempty
 import Material
 import Update.Extra exposing (andThen)
 import Update.Extra.Infix exposing ((:>))
@@ -54,7 +54,7 @@ init f =
     (welcomeModel,        welcomeCmd       ) = WelcomeScene.init        f
     model =
       { flags = f
-      , sceneStack = [Welcome]
+      , sceneStack = List.Nonempty.fromElement Welcome
       , mdl = Material.model
       -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
       , checkInModel        = checkInModel
@@ -87,15 +87,15 @@ update msg model =
     Push nextScene ->
       -- Push the new scene onto the scene stack.
       let
-        newModel = {model | sceneStack = nextScene::model.sceneStack }
+        newModel = {model | sceneStack = List.Nonempty.cons nextScene model.sceneStack }
       in
         (newModel, Cmd.none) :> update (SceneWillAppear nextScene)
 
     Pop ->
       -- Pop the top scene off the stack.
       let
-        newModel = {model | sceneStack = Maybe.withDefault [] (List.tail model.sceneStack) }
-        newScene = Maybe.withDefault Welcome (List.head newModel.sceneStack)
+        newModel = {model | sceneStack = List.Nonempty.pop model.sceneStack }
+        newScene = List.Nonempty.head newModel.sceneStack
       in
         (newModel, Cmd.none) :> update (SceneWillAppear newScene)
 
@@ -144,7 +144,7 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
-  let currScene = Maybe.withDefault Welcome (List.head model.sceneStack)
+  let currScene = List.Nonempty.head model.sceneStack
   in case currScene of
     CheckIn        -> CheckInScene.view        model
     Done           -> DoneScene.view           model

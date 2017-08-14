@@ -5,6 +5,7 @@ import Http
 
 -- Third Party
 import Material
+import List.Nonempty exposing (Nonempty)
 
 -- Local
 import ReceptionKiosk.Backend exposing (..)
@@ -94,7 +95,7 @@ type alias WelcomeModel =
 
 type alias Model =
   { flags : Flags
-  , sceneStack : List Scene -- 1st element is the top of the stack
+  , sceneStack : Nonempty Scene -- 1st element is the top of the stack
   -- elm-mdl model:
   , mdl : Material.Model  -- TODO: Should there be one dedicated Material model per scene so index scope is smaller?
   -- Scene models:
