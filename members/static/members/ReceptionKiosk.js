@@ -19042,7 +19042,7 @@ var _user$project$ReceptionKiosk_Backend$replaceAll = F3(
 			theString);
 	});
 var _user$project$ReceptionKiosk_Backend$djangoizeId = function (rawId) {
-	return A3(_user$project$ReceptionKiosk_Backend$replaceAll, rawId, ' ', '_');
+	return A3(_user$project$ReceptionKiosk_Backend$replaceAll, rawId, '[^-a-zA-Z0-9_@+.]', '_');
 };
 var _user$project$ReceptionKiosk_Backend$MatchingAcct = F2(
 	function (a, b) {
@@ -20636,7 +20636,7 @@ var _user$project$ReceptionKiosk_NewUserScene$view = function (kioskModel) {
 		_user$project$ReceptionKiosk_SceneUtils$genericScene,
 		kioskModel,
 		'Account Details',
-		'Provide an id and password for your account:',
+		'Provide an id and password for our website:',
 		A2(
 			_elm_lang$html$Html$div,
 			{ctor: '[]'},
@@ -20646,7 +20646,7 @@ var _user$project$ReceptionKiosk_NewUserScene$view = function (kioskModel) {
 					_user$project$ReceptionKiosk_SceneUtils$sceneTextField,
 					kioskModel,
 					6,
-					'Choose a user name',
+					'Choose a login id',
 					sceneModel.userName,
 					function (_p0) {
 						return _user$project$ReceptionKiosk_Types$NewUserVector(
@@ -20755,6 +20755,9 @@ var _user$project$ReceptionKiosk_NewUserScene$validateUserNameUnique = F2(
 		}
 	});
 var _user$project$ReceptionKiosk_NewUserScene$validateUserIdAndPw = function (sceneModel) {
+	var userNameLong = _elm_lang$core$Native_Utils.cmp(
+		_elm_lang$core$String$length(sceneModel.userName),
+		20) > 0;
 	var userNameShort = _elm_lang$core$Native_Utils.cmp(
 		_elm_lang$core$String$length(sceneModel.userName),
 		4) < 0;
@@ -20781,10 +20784,18 @@ var _user$project$ReceptionKiosk_NewUserScene$validateUserIdAndPw = function (sc
 					ctor: '::',
 					_0: userNameShort ? {
 						ctor: '::',
-						_0: 'The user name must have at least 4 characters.',
+						_0: 'The login id must have at least 4 characters.',
 						_1: {ctor: '[]'}
 					} : {ctor: '[]'},
-					_1: {ctor: '[]'}
+					_1: {
+						ctor: '::',
+						_0: userNameLong ? {
+							ctor: '::',
+							_0: 'The login id cannot be more than 20 characters.',
+							_1: {ctor: '[]'}
+						} : {ctor: '[]'},
+						_1: {ctor: '[]'}
+					}
 				}
 			}
 		});
@@ -20811,11 +20822,12 @@ var _user$project$ReceptionKiosk_NewUserScene$update = F2(
 		var _p5 = msg;
 		switch (_p5.ctor) {
 			case 'UpdateUserName':
+				var djangoizedVal = _user$project$ReceptionKiosk_Backend$djangoizeId(_p5._0);
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
 						sceneModel,
-						{userName: _p5._0}),
+						{userName: djangoizedVal}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 			case 'UpdatePassword1':

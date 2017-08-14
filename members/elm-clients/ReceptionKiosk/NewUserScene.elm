@@ -37,7 +37,8 @@ update msg kioskModel =
   in case msg of
 
     UpdateUserName newVal ->
-      ({sceneModel | userName = newVal}, Cmd.none)
+      let djangoizedVal = Backend.djangoizeId newVal
+      in ({sceneModel | userName = djangoizedVal}, Cmd.none)
 
     UpdatePassword1 newVal ->
       ({sceneModel | password1 = newVal}, Cmd.none)
@@ -57,10 +58,12 @@ validateUserIdAndPw sceneModel =
     pwMismatch = sceneModel.password1 /= sceneModel.password2
     pwShort = String.length sceneModel.password1 < 6
     userNameShort = String.length sceneModel.userName < 4
+    userNameLong = String.length sceneModel.userName > 20
     msgs = List.concat
       [ if pwMismatch then ["The password fields don't match"] else []
       , if pwShort then ["The password must have at least 6 characters."] else []
-      , if userNameShort then ["The user name must have at least 4 characters."] else []
+      , if userNameShort then ["The login id must have at least 4 characters."] else []
+      , if userNameLong then ["The login id cannot be more than 20 characters."] else []
       ]
     cmd = if List.length msgs > 0
       then Cmd.none
@@ -93,9 +96,9 @@ view kioskModel =
   let sceneModel = kioskModel.newUserModel
   in genericScene kioskModel
     "Account Details"
-    "Provide an id and password for your account:"
+    "Provide an id and password for our website:"
     ( div []
-        [ sceneTextField kioskModel 6 "Choose a user name" sceneModel.userName (NewUserVector << UpdateUserName)
+        [ sceneTextField kioskModel 6 "Choose a login id" sceneModel.userName (NewUserVector << UpdateUserName)
         , vspace 0
         , scenePasswordField kioskModel 7 "Choose a password" sceneModel.password1 (NewUserVector << UpdatePassword1)
         , vspace 0
