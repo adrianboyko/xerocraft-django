@@ -20437,7 +20437,7 @@ var _user$project$ReceptionKiosk_NewMemberScene$emailRegex = function () {
 			_elm_community$string_extra$String_Extra$replace,
 			'A',
 			alnum,
-			A3(_elm_community$string_extra$String_Extra$replace, 'E', echar, 'E+(?:\\.E+)*@(?:A(?:D*A)?\\.)+A(?:D*A)?')));
+			A3(_elm_community$string_extra$String_Extra$replace, 'E', echar, '^E+(?:\\.E+)*@(?:A(?:D*A)?\\.)+A(?:D*A)?$')));
 	return _elm_lang$core$Regex$regex(emailRegexStr);
 }();
 var _user$project$ReceptionKiosk_NewMemberScene$view = function (kioskModel) {

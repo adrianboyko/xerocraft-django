@@ -53,6 +53,10 @@ update msg kioskModel =
     Validate ->
       validate sceneModel
 
+-----------------------------------------------------------------------------
+-- VALIDATE
+-----------------------------------------------------------------------------
+
 validate : NewMemberModel -> (NewMemberModel, Cmd Msg)
 validate sceneModel =
   let
@@ -104,7 +108,7 @@ emailRegex =
     echar = "[a-z0-9!#$%&'*+/=?^_`{|}~-]"  -- email part
     alnum = "[a-z0-9]"  -- alpha numeric
     dchar = "[a-z0-9-]"  -- domain part
-    emailRegexStr = "E+(?:\\.E+)*@(?:A(?:D*A)?\\.)+A(?:D*A)?"
+    emailRegexStr = "^E+(?:\\.E+)*@(?:A(?:D*A)?\\.)+A(?:D*A)?$"
       |> SE.replace "E" echar
       |> SE.replace "A" alnum
       |> SE.replace "D" dchar
