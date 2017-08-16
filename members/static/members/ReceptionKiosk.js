@@ -20153,7 +20153,26 @@ var _user$project$ReceptionKiosk_CheckInScene$view = function (kioskModel) {
 						_1: {
 							ctor: '::',
 							_0: A2(_elm_lang$core$List$map, acct2chip, sceneModel.matches),
-							_1: {ctor: '[]'}
+							_1: {
+								ctor: '::',
+								_0: {
+									ctor: '::',
+									_0: _user$project$ReceptionKiosk_SceneUtils$vspace(
+										(_elm_lang$core$Native_Utils.cmp(
+											_elm_lang$core$List$length(sceneModel.badNews),
+											0) > 0) ? 40 : 0),
+									_1: {ctor: '[]'}
+								},
+								_1: {
+									ctor: '::',
+									_0: {
+										ctor: '::',
+										_0: _user$project$ReceptionKiosk_SceneUtils$formatBadNews(sceneModel.badNews),
+										_1: {ctor: '[]'}
+									},
+									_1: {ctor: '[]'}
+								}
+							}
 						}
 					}
 				})),
@@ -20301,7 +20320,31 @@ var _user$project$ReceptionKiosk_CheckOutScene$view = function (kioskModel) {
 		A2(
 			_elm_lang$html$Html$div,
 			{ctor: '[]'},
-			A2(_elm_lang$core$List$map, acct2chip, sceneModel.checkedInAccts)),
+			_elm_lang$core$List$concat(
+				{
+					ctor: '::',
+					_0: A2(_elm_lang$core$List$map, acct2chip, sceneModel.checkedInAccts),
+					_1: {
+						ctor: '::',
+						_0: {
+							ctor: '::',
+							_0: _user$project$ReceptionKiosk_SceneUtils$vspace(
+								(_elm_lang$core$Native_Utils.cmp(
+									_elm_lang$core$List$length(sceneModel.badNews),
+									0) > 0) ? 40 : 0),
+							_1: {ctor: '[]'}
+						},
+						_1: {
+							ctor: '::',
+							_0: {
+								ctor: '::',
+								_0: _user$project$ReceptionKiosk_SceneUtils$formatBadNews(sceneModel.badNews),
+								_1: {ctor: '[]'}
+							},
+							_1: {ctor: '[]'}
+						}
+					}
+				})),
 		{ctor: '[]'});
 };
 var _user$project$ReceptionKiosk_CheckOutScene$update = F2(

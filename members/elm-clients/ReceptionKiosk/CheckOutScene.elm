@@ -69,7 +69,14 @@ view kioskModel =
     genericScene kioskModel
       "Hope You Had Fun!"
       "Tap your userid, below:"
-      (div [] (List.map acct2chip sceneModel.checkedInAccts))
+      ( div []
+          ( List.concat
+              [ List.map acct2chip sceneModel.checkedInAccts
+              , [ vspace (if List.length sceneModel.badNews > 0 then 40 else 0) ]
+              , [ formatBadNews sceneModel.badNews ]
+              ]
+          )
+      )
       []  -- No buttons
 
 -----------------------------------------------------------------------------

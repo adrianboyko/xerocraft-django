@@ -81,6 +81,8 @@ view kioskModel =
              then [vspace 30, text "Tap your userid, below:", vspace 20]
              else [vspace 0]
           , List.map acct2chip sceneModel.matches
+          , [ vspace (if List.length sceneModel.badNews > 0 then 40 else 0) ]
+          , [ formatBadNews sceneModel.badNews ]
           ]
         )
     )
