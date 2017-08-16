@@ -688,3 +688,18 @@ def reception_kiosk_matching_accts(request, flexid) -> JsonResponse:
     return JsonResponse({"target": flexid, "matches": accts})
 
 
+def reception_kiosk_checked_in_accts(request) -> JsonResponse:
+    today = date.today()
+    visits = VisitEvent.objects.filter(when__gte=today)
+    visitors = [visit.who for visit in visits]
+
+    accts = []
+    for visitor in visitors:  # type: Member
+        acct = {
+            "userName": visitor.username,
+            "memberNum": visitor.id,
+        }
+        if acct not in accts:
+            accts.append(acct)
+
+    return JsonResponse({"target": "", "matches": accts})

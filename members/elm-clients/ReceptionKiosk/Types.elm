@@ -20,6 +20,7 @@ type alias Flags =
   , bannerTopUrl: String
   , bannerBottomUrl: String
   , discoveryMethodsUrl: String
+  , checkedInAcctsUrl: String
   }
 
 -----------------------------------------------------------------------------
@@ -28,7 +29,9 @@ type alias Flags =
 
 type Scene
   = CheckIn
-  | Done
+  | CheckInDone
+  | CheckOut
+  | CheckOutDone
   | DoYouHaveAcct
   | HowDidYouHear
   | NewMember
@@ -43,7 +46,17 @@ type alias CheckInModel =
   , badNews : List String
   }
 
-type alias DoneModel =
+type alias CheckInDoneModel =
+  {
+  }
+
+type alias CheckOutModel =
+  { checkedInAccts : List MatchingAcct
+  , badNews : List String
+  , checkedInAcctsUrl : String
+  }
+
+type alias CheckOutDoneModel =
   {
   }
 
@@ -100,7 +113,9 @@ type alias Model =
   , mdl : Material.Model  -- TODO: Should there be one dedicated Material model per scene so index scope is smaller?
   -- Scene models:
   , checkInModel        : CheckInModel
-  , doneModel           : DoneModel
+  , checkInDoneModel    : CheckInDoneModel
+  , checkOutModel       : CheckOutModel
+  , checkOutDoneModel   : CheckOutDoneModel
   , doYouHaveAcctModel  : DoYouHaveAcctModel
   , howDidYouHearModel  : HowDidYouHearModel
   , newMemberModel      : NewMemberModel
@@ -118,6 +133,11 @@ type CheckInMsg
   = UpdateMatchingAccts (Result Http.Error MatchingAcctInfo)
   | UpdateFlexId String
   | LogCheckIn Int
+
+type CheckOutMsg
+  = UpdateCheckedInAccts (Result Http.Error MatchingAcctInfo)
+  | LogCheckOut Int
+  | CheckOutSceneWillAppear
 
 type HowDidYouHearMsg
   = AccDiscoveryMethods (Result Http.Error DiscoveryMethodInfo)  -- "Acc" means "accumulate"
@@ -154,14 +174,14 @@ type WelcomeMsg
 type Msg
   -- elm-mdl messages:
   = MdlVector (Material.Msg Msg)
-  -- Stack manipulation messages:
+  -- Wizard related messages:
   | Push Scene
   | Pop
-  -- Wixard messages:
   | Reset
   | SceneWillAppear Scene
   -- scene messages:
   | CheckInVector CheckInMsg
+  | CheckOutVector CheckOutMsg
   | HowDidYouHearVector HowDidYouHearMsg
   | NewMemberVector NewMemberMsg
   | NewUserVector NewUserMsg

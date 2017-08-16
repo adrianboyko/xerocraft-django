@@ -64,7 +64,13 @@ update msg kioskModel =
 
 view : Model -> Html Msg
 view kioskModel =
-  let sceneModel = kioskModel.checkInModel
+  let
+    sceneModel = kioskModel.checkInModel
+    acct2chip = \acct ->
+      Chip.button
+        [Options.onClick (CheckInVector (LogCheckIn acct.memberNum))]
+        [Chip.content [] [text acct.userName]]
+
   in genericScene kioskModel
     "Let's Get You Checked-In!"
     "Who are you?"
@@ -74,7 +80,7 @@ view kioskModel =
           , if List.length sceneModel.matches > 0
              then [vspace 30, text "Tap your userid, below:", vspace 20]
              else [vspace 0]
-          , List.map (\acct -> Chip.button [Options.onClick (CheckInVector (LogCheckIn acct.memberNum))] [ Chip.content [] [ text acct.userName]]) sceneModel.matches
+          , List.map acct2chip sceneModel.matches
           ]
         )
     )

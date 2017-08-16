@@ -1,5 +1,5 @@
 
-module ReceptionKiosk.DoneScene exposing (init, view)
+module ReceptionKiosk.CheckInDoneScene exposing (init, view)
 
 -- Standard
 import Html exposing (Html, text)
@@ -14,7 +14,9 @@ import ReceptionKiosk.SceneUtils exposing (..)
 -- INIT
 -----------------------------------------------------------------------------
 
-init : Flags -> (DoneModel, Cmd Msg)
+-- TODO: There should be a time out back to Welcome
+
+init : Flags -> (CheckInDoneModel, Cmd Msg)
 init flags = ({}, Cmd.none)
 
 -----------------------------------------------------------------------------
@@ -31,5 +33,5 @@ view model =
     "You're Checked In"
     "Have fun!"
     (text "")
-    [ButtonSpec "Yay!" (Push Welcome)]
+    [ButtonSpec "Ok" (Push Welcome)]
 

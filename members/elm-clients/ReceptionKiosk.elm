@@ -15,7 +15,9 @@ import Update.Extra.Infix exposing ((:>))
 -- Local
 import ReceptionKiosk.Types exposing (..)
 import ReceptionKiosk.CheckInScene as CheckInScene
-import ReceptionKiosk.DoneScene as DoneScene
+import ReceptionKiosk.CheckInDoneScene as CheckInDoneScene
+import ReceptionKiosk.CheckOutScene as CheckOutScene
+import ReceptionKiosk.CheckOutDoneScene as CheckOutDoneScene
 import ReceptionKiosk.DoYouHaveAcctScene as DoYouHaveAcctScene
 import ReceptionKiosk.HowDidYouHearScene as HowDidYouHearScene
 import ReceptionKiosk.NewMemberScene as NewMemberScene
@@ -44,7 +46,9 @@ init : Flags -> (Model, Cmd Msg)
 init f =
   let
     (checkInModel,        checkInCmd       ) = CheckInScene.init        f
-    (doneModel,           doneCmd          ) = DoneScene.init           f
+    (checkInDoneModel,    checkInDoneCmd   ) = CheckInDoneScene.init    f
+    (checkOutModel,       checkOutCmd      ) = CheckOutScene.init       f
+    (checkOutDoneModel,   checkOutDoneCmd  ) = CheckOutDoneScene.init   f
     (doYouHaveAcctModel,  doYouHaveAcctCmd ) = DoYouHaveAcctScene.init  f
     (howDidYouHearModel,  howDidYouHearCmd ) = HowDidYouHearScene.init  f
     (newMemberModel,      newMemberCmd     ) = NewMemberScene.init      f
@@ -58,7 +62,9 @@ init f =
       , mdl = Material.model
       -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
       , checkInModel        = checkInModel
-      , doneModel           = doneModel
+      , checkInDoneModel    = checkInDoneModel
+      , checkOutModel       = checkOutModel
+      , checkOutDoneModel   = checkOutDoneModel
       , doYouHaveAcctModel  = doYouHaveAcctModel
       , howDidYouHearModel  = howDidYouHearModel
       , newMemberModel      = newMemberModel
@@ -67,7 +73,19 @@ init f =
       , waiverModel         = waiverModel
       , welcomeModel        = welcomeModel
       }
-    cmds = [checkInCmd, howDidYouHearCmd, newMemberCmd, newUserCmd, reasonForVisitCmd, waiverCmd]
+    cmds =
+      [ checkInCmd
+      , checkInDoneCmd
+      , checkOutCmd
+      , checkOutDoneCmd
+      , doYouHaveAcctCmd
+      , howDidYouHearCmd
+      , newMemberCmd
+      , newUserCmd
+      , reasonForVisitCmd
+      , waiverCmd
+      , welcomeCmd
+      ]
   in
     (model, Cmd.batch cmds)
 
@@ -103,6 +121,7 @@ update msg model =
 
     SceneWillAppear appearingScene ->
         case appearingScene of
+          CheckOut -> (model, Cmd.none) :> update (CheckOutVector CheckOutSceneWillAppear)
           Waiver -> (model, Cmd.none) :> update (WaiverVector WaiverSceneWillAppear)
           Welcome -> (model, Cmd.none) :> update (WelcomeVector WelcomeSceneWillAppear)
           _ -> (model, Cmd.none)
@@ -110,6 +129,10 @@ update msg model =
     CheckInVector x ->
       let (sm, cmd) = CheckInScene.update x model
       in ({model | checkInModel = sm}, cmd)
+
+    CheckOutVector x ->
+      let (sm, cmd) = CheckOutScene.update x model
+      in ({model | checkOutModel = sm}, cmd)
 
     HowDidYouHearVector x ->
       let (sm, cmd) = HowDidYouHearScene.update x model
@@ -147,7 +170,9 @@ view model =
   let currScene = List.Nonempty.head model.sceneStack
   in case currScene of
     CheckIn        -> CheckInScene.view        model
-    Done           -> DoneScene.view           model
+    CheckInDone    -> CheckInDoneScene.view    model
+    CheckOut       -> CheckOutScene.view       model
+    CheckOutDone   -> CheckOutDoneScene.view   model
     DoYouHaveAcct  -> DoYouHaveAcctScene.view  model
     HowDidYouHear  -> HowDidYouHearScene.view  model
     NewMember      -> NewMemberScene.view      model

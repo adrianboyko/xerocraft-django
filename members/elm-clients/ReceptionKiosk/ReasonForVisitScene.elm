@@ -62,7 +62,7 @@ view kioskModel =
       , Other
       ]
     )
-    [ButtonSpec "OK" (Push Done)]
+    [ButtonSpec "OK" (Push CheckInDone)]
 
 makeActivityList : Model -> List ReasonForVisit -> Html Msg
 makeActivityList kioskModel reasons =

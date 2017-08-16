@@ -1,8 +1,8 @@
 
-module ReceptionKiosk.WelcomeScene exposing (init, update, view)
+module ReceptionKiosk.CheckOutDoneScene exposing (init, view)
 
 -- Standard
-import Html exposing (..)
+import Html exposing (Html, text)
 
 -- Third Party
 
@@ -14,34 +14,24 @@ import ReceptionKiosk.SceneUtils exposing (..)
 -- INIT
 -----------------------------------------------------------------------------
 
-init : Flags -> (WelcomeModel, Cmd Msg)
+-- TODO: There should be a time out back to Welcome
+
+init : Flags -> (CheckOutDoneModel, Cmd Msg)
 init flags = ({}, Cmd.none)
 
 -----------------------------------------------------------------------------
 -- UPDATE
 -----------------------------------------------------------------------------
 
-update : WelcomeMsg -> Model -> (WelcomeModel, Cmd Msg)
-update msg kioskModel =
-  let sceneModel = kioskModel.welcomeModel
-  in case msg of
-
-    WelcomeSceneWillAppear ->
-      let sceneModel = kioskModel.welcomeModel
-      in (sceneModel, send Reset)
-
 -----------------------------------------------------------------------------
 -- VIEW
 -----------------------------------------------------------------------------
 
 view : Model -> Html Msg
-view kioskModel =
-  genericScene kioskModel
-    "Welcome!"
-    "Choose one of the following:"
+view model =
+  genericScene model
+    "You're Checked Out"
+    "Have a Nice Day!"
     (text "")
-    [ ButtonSpec "I'm new!" (Push DoYouHaveAcct)
-    , ButtonSpec "Check In" (Push CheckIn)
-    , ButtonSpec "Check Out" (Push CheckOut)
-    ]
+    [ButtonSpec "OK" (Push Welcome)]
 

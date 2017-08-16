@@ -5,6 +5,7 @@ module ReceptionKiosk.Backend exposing
   , djangoizeId
   , getDiscoveryMethods
   , getMatchingAccts
+  , getCheckedInAccts
   , MatchingAcct
   , MatchingAcctInfo
   )
@@ -35,6 +36,14 @@ getDiscoveryMethods url thing =
   let request = Http.get url decodeDiscoveryMethodInfo
   in Http.send thing request
 
+getCheckedInAccts: String -> (Result Http.Error MatchingAcctInfo -> msg) -> Cmd msg
+getCheckedInAccts url thing =
+  let
+    request = Http.get url decodeMatchingAcctInfo
+  in
+    Http.send thing request
+
+-- TODO: Url should be passed in as in getCheckedInAccts, above?
 getMatchingAccts: String -> (Result Http.Error MatchingAcctInfo -> msg) -> Cmd msg
 getMatchingAccts flexId thing =
   let

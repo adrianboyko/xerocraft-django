@@ -33,6 +33,7 @@ urlpatterns = [
     # For reception kiosk (check-in, sign-up, etc):
     url(r'^reception/$', views.reception_kiosk_spa, name="reception-kiosk"),
     url(r'^reception/matching-accts/(?P<flexid>[-_a-zA-Z0-9]{1,32})/$', views.reception_kiosk_matching_accts, name="reception-kiosk-matching-accts"),
+    url(r'^reception/checked-in-accts/$', views.reception_kiosk_checked_in_accts, name="reception-kiosk-checked-in-accts"),
 
     # For mobile apps:
     url(r'^api/member-details/(?P<member_card_str>[-_a-zA-Z0-9]{32})_(?P<staff_card_str>[-_a-zA-Z0-9]{32})/$', views.api_member_details, name="api-member-details"),
