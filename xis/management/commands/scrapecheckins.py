@@ -2,13 +2,16 @@
 # Standard
 from datetime import date, datetime
 
+# Third-Party
 import lxml.html
 from dateutil import relativedelta
 from django.core.management.base import BaseCommand
 from django.utils.timezone import get_default_timezone_name
+from django.conf import settings
 from nameparser import HumanName
 from pytz import timezone
 
+# Local
 from members.models import VisitEvent
 from xis.xerocraft_org_utils.accountscraper import (
     AccountScraper,
@@ -105,11 +108,16 @@ class CheckinScraper(AccountScraper):
                 values.append(text)
             attrs = dict(zip(names, values))
 
-            if attrs[CHECKIN_TYPE_KEY] in ["Guardian-Checkin", "RFID"] \
+            if attrs[CHECKIN_TYPE_KEY] == "Guardian-Checkin" \
               or attrs[CHECKIN_USERNAME_KEY] is None \
               or len(attrs[CHECKIN_USERNAME_KEY]) == 0:
                 # There are no Django accounts or usernames for minors being checked in by guardians.
                 # Minors don't always have "Guardian-Checkin" type but will have empty username.
+                continue
+
+            if attrs[CHECKIN_TYPE_KEY] == "RFID" and not settings.ISDEVHOST:
+                # The production machine gets a direct feed of RFIDs from DerPi.
+                # But the development machines don't.
                 continue
 
             if CHECKIN_NAME_KEY in attrs:
