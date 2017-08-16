@@ -653,25 +653,21 @@ def desktop_earned_membership_revenue(request):
     del chart_data[-1]  # Don't show current month.
     return render(request, 'members/desktop-earned-mship-rev.html', {'data': chart_data})
 
+
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # RECEPTION DESK KIOSK
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 @ensure_csrf_cookie
 def reception_kiosk_spa(request) -> HttpResponse:
-    urls = dict(
-        claimList=reverse("task:claim-list"),
-        taskList=reverse("task:task-list"),
-        memberList=reverse("memb:member-list"),
-    )
-    props = { "org_name": ORG_NAME }
+    props = {"org_name": ORG_NAME}
     return render(request, "members/reception-kiosk-spa.html", props)
 
 
 def reception_kiosk_matching_accts(request, flexid) -> JsonResponse:
-    usernameQ = Q(auth_user__username__istartswith=flexid, auth_user__is_active=True)
-    surnameQ = Q(auth_user__last_name__istartswith=flexid, auth_user__is_active=True)
-    membs = Member.objects.filter(usernameQ | surnameQ)
+    usernameq = Q(auth_user__username__istartswith=flexid, auth_user__is_active=True)
+    surnameq = Q(auth_user__last_name__istartswith=flexid, auth_user__is_active=True)
+    membs = Member.objects.filter(usernameq | surnameq)
 
     if len(membs) > 10:
         # More than 10 results will just overwhelm the user, so return none.
