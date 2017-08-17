@@ -206,7 +206,7 @@ class Member(models.Model):
     def is_active(self): return self.auth_user.is_active
 
     @staticmethod
-    def get_by_card_str(member_card_str):
+    def get_by_card_str(member_card_str: str) -> Optional['Member']:
         member_card_md5 = hashlib.md5(member_card_str.encode()).hexdigest()
         try:
             return Member.objects.get(membership_card_md5=member_card_md5)

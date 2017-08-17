@@ -6,6 +6,7 @@ from time import mktime
 import csv
 from decimal import Decimal
 from logging import getLogger
+from typing import Union, Tuple, Optional
 
 # Third party
 from django.shortcuts import get_object_or_404
@@ -43,8 +44,8 @@ ORG_NAME = settings.XEROPS_ORG_NAME
 ORG_NAME_POSSESSIVE = settings.XEROPS_ORG_NAME_POSSESSIVE
 FACILITY_PUBLIC_IP = settings.XEROPS_FACILITY_PUBLIC_IP
 
-# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = PRIVATE
 
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = PRIVATE
 
 def _inform_other_systems_of_checkin(member, event_type):
     # TODO: Inform Kyle's system
@@ -52,19 +53,32 @@ def _inform_other_systems_of_checkin(member, event_type):
 
 
 # TODO: Move following to Event class?
-def _log_visit_event(member_card_str, event_type):
+def _log_visit_event(who_in: Union[str, Member, int], event_type) -> Tuple[bool, Union[str, Member]]:
 
     is_valid_evt = event_type in [x for (x, _) in VisitEvent.VISIT_EVENT_CHOICES]
     if not is_valid_evt:
         return False, "Invalid event type."
 
-    member = Member.get_by_card_str(member_card_str)
-    if member is None:
-        return False, "No matching member found."
+    who = None  # type: Optional[Member]
+
+    if type(who_in) is str:
+        who = Member.get_by_card_str(who_in)
+    elif type(who_in) is int:
+        try:
+            who = Member.objects.get(pk=who_in)
+        except Member.DoesNotExist:
+            who = None
+    elif type(who_in) is Member:
+        who = who_in
     else:
-        VisitEvent.objects.create(who=member, event_type=event_type)
-        _inform_other_systems_of_checkin(member, event_type)
-        return True, member
+        return False, "Bad object type. 'Who' must be str, Member, or int."
+
+    if who is None:
+        return False, "No matching member found."
+
+    VisitEvent.objects.create(who=who, event_type=event_type)
+    _inform_other_systems_of_checkin(who, event_type)
+    return True, who
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = API
@@ -686,7 +700,7 @@ def reception_kiosk_matching_accts(request, flexid) -> JsonResponse:
 
 def reception_kiosk_checked_in_accts(request) -> JsonResponse:
     today = date.today()
-    visits = VisitEvent.objects.filter(when__gte=today)
+    visits = VisitEvent.objects.filter(when__gte=today)  # TODO: Should check last X hours instead.
     visitors = [visit.who for visit in visits]
 
     accts = []
@@ -699,3 +713,9 @@ def reception_kiosk_checked_in_accts(request) -> JsonResponse:
             accts.append(acct)
 
     return JsonResponse({"target": "", "matches": accts})
+
+
+def reception_kiosk_log_visit_event(request, member_pk, event_type) -> JsonResponse:
+    if settings.ISDEVHOST:  # TODO: Remove this guard when we this goes into production.
+        success, info = _log_visit_event(int(member_pk), event_type)
+    return JsonResponse({"result": "success"})
