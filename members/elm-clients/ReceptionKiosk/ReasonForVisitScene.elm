@@ -69,7 +69,7 @@ view kioskModel =
       , Other
       ]
     )
-    [ButtonSpec "OK" (Push CheckInDone)]
+    [ButtonSpec "OK" (WizardVector <| Push <| CheckInDone)]
 
 makeActivityList : KioskModel a -> List ReasonForVisit -> Html Msg
 makeActivityList kioskModel reasons =
@@ -86,7 +86,7 @@ makeActivityList kioskModel reasons =
                           Nothing -> False
                           Just r -> r == reason
                       )
-                  , Options.onToggle (ReasonForVisitVector (UpdateReasonForVisit reason))
+                  , Options.onToggle (ReasonForVisitVector <| UpdateReasonForVisit <| reason)
                   ]
                   []
               ]

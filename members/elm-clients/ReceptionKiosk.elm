@@ -121,29 +121,31 @@ update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
 
-    Push nextScene ->
-      -- Push the new scene onto the scene stack.
-      let
-        newModel = {model | sceneStack = List.Nonempty.cons nextScene model.sceneStack }
-      in
-        (newModel, Cmd.none) :> update (SceneWillAppear nextScene)
+    WizardVector wizMsg ->
+      case wizMsg of
+        Push nextScene ->
+          -- Push the new scene onto the scene stack.
+          let
+            newModel = {model | sceneStack = List.Nonempty.cons nextScene model.sceneStack }
+          in
+            (newModel, Cmd.none) :> update (WizardVector <| SceneWillAppear <| nextScene)
 
-    Pop ->
-      -- Pop the top scene off the stack.
-      let
-        newModel = {model | sceneStack = List.Nonempty.pop model.sceneStack }
-        newScene = List.Nonempty.head newModel.sceneStack
-      in
-        (newModel, Cmd.none) :> update (SceneWillAppear newScene)
+        Pop ->
+          -- Pop the top scene off the stack.
+          let
+            newModel = {model | sceneStack = List.Nonempty.pop model.sceneStack }
+            newScene = List.Nonempty.head newModel.sceneStack
+          in
+            (newModel, Cmd.none) :> update (WizardVector <| SceneWillAppear <| newScene)
 
-    Reset -> reset model
+        Reset -> reset model
 
-    SceneWillAppear appearingScene ->
-        case appearingScene of
-          CheckOut -> (model, Cmd.none) :> update (CheckOutVector CheckOutSceneWillAppear)
-          Waiver -> (model, Cmd.none) :> update (WaiverVector WaiverSceneWillAppear)
-          Welcome -> (model, Cmd.none) :> update (WelcomeVector WelcomeSceneWillAppear)
-          _ -> (model, Cmd.none)
+        SceneWillAppear appearingScene ->
+            case appearingScene of
+              CheckOut -> (model, Cmd.none) :> update (CheckOutVector CheckOutSceneWillAppear)
+              Waiver -> (model, Cmd.none) :> update (WaiverVector WaiverSceneWillAppear)
+              Welcome -> (model, Cmd.none) :> update (WelcomeVector WelcomeSceneWillAppear)
+              _ -> (model, Cmd.none)
 
     CheckInVector x ->
       let (sm, cmd) = CheckInScene.update x model

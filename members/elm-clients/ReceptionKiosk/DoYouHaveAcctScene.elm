@@ -38,7 +38,7 @@ view kioskModel =
     "Great!"
     "Do you already have an account here or on our website?"
     (text "")
-    [ ButtonSpec "Yes" (Push CheckIn)
-    , ButtonSpec "No" (Push NewMember)
+    [ ButtonSpec "Yes" (WizardVector <| Push <| CheckIn)
+    , ButtonSpec "No" (WizardVector <| Push <| NewMember)
     -- TODO: How about a "I don't know" button, here?
     ]

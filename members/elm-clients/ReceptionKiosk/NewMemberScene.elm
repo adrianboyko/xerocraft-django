@@ -81,7 +81,7 @@ validate sceneModel =
       ]
     cmd = if List.length msgs > 0
       then Cmd.none
-      else send (Push NewUser)
+      else send (WizardVector <| Push <| NewUser)
   in
     ({sceneModel | badNews = msgs}, cmd)
 
@@ -102,12 +102,12 @@ view kioskModel =
         , vspace 0
         , sceneEmailField kioskModel 4 "Your email address" sceneModel.email (NewMemberVector << UpdateEmail)
         , vspace 30
-        , sceneCheckbox kioskModel 5 "Check if you are 18 or older!" sceneModel.isAdult (NewMemberVector ToggleIsAdult)
+        , sceneCheckbox kioskModel 5 "Check if you are 18 or older!" sceneModel.isAdult (NewMemberVector <| ToggleIsAdult)
         , vspace (if List.length sceneModel.badNews > 0 then 40 else 0)
         , formatBadNews sceneModel.badNews
         ]
     )
-    [ButtonSpec "OK" (NewMemberVector Validate)]
+    [ButtonSpec "OK" (NewMemberVector <| Validate)]
 
 -----------------------------------------------------------------------------
 -- UTILITIES

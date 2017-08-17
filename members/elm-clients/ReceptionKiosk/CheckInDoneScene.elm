@@ -40,5 +40,5 @@ view model =
     "You're Checked In"
     "Have fun!"
     (text "")
-    [ButtonSpec "Ok" (Push Welcome)]
+    [ButtonSpec "Ok" (WizardVector <| Push <| Welcome)]
 

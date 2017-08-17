@@ -35,7 +35,7 @@ update msg kioskModel =
 
     WelcomeSceneWillAppear ->
       let sceneModel = kioskModel.welcomeModel
-      in (sceneModel, send Reset)
+      in (sceneModel, send (WizardVector <| Reset))
 
 -----------------------------------------------------------------------------
 -- VIEW
@@ -47,8 +47,8 @@ view kioskModel =
     "Welcome!"
     "Choose one of the following:"
     (text "")
-    [ ButtonSpec "I'm new!" (Push DoYouHaveAcct)
-    , ButtonSpec "Check In" (Push CheckIn)
-    , ButtonSpec "Check Out" (Push CheckOut)
+    [ ButtonSpec "I'm new!" (WizardVector <| Push <| DoYouHaveAcct)
+    , ButtonSpec "Check In" (WizardVector <| Push <| CheckIn)
+    , ButtonSpec "Check Out" (WizardVector <| Push <| CheckOut)
     ]
 

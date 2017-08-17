@@ -33,6 +33,7 @@ type alias SceneModels a =
   , newUserModel: NewUserModel
   , newMemberModel : NewMemberModel
   }
+
 type alias KioskModel a = (SceneUtilModel (SceneModels a))
 
 init : Flags -> (WaiverModel, Cmd Msg)
@@ -103,7 +104,7 @@ update msg kioskModel =
           "You have successfully registered your check in! Welcome to Xerocraft!" ->
             -- This is the result we wanted. We now clear the scene stack since account creation was
             -- successfully completed and we don't want the user backtracking into it again.
-            ({sceneModel | badNews = []}, send (Push HowDidYouHear))
+            ({sceneModel | badNews = []}, send (WizardVector <| Push <| HowDidYouHear))
           "" ->
             -- Couldn't find a message so dump the entire response body as a debugging aid.
             -- We don't expect this to happen.
@@ -139,11 +140,11 @@ view kioskModel =
       ]
     )
     ( if sceneModel.isSigning then
-        [ ButtonSpec "Accept" (WaiverVector GetSignature)
-        , ButtonSpec "Clear" (WaiverVector (ClearSignaturePad "signature-pad"))
+        [ ButtonSpec "Accept" (WaiverVector <| GetSignature)
+        , ButtonSpec "Clear" (WaiverVector <| ClearSignaturePad <| "signature-pad")
         ]
       else
-        [ ButtonSpec "Sign" (WaiverVector (ShowSignaturePad "signature-pad"))
+        [ ButtonSpec "Sign" (WaiverVector <| ShowSignaturePad <| "signature-pad")
         ]
     )
 

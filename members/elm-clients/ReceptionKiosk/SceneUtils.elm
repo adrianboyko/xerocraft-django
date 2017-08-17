@@ -47,11 +47,11 @@ frameNavButtons model =
     if not (List.Nonempty.isSingleton model.sceneStack)
     then
       [ Button.render MdlVector [10000] model.mdl
-          ([Button.flat, Options.onClick Pop]++navButtonCss)
+          ([Button.flat, Options.onClick (WizardVector <| Pop)]++navButtonCss)
           [text "Back"]
       , hspace 600
       , Button.render MdlVector [10001] model.mdl
-          ([Button.flat, Options.onClick (Push Welcome)]++navButtonCss)
+          ([Button.flat, Options.onClick (WizardVector <| Push <| Welcome)]++navButtonCss)
           [text "Quit"]
       ]
     else

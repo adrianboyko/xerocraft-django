@@ -67,7 +67,7 @@ update msg kioskModel =
 
     LogCheckIn memberNum ->
       -- TODO: Log the visit. Might be last feature to be implemented to avoid collecting bogus visits during alpha testing.
-      (sceneModel, send (Push ReasonForVisit))
+      (sceneModel, send (WizardVector <| Push <| ReasonForVisit))
 
 -----------------------------------------------------------------------------
 -- VIEW
@@ -79,7 +79,7 @@ view kioskModel =
     sceneModel = kioskModel.checkInModel
     acct2chip = \acct ->
       Chip.button
-        [Options.onClick (CheckInVector (LogCheckIn acct.memberNum))]
+        [Options.onClick (CheckInVector <| LogCheckIn <| acct.memberNum)]
         [Chip.content [] [text acct.userName]]
 
   in genericScene kioskModel

@@ -79,7 +79,7 @@ view kioskModel =
     "Just Wondering"
     "How did you hear about us?"
     (howDidYouHearChoices kioskModel)
-    [ButtonSpec "OK" (Push ReasonForVisit)]
+    [ButtonSpec "OK" (WizardVector <| Push <| ReasonForVisit)]
 
 howDidYouHearChoices : KioskModel a -> Html Msg
 howDidYouHearChoices kioskModel =
@@ -92,7 +92,7 @@ howDidYouHearChoices kioskModel =
             , Lists.content2 []
               [ Toggles.checkbox MdlVector [1000+dm.id] kioskModel.mdl  -- 1000 establishes an id range for these.
                   [ Toggles.value dm.selected
-                  , Options.onToggle (HowDidYouHearVector (ToggleDiscoveryMethod dm))
+                  , Options.onToggle (HowDidYouHearVector <| ToggleDiscoveryMethod <| dm)
                   ]
                   []
               ]

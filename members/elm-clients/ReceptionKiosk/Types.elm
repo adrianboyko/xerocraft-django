@@ -96,14 +96,8 @@ type WelcomeMsg
   = WelcomeSceneWillAppear
 
 type Msg
-  -- elm-mdl messages:
   = MdlVector (Material.Msg Msg)
-  -- Wizard related messages:
-  | Push Scene
-  | Pop
-  | Reset
-  | SceneWillAppear Scene
-  -- scene messages:
+  | WizardVector WizardMsg
   | CheckInVector CheckInMsg
   | CheckOutVector CheckOutMsg
   | HowDidYouHearVector HowDidYouHearMsg
@@ -112,3 +106,9 @@ type Msg
   | ReasonForVisitVector ReasonForVisitMsg
   | WaiverVector WaiverMsg
   | WelcomeVector WelcomeMsg
+
+type WizardMsg
+  = Push Scene
+  | Pop
+  | Reset
+  | SceneWillAppear Scene
