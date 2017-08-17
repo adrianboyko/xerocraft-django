@@ -38,11 +38,13 @@ update msg kioskModel =
   in case msg of
 
     UpdateFlexId rawId ->
-      let id = Backend.djangoizeId rawId
+      let
+        id = Backend.djangoizeId rawId
+        getMatchingAccts = Backend.getMatchingAccts kioskModel.flags
       in
         if (String.length id) > 1
         then
-          ({sceneModel | flexId = id}, Backend.getMatchingAccts id (CheckInVector << UpdateMatchingAccts))
+          ({sceneModel | flexId = id}, getMatchingAccts id (CheckInVector << UpdateMatchingAccts))
         else
           ({sceneModel | matches = [], flexId = id}, Cmd.none )
 

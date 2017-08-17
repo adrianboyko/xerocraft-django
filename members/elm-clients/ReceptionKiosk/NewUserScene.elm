@@ -47,14 +47,15 @@ update msg kioskModel =
       ({sceneModel | password2 = newVal}, Cmd.none)
 
     ValidateUserNameAndPw ->
-      validateUserIdAndPw sceneModel
+      validateUserIdAndPw kioskModel
 
     ValidateUserNameUnique result ->
-      validateUserNameUnique sceneModel result
+      validateUserNameUnique kioskModel result
 
-validateUserIdAndPw : NewUserModel -> (NewUserModel, Cmd Msg)
-validateUserIdAndPw sceneModel =
+validateUserIdAndPw : Model -> (NewUserModel, Cmd Msg)
+validateUserIdAndPw kioskModel =
   let
+    sceneModel = kioskModel.newUserModel
     pwMismatch = sceneModel.password1 /= sceneModel.password2
     pwShort = String.length sceneModel.password1 < 6
     userNameShort = String.length sceneModel.userName < 4
@@ -65,15 +66,17 @@ validateUserIdAndPw sceneModel =
       , if userNameShort then ["The login id must have at least 4 characters."] else []
       , if userNameLong then ["The login id cannot be more than 20 characters."] else []
       ]
+    getMatchingAccts = Backend.getMatchingAccts kioskModel.flags
     cmd = if List.length msgs > 0
       then Cmd.none
-      else Backend.getMatchingAccts sceneModel.userName (NewUserVector << ValidateUserNameUnique)
+      else getMatchingAccts sceneModel.userName (NewUserVector << ValidateUserNameUnique)
   in
     ({sceneModel | badNews = msgs}, cmd)
 
-validateUserNameUnique: NewUserModel -> Result Http.Error Backend.MatchingAcctInfo -> (NewUserModel, Cmd Msg)
-validateUserNameUnique sceneModel result =
-  case result of
+validateUserNameUnique: Model -> Result Http.Error Backend.MatchingAcctInfo -> (NewUserModel, Cmd Msg)
+validateUserNameUnique kioskModel result =
+  let sceneModel = kioskModel.newUserModel
+  in case result of
     Ok {target, matches} ->
       let
         matchingNames = List.map (\x -> String.toLower x.userName) matches

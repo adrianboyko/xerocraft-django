@@ -19066,17 +19066,16 @@ var _user$project$ReceptionKiosk_Backend$decodeMatchingAcctInfo = A3(
 		'matches',
 		_elm_lang$core$Json_Decode$list(_user$project$ReceptionKiosk_Backend$decodeMatchingAcct)));
 var _user$project$ReceptionKiosk_Backend$getCheckedInAccts = F2(
-	function (url, thing) {
+	function (flags, thing) {
+		var url = A2(_elm_lang$core$Basics_ops['++'], flags.checkedInAcctsUrl, '?format=json');
 		var request = A2(_elm_lang$http$Http$get, url, _user$project$ReceptionKiosk_Backend$decodeMatchingAcctInfo);
 		return A2(_elm_lang$http$Http$send, thing, request);
 	});
-var _user$project$ReceptionKiosk_Backend$getMatchingAccts = F2(
-	function (flexId, thing) {
-		var url = A2(
-			_elm_lang$core$Basics_ops['++'],
-			'/members/reception/matching-accts/',
-			A2(_elm_lang$core$Basics_ops['++'], flexId, '/'));
-		var request = A2(_elm_lang$http$Http$get, url, _user$project$ReceptionKiosk_Backend$decodeMatchingAcctInfo);
+var _user$project$ReceptionKiosk_Backend$getMatchingAccts = F3(
+	function (flags, flexId, thing) {
+		var url = A2(_elm_lang$core$Basics_ops['++'], flags.matchingAcctsUrl, '?format=json');
+		var url2 = A3(_user$project$ReceptionKiosk_Backend$replaceAll, url, 'FLEXID', flexId);
+		var request = A2(_elm_lang$http$Http$get, url2, _user$project$ReceptionKiosk_Backend$decodeMatchingAcctInfo);
 		return A2(_elm_lang$http$Http$send, thing, request);
 	});
 var _user$project$ReceptionKiosk_Backend$DiscoveryMethod = F4(
@@ -19120,23 +19119,23 @@ var _user$project$ReceptionKiosk_Backend$decodeDiscoveryMethodInfo = A5(
 		'results',
 		_elm_lang$core$Json_Decode$list(_user$project$ReceptionKiosk_Backend$decodeDiscoveryMethod)));
 var _user$project$ReceptionKiosk_Backend$getDiscoveryMethods = F2(
-	function (url, thing) {
-		var request = A2(_elm_lang$http$Http$get, url, _user$project$ReceptionKiosk_Backend$decodeDiscoveryMethodInfo);
+	function (flags, thing) {
+		var request = A2(_elm_lang$http$Http$get, flags.discoveryMethodsUrl, _user$project$ReceptionKiosk_Backend$decodeDiscoveryMethodInfo);
 		return A2(_elm_lang$http$Http$send, thing, request);
 	});
 
-var _user$project$ReceptionKiosk_Types$Flags = F6(
-	function (a, b, c, d, e, f) {
-		return {csrfToken: a, orgName: b, bannerTopUrl: c, bannerBottomUrl: d, discoveryMethodsUrl: e, checkedInAcctsUrl: f};
+var _user$project$ReceptionKiosk_Types$Flags = F7(
+	function (a, b, c, d, e, f, g) {
+		return {csrfToken: a, orgName: b, bannerTopUrl: c, bannerBottomUrl: d, discoveryMethodsUrl: e, checkedInAcctsUrl: f, matchingAcctsUrl: g};
 	});
 var _user$project$ReceptionKiosk_Types$CheckInModel = F3(
 	function (a, b, c) {
 		return {flexId: a, matches: b, badNews: c};
 	});
 var _user$project$ReceptionKiosk_Types$CheckInDoneModel = {};
-var _user$project$ReceptionKiosk_Types$CheckOutModel = F3(
-	function (a, b, c) {
-		return {checkedInAccts: a, badNews: b, checkedInAcctsUrl: c};
+var _user$project$ReceptionKiosk_Types$CheckOutModel = F2(
+	function (a, b) {
+		return {checkedInAccts: a, badNews: b};
 	});
 var _user$project$ReceptionKiosk_Types$CheckOutDoneModel = {};
 var _user$project$ReceptionKiosk_Types$DoYouHaveAcctModel = {};
@@ -20184,6 +20183,7 @@ var _user$project$ReceptionKiosk_CheckInScene$update = F2(
 		var _p1 = msg;
 		switch (_p1.ctor) {
 			case 'UpdateFlexId':
+				var getMatchingAccts = _user$project$ReceptionKiosk_Backend$getMatchingAccts(kioskModel.flags);
 				var id = _user$project$ReceptionKiosk_Backend$djangoizeId(_p1._0);
 				return (_elm_lang$core$Native_Utils.cmp(
 					_elm_lang$core$String$length(id),
@@ -20193,7 +20193,7 @@ var _user$project$ReceptionKiosk_CheckInScene$update = F2(
 						sceneModel,
 						{flexId: id}),
 					_1: A2(
-						_user$project$ReceptionKiosk_Backend$getMatchingAccts,
+						getMatchingAccts,
 						id,
 						function (_p2) {
 							return _user$project$ReceptionKiosk_Types$CheckInVector(
@@ -20353,10 +20353,8 @@ var _user$project$ReceptionKiosk_CheckOutScene$update = F2(
 		var _p0 = msg;
 		switch (_p0.ctor) {
 			case 'CheckOutSceneWillAppear':
-				var url = A2(_elm_lang$core$Basics_ops['++'], sceneModel.checkedInAcctsUrl, '?format=json');
-				var request = A2(
-					_user$project$ReceptionKiosk_Backend$getCheckedInAccts,
-					url,
+				var getCheckedInAccts = _user$project$ReceptionKiosk_Backend$getCheckedInAccts(kioskModel.flags);
+				var request = getCheckedInAccts(
 					function (_p1) {
 						return _user$project$ReceptionKiosk_Types$CheckOutVector(
 							_user$project$ReceptionKiosk_Types$UpdateCheckedInAccts(_p1));
@@ -20395,8 +20393,7 @@ var _user$project$ReceptionKiosk_CheckOutScene$update = F2(
 var _user$project$ReceptionKiosk_CheckOutScene$init = function (flags) {
 	var model = {
 		checkedInAccts: {ctor: '[]'},
-		badNews: {ctor: '[]'},
-		checkedInAcctsUrl: flags.checkedInAcctsUrl
+		badNews: {ctor: '[]'}
 	};
 	return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
 };
@@ -20600,10 +20597,8 @@ var _user$project$ReceptionKiosk_HowDidYouHearScene$update = F2(
 		}
 	});
 var _user$project$ReceptionKiosk_HowDidYouHearScene$init = function (flags) {
-	var url = A2(_elm_lang$core$Basics_ops['++'], flags.discoveryMethodsUrl, '?format=json');
-	var request = A2(
-		_user$project$ReceptionKiosk_Backend$getDiscoveryMethods,
-		url,
+	var getDiscoveryMethods = _user$project$ReceptionKiosk_Backend$getDiscoveryMethods(flags);
+	var request = getDiscoveryMethods(
 		function (_p2) {
 			return _user$project$ReceptionKiosk_Types$HowDidYouHearVector(
 				_user$project$ReceptionKiosk_Types$AccDiscoveryMethods(_p2));
@@ -20896,7 +20891,8 @@ var _user$project$ReceptionKiosk_NewUserScene$view = function (kioskModel) {
 		});
 };
 var _user$project$ReceptionKiosk_NewUserScene$validateUserNameUnique = F2(
-	function (sceneModel, result) {
+	function (kioskModel, result) {
+		var sceneModel = kioskModel.newUserModel;
 		var _p3 = result;
 		if (_p3.ctor === 'Ok') {
 			var chosenName = _elm_lang$core$String$toLower(sceneModel.userName);
@@ -20944,17 +20940,19 @@ var _user$project$ReceptionKiosk_NewUserScene$validateUserNameUnique = F2(
 			};
 		}
 	});
-var _user$project$ReceptionKiosk_NewUserScene$validateUserIdAndPw = function (sceneModel) {
-	var userNameLong = _elm_lang$core$Native_Utils.cmp(
-		_elm_lang$core$String$length(sceneModel.userName),
-		20) > 0;
-	var userNameShort = _elm_lang$core$Native_Utils.cmp(
-		_elm_lang$core$String$length(sceneModel.userName),
-		4) < 0;
+var _user$project$ReceptionKiosk_NewUserScene$validateUserIdAndPw = function (kioskModel) {
+	var getMatchingAccts = _user$project$ReceptionKiosk_Backend$getMatchingAccts(kioskModel.flags);
+	var sceneModel = kioskModel.newUserModel;
+	var pwMismatch = !_elm_lang$core$Native_Utils.eq(sceneModel.password1, sceneModel.password2);
 	var pwShort = _elm_lang$core$Native_Utils.cmp(
 		_elm_lang$core$String$length(sceneModel.password1),
 		6) < 0;
-	var pwMismatch = !_elm_lang$core$Native_Utils.eq(sceneModel.password1, sceneModel.password2);
+	var userNameShort = _elm_lang$core$Native_Utils.cmp(
+		_elm_lang$core$String$length(sceneModel.userName),
+		4) < 0;
+	var userNameLong = _elm_lang$core$Native_Utils.cmp(
+		_elm_lang$core$String$length(sceneModel.userName),
+		20) > 0;
 	var msgs = _elm_lang$core$List$concat(
 		{
 			ctor: '::',
@@ -20992,7 +20990,7 @@ var _user$project$ReceptionKiosk_NewUserScene$validateUserIdAndPw = function (sc
 	var cmd = (_elm_lang$core$Native_Utils.cmp(
 		_elm_lang$core$List$length(msgs),
 		0) > 0) ? _elm_lang$core$Platform_Cmd$none : A2(
-		_user$project$ReceptionKiosk_Backend$getMatchingAccts,
+		getMatchingAccts,
 		sceneModel.userName,
 		function (_p4) {
 			return _user$project$ReceptionKiosk_Types$NewUserVector(
@@ -21037,9 +21035,9 @@ var _user$project$ReceptionKiosk_NewUserScene$update = F2(
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 			case 'ValidateUserNameAndPw':
-				return _user$project$ReceptionKiosk_NewUserScene$validateUserIdAndPw(sceneModel);
+				return _user$project$ReceptionKiosk_NewUserScene$validateUserIdAndPw(kioskModel);
 			default:
-				return A2(_user$project$ReceptionKiosk_NewUserScene$validateUserNameUnique, sceneModel, _p5._0);
+				return A2(_user$project$ReceptionKiosk_NewUserScene$validateUserNameUnique, kioskModel, _p5._0);
 		}
 	});
 var _user$project$ReceptionKiosk_NewUserScene$init = function (flags) {
@@ -22135,11 +22133,16 @@ var _user$project$ReceptionKiosk$main = _elm_lang$html$Html$programWithFlags(
 										function (discoveryMethodsUrl) {
 											return A2(
 												_elm_lang$core$Json_Decode$andThen,
-												function (orgName) {
-													return _elm_lang$core$Json_Decode$succeed(
-														{bannerBottomUrl: bannerBottomUrl, bannerTopUrl: bannerTopUrl, checkedInAcctsUrl: checkedInAcctsUrl, csrfToken: csrfToken, discoveryMethodsUrl: discoveryMethodsUrl, orgName: orgName});
+												function (matchingAcctsUrl) {
+													return A2(
+														_elm_lang$core$Json_Decode$andThen,
+														function (orgName) {
+															return _elm_lang$core$Json_Decode$succeed(
+																{bannerBottomUrl: bannerBottomUrl, bannerTopUrl: bannerTopUrl, checkedInAcctsUrl: checkedInAcctsUrl, csrfToken: csrfToken, discoveryMethodsUrl: discoveryMethodsUrl, matchingAcctsUrl: matchingAcctsUrl, orgName: orgName});
+														},
+														A2(_elm_lang$core$Json_Decode$field, 'orgName', _elm_lang$core$Json_Decode$string));
 												},
-												A2(_elm_lang$core$Json_Decode$field, 'orgName', _elm_lang$core$Json_Decode$string));
+												A2(_elm_lang$core$Json_Decode$field, 'matchingAcctsUrl', _elm_lang$core$Json_Decode$string));
 										},
 										A2(_elm_lang$core$Json_Decode$field, 'discoveryMethodsUrl', _elm_lang$core$Json_Decode$string));
 								},

@@ -14,7 +14,7 @@ import Material.List as Lists
 -- Local
 import ReceptionKiosk.Types exposing (..)
 import ReceptionKiosk.SceneUtils exposing (..)
-import ReceptionKiosk.Backend exposing (..)
+import ReceptionKiosk.Backend as Backend
 
 -----------------------------------------------------------------------------
 -- INIT
@@ -24,8 +24,8 @@ init : Flags -> (HowDidYouHearModel, Cmd Msg)
 init flags =
   let
     sceneModel = { discoveryMethods=[], badNews=[] }
-    url = flags.discoveryMethodsUrl ++ "?format=json"  -- Easier than an "Accept" header.
-    request = getDiscoveryMethods url (HowDidYouHearVector << AccDiscoveryMethods)
+    getDiscoveryMethods = Backend.getDiscoveryMethods flags
+    request = getDiscoveryMethods (HowDidYouHearVector << AccDiscoveryMethods)
   in
     (sceneModel, request)
 

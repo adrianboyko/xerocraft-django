@@ -10,13 +10,16 @@ module ReceptionKiosk.Backend exposing
   , MatchingAcctInfo
   )
 
+-- Standard
 import Json.Decode as Dec
 import Json.Encode as Enc
 import Regex exposing (regex)
 import Http
 
+-- Third-Party
 import Json.Decode.Pipeline exposing (decode, required, hardcoded)
 
+-- Local
 
 -----------------------------------------------------------------------------
 -- UTILITIES
@@ -31,24 +34,25 @@ replaceAll : String -> String -> String -> String
 replaceAll theString oldSub newSub =
   Regex.replace Regex.All (regex oldSub) (\_ -> newSub) theString
 
-getDiscoveryMethods : String -> (Result Http.Error DiscoveryMethodInfo -> msg) -> Cmd msg
-getDiscoveryMethods url thing =
-  let request = Http.get url decodeDiscoveryMethodInfo
+getDiscoveryMethods : {a|discoveryMethodsUrl:String} -> (Result Http.Error DiscoveryMethodInfo -> msg) -> Cmd msg
+getDiscoveryMethods flags thing =
+  let request = Http.get flags.discoveryMethodsUrl decodeDiscoveryMethodInfo
   in Http.send thing request
 
-getCheckedInAccts: String -> (Result Http.Error MatchingAcctInfo -> msg) -> Cmd msg
-getCheckedInAccts url thing =
+getCheckedInAccts: {a|checkedInAcctsUrl:String} -> (Result Http.Error MatchingAcctInfo -> msg) -> Cmd msg
+getCheckedInAccts flags thing =
   let
+    url = flags.checkedInAcctsUrl++"?format=json"  -- Easier than an "Accept" header.
     request = Http.get url decodeMatchingAcctInfo
   in
     Http.send thing request
 
--- TODO: Url should be passed in as in getCheckedInAccts, above?
-getMatchingAccts: String -> (Result Http.Error MatchingAcctInfo -> msg) -> Cmd msg
-getMatchingAccts flexId thing =
+getMatchingAccts: {a|matchingAcctsUrl:String} -> String -> (Result Http.Error MatchingAcctInfo -> msg) -> Cmd msg
+getMatchingAccts flags flexId thing =
   let
-    url = "/members/reception/matching-accts/"++flexId++"/"
-    request = Http.get url decodeMatchingAcctInfo
+    url = flags.matchingAcctsUrl++"?format=json"  -- Easier than an "Accept" header.
+    url2 = replaceAll url "FLEXID" flexId
+    request = Http.get url2 decodeMatchingAcctInfo
   in
     Http.send thing request
 

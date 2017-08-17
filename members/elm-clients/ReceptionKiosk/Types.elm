@@ -21,6 +21,7 @@ type alias Flags =
   , bannerBottomUrl: String
   , discoveryMethodsUrl: String
   , checkedInAcctsUrl: String
+  , matchingAcctsUrl: String
   }
 
 -----------------------------------------------------------------------------
@@ -53,7 +54,6 @@ type alias CheckInDoneModel =
 type alias CheckOutModel =
   { checkedInAccts : List MatchingAcct
   , badNews : List String
-  , checkedInAcctsUrl : String
   }
 
 type alias CheckOutDoneModel =

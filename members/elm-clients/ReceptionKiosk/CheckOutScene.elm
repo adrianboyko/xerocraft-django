@@ -13,7 +13,7 @@ import Material.Options as Options exposing (css)
 -- Local
 import ReceptionKiosk.Types exposing (..)
 import ReceptionKiosk.SceneUtils exposing (..)
-import ReceptionKiosk.Backend as Backend exposing (getCheckedInAccts)
+import ReceptionKiosk.Backend as Backend
 
 -----------------------------------------------------------------------------
 -- INIT
@@ -21,7 +21,7 @@ import ReceptionKiosk.Backend as Backend exposing (getCheckedInAccts)
 
 init : Flags -> (CheckOutModel, Cmd Msg)
 init flags =
-  let model = { checkedInAccts=[], badNews=[], checkedInAcctsUrl=flags.checkedInAcctsUrl }
+  let model = { checkedInAccts=[], badNews=[] }
   in (model, Cmd.none)
 
 -----------------------------------------------------------------------------
@@ -35,8 +35,8 @@ update msg kioskModel =
 
     CheckOutSceneWillAppear ->
       let
-        url = sceneModel.checkedInAcctsUrl ++ "?format=json"  -- Easier than an "Accept" header.
-        request = getCheckedInAccts url (CheckOutVector << UpdateCheckedInAccts)
+        getCheckedInAccts = Backend.getCheckedInAccts kioskModel.flags
+        request = getCheckedInAccts (CheckOutVector << UpdateCheckedInAccts)
       in
         (sceneModel, request)
 
