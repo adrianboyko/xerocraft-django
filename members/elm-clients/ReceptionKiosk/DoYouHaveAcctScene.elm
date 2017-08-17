@@ -1,5 +1,5 @@
 
-module ReceptionKiosk.DoYouHaveAcctScene exposing (init, view)
+module ReceptionKiosk.DoYouHaveAcctScene exposing (init, view, DoYouHaveAcctModel)
 
 -- Standard
 import Html exposing (Html, text)
@@ -14,6 +14,13 @@ import ReceptionKiosk.SceneUtils exposing (..)
 -- INIT
 -----------------------------------------------------------------------------
 
+type alias DoYouHaveAcctModel =
+  {
+  }
+
+-- This type alias describes the type of kiosk model that this scene requires.
+type alias KioskModel a = (SceneUtilModel {a | doYouHaveAcctModel : DoYouHaveAcctModel})
+
 init : Flags -> (DoYouHaveAcctModel, Cmd Msg)
 init flags = ({}, Cmd.none)
 
@@ -25,7 +32,7 @@ init flags = ({}, Cmd.none)
 -- VIEW
 -----------------------------------------------------------------------------
 
-view : Model -> Html Msg
+view : KioskModel a -> Html Msg
 view kioskModel =
   genericScene kioskModel
     "Great!"

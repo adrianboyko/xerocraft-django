@@ -1,5 +1,5 @@
 
-module ReceptionKiosk.CheckInScene exposing (init, view, update)
+module ReceptionKiosk.CheckInScene exposing (init, view, update, CheckInModel)
 
 -- Standard
 import Html exposing (..)
@@ -19,6 +19,15 @@ import ReceptionKiosk.Backend as Backend
 -- INIT
 -----------------------------------------------------------------------------
 
+type alias CheckInModel =
+  { flexId : String  -- UserName or surname.
+  , matches : List Backend.MatchingAcct  -- Matches to username/surname
+  , badNews : List String
+  }
+
+-- This type alias describes the type of kiosk model that this scene requires.
+type alias KioskModel a = (SceneUtilModel {a | checkInModel : CheckInModel})
+
 init : Flags -> (CheckInModel, Cmd Msg)
 init flags =
   let model =
@@ -32,7 +41,7 @@ init flags =
 -- UPDATE
 -----------------------------------------------------------------------------
 
-update : CheckInMsg -> Model -> (CheckInModel, Cmd Msg)
+update : CheckInMsg -> KioskModel a -> (CheckInModel, Cmd Msg)
 update msg kioskModel =
   let sceneModel = kioskModel.checkInModel
   in case msg of
@@ -64,7 +73,7 @@ update msg kioskModel =
 -- VIEW
 -----------------------------------------------------------------------------
 
-view : Model -> Html Msg
+view : KioskModel a -> Html Msg
 view kioskModel =
   let
     sceneModel = kioskModel.checkInModel

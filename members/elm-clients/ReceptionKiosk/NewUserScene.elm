@@ -1,5 +1,5 @@
 
-module ReceptionKiosk.NewUserScene exposing (init, view, update)
+module ReceptionKiosk.NewUserScene exposing (init, view, update, NewUserModel)
 
 -- Standard
 import Html exposing (Html, div)
@@ -16,6 +16,16 @@ import ReceptionKiosk.Backend as Backend
 -- INIT
 -----------------------------------------------------------------------------
 
+type alias NewUserModel =
+  { userName: String
+  , password1: String
+  , password2: String
+  , badNews: List String
+  }
+
+-- This type alias describes the type of kiosk model that this scene requires.
+type alias KioskModel a = (SceneUtilModel {a | newUserModel : NewUserModel})
+
 init : Flags -> (NewUserModel, Cmd Msg)
 init flags =
   let sceneModel =
@@ -31,7 +41,7 @@ init flags =
 -- UPDATE
 -----------------------------------------------------------------------------
 
-update : NewUserMsg -> Model -> (NewUserModel, Cmd Msg)
+update : NewUserMsg -> KioskModel a -> (NewUserModel, Cmd Msg)
 update msg kioskModel =
   let sceneModel = kioskModel.newUserModel
   in case msg of
@@ -52,7 +62,7 @@ update msg kioskModel =
     ValidateUserNameUnique result ->
       validateUserNameUnique kioskModel result
 
-validateUserIdAndPw : Model -> (NewUserModel, Cmd Msg)
+validateUserIdAndPw : KioskModel a -> (NewUserModel, Cmd Msg)
 validateUserIdAndPw kioskModel =
   let
     sceneModel = kioskModel.newUserModel
@@ -73,7 +83,7 @@ validateUserIdAndPw kioskModel =
   in
     ({sceneModel | badNews = msgs}, cmd)
 
-validateUserNameUnique: Model -> Result Http.Error Backend.MatchingAcctInfo -> (NewUserModel, Cmd Msg)
+validateUserNameUnique: KioskModel a -> Result Http.Error Backend.MatchingAcctInfo -> (NewUserModel, Cmd Msg)
 validateUserNameUnique kioskModel result =
   let sceneModel = kioskModel.newUserModel
   in case result of
@@ -94,7 +104,7 @@ validateUserNameUnique kioskModel result =
 -- VIEW
 -----------------------------------------------------------------------------
 
-view : Model -> Html Msg
+view : KioskModel a -> Html Msg
 view kioskModel =
   let sceneModel = kioskModel.newUserModel
   in genericScene kioskModel

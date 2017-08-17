@@ -1,5 +1,5 @@
 
-module ReceptionKiosk.HowDidYouHearScene exposing (init, update, view)
+module ReceptionKiosk.HowDidYouHearScene exposing (init, update, view, HowDidYouHearModel)
 
 -- Standard
 import Html exposing (Html, text)
@@ -20,6 +20,15 @@ import ReceptionKiosk.Backend as Backend
 -- INIT
 -----------------------------------------------------------------------------
 
+
+type alias HowDidYouHearModel =
+  { discoveryMethods : List Backend.DiscoveryMethod  -- Fetched from backend
+  , badNews : List String
+  }
+
+-- This type alias describes the type of kiosk model that this scene requires.
+type alias KioskModel a = (SceneUtilModel {a | howDidYouHearModel : HowDidYouHearModel})
+
 init : Flags -> (HowDidYouHearModel, Cmd Msg)
 init flags =
   let
@@ -34,7 +43,7 @@ init flags =
 -- UPDATE
 -----------------------------------------------------------------------------
 
-update : HowDidYouHearMsg -> Model -> (HowDidYouHearModel, Cmd Msg)
+update : HowDidYouHearMsg -> KioskModel a -> (HowDidYouHearModel, Cmd Msg)
 update msg kioskModel =
   let sceneModel = kioskModel.howDidYouHearModel
   in case msg of
@@ -64,7 +73,7 @@ update msg kioskModel =
 -- VIEW
 -----------------------------------------------------------------------------
 
-view : Model -> Html Msg
+view : KioskModel a -> Html Msg
 view kioskModel =
   genericScene kioskModel
     "Just Wondering"
@@ -72,7 +81,7 @@ view kioskModel =
     (howDidYouHearChoices kioskModel)
     [ButtonSpec "OK" (Push ReasonForVisit)]
 
-howDidYouHearChoices : Model -> Html Msg
+howDidYouHearChoices : KioskModel a -> Html Msg
 howDidYouHearChoices kioskModel =
   let sceneModel = kioskModel.howDidYouHearModel
   in Lists.ul howDidYouHearCss

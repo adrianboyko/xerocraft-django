@@ -19128,66 +19128,6 @@ var _user$project$ReceptionKiosk_Types$Flags = F7(
 	function (a, b, c, d, e, f, g) {
 		return {csrfToken: a, orgName: b, bannerTopUrl: c, bannerBottomUrl: d, discoveryMethodsUrl: e, checkedInAcctsUrl: f, matchingAcctsUrl: g};
 	});
-var _user$project$ReceptionKiosk_Types$CheckInModel = F3(
-	function (a, b, c) {
-		return {flexId: a, matches: b, badNews: c};
-	});
-var _user$project$ReceptionKiosk_Types$CheckInDoneModel = {};
-var _user$project$ReceptionKiosk_Types$CheckOutModel = F2(
-	function (a, b) {
-		return {checkedInAccts: a, badNews: b};
-	});
-var _user$project$ReceptionKiosk_Types$CheckOutDoneModel = {};
-var _user$project$ReceptionKiosk_Types$DoYouHaveAcctModel = {};
-var _user$project$ReceptionKiosk_Types$HowDidYouHearModel = F2(
-	function (a, b) {
-		return {discoveryMethods: a, badNews: b};
-	});
-var _user$project$ReceptionKiosk_Types$NewMemberModel = F5(
-	function (a, b, c, d, e) {
-		return {firstName: a, lastName: b, email: c, isAdult: d, badNews: e};
-	});
-var _user$project$ReceptionKiosk_Types$NewUserModel = F4(
-	function (a, b, c, d) {
-		return {userName: a, password1: b, password2: c, badNews: d};
-	});
-var _user$project$ReceptionKiosk_Types$ReasonForVisitModel = function (a) {
-	return {reasonForVisit: a};
-};
-var _user$project$ReceptionKiosk_Types$WaiverModel = F3(
-	function (a, b, c) {
-		return {isSigning: a, signature: b, badNews: c};
-	});
-var _user$project$ReceptionKiosk_Types$WelcomeModel = {};
-var _user$project$ReceptionKiosk_Types$Model = function (a) {
-	return function (b) {
-		return function (c) {
-			return function (d) {
-				return function (e) {
-					return function (f) {
-						return function (g) {
-							return function (h) {
-								return function (i) {
-									return function (j) {
-										return function (k) {
-											return function (l) {
-												return function (m) {
-													return function (n) {
-														return {flags: a, sceneStack: b, mdl: c, checkInModel: d, checkInDoneModel: e, checkOutModel: f, checkOutDoneModel: g, doYouHaveAcctModel: h, howDidYouHearModel: i, newMemberModel: j, newUserModel: k, reasonForVisitModel: l, waiverModel: m, welcomeModel: n};
-													};
-												};
-											};
-										};
-									};
-								};
-							};
-						};
-					};
-				};
-			};
-		};
-	};
-};
 var _user$project$ReceptionKiosk_Types$Welcome = {ctor: 'Welcome'};
 var _user$project$ReceptionKiosk_Types$Waiver = {ctor: 'Waiver'};
 var _user$project$ReceptionKiosk_Types$ReasonForVisit = {ctor: 'ReasonForVisit'};
@@ -19199,12 +19139,6 @@ var _user$project$ReceptionKiosk_Types$CheckOutDone = {ctor: 'CheckOutDone'};
 var _user$project$ReceptionKiosk_Types$CheckOut = {ctor: 'CheckOut'};
 var _user$project$ReceptionKiosk_Types$CheckInDone = {ctor: 'CheckInDone'};
 var _user$project$ReceptionKiosk_Types$CheckIn = {ctor: 'CheckIn'};
-var _user$project$ReceptionKiosk_Types$Other = {ctor: 'Other'};
-var _user$project$ReceptionKiosk_Types$Volunteer = {ctor: 'Volunteer'};
-var _user$project$ReceptionKiosk_Types$GuestOfMember = {ctor: 'GuestOfMember'};
-var _user$project$ReceptionKiosk_Types$MemberPrivileges = {ctor: 'MemberPrivileges'};
-var _user$project$ReceptionKiosk_Types$ClassParticipant = {ctor: 'ClassParticipant'};
-var _user$project$ReceptionKiosk_Types$Curiousity = {ctor: 'Curiousity'};
 var _user$project$ReceptionKiosk_Types$LogCheckIn = function (a) {
 	return {ctor: 'LogCheckIn', _0: a};
 };
@@ -19251,6 +19185,12 @@ var _user$project$ReceptionKiosk_Types$ValidateUserNameUnique = function (a) {
 	return {ctor: 'ValidateUserNameUnique', _0: a};
 };
 var _user$project$ReceptionKiosk_Types$ValidateUserNameAndPw = {ctor: 'ValidateUserNameAndPw'};
+var _user$project$ReceptionKiosk_Types$Other = {ctor: 'Other'};
+var _user$project$ReceptionKiosk_Types$Volunteer = {ctor: 'Volunteer'};
+var _user$project$ReceptionKiosk_Types$GuestOfMember = {ctor: 'GuestOfMember'};
+var _user$project$ReceptionKiosk_Types$MemberPrivileges = {ctor: 'MemberPrivileges'};
+var _user$project$ReceptionKiosk_Types$ClassParticipant = {ctor: 'ClassParticipant'};
+var _user$project$ReceptionKiosk_Types$Curiousity = {ctor: 'Curiousity'};
 var _user$project$ReceptionKiosk_Types$UpdateReasonForVisit = function (a) {
 	return {ctor: 'UpdateReasonForVisit', _0: a};
 };
@@ -20253,6 +20193,10 @@ var _user$project$ReceptionKiosk_CheckInScene$init = function (flags) {
 	};
 	return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
 };
+var _user$project$ReceptionKiosk_CheckInScene$CheckInModel = F3(
+	function (a, b, c) {
+		return {flexId: a, matches: b, badNews: c};
+	});
 
 var _user$project$ReceptionKiosk_CheckInDoneScene$view = function (model) {
 	return A5(
@@ -20277,6 +20221,7 @@ var _user$project$ReceptionKiosk_CheckInDoneScene$init = function (flags) {
 		_1: _elm_lang$core$Platform_Cmd$none
 	};
 };
+var _user$project$ReceptionKiosk_CheckInDoneScene$CheckInDoneModel = {};
 
 var _user$project$ReceptionKiosk_CheckOutScene$sceneChipCss = {
 	ctor: '::',
@@ -20397,6 +20342,10 @@ var _user$project$ReceptionKiosk_CheckOutScene$init = function (flags) {
 	};
 	return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
 };
+var _user$project$ReceptionKiosk_CheckOutScene$CheckOutModel = F2(
+	function (a, b) {
+		return {checkedInAccts: a, badNews: b};
+	});
 
 var _user$project$ReceptionKiosk_CheckOutDoneScene$view = function (model) {
 	return A5(
@@ -20421,6 +20370,7 @@ var _user$project$ReceptionKiosk_CheckOutDoneScene$init = function (flags) {
 		_1: _elm_lang$core$Platform_Cmd$none
 	};
 };
+var _user$project$ReceptionKiosk_CheckOutDoneScene$CheckOutDoneModel = {};
 
 var _user$project$ReceptionKiosk_DoYouHaveAcctScene$view = function (kioskModel) {
 	return A5(
@@ -20452,6 +20402,7 @@ var _user$project$ReceptionKiosk_DoYouHaveAcctScene$init = function (flags) {
 		_1: _elm_lang$core$Platform_Cmd$none
 	};
 };
+var _user$project$ReceptionKiosk_DoYouHaveAcctScene$DoYouHaveAcctModel = {};
 
 var _user$project$ReceptionKiosk_HowDidYouHearScene$howDidYouHearCss = {
 	ctor: '::',
@@ -20609,6 +20560,10 @@ var _user$project$ReceptionKiosk_HowDidYouHearScene$init = function (flags) {
 	};
 	return {ctor: '_Tuple2', _0: sceneModel, _1: request};
 };
+var _user$project$ReceptionKiosk_HowDidYouHearScene$HowDidYouHearModel = F2(
+	function (a, b) {
+		return {discoveryMethods: a, badNews: b};
+	});
 
 var _user$project$ReceptionKiosk_NewMemberScene$emailRegex = function () {
 	var dchar = '[a-z0-9-]';
@@ -20814,6 +20769,10 @@ var _user$project$ReceptionKiosk_NewMemberScene$init = function (flags) {
 	};
 	return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
 };
+var _user$project$ReceptionKiosk_NewMemberScene$NewMemberModel = F5(
+	function (a, b, c, d, e) {
+		return {firstName: a, lastName: b, email: c, isAdult: d, badNews: e};
+	});
 
 var _user$project$ReceptionKiosk_NewUserScene$view = function (kioskModel) {
 	var sceneModel = kioskModel.newUserModel;
@@ -21049,6 +21008,10 @@ var _user$project$ReceptionKiosk_NewUserScene$init = function (flags) {
 	};
 	return {ctor: '_Tuple2', _0: sceneModel, _1: _elm_lang$core$Platform_Cmd$none};
 };
+var _user$project$ReceptionKiosk_NewUserScene$NewUserModel = F4(
+	function (a, b, c, d) {
+		return {userName: a, password1: b, password2: c, badNews: d};
+	});
 
 var _user$project$ReceptionKiosk_ReasonForVisitScene$activityListCss = {
 	ctor: '::',
@@ -21217,6 +21180,9 @@ var _user$project$ReceptionKiosk_ReasonForVisitScene$update = F2(
 var _user$project$ReceptionKiosk_ReasonForVisitScene$init = function (flags) {
 	var sceneModel = {reasonForVisit: _elm_lang$core$Maybe$Nothing};
 	return {ctor: '_Tuple2', _0: sceneModel, _1: _elm_lang$core$Platform_Cmd$none};
+};
+var _user$project$ReceptionKiosk_ReasonForVisitScene$ReasonForVisitModel = function (a) {
+	return {reasonForVisit: a};
 };
 
 var _user$project$ReceptionKiosk_WaiverScene$waiverHtml = {
@@ -21777,6 +21743,10 @@ var _user$project$ReceptionKiosk_WaiverScene$subscriptions = function (model) {
 			_1: {ctor: '[]'}
 		});
 };
+var _user$project$ReceptionKiosk_WaiverScene$WaiverModel = F3(
+	function (a, b, c) {
+		return {isSigning: a, signature: b, badNews: c};
+	});
 
 var _user$project$ReceptionKiosk_WelcomeScene$view = function (kioskModel) {
 	return A5(
@@ -21826,6 +21796,7 @@ var _user$project$ReceptionKiosk_WelcomeScene$init = function (flags) {
 		_1: _elm_lang$core$Platform_Cmd$none
 	};
 };
+var _user$project$ReceptionKiosk_WelcomeScene$WelcomeModel = {};
 
 var _user$project$ReceptionKiosk$subscriptions = function (model) {
 	var waiverSubs = _user$project$ReceptionKiosk_WaiverScene$subscriptions(model);
@@ -22153,6 +22124,35 @@ var _user$project$ReceptionKiosk$main = _elm_lang$html$Html$programWithFlags(
 				A2(_elm_lang$core$Json_Decode$field, 'bannerTopUrl', _elm_lang$core$Json_Decode$string));
 		},
 		A2(_elm_lang$core$Json_Decode$field, 'bannerBottomUrl', _elm_lang$core$Json_Decode$string)));
+var _user$project$ReceptionKiosk$Model = function (a) {
+	return function (b) {
+		return function (c) {
+			return function (d) {
+				return function (e) {
+					return function (f) {
+						return function (g) {
+							return function (h) {
+								return function (i) {
+									return function (j) {
+										return function (k) {
+											return function (l) {
+												return function (m) {
+													return function (n) {
+														return {flags: a, sceneStack: b, mdl: c, checkInModel: d, checkInDoneModel: e, checkOutModel: f, checkOutDoneModel: g, doYouHaveAcctModel: h, howDidYouHearModel: i, newMemberModel: j, newUserModel: k, reasonForVisitModel: l, waiverModel: m, welcomeModel: n};
+													};
+												};
+											};
+										};
+									};
+								};
+							};
+						};
+					};
+				};
+			};
+		};
+	};
+};
 
 var Elm = {};
 Elm['ReceptionKiosk'] = Elm['ReceptionKiosk'] || {};

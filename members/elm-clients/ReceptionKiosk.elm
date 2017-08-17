@@ -7,7 +7,7 @@ import Regex exposing (regex)
 import Http
 
 -- Third party
-import List.Nonempty
+import List.Nonempty exposing (Nonempty)
 import Material
 import Update.Extra exposing (andThen)
 import Update.Extra.Infix exposing ((:>))
@@ -41,6 +41,25 @@ main =
 -----------------------------------------------------------------------------
 -- MODEL
 -----------------------------------------------------------------------------
+
+type alias Model =
+  { flags : Flags
+  , sceneStack : Nonempty Scene -- 1st element is the top of the stack
+  -- elm-mdl model:
+  , mdl : Material.Model  -- TODO: Should there be one dedicated Material model per scene so index scope is smaller?
+  -- Scene models:
+  , checkInModel        : CheckInScene.CheckInModel
+  , checkInDoneModel    : CheckInDoneScene.CheckInDoneModel
+  , checkOutModel       : CheckOutScene.CheckOutModel
+  , checkOutDoneModel   : CheckOutDoneScene.CheckOutDoneModel
+  , doYouHaveAcctModel  : DoYouHaveAcctScene.DoYouHaveAcctModel
+  , howDidYouHearModel  : HowDidYouHearScene.HowDidYouHearModel
+  , newMemberModel      : NewMemberScene.NewMemberModel
+  , newUserModel        : NewUserScene.NewUserModel
+  , reasonForVisitModel : ReasonForVisitScene.ReasonForVisitModel
+  , waiverModel         : WaiverScene.WaiverModel
+  , welcomeModel        : WelcomeScene.WelcomeModel
+  }
 
 init : Flags -> (Model, Cmd Msg)
 init f =

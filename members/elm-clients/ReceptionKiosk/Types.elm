@@ -25,7 +25,7 @@ type alias Flags =
   }
 
 -----------------------------------------------------------------------------
--- MODEL TYPES
+-- SCENES
 -----------------------------------------------------------------------------
 
 type Scene
@@ -40,90 +40,6 @@ type Scene
   | ReasonForVisit
   | Waiver
   | Welcome
-
-type alias CheckInModel =
-  { flexId : String  -- UserName or surname.
-  , matches : List MatchingAcct  -- Matches to username/surname
-  , badNews : List String
-  }
-
-type alias CheckInDoneModel =
-  {
-  }
-
-type alias CheckOutModel =
-  { checkedInAccts : List MatchingAcct
-  , badNews : List String
-  }
-
-type alias CheckOutDoneModel =
-  {
-  }
-
-type alias DoYouHaveAcctModel =
-  {
-  }
-
-type alias HowDidYouHearModel =
-  { discoveryMethods : List DiscoveryMethod  -- Fetched from backend
-  , badNews : List String
-  }
-
-type alias NewMemberModel =
-  { firstName: String
-  , lastName: String
-  , email: String
-  , isAdult: Bool
-  , badNews: List String
-  }
-
-type alias NewUserModel =
-  { userName: String
-  , password1: String
-  , password2: String
-  , badNews: List String
-  }
-
-type ReasonForVisit
-  = Curiousity
-  | ClassParticipant
-  | MemberPrivileges
-  | GuestOfMember
-  | Volunteer
-  | Other
-
-type alias ReasonForVisitModel =
-  { reasonForVisit: Maybe ReasonForVisit
-  }
-
-type alias WaiverModel =
-  { isSigning : Bool
-  , signature : String  -- This is a data URL
-  , badNews : List String
-  }
-
-type alias WelcomeModel =
-  {
-  }
-
-type alias Model =
-  { flags : Flags
-  , sceneStack : Nonempty Scene -- 1st element is the top of the stack
-  -- elm-mdl model:
-  , mdl : Material.Model  -- TODO: Should there be one dedicated Material model per scene so index scope is smaller?
-  -- Scene models:
-  , checkInModel        : CheckInModel
-  , checkInDoneModel    : CheckInDoneModel
-  , checkOutModel       : CheckOutModel
-  , checkOutDoneModel   : CheckOutDoneModel
-  , doYouHaveAcctModel  : DoYouHaveAcctModel
-  , howDidYouHearModel  : HowDidYouHearModel
-  , newMemberModel      : NewMemberModel
-  , newUserModel        : NewUserModel
-  , reasonForVisitModel : ReasonForVisitModel
-  , waiverModel         : WaiverModel
-  , welcomeModel        : WelcomeModel
-  }
 
 -----------------------------------------------------------------------------
 -- MSG TYPES
@@ -156,6 +72,14 @@ type NewUserMsg
   | UpdateUserName String
   | UpdatePassword1 String
   | UpdatePassword2 String
+
+type ReasonForVisit
+  = Curiousity
+  | ClassParticipant
+  | MemberPrivileges
+  | GuestOfMember
+  | Volunteer
+  | Other
 
 type ReasonForVisitMsg
   = UpdateReasonForVisit ReasonForVisit

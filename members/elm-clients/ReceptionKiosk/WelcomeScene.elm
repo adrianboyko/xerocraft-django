@@ -1,5 +1,5 @@
 
-module ReceptionKiosk.WelcomeScene exposing (init, update, view)
+module ReceptionKiosk.WelcomeScene exposing (init, update, view, WelcomeModel)
 
 -- Standard
 import Html exposing (..)
@@ -14,6 +14,13 @@ import ReceptionKiosk.SceneUtils exposing (..)
 -- INIT
 -----------------------------------------------------------------------------
 
+type alias WelcomeModel =
+  {
+  }
+
+-- This type alias describes the type of kiosk model that this scene requires.
+type alias KioskModel a = (SceneUtilModel {a | welcomeModel : WelcomeModel})
+
 init : Flags -> (WelcomeModel, Cmd Msg)
 init flags = ({}, Cmd.none)
 
@@ -21,7 +28,7 @@ init flags = ({}, Cmd.none)
 -- UPDATE
 -----------------------------------------------------------------------------
 
-update : WelcomeMsg -> Model -> (WelcomeModel, Cmd Msg)
+update : WelcomeMsg -> KioskModel a -> (WelcomeModel, Cmd Msg)
 update msg kioskModel =
   let sceneModel = kioskModel.welcomeModel
   in case msg of
@@ -34,7 +41,7 @@ update msg kioskModel =
 -- VIEW
 -----------------------------------------------------------------------------
 
-view : Model -> Html Msg
+view : KioskModel a -> Html Msg
 view kioskModel =
   genericScene kioskModel
     "Welcome!"

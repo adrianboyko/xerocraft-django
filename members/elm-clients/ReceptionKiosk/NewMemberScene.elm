@@ -1,5 +1,5 @@
 
-module ReceptionKiosk.NewMemberScene exposing (init, update, view)
+module ReceptionKiosk.NewMemberScene exposing (init, update, view, NewMemberModel)
 
 -- Standard
 import Html exposing (..)
@@ -18,6 +18,17 @@ import ReceptionKiosk.SceneUtils exposing (..)
 -- INIT
 -----------------------------------------------------------------------------
 
+type alias NewMemberModel =
+  { firstName: String
+  , lastName: String
+  , email: String
+  , isAdult: Bool
+  , badNews: List String
+  }
+
+-- This type alias describes the type of kiosk model that this scene requires.
+type alias KioskModel a = (SceneUtilModel {a | newMemberModel : NewMemberModel})
+
 init : Flags -> (NewMemberModel, Cmd Msg)
 init flags =
   let model =
@@ -33,7 +44,7 @@ init flags =
 -- UPDATE
 -----------------------------------------------------------------------------
 
-update : NewMemberMsg -> Model -> (NewMemberModel, Cmd Msg)
+update : NewMemberMsg -> KioskModel a -> (NewMemberModel, Cmd Msg)
 update msg kioskModel =
   let sceneModel = kioskModel.newMemberModel
   in case msg of
@@ -78,7 +89,7 @@ validate sceneModel =
 -- VIEW
 -----------------------------------------------------------------------------
 
-view : Model -> Html Msg
+view : KioskModel a -> Html Msg
 view kioskModel =
   let sceneModel = kioskModel.newMemberModel
   in genericScene kioskModel

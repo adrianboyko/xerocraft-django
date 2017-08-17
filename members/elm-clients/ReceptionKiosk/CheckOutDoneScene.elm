@@ -1,5 +1,5 @@
 
-module ReceptionKiosk.CheckOutDoneScene exposing (init, view)
+module ReceptionKiosk.CheckOutDoneScene exposing (init, view, CheckOutDoneModel)
 
 -- Standard
 import Html exposing (Html, text)
@@ -14,8 +14,14 @@ import ReceptionKiosk.SceneUtils exposing (..)
 -- INIT
 -----------------------------------------------------------------------------
 
--- TODO: There should be a time out back to Welcome
+type alias CheckOutDoneModel =
+  {
+  }
 
+-- This type alias describes the type of kiosk model that this scene requires.
+type alias KioskModel a = (SceneUtilModel {a | checkOutDoneModel : CheckOutDoneModel})
+
+-- TODO: There should be a time out back to Welcome
 init : Flags -> (CheckOutDoneModel, Cmd Msg)
 init flags = ({}, Cmd.none)
 
@@ -27,7 +33,7 @@ init flags = ({}, Cmd.none)
 -- VIEW
 -----------------------------------------------------------------------------
 
-view : Model -> Html Msg
+view : KioskModel a -> Html Msg
 view model =
   genericScene model
     "You're Checked Out"

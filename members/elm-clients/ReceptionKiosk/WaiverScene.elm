@@ -1,5 +1,5 @@
 
-port module ReceptionKiosk.WaiverScene exposing (init, update, view, subscriptions)
+port module ReceptionKiosk.WaiverScene exposing (init, update, view, subscriptions, WaiverModel)
 
 -- Standard
 import Html exposing (..)
@@ -13,10 +13,27 @@ import String.Extra exposing (..)
 import ReceptionKiosk.Types exposing (..)
 import ReceptionKiosk.SceneUtils exposing (..)
 import ReceptionKiosk.Backend as Backend
+import ReceptionKiosk.NewMemberScene exposing (NewMemberModel)
+import ReceptionKiosk.NewUserScene exposing (NewUserModel)
 
 -----------------------------------------------------------------------------
 -- INIT
 -----------------------------------------------------------------------------
+
+type alias WaiverModel =
+  { isSigning : Bool
+  , signature : String  -- This is a data URL
+  , badNews : List String
+  }
+
+-- These type aliases describes the type of kiosk model that this scene requires.
+type alias SceneModels a =
+  { a
+  | waiverModel : WaiverModel
+  , newUserModel: NewUserModel
+  , newMemberModel : NewMemberModel
+  }
+type alias KioskModel a = (SceneUtilModel (SceneModels a))
 
 init : Flags -> (WaiverModel, Cmd Msg)
 init flags =
@@ -40,7 +57,7 @@ port signatureImage : (String -> msg) -> Sub msg  -- requested signature data ar
 -- UPDATE
 -----------------------------------------------------------------------------
 
-update : WaiverMsg -> Model -> (WaiverModel, Cmd Msg)
+update : WaiverMsg -> KioskModel a -> (WaiverModel, Cmd Msg)
 update msg kioskModel =
   let sceneModel = kioskModel.waiverModel
   in case msg of
@@ -105,7 +122,7 @@ update msg kioskModel =
 -- VIEW
 -----------------------------------------------------------------------------
 
-view : Model -> Html Msg
+view : KioskModel a -> Html Msg
 view kioskModel =
   -- TODO: Don't present this to minors.
   -- TODO: Don't present this to people who have already signed.
@@ -134,7 +151,7 @@ view kioskModel =
 -- SUBSCRIPTIONS
 -----------------------------------------------------------------------------
 
-subscriptions: Model -> Sub Msg
+subscriptions: KioskModel a -> Sub Msg
 subscriptions model =
   Sub.batch
     [

@@ -1,5 +1,5 @@
 
-module ReceptionKiosk.ReasonForVisitScene exposing (init, update, view)
+module ReceptionKiosk.ReasonForVisitScene exposing (init, update, view, ReasonForVisitModel)
 
 -- Standard
 import Html exposing (Html, text)
@@ -17,6 +17,13 @@ import ReceptionKiosk.SceneUtils exposing (..)
 -- INIT
 -----------------------------------------------------------------------------
 
+-- This type alias describes the type of kiosk model that this scene requires.
+type alias KioskModel a = (SceneUtilModel {a | reasonForVisitModel : ReasonForVisitModel})
+
+type alias ReasonForVisitModel =
+  { reasonForVisit: Maybe ReasonForVisit
+  }
+
 init : Flags -> (ReasonForVisitModel, Cmd Msg)
 init flags =
   let sceneModel = {reasonForVisit = Nothing}
@@ -26,7 +33,7 @@ init flags =
 -- UPDATE
 -----------------------------------------------------------------------------
 
-update : ReasonForVisitMsg -> Model -> (ReasonForVisitModel, Cmd Msg)
+update : ReasonForVisitMsg -> KioskModel a -> (ReasonForVisitModel, Cmd Msg)
 update msg kioskModel =
   let sceneModel = kioskModel.reasonForVisitModel
   in case msg of
@@ -38,7 +45,7 @@ update msg kioskModel =
 -- VIEW
 -----------------------------------------------------------------------------
 
-reasonString : Model -> ReasonForVisit -> String
+reasonString : KioskModel a -> ReasonForVisit -> String
 reasonString kioskModel reason =
   case reason of
     Curiousity -> "Checking out " ++ kioskModel.flags.orgName
@@ -48,7 +55,7 @@ reasonString kioskModel reason =
     Volunteer -> "Volunteering or staffing"
     Other -> "Other"
 
-view : Model -> Html Msg
+view : KioskModel a -> Html Msg
 view kioskModel =
   genericScene kioskModel
     "Today's Activity"
@@ -64,7 +71,7 @@ view kioskModel =
     )
     [ButtonSpec "OK" (Push CheckInDone)]
 
-makeActivityList : Model -> List ReasonForVisit -> Html Msg
+makeActivityList : KioskModel a -> List ReasonForVisit -> Html Msg
 makeActivityList kioskModel reasons =
   let sceneModel = kioskModel.reasonForVisitModel
   in Lists.ul activityListCss

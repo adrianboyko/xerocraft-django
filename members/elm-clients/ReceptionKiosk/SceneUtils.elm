@@ -13,7 +13,8 @@ import Material.Toggles as Toggles
 import Material.Chip as Chip
 import Material.Options as Options exposing (css)
 import Material.List as Lists
-import List.Nonempty
+import Material as Mat
+import List.Nonempty exposing (Nonempty)
 
 -- Local
 import ReceptionKiosk.Types exposing (..)
@@ -24,11 +25,13 @@ send msg =
   Task.succeed msg
   |> Task.perform identity
 
+type alias SceneUtilModel a = {a|mdl : Mat.Model, flags : Flags, sceneStack : Nonempty Scene}
+
 -----------------------------------------------------------------------------
 -- VIEW UTILITIES
 -----------------------------------------------------------------------------
 
-sceneFrame : Model -> List (Html Msg) -> Html Msg
+sceneFrame : (SceneUtilModel a) -> List (Html Msg) -> Html Msg
 sceneFrame model sceneHtml =
   div [frameDivStyle]
     [ img [src model.flags.bannerTopUrl, bannerTopStyle] []
@@ -37,7 +40,7 @@ sceneFrame model sceneHtml =
     , img [src model.flags.bannerBottomUrl, bannerBottomStyle] []
     ]
 
-frameNavButtons : Model -> Html Msg
+frameNavButtons : (SceneUtilModel a) -> Html Msg
 frameNavButtons model =
   div [navDivStyle]
     (
@@ -55,7 +58,7 @@ frameNavButtons model =
       [text ""]
     )
 
-genericScene : Model -> String -> String -> Html Msg -> List (ButtonSpec Msg) -> Html Msg
+genericScene : (SceneUtilModel a) -> String -> String -> Html Msg -> List (ButtonSpec Msg) -> Html Msg
 genericScene model title subtitle extraContent buttonSpecs =
   let sceneHtml =
     [ p [sceneTitleStyle] [text title]
@@ -68,13 +71,13 @@ genericScene model title subtitle extraContent buttonSpecs =
   in sceneFrame model sceneHtml
 
 type alias ButtonSpec msg = { title : String, msg: msg }
-sceneButton : Model -> ButtonSpec Msg -> Html Msg
+sceneButton : (SceneUtilModel a) -> ButtonSpec Msg -> Html Msg
 sceneButton model buttonSpec =
   Button.render MdlVector [0] model.mdl
     ([ Button.raised, Options.onClick buttonSpec.msg]++sceneButtonCss)
     [ text buttonSpec.title ]
 
-sceneGenericTextField : Model -> Int -> String -> String -> (String -> Msg) -> List (Textfield.Property Msg) -> Html Msg
+sceneGenericTextField : (SceneUtilModel a) -> Int -> String -> String -> (String -> Msg) -> List (Textfield.Property Msg) -> Html Msg
 sceneGenericTextField model index hint value msger options =
   Textfield.render MdlVector [index] model.mdl
     ( [ Textfield.label hint
@@ -86,19 +89,19 @@ sceneGenericTextField model index hint value msger options =
     )
     (text "spam") -- What is this Html Msg argument?
 
-sceneTextField : Model -> Int -> String -> String -> (String -> Msg) -> Html Msg
+sceneTextField : (SceneUtilModel a) -> Int -> String -> String -> (String -> Msg) -> Html Msg
 sceneTextField model index hint value msger =
   sceneGenericTextField model index hint value msger []
 
-scenePasswordField : Model -> Int -> String -> String -> (String -> Msg) -> Html Msg
+scenePasswordField : (SceneUtilModel a) -> Int -> String -> String -> (String -> Msg) -> Html Msg
 scenePasswordField model index hint value msger =
   sceneGenericTextField model index hint value msger [Textfield.password]
 
-sceneEmailField : Model -> Int -> String -> String -> (String -> Msg) -> Html Msg
+sceneEmailField : (SceneUtilModel a) -> Int -> String -> String -> (String -> Msg) -> Html Msg
 sceneEmailField model index hint value msger =
   sceneGenericTextField model index hint value msger [Textfield.email]
 
-sceneCheckbox : Model -> Int -> String -> Bool -> Msg -> Html Msg
+sceneCheckbox : (SceneUtilModel a) -> Int -> String -> Bool -> Msg -> Html Msg
 sceneCheckbox model index label value msger =
   -- Toggle.checkbox doesn't seem to handle centering very well. The following div compensates for that.
   div [style ["text-align"=>"left", "display"=>"inline-block", "width"=>"400px"]]
