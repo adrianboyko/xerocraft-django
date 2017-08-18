@@ -19240,6 +19240,7 @@ var _user$project$ReceptionKiosk_Types$GuestOfMember = {ctor: 'GuestOfMember'};
 var _user$project$ReceptionKiosk_Types$MemberPrivileges = {ctor: 'MemberPrivileges'};
 var _user$project$ReceptionKiosk_Types$ClassParticipant = {ctor: 'ClassParticipant'};
 var _user$project$ReceptionKiosk_Types$Curiousity = {ctor: 'Curiousity'};
+var _user$project$ReceptionKiosk_Types$ValidateReason = {ctor: 'ValidateReason'};
 var _user$project$ReceptionKiosk_Types$UpdateReasonForVisit = function (a) {
 	return {ctor: 'UpdateReasonForVisit', _0: a};
 };
@@ -21129,7 +21130,7 @@ var _user$project$ReceptionKiosk_ReasonForVisitScene$reasonString = F2(
 			case 'ClassParticipant':
 				return 'Attending a class or workshop';
 			case 'MemberPrivileges':
-				return 'Working on a personal project';
+				return 'Working on a project';
 			case 'GuestOfMember':
 				return 'Guest of a paying member';
 			case 'Volunteer':
@@ -21217,31 +21218,42 @@ var _user$project$ReceptionKiosk_ReasonForVisitScene$view = function (kioskModel
 		'Today\'s Activity',
 		'Let us know what you\'ll be doing today',
 		A2(
-			_user$project$ReceptionKiosk_ReasonForVisitScene$makeActivityList,
-			kioskModel,
+			_elm_lang$html$Html$div,
+			{ctor: '[]'},
 			{
 				ctor: '::',
-				_0: _user$project$ReceptionKiosk_Types$Curiousity,
-				_1: {
-					ctor: '::',
-					_0: _user$project$ReceptionKiosk_Types$ClassParticipant,
-					_1: {
+				_0: A2(
+					_user$project$ReceptionKiosk_ReasonForVisitScene$makeActivityList,
+					kioskModel,
+					{
 						ctor: '::',
 						_0: _user$project$ReceptionKiosk_Types$MemberPrivileges,
 						_1: {
 							ctor: '::',
-							_0: _user$project$ReceptionKiosk_Types$GuestOfMember,
+							_0: _user$project$ReceptionKiosk_Types$Volunteer,
 							_1: {
 								ctor: '::',
-								_0: _user$project$ReceptionKiosk_Types$Volunteer,
+								_0: _user$project$ReceptionKiosk_Types$Curiousity,
 								_1: {
 									ctor: '::',
-									_0: _user$project$ReceptionKiosk_Types$Other,
-									_1: {ctor: '[]'}
+									_0: _user$project$ReceptionKiosk_Types$ClassParticipant,
+									_1: {
+										ctor: '::',
+										_0: _user$project$ReceptionKiosk_Types$GuestOfMember,
+										_1: {
+											ctor: '::',
+											_0: _user$project$ReceptionKiosk_Types$Other,
+											_1: {ctor: '[]'}
+										}
+									}
 								}
 							}
 						}
-					}
+					}),
+				_1: {
+					ctor: '::',
+					_0: _user$project$ReceptionKiosk_SceneUtils$formatBadNews(kioskModel.reasonForVisitModel.badNews),
+					_1: {ctor: '[]'}
 				}
 			}),
 		{
@@ -21249,8 +21261,7 @@ var _user$project$ReceptionKiosk_ReasonForVisitScene$view = function (kioskModel
 			_0: A2(
 				_user$project$ReceptionKiosk_SceneUtils$ButtonSpec,
 				'OK',
-				_user$project$ReceptionKiosk_Types$WizardVector(
-					_user$project$ReceptionKiosk_Types$Push(_user$project$ReceptionKiosk_Types$CheckInDone))),
+				_user$project$ReceptionKiosk_Types$ReasonForVisitVector(_user$project$ReceptionKiosk_Types$ValidateReason)),
 			_1: {ctor: '[]'}
 		});
 };
@@ -21258,23 +21269,49 @@ var _user$project$ReceptionKiosk_ReasonForVisitScene$update = F2(
 	function (msg, kioskModel) {
 		var sceneModel = kioskModel.reasonForVisitModel;
 		var _p2 = msg;
-		return {
-			ctor: '_Tuple2',
-			_0: _elm_lang$core$Native_Utils.update(
-				sceneModel,
-				{
-					reasonForVisit: _elm_lang$core$Maybe$Just(_p2._0)
-				}),
-			_1: _elm_lang$core$Platform_Cmd$none
-		};
+		if (_p2.ctor === 'UpdateReasonForVisit') {
+			return {
+				ctor: '_Tuple2',
+				_0: _elm_lang$core$Native_Utils.update(
+					sceneModel,
+					{
+						reasonForVisit: _elm_lang$core$Maybe$Just(_p2._0)
+					}),
+				_1: _elm_lang$core$Platform_Cmd$none
+			};
+		} else {
+			return _elm_lang$core$Native_Utils.eq(sceneModel.reasonForVisit, _elm_lang$core$Maybe$Nothing) ? {
+				ctor: '_Tuple2',
+				_0: _elm_lang$core$Native_Utils.update(
+					sceneModel,
+					{
+						badNews: {
+							ctor: '::',
+							_0: 'You must choose an activity type.',
+							_1: {ctor: '[]'}
+						}
+					}),
+				_1: _elm_lang$core$Platform_Cmd$none
+			} : {
+				ctor: '_Tuple2',
+				_0: sceneModel,
+				_1: _user$project$ReceptionKiosk_SceneUtils$send(
+					_user$project$ReceptionKiosk_Types$WizardVector(
+						_user$project$ReceptionKiosk_Types$Push(_user$project$ReceptionKiosk_Types$CheckInDone)))
+			};
+		}
 	});
 var _user$project$ReceptionKiosk_ReasonForVisitScene$init = function (flags) {
-	var sceneModel = {reasonForVisit: _elm_lang$core$Maybe$Nothing};
+	var sceneModel = {
+		reasonForVisit: _elm_lang$core$Maybe$Nothing,
+		badNews: {ctor: '[]'}
+	};
 	return {ctor: '_Tuple2', _0: sceneModel, _1: _elm_lang$core$Platform_Cmd$none};
 };
-var _user$project$ReceptionKiosk_ReasonForVisitScene$ReasonForVisitModel = function (a) {
-	return {reasonForVisit: a};
-};
+var _user$project$ReceptionKiosk_ReasonForVisitScene$ReasonForVisitModel = F2(
+	function (a, b) {
+		return {reasonForVisit: a, badNews: b};
+	});
 
 var _user$project$ReceptionKiosk_WaiverScene$waiverHtml = {
 	ctor: '::',

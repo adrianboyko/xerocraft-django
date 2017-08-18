@@ -2,7 +2,7 @@
 module ReceptionKiosk.ReasonForVisitScene exposing (init, update, view, ReasonForVisitModel)
 
 -- Standard
-import Html exposing (Html, text)
+import Html exposing (Html, text, div)
 
 -- Third Party
 import Material.Toggles as Toggles
@@ -22,11 +22,12 @@ type alias KioskModel a = (SceneUtilModel {a | reasonForVisitModel : ReasonForVi
 
 type alias ReasonForVisitModel =
   { reasonForVisit: Maybe ReasonForVisit
+  , badNews: List String
   }
 
 init : Flags -> (ReasonForVisitModel, Cmd Msg)
 init flags =
-  let sceneModel = {reasonForVisit = Nothing}
+  let sceneModel = {reasonForVisit = Nothing, badNews = []}
   in (sceneModel, Cmd.none)
 
 -----------------------------------------------------------------------------
@@ -41,6 +42,11 @@ update msg kioskModel =
     UpdateReasonForVisit reason ->
       ({sceneModel | reasonForVisit = Just reason}, Cmd.none)
 
+    ValidateReason ->
+      if sceneModel.reasonForVisit == Nothing
+        then ({sceneModel | badNews = ["You must choose an activity type."]}, Cmd.none)
+        else (sceneModel, send (WizardVector <| Push <| CheckInDone))
+
 -----------------------------------------------------------------------------
 -- VIEW
 -----------------------------------------------------------------------------
@@ -50,7 +56,7 @@ reasonString kioskModel reason =
   case reason of
     Curiousity -> "Checking out " ++ kioskModel.flags.orgName
     ClassParticipant -> "Attending a class or workshop"
-    MemberPrivileges -> "Working on a personal project"
+    MemberPrivileges -> "Working on a project"
     GuestOfMember -> "Guest of a paying member"
     Volunteer -> "Volunteering or staffing"
     Other -> "Other"
@@ -60,17 +66,19 @@ view kioskModel =
   genericScene kioskModel
     "Today's Activity"
     "Let us know what you'll be doing today"
-    (makeActivityList kioskModel
-      [ Curiousity
-      , ClassParticipant
-      , MemberPrivileges
-      , GuestOfMember
-      , Volunteer
-      , Other
-      ]
+    ( div []
+        [ makeActivityList kioskModel
+           [ MemberPrivileges
+           , Volunteer
+           , Curiousity
+           , ClassParticipant
+           , GuestOfMember
+           , Other
+           ]
+        , formatBadNews kioskModel.reasonForVisitModel.badNews
+        ]
     )
-    -- TODO: OK button should be disabled until a reason is selected.
-    [ButtonSpec "OK" (WizardVector <| Push <| CheckInDone)]
+    [ButtonSpec "OK" (ReasonForVisitVector <| ValidateReason)]
 
 makeActivityList : KioskModel a -> List ReasonForVisit -> Html Msg
 makeActivityList kioskModel reasons =

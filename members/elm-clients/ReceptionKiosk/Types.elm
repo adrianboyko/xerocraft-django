@@ -85,6 +85,7 @@ type ReasonForVisit
 
 type ReasonForVisitMsg
   = UpdateReasonForVisit ReasonForVisit
+  | ValidateReason
 
 type WaiverMsg
   = ShowSignaturePad String
