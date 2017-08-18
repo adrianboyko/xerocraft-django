@@ -22,6 +22,7 @@ type alias Flags =
   , discoveryMethodsUrl: String
   , checkedInAcctsUrl: String
   , matchingAcctsUrl: String
+  , logVisitEventUrl: String
   }
 
 -----------------------------------------------------------------------------
@@ -49,6 +50,7 @@ type CheckInMsg
   = UpdateMatchingAccts (Result Http.Error MatchingAcctInfo)
   | UpdateFlexId String
   | LogCheckIn Int
+  | LoggingResult (Result Http.Error GenericResult)
 
 type CheckOutMsg
   = UpdateCheckedInAccts (Result Http.Error MatchingAcctInfo)

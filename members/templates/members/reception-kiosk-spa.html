@@ -72,7 +72,8 @@
             "bannerBottomUrl": "{% static 'xerops/GenericBannerBottom_800x84.png' %}",
             "discoveryMethodsUrl": "{% url 'memb:discoverymethod-list' %}",
             "checkedInAcctsUrl": "{% url 'memb:reception-kiosk-checked-in-accts' %}",
-            "matchingAcctsUrl":  "{% url 'memb:reception-kiosk-matching-accts' flexid='FLEXID' %}"
+            "matchingAcctsUrl":  "{% url 'memb:reception-kiosk-matching-accts' flexid='FLEXID' %}",
+            "logVisitEventUrl":  "{% url 'memb:reception-kiosk-log-visit-event' member_pk='12345' event_type='A' %}"
         };
 
         var signaturePad = null;

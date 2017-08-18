@@ -66,8 +66,16 @@ update msg kioskModel =
       ({sceneModel | badNews = [toString error]}, Cmd.none)
 
     LogCheckIn memberNum ->
-      -- TODO: Log the visit. Might be last feature to be implemented to avoid collecting bogus visits during alpha testing.
+      let
+        logVisitEvent = Backend.logVisitEvent  kioskModel.flags
+        cmd = logVisitEvent memberNum Backend.Arrival (CheckInVector << LoggingResult)
+      in (sceneModel, cmd)
+
+    LoggingResult (Ok {result}) ->
       (sceneModel, send (WizardVector <| Push <| ReasonForVisit))
+
+    LoggingResult (Err error) ->
+      ({sceneModel | badNews = [toString error]}, Cmd.none)
 
 -----------------------------------------------------------------------------
 -- VIEW

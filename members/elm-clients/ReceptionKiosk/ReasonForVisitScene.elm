@@ -69,6 +69,7 @@ view kioskModel =
       , Other
       ]
     )
+    -- TODO: OK button should be disabled until a reason is selected.
     [ButtonSpec "OK" (WizardVector <| Push <| CheckInDone)]
 
 makeActivityList : KioskModel a -> List ReasonForVisit -> Html Msg

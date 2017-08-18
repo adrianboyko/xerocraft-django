@@ -6,8 +6,11 @@ module ReceptionKiosk.Backend exposing
   , getDiscoveryMethods
   , getMatchingAccts
   , getCheckedInAccts
+  , logVisitEvent
   , MatchingAcct
   , MatchingAcctInfo
+  , GenericResult
+  , VisitEventType (..)
   )
 
 -- Standard
@@ -53,6 +56,22 @@ getMatchingAccts flags flexId thing =
     url = flags.matchingAcctsUrl++"?format=json"  -- Easier than an "Accept" header.
     url2 = replaceAll url "FLEXID" flexId
     request = Http.get url2 decodeMatchingAcctInfo
+  in
+    Http.send thing request
+
+type VisitEventType = Arrival | Present  | Departure
+
+logVisitEvent : {a|logVisitEventUrl:String} -> Int -> VisitEventType -> (Result Http.Error GenericResult -> msg) -> Cmd msg
+logVisitEvent flags memberPK eventType thing =
+  let
+    eventVal = case eventType of
+      Arrival -> "A"
+      Present -> "P"
+      Departure -> "D"
+    url1 = flags.logVisitEventUrl++"?format=json"  -- Easier than an "Accept" header.
+    url2 = replaceAll url1 "/12345_" ("/"++(toString memberPK)++"_")
+    url3 = replaceAll url2 "_A/" ("_"++eventVal++"/")
+    request = Http.get url3 decodeGenericResult
   in
     Http.send thing request
 
@@ -111,6 +130,9 @@ type alias DiscoveryMethodInfo =
   , results: List DiscoveryMethod
   }
 
+type alias GenericResult =
+  { result: String
+  }
 
 -----------------------------------------------------------------------------
 -- JSON
@@ -144,3 +166,7 @@ decodeDiscoveryMethodInfo =
     (Dec.field "previous" (Dec.maybe Dec.string))
     (Dec.field "results" (Dec.list decodeDiscoveryMethod))
 
+decodeGenericResult : Dec.Decoder GenericResult
+decodeGenericResult =
+  Dec.map GenericResult
+    (Dec.field "result" Dec.string)

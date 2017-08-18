@@ -13,6 +13,12 @@ router.register(r'wifi-mac-detected', views.WifiMacDetectedViewSet)
 
 urlpatterns = [
 
+    # For reception kiosk (check-in, sign-up, etc):
+    url(r'^reception/$', views.reception_kiosk_spa, name="reception-kiosk"),
+    url(r'^reception/matching-accts/(?P<flexid>[-_a-zA-Z0-9]{1,32})/$', views.reception_kiosk_matching_accts, name="reception-kiosk-matching-accts"),
+    url(r'^reception/checked-in-accts/$', views.reception_kiosk_checked_in_accts, name="reception-kiosk-checked-in-accts"),
+    url(r'^reception/log-visit-event/(?P<member_pk>[0-9]*)_(?P<event_type>[APD])/$', views.reception_kiosk_log_visit_event, name="reception-kiosk-log-visit-event"),
+
     # For desktop:
     url(r'^create-card/$', views.create_card, name='create-card'),
     url(r'^create-card-download/$', views.create_card_download, name='create-card-download'),
@@ -29,12 +35,6 @@ urlpatterns = [
     url(r'^kiosk/check-in-member/(?P<member_card_str>[-_a-zA-Z0-9]{32})_(?P<event_type>[APD])/$', views.Kiosk_LogVisitEvent.as_view(), name="kiosk-check-in-member"),
     url(r'^kiosk/member-details/(?P<member_card_str>[-_a-zA-Z0-9]{32})_(?P<staff_card_str>[-_a-zA-Z0-9]{32})/$', views.kiosk_member_details, name="kiosk-member-details"),
     url(r'^kiosk/member-details/(?P<member_card_str>[-_a-zA-Z0-9]{32})_(?P<staff_card_str>[-_a-zA-Z0-9]{32})/(?P<tag_pk>[0-9]+)/', views.kiosk_add_tag),
-
-    # For reception kiosk (check-in, sign-up, etc):
-    url(r'^reception/$', views.reception_kiosk_spa, name="reception-kiosk"),
-    url(r'^reception/matching-accts/(?P<flexid>[-_a-zA-Z0-9]{1,32})/$', views.reception_kiosk_matching_accts, name="reception-kiosk-matching-accts"),
-    url(r'^reception/checked-in-accts/$', views.reception_kiosk_checked_in_accts, name="reception-kiosk-checked-in-accts"),
-    url(r'^reception/log-visit-event/(?P<member_pk>[0-9]*)_(?P<event_type>[APD])/$', views.reception_kiosk_log_visit_event, name="reception-kiosk-log-visit-event"),
 
     # For mobile apps:
     url(r'^api/member-details/(?P<member_card_str>[-_a-zA-Z0-9]{32})_(?P<staff_card_str>[-_a-zA-Z0-9]{32})/$', views.api_member_details, name="api-member-details"),
