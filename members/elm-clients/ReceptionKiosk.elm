@@ -111,7 +111,7 @@ init f =
 -- reset restores the model as it was after init.
 reset : Model -> (Model, Cmd Msg)
 reset m =
-    init m.flags
+  init m.flags
 
 -----------------------------------------------------------------------------
 -- UPDATE
