@@ -23,7 +23,6 @@ from icalendar import Calendar, Event
 from tasks.forms import Desktop_TimeSheetForm
 from tasks.models import Task, Nag, Claim, Work, WorkNote, Worker, TimeWindowedObject
 from members.models import Member, VisitEvent
-from members.views import kiosk_visitevent_contentprovider
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -32,88 +31,10 @@ _logger = logging.getLogger("tasks")
 
 _ORG_NAME_POSSESSIVE = settings.XEROPS_ORG_NAME_POSSESSIVE
 
-# = = = = = = = = = = = = = = = = = = = = KIOSK VISIT EVENT CONTENT PROVIDERS
 
-
-def task_button_text(obj):
-    assert isinstance(obj, TimeWindowedObject)
-    desc = obj.window_short_desc()
-    if obj.window_start_time() is not None:
-        desc += obj.window_start_time().strftime(" @ %H%M")
-    return desc
-
-
-@kiosk_visitevent_contentprovider
-def visitevent_arrival_content(member, member_card_str, visit_event_type):
-
-    # Short out if this isn't the event type this contentprovider handles.
-    if visit_event_type != VisitEvent.EVT_ARRIVAL: return ""
-
-    working_today = []      # Tasks the member is already working.
-    claimed_today = []      # The member's claimed tasks for today
-    unclaimed_today = []    # Other tasks scheduled for today that the member could claim
-    unclaimed_anytime = []  # Other unscheduled tasks that the member could claim
-
-    # TODO: Don't find tasks that are past their time window.
-
-    halfhour = timedelta(minutes=30)
-
-    # Find member's claimed tasks for today:
-    for claim in member.claim_set.filter(
-      claimed_task__status=Task.STAT_ACTIVE,
-      status__in=[Claim.STAT_CURRENT, Claim.STAT_WORKING],
-      claimed_task__scheduled_date=date.today()):
-        if not claim.in_window_now(start_leeway=-halfhour): continue
-        if claim.status == Claim.STAT_CURRENT:
-            claimed_today.append((claim.claimed_task, task_button_text(claim)))
-        if claim.status == Claim.STAT_WORKING:
-            working_today.append((claim.claimed_task, task_button_text(claim)))
-
-    # Find today's unclaimed tasks:
-    for task in Task.objects.filter(status=Task.STAT_ACTIVE, scheduled_date=date.today()):  # type: Task
-        if not task.in_window_now(start_leeway=-halfhour): continue
-        if member in task.all_eligible_claimants() and task.claimants.count() == 0:
-            unclaimed_today.append((task, task_button_text(task)))
-
-    # Find unclaimed tasks with no scheduled date:
-    for task in Task.objects.filter(status=Task.STAT_ACTIVE, scheduled_date__isnull=True):  # type: Task
-        if not task.in_window_now(start_leeway=-halfhour): continue
-        if member in task.all_eligible_claimants() and task.claimants.count() == 0:
-            unclaimed_anytime.append((task, task_button_text(task)))
-
-    template = loader.get_template('tasks/check_in_content.html')
-    d = {
-        'working_today'     : working_today,
-        'claimed_today'     : claimed_today,
-        'unclaimed_today'   : unclaimed_today,
-        'unclaimed_anytime' : unclaimed_anytime,
-        'member_card_str'   : member_card_str,
-    }
-    return template.render(d)
-
-
-@kiosk_visitevent_contentprovider
-def visitevent_departure_content(member, member_card_str, visit_event_type):
-
-    # Short out if this isn't the event type this contentprovider handles.
-    if visit_event_type != VisitEvent.EVT_DEPARTURE: return ""
-
-    working_today = []      # Tasks the member is already working.
-
-    # Find member's claimed tasks for today:
-    for claim in member.claim_set.filter(
-      status__in=[Claim.STAT_CURRENT,Claim.STAT_WORKING],
-      claimed_task__scheduled_date=date.today()):
-        if claim.status == Claim.STAT_WORKING:
-            working_today.append((claim.claimed_task, task_button_text(claim)))
-
-    template = loader.get_template('tasks/kiosk_check_out_content.html')
-    context = Context({
-        'working_today'     : working_today,
-        'member_card_str'   : member_card_str,
-    })
-    return template.render(context)
-
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# For Nags
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 def note_task_done(request, task_pk, auth_token):
 
