@@ -7,10 +7,12 @@ module ReceptionKiosk.Backend exposing
   , getMatchingAccts
   , getCheckedInAccts
   , logVisitEvent
+  , logReasonForVisit
   , MatchingAcct
   , MatchingAcctInfo
   , GenericResult
   , VisitEventType (..)
+  , ReasonForVisit (..)
   )
 
 -- Standard
@@ -59,7 +61,10 @@ getMatchingAccts flags flexId thing =
   in
     Http.send thing request
 
-type VisitEventType = Arrival | Present  | Departure
+type VisitEventType
+  = Arrival
+  | Present
+  | Departure
 
 logVisitEvent : {a|logVisitEventUrl:String} -> Int -> VisitEventType -> (Result Http.Error GenericResult -> msg) -> Cmd msg
 logVisitEvent flags memberPK eventType thing =
@@ -71,6 +76,31 @@ logVisitEvent flags memberPK eventType thing =
     url1 = flags.logVisitEventUrl++"?format=json"  -- Easier than an "Accept" header.
     url2 = replaceAll url1 "/12345_" ("/"++(toString memberPK)++"_")
     url3 = replaceAll url2 "_A/" ("_"++eventVal++"/")
+    request = Http.get url3 decodeGenericResult
+  in
+    Http.send thing request
+
+type ReasonForVisit
+  = Curiousity
+  | ClassParticipant
+  | MemberPrivileges
+  | GuestOfMember
+  | Volunteer
+  | Other
+
+logReasonForVisit : {a|logReasonForVisitUrl:String} -> Int -> ReasonForVisit -> (Result Http.Error GenericResult -> msg) -> Cmd msg
+logReasonForVisit flags memberPK reason thing =
+  let
+    reasonVal = case reason of
+      Curiousity -> "CUR"
+      ClassParticipant -> "CLS"
+      MemberPrivileges -> "PRJ"
+      GuestOfMember -> "GST"
+      Volunteer -> "VOL"
+      Other -> "OTH"
+    url1 = flags.logReasonForVisitUrl++"?format=json"  -- Easier than an "Accept" header.
+    url2 = replaceAll url1 "/12345_" ("/"++(toString memberPK)++"_")
+    url3 = replaceAll url2 "_OTH/" ("_"++reasonVal++"/")
     request = Http.get url3 decodeGenericResult
   in
     Http.send thing request

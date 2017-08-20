@@ -81,6 +81,11 @@ def _log_visit_event(who_in: Union[str, Member, int], event_type) -> Tuple[bool,
     return True, who
 
 
+def _log_reason_for_visit(who_in: Union[str, Member, int], reason) -> Tuple[bool, str]:
+    return False, "Not yet implemented"
+    # TODO: Implement!
+
+
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = API
 
 def api_member_details(request, member_card_str, staff_card_str):
@@ -718,4 +723,18 @@ def reception_kiosk_checked_in_accts(request) -> JsonResponse:
 def reception_kiosk_log_visit_event(request, member_pk, event_type) -> JsonResponse:
     if settings.ISDEVHOST:  # TODO: Remove this guard when we this goes into production.
         success, info = _log_visit_event(int(member_pk), event_type)
-    return JsonResponse({"result": "success"})
+    if success:
+        return JsonResponse({"result": "success"})
+    else:
+        assert isinstance(info, str)
+        return JsonResponse({"result": info})
+
+
+def reception_kiosk_log_reason_for_visit(request, member_pk, reason) -> JsonResponse:
+    if settings.ISDEVHOST:  # TODO: Remove this guard when we this goes into production.
+        success, msg = _log_reason_for_visit(int(member_pk), reason)
+    if success:
+        return JsonResponse({"result": "success"})
+    else:
+        return JsonResponse({"result": msg})
+

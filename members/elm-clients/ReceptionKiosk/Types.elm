@@ -23,6 +23,7 @@ type alias Flags =
   , checkedInAcctsUrl: String
   , matchingAcctsUrl: String
   , logVisitEventUrl: String
+  , logReasonForVisitUrl: String
   }
 
 -----------------------------------------------------------------------------
@@ -50,7 +51,7 @@ type CheckInMsg
   = UpdateMatchingAccts (Result Http.Error MatchingAcctInfo)
   | UpdateFlexId String
   | LogCheckIn Int
-  | LoggingResult (Result Http.Error GenericResult)
+  | LogCheckInResult (Result Http.Error GenericResult)
 
 type CheckOutMsg
   = UpdateCheckedInAccts (Result Http.Error MatchingAcctInfo)
@@ -75,17 +76,10 @@ type NewUserMsg
   | UpdatePassword1 String
   | UpdatePassword2 String
 
-type ReasonForVisit
-  = Curiousity
-  | ClassParticipant
-  | MemberPrivileges
-  | GuestOfMember
-  | Volunteer
-  | Other
-
 type ReasonForVisitMsg
   = UpdateReasonForVisit ReasonForVisit
   | ValidateReason
+  | LogReasonResult (Result Http.Error GenericResult)
 
 type WaiverMsg
   = ShowSignaturePad String

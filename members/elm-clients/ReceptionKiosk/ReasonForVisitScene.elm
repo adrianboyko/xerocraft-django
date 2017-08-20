@@ -12,13 +12,21 @@ import Material.List as Lists
 -- Local
 import ReceptionKiosk.Types exposing (..)
 import ReceptionKiosk.SceneUtils exposing (..)
+import ReceptionKiosk.CheckInScene exposing (CheckInModel)
+import ReceptionKiosk.Backend as Backend exposing (ReasonForVisit(..))
 
 -----------------------------------------------------------------------------
 -- INIT
 -----------------------------------------------------------------------------
 
 -- This type alias describes the type of kiosk model that this scene requires.
-type alias KioskModel a = (SceneUtilModel {a | reasonForVisitModel : ReasonForVisitModel})
+type alias KioskModel a =
+  (SceneUtilModel
+    { a
+    | reasonForVisitModel : ReasonForVisitModel
+    , checkInModel : CheckInModel
+    }
+  )
 
 type alias ReasonForVisitModel =
   { reasonForVisit: Maybe ReasonForVisit
@@ -36,16 +44,31 @@ init flags =
 
 update : ReasonForVisitMsg -> KioskModel a -> (ReasonForVisitModel, Cmd Msg)
 update msg kioskModel =
-  let sceneModel = kioskModel.reasonForVisitModel
+  let
+    sceneModel = kioskModel.reasonForVisitModel
+    checkInModel = kioskModel.checkInModel
+
   in case msg of
 
     UpdateReasonForVisit reason ->
       ({sceneModel | reasonForVisit = Just reason}, Cmd.none)
 
     ValidateReason ->
-      if sceneModel.reasonForVisit == Nothing
-        then ({sceneModel | badNews = ["You must choose an activity type."]}, Cmd.none)
-        else (sceneModel, send (WizardVector <| Push <| CheckInDone))
+
+      case sceneModel.reasonForVisit of
+        Nothing ->
+          ({sceneModel | badNews = ["You must choose an activity type."]}, Cmd.none)
+        Just reasonForVisit ->
+          let
+            logReasonForVisit = Backend.logReasonForVisit kioskModel.flags
+            cmd = logReasonForVisit checkInModel.memberNum reasonForVisit (ReasonForVisitVector << LogReasonResult)
+          in (sceneModel, cmd)
+
+    LogReasonResult (Ok {result}) ->
+      (sceneModel, send (WizardVector <| Push <| CheckInDone))
+
+    LogReasonResult (Err error) ->
+      ({sceneModel | badNews = [toString error]}, Cmd.none)
 
 -----------------------------------------------------------------------------
 -- VIEW

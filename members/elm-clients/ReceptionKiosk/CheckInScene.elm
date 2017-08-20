@@ -19,9 +19,11 @@ import ReceptionKiosk.Backend as Backend
 -- INIT
 -----------------------------------------------------------------------------
 
+-- REVIEW: Strictly speaking, flexID and memberNum should be Maybes.
 type alias CheckInModel =
   { flexId : String  -- UserName or surname.
   , matches : List Backend.MatchingAcct  -- Matches to username/surname
+  , memberNum : Int -- The member number that the person chose to check in as.
   , badNews : List String
   }
 
@@ -31,8 +33,9 @@ type alias KioskModel a = (SceneUtilModel {a | checkInModel : CheckInModel})
 init : Flags -> (CheckInModel, Cmd Msg)
 init flags =
   let model =
-    { flexId = ""
+    { flexId = ""  -- A harmless initial value.
     , matches = []
+    , memberNum = -99  -- A harmless initial value.
     , badNews = []
     }
   in (model, Cmd.none)
@@ -68,13 +71,13 @@ update msg kioskModel =
     LogCheckIn memberNum ->
       let
         logVisitEvent = Backend.logVisitEvent  kioskModel.flags
-        cmd = logVisitEvent memberNum Backend.Arrival (CheckInVector << LoggingResult)
-      in (sceneModel, cmd)
+        cmd = logVisitEvent memberNum Backend.Arrival (CheckInVector << LogCheckInResult)
+      in ({sceneModel | memberNum = memberNum}, cmd)
 
-    LoggingResult (Ok {result}) ->
+    LogCheckInResult (Ok {result}) ->
       (sceneModel, send (WizardVector <| Push <| ReasonForVisit))
 
-    LoggingResult (Err error) ->
+    LogCheckInResult (Err error) ->
       ({sceneModel | badNews = [toString error]}, Cmd.none)
 
 -----------------------------------------------------------------------------
