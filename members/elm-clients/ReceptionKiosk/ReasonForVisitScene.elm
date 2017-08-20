@@ -60,14 +60,14 @@ update msg kioskModel =
           ({sceneModel | badNews = ["You must choose an activity type."]}, Cmd.none)
         Just reasonForVisit ->
           let
-            logReasonForVisit = Backend.logReasonForVisit kioskModel.flags
-            cmd = logReasonForVisit checkInModel.memberNum reasonForVisit (ReasonForVisitVector << LogReasonResult)
+            logVisitEvent = Backend.logVisitEvent  kioskModel.flags
+            cmd = logVisitEvent checkInModel.memberNum Backend.Arrival reasonForVisit (ReasonForVisitVector << LogCheckInResult)
           in (sceneModel, cmd)
 
-    LogReasonResult (Ok {result}) ->
+    LogCheckInResult (Ok {result}) ->
       (sceneModel, send (WizardVector <| Push <| CheckInDone))
 
-    LogReasonResult (Err error) ->
+    LogCheckInResult (Err error) ->
       ({sceneModel | badNews = [toString error]}, Cmd.none)
 
 -----------------------------------------------------------------------------
@@ -79,7 +79,7 @@ reasonString kioskModel reason =
   case reason of
     Curiousity -> "Checking out " ++ kioskModel.flags.orgName
     ClassParticipant -> "Attending a class or workshop"
-    MemberPrivileges -> "Working on a project"
+    MemberPrivileges -> "Membership privileges"
     GuestOfMember -> "Guest of a paying member"
     Volunteer -> "Volunteering or staffing"
     Other -> "Other"

@@ -49,14 +49,14 @@ class VisitEventAdmin(admin.ModelAdmin):  # No need to version events.
         # These are created by automated processes, not humans.
 
     ordering = ['-when']
-    list_display = ['pk', 'when', 'who', 'event_type', 'method', 'sync1']
+    list_display = ['pk', 'when', 'who', 'event_type', 'reason', 'method', 'sync1']
     #readonly_fields = ['when', 'who', 'event_type', 'method', 'sync1']
     search_fields = [
         '^who__auth_user__first_name',
         '^who__auth_user__last_name',
         '^who__auth_user__username',
     ]
-    list_filter = ['when']
+    list_filter = ['when', 'event_type', 'reason', 'method']
     date_hierarchy = 'when'
     raw_id_fields = ['who']
 

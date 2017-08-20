@@ -68,17 +68,8 @@ update msg kioskModel =
     UpdateMatchingAccts (Err error) ->
       ({sceneModel | badNews = [toString error]}, Cmd.none)
 
-    LogCheckIn memberNum ->
-      let
-        logVisitEvent = Backend.logVisitEvent  kioskModel.flags
-        cmd = logVisitEvent memberNum Backend.Arrival (CheckInVector << LogCheckInResult)
-      in ({sceneModel | memberNum = memberNum}, cmd)
-
-    LogCheckInResult (Ok {result}) ->
-      (sceneModel, send (WizardVector <| Push <| ReasonForVisit))
-
-    LogCheckInResult (Err error) ->
-      ({sceneModel | badNews = [toString error]}, Cmd.none)
+    UpdateMemberNum memberNum ->
+      ({sceneModel | memberNum = memberNum}, send (WizardVector <| Push <| ReasonForVisit))
 
 -----------------------------------------------------------------------------
 -- VIEW
@@ -90,7 +81,7 @@ view kioskModel =
     sceneModel = kioskModel.checkInModel
     acct2chip = \acct ->
       Chip.button
-        [Options.onClick (CheckInVector <| LogCheckIn <| acct.memberNum)]
+        [Options.onClick (CheckInVector <| UpdateMemberNum <| acct.memberNum)]
         [Chip.content [] [text acct.userName]]
 
   in genericScene kioskModel

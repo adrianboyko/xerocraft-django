@@ -20,10 +20,8 @@ urlpatterns = [
         name="reception-kiosk-matching-accts"),
     url(r'^reception/checked-in-accts/$', views.reception_kiosk_checked_in_accts,
         name="reception-kiosk-checked-in-accts"),
-    url(r'^reception/log-visit-event/(?P<member_pk>[0-9]*)_(?P<event_type>[APD])/$', views.reception_kiosk_log_visit_event,
+    url(r'^reception/log-visit-event/(?P<member_pk>[0-9]*)_(?P<event_type>[APD])_(?P<reason>[A-Z]{3})/$', views.reception_kiosk_log_visit_event,
         name="reception-kiosk-log-visit-event"),
-    url(r'^reception/log-reason-for-visit/(?P<member_pk>[0-9]*)_(?P<reason>[A-Z]{3})/$', views.reception_kiosk_log_reason_for_visit,
-        name="reception-kiosk-log-reason-for-visit"),
 
     # For desktop:
     url(r'^create-card/$', views.create_card, name='create-card'),

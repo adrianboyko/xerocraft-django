@@ -19031,7 +19031,7 @@ var _user$project$ReceptionKiosk_Backend$createNewAcct = F6(
 		return A2(_elm_lang$http$Http$send, thing, request);
 	});
 var _user$project$ReceptionKiosk_Backend$replaceAll = F3(
-	function (theString, oldSub, newSub) {
+	function (oldSub, newSub, theString) {
 		return A4(
 			_elm_lang$core$Regex$replace,
 			_elm_lang$core$Regex$All,
@@ -19042,7 +19042,7 @@ var _user$project$ReceptionKiosk_Backend$replaceAll = F3(
 			theString);
 	});
 var _user$project$ReceptionKiosk_Backend$djangoizeId = function (rawId) {
-	return A3(_user$project$ReceptionKiosk_Backend$replaceAll, rawId, '[^-a-zA-Z0-9_@+.]', '_');
+	return A3(_user$project$ReceptionKiosk_Backend$replaceAll, '[^-a-zA-Z0-9_@+.]', '_', rawId);
 };
 var _user$project$ReceptionKiosk_Backend$MatchingAcct = F2(
 	function (a, b) {
@@ -19073,9 +19073,12 @@ var _user$project$ReceptionKiosk_Backend$getCheckedInAccts = F2(
 	});
 var _user$project$ReceptionKiosk_Backend$getMatchingAccts = F3(
 	function (flags, flexId, thing) {
-		var url = A2(_elm_lang$core$Basics_ops['++'], flags.matchingAcctsUrl, '?format=json');
-		var url2 = A3(_user$project$ReceptionKiosk_Backend$replaceAll, url, 'FLEXID', flexId);
-		var request = A2(_elm_lang$http$Http$get, url2, _user$project$ReceptionKiosk_Backend$decodeMatchingAcctInfo);
+		var url = A3(
+			_user$project$ReceptionKiosk_Backend$replaceAll,
+			'FLEXID',
+			flexId,
+			A2(_elm_lang$core$Basics_ops['++'], flags.matchingAcctsUrl, '?format=json'));
+		var request = A2(_elm_lang$http$Http$get, url, _user$project$ReceptionKiosk_Backend$decodeMatchingAcctInfo);
 		return A2(_elm_lang$http$Http$send, thing, request);
 	});
 var _user$project$ReceptionKiosk_Backend$DiscoveryMethod = F4(
@@ -19130,65 +19133,17 @@ var _user$project$ReceptionKiosk_Backend$decodeGenericResult = A2(
 	_elm_lang$core$Json_Decode$map,
 	_user$project$ReceptionKiosk_Backend$GenericResult,
 	A2(_elm_lang$core$Json_Decode$field, 'result', _elm_lang$core$Json_Decode$string));
-var _user$project$ReceptionKiosk_Backend$logVisitEvent = F4(
-	function (flags, memberPK, eventType, thing) {
-		var url1 = A2(_elm_lang$core$Basics_ops['++'], flags.logVisitEventUrl, '?format=json');
-		var url2 = A3(
-			_user$project$ReceptionKiosk_Backend$replaceAll,
-			url1,
-			'/12345_',
-			A2(
-				_elm_lang$core$Basics_ops['++'],
-				'/',
-				A2(
-					_elm_lang$core$Basics_ops['++'],
-					_elm_lang$core$Basics$toString(memberPK),
-					'_')));
-		var eventVal = function () {
-			var _p1 = eventType;
-			switch (_p1.ctor) {
-				case 'Arrival':
-					return 'A';
-				case 'Present':
-					return 'P';
-				default:
-					return 'D';
-			}
-		}();
-		var url3 = A3(
-			_user$project$ReceptionKiosk_Backend$replaceAll,
-			url2,
-			'_A/',
-			A2(
-				_elm_lang$core$Basics_ops['++'],
-				'_',
-				A2(_elm_lang$core$Basics_ops['++'], eventVal, '/')));
-		var request = A2(_elm_lang$http$Http$get, url3, _user$project$ReceptionKiosk_Backend$decodeGenericResult);
-		return A2(_elm_lang$http$Http$send, thing, request);
-	});
-var _user$project$ReceptionKiosk_Backend$logReasonForVisit = F4(
-	function (flags, memberPK, reason, thing) {
-		var url1 = A2(_elm_lang$core$Basics_ops['++'], flags.logReasonForVisitUrl, '?format=json');
-		var url2 = A3(
-			_user$project$ReceptionKiosk_Backend$replaceAll,
-			url1,
-			'/12345_',
-			A2(
-				_elm_lang$core$Basics_ops['++'],
-				'/',
-				A2(
-					_elm_lang$core$Basics_ops['++'],
-					_elm_lang$core$Basics$toString(memberPK),
-					'_')));
+var _user$project$ReceptionKiosk_Backend$logVisitEvent = F5(
+	function (flags, memberPK, eventType, reason, thing) {
 		var reasonVal = function () {
-			var _p2 = reason;
-			switch (_p2.ctor) {
+			var _p1 = reason;
+			switch (_p1.ctor) {
 				case 'Curiousity':
 					return 'CUR';
 				case 'ClassParticipant':
 					return 'CLS';
 				case 'MemberPrivileges':
-					return 'PRJ';
+					return 'MEM';
 				case 'GuestOfMember':
 					return 'GST';
 				case 'Volunteer':
@@ -19197,15 +19152,53 @@ var _user$project$ReceptionKiosk_Backend$logReasonForVisit = F4(
 					return 'OTH';
 			}
 		}();
-		var url3 = A3(
+		var eventVal = function () {
+			var _p2 = eventType;
+			switch (_p2.ctor) {
+				case 'Arrival':
+					return 'A';
+				case 'Present':
+					return 'P';
+				default:
+					return 'D';
+			}
+		}();
+		var params = _elm_lang$core$String$concat(
+			{
+				ctor: '::',
+				_0: '/',
+				_1: {
+					ctor: '::',
+					_0: _elm_lang$core$Basics$toString(memberPK),
+					_1: {
+						ctor: '::',
+						_0: '_',
+						_1: {
+							ctor: '::',
+							_0: eventVal,
+							_1: {
+								ctor: '::',
+								_0: '_',
+								_1: {
+									ctor: '::',
+									_0: reasonVal,
+									_1: {
+										ctor: '::',
+										_0: '/',
+										_1: {ctor: '[]'}
+									}
+								}
+							}
+						}
+					}
+				}
+			});
+		var url = A3(
 			_user$project$ReceptionKiosk_Backend$replaceAll,
-			url2,
-			'_OTH/',
-			A2(
-				_elm_lang$core$Basics_ops['++'],
-				'_',
-				A2(_elm_lang$core$Basics_ops['++'], reasonVal, '/')));
-		var request = A2(_elm_lang$http$Http$get, url3, _user$project$ReceptionKiosk_Backend$decodeGenericResult);
+			'/12345_A_OTH/',
+			params,
+			A2(_elm_lang$core$Basics_ops['++'], flags.logVisitEventUrl, '?format=json'));
+		var request = A2(_elm_lang$http$Http$get, url, _user$project$ReceptionKiosk_Backend$decodeGenericResult);
 		return A2(_elm_lang$http$Http$send, thing, request);
 	});
 var _user$project$ReceptionKiosk_Backend$Departure = {ctor: 'Departure'};
@@ -19218,9 +19211,9 @@ var _user$project$ReceptionKiosk_Backend$MemberPrivileges = {ctor: 'MemberPrivil
 var _user$project$ReceptionKiosk_Backend$ClassParticipant = {ctor: 'ClassParticipant'};
 var _user$project$ReceptionKiosk_Backend$Curiousity = {ctor: 'Curiousity'};
 
-var _user$project$ReceptionKiosk_Types$Flags = F9(
-	function (a, b, c, d, e, f, g, h, i) {
-		return {csrfToken: a, orgName: b, bannerTopUrl: c, bannerBottomUrl: d, discoveryMethodsUrl: e, checkedInAcctsUrl: f, matchingAcctsUrl: g, logVisitEventUrl: h, logReasonForVisitUrl: i};
+var _user$project$ReceptionKiosk_Types$Flags = F8(
+	function (a, b, c, d, e, f, g, h) {
+		return {csrfToken: a, orgName: b, bannerTopUrl: c, bannerBottomUrl: d, discoveryMethodsUrl: e, checkedInAcctsUrl: f, matchingAcctsUrl: g, logVisitEventUrl: h};
 	});
 var _user$project$ReceptionKiosk_Types$Welcome = {ctor: 'Welcome'};
 var _user$project$ReceptionKiosk_Types$Waiver = {ctor: 'Waiver'};
@@ -19233,11 +19226,8 @@ var _user$project$ReceptionKiosk_Types$CheckOutDone = {ctor: 'CheckOutDone'};
 var _user$project$ReceptionKiosk_Types$CheckOut = {ctor: 'CheckOut'};
 var _user$project$ReceptionKiosk_Types$CheckInDone = {ctor: 'CheckInDone'};
 var _user$project$ReceptionKiosk_Types$CheckIn = {ctor: 'CheckIn'};
-var _user$project$ReceptionKiosk_Types$LogCheckInResult = function (a) {
-	return {ctor: 'LogCheckInResult', _0: a};
-};
-var _user$project$ReceptionKiosk_Types$LogCheckIn = function (a) {
-	return {ctor: 'LogCheckIn', _0: a};
+var _user$project$ReceptionKiosk_Types$UpdateMemberNum = function (a) {
+	return {ctor: 'UpdateMemberNum', _0: a};
 };
 var _user$project$ReceptionKiosk_Types$UpdateFlexId = function (a) {
 	return {ctor: 'UpdateFlexId', _0: a};
@@ -19282,8 +19272,8 @@ var _user$project$ReceptionKiosk_Types$ValidateUserNameUnique = function (a) {
 	return {ctor: 'ValidateUserNameUnique', _0: a};
 };
 var _user$project$ReceptionKiosk_Types$ValidateUserNameAndPw = {ctor: 'ValidateUserNameAndPw'};
-var _user$project$ReceptionKiosk_Types$LogReasonResult = function (a) {
-	return {ctor: 'LogReasonResult', _0: a};
+var _user$project$ReceptionKiosk_Types$LogCheckInResult = function (a) {
+	return {ctor: 'LogCheckInResult', _0: a};
 };
 var _user$project$ReceptionKiosk_Types$ValidateReason = {ctor: 'ValidateReason'};
 var _user$project$ReceptionKiosk_Types$UpdateReasonForVisit = function (a) {
@@ -20122,7 +20112,7 @@ var _user$project$ReceptionKiosk_CheckInScene$view = function (kioskModel) {
 				ctor: '::',
 				_0: _debois$elm_mdl$Material_Options$onClick(
 					_user$project$ReceptionKiosk_Types$CheckInVector(
-						_user$project$ReceptionKiosk_Types$LogCheckIn(acct.memberNum))),
+						_user$project$ReceptionKiosk_Types$UpdateMemberNum(acct.memberNum))),
 				_1: {ctor: '[]'}
 			},
 			{
@@ -20276,48 +20266,16 @@ var _user$project$ReceptionKiosk_CheckInScene$update = F2(
 						_1: _elm_lang$core$Platform_Cmd$none
 					};
 				}
-			case 'LogCheckIn':
-				var _p4 = _p1._0;
-				var logVisitEvent = _user$project$ReceptionKiosk_Backend$logVisitEvent(kioskModel.flags);
-				var cmd = A3(
-					logVisitEvent,
-					_p4,
-					_user$project$ReceptionKiosk_Backend$Arrival,
-					function (_p3) {
-						return _user$project$ReceptionKiosk_Types$CheckInVector(
-							_user$project$ReceptionKiosk_Types$LogCheckInResult(_p3));
-					});
+			default:
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
 						sceneModel,
-						{memberNum: _p4}),
-					_1: cmd
+						{memberNum: _p1._0}),
+					_1: _user$project$ReceptionKiosk_SceneUtils$send(
+						_user$project$ReceptionKiosk_Types$WizardVector(
+							_user$project$ReceptionKiosk_Types$Push(_user$project$ReceptionKiosk_Types$ReasonForVisit)))
 				};
-			default:
-				if (_p1._0.ctor === 'Ok') {
-					return {
-						ctor: '_Tuple2',
-						_0: sceneModel,
-						_1: _user$project$ReceptionKiosk_SceneUtils$send(
-							_user$project$ReceptionKiosk_Types$WizardVector(
-								_user$project$ReceptionKiosk_Types$Push(_user$project$ReceptionKiosk_Types$ReasonForVisit)))
-					};
-				} else {
-					return {
-						ctor: '_Tuple2',
-						_0: _elm_lang$core$Native_Utils.update(
-							sceneModel,
-							{
-								badNews: {
-									ctor: '::',
-									_0: _elm_lang$core$Basics$toString(_p1._0._0),
-									_1: {ctor: '[]'}
-								}
-							}),
-						_1: _elm_lang$core$Platform_Cmd$none
-					};
-				}
 		}
 	});
 var _user$project$ReceptionKiosk_CheckInScene$init = function (flags) {
@@ -21183,7 +21141,7 @@ var _user$project$ReceptionKiosk_ReasonForVisitScene$reasonString = F2(
 			case 'ClassParticipant':
 				return 'Attending a class or workshop';
 			case 'MemberPrivileges':
-				return 'Working on a project';
+				return 'Membership privileges';
 			case 'GuestOfMember':
 				return 'Guest of a paying member';
 			case 'Volunteer':
@@ -21351,14 +21309,15 @@ var _user$project$ReceptionKiosk_ReasonForVisitScene$update = F2(
 						_1: _elm_lang$core$Platform_Cmd$none
 					};
 				} else {
-					var logReasonForVisit = _user$project$ReceptionKiosk_Backend$logReasonForVisit(kioskModel.flags);
-					var cmd = A3(
-						logReasonForVisit,
+					var logVisitEvent = _user$project$ReceptionKiosk_Backend$logVisitEvent(kioskModel.flags);
+					var cmd = A4(
+						logVisitEvent,
 						checkInModel.memberNum,
+						_user$project$ReceptionKiosk_Backend$Arrival,
 						_p3._0,
 						function (_p4) {
 							return _user$project$ReceptionKiosk_Types$ReasonForVisitVector(
-								_user$project$ReceptionKiosk_Types$LogReasonResult(_p4));
+								_user$project$ReceptionKiosk_Types$LogCheckInResult(_p4));
 						});
 					return {ctor: '_Tuple2', _0: sceneModel, _1: cmd};
 				}
@@ -22330,26 +22289,21 @@ var _user$project$ReceptionKiosk$main = _elm_lang$html$Html$programWithFlags(
 										function (discoveryMethodsUrl) {
 											return A2(
 												_elm_lang$core$Json_Decode$andThen,
-												function (logReasonForVisitUrl) {
+												function (logVisitEventUrl) {
 													return A2(
 														_elm_lang$core$Json_Decode$andThen,
-														function (logVisitEventUrl) {
+														function (matchingAcctsUrl) {
 															return A2(
 																_elm_lang$core$Json_Decode$andThen,
-																function (matchingAcctsUrl) {
-																	return A2(
-																		_elm_lang$core$Json_Decode$andThen,
-																		function (orgName) {
-																			return _elm_lang$core$Json_Decode$succeed(
-																				{bannerBottomUrl: bannerBottomUrl, bannerTopUrl: bannerTopUrl, checkedInAcctsUrl: checkedInAcctsUrl, csrfToken: csrfToken, discoveryMethodsUrl: discoveryMethodsUrl, logReasonForVisitUrl: logReasonForVisitUrl, logVisitEventUrl: logVisitEventUrl, matchingAcctsUrl: matchingAcctsUrl, orgName: orgName});
-																		},
-																		A2(_elm_lang$core$Json_Decode$field, 'orgName', _elm_lang$core$Json_Decode$string));
+																function (orgName) {
+																	return _elm_lang$core$Json_Decode$succeed(
+																		{bannerBottomUrl: bannerBottomUrl, bannerTopUrl: bannerTopUrl, checkedInAcctsUrl: checkedInAcctsUrl, csrfToken: csrfToken, discoveryMethodsUrl: discoveryMethodsUrl, logVisitEventUrl: logVisitEventUrl, matchingAcctsUrl: matchingAcctsUrl, orgName: orgName});
 																},
-																A2(_elm_lang$core$Json_Decode$field, 'matchingAcctsUrl', _elm_lang$core$Json_Decode$string));
+																A2(_elm_lang$core$Json_Decode$field, 'orgName', _elm_lang$core$Json_Decode$string));
 														},
-														A2(_elm_lang$core$Json_Decode$field, 'logVisitEventUrl', _elm_lang$core$Json_Decode$string));
+														A2(_elm_lang$core$Json_Decode$field, 'matchingAcctsUrl', _elm_lang$core$Json_Decode$string));
 												},
-												A2(_elm_lang$core$Json_Decode$field, 'logReasonForVisitUrl', _elm_lang$core$Json_Decode$string));
+												A2(_elm_lang$core$Json_Decode$field, 'logVisitEventUrl', _elm_lang$core$Json_Decode$string));
 										},
 										A2(_elm_lang$core$Json_Decode$field, 'discoveryMethodsUrl', _elm_lang$core$Json_Decode$string));
 								},

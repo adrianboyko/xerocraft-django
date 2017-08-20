@@ -421,6 +421,24 @@ class VisitEvent(models.Model):
     event_type = models.CharField(max_length=1, choices=VISIT_EVENT_CHOICES, null=False, blank=False,
         help_text="The type of visit event.")
 
+    REASON_CURIOUS = "CUR"
+    REASON_CLASS = "CLS"
+    REASON_MEMBER = "MEM"
+    REASON_GUEST = "GST"
+    REASON_VOLUNTEER = "VOL"
+    REASON_OTHER = "OTH"
+    VISIT_REASON_CHOICES = [
+        (REASON_CURIOUS, "Checking it out"),
+        (REASON_CLASS, "Attending a class"),
+        (REASON_MEMBER, "Membership privileges"),
+        (REASON_GUEST, "Guest of a member"),
+        (REASON_VOLUNTEER, "Volunteering"),
+        (REASON_OTHER, "Other"),
+    ]
+    reason = models.CharField(max_length=3, choices=VISIT_REASON_CHOICES,
+        default=None, null=True, blank=True,
+        help_text="The reason for a visit. Not used on Departures.")
+
     sync1 = models.BooleanField(default=False,
         help_text="True if this event has been sync'ed to 'other system #1'")
 

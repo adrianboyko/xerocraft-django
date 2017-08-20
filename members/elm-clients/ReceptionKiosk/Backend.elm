@@ -7,7 +7,6 @@ module ReceptionKiosk.Backend exposing
   , getMatchingAccts
   , getCheckedInAccts
   , logVisitEvent
-  , logReasonForVisit
   , MatchingAcct
   , MatchingAcctInfo
   , GenericResult
@@ -33,10 +32,10 @@ import Json.Decode.Pipeline exposing (decode, required, hardcoded)
 djangoizeId : String -> String
 djangoizeId rawId =
   -- Django allows alphanumeric, _, @, +, . and -.
-  replaceAll rawId "[^-a-zA-Z0-9_@+.]" "_"
+  replaceAll "[^-a-zA-Z0-9_@+.]" "_" rawId
 
 replaceAll : String -> String -> String -> String
-replaceAll theString oldSub newSub =
+replaceAll oldSub newSub theString =
   Regex.replace Regex.All (regex oldSub) (\_ -> newSub) theString
 
 getDiscoveryMethods : {a|discoveryMethodsUrl:String} -> (Result Http.Error DiscoveryMethodInfo -> msg) -> Cmd msg
@@ -56,8 +55,8 @@ getMatchingAccts: {a|matchingAcctsUrl:String} -> String -> (Result Http.Error Ma
 getMatchingAccts flags flexId thing =
   let
     url = flags.matchingAcctsUrl++"?format=json"  -- Easier than an "Accept" header.
-    url2 = replaceAll url "FLEXID" flexId
-    request = Http.get url2 decodeMatchingAcctInfo
+      |> replaceAll "FLEXID" flexId
+    request = Http.get url decodeMatchingAcctInfo
   in
     Http.send thing request
 
@@ -65,20 +64,6 @@ type VisitEventType
   = Arrival
   | Present
   | Departure
-
-logVisitEvent : {a|logVisitEventUrl:String} -> Int -> VisitEventType -> (Result Http.Error GenericResult -> msg) -> Cmd msg
-logVisitEvent flags memberPK eventType thing =
-  let
-    eventVal = case eventType of
-      Arrival -> "A"
-      Present -> "P"
-      Departure -> "D"
-    url1 = flags.logVisitEventUrl++"?format=json"  -- Easier than an "Accept" header.
-    url2 = replaceAll url1 "/12345_" ("/"++(toString memberPK)++"_")
-    url3 = replaceAll url2 "_A/" ("_"++eventVal++"/")
-    request = Http.get url3 decodeGenericResult
-  in
-    Http.send thing request
 
 type ReasonForVisit
   = Curiousity
@@ -88,20 +73,29 @@ type ReasonForVisit
   | Volunteer
   | Other
 
-logReasonForVisit : {a|logReasonForVisitUrl:String} -> Int -> ReasonForVisit -> (Result Http.Error GenericResult -> msg) -> Cmd msg
-logReasonForVisit flags memberPK reason thing =
+logVisitEvent : {a|logVisitEventUrl:String}
+  -> Int
+  -> VisitEventType
+  -> ReasonForVisit
+  -> (Result Http.Error GenericResult -> msg)
+  -> Cmd msg
+logVisitEvent flags memberPK eventType reason thing =
   let
+    eventVal = case eventType of
+      Arrival -> "A"
+      Present -> "P"
+      Departure -> "D"
     reasonVal = case reason of
       Curiousity -> "CUR"
       ClassParticipant -> "CLS"
-      MemberPrivileges -> "PRJ"
+      MemberPrivileges -> "MEM"
       GuestOfMember -> "GST"
       Volunteer -> "VOL"
       Other -> "OTH"
-    url1 = flags.logReasonForVisitUrl++"?format=json"  -- Easier than an "Accept" header.
-    url2 = replaceAll url1 "/12345_" ("/"++(toString memberPK)++"_")
-    url3 = replaceAll url2 "_OTH/" ("_"++reasonVal++"/")
-    request = Http.get url3 decodeGenericResult
+    params = String.concat ["/", (toString memberPK), "_", eventVal, "_", reasonVal, "/"]
+    url = flags.logVisitEventUrl++"?format=json"  -- Easier than an "Accept" header.
+      |> replaceAll "/12345_A_OTH/" params
+    request = Http.get url decodeGenericResult
   in
     Http.send thing request
 

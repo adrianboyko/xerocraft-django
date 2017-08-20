@@ -53,11 +53,14 @@ def _inform_other_systems_of_checkin(member, event_type):
 
 
 # TODO: Move following to Event class?
-def _log_visit_event(who_in: Union[str, Member, int], event_type) -> Tuple[bool, Union[str, Member]]:
+def _log_visit_event(who_in: Union[str, Member, int], event_type, reason=None) -> Tuple[bool, Union[str, Member]]:
 
     is_valid_evt = event_type in [x for (x, _) in VisitEvent.VISIT_EVENT_CHOICES]
     if not is_valid_evt:
-        return False, "Invalid event type."
+        return False, "Invalid event type value."
+    is_valid_reason = reason in [x for (x, _) in VisitEvent.VISIT_REASON_CHOICES]
+    if not is_valid_reason:
+        return False, "Invalid reason value."
 
     who = None  # type: Optional[Member]
 
@@ -76,14 +79,9 @@ def _log_visit_event(who_in: Union[str, Member, int], event_type) -> Tuple[bool,
     if who is None:
         return False, "No matching member found."
 
-    VisitEvent.objects.create(who=who, event_type=event_type)
+    VisitEvent.objects.create(who=who, event_type=event_type, reason=reason)
     _inform_other_systems_of_checkin(who, event_type)
     return True, who
-
-
-def _log_reason_for_visit(who_in: Union[str, Member, int], reason) -> Tuple[bool, str]:
-    return False, "Not yet implemented"
-    # TODO: Implement!
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = API
@@ -720,21 +718,12 @@ def reception_kiosk_checked_in_accts(request) -> JsonResponse:
     return JsonResponse({"target": "", "matches": accts})
 
 
-def reception_kiosk_log_visit_event(request, member_pk, event_type) -> JsonResponse:
+def reception_kiosk_log_visit_event(request, member_pk, event_type, reason) -> JsonResponse:
     if settings.ISDEVHOST:  # TODO: Remove this guard when we this goes into production.
-        success, info = _log_visit_event(int(member_pk), event_type)
+        success, info = _log_visit_event(int(member_pk), event_type, reason)
     if success:
         return JsonResponse({"result": "success"})
     else:
         assert isinstance(info, str)
         return JsonResponse({"result": info})
-
-
-def reception_kiosk_log_reason_for_visit(request, member_pk, reason) -> JsonResponse:
-    if settings.ISDEVHOST:  # TODO: Remove this guard when we this goes into production.
-        success, msg = _log_reason_for_visit(int(member_pk), reason)
-    if success:
-        return JsonResponse({"result": "success"})
-    else:
-        return JsonResponse({"result": msg})
 
