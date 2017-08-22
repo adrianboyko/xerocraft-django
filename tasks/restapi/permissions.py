@@ -37,7 +37,7 @@ class ClaimPermission(permissions.BasePermission):
             # Web interface to REST API sends POST with no body to determine if
             # a read/write or read-only interface should be presented. In general,
             # anybody can post a claim, so we'll return True for this case.
-            datalen = request.META.get('CONTENT_LENGTH')  # type: str
+            datalen = request.META.get('CONTENT_LENGTH', '0')  # type: str
             if datalen == '0' or datalen == '':
                 return True
 
