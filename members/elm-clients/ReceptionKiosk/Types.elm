@@ -9,6 +9,7 @@ import List.Nonempty exposing (Nonempty)
 
 -- Local
 import ReceptionKiosk.Backend exposing (..)
+-- import OpsCalendar exposing (OpsTask)  -- REVIEW: OpsTask should be in TaskApi?
 
 -----------------------------------------------------------------------------
 -- FLAGS
@@ -36,9 +37,11 @@ type Scene
   | CheckOutDone
   | DoYouHaveAcct
   | HowDidYouHear
+  | SignUpDone
   | NewMember
   | NewUser
   | ReasonForVisit
+--  | VolunteerTasks
   | Waiver
   | Welcome
 
@@ -79,6 +82,10 @@ type ReasonForVisitMsg
   | ValidateReason
   | LogCheckInResult (Result Http.Error GenericResult)
 
+--type VolunteerTasksMsg
+--  = AccTasks (Result Http.Error OpsTask)  -- "Acc" means "accumulate"
+--  | ChooseTask OpsTask
+
 type WaiverMsg
   = ShowSignaturePad String
   | ClearSignaturePad String
@@ -99,6 +106,7 @@ type Msg
   | NewMemberVector NewMemberMsg
   | NewUserVector NewUserMsg
   | ReasonForVisitVector ReasonForVisitMsg
+--  | VolunteerTasksVector VolunteerTasksMsg
   | WaiverVector WaiverMsg
   | WelcomeVector WelcomeMsg
 

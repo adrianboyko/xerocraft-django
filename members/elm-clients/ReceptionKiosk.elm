@@ -20,6 +20,7 @@ import ReceptionKiosk.CheckOutScene as CheckOutScene
 import ReceptionKiosk.CheckOutDoneScene as CheckOutDoneScene
 import ReceptionKiosk.DoYouHaveAcctScene as DoYouHaveAcctScene
 import ReceptionKiosk.HowDidYouHearScene as HowDidYouHearScene
+import ReceptionKiosk.SignUpDoneScene as SignUpDoneScene
 import ReceptionKiosk.NewMemberScene as NewMemberScene
 import ReceptionKiosk.NewUserScene as NewUserScene
 import ReceptionKiosk.ReasonForVisitScene as ReasonForVisitScene
@@ -54,6 +55,7 @@ type alias Model =
   , checkOutDoneModel   : CheckOutDoneScene.CheckOutDoneModel
   , doYouHaveAcctModel  : DoYouHaveAcctScene.DoYouHaveAcctModel
   , howDidYouHearModel  : HowDidYouHearScene.HowDidYouHearModel
+  , signUpDoneModel     : SignUpDoneScene.SignUpDoneModel
   , newMemberModel      : NewMemberScene.NewMemberModel
   , newUserModel        : NewUserScene.NewUserModel
   , reasonForVisitModel : ReasonForVisitScene.ReasonForVisitModel
@@ -73,6 +75,7 @@ init f =
     (newMemberModel,      newMemberCmd     ) = NewMemberScene.init      f
     (newUserModel,        newUserCmd       ) = NewUserScene.init        f
     (reasonForVisitModel, reasonForVisitCmd) = ReasonForVisitScene.init f
+    (signUpDoneModel,     signUpDoneCmd    ) = SignUpDoneScene.init     f
     (waiverModel,         waiverCmd        ) = WaiverScene.init         f
     (welcomeModel,        welcomeCmd       ) = WelcomeScene.init        f
     model =
@@ -89,6 +92,7 @@ init f =
       , newMemberModel      = newMemberModel
       , newUserModel        = newUserModel
       , reasonForVisitModel = reasonForVisitModel
+      , signUpDoneModel     = signUpDoneModel
       , waiverModel         = waiverModel
       , welcomeModel        = welcomeModel
       }
@@ -199,6 +203,7 @@ view model =
     NewMember      -> NewMemberScene.view      model
     NewUser        -> NewUserScene.view        model
     ReasonForVisit -> ReasonForVisitScene.view model
+    SignUpDone     -> SignUpDoneScene.view     model
     Waiver         -> WaiverScene.view         model
     Welcome        -> WelcomeScene.view        model
 

@@ -181,6 +181,11 @@ sceneTitleStyle = style
   , "margin-bottom" => "0.5em"
   ]
 
+sceneTextStyle = style
+  [ "font-size" => "22pt"
+  , "line-height" => "1em"
+  ]
+
 sceneSubtitleStyle = style
   [ "font-size" => "24pt"
   , "margin-left" => "auto"
