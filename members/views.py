@@ -581,8 +581,13 @@ def reception_kiosk_checked_in_accts(request) -> JsonResponse:
 
 
 def reception_kiosk_log_visit_event(request, member_pk, event_type, reason) -> JsonResponse:
+
     if settings.ISDEVHOST:  # TODO: Remove this guard when we this goes into production.
         success, info = _log_visit_event(int(member_pk), event_type, reason)
+    else:
+        success = True
+        info = "Not enabled on production system."
+
     if success:
         return JsonResponse({"result": "success"})
     else:
