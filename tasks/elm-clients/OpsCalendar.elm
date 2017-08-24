@@ -21,24 +21,8 @@ import Material.Icon as Icon
 import Material.Options as Options exposing (css)
 import Json.Decode exposing (maybe)
 import Json.Decode as Dec
-import Json.Decode.Extra exposing ((|:))
-import Json.Decode.Pipeline exposing (decode, required)
 import Json.Encode as Enc
-import TaskApi
-    exposing
-        ( Target(ForHuman)
-        , Credentials(LoggedIn)
-        , TimeWindow
-        , decodeTimeWindow
-        , Duration
-        , durationToString
-        , ClockTime
-        , clockTimeToStr
-        , Claim
-        , createClaim
-        , updateClaim
-        , RestUrls
-        )
+import TaskApi exposing (..)
 
 
 -----------------------------------------------------------------------------
@@ -59,66 +43,12 @@ main =
 -----------------------------------------------------------------------------
 -- MODEL
 -----------------------------------------------------------------------------
--- Remember: User has user/member/worker on server side, with userId!=memberId!=workerId, in general.
-
-
-type alias User =
-    { memberId : Int
-    , name : String
-    }
-
-
-type alias OpsTask =
-    { taskId : Int
-    , isoDate : String
-    , shortDesc : String
-    , timeWindow : Maybe TimeWindow
-    , instructions : String
-    , staffingStatus : String
-    , possibleActions : List String
-    , staffedBy :
-        List String
-        -- Friendly names
-    , taskStatus : String
-    , usersClaimId : Maybe Int
-    }
-
-
-type alias DayOfTasks =
-    { dayOfMonth : Int
-    , isInTargetMonth : Bool
-    , isToday : Bool
-    , tasks : List OpsTask
-    }
-
-
-type alias WeekOfTasks =
-    List DayOfTasks
-
-
-type alias MonthOfTasks =
-    List WeekOfTasks
-
-
-
--- These come in with the init "flags" but they can also be fetched later.
-
-
-type alias Fetchable =
-    { user : Maybe User
-    , tasks : MonthOfTasks
-    , year : Int
-    , month : Int
-    }
-
-
 
 -- These are params from the server. Elm docs tend to call them "flags".
 
-
 type alias Flags =
     { restUrls : RestUrls
-    , initials : Fetchable
+    , initials : CalendarPage
     , csrfToken : String
     }
 
@@ -188,7 +118,7 @@ type
     = ToggleTaskDetail Int
     | PrevMonth
     | NextMonth
-    | NewMonthResult (Result Http.Error Fetchable)
+    | NewMonthResult (Result Http.Error CalendarPage)
     | MouseMove Position
     | DragStart Position
     | DragFinish Position
@@ -376,30 +306,18 @@ getNewMonth model delta =
 
         year =
             case newMonth of
-                13 ->
-                    model.year + 1
-
-                0 ->
-                    model.year - 1
-
-                _ ->
-                    model.year
+                13 -> model.year + 1
+                0 -> model.year - 1
+                _ -> model.year
 
         month =
             case newMonth of
-                13 ->
-                    1
+                13 -> 1
+                0 -> 12
+                _ -> newMonth
 
-                0 ->
-                    12
-
-                _ ->
-                    newMonth
-
-        request =
-            Http.get url decodeFetchable
     in
-        Http.send NewMonthResult request
+        getCalendarPage year month NewMonthResult
 
 
 
@@ -657,47 +575,6 @@ subscriptions model =
 -----------------------------------------------------------------------------
 -- JSON Decoder
 -----------------------------------------------------------------------------
-
-
-decodeUser : Dec.Decoder User
-decodeUser =
-    decode User
-        |> required "memberId" Dec.int
-        |> required "name" Dec.string
-
-
-decodeOpsTask : Dec.Decoder OpsTask
-decodeOpsTask =
-    decode OpsTask
-        |> required "taskId" Dec.int
-        |> required "isoDate" Dec.string
-        |> required "shortDesc" Dec.string
-        |> required "timeWindow" (Dec.nullable decodeTimeWindow)
-        |> required "instructions" Dec.string
-        |> required "staffingStatus" Dec.string
-        |> required "possibleActions" (Dec.list Dec.string)
-        |> required "staffedBy" (Dec.list Dec.string)
-        |> required "taskStatus" Dec.string
-        |> required "usersClaimId" (Dec.nullable Dec.int)
-
-
-decodeDayOfTasks : Dec.Decoder DayOfTasks
-decodeDayOfTasks =
-    decode DayOfTasks
-        |> required "dayOfMonth" Dec.int
-        |> required "isInTargetMonth" Dec.bool
-        |> required "isToday" Dec.bool
-        |> required "tasks" (Dec.list decodeOpsTask)
-
-
-decodeFetchable : Dec.Decoder Fetchable
-decodeFetchable =
-    decode Fetchable
-        |> required "user" (Dec.nullable decodeUser)
-        |> required "tasks" (Dec.list (Dec.list decodeDayOfTasks))
-        |> required "year" Dec.int
-        |> required "month" Dec.int
-
 
 
 -----------------------------------------------------------------------------

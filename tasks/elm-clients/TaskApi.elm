@@ -1,19 +1,24 @@
 module TaskApi
     exposing
-        ( Target(ForHuman, ForRest)
+        ( CalendarPage
         , Claim
         , createClaim
-        , updateClaim
         , Credentials(LoggedIn, Token)
         , ClockTime
-        , decodeClockTime
         , clockTimeToStr
         , Duration
         , durationFromString
         , durationToString
+        , getCalendarPage
         , TimeWindow
-        , decodeTimeWindow
         , RestUrls
+        , OpsTask
+        , DayOfTasks
+        , MonthOfTasks
+        , WeekOfTasks
+        , Target(ForHuman, ForRest)
+        , updateClaim
+        , User
         )
 
 import Date exposing (Date)
@@ -21,7 +26,7 @@ import Date.Extra.Format exposing (isoString)
 import Time exposing (Time, hour, minute, second)
 import Json.Encode as Enc
 import Json.Decode as Dec exposing (maybe)
-import Json.Decode.Extra exposing ((|:))
+import Json.Decode.Pipeline exposing (decode, required)
 import Task exposing (Task)
 import Regex exposing (Regex, regex, split)
 import List
@@ -33,7 +38,46 @@ type Target
     = ForHuman
     | ForRest
 
+-- Remember: User has user/member/worker on server side, with userId!=memberId!=workerId, in general.
+type alias User =
+    { memberId : Int
+    , name : String
+    }
 
+type alias OpsTask =
+    { taskId : Int
+    , isoDate : String
+    , shortDesc : String
+    , timeWindow : Maybe TimeWindow
+    , instructions : String
+    , staffingStatus : String
+    , possibleActions : List String
+    , staffedBy :
+        List String
+        -- Friendly names
+    , taskStatus : String
+    , usersClaimId : Maybe Int
+    }
+
+type alias DayOfTasks =
+    { dayOfMonth : Int
+    , isInTargetMonth : Bool
+    , isToday : Bool
+    , tasks : List OpsTask
+    }
+
+type alias WeekOfTasks =
+    List DayOfTasks
+
+type alias MonthOfTasks =
+    List WeekOfTasks
+
+type alias CalendarPage =
+    { user : Maybe User
+    , tasks : MonthOfTasks
+    , year : Int
+    , month : Int
+    }
 
 -----------------------------------------------------------------------------
 -- TIME WINDOW
@@ -108,11 +152,7 @@ clockTimeToStr ct =
 
 
 type alias Duration =
-    Float
-
-
-
--- A time duration in milliseconds, so we can use core Time's units.
+    Float -- A time duration in milliseconds, so we can use core Time's units.
 
 
 durationFromString : String -> Duration
@@ -292,6 +332,63 @@ updateClaim credentials restUrls claimId nameValuePairs result2Msg =
     in
         Http.send result2Msg request
 
+-----------------------------------------------------------------------------
+-- CALENDAR PAGE
+-----------------------------------------------------------------------------
+
+getCalendarPage : Int -> Int -> (Result Http.Error CalendarPage -> msg) -> Cmd msg
+getCalendarPage year month resultToMsg =
+    let
+        url = -- TODO: URL should be passed in from Django, not hard-coded here.
+            "/tasks/ops-calendar-json/" ++ toStr (year) ++ "-" ++ toStr (month) ++ "/"
+
+        request =
+            Http.get url decodeCalendarPage
+    in
+        Http.send resultToMsg request
+
+-----------------------------------------------------------------------------
+-- DECODERS
+-----------------------------------------------------------------------------
+
+decodeUser : Dec.Decoder User
+decodeUser =
+    decode User
+        |> required "memberId" Dec.int
+        |> required "name" Dec.string
+
+
+decodeOpsTask : Dec.Decoder OpsTask
+decodeOpsTask =
+    decode OpsTask
+        |> required "taskId" Dec.int
+        |> required "isoDate" Dec.string
+        |> required "shortDesc" Dec.string
+        |> required "timeWindow" (Dec.nullable decodeTimeWindow)
+        |> required "instructions" Dec.string
+        |> required "staffingStatus" Dec.string
+        |> required "possibleActions" (Dec.list Dec.string)
+        |> required "staffedBy" (Dec.list Dec.string)
+        |> required "taskStatus" Dec.string
+        |> required "usersClaimId" (Dec.nullable Dec.int)
+
+
+decodeDayOfTasks : Dec.Decoder DayOfTasks
+decodeDayOfTasks =
+    decode DayOfTasks
+        |> required "dayOfMonth" Dec.int
+        |> required "isInTargetMonth" Dec.bool
+        |> required "isToday" Dec.bool
+        |> required "tasks" (Dec.list decodeOpsTask)
+
+
+decodeCalendarPage : Dec.Decoder CalendarPage
+decodeCalendarPage =
+    decode CalendarPage
+        |> required "user" (Dec.nullable decodeUser)
+        |> required "tasks" (Dec.list (Dec.list decodeDayOfTasks))
+        |> required "year" Dec.int
+        |> required "month" Dec.int
 
 
 -----------------------------------------------------------------------------
