@@ -24,6 +24,7 @@ import ReceptionKiosk.SignUpDoneScene as SignUpDoneScene
 import ReceptionKiosk.NewMemberScene as NewMemberScene
 import ReceptionKiosk.NewUserScene as NewUserScene
 import ReceptionKiosk.ReasonForVisitScene as ReasonForVisitScene
+import ReceptionKiosk.VolunteerInScene as VolunteerInScene
 import ReceptionKiosk.WaiverScene as WaiverScene
 import ReceptionKiosk.WelcomeScene as WelcomeScene
 
@@ -59,6 +60,7 @@ type alias Model =
   , newMemberModel      : NewMemberScene.NewMemberModel
   , newUserModel        : NewUserScene.NewUserModel
   , reasonForVisitModel : ReasonForVisitScene.ReasonForVisitModel
+  , volunteerInModel    : VolunteerInScene.VolunteerInModel
   , waiverModel         : WaiverScene.WaiverModel
   , welcomeModel        : WelcomeScene.WelcomeModel
   }
@@ -76,6 +78,7 @@ init f =
     (newUserModel,        newUserCmd       ) = NewUserScene.init        f
     (reasonForVisitModel, reasonForVisitCmd) = ReasonForVisitScene.init f
     (signUpDoneModel,     signUpDoneCmd    ) = SignUpDoneScene.init     f
+    (volunteerInModel,    volunteerInCmd   ) = VolunteerInScene.init    f
     (waiverModel,         waiverCmd        ) = WaiverScene.init         f
     (welcomeModel,        welcomeCmd       ) = WelcomeScene.init        f
     model =
@@ -93,6 +96,7 @@ init f =
       , newUserModel        = newUserModel
       , reasonForVisitModel = reasonForVisitModel
       , signUpDoneModel     = signUpDoneModel
+      , volunteerInModel    = volunteerInModel
       , waiverModel         = waiverModel
       , welcomeModel        = welcomeModel
       }
@@ -106,6 +110,7 @@ init f =
       , newMemberCmd
       , newUserCmd
       , reasonForVisitCmd
+      , volunteerInCmd
       , waiverCmd
       , welcomeCmd
       ]
@@ -147,6 +152,7 @@ update msg model =
         SceneWillAppear appearingScene ->
             case appearingScene of
               CheckOut -> (model, Cmd.none) :> update (CheckOutVector CheckOutSceneWillAppear)
+              VolunteerIn -> (model, Cmd.none) :> update (VolunteerInVector VolunteerInSceneWillAppear)
               Waiver -> (model, Cmd.none) :> update (WaiverVector WaiverSceneWillAppear)
               Welcome -> (model, Cmd.none) :> update (WelcomeVector WelcomeSceneWillAppear)
               _ -> (model, Cmd.none)
@@ -174,6 +180,10 @@ update msg model =
     ReasonForVisitVector x ->
       let (sm, cmd) = ReasonForVisitScene.update x model
       in ({model | reasonForVisitModel = sm}, cmd)
+
+    VolunteerInVector x ->
+      let (sm, cmd) = VolunteerInScene.update x model
+      in ({model | volunteerInModel = sm}, cmd)
 
     WaiverVector x ->
       let (sm, cmd) = WaiverScene.update x model
@@ -204,6 +214,7 @@ view model =
     NewUser        -> NewUserScene.view        model
     ReasonForVisit -> ReasonForVisitScene.view model
     SignUpDone     -> SignUpDoneScene.view     model
+    VolunteerIn    -> VolunteerInScene.view    model
     Waiver         -> WaiverScene.view         model
     Welcome        -> WelcomeScene.view        model
 

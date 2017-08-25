@@ -66,8 +66,8 @@ update msg kioskModel =
 
     LogCheckInResult (Ok {result}) ->
       case sceneModel.reasonForVisit of
---        Volunteer ->
---          (sceneModel, send (WizardVector <| Push <| VolunteerTasks))
+        Just Volunteer ->
+          (sceneModel, send (WizardVector <| Push <| VolunteerIn))
         _ ->
           (sceneModel, send (WizardVector <| Push <| CheckInDone))
 
