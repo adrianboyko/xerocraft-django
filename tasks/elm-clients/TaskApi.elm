@@ -10,6 +10,7 @@ module TaskApi
         , durationFromString
         , durationToString
         , getCalendarPage
+        , getCurrCalendarPage
         , TimeWindow
         , RestUrls
         , OpsTask
@@ -52,9 +53,7 @@ type alias OpsTask =
     , instructions : String
     , staffingStatus : String
     , possibleActions : List String
-    , staffedBy :
-        List String
-        -- Friendly names
+    , staffedBy : List String  -- Friendly names
     , taskStatus : String
     , usersClaimId : Maybe Int
     }
@@ -341,6 +340,17 @@ getCalendarPage year month resultToMsg =
     let
         url = -- TODO: URL should be passed in from Django, not hard-coded here.
             "/tasks/ops-calendar-json/" ++ toStr (year) ++ "-" ++ toStr (month) ++ "/"
+
+        request =
+            Http.get url decodeCalendarPage
+    in
+        Http.send resultToMsg request
+
+getCurrCalendarPage : (Result Http.Error CalendarPage -> msg) -> Cmd msg
+getCurrCalendarPage resultToMsg =
+    let
+        url = -- TODO: URL should be passed in from Django, not hard-coded here.
+            "/tasks/ops-calendar-json/"
 
         request =
             Http.get url decodeCalendarPage
