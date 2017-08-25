@@ -646,7 +646,11 @@ def _ops_calendar_json(request, year, month):
     }
 
 
-def ops_calendar_json(request, year, month) -> JsonResponse:
+def ops_calendar_json(request, year=None, month=None) -> JsonResponse:
+    if year is None:
+        year = date.today().year
+    if month is None:
+        month = date.today().month
     year = int(year)
     month = int(month)
     return JsonResponse(_ops_calendar_json(request, year, month))
