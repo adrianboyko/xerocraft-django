@@ -546,7 +546,8 @@ def reception_kiosk_spa(request) -> HttpResponse:
 def reception_kiosk_matching_accts(request, flexid) -> JsonResponse:
     usernameq = Q(auth_user__username__istartswith=flexid, auth_user__is_active=True)
     surnameq = Q(auth_user__last_name__istartswith=flexid, auth_user__is_active=True)
-    membs = Member.objects.filter(usernameq | surnameq)
+    emailq = Q(auth_user__email__iexact=flexid, auth_user__is_active=True)
+    membs = Member.objects.filter(usernameq | surnameq | emailq)
 
     if len(membs) > 10:
         # More than 10 results will just overwhelm the user, so return none.
