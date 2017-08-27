@@ -16,7 +16,7 @@ urlpatterns = [
     # For reception desk kiosk (check-in, sign-up, etc):
     url(r'^reception/$', views.reception_kiosk_spa,
         name="reception-kiosk"),
-    url(r'^reception/matching-accts/(?P<flexid>[-_a-zA-Z0-9]{1,32})/$', views.reception_kiosk_matching_accts,
+    url(r'^reception/matching-accts/(?P<flexid>[-a-zA-Z0-9_@+.]{1,32})/$', views.reception_kiosk_matching_accts,
         name="reception-kiosk-matching-accts"),
     url(r'^reception/checked-in-accts/$', views.reception_kiosk_checked_in_accts,
         name="reception-kiosk-checked-in-accts"),
