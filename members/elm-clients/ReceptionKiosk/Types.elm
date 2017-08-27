@@ -35,7 +35,6 @@ type Scene
   | CheckInDone
   | CheckOut
   | CheckOutDone
-  | DoYouHaveAcct
   | HowDidYouHear
   | SignUpDone
   | NewMember

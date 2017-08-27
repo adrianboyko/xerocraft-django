@@ -18,7 +18,6 @@ import ReceptionKiosk.CheckInScene as CheckInScene
 import ReceptionKiosk.CheckInDoneScene as CheckInDoneScene
 import ReceptionKiosk.CheckOutScene as CheckOutScene
 import ReceptionKiosk.CheckOutDoneScene as CheckOutDoneScene
-import ReceptionKiosk.DoYouHaveAcctScene as DoYouHaveAcctScene
 import ReceptionKiosk.HowDidYouHearScene as HowDidYouHearScene
 import ReceptionKiosk.SignUpDoneScene as SignUpDoneScene
 import ReceptionKiosk.NewMemberScene as NewMemberScene
@@ -54,7 +53,6 @@ type alias Model =
   , checkInDoneModel    : CheckInDoneScene.CheckInDoneModel
   , checkOutModel       : CheckOutScene.CheckOutModel
   , checkOutDoneModel   : CheckOutDoneScene.CheckOutDoneModel
-  , doYouHaveAcctModel  : DoYouHaveAcctScene.DoYouHaveAcctModel
   , howDidYouHearModel  : HowDidYouHearScene.HowDidYouHearModel
   , signUpDoneModel     : SignUpDoneScene.SignUpDoneModel
   , newMemberModel      : NewMemberScene.NewMemberModel
@@ -72,7 +70,6 @@ init f =
     (checkInDoneModel,    checkInDoneCmd   ) = CheckInDoneScene.init    f
     (checkOutModel,       checkOutCmd      ) = CheckOutScene.init       f
     (checkOutDoneModel,   checkOutDoneCmd  ) = CheckOutDoneScene.init   f
-    (doYouHaveAcctModel,  doYouHaveAcctCmd ) = DoYouHaveAcctScene.init  f
     (howDidYouHearModel,  howDidYouHearCmd ) = HowDidYouHearScene.init  f
     (newMemberModel,      newMemberCmd     ) = NewMemberScene.init      f
     (newUserModel,        newUserCmd       ) = NewUserScene.init        f
@@ -90,7 +87,6 @@ init f =
       , checkInDoneModel    = checkInDoneModel
       , checkOutModel       = checkOutModel
       , checkOutDoneModel   = checkOutDoneModel
-      , doYouHaveAcctModel  = doYouHaveAcctModel
       , howDidYouHearModel  = howDidYouHearModel
       , newMemberModel      = newMemberModel
       , newUserModel        = newUserModel
@@ -105,7 +101,6 @@ init f =
       , checkInDoneCmd
       , checkOutCmd
       , checkOutDoneCmd
-      , doYouHaveAcctCmd
       , howDidYouHearCmd
       , newMemberCmd
       , newUserCmd
@@ -208,7 +203,6 @@ view model =
     CheckInDone    -> CheckInDoneScene.view    model
     CheckOut       -> CheckOutScene.view       model
     CheckOutDone   -> CheckOutDoneScene.view   model
-    DoYouHaveAcct  -> DoYouHaveAcctScene.view  model
     HowDidYouHear  -> HowDidYouHearScene.view  model
     NewMember      -> NewMemberScene.view      model
     NewUser        -> NewUserScene.view        model

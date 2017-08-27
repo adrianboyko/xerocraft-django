@@ -2,7 +2,8 @@
 module ReceptionKiosk.WelcomeScene exposing (init, update, view, WelcomeModel)
 
 -- Standard
-import Html exposing (..)
+import Html exposing (Html, div, text, img, br)
+import Html.Attributes exposing (src, width, style)
 
 -- Third Party
 
@@ -46,9 +47,24 @@ view kioskModel =
   genericScene kioskModel
     "Welcome!"
     "Choose one of the following:"
-    (text "")
-    [ ButtonSpec "I'm new!" (WizardVector <| Push <| DoYouHaveAcct)
-    , ButtonSpec "Check In" (WizardVector <| Push <| CheckIn)
-    , ButtonSpec "Check Out" (WizardVector <| Push <| CheckOut)
-    ]
+    (div [sceneTextStyle]
+      [ vspace 50
+      , text "If you've never signed up here or on our website:"
+      , vspace 20
+      , sceneButton kioskModel <| ButtonSpec "I'm new!" (WizardVector <| Push <| NewMember)
+      , vspace 70
+      , text "If you've already signed up here or on our website:"
+      , vspace 20
+      , sceneButton kioskModel <| ButtonSpec "Check In" (WizardVector <| Push <| CheckIn)
+      , sceneButton kioskModel <| ButtonSpec "Check Out" (WizardVector <| Push <| CheckOut)
+      , vspace 150
+      , img [src "/static/members/cactuses.png", bottomImgStyle] []
+      ]
+    )
+    [] -- Buttons are woven into the rest of the content on this scene.
 
+bottomImgStyle = style
+  [ "text-align" => "center"
+  , "padding-left" => "30px"
+  , "padding-right" => "0"
+  ]
