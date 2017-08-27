@@ -600,6 +600,8 @@ def _ops_calendar_json(request, year, month):
                 "begin": {"hour": start_time.hour, "minute": start_time.minute},
                 "duration": msec_dur
             }
+        else:
+            window = None
 
         user = request.user
         actions = task.possible_actions_for(user.member) if user.is_authenticated() else []
