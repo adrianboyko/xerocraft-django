@@ -24,6 +24,7 @@ type alias Flags =
   , checkedInAcctsUrl: String
   , matchingAcctsUrl: String
   , logVisitEventUrl: String
+  , scrapeLoginsUrl: String
   }
 
 -----------------------------------------------------------------------------
@@ -114,6 +115,7 @@ type Msg
 
 type WizardMsg
   = Push Scene
+  | RebaseTo Scene
   | Pop
   | Reset
   | SceneWillAppear Scene

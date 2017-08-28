@@ -147,6 +147,13 @@ update msg model =
           in
             (newModel, Cmd.none) :> update (WizardVector <| SceneWillAppear <| newScene)
 
+        RebaseTo newBaseScene ->
+          -- Resets the stack with a new base scene.
+          let
+            newModel = {model | sceneStack = List.Nonempty.fromElement newBaseScene }
+          in
+            (newModel, Cmd.none) :> update (WizardVector <| SceneWillAppear <| newBaseScene)
+
         Reset -> reset model
 
         SceneWillAppear appearingScene ->
