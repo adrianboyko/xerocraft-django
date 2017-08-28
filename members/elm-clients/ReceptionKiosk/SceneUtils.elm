@@ -42,21 +42,19 @@ sceneFrame model sceneHtml =
 
 frameNavButtons : (SceneUtilModel a) -> Html Msg
 frameNavButtons model =
-  div [navDivStyle]
-    (
-    if not (List.Nonempty.isSingleton model.sceneStack)
-    then
+  let
+    isBaseScene = List.Nonempty.isSingleton model.sceneStack
+  in
+    div [navDivStyle]
       [ Button.render MdlVector [10000] model.mdl
-          ([Button.flat, Options.onClick (WizardVector <| Pop)]++navButtonCss)
+          ([Button.flat, Options.disabled isBaseScene, Options.onClick (WizardVector <| Pop)]++navButtonCss)
           [text "Back"]
       , hspace 600
       , Button.render MdlVector [10001] model.mdl
           ([Button.flat, Options.onClick (WizardVector <| Push <| Welcome)]++navButtonCss)
           [text "Quit"]
       ]
-    else
-      [text ""]
-    )
+
 
 genericScene : (SceneUtilModel a) -> String -> String -> Html Msg -> List (ButtonSpec Msg) -> Html Msg
 genericScene model title subtitle extraContent buttonSpecs =
