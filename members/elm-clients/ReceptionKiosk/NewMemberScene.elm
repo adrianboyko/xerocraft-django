@@ -19,11 +19,12 @@ import ReceptionKiosk.SceneUtils exposing (..)
 -----------------------------------------------------------------------------
 
 type alias NewMemberModel =
-  { firstName: String
-  , lastName: String
-  , email: String
-  , isAdult: Bool
-  , badNews: List String
+  { firstName : String
+  , lastName : String
+  , email : String
+  , isAdult : Bool
+  , userIds : List String
+  , badNews : List String
   }
 
 -- This type alias describes the type of kiosk model that this scene requires.
@@ -36,6 +37,7 @@ init flags =
    , lastName = ""
    , email = ""
    , isAdult = False
+   , userIds = ["larry"]
    , badNews = []
    }
   in (model, Cmd.none)
@@ -62,26 +64,40 @@ update msg kioskModel =
       ({sceneModel | isAdult = not sceneModel.isAdult}, Cmd.none)
 
     Validate ->
-      validate sceneModel
+      validate kioskModel
+
+    ValidateEmailUnique (Ok {target, matches}) ->
+      if List.length matches > 0 then
+        let userIds = List.map .userName matches
+        in ({sceneModel | userIds=userIds}, send (WizardVector <| Push <| EmailInUse))
+      else
+        (sceneModel, send (WizardVector <| Push <| NewUser))
+
+    ValidateEmailUnique (Err error) ->
+      ({sceneModel | badNews = [toString error]}, Cmd.none)
+
 
 -----------------------------------------------------------------------------
 -- VALIDATE
 -----------------------------------------------------------------------------
 
-validate : NewMemberModel -> (NewMemberModel, Cmd Msg)
-validate sceneModel =
+validate : KioskModel a -> (NewMemberModel, Cmd Msg)
+validate kioskModel =
   let
+    sceneModel = kioskModel.newMemberModel
     fNameShort = String.length sceneModel.firstName == 0
     lNameShort = String.length sceneModel.lastName == 0
-    emailInvalid = not (contains emailRegex sceneModel.email)
+    emailInvalid = String.toLower sceneModel.email |> contains emailRegex |> not
     msgs = List.concat
       [ if fNameShort then ["Please provide your first name."] else []
       , if lNameShort then ["Please provide your last name."] else []
       , if emailInvalid then ["Your email address is not valid."] else []
       ]
+    getMatchingAccts = Backend.getMatchingAccts kioskModel.flags
     cmd = if List.length msgs > 0
       then Cmd.none
-      else send (WizardVector <| Push <| NewUser)
+      else getMatchingAccts sceneModel.email (NewMemberVector << ValidateEmailUnique)
+
   in
     ({sceneModel | badNews = msgs}, cmd)
 

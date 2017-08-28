@@ -108,8 +108,8 @@ view : KioskModel a -> Html Msg
 view kioskModel =
   let sceneModel = kioskModel.newUserModel
   in genericScene kioskModel
-    "Account Details"
-    "Provide an id and password for our website:"
+    "Login Details"
+    "Choose an id and password for our website:"
     ( div []
         [ sceneTextField kioskModel 6 "Choose a login id" sceneModel.userName (NewUserVector << UpdateUserName)
         , vspace 0

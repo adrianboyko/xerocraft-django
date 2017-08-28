@@ -35,6 +35,7 @@ type Scene
   | CheckInDone
   | CheckOut
   | CheckOutDone
+  | EmailInUse
   | HowDidYouHear
   | SignUpDone
   | NewMember
@@ -68,6 +69,7 @@ type NewMemberMsg
   | UpdateEmail String
   | ToggleIsAdult
   | Validate
+  | ValidateEmailUnique (Result Http.Error MatchingAcctInfo)
 
 type NewUserMsg
   = ValidateUserNameAndPw
