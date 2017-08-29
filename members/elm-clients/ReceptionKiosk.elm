@@ -9,7 +9,6 @@ import Http
 -- Third party
 import List.Nonempty exposing (Nonempty)
 import Material
-import Update.Extra exposing (andThen)
 import Update.Extra.Infix exposing ((:>))
 
 -- Local
@@ -18,6 +17,7 @@ import ReceptionKiosk.CheckInScene as CheckInScene
 import ReceptionKiosk.CheckInDoneScene as CheckInDoneScene
 import ReceptionKiosk.CheckOutScene as CheckOutScene
 import ReceptionKiosk.CheckOutDoneScene as CheckOutDoneScene
+import ReceptionKiosk.CreatingAcctScene as CreatingAcctScene
 import ReceptionKiosk.EmailInUseScene as EmailInUseScene
 import ReceptionKiosk.HowDidYouHearScene as HowDidYouHearScene
 import ReceptionKiosk.SignUpDoneScene as SignUpDoneScene
@@ -54,6 +54,7 @@ type alias Model =
   , checkInDoneModel    : CheckInDoneScene.CheckInDoneModel
   , checkOutModel       : CheckOutScene.CheckOutModel
   , checkOutDoneModel   : CheckOutDoneScene.CheckOutDoneModel
+  , creatingAcctModel   : CreatingAcctScene.CreatingAcctModel
   , emailInUseModel     : EmailInUseScene.EmailInUseModel
   , howDidYouHearModel  : HowDidYouHearScene.HowDidYouHearModel
   , signUpDoneModel     : SignUpDoneScene.SignUpDoneModel
@@ -72,6 +73,7 @@ init f =
     (checkInDoneModel,    checkInDoneCmd   ) = CheckInDoneScene.init    f
     (checkOutModel,       checkOutCmd      ) = CheckOutScene.init       f
     (checkOutDoneModel,   checkOutDoneCmd  ) = CheckOutDoneScene.init   f
+    (creatingAcctModel,   creatingAcctCmd  ) = CreatingAcctScene.init   f
     (emailInUseModel,     emailInUseCmd    ) = EmailInUseScene.init     f
     (howDidYouHearModel,  howDidYouHearCmd ) = HowDidYouHearScene.init  f
     (newMemberModel,      newMemberCmd     ) = NewMemberScene.init      f
@@ -90,6 +92,7 @@ init f =
       , checkInDoneModel    = checkInDoneModel
       , checkOutModel       = checkOutModel
       , checkOutDoneModel   = checkOutDoneModel
+      , creatingAcctModel   = creatingAcctModel
       , emailInUseModel     = emailInUseModel
       , howDidYouHearModel  = howDidYouHearModel
       , newMemberModel      = newMemberModel
@@ -105,6 +108,7 @@ init f =
       , checkInDoneCmd
       , checkOutCmd
       , checkOutDoneCmd
+      , creatingAcctCmd
       , emailInUseCmd
       , howDidYouHearCmd
       , newMemberCmd
@@ -159,6 +163,7 @@ update msg model =
         SceneWillAppear appearingScene ->
             case appearingScene of
               CheckOut -> (model, Cmd.none) :> update (CheckOutVector CheckOutSceneWillAppear)
+              CreatingAcct -> (model, Cmd.none) :> update (CreatingAcctVector CreatingAcctSceneWillAppear)
               VolunteerIn -> (model, Cmd.none) :> update (VolunteerInVector VolunteerInSceneWillAppear)
               Waiver -> (model, Cmd.none) :> update (WaiverVector WaiverSceneWillAppear)
               Welcome -> (model, Cmd.none) :> update (WelcomeVector WelcomeSceneWillAppear)
@@ -171,6 +176,10 @@ update msg model =
     CheckOutVector x ->
       let (sm, cmd) = CheckOutScene.update x model
       in ({model | checkOutModel = sm}, cmd)
+
+    CreatingAcctVector x ->
+      let (sm, cmd) = CreatingAcctScene.update x model
+      in ({model | creatingAcctModel = sm}, cmd)
 
     HowDidYouHearVector x ->
       let (sm, cmd) = HowDidYouHearScene.update x model
@@ -215,6 +224,7 @@ view model =
     CheckInDone    -> CheckInDoneScene.view    model
     CheckOut       -> CheckOutScene.view       model
     CheckOutDone   -> CheckOutDoneScene.view   model
+    CreatingAcct   -> CreatingAcctScene.view   model
     EmailInUse     -> EmailInUseScene.view     model
     HowDidYouHear  -> HowDidYouHearScene.view  model
     NewMember      -> NewMemberScene.view      model

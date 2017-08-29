@@ -36,6 +36,7 @@ type Scene
   | CheckInDone
   | CheckOut
   | CheckOutDone
+  | CreatingAcct
   | EmailInUse
   | HowDidYouHear
   | SignUpDone
@@ -59,6 +60,11 @@ type CheckOutMsg
   = UpdateCheckedInAccts (Result Http.Error MatchingAcctInfo)
   | LogCheckOut Int
   | CheckOutSceneWillAppear
+
+
+type CreatingAcctMsg
+  = AccountCreationResult (Result Http.Error String)
+  | CreatingAcctSceneWillAppear
 
 type HowDidYouHearMsg
   = AccDiscoveryMethods (Result Http.Error DiscoveryMethodInfo)  -- "Acc" means "accumulate"
@@ -94,7 +100,6 @@ type WaiverMsg
   | ClearSignaturePad String
   | GetSignature
   | UpdateSignature String  -- String is a data URL representation of an image.
-  | AccountCreationResult (Result Http.Error String)
   | WaiverSceneWillAppear
 
 type WelcomeMsg
@@ -105,6 +110,7 @@ type Msg
   | WizardVector WizardMsg
   | CheckInVector CheckInMsg
   | CheckOutVector CheckOutMsg
+  | CreatingAcctVector CreatingAcctMsg
   | HowDidYouHearVector HowDidYouHearMsg
   | NewMemberVector NewMemberMsg
   | NewUserVector NewUserMsg

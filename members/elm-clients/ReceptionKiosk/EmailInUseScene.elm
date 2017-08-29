@@ -74,12 +74,3 @@ view kioskModel =
     )
     []  -- Buttons for this scene are woven into the scene content.
 
------------------------------------------------------------------------------
--- STYLE
------------------------------------------------------------------------------
-
-userIdStyle = style
-  [ "margin" => "10px"
-  , "padding" => "10px"
-  , "background-color" => "#ccffff" -- light cyan
-  ]

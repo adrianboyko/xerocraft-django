@@ -217,6 +217,12 @@ errorMsgStyle = style
   , "font-size"=>"22pt"
   ]
 
+userIdStyle = style
+  [ "margin" => "10px"
+  , "padding" => "10px"
+  , "background-color" => "#ccffff" -- light cyan
+  ]
+
 navButtonCss =
   [ css "display" "inline-block"
   , css "margin-top" "30px"

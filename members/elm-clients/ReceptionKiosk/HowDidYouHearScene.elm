@@ -79,7 +79,7 @@ view kioskModel =
     "Just Wondering"
     "How did you hear about us?"
     (howDidYouHearChoices kioskModel)
-    [ButtonSpec "OK" (WizardVector <| Push <| SignUpDone)]
+    [ButtonSpec "OK" (WizardVector <| Push <| NewMember)]
 
 howDidYouHearChoices : KioskModel a -> Html Msg
 howDidYouHearChoices kioskModel =

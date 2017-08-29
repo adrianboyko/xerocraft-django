@@ -51,7 +51,7 @@ view kioskModel =
       [ vspace 50
       , text "If you've never signed up here or on our website:"
       , vspace 20
-      , sceneButton kioskModel <| ButtonSpec "I'm new!" (WizardVector <| Push <| NewMember)
+      , sceneButton kioskModel <| ButtonSpec "I'm new!" (WizardVector <| Push <| HowDidYouHear)
       , vspace 70
       , text "If you've already signed up here or on our website:"
       , vspace 20
