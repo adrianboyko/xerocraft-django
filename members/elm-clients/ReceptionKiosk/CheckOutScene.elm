@@ -13,14 +13,14 @@ import Material.Options as Options exposing (css)
 -- Local
 import ReceptionKiosk.Types exposing (..)
 import ReceptionKiosk.SceneUtils exposing (..)
-import ReceptionKiosk.Backend as Backend
+import MembersApi as MembersApi
 
 -----------------------------------------------------------------------------
 -- INIT
 -----------------------------------------------------------------------------
 
 type alias CheckOutModel =
-  { checkedInAccts : List Backend.MatchingAcct
+  { checkedInAccts : List MembersApi.MatchingAcct
   , badNews : List String
   }
 
@@ -43,7 +43,7 @@ update msg kioskModel =
 
     CheckOutSceneWillAppear ->
       let
-        getCheckedInAccts = Backend.getCheckedInAccts kioskModel.flags
+        getCheckedInAccts = MembersApi.getCheckedInAccts kioskModel.flags
         request = getCheckedInAccts (CheckOutVector << UpdateCheckedInAccts)
       in
         (sceneModel, request)

@@ -8,7 +8,7 @@ import Material
 import List.Nonempty exposing (Nonempty)
 
 -- Local
-import ReceptionKiosk.Backend exposing (..)
+import MembersApi exposing (..)
 import TaskApi exposing (..)
 
 -----------------------------------------------------------------------------

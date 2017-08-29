@@ -10,9 +10,9 @@ import Regex exposing (regex)
 import String.Extra exposing (..)
 
 -- Local
+import MembersApi as MembersApi
 import ReceptionKiosk.Types exposing (..)
 import ReceptionKiosk.SceneUtils exposing (..)
-import ReceptionKiosk.Backend as Backend
 import ReceptionKiosk.ReasonForVisitScene exposing (ReasonForVisitModel)
 import ReceptionKiosk.NewMemberScene exposing (NewMemberModel)
 import ReceptionKiosk.NewUserScene exposing (NewUserModel)
@@ -69,7 +69,7 @@ update msg kioskModel =
         userModel = kioskModel.newUserModel
         waiverModel = kioskModel.waiverModel
         fullName = String.join " " [memberModel.firstName, memberModel.lastName]
-        cmd = Backend.createNewAcct
+        cmd = MembersApi.createNewAcct
           fullName userModel.userName memberModel.email userModel.password1 waiverModel.signature
           (CreatingAcctVector << AccountCreationResult)
       in

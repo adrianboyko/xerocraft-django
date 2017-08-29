@@ -10,10 +10,10 @@ import Material.Options as Options exposing (css)
 import Material.List as Lists
 
 -- Local
+import MembersApi as MembersApi exposing (ReasonForVisit(..))
 import ReceptionKiosk.Types exposing (..)
 import ReceptionKiosk.SceneUtils exposing (..)
 import ReceptionKiosk.CheckInScene exposing (CheckInModel)
-import ReceptionKiosk.Backend as Backend exposing (ReasonForVisit(..))
 
 -----------------------------------------------------------------------------
 -- INIT
@@ -60,8 +60,8 @@ update msg kioskModel =
           ({sceneModel | badNews = ["You must choose an activity type."]}, Cmd.none)
         Just reasonForVisit ->
           let
-            logVisitEvent = Backend.logVisitEvent  kioskModel.flags
-            cmd = logVisitEvent checkInModel.memberNum Backend.Arrival reasonForVisit (ReasonForVisitVector << LogCheckInResult)
+            logVisitEvent = MembersApi.logVisitEvent  kioskModel.flags
+            cmd = logVisitEvent checkInModel.memberNum MembersApi.Arrival reasonForVisit (ReasonForVisitVector << LogCheckInResult)
           in (sceneModel, cmd)
 
     LogCheckInResult (Ok {result}) ->

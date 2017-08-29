@@ -10,7 +10,7 @@ import Regex exposing (..)
 import String.Extra as SE
 
 -- Local
-import ReceptionKiosk.Backend as Backend
+import MembersApi as MembersApi
 import ReceptionKiosk.Types exposing (..)
 import ReceptionKiosk.SceneUtils exposing (..)
 
@@ -93,7 +93,7 @@ validate kioskModel =
       , if lNameShort then ["Please provide your last name."] else []
       , if emailInvalid then ["Your email address is not valid."] else []
       ]
-    getMatchingAccts = Backend.getMatchingAccts kioskModel.flags
+    getMatchingAccts = MembersApi.getMatchingAccts kioskModel.flags
     cmd = if List.length msgs > 0
       then Cmd.none
       else getMatchingAccts sceneModel.email (NewMemberVector << ValidateEmailUnique)

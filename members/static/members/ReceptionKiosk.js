@@ -20120,7 +20120,7 @@ var _rluiten$elm_date_extra$Date_Extra_Format$utcIsoString = function (date) {
 };
 var _rluiten$elm_date_extra$Date_Extra_Format$isoFormat = '%Y-%m-%dT%H:%M:%S';
 
-var _user$project$ReceptionKiosk_Backend$createNewAcct = F6(
+var _user$project$MembersApi$createNewAcct = F6(
 	function (fullName, userName, email, password, signature, thing) {
 		var enc = _elm_lang$http$Http$encodeUri;
 		var eq = F2(
@@ -20190,7 +20190,7 @@ var _user$project$ReceptionKiosk_Backend$createNewAcct = F6(
 			});
 		return A2(_elm_lang$http$Http$send, thing, request);
 	});
-var _user$project$ReceptionKiosk_Backend$replaceAll = F3(
+var _user$project$MembersApi$replaceAll = F3(
 	function (oldSub, newSub, theString) {
 		return A4(
 			_elm_lang$core$Regex$replace,
@@ -20201,51 +20201,51 @@ var _user$project$ReceptionKiosk_Backend$replaceAll = F3(
 			},
 			theString);
 	});
-var _user$project$ReceptionKiosk_Backend$djangoizeId = function (rawId) {
-	return A3(_user$project$ReceptionKiosk_Backend$replaceAll, '[^-a-zA-Z0-9_@+.]', '_', rawId);
+var _user$project$MembersApi$djangoizeId = function (rawId) {
+	return A3(_user$project$MembersApi$replaceAll, '[^-a-zA-Z0-9_@+.]', '_', rawId);
 };
-var _user$project$ReceptionKiosk_Backend$MatchingAcct = F2(
+var _user$project$MembersApi$MatchingAcct = F2(
 	function (a, b) {
 		return {userName: a, memberNum: b};
 	});
-var _user$project$ReceptionKiosk_Backend$decodeMatchingAcct = A3(
+var _user$project$MembersApi$decodeMatchingAcct = A3(
 	_elm_lang$core$Json_Decode$map2,
-	_user$project$ReceptionKiosk_Backend$MatchingAcct,
+	_user$project$MembersApi$MatchingAcct,
 	A2(_elm_lang$core$Json_Decode$field, 'userName', _elm_lang$core$Json_Decode$string),
 	A2(_elm_lang$core$Json_Decode$field, 'memberNum', _elm_lang$core$Json_Decode$int));
-var _user$project$ReceptionKiosk_Backend$MatchingAcctInfo = F2(
+var _user$project$MembersApi$MatchingAcctInfo = F2(
 	function (a, b) {
 		return {target: a, matches: b};
 	});
-var _user$project$ReceptionKiosk_Backend$decodeMatchingAcctInfo = A3(
+var _user$project$MembersApi$decodeMatchingAcctInfo = A3(
 	_elm_lang$core$Json_Decode$map2,
-	_user$project$ReceptionKiosk_Backend$MatchingAcctInfo,
+	_user$project$MembersApi$MatchingAcctInfo,
 	A2(_elm_lang$core$Json_Decode$field, 'target', _elm_lang$core$Json_Decode$string),
 	A2(
 		_elm_lang$core$Json_Decode$field,
 		'matches',
-		_elm_lang$core$Json_Decode$list(_user$project$ReceptionKiosk_Backend$decodeMatchingAcct)));
-var _user$project$ReceptionKiosk_Backend$getCheckedInAccts = F2(
+		_elm_lang$core$Json_Decode$list(_user$project$MembersApi$decodeMatchingAcct)));
+var _user$project$MembersApi$getCheckedInAccts = F2(
 	function (flags, thing) {
 		var url = A2(_elm_lang$core$Basics_ops['++'], flags.checkedInAcctsUrl, '?format=json');
-		var request = A2(_elm_lang$http$Http$get, url, _user$project$ReceptionKiosk_Backend$decodeMatchingAcctInfo);
+		var request = A2(_elm_lang$http$Http$get, url, _user$project$MembersApi$decodeMatchingAcctInfo);
 		return A2(_elm_lang$http$Http$send, thing, request);
 	});
-var _user$project$ReceptionKiosk_Backend$getMatchingAccts = F3(
+var _user$project$MembersApi$getMatchingAccts = F3(
 	function (flags, flexId, thing) {
 		var url = A3(
-			_user$project$ReceptionKiosk_Backend$replaceAll,
+			_user$project$MembersApi$replaceAll,
 			'FLEXID',
 			flexId,
 			A2(_elm_lang$core$Basics_ops['++'], flags.matchingAcctsUrl, '?format=json'));
-		var request = A2(_elm_lang$http$Http$get, url, _user$project$ReceptionKiosk_Backend$decodeMatchingAcctInfo);
+		var request = A2(_elm_lang$http$Http$get, url, _user$project$MembersApi$decodeMatchingAcctInfo);
 		return A2(_elm_lang$http$Http$send, thing, request);
 	});
-var _user$project$ReceptionKiosk_Backend$DiscoveryMethod = F4(
+var _user$project$MembersApi$DiscoveryMethod = F4(
 	function (a, b, c, d) {
 		return {id: a, name: b, order: c, selected: d};
 	});
-var _user$project$ReceptionKiosk_Backend$decodeDiscoveryMethod = A2(
+var _user$project$MembersApi$decodeDiscoveryMethod = A2(
 	_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$hardcoded,
 	false,
 	A3(
@@ -20260,14 +20260,14 @@ var _user$project$ReceptionKiosk_Backend$decodeDiscoveryMethod = A2(
 				_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
 				'id',
 				_elm_lang$core$Json_Decode$int,
-				_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$decode(_user$project$ReceptionKiosk_Backend$DiscoveryMethod)))));
-var _user$project$ReceptionKiosk_Backend$DiscoveryMethodInfo = F4(
+				_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$decode(_user$project$MembersApi$DiscoveryMethod)))));
+var _user$project$MembersApi$DiscoveryMethodInfo = F4(
 	function (a, b, c, d) {
 		return {count: a, next: b, previous: c, results: d};
 	});
-var _user$project$ReceptionKiosk_Backend$decodeDiscoveryMethodInfo = A5(
+var _user$project$MembersApi$decodeDiscoveryMethodInfo = A5(
 	_elm_lang$core$Json_Decode$map4,
-	_user$project$ReceptionKiosk_Backend$DiscoveryMethodInfo,
+	_user$project$MembersApi$DiscoveryMethodInfo,
 	A2(_elm_lang$core$Json_Decode$field, 'count', _elm_lang$core$Json_Decode$int),
 	A2(
 		_elm_lang$core$Json_Decode$field,
@@ -20280,20 +20280,20 @@ var _user$project$ReceptionKiosk_Backend$decodeDiscoveryMethodInfo = A5(
 	A2(
 		_elm_lang$core$Json_Decode$field,
 		'results',
-		_elm_lang$core$Json_Decode$list(_user$project$ReceptionKiosk_Backend$decodeDiscoveryMethod)));
-var _user$project$ReceptionKiosk_Backend$getDiscoveryMethods = F2(
+		_elm_lang$core$Json_Decode$list(_user$project$MembersApi$decodeDiscoveryMethod)));
+var _user$project$MembersApi$getDiscoveryMethods = F2(
 	function (flags, thing) {
-		var request = A2(_elm_lang$http$Http$get, flags.discoveryMethodsUrl, _user$project$ReceptionKiosk_Backend$decodeDiscoveryMethodInfo);
+		var request = A2(_elm_lang$http$Http$get, flags.discoveryMethodsUrl, _user$project$MembersApi$decodeDiscoveryMethodInfo);
 		return A2(_elm_lang$http$Http$send, thing, request);
 	});
-var _user$project$ReceptionKiosk_Backend$GenericResult = function (a) {
+var _user$project$MembersApi$GenericResult = function (a) {
 	return {result: a};
 };
-var _user$project$ReceptionKiosk_Backend$decodeGenericResult = A2(
+var _user$project$MembersApi$decodeGenericResult = A2(
 	_elm_lang$core$Json_Decode$map,
-	_user$project$ReceptionKiosk_Backend$GenericResult,
+	_user$project$MembersApi$GenericResult,
 	A2(_elm_lang$core$Json_Decode$field, 'result', _elm_lang$core$Json_Decode$string));
-var _user$project$ReceptionKiosk_Backend$logVisitEvent = F5(
+var _user$project$MembersApi$logVisitEvent = F5(
 	function (flags, memberPK, eventType, reason, thing) {
 		var reasonVal = function () {
 			var _p1 = reason;
@@ -20354,22 +20354,22 @@ var _user$project$ReceptionKiosk_Backend$logVisitEvent = F5(
 				}
 			});
 		var url = A3(
-			_user$project$ReceptionKiosk_Backend$replaceAll,
+			_user$project$MembersApi$replaceAll,
 			'/12345_A_OTH/',
 			params,
 			A2(_elm_lang$core$Basics_ops['++'], flags.logVisitEventUrl, '?format=json'));
-		var request = A2(_elm_lang$http$Http$get, url, _user$project$ReceptionKiosk_Backend$decodeGenericResult);
+		var request = A2(_elm_lang$http$Http$get, url, _user$project$MembersApi$decodeGenericResult);
 		return A2(_elm_lang$http$Http$send, thing, request);
 	});
-var _user$project$ReceptionKiosk_Backend$Departure = {ctor: 'Departure'};
-var _user$project$ReceptionKiosk_Backend$Present = {ctor: 'Present'};
-var _user$project$ReceptionKiosk_Backend$Arrival = {ctor: 'Arrival'};
-var _user$project$ReceptionKiosk_Backend$Other = {ctor: 'Other'};
-var _user$project$ReceptionKiosk_Backend$Volunteer = {ctor: 'Volunteer'};
-var _user$project$ReceptionKiosk_Backend$GuestOfMember = {ctor: 'GuestOfMember'};
-var _user$project$ReceptionKiosk_Backend$MemberPrivileges = {ctor: 'MemberPrivileges'};
-var _user$project$ReceptionKiosk_Backend$ClassParticipant = {ctor: 'ClassParticipant'};
-var _user$project$ReceptionKiosk_Backend$Curiousity = {ctor: 'Curiousity'};
+var _user$project$MembersApi$Departure = {ctor: 'Departure'};
+var _user$project$MembersApi$Present = {ctor: 'Present'};
+var _user$project$MembersApi$Arrival = {ctor: 'Arrival'};
+var _user$project$MembersApi$Other = {ctor: 'Other'};
+var _user$project$MembersApi$Volunteer = {ctor: 'Volunteer'};
+var _user$project$MembersApi$GuestOfMember = {ctor: 'GuestOfMember'};
+var _user$project$MembersApi$MemberPrivileges = {ctor: 'MemberPrivileges'};
+var _user$project$MembersApi$ClassParticipant = {ctor: 'ClassParticipant'};
+var _user$project$MembersApi$Curiousity = {ctor: 'Curiousity'};
 
 var _user$project$TaskApi$toStr = function (v) {
 	var str = _elm_lang$core$Basics$toString(v);
@@ -21866,8 +21866,8 @@ var _user$project$ReceptionKiosk_CheckInScene$update = F2(
 		var _p1 = msg;
 		switch (_p1.ctor) {
 			case 'UpdateFlexId':
-				var getMatchingAccts = _user$project$ReceptionKiosk_Backend$getMatchingAccts(kioskModel.flags);
-				var id = _user$project$ReceptionKiosk_Backend$djangoizeId(_p1._0);
+				var getMatchingAccts = _user$project$MembersApi$getMatchingAccts(kioskModel.flags);
+				var id = _user$project$MembersApi$djangoizeId(_p1._0);
 				return (_elm_lang$core$Native_Utils.cmp(
 					_elm_lang$core$String$length(id),
 					1) > 0) ? {
@@ -22046,7 +22046,7 @@ var _user$project$ReceptionKiosk_CheckOutScene$update = F2(
 		var _p0 = msg;
 		switch (_p0.ctor) {
 			case 'CheckOutSceneWillAppear':
-				var getCheckedInAccts = _user$project$ReceptionKiosk_Backend$getCheckedInAccts(kioskModel.flags);
+				var getCheckedInAccts = _user$project$MembersApi$getCheckedInAccts(kioskModel.flags);
 				var request = getCheckedInAccts(
 					function (_p1) {
 						return _user$project$ReceptionKiosk_Types$CheckOutVector(
@@ -22245,22 +22245,22 @@ var _user$project$ReceptionKiosk_ReasonForVisitScene$view = function (kioskModel
 					kioskModel,
 					{
 						ctor: '::',
-						_0: _user$project$ReceptionKiosk_Backend$MemberPrivileges,
+						_0: _user$project$MembersApi$MemberPrivileges,
 						_1: {
 							ctor: '::',
-							_0: _user$project$ReceptionKiosk_Backend$Volunteer,
+							_0: _user$project$MembersApi$Volunteer,
 							_1: {
 								ctor: '::',
-								_0: _user$project$ReceptionKiosk_Backend$Curiousity,
+								_0: _user$project$MembersApi$Curiousity,
 								_1: {
 									ctor: '::',
-									_0: _user$project$ReceptionKiosk_Backend$ClassParticipant,
+									_0: _user$project$MembersApi$ClassParticipant,
 									_1: {
 										ctor: '::',
-										_0: _user$project$ReceptionKiosk_Backend$GuestOfMember,
+										_0: _user$project$MembersApi$GuestOfMember,
 										_1: {
 											ctor: '::',
-											_0: _user$project$ReceptionKiosk_Backend$Other,
+											_0: _user$project$MembersApi$Other,
 											_1: {ctor: '[]'}
 										}
 									}
@@ -22316,11 +22316,11 @@ var _user$project$ReceptionKiosk_ReasonForVisitScene$update = F2(
 						_1: _elm_lang$core$Platform_Cmd$none
 					};
 				} else {
-					var logVisitEvent = _user$project$ReceptionKiosk_Backend$logVisitEvent(kioskModel.flags);
+					var logVisitEvent = _user$project$MembersApi$logVisitEvent(kioskModel.flags);
 					var cmd = A4(
 						logVisitEvent,
 						checkInModel.memberNum,
-						_user$project$ReceptionKiosk_Backend$Arrival,
+						_user$project$MembersApi$Arrival,
 						_p3._0,
 						function (_p4) {
 							return _user$project$ReceptionKiosk_Types$ReasonForVisitVector(
@@ -22485,7 +22485,7 @@ var _user$project$ReceptionKiosk_NewMemberScene$view = function (kioskModel) {
 		});
 };
 var _user$project$ReceptionKiosk_NewMemberScene$validate = function (kioskModel) {
-	var getMatchingAccts = _user$project$ReceptionKiosk_Backend$getMatchingAccts(kioskModel.flags);
+	var getMatchingAccts = _user$project$MembersApi$getMatchingAccts(kioskModel.flags);
 	var sceneModel = kioskModel.newMemberModel;
 	var fNameShort = _elm_lang$core$Native_Utils.eq(
 		_elm_lang$core$String$length(sceneModel.firstName),
@@ -22773,7 +22773,7 @@ var _user$project$ReceptionKiosk_NewUserScene$validateUserNameUnique = F2(
 		}
 	});
 var _user$project$ReceptionKiosk_NewUserScene$validateUserIdAndPw = function (kioskModel) {
-	var getMatchingAccts = _user$project$ReceptionKiosk_Backend$getMatchingAccts(kioskModel.flags);
+	var getMatchingAccts = _user$project$MembersApi$getMatchingAccts(kioskModel.flags);
 	var sceneModel = kioskModel.newUserModel;
 	var pwMismatch = !_elm_lang$core$Native_Utils.eq(sceneModel.password1, sceneModel.password2);
 	var pwShort = _elm_lang$core$Native_Utils.cmp(
@@ -22842,7 +22842,7 @@ var _user$project$ReceptionKiosk_NewUserScene$update = F2(
 		var _p5 = msg;
 		switch (_p5.ctor) {
 			case 'UpdateUserName':
-				var djangoizedVal = _user$project$ReceptionKiosk_Backend$djangoizeId(_p5._0);
+				var djangoizedVal = _user$project$MembersApi$djangoizeId(_p5._0);
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
@@ -23379,7 +23379,7 @@ var _user$project$ReceptionKiosk_CreatingAcctScene$update = F2(
 					}
 				});
 			var cmd = A6(
-				_user$project$ReceptionKiosk_Backend$createNewAcct,
+				_user$project$MembersApi$createNewAcct,
 				fullName,
 				userModel.userName,
 				memberModel.email,
@@ -23752,7 +23752,7 @@ var _user$project$ReceptionKiosk_HowDidYouHearScene$update = F2(
 		}
 	});
 var _user$project$ReceptionKiosk_HowDidYouHearScene$init = function (flags) {
-	var getDiscoveryMethods = _user$project$ReceptionKiosk_Backend$getDiscoveryMethods(flags);
+	var getDiscoveryMethods = _user$project$MembersApi$getDiscoveryMethods(flags);
 	var request = getDiscoveryMethods(
 		function (_p2) {
 			return _user$project$ReceptionKiosk_Types$HowDidYouHearVector(

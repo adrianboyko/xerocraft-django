@@ -1,4 +1,4 @@
-module ReceptionKiosk.Backend exposing
+module MembersApi exposing
   ( createNewAcct
   , DiscoveryMethod
   , DiscoveryMethodInfo

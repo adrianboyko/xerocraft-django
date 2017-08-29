@@ -14,11 +14,9 @@ import Material.List as Lists
 -- Local
 import ReceptionKiosk.Types exposing (..)
 import ReceptionKiosk.SceneUtils exposing (..)
-import ReceptionKiosk.Backend as Backend
 import ReceptionKiosk.CheckInScene exposing (CheckInModel)
 import TaskApi exposing (..)
 
-import TaskApi as TaskApi
 
 -----------------------------------------------------------------------------
 -- INIT
@@ -70,7 +68,7 @@ update msg kioskModel =
 --        picker = \x -> x.id == dm.id
 --        newDm = { dm | selected = not dm.selected }
 --      in
---        -- TODO: This should also add/remove the discovery method choice on the backend.
+--        -- TODO: This should also add/remove the discovery method choice on the MembersApi.
 --        ({sceneModel | discoveryMethods = replace picker newDm sceneModel.discoveryMethods}, Cmd.none)
         (sceneModel, Cmd.none)
 

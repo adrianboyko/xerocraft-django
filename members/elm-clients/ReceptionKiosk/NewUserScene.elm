@@ -8,9 +8,9 @@ import Http
 -- Third Party
 
 -- Local
+import MembersApi as MembersApi
 import ReceptionKiosk.Types exposing (..)
 import ReceptionKiosk.SceneUtils exposing (..)
-import ReceptionKiosk.Backend as Backend
 
 -----------------------------------------------------------------------------
 -- INIT
@@ -47,7 +47,7 @@ update msg kioskModel =
   in case msg of
 
     UpdateUserName newVal ->
-      let djangoizedVal = Backend.djangoizeId newVal
+      let djangoizedVal = MembersApi.djangoizeId newVal
       in ({sceneModel | userName = djangoizedVal}, Cmd.none)
 
     UpdatePassword1 newVal ->
@@ -76,14 +76,14 @@ validateUserIdAndPw kioskModel =
       , if userNameShort then ["The login id must have at least 4 characters."] else []
       , if userNameLong then ["The login id cannot be more than 20 characters."] else []
       ]
-    getMatchingAccts = Backend.getMatchingAccts kioskModel.flags
+    getMatchingAccts = MembersApi.getMatchingAccts kioskModel.flags
     cmd = if List.length msgs > 0
       then Cmd.none
       else getMatchingAccts sceneModel.userName (NewUserVector << ValidateUserNameUnique)
   in
     ({sceneModel | badNews = msgs}, cmd)
 
-validateUserNameUnique: KioskModel a -> Result Http.Error Backend.MatchingAcctInfo -> (NewUserModel, Cmd Msg)
+validateUserNameUnique: KioskModel a -> Result Http.Error MembersApi.MatchingAcctInfo -> (NewUserModel, Cmd Msg)
 validateUserNameUnique kioskModel result =
   let sceneModel = kioskModel.newUserModel
   in case result of

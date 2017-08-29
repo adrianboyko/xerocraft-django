@@ -12,9 +12,9 @@ import Material.Options as Options exposing (css)
 import Material.List as Lists
 
 -- Local
+import MembersApi as MembersApi
 import ReceptionKiosk.Types exposing (..)
 import ReceptionKiosk.SceneUtils exposing (..)
-import ReceptionKiosk.Backend as Backend
 
 -----------------------------------------------------------------------------
 -- INIT
@@ -22,7 +22,7 @@ import ReceptionKiosk.Backend as Backend
 
 
 type alias HowDidYouHearModel =
-  { discoveryMethods : List Backend.DiscoveryMethod  -- Fetched from backend
+  { discoveryMethods : List MembersApi.DiscoveryMethod  -- Fetched from MembersApi
   , badNews : List String
   }
 
@@ -33,7 +33,7 @@ init : Flags -> (HowDidYouHearModel, Cmd Msg)
 init flags =
   let
     sceneModel = { discoveryMethods=[], badNews=[] }
-    getDiscoveryMethods = Backend.getDiscoveryMethods flags
+    getDiscoveryMethods = MembersApi.getDiscoveryMethods flags
     request = getDiscoveryMethods (HowDidYouHearVector << AccDiscoveryMethods)
   in
     (sceneModel, request)
@@ -49,7 +49,7 @@ update msg kioskModel =
   in case msg of
 
     AccDiscoveryMethods (Ok {count, next, previous, results}) ->
-      -- Data from backend might be paged, so we need to accumulate the batches as they come.
+      -- Data from MembersApi might be paged, so we need to accumulate the batches as they come.
       let
         newMethods = sceneModel.discoveryMethods ++ results
         -- TODO: Need to get next batch if next is not Nothing.
@@ -65,7 +65,7 @@ update msg kioskModel =
         picker = \x -> x.id == dm.id
         newDm = { dm | selected = not dm.selected }
       in
-        -- TODO: This should also add/remove the discovery method choice on the backend.
+        -- TODO: This should also add/remove the discovery method choice on the MembersApi.
         ({sceneModel | discoveryMethods = replace picker newDm sceneModel.discoveryMethods}, Cmd.none)
 
 

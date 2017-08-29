@@ -13,7 +13,7 @@ import Material.Options as Options exposing (css)
 -- Local
 import ReceptionKiosk.Types exposing (..)
 import ReceptionKiosk.SceneUtils exposing (..)
-import ReceptionKiosk.Backend as Backend
+import MembersApi as MembersApi
 
 -----------------------------------------------------------------------------
 -- INIT
@@ -22,7 +22,7 @@ import ReceptionKiosk.Backend as Backend
 -- REVIEW: Strictly speaking, flexID and memberNum should be Maybes.
 type alias CheckInModel =
   { flexId : String  -- UserName or surname.
-  , matches : List Backend.MatchingAcct  -- Matches to username/surname
+  , matches : List MembersApi.MatchingAcct  -- Matches to username/surname
   , memberNum : Int -- The member number that the person chose to check in as.
   , badNews : List String
   }
@@ -51,8 +51,8 @@ update msg kioskModel =
 
     UpdateFlexId rawId ->
       let
-        id = Backend.djangoizeId rawId
-        getMatchingAccts = Backend.getMatchingAccts kioskModel.flags
+        id = MembersApi.djangoizeId rawId
+        getMatchingAccts = MembersApi.getMatchingAccts kioskModel.flags
       in
         if (String.length id) > 1
         then
