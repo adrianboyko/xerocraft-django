@@ -23364,9 +23364,10 @@ var _user$project$ReceptionKiosk_WaiverScene$WaiverModel = F3(
 	});
 
 var _user$project$ReceptionKiosk_CreatingAcctScene$checkForScrapedAcct = function (kioskModel) {
+	var timeoutMsg = 'Timeout waiting for new acct to migrate to XIS.';
 	var getMatchingAccts = _user$project$MembersApi$getMatchingAccts(kioskModel.flags);
 	var userId = kioskModel.newUserModel.userName;
-	var cmd = A2(
+	var checkCmd = A2(
 		getMatchingAccts,
 		userId,
 		function (_p0) {
@@ -23374,13 +23375,31 @@ var _user$project$ReceptionKiosk_CreatingAcctScene$checkForScrapedAcct = functio
 				_user$project$ReceptionKiosk_Types$CheckedForAcct(_p0));
 		});
 	var sceneModel = kioskModel.creatingAcctModel;
-	var newModel = _elm_lang$core$Native_Utils.update(
-		sceneModel,
-		{
-			badNews: {ctor: '[]'},
-			waitingForScrape: true
-		});
-	return {ctor: '_Tuple2', _0: newModel, _1: cmd};
+	var newCheckCount = sceneModel.checkCount + 1;
+	return (_elm_lang$core$Native_Utils.cmp(newCheckCount, 20) > 0) ? {
+		ctor: '_Tuple2',
+		_0: _elm_lang$core$Native_Utils.update(
+			sceneModel,
+			{
+				badNews: {
+					ctor: '::',
+					_0: timeoutMsg,
+					_1: {ctor: '[]'}
+				},
+				waitingForScrape: false
+			}),
+		_1: _elm_lang$core$Platform_Cmd$none
+	} : {
+		ctor: '_Tuple2',
+		_0: _elm_lang$core$Native_Utils.update(
+			sceneModel,
+			{
+				badNews: {ctor: '[]'},
+				checkCount: newCheckCount,
+				waitingForScrape: true
+			}),
+		_1: checkCmd
+	};
 };
 var _user$project$ReceptionKiosk_CreatingAcctScene$tick = F2(
 	function (time, kioskModel) {
@@ -23394,7 +23413,35 @@ var _user$project$ReceptionKiosk_CreatingAcctScene$view = function (kioskModel) 
 		kioskModel,
 		'Creating Your Account!',
 		'One moment please',
-		_elm_lang$core$List$isEmpty(sceneModel.badNews) ? _elm_lang$html$Html$text('Working...') : _user$project$ReceptionKiosk_SceneUtils$formatBadNews(sceneModel.badNews),
+		A2(
+			_elm_lang$html$Html$div,
+			{ctor: '[]'},
+			_elm_lang$core$List$isEmpty(sceneModel.badNews) ? {
+				ctor: '::',
+				_0: _user$project$ReceptionKiosk_SceneUtils$vspace(40),
+				_1: {
+					ctor: '::',
+					_0: _elm_lang$html$Html$text('Working'),
+					_1: {
+						ctor: '::',
+						_0: _user$project$ReceptionKiosk_SceneUtils$vspace(20),
+						_1: {
+							ctor: '::',
+							_0: _elm_lang$html$Html$text(
+								A2(_elm_lang$core$String$repeat, sceneModel.checkCount, '●')),
+							_1: {ctor: '[]'}
+						}
+					}
+				}
+			} : {
+				ctor: '::',
+				_0: _user$project$ReceptionKiosk_SceneUtils$vspace(40),
+				_1: {
+					ctor: '::',
+					_0: _user$project$ReceptionKiosk_SceneUtils$formatBadNews(sceneModel.badNews),
+					_1: {ctor: '[]'}
+				}
+			}),
 		{ctor: '[]'});
 };
 var _user$project$ReceptionKiosk_CreatingAcctScene$update = F2(
@@ -23574,13 +23621,14 @@ var _user$project$ReceptionKiosk_CreatingAcctScene$update = F2(
 var _user$project$ReceptionKiosk_CreatingAcctScene$init = function (flags) {
 	var sceneModel = {
 		waitingForScrape: false,
+		checkCount: 0,
 		badNews: {ctor: '[]'}
 	};
 	return {ctor: '_Tuple2', _0: sceneModel, _1: _elm_lang$core$Platform_Cmd$none};
 };
-var _user$project$ReceptionKiosk_CreatingAcctScene$CreatingAcctModel = F2(
-	function (a, b) {
-		return {waitingForScrape: a, badNews: b};
+var _user$project$ReceptionKiosk_CreatingAcctScene$CreatingAcctModel = F3(
+	function (a, b, c) {
+		return {waitingForScrape: a, checkCount: b, badNews: c};
 	});
 
 var _user$project$ReceptionKiosk_EmailInUseScene$view = function (kioskModel) {

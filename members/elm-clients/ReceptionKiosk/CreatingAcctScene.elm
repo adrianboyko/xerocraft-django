@@ -26,6 +26,7 @@ import ReceptionKiosk.WaiverScene exposing (WaiverModel)
 
 type alias CreatingAcctModel =
   { waitingForScrape : Bool
+  , checkCount: Int
   , badNews : List String
   }
 
@@ -45,6 +46,7 @@ init : Flags -> (CreatingAcctModel, Cmd Msg)
 init flags =
   let sceneModel =
     { waitingForScrape = False
+    , checkCount = 0
     , badNews = []
     }
   in (sceneModel, Cmd.none)
@@ -147,10 +149,18 @@ view kioskModel =
     genericScene kioskModel
       "Creating Your Account!"
       "One moment please"
-      ( if List.isEmpty sceneModel.badNews then
-         text "Working..."
-       else
-         formatBadNews sceneModel.badNews
+      (div []
+        (if List.isEmpty sceneModel.badNews then
+            [ vspace 40
+            , text "Working"
+            , vspace 20
+            , text (String.repeat sceneModel.checkCount "●")
+            ]
+        else
+            [ vspace 40
+            , formatBadNews sceneModel.badNews
+            ]
+        )
       )
       []  -- No buttons. Scene will automatically transition.
 
@@ -168,13 +178,18 @@ tick time kioskModel =
     else
       (sceneModel, Cmd.none)
 
+-- There are ways to drive this aside from ticks, so I've kept it as a separate function.
 checkForScrapedAcct : KioskModel a -> (CreatingAcctModel, Cmd Msg)
 checkForScrapedAcct kioskModel =
     let
       sceneModel = kioskModel.creatingAcctModel
+      newCheckCount = sceneModel.checkCount + 1
       userId = kioskModel.newUserModel.userName
-      newModel = {sceneModel | badNews=[], waitingForScrape=True}
       getMatchingAccts = MembersApi.getMatchingAccts kioskModel.flags
-      cmd = getMatchingAccts userId (CreatingAcctVector << CheckedForAcct)
+      checkCmd = getMatchingAccts userId (CreatingAcctVector << CheckedForAcct)
+      timeoutMsg = "Timeout waiting for new acct to migrate to XIS."
     in
-      (newModel, cmd)
+      if newCheckCount > 20 then
+        ({sceneModel | badNews=[timeoutMsg], waitingForScrape=False}, Cmd.none)
+      else
+        ({sceneModel | badNews=[], checkCount=newCheckCount, waitingForScrape=True}, checkCmd)
