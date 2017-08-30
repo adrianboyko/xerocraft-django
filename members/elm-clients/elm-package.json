@@ -5,7 +5,8 @@
     "license": "BSD3",
     "source-directories": [
         ".",
-        "../../tasks/elm-clients"
+        "../../tasks/elm-clients",
+        "../../xis/elm-clients"
     ],
     "exposed-modules": [],
     "dependencies": {

@@ -5,6 +5,7 @@ import Html exposing (Html, Attribute, a, div, text, span, button, br, p, img, h
 import Html.Attributes exposing (style, src, id, tabindex, width, height)
 import Regex exposing (regex)
 import Http
+import Time exposing (Time, second)
 
 -- Third party
 import List.Nonempty exposing (Nonempty)
@@ -169,6 +170,14 @@ update msg model =
               Welcome -> (model, Cmd.none) :> update (WelcomeVector WelcomeSceneWillAppear)
               _ -> (model, Cmd.none)
 
+        Tick time ->
+          let currScene = List.Nonempty.head model.sceneStack
+          in case currScene of
+            CreatingAcct ->
+              let (sm, cmd) = CreatingAcctScene.tick time model
+              in ({model | creatingAcctModel = sm}, cmd)
+            _ -> (model, Cmd.none)
+
     CheckInVector x ->
       let (sm, cmd) = CheckInScene.update x model
       in ({model | checkInModel = sm}, cmd)
@@ -242,8 +251,9 @@ view model =
 subscriptions: Model -> Sub Msg
 subscriptions model =
   let
+    mySubs = Time.every second (WizardVector << Tick)
     waiverSubs = WaiverScene.subscriptions model
-    subs = [waiverSubs]
+    subs = [mySubs, waiverSubs]
   in
     Sub.batch subs
 

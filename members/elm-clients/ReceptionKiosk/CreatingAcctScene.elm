@@ -1,16 +1,18 @@
 
-module ReceptionKiosk.CreatingAcctScene exposing (init, update, view, CreatingAcctModel)
+module ReceptionKiosk.CreatingAcctScene exposing (init, update, view, tick, CreatingAcctModel)
 
 -- Standard
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Regex exposing (regex)
+import Time exposing (Time)
 
 -- Third Party
 import String.Extra exposing (..)
 
 -- Local
 import MembersApi as MembersApi
+import XerocraftApi as XcApi
 import ReceptionKiosk.Types exposing (..)
 import ReceptionKiosk.SceneUtils exposing (..)
 import ReceptionKiosk.ReasonForVisitScene exposing (ReasonForVisitModel)
@@ -23,18 +25,11 @@ import ReceptionKiosk.WaiverScene exposing (WaiverModel)
 -----------------------------------------------------------------------------
 
 type alias CreatingAcctModel =
-  { badNews : List String
+  { waitingForScrape : Bool
+  , badNews : List String
   }
 
--- These type aliases describes the type of kiosk model that this scene requires.
-type alias SceneModels a =
-  { a
-  | newMemberModel : NewMemberModel
-  , newUserModel: NewUserModel
-  , reasonForVisitModel: ReasonForVisitModel
-  , waiverModel : WaiverModel
-  }
-
+-- This type alias describes the type of kiosk model that this scene requires.
 type alias KioskModel a =
   (SceneUtilModel
     { a
@@ -49,7 +44,8 @@ type alias KioskModel a =
 init : Flags -> (CreatingAcctModel, Cmd Msg)
 init flags =
   let sceneModel =
-    { badNews = []
+    { waitingForScrape = False
+    , badNews = []
     }
   in (sceneModel, Cmd.none)
 
@@ -71,11 +67,11 @@ update msg kioskModel =
         fullName = String.join " " [memberModel.firstName, memberModel.lastName]
         cmd = MembersApi.createNewAcct
           fullName userModel.userName memberModel.email userModel.password1 waiverModel.signature
-          (CreatingAcctVector << AccountCreationResult)
+          (CreatingAcctVector << XcAcctCreateResult)
       in
         (sceneModel, cmd)
 
-    AccountCreationResult (Ok htmlResponseBody) ->
+    XcAcctCreateResult (Ok htmlResponseBody) ->
       let
         successIndicator = "<h1>You have successfully registered your check in! Welcome to Xerocraft!</h1>"
         userNameInUseIndicator = "<h2></h2>"
@@ -89,24 +85,40 @@ update msg kioskModel =
           Just m -> stripTags m.match
       in
         case msg of
+
           "You have successfully registered your check in! Welcome to Xerocraft!" ->
             -- This is the result we wanted. Account creation was successful.
             -- Rebase the scene stack since we don't want the user backtracking into acct creation again.
-            ({sceneModel | badNews = []}, send (WizardVector <| RebaseTo <| SignUpDone))
+            let
+              newModel = {sceneModel | badNews=[], waitingForScrape=True}
+              scrapeLogins = XcApi.scrapeXcOrgLogins kioskModel.flags.scrapeLoginsUrl
+              cmd = scrapeLogins (CreatingAcctVector << StartXcScrapeResult)
+            in
+              (newModel, cmd)
+
           "" ->
             -- Couldn't find a message so dump the entire response body as a debugging aid.
             -- We don't expect this to happen.
             ({sceneModel | badNews = [stripTags htmlResponseBody]}, Cmd.none)
+
           _ ->
             -- All other messages are treated as errors and reported as such to user.
             -- Many of the possible errors are validation related so we shouldn't see them if
             -- the client-side validation in earlier scenes was effective.
             ({sceneModel | badNews = [msg]}, Cmd.none)
 
-    AccountCreationResult (Err error) ->
+    XcAcctCreateResult (Err error) ->
       -- These will be http errors.
       ({sceneModel | badNews = [toString error]}, Cmd.none)
 
+    StartXcScrapeResult (Ok ignored) ->
+      (sceneModel, send (WizardVector <| RebaseTo <| SignUpDone))
+
+    StartXcScrapeResult (Err error) ->
+      -- These will be http errors.
+      ({sceneModel | badNews = [toString error]}, Cmd.none)
+
+    
 -----------------------------------------------------------------------------
 -- VIEW
 -----------------------------------------------------------------------------
@@ -115,17 +127,23 @@ view : KioskModel a -> Html Msg
 view kioskModel =
   -- TODO: Don't present this to minors.
   -- TODO: Don't present this to people who have already signed.
-  let sceneModel = kioskModel.waiverModel
-  in genericScene kioskModel
-    "Creating Your Account!"
-    "One moment please"
-    ( text "Working..."
-    )
-    []  -- No buttons. Scene will automatically transition.
-
+  let
+    sceneModel = kioskModel.creatingAcctModel
+  in
+    genericScene kioskModel
+      "Creating Your Account!"
+      "One moment please"
+      ( text "Working..."
+      )
+      []  -- No buttons. Scene will automatically transition.
 
 -----------------------------------------------------------------------------
--- SUBSCRIPTIONS
+-- TICK (called each second)
 -----------------------------------------------------------------------------
 
--- None
+tick : Time -> KioskModel a -> (CreatingAcctModel, Cmd Msg)
+tick time kioskModel =
+  let
+    sceneModel = kioskModel.creatingAcctModel
+  in
+    (sceneModel, Cmd.none)

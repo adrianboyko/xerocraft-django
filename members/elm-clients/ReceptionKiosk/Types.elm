@@ -2,6 +2,7 @@ module ReceptionKiosk.Types exposing (..)
 
 -- Standard
 import Http
+import Time exposing (Time)
 
 -- Third Party
 import Material
@@ -61,10 +62,10 @@ type CheckOutMsg
   | LogCheckOut Int
   | CheckOutSceneWillAppear
 
-
 type CreatingAcctMsg
-  = AccountCreationResult (Result Http.Error String)
+  = XcAcctCreateResult(Result Http.Error String)
   | CreatingAcctSceneWillAppear
+  | StartXcScrapeResult (Result Http.Error String)
 
 type HowDidYouHearMsg
   = AccDiscoveryMethods (Result Http.Error DiscoveryMethodInfo)  -- "Acc" means "accumulate"
@@ -125,3 +126,4 @@ type WizardMsg
   | Pop
   | Reset
   | SceneWillAppear Scene
+  | Tick Time
