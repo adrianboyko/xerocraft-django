@@ -67,11 +67,11 @@ update msg kioskModel =
         fullName = String.join " " [memberModel.firstName, memberModel.lastName]
         cmd = MembersApi.createNewAcct
           fullName userModel.userName memberModel.email userModel.password1 waiverModel.signature
-          (CreatingAcctVector << XcAcctCreateResult)
+          (CreatingAcctVector << XcAcctCreationAttempted)
       in
         (sceneModel, cmd)
 
-    XcAcctCreateResult (Ok htmlResponseBody) ->
+    XcAcctCreationAttempted (Ok htmlResponseBody) ->
       let
         successIndicator = "<h1>You have successfully registered your check in! Welcome to Xerocraft!</h1>"
         userNameInUseIndicator = "<h2></h2>"
@@ -90,9 +90,9 @@ update msg kioskModel =
             -- This is the result we wanted. Account creation was successful.
             -- Rebase the scene stack since we don't want the user backtracking into acct creation again.
             let
-              newModel = {sceneModel | badNews=[], waitingForScrape=True}
+              newModel = {sceneModel | badNews=[]}
               scrapeLogins = XcApi.scrapeXcOrgLogins kioskModel.flags.scrapeLoginsUrl
-              cmd = scrapeLogins (CreatingAcctVector << StartXcScrapeResult)
+              cmd = scrapeLogins (CreatingAcctVector << XcScrapeStarted)
             in
               (newModel, cmd)
 
@@ -107,18 +107,32 @@ update msg kioskModel =
             -- the client-side validation in earlier scenes was effective.
             ({sceneModel | badNews = [msg]}, Cmd.none)
 
-    XcAcctCreateResult (Err error) ->
+    XcAcctCreationAttempted (Err error) ->
       -- These will be http errors.
       ({sceneModel | badNews = [toString error]}, Cmd.none)
 
-    StartXcScrapeResult (Ok ignored) ->
-      (sceneModel, send (WizardVector <| RebaseTo <| SignUpDone))
+    XcScrapeStarted (Ok ignored) ->
+      ({sceneModel | waitingForScrape=True}, Cmd.none)
 
-    StartXcScrapeResult (Err error) ->
+    XcScrapeStarted (Err error) ->
       -- These will be http errors.
-      ({sceneModel | badNews = [toString error]}, Cmd.none)
+      ({sceneModel | badNews=[toString error], waitingForScrape=False}, Cmd.none)
 
-    
+    CheckedForAcct (Ok {target, matches}) ->
+      if List.isEmpty matches then
+        -- Nothing yet. Will try again on next Tick message.
+      ({sceneModel | waitingForScrape=True}, Cmd.none)
+      else
+        let
+          model = {sceneModel | waitingForScrape=False }
+          cmd = send (WizardVector <| RebaseTo <| SignUpDone)
+        in
+          (model, cmd)
+
+    CheckedForAcct (Err error) ->
+      -- These will be http errors.
+      ({sceneModel | badNews=[toString error], waitingForScrape=False}, Cmd.none)
+
 -----------------------------------------------------------------------------
 -- VIEW
 -----------------------------------------------------------------------------
@@ -133,7 +147,10 @@ view kioskModel =
     genericScene kioskModel
       "Creating Your Account!"
       "One moment please"
-      ( text "Working..."
+      ( if List.isEmpty sceneModel.badNews then
+         text "Working..."
+       else
+         formatBadNews sceneModel.badNews
       )
       []  -- No buttons. Scene will automatically transition.
 
@@ -146,4 +163,18 @@ tick time kioskModel =
   let
     sceneModel = kioskModel.creatingAcctModel
   in
-    (sceneModel, Cmd.none)
+    if sceneModel.waitingForScrape then
+      checkForScrapedAcct kioskModel
+    else
+      (sceneModel, Cmd.none)
+
+checkForScrapedAcct : KioskModel a -> (CreatingAcctModel, Cmd Msg)
+checkForScrapedAcct kioskModel =
+    let
+      sceneModel = kioskModel.creatingAcctModel
+      userId = kioskModel.newUserModel.userName
+      newModel = {sceneModel | badNews=[], waitingForScrape=True}
+      getMatchingAccts = MembersApi.getMatchingAccts kioskModel.flags
+      cmd = getMatchingAccts userId (CreatingAcctVector << CheckedForAcct)
+    in
+      (newModel, cmd)

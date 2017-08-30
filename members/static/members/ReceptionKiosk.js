@@ -20850,12 +20850,15 @@ var _user$project$ReceptionKiosk_Types$LogCheckOut = function (a) {
 var _user$project$ReceptionKiosk_Types$UpdateCheckedInAccts = function (a) {
 	return {ctor: 'UpdateCheckedInAccts', _0: a};
 };
-var _user$project$ReceptionKiosk_Types$StartXcScrapeResult = function (a) {
-	return {ctor: 'StartXcScrapeResult', _0: a};
+var _user$project$ReceptionKiosk_Types$CheckedForAcct = function (a) {
+	return {ctor: 'CheckedForAcct', _0: a};
+};
+var _user$project$ReceptionKiosk_Types$XcScrapeStarted = function (a) {
+	return {ctor: 'XcScrapeStarted', _0: a};
 };
 var _user$project$ReceptionKiosk_Types$CreatingAcctSceneWillAppear = {ctor: 'CreatingAcctSceneWillAppear'};
-var _user$project$ReceptionKiosk_Types$XcAcctCreateResult = function (a) {
-	return {ctor: 'XcAcctCreateResult', _0: a};
+var _user$project$ReceptionKiosk_Types$XcAcctCreationAttempted = function (a) {
+	return {ctor: 'XcAcctCreationAttempted', _0: a};
 };
 var _user$project$ReceptionKiosk_Types$ToggleDiscoveryMethod = function (a) {
 	return {ctor: 'ToggleDiscoveryMethod', _0: a};
@@ -22130,8 +22133,7 @@ var _user$project$ReceptionKiosk_CheckOutDoneScene$CheckOutDoneModel = {};
 
 var _user$project$XerocraftApi$scrapeXcOrgLogins = F2(
 	function (url, result2Msg) {
-		var testUrl = A2(_elm_lang$core$Basics_ops['++'], url, 'kfritz//');
-		var request = _elm_lang$http$Http$getString(testUrl);
+		var request = _elm_lang$http$Http$getString(url);
 		return A2(_elm_lang$http$Http$send, result2Msg, request);
 	});
 
@@ -23361,10 +23363,29 @@ var _user$project$ReceptionKiosk_WaiverScene$WaiverModel = F3(
 		return {isSigning: a, signature: b, badNews: c};
 	});
 
+var _user$project$ReceptionKiosk_CreatingAcctScene$checkForScrapedAcct = function (kioskModel) {
+	var getMatchingAccts = _user$project$MembersApi$getMatchingAccts(kioskModel.flags);
+	var userId = kioskModel.newUserModel.userName;
+	var cmd = A2(
+		getMatchingAccts,
+		userId,
+		function (_p0) {
+			return _user$project$ReceptionKiosk_Types$CreatingAcctVector(
+				_user$project$ReceptionKiosk_Types$CheckedForAcct(_p0));
+		});
+	var sceneModel = kioskModel.creatingAcctModel;
+	var newModel = _elm_lang$core$Native_Utils.update(
+		sceneModel,
+		{
+			badNews: {ctor: '[]'},
+			waitingForScrape: true
+		});
+	return {ctor: '_Tuple2', _0: newModel, _1: cmd};
+};
 var _user$project$ReceptionKiosk_CreatingAcctScene$tick = F2(
 	function (time, kioskModel) {
 		var sceneModel = kioskModel.creatingAcctModel;
-		return {ctor: '_Tuple2', _0: sceneModel, _1: _elm_lang$core$Platform_Cmd$none};
+		return sceneModel.waitingForScrape ? _user$project$ReceptionKiosk_CreatingAcctScene$checkForScrapedAcct(kioskModel) : {ctor: '_Tuple2', _0: sceneModel, _1: _elm_lang$core$Platform_Cmd$none};
 	});
 var _user$project$ReceptionKiosk_CreatingAcctScene$view = function (kioskModel) {
 	var sceneModel = kioskModel.creatingAcctModel;
@@ -23373,14 +23394,14 @@ var _user$project$ReceptionKiosk_CreatingAcctScene$view = function (kioskModel) 
 		kioskModel,
 		'Creating Your Account!',
 		'One moment please',
-		_elm_lang$html$Html$text('Working...'),
+		_elm_lang$core$List$isEmpty(sceneModel.badNews) ? _elm_lang$html$Html$text('Working...') : _user$project$ReceptionKiosk_SceneUtils$formatBadNews(sceneModel.badNews),
 		{ctor: '[]'});
 };
 var _user$project$ReceptionKiosk_CreatingAcctScene$update = F2(
 	function (msg, kioskModel) {
 		var sceneModel = kioskModel.creatingAcctModel;
-		var _p0 = msg;
-		switch (_p0.ctor) {
+		var _p1 = msg;
+		switch (_p1.ctor) {
 			case 'CreatingAcctSceneWillAppear':
 				var waiverModel = kioskModel.waiverModel;
 				var userModel = kioskModel.newUserModel;
@@ -23404,45 +23425,44 @@ var _user$project$ReceptionKiosk_CreatingAcctScene$update = F2(
 					memberModel.email,
 					userModel.password1,
 					waiverModel.signature,
-					function (_p1) {
+					function (_p2) {
 						return _user$project$ReceptionKiosk_Types$CreatingAcctVector(
-							_user$project$ReceptionKiosk_Types$XcAcctCreateResult(_p1));
+							_user$project$ReceptionKiosk_Types$XcAcctCreationAttempted(_p2));
 					});
 				return {ctor: '_Tuple2', _0: sceneModel, _1: cmd};
-			case 'XcAcctCreateResult':
-				if (_p0._0.ctor === 'Ok') {
-					var _p5 = _p0._0._0;
+			case 'XcAcctCreationAttempted':
+				if (_p1._0.ctor === 'Ok') {
+					var _p6 = _p1._0._0;
 					var tagRegex = _elm_lang$core$Regex$regex('<[^>]*>');
 					var msgRegex = _elm_lang$core$Regex$regex('<div id=\\\"Message\\\">.*</div>');
 					var msgsFound = A3(
 						_elm_lang$core$Regex$find,
 						_elm_lang$core$Regex$AtMost(1),
 						msgRegex,
-						_p5);
+						_p6);
 					var msg = function () {
-						var _p2 = _elm_lang$core$List$head(msgsFound);
-						if (_p2.ctor === 'Nothing') {
+						var _p3 = _elm_lang$core$List$head(msgsFound);
+						if (_p3.ctor === 'Nothing') {
 							return '';
 						} else {
-							return _elm_community$string_extra$String_Extra$stripTags(_p2._0.match);
+							return _elm_community$string_extra$String_Extra$stripTags(_p3._0.match);
 						}
 					}();
 					var userNameInUseIndicator = '<h2></h2>';
 					var successIndicator = '<h1>You have successfully registered your check in! Welcome to Xerocraft!</h1>';
-					var _p3 = msg;
-					switch (_p3) {
+					var _p4 = msg;
+					switch (_p4) {
 						case 'You have successfully registered your check in! Welcome to Xerocraft!':
 							var scrapeLogins = _user$project$XerocraftApi$scrapeXcOrgLogins(kioskModel.flags.scrapeLoginsUrl);
 							var cmd = scrapeLogins(
-								function (_p4) {
+								function (_p5) {
 									return _user$project$ReceptionKiosk_Types$CreatingAcctVector(
-										_user$project$ReceptionKiosk_Types$StartXcScrapeResult(_p4));
+										_user$project$ReceptionKiosk_Types$XcScrapeStarted(_p5));
 								});
 							var newModel = _elm_lang$core$Native_Utils.update(
 								sceneModel,
 								{
-									badNews: {ctor: '[]'},
-									waitingForScrape: true
+									badNews: {ctor: '[]'}
 								});
 							return {ctor: '_Tuple2', _0: newModel, _1: cmd};
 						case '':
@@ -23453,7 +23473,7 @@ var _user$project$ReceptionKiosk_CreatingAcctScene$update = F2(
 									{
 										badNews: {
 											ctor: '::',
-											_0: _elm_community$string_extra$String_Extra$stripTags(_p5),
+											_0: _elm_community$string_extra$String_Extra$stripTags(_p6),
 											_1: {ctor: '[]'}
 										}
 									}),
@@ -23482,21 +23502,21 @@ var _user$project$ReceptionKiosk_CreatingAcctScene$update = F2(
 							{
 								badNews: {
 									ctor: '::',
-									_0: _elm_lang$core$Basics$toString(_p0._0._0),
+									_0: _elm_lang$core$Basics$toString(_p1._0._0),
 									_1: {ctor: '[]'}
 								}
 							}),
 						_1: _elm_lang$core$Platform_Cmd$none
 					};
 				}
-			default:
-				if (_p0._0.ctor === 'Ok') {
+			case 'XcScrapeStarted':
+				if (_p1._0.ctor === 'Ok') {
 					return {
 						ctor: '_Tuple2',
-						_0: sceneModel,
-						_1: _user$project$ReceptionKiosk_SceneUtils$send(
-							_user$project$ReceptionKiosk_Types$WizardVector(
-								_user$project$ReceptionKiosk_Types$RebaseTo(_user$project$ReceptionKiosk_Types$SignUpDone)))
+						_0: _elm_lang$core$Native_Utils.update(
+							sceneModel,
+							{waitingForScrape: true}),
+						_1: _elm_lang$core$Platform_Cmd$none
 					};
 				} else {
 					return {
@@ -23506,9 +23526,45 @@ var _user$project$ReceptionKiosk_CreatingAcctScene$update = F2(
 							{
 								badNews: {
 									ctor: '::',
-									_0: _elm_lang$core$Basics$toString(_p0._0._0),
+									_0: _elm_lang$core$Basics$toString(_p1._0._0),
 									_1: {ctor: '[]'}
-								}
+								},
+								waitingForScrape: false
+							}),
+						_1: _elm_lang$core$Platform_Cmd$none
+					};
+				}
+			default:
+				if (_p1._0.ctor === 'Ok') {
+					if (_elm_lang$core$List$isEmpty(_p1._0._0.matches)) {
+						return {
+							ctor: '_Tuple2',
+							_0: _elm_lang$core$Native_Utils.update(
+								sceneModel,
+								{waitingForScrape: true}),
+							_1: _elm_lang$core$Platform_Cmd$none
+						};
+					} else {
+						var cmd = _user$project$ReceptionKiosk_SceneUtils$send(
+							_user$project$ReceptionKiosk_Types$WizardVector(
+								_user$project$ReceptionKiosk_Types$RebaseTo(_user$project$ReceptionKiosk_Types$SignUpDone)));
+						var model = _elm_lang$core$Native_Utils.update(
+							sceneModel,
+							{waitingForScrape: false});
+						return {ctor: '_Tuple2', _0: model, _1: cmd};
+					}
+				} else {
+					return {
+						ctor: '_Tuple2',
+						_0: _elm_lang$core$Native_Utils.update(
+							sceneModel,
+							{
+								badNews: {
+									ctor: '::',
+									_0: _elm_lang$core$Basics$toString(_p1._0._0),
+									_1: {ctor: '[]'}
+								},
+								waitingForScrape: false
 							}),
 						_1: _elm_lang$core$Platform_Cmd$none
 					};

@@ -63,9 +63,10 @@ type CheckOutMsg
   | CheckOutSceneWillAppear
 
 type CreatingAcctMsg
-  = XcAcctCreateResult(Result Http.Error String)
+  = XcAcctCreationAttempted(Result Http.Error String)
   | CreatingAcctSceneWillAppear
-  | StartXcScrapeResult (Result Http.Error String)
+  | XcScrapeStarted (Result Http.Error String)
+  | CheckedForAcct (Result Http.Error MatchingAcctInfo)
 
 type HowDidYouHearMsg
   = AccDiscoveryMethods (Result Http.Error DiscoveryMethodInfo)  -- "Acc" means "accumulate"
