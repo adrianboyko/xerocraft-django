@@ -83,6 +83,31 @@ class Tag(models.Model):
         ordering = ['name']
 
 
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# Discovery method
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+class DiscoveryMethod(models.Model):
+    """Different ways that members learn about us. E.g. 'Tucson Meet Yourself', 'Radio', 'TV', 'Website', etc """
+
+    # TODO: Disallow name changes if the discovery method is used?
+    name = models.CharField(max_length=30, unique=True, null=False, blank=False,
+        help_text="The name of some means by which people learn about our organization.")
+
+    order = models.IntegerField(default=None, unique=True, null=False, blank=False,
+        help_text="These values define the order in which the discovery methods should be presented to users.")
+
+    visible = models.BooleanField(default=True, null=False, blank=False,
+        help_text="If people have already chosen them, HIDE method instead of deleting it.")
+
+    def __str__(self):
+        return self.name
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# MEMBER
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
 class Member(models.Model):
     """Represents a Xerocraft member.
     Member is an extension of auth.User that adds Xerocraft-specific state like "tags".
@@ -112,6 +137,15 @@ class Member(models.Model):
 
     tags = models.ManyToManyField(Tag, blank=True, related_name="members",
         through='Tagging', through_fields=('tagged_member', 'tag'))
+
+    discovery = models.ManyToManyField(DiscoveryMethod,
+        help_text="How this member learned about the organization.")
+
+    birth_date = models.DateField(null=True, blank=True,
+        help_text="If provided, allows system to adjust when a member reaches the age of majority.")
+
+    is_adult = models.NullBooleanField(default=None, blank=True,
+        help_text="Member can specify that they are an adult without providing birth date.")
 
     # TODO: Remove QR code oriented member identities because we're sticking with RFID.
     @staticmethod
@@ -890,19 +924,6 @@ class KeyFee(MembershipJournalLiner):
 # The help_text inherited from MembershipJournalLiner for these fields isn't quite right. Adjustments:
 KeyFee._meta.get_field('start_date').help_text = "Start date of portion of membership covered by this fee."
 KeyFee._meta.get_field('end_date').help_text = "End date of portion of membership covered by this fee."
-
-# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-# Discovery method
-# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-
-class DiscoveryMethod(models.Model):
-    """Different ways that members learn about us. E.g. 'Tucson Meet Yourself', 'Radio', 'TV', 'Website', etc """
-
-    name = models.CharField(max_length=30, unique=True, null=False, blank=False,
-        help_text="The name of some means by which people learn about our organization.")
-
-    order = models.IntegerField(default=None, unique=True, null=False, blank=False,
-        help_text="These values define the order in which the discovery methods should be presented to users.")
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =

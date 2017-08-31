@@ -153,6 +153,7 @@ class MemberAdmin(VersionAdmin):
         'first_name',
         'last_name',
         'email',
+        'is_adult'
         # 'membership_card_when',
         # 'membership_card_md5'
     ]
@@ -162,7 +163,12 @@ class MemberAdmin(VersionAdmin):
         'membership_card_md5',
         # 'membership_card_when',
         'nag_re_membership',
+        'is_adult',
+        'birth_date',
+        'discovery',
     ]
+
+    readonly_fields = ['discovery']
 
     raw_id_fields = ['auth_user']
 
@@ -182,13 +188,13 @@ class MemberAdmin(VersionAdmin):
         'email',
     ]
 
-    list_filter = [MemberTypeFilter]
+    list_filter = [MemberTypeFilter, 'is_adult']
 
     inlines = [MemberNoteInline, TaggingForMember, PushoverInline, MembershipInline]
 
     class Media:
         css = {
-            "all": ("abutils/admin-tabular-inline.css",)  # This hides "denormalized object descs", to use Wojciech's term.
+            "all": ("abutils/admin-tabular-inline.css",)  # This hides "denormalized object descs", to use Woj's term.
         }
 
 
@@ -453,7 +459,11 @@ class KeyFeeAdmin(VersionAdmin):
 
 @admin.register(DiscoveryMethod)
 class DiscoveryMethodAdmin(VersionAdmin):
-    list_display = ['pk', 'order', 'name']
+
+    list_display = ['pk', 'order', 'name', 'visible']
+
+    list_filter = ['visible']
+
     ordering = ['order']
 
 
