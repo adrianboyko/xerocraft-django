@@ -144,7 +144,8 @@ type alias DiscoveryMethod =
   { id: Int
   , name: String
   , order: Int
-  , selected: Bool
+  , visible: Bool
+  , selected: Bool  -- This is a GUI field. Use extensible records to move this to scene?
   }
 
 type alias DiscoveryMethodInfo =
@@ -180,6 +181,7 @@ decodeDiscoveryMethod =
     |> required "id" Dec.int
     |> required "name" Dec.string
     |> required "order" Dec.int
+    |> required "visible" Dec.bool
     |> hardcoded False
 
 decodeDiscoveryMethodInfo : Dec.Decoder DiscoveryMethodInfo

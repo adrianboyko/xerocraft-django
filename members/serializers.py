@@ -80,6 +80,7 @@ class DiscoveryMethodSerializer(serializers.ModelSerializer):
             'id',
             'name',
             'order',
+            'visible'
         )
 
 

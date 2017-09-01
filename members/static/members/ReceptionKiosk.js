@@ -20241,26 +20241,30 @@ var _user$project$MembersApi$getMatchingAccts = F3(
 		var request = A2(_elm_lang$http$Http$get, url, _user$project$MembersApi$decodeMatchingAcctInfo);
 		return A2(_elm_lang$http$Http$send, thing, request);
 	});
-var _user$project$MembersApi$DiscoveryMethod = F4(
-	function (a, b, c, d) {
-		return {id: a, name: b, order: c, selected: d};
+var _user$project$MembersApi$DiscoveryMethod = F5(
+	function (a, b, c, d, e) {
+		return {id: a, name: b, order: c, visible: d, selected: e};
 	});
 var _user$project$MembersApi$decodeDiscoveryMethod = A2(
 	_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$hardcoded,
 	false,
 	A3(
 		_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
-		'order',
-		_elm_lang$core$Json_Decode$int,
+		'visible',
+		_elm_lang$core$Json_Decode$bool,
 		A3(
 			_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
-			'name',
-			_elm_lang$core$Json_Decode$string,
+			'order',
+			_elm_lang$core$Json_Decode$int,
 			A3(
 				_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
-				'id',
-				_elm_lang$core$Json_Decode$int,
-				_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$decode(_user$project$MembersApi$DiscoveryMethod)))));
+				'name',
+				_elm_lang$core$Json_Decode$string,
+				A3(
+					_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
+					'id',
+					_elm_lang$core$Json_Decode$int,
+					_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$decode(_user$project$MembersApi$DiscoveryMethod))))));
 var _user$project$MembersApi$DiscoveryMethodInfo = F4(
 	function (a, b, c, d) {
 		return {count: a, next: b, previous: c, results: d};
@@ -23777,6 +23781,12 @@ var _user$project$ReceptionKiosk_HowDidYouHearScene$howDidYouHearCss = {
 };
 var _user$project$ReceptionKiosk_HowDidYouHearScene$howDidYouHearChoices = function (kioskModel) {
 	var sceneModel = kioskModel.howDidYouHearModel;
+	var visibleMethods = A2(
+		_elm_lang$core$List$filter,
+		function (_) {
+			return _.visible;
+		},
+		sceneModel.discoveryMethods);
 	return A2(
 		_debois$elm_mdl$Material_List$ul,
 		_user$project$ReceptionKiosk_HowDidYouHearScene$howDidYouHearCss,
@@ -23834,7 +23844,7 @@ var _user$project$ReceptionKiosk_HowDidYouHearScene$howDidYouHearChoices = funct
 						}
 					});
 			},
-			sceneModel.discoveryMethods));
+			visibleMethods));
 };
 var _user$project$ReceptionKiosk_HowDidYouHearScene$view = function (kioskModel) {
 	return A5(

@@ -83,23 +83,26 @@ view kioskModel =
 
 howDidYouHearChoices : KioskModel a -> Html Msg
 howDidYouHearChoices kioskModel =
-  let sceneModel = kioskModel.howDidYouHearModel
-  in Lists.ul howDidYouHearCss
-    (List.map
-      ( \dm ->
-          Lists.li [css "font-size" "18pt"]
-            [ Lists.content [] [ text dm.name ]
-            , Lists.content2 []
-              [ Toggles.checkbox MdlVector [1000+dm.id] kioskModel.mdl  -- 1000 establishes an id range for these.
-                  [ Toggles.value dm.selected
-                  , Options.onToggle (HowDidYouHearVector <| ToggleDiscoveryMethod <| dm)
-                  ]
-                  []
+  let
+    sceneModel = kioskModel.howDidYouHearModel
+    visibleMethods = List.filter .visible sceneModel.discoveryMethods
+  in
+    Lists.ul howDidYouHearCss
+      (List.map
+        ( \dm ->
+            Lists.li [css "font-size" "18pt"]
+              [ Lists.content [] [ text dm.name ]
+              , Lists.content2 []
+                [ Toggles.checkbox MdlVector [1000+dm.id] kioskModel.mdl  -- 1000 establishes an id range for these.
+                    [ Toggles.value dm.selected
+                    , Options.onToggle (HowDidYouHearVector <| ToggleDiscoveryMethod <| dm)
+                    ]
+                    []
+                ]
               ]
-            ]
+        )
+        visibleMethods
       )
-      sceneModel.discoveryMethods
-    )
 
 
 -----------------------------------------------------------------------------
