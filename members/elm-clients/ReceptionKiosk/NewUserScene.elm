@@ -11,6 +11,7 @@ import Http
 import MembersApi as MembersApi
 import ReceptionKiosk.Types exposing (..)
 import ReceptionKiosk.SceneUtils exposing (..)
+import ReceptionKiosk.NewMemberScene exposing (NewMemberModel)
 
 -----------------------------------------------------------------------------
 -- INIT
@@ -24,7 +25,13 @@ type alias NewUserModel =
   }
 
 -- This type alias describes the type of kiosk model that this scene requires.
-type alias KioskModel a = (SceneUtilModel {a | newUserModel : NewUserModel})
+type alias KioskModel a =
+  ( SceneUtilModel
+    { a
+    | newUserModel : NewUserModel
+    , newMemberModel: NewMemberModel
+    }
+  )
 
 init : Flags -> (NewUserModel, Cmd Msg)
 init flags =
@@ -66,15 +73,27 @@ validateUserIdAndPw : KioskModel a -> (NewUserModel, Cmd Msg)
 validateUserIdAndPw kioskModel =
   let
     sceneModel = kioskModel.newUserModel
+    memberModel = kioskModel.newMemberModel
+
+    norm = String.trim >> String.toLower
+    uname = norm sceneModel.userName
+    fname = norm memberModel.firstName
+    lname = norm memberModel.lastName
+
     pwMismatch = sceneModel.password1 /= sceneModel.password2
     pwShort = String.length sceneModel.password1 < 6
-    userNameShort = String.length sceneModel.userName < 4
-    userNameLong = String.length sceneModel.userName > 20
+    userNameShort = String.length uname < 4
+    userNameLong = String.length uname > 20
+    userNameIsFName = fname == uname
+    userNameIsLName = lname == uname
+
     msgs = List.concat
       [ if pwMismatch then ["The password fields don't match"] else []
       , if pwShort then ["The password must have at least 6 characters."] else []
       , if userNameShort then ["The login id must have at least 4 characters."] else []
       , if userNameLong then ["The login id cannot be more than 20 characters."] else []
+      , if userNameIsFName then ["The login id cannot be just your first name."] else []
+      , if userNameIsLName then ["The login id cannot be just your last name."] else []
       ]
     getMatchingAccts = MembersApi.getMatchingAccts kioskModel.flags
     cmd = if List.length msgs > 0

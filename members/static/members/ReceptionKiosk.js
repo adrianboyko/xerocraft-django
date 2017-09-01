@@ -22793,17 +22793,27 @@ var _user$project$ReceptionKiosk_NewUserScene$validateUserNameUnique = F2(
 	});
 var _user$project$ReceptionKiosk_NewUserScene$validateUserIdAndPw = function (kioskModel) {
 	var getMatchingAccts = _user$project$MembersApi$getMatchingAccts(kioskModel.flags);
+	var norm = function (_p4) {
+		return _elm_lang$core$String$toLower(
+			_elm_lang$core$String$trim(_p4));
+	};
+	var memberModel = kioskModel.newMemberModel;
+	var fname = norm(memberModel.firstName);
+	var lname = norm(memberModel.lastName);
 	var sceneModel = kioskModel.newUserModel;
+	var uname = norm(sceneModel.userName);
+	var userNameShort = _elm_lang$core$Native_Utils.cmp(
+		_elm_lang$core$String$length(uname),
+		4) < 0;
+	var userNameLong = _elm_lang$core$Native_Utils.cmp(
+		_elm_lang$core$String$length(uname),
+		20) > 0;
+	var userNameIsFName = _elm_lang$core$Native_Utils.eq(fname, uname);
+	var userNameIsLName = _elm_lang$core$Native_Utils.eq(lname, uname);
 	var pwMismatch = !_elm_lang$core$Native_Utils.eq(sceneModel.password1, sceneModel.password2);
 	var pwShort = _elm_lang$core$Native_Utils.cmp(
 		_elm_lang$core$String$length(sceneModel.password1),
 		6) < 0;
-	var userNameShort = _elm_lang$core$Native_Utils.cmp(
-		_elm_lang$core$String$length(sceneModel.userName),
-		4) < 0;
-	var userNameLong = _elm_lang$core$Native_Utils.cmp(
-		_elm_lang$core$String$length(sceneModel.userName),
-		20) > 0;
 	var msgs = _elm_lang$core$List$concat(
 		{
 			ctor: '::',
@@ -22833,7 +22843,23 @@ var _user$project$ReceptionKiosk_NewUserScene$validateUserIdAndPw = function (ki
 							_0: 'The login id cannot be more than 20 characters.',
 							_1: {ctor: '[]'}
 						} : {ctor: '[]'},
-						_1: {ctor: '[]'}
+						_1: {
+							ctor: '::',
+							_0: userNameIsFName ? {
+								ctor: '::',
+								_0: 'The login id cannot be just your first name.',
+								_1: {ctor: '[]'}
+							} : {ctor: '[]'},
+							_1: {
+								ctor: '::',
+								_0: userNameIsLName ? {
+									ctor: '::',
+									_0: 'The login id cannot be just your last name.',
+									_1: {ctor: '[]'}
+								} : {ctor: '[]'},
+								_1: {ctor: '[]'}
+							}
+						}
 					}
 				}
 			}
@@ -22843,9 +22869,9 @@ var _user$project$ReceptionKiosk_NewUserScene$validateUserIdAndPw = function (ki
 		0) > 0) ? _elm_lang$core$Platform_Cmd$none : A2(
 		getMatchingAccts,
 		sceneModel.userName,
-		function (_p4) {
+		function (_p5) {
 			return _user$project$ReceptionKiosk_Types$NewUserVector(
-				_user$project$ReceptionKiosk_Types$ValidateUserNameUnique(_p4));
+				_user$project$ReceptionKiosk_Types$ValidateUserNameUnique(_p5));
 		});
 	return {
 		ctor: '_Tuple2',
@@ -22858,10 +22884,10 @@ var _user$project$ReceptionKiosk_NewUserScene$validateUserIdAndPw = function (ki
 var _user$project$ReceptionKiosk_NewUserScene$update = F2(
 	function (msg, kioskModel) {
 		var sceneModel = kioskModel.newUserModel;
-		var _p5 = msg;
-		switch (_p5.ctor) {
+		var _p6 = msg;
+		switch (_p6.ctor) {
 			case 'UpdateUserName':
-				var djangoizedVal = _user$project$MembersApi$djangoizeId(_p5._0);
+				var djangoizedVal = _user$project$MembersApi$djangoizeId(_p6._0);
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
@@ -22874,7 +22900,7 @@ var _user$project$ReceptionKiosk_NewUserScene$update = F2(
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
 						sceneModel,
-						{password1: _p5._0}),
+						{password1: _p6._0}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 			case 'UpdatePassword2':
@@ -22882,13 +22908,13 @@ var _user$project$ReceptionKiosk_NewUserScene$update = F2(
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
 						sceneModel,
-						{password2: _p5._0}),
+						{password2: _p6._0}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 			case 'ValidateUserNameAndPw':
 				return _user$project$ReceptionKiosk_NewUserScene$validateUserIdAndPw(kioskModel);
 			default:
-				return A2(_user$project$ReceptionKiosk_NewUserScene$validateUserNameUnique, kioskModel, _p5._0);
+				return A2(_user$project$ReceptionKiosk_NewUserScene$validateUserNameUnique, kioskModel, _p6._0);
 		}
 	});
 var _user$project$ReceptionKiosk_NewUserScene$init = function (flags) {
