@@ -20820,6 +20820,39 @@ var _user$project$TaskApi$LoggedIn = function (a) {
 	return {ctor: 'LoggedIn', _0: a};
 };
 
+var _user$project$ReceptionKiosk_Types$mdlIdBase = function (scene) {
+	var _p0 = scene;
+	switch (_p0.ctor) {
+		case 'CheckIn':
+			return 100;
+		case 'CheckInDone':
+			return 200;
+		case 'CheckOut':
+			return 300;
+		case 'CheckOutDone':
+			return 400;
+		case 'CreatingAcct':
+			return 500;
+		case 'EmailInUse':
+			return 600;
+		case 'HowDidYouHear':
+			return 700;
+		case 'SignUpDone':
+			return 800;
+		case 'NewMember':
+			return 900;
+		case 'NewUser':
+			return 1000;
+		case 'ReasonForVisit':
+			return 1100;
+		case 'VolunteerIn':
+			return 1200;
+		case 'Waiver':
+			return 1300;
+		default:
+			return 1400;
+	}
+};
 var _user$project$ReceptionKiosk_Types$Flags = F9(
 	function (a, b, c, d, e, f, g, h, i) {
 		return {csrfToken: a, orgName: b, bannerTopUrl: c, bannerBottomUrl: d, discoveryMethodsUrl: e, checkedInAcctsUrl: f, matchingAcctsUrl: g, logVisitEventUrl: h, scrapeLoginsUrl: i};
@@ -20874,7 +20907,9 @@ var _user$project$ReceptionKiosk_Types$ValidateEmailUnique = function (a) {
 	return {ctor: 'ValidateEmailUnique', _0: a};
 };
 var _user$project$ReceptionKiosk_Types$Validate = {ctor: 'Validate'};
-var _user$project$ReceptionKiosk_Types$ToggleIsAdult = {ctor: 'ToggleIsAdult'};
+var _user$project$ReceptionKiosk_Types$ToggleIsAdult = function (a) {
+	return {ctor: 'ToggleIsAdult', _0: a};
+};
 var _user$project$ReceptionKiosk_Types$UpdateEmail = function (a) {
 	return {ctor: 'UpdateEmail', _0: a};
 };
@@ -22411,6 +22446,151 @@ var _user$project$ReceptionKiosk_NewMemberScene$emailRegex = function () {
 			A3(_elm_community$string_extra$String_Extra$replace, 'E', echar, '^E+(?:\\.E+)*@(?:A(?:D*A)?\\.)+A(?:D*A)?$')));
 	return _elm_lang$core$Regex$regex(emailRegexStr);
 }();
+var _user$project$ReceptionKiosk_NewMemberScene$ageListItemCss = {
+	ctor: '::',
+	_0: A2(_debois$elm_mdl$Material_Options$css, 'font-size', '22pt'),
+	_1: {
+		ctor: '::',
+		_0: A2(_debois$elm_mdl$Material_Options$css, 'padding', '0'),
+		_1: {ctor: '[]'}
+	}
+};
+var _user$project$ReceptionKiosk_NewMemberScene$ageListCss = {
+	ctor: '::',
+	_0: A2(_debois$elm_mdl$Material_Options$css, 'width', '335px'),
+	_1: {
+		ctor: '::',
+		_0: A2(_debois$elm_mdl$Material_Options$css, 'margin-left', 'auto'),
+		_1: {
+			ctor: '::',
+			_0: A2(_debois$elm_mdl$Material_Options$css, 'margin-right', 'auto'),
+			_1: {
+				ctor: '::',
+				_0: A2(_debois$elm_mdl$Material_Options$css, 'margin-top', '80px'),
+				_1: {ctor: '[]'}
+			}
+		}
+	}
+};
+var _user$project$ReceptionKiosk_NewMemberScene$idOver18 = 2;
+var _user$project$ReceptionKiosk_NewMemberScene$idUnder18 = 1;
+var _user$project$ReceptionKiosk_NewMemberScene$ageChoice = function (kioskModel) {
+	var idBase = _user$project$ReceptionKiosk_Types$mdlIdBase(_user$project$ReceptionKiosk_Types$NewMember);
+	var sceneModel = kioskModel.newMemberModel;
+	return A2(
+		_debois$elm_mdl$Material_List$ul,
+		_user$project$ReceptionKiosk_NewMemberScene$ageListCss,
+		{
+			ctor: '::',
+			_0: A2(
+				_debois$elm_mdl$Material_List$li,
+				_user$project$ReceptionKiosk_NewMemberScene$ageListItemCss,
+				{
+					ctor: '::',
+					_0: A2(
+						_debois$elm_mdl$Material_List$content,
+						{ctor: '[]'},
+						{
+							ctor: '::',
+							_0: _elm_lang$html$Html$text('I\'m aged 18 or older'),
+							_1: {ctor: '[]'}
+						}),
+					_1: {
+						ctor: '::',
+						_0: A2(
+							_debois$elm_mdl$Material_List$content2,
+							{ctor: '[]'},
+							{
+								ctor: '::',
+								_0: A5(
+									_debois$elm_mdl$Material_Toggles$radio,
+									_user$project$ReceptionKiosk_Types$MdlVector,
+									{
+										ctor: '::',
+										_0: idBase + _user$project$ReceptionKiosk_NewMemberScene$idOver18,
+										_1: {ctor: '[]'}
+									},
+									kioskModel.mdl,
+									{
+										ctor: '::',
+										_0: _debois$elm_mdl$Material_Toggles$value(
+											A2(_elm_lang$core$Maybe$withDefault, false, sceneModel.isAdult)),
+										_1: {
+											ctor: '::',
+											_0: _debois$elm_mdl$Material_Options$onToggle(
+												_user$project$ReceptionKiosk_Types$NewMemberVector(
+													_user$project$ReceptionKiosk_Types$ToggleIsAdult(false))),
+											_1: {ctor: '[]'}
+										}
+									},
+									{ctor: '[]'}),
+								_1: {ctor: '[]'}
+							}),
+						_1: {ctor: '[]'}
+					}
+				}),
+			_1: {
+				ctor: '::',
+				_0: A2(
+					_debois$elm_mdl$Material_List$li,
+					_user$project$ReceptionKiosk_NewMemberScene$ageListItemCss,
+					{
+						ctor: '::',
+						_0: A2(
+							_debois$elm_mdl$Material_List$content,
+							{ctor: '[]'},
+							{
+								ctor: '::',
+								_0: _elm_lang$html$Html$text('I\'m younger than 18'),
+								_1: {ctor: '[]'}
+							}),
+						_1: {
+							ctor: '::',
+							_0: A2(
+								_debois$elm_mdl$Material_List$content2,
+								{ctor: '[]'},
+								{
+									ctor: '::',
+									_0: A5(
+										_debois$elm_mdl$Material_Toggles$radio,
+										_user$project$ReceptionKiosk_Types$MdlVector,
+										{
+											ctor: '::',
+											_0: idBase + _user$project$ReceptionKiosk_NewMemberScene$idUnder18,
+											_1: {ctor: '[]'}
+										},
+										kioskModel.mdl,
+										{
+											ctor: '::',
+											_0: _debois$elm_mdl$Material_Toggles$value(
+												function () {
+													var _p0 = sceneModel.isAdult;
+													if (_p0.ctor === 'Nothing') {
+														return false;
+													} else {
+														return !_p0._0;
+													}
+												}()),
+											_1: {
+												ctor: '::',
+												_0: _debois$elm_mdl$Material_Options$onToggle(
+													function (_p1) {
+														return _user$project$ReceptionKiosk_Types$NewMemberVector(
+															_user$project$ReceptionKiosk_Types$ToggleIsAdult(_p1));
+													}(true)),
+												_1: {ctor: '[]'}
+											}
+										},
+										{ctor: '[]'}),
+									_1: {ctor: '[]'}
+								}),
+							_1: {ctor: '[]'}
+						}
+					}),
+				_1: {ctor: '[]'}
+			}
+		});
+};
 var _user$project$ReceptionKiosk_NewMemberScene$view = function (kioskModel) {
 	var sceneModel = kioskModel.newMemberModel;
 	return A5(
@@ -22429,9 +22609,9 @@ var _user$project$ReceptionKiosk_NewMemberScene$view = function (kioskModel) {
 					2,
 					'Your first name',
 					sceneModel.firstName,
-					function (_p0) {
+					function (_p2) {
 						return _user$project$ReceptionKiosk_Types$NewMemberVector(
-							_user$project$ReceptionKiosk_Types$UpdateFirstName(_p0));
+							_user$project$ReceptionKiosk_Types$UpdateFirstName(_p2));
 					}),
 				_1: {
 					ctor: '::',
@@ -22444,9 +22624,9 @@ var _user$project$ReceptionKiosk_NewMemberScene$view = function (kioskModel) {
 							3,
 							'Your last name',
 							sceneModel.lastName,
-							function (_p1) {
+							function (_p3) {
 								return _user$project$ReceptionKiosk_Types$NewMemberVector(
-									_user$project$ReceptionKiosk_Types$UpdateLastName(_p1));
+									_user$project$ReceptionKiosk_Types$UpdateLastName(_p3));
 							}),
 						_1: {
 							ctor: '::',
@@ -22459,22 +22639,16 @@ var _user$project$ReceptionKiosk_NewMemberScene$view = function (kioskModel) {
 									4,
 									'Your email address',
 									sceneModel.email,
-									function (_p2) {
+									function (_p4) {
 										return _user$project$ReceptionKiosk_Types$NewMemberVector(
-											_user$project$ReceptionKiosk_Types$UpdateEmail(_p2));
+											_user$project$ReceptionKiosk_Types$UpdateEmail(_p4));
 									}),
 								_1: {
 									ctor: '::',
-									_0: _user$project$ReceptionKiosk_SceneUtils$vspace(30),
+									_0: _user$project$ReceptionKiosk_SceneUtils$vspace(0),
 									_1: {
 										ctor: '::',
-										_0: A5(
-											_user$project$ReceptionKiosk_SceneUtils$sceneCheckbox,
-											kioskModel,
-											5,
-											'Check if you are 18 or older!',
-											sceneModel.isAdult,
-											_user$project$ReceptionKiosk_Types$NewMemberVector(_user$project$ReceptionKiosk_Types$ToggleIsAdult)),
+										_0: _user$project$ReceptionKiosk_NewMemberScene$ageChoice(kioskModel),
 										_1: {
 											ctor: '::',
 											_0: _user$project$ReceptionKiosk_SceneUtils$vspace(
@@ -22505,17 +22679,21 @@ var _user$project$ReceptionKiosk_NewMemberScene$view = function (kioskModel) {
 };
 var _user$project$ReceptionKiosk_NewMemberScene$validate = function (kioskModel) {
 	var getMatchingAccts = _user$project$MembersApi$getMatchingAccts(kioskModel.flags);
+	var norm = _elm_lang$core$String$trim;
 	var sceneModel = kioskModel.newMemberModel;
+	var fname = norm(sceneModel.firstName);
 	var fNameShort = _elm_lang$core$Native_Utils.eq(
-		_elm_lang$core$String$length(sceneModel.firstName),
+		_elm_lang$core$String$length(fname),
 		0);
+	var lname = norm(sceneModel.lastName);
 	var lNameShort = _elm_lang$core$Native_Utils.eq(
-		_elm_lang$core$String$length(sceneModel.lastName),
+		_elm_lang$core$String$length(lname),
 		0);
 	var emailInvalid = !A2(
 		_elm_lang$core$Regex$contains,
 		_user$project$ReceptionKiosk_NewMemberScene$emailRegex,
 		_elm_lang$core$String$toLower(sceneModel.email));
+	var noAge = _elm_lang$core$Native_Utils.eq(sceneModel.isAdult, _elm_lang$core$Maybe$Nothing);
 	var msgs = _elm_lang$core$List$concat(
 		{
 			ctor: '::',
@@ -22538,7 +22716,15 @@ var _user$project$ReceptionKiosk_NewMemberScene$validate = function (kioskModel)
 						_0: 'Your email address is not valid.',
 						_1: {ctor: '[]'}
 					} : {ctor: '[]'},
-					_1: {ctor: '[]'}
+					_1: {
+						ctor: '::',
+						_0: noAge ? {
+							ctor: '::',
+							_0: 'Please specify if you are adult/minor.',
+							_1: {ctor: '[]'}
+						} : {ctor: '[]'},
+						_1: {ctor: '[]'}
+					}
 				}
 			}
 		});
@@ -22547,9 +22733,9 @@ var _user$project$ReceptionKiosk_NewMemberScene$validate = function (kioskModel)
 		0) > 0) ? _elm_lang$core$Platform_Cmd$none : A2(
 		getMatchingAccts,
 		sceneModel.email,
-		function (_p3) {
+		function (_p5) {
 			return _user$project$ReceptionKiosk_Types$NewMemberVector(
-				_user$project$ReceptionKiosk_Types$ValidateEmailUnique(_p3));
+				_user$project$ReceptionKiosk_Types$ValidateEmailUnique(_p5));
 		});
 	return {
 		ctor: '_Tuple2',
@@ -22562,14 +22748,14 @@ var _user$project$ReceptionKiosk_NewMemberScene$validate = function (kioskModel)
 var _user$project$ReceptionKiosk_NewMemberScene$update = F2(
 	function (msg, kioskModel) {
 		var sceneModel = kioskModel.newMemberModel;
-		var _p4 = msg;
-		switch (_p4.ctor) {
+		var _p6 = msg;
+		switch (_p6.ctor) {
 			case 'UpdateFirstName':
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
 						sceneModel,
-						{firstName: _p4._0}),
+						{firstName: _p6._0}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 			case 'UpdateLastName':
@@ -22577,7 +22763,7 @@ var _user$project$ReceptionKiosk_NewMemberScene$update = F2(
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
 						sceneModel,
-						{lastName: _p4._0}),
+						{lastName: _p6._0}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 			case 'UpdateEmail':
@@ -22585,31 +22771,33 @@ var _user$project$ReceptionKiosk_NewMemberScene$update = F2(
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
 						sceneModel,
-						{email: _p4._0}),
+						{email: _p6._0}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 			case 'ToggleIsAdult':
+				var newVal = _elm_lang$core$Maybe$Just(
+					!A2(_elm_lang$core$Maybe$withDefault, _p6._0, sceneModel.isAdult));
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
 						sceneModel,
-						{isAdult: !sceneModel.isAdult}),
+						{isAdult: newVal}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 			case 'Validate':
 				return _user$project$ReceptionKiosk_NewMemberScene$validate(kioskModel);
 			default:
-				if (_p4._0.ctor === 'Ok') {
-					var _p5 = _p4._0._0.matches;
+				if (_p6._0.ctor === 'Ok') {
+					var _p7 = _p6._0._0.matches;
 					if (_elm_lang$core$Native_Utils.cmp(
-						_elm_lang$core$List$length(_p5),
+						_elm_lang$core$List$length(_p7),
 						0) > 0) {
 						var userIds = A2(
 							_elm_lang$core$List$map,
 							function (_) {
 								return _.userName;
 							},
-							_p5);
+							_p7);
 						return {
 							ctor: '_Tuple2',
 							_0: _elm_lang$core$Native_Utils.update(
@@ -22636,7 +22824,7 @@ var _user$project$ReceptionKiosk_NewMemberScene$update = F2(
 							{
 								badNews: {
 									ctor: '::',
-									_0: _elm_lang$core$Basics$toString(_p4._0._0),
+									_0: _elm_lang$core$Basics$toString(_p6._0._0),
 									_1: {ctor: '[]'}
 								}
 							}),
@@ -22650,7 +22838,7 @@ var _user$project$ReceptionKiosk_NewMemberScene$init = function (flags) {
 		firstName: '',
 		lastName: '',
 		email: '',
-		isAdult: false,
+		isAdult: _elm_lang$core$Maybe$Nothing,
 		userIds: {
 			ctor: '::',
 			_0: 'larry',

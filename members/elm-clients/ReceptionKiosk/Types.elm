@@ -48,6 +48,27 @@ type Scene
   | Waiver
   | Welcome
 
+-- Material id space needs to be chopped up for scenes:
+mdlIdBase : Scene -> Int
+mdlIdBase scene =
+  case scene of
+    CheckIn -> 100
+    CheckInDone -> 200
+    CheckOut -> 300
+    CheckOutDone -> 400
+    CreatingAcct -> 500
+    EmailInUse -> 600
+    HowDidYouHear -> 700
+    SignUpDone -> 800
+    NewMember -> 900
+    NewUser -> 1000
+    ReasonForVisit -> 1100
+    VolunteerIn -> 1200
+    Waiver -> 1300
+    Welcome -> 1400
+
+
+
 -----------------------------------------------------------------------------
 -- MSG TYPES
 -----------------------------------------------------------------------------
@@ -76,7 +97,7 @@ type NewMemberMsg
   = UpdateFirstName String
   | UpdateLastName String
   | UpdateEmail String
-  | ToggleIsAdult
+  | ToggleIsAdult Bool
   | Validate
   | ValidateEmailUnique (Result Http.Error MatchingAcctInfo)
 
