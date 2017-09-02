@@ -20853,10 +20853,29 @@ var _user$project$ReceptionKiosk_Types$mdlIdBase = function (scene) {
 			return 1400;
 	}
 };
-var _user$project$ReceptionKiosk_Types$Flags = F9(
-	function (a, b, c, d, e, f, g, h, i) {
-		return {csrfToken: a, orgName: b, bannerTopUrl: c, bannerBottomUrl: d, discoveryMethodsUrl: e, checkedInAcctsUrl: f, matchingAcctsUrl: g, logVisitEventUrl: h, scrapeLoginsUrl: i};
-	});
+var _user$project$ReceptionKiosk_Types$Flags = function (a) {
+	return function (b) {
+		return function (c) {
+			return function (d) {
+				return function (e) {
+					return function (f) {
+						return function (g) {
+							return function (h) {
+								return function (i) {
+									return function (j) {
+										return function (k) {
+											return {csrfToken: a, orgName: b, bannerTopUrl: c, bannerBottomUrl: d, discoveryMethodsUrl: e, checkedInAcctsUrl: f, matchingAcctsUrl: g, logVisitEventUrl: h, scrapeLoginsUrl: i, addDiscoveryMethodUrl: j, setIsAdultUrl: k};
+										};
+									};
+								};
+							};
+						};
+					};
+				};
+			};
+		};
+	};
+};
 var _user$project$ReceptionKiosk_Types$Welcome = {ctor: 'Welcome'};
 var _user$project$ReceptionKiosk_Types$Waiver = {ctor: 'Waiver'};
 var _user$project$ReceptionKiosk_Types$VolunteerIn = {ctor: 'VolunteerIn'};
@@ -22446,99 +22465,80 @@ var _user$project$ReceptionKiosk_NewMemberScene$emailRegex = function () {
 			A3(_elm_community$string_extra$String_Extra$replace, 'E', echar, '^E+(?:\\.E+)*@(?:A(?:D*A)?\\.)+A(?:D*A)?$')));
 	return _elm_lang$core$Regex$regex(emailRegexStr);
 }();
-var _user$project$ReceptionKiosk_NewMemberScene$ageListItemCss = {
-	ctor: '::',
-	_0: A2(_debois$elm_mdl$Material_Options$css, 'font-size', '22pt'),
-	_1: {
-		ctor: '::',
-		_0: A2(_debois$elm_mdl$Material_Options$css, 'padding', '0'),
-		_1: {ctor: '[]'}
-	}
-};
-var _user$project$ReceptionKiosk_NewMemberScene$ageListCss = {
-	ctor: '::',
-	_0: A2(_debois$elm_mdl$Material_Options$css, 'width', '335px'),
-	_1: {
-		ctor: '::',
-		_0: A2(_debois$elm_mdl$Material_Options$css, 'margin-left', 'auto'),
-		_1: {
-			ctor: '::',
-			_0: A2(_debois$elm_mdl$Material_Options$css, 'margin-right', 'auto'),
-			_1: {
-				ctor: '::',
-				_0: A2(_debois$elm_mdl$Material_Options$css, 'margin-top', '80px'),
-				_1: {ctor: '[]'}
-			}
-		}
-	}
-};
 var _user$project$ReceptionKiosk_NewMemberScene$idOver18 = 2;
 var _user$project$ReceptionKiosk_NewMemberScene$idUnder18 = 1;
 var _user$project$ReceptionKiosk_NewMemberScene$ageChoice = function (kioskModel) {
 	var idBase = _user$project$ReceptionKiosk_Types$mdlIdBase(_user$project$ReceptionKiosk_Types$NewMember);
 	var sceneModel = kioskModel.newMemberModel;
 	return A2(
-		_debois$elm_mdl$Material_List$ul,
-		_user$project$ReceptionKiosk_NewMemberScene$ageListCss,
+		_elm_lang$html$Html$div,
+		{ctor: '[]'},
 		{
 			ctor: '::',
-			_0: A2(
-				_debois$elm_mdl$Material_List$li,
-				_user$project$ReceptionKiosk_NewMemberScene$ageListItemCss,
-				{
-					ctor: '::',
-					_0: A2(
-						_debois$elm_mdl$Material_List$content,
-						{ctor: '[]'},
-						{
-							ctor: '::',
-							_0: _elm_lang$html$Html$text('I\'m aged 18 or older'),
-							_1: {ctor: '[]'}
-						}),
-					_1: {
-						ctor: '::',
-						_0: A2(
-							_debois$elm_mdl$Material_List$content2,
-							{ctor: '[]'},
-							{
-								ctor: '::',
-								_0: A5(
-									_debois$elm_mdl$Material_Toggles$radio,
-									_user$project$ReceptionKiosk_Types$MdlVector,
-									{
-										ctor: '::',
-										_0: idBase + _user$project$ReceptionKiosk_NewMemberScene$idOver18,
-										_1: {ctor: '[]'}
-									},
-									kioskModel.mdl,
-									{
-										ctor: '::',
-										_0: _debois$elm_mdl$Material_Toggles$value(
-											A2(_elm_lang$core$Maybe$withDefault, false, sceneModel.isAdult)),
-										_1: {
-											ctor: '::',
-											_0: _debois$elm_mdl$Material_Options$onToggle(
-												_user$project$ReceptionKiosk_Types$NewMemberVector(
-													_user$project$ReceptionKiosk_Types$ToggleIsAdult(false))),
-											_1: {ctor: '[]'}
-										}
-									},
-									{ctor: '[]'}),
-								_1: {ctor: '[]'}
-							}),
-						_1: {ctor: '[]'}
-					}
-				}),
+			_0: _user$project$ReceptionKiosk_SceneUtils$vspace(40),
 			_1: {
 				ctor: '::',
-				_0: A2(
-					_debois$elm_mdl$Material_List$li,
-					_user$project$ReceptionKiosk_NewMemberScene$ageListItemCss,
+				_0: A5(
+					_debois$elm_mdl$Material_Toggles$radio,
+					_user$project$ReceptionKiosk_Types$MdlVector,
 					{
 						ctor: '::',
-						_0: A2(
-							_debois$elm_mdl$Material_List$content,
-							{ctor: '[]'},
+						_0: idBase + _user$project$ReceptionKiosk_NewMemberScene$idOver18,
+						_1: {ctor: '[]'}
+					},
+					kioskModel.mdl,
+					{
+						ctor: '::',
+						_0: _debois$elm_mdl$Material_Toggles$value(
+							A2(_elm_lang$core$Maybe$withDefault, false, sceneModel.isAdult)),
+						_1: {
+							ctor: '::',
+							_0: _debois$elm_mdl$Material_Options$onToggle(
+								_user$project$ReceptionKiosk_Types$NewMemberVector(
+									_user$project$ReceptionKiosk_Types$ToggleIsAdult(false))),
+							_1: {ctor: '[]'}
+						}
+					},
+					{
+						ctor: '::',
+						_0: _elm_lang$html$Html$text('I\'m aged 18 or older'),
+						_1: {ctor: '[]'}
+					}),
+				_1: {
+					ctor: '::',
+					_0: _user$project$ReceptionKiosk_SceneUtils$vspace(30),
+					_1: {
+						ctor: '::',
+						_0: A5(
+							_debois$elm_mdl$Material_Toggles$radio,
+							_user$project$ReceptionKiosk_Types$MdlVector,
+							{
+								ctor: '::',
+								_0: idBase + _user$project$ReceptionKiosk_NewMemberScene$idUnder18,
+								_1: {ctor: '[]'}
+							},
+							kioskModel.mdl,
+							{
+								ctor: '::',
+								_0: _debois$elm_mdl$Material_Toggles$value(
+									function () {
+										var _p0 = sceneModel.isAdult;
+										if (_p0.ctor === 'Nothing') {
+											return false;
+										} else {
+											return !_p0._0;
+										}
+									}()),
+								_1: {
+									ctor: '::',
+									_0: _debois$elm_mdl$Material_Options$onToggle(
+										function (_p1) {
+											return _user$project$ReceptionKiosk_Types$NewMemberVector(
+												_user$project$ReceptionKiosk_Types$ToggleIsAdult(_p1));
+										}(true)),
+									_1: {ctor: '[]'}
+								}
+							},
 							{
 								ctor: '::',
 								_0: _elm_lang$html$Html$text('I\'m younger than 18'),
@@ -22546,48 +22546,11 @@ var _user$project$ReceptionKiosk_NewMemberScene$ageChoice = function (kioskModel
 							}),
 						_1: {
 							ctor: '::',
-							_0: A2(
-								_debois$elm_mdl$Material_List$content2,
-								{ctor: '[]'},
-								{
-									ctor: '::',
-									_0: A5(
-										_debois$elm_mdl$Material_Toggles$radio,
-										_user$project$ReceptionKiosk_Types$MdlVector,
-										{
-											ctor: '::',
-											_0: idBase + _user$project$ReceptionKiosk_NewMemberScene$idUnder18,
-											_1: {ctor: '[]'}
-										},
-										kioskModel.mdl,
-										{
-											ctor: '::',
-											_0: _debois$elm_mdl$Material_Toggles$value(
-												function () {
-													var _p0 = sceneModel.isAdult;
-													if (_p0.ctor === 'Nothing') {
-														return false;
-													} else {
-														return !_p0._0;
-													}
-												}()),
-											_1: {
-												ctor: '::',
-												_0: _debois$elm_mdl$Material_Options$onToggle(
-													function (_p1) {
-														return _user$project$ReceptionKiosk_Types$NewMemberVector(
-															_user$project$ReceptionKiosk_Types$ToggleIsAdult(_p1));
-													}(true)),
-												_1: {ctor: '[]'}
-											}
-										},
-										{ctor: '[]'}),
-									_1: {ctor: '[]'}
-								}),
+							_0: _user$project$ReceptionKiosk_SceneUtils$vspace(10),
 							_1: {ctor: '[]'}
 						}
-					}),
-				_1: {ctor: '[]'}
+					}
+				}
 			}
 		});
 };
@@ -23976,24 +23939,30 @@ var _user$project$ReceptionKiosk_EmailInUseScene$init = function (flags) {
 };
 var _user$project$ReceptionKiosk_EmailInUseScene$EmailInUseModel = {};
 
-var _user$project$ReceptionKiosk_HowDidYouHearScene$howDidYouHearCss = {
-	ctor: '::',
-	_0: A2(_debois$elm_mdl$Material_Options$css, 'width', '400px'),
-	_1: {
+var _user$project$ReceptionKiosk_HowDidYouHearScene$howDidYouHearStyle = _elm_lang$html$Html_Attributes$style(
+	{
 		ctor: '::',
-		_0: A2(_debois$elm_mdl$Material_Options$css, 'margin-left', 'auto'),
+		_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'width', '350px'),
 		_1: {
 			ctor: '::',
-			_0: A2(_debois$elm_mdl$Material_Options$css, 'margin-right', 'auto'),
+			_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'margin-left', 'auto'),
 			_1: {
 				ctor: '::',
-				_0: A2(_debois$elm_mdl$Material_Options$css, 'margin-top', '80px'),
-				_1: {ctor: '[]'}
+				_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'margin-right', 'auto'),
+				_1: {
+					ctor: '::',
+					_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'padding-left', '125px'),
+					_1: {
+						ctor: '::',
+						_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'text-align', 'left'),
+						_1: {ctor: '[]'}
+					}
+				}
 			}
 		}
-	}
-};
+	});
 var _user$project$ReceptionKiosk_HowDidYouHearScene$howDidYouHearChoices = function (kioskModel) {
+	var idBase = _user$project$ReceptionKiosk_Types$mdlIdBase(_user$project$ReceptionKiosk_Types$HowDidYouHear);
 	var sceneModel = kioskModel.howDidYouHearModel;
 	var visibleMethods = A2(
 		_elm_lang$core$List$filter,
@@ -24002,63 +23971,60 @@ var _user$project$ReceptionKiosk_HowDidYouHearScene$howDidYouHearChoices = funct
 		},
 		sceneModel.discoveryMethods);
 	return A2(
-		_debois$elm_mdl$Material_List$ul,
-		_user$project$ReceptionKiosk_HowDidYouHearScene$howDidYouHearCss,
+		_elm_lang$html$Html$div,
+		{
+			ctor: '::',
+			_0: _user$project$ReceptionKiosk_HowDidYouHearScene$howDidYouHearStyle,
+			_1: {ctor: '[]'}
+		},
 		A2(
-			_elm_lang$core$List$map,
-			function (dm) {
-				return A2(
-					_debois$elm_mdl$Material_List$li,
-					{
-						ctor: '::',
-						_0: A2(_debois$elm_mdl$Material_Options$css, 'font-size', '18pt'),
-						_1: {ctor: '[]'}
-					},
-					{
-						ctor: '::',
-						_0: A2(
-							_debois$elm_mdl$Material_List$content,
-							{ctor: '[]'},
-							{
-								ctor: '::',
-								_0: _elm_lang$html$Html$text(dm.name),
-								_1: {ctor: '[]'}
-							}),
-						_1: {
+			_elm_lang$core$Basics_ops['++'],
+			{
+				ctor: '::',
+				_0: _user$project$ReceptionKiosk_SceneUtils$vspace(30),
+				_1: {ctor: '[]'}
+			},
+			A2(
+				_elm_lang$core$List$map,
+				function (dm) {
+					return A2(
+						_elm_lang$html$Html$span,
+						{ctor: '[]'},
+						{
 							ctor: '::',
-							_0: A2(
-								_debois$elm_mdl$Material_List$content2,
-								{ctor: '[]'},
+							_0: A5(
+								_debois$elm_mdl$Material_Toggles$checkbox,
+								_user$project$ReceptionKiosk_Types$MdlVector,
 								{
 									ctor: '::',
-									_0: A5(
-										_debois$elm_mdl$Material_Toggles$checkbox,
-										_user$project$ReceptionKiosk_Types$MdlVector,
-										{
-											ctor: '::',
-											_0: 1000 + dm.id,
-											_1: {ctor: '[]'}
-										},
-										kioskModel.mdl,
-										{
-											ctor: '::',
-											_0: _debois$elm_mdl$Material_Toggles$value(dm.selected),
-											_1: {
-												ctor: '::',
-												_0: _debois$elm_mdl$Material_Options$onToggle(
-													_user$project$ReceptionKiosk_Types$HowDidYouHearVector(
-														_user$project$ReceptionKiosk_Types$ToggleDiscoveryMethod(dm))),
-												_1: {ctor: '[]'}
-											}
-										},
-										{ctor: '[]'}),
+									_0: idBase + dm.id,
+									_1: {ctor: '[]'}
+								},
+								kioskModel.mdl,
+								{
+									ctor: '::',
+									_0: _debois$elm_mdl$Material_Toggles$value(dm.selected),
+									_1: {
+										ctor: '::',
+										_0: _debois$elm_mdl$Material_Options$onToggle(
+											_user$project$ReceptionKiosk_Types$HowDidYouHearVector(
+												_user$project$ReceptionKiosk_Types$ToggleDiscoveryMethod(dm))),
+										_1: {ctor: '[]'}
+									}
+								},
+								{
+									ctor: '::',
+									_0: _elm_lang$html$Html$text(dm.name),
 									_1: {ctor: '[]'}
 								}),
-							_1: {ctor: '[]'}
-						}
-					});
-			},
-			visibleMethods));
+							_1: {
+								ctor: '::',
+								_0: _user$project$ReceptionKiosk_SceneUtils$vspace(30),
+								_1: {ctor: '[]'}
+							}
+						});
+				},
+				visibleMethods)));
 };
 var _user$project$ReceptionKiosk_HowDidYouHearScene$view = function (kioskModel) {
 	return A5(
@@ -24921,51 +24887,61 @@ var _user$project$ReceptionKiosk$main = _elm_lang$html$Html$programWithFlags(
 	{init: _user$project$ReceptionKiosk$init, view: _user$project$ReceptionKiosk$view, update: _user$project$ReceptionKiosk$update, subscriptions: _user$project$ReceptionKiosk$subscriptions})(
 	A2(
 		_elm_lang$core$Json_Decode$andThen,
-		function (bannerBottomUrl) {
+		function (addDiscoveryMethodUrl) {
 			return A2(
 				_elm_lang$core$Json_Decode$andThen,
-				function (bannerTopUrl) {
+				function (bannerBottomUrl) {
 					return A2(
 						_elm_lang$core$Json_Decode$andThen,
-						function (checkedInAcctsUrl) {
+						function (bannerTopUrl) {
 							return A2(
 								_elm_lang$core$Json_Decode$andThen,
-								function (csrfToken) {
+								function (checkedInAcctsUrl) {
 									return A2(
 										_elm_lang$core$Json_Decode$andThen,
-										function (discoveryMethodsUrl) {
+										function (csrfToken) {
 											return A2(
 												_elm_lang$core$Json_Decode$andThen,
-												function (logVisitEventUrl) {
+												function (discoveryMethodsUrl) {
 													return A2(
 														_elm_lang$core$Json_Decode$andThen,
-														function (matchingAcctsUrl) {
+														function (logVisitEventUrl) {
 															return A2(
 																_elm_lang$core$Json_Decode$andThen,
-																function (orgName) {
+																function (matchingAcctsUrl) {
 																	return A2(
 																		_elm_lang$core$Json_Decode$andThen,
-																		function (scrapeLoginsUrl) {
-																			return _elm_lang$core$Json_Decode$succeed(
-																				{bannerBottomUrl: bannerBottomUrl, bannerTopUrl: bannerTopUrl, checkedInAcctsUrl: checkedInAcctsUrl, csrfToken: csrfToken, discoveryMethodsUrl: discoveryMethodsUrl, logVisitEventUrl: logVisitEventUrl, matchingAcctsUrl: matchingAcctsUrl, orgName: orgName, scrapeLoginsUrl: scrapeLoginsUrl});
+																		function (orgName) {
+																			return A2(
+																				_elm_lang$core$Json_Decode$andThen,
+																				function (scrapeLoginsUrl) {
+																					return A2(
+																						_elm_lang$core$Json_Decode$andThen,
+																						function (setIsAdultUrl) {
+																							return _elm_lang$core$Json_Decode$succeed(
+																								{addDiscoveryMethodUrl: addDiscoveryMethodUrl, bannerBottomUrl: bannerBottomUrl, bannerTopUrl: bannerTopUrl, checkedInAcctsUrl: checkedInAcctsUrl, csrfToken: csrfToken, discoveryMethodsUrl: discoveryMethodsUrl, logVisitEventUrl: logVisitEventUrl, matchingAcctsUrl: matchingAcctsUrl, orgName: orgName, scrapeLoginsUrl: scrapeLoginsUrl, setIsAdultUrl: setIsAdultUrl});
+																						},
+																						A2(_elm_lang$core$Json_Decode$field, 'setIsAdultUrl', _elm_lang$core$Json_Decode$string));
+																				},
+																				A2(_elm_lang$core$Json_Decode$field, 'scrapeLoginsUrl', _elm_lang$core$Json_Decode$string));
 																		},
-																		A2(_elm_lang$core$Json_Decode$field, 'scrapeLoginsUrl', _elm_lang$core$Json_Decode$string));
+																		A2(_elm_lang$core$Json_Decode$field, 'orgName', _elm_lang$core$Json_Decode$string));
 																},
-																A2(_elm_lang$core$Json_Decode$field, 'orgName', _elm_lang$core$Json_Decode$string));
+																A2(_elm_lang$core$Json_Decode$field, 'matchingAcctsUrl', _elm_lang$core$Json_Decode$string));
 														},
-														A2(_elm_lang$core$Json_Decode$field, 'matchingAcctsUrl', _elm_lang$core$Json_Decode$string));
+														A2(_elm_lang$core$Json_Decode$field, 'logVisitEventUrl', _elm_lang$core$Json_Decode$string));
 												},
-												A2(_elm_lang$core$Json_Decode$field, 'logVisitEventUrl', _elm_lang$core$Json_Decode$string));
+												A2(_elm_lang$core$Json_Decode$field, 'discoveryMethodsUrl', _elm_lang$core$Json_Decode$string));
 										},
-										A2(_elm_lang$core$Json_Decode$field, 'discoveryMethodsUrl', _elm_lang$core$Json_Decode$string));
+										A2(_elm_lang$core$Json_Decode$field, 'csrfToken', _elm_lang$core$Json_Decode$string));
 								},
-								A2(_elm_lang$core$Json_Decode$field, 'csrfToken', _elm_lang$core$Json_Decode$string));
+								A2(_elm_lang$core$Json_Decode$field, 'checkedInAcctsUrl', _elm_lang$core$Json_Decode$string));
 						},
-						A2(_elm_lang$core$Json_Decode$field, 'checkedInAcctsUrl', _elm_lang$core$Json_Decode$string));
+						A2(_elm_lang$core$Json_Decode$field, 'bannerTopUrl', _elm_lang$core$Json_Decode$string));
 				},
-				A2(_elm_lang$core$Json_Decode$field, 'bannerTopUrl', _elm_lang$core$Json_Decode$string));
+				A2(_elm_lang$core$Json_Decode$field, 'bannerBottomUrl', _elm_lang$core$Json_Decode$string));
 		},
-		A2(_elm_lang$core$Json_Decode$field, 'bannerBottomUrl', _elm_lang$core$Json_Decode$string)));
+		A2(_elm_lang$core$Json_Decode$field, 'addDiscoveryMethodUrl', _elm_lang$core$Json_Decode$string)));
 var _user$project$ReceptionKiosk$Model = function (a) {
 	return function (b) {
 		return function (c) {

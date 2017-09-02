@@ -26,6 +26,8 @@ type alias Flags =
   , matchingAcctsUrl: String
   , logVisitEventUrl: String
   , scrapeLoginsUrl: String
+  , addDiscoveryMethodUrl: String
+  , setIsAdultUrl: String
   }
 
 -----------------------------------------------------------------------------

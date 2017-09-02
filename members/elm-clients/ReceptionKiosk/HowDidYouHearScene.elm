@@ -2,7 +2,8 @@
 module ReceptionKiosk.HowDidYouHearScene exposing (init, update, view, HowDidYouHearModel)
 
 -- Standard
-import Html exposing (Html, text)
+import Html exposing (Html, text, div, span)
+import Html.Attributes exposing (style)
 import Http
 import List.Extra
 
@@ -86,22 +87,23 @@ howDidYouHearChoices kioskModel =
   let
     sceneModel = kioskModel.howDidYouHearModel
     visibleMethods = List.filter .visible sceneModel.discoveryMethods
+    idBase = mdlIdBase HowDidYouHear
   in
-    Lists.ul howDidYouHearCss
-      (List.map
-        ( \dm ->
-            Lists.li [css "font-size" "18pt"]
-              [ Lists.content [] [ text dm.name ]
-              , Lists.content2 []
-                [ Toggles.checkbox MdlVector [1000+dm.id] kioskModel.mdl  -- 1000 establishes an id range for these.
-                    [ Toggles.value dm.selected
-                    , Options.onToggle (HowDidYouHearVector <| ToggleDiscoveryMethod <| dm)
-                    ]
-                    []
+    div [howDidYouHearStyle]
+      ( [vspace 30] ++
+        (List.map
+          ( \dm ->
+              span []
+                [ Toggles.checkbox MdlVector [idBase+dm.id] kioskModel.mdl
+                      [ Toggles.value dm.selected
+                      , Options.onToggle (HowDidYouHearVector <| ToggleDiscoveryMethod <| dm)
+                      ]
+                      [text dm.name]
+                , vspace 30
                 ]
-              ]
+          )
+          visibleMethods
         )
-        visibleMethods
       )
 
 
@@ -109,9 +111,10 @@ howDidYouHearChoices kioskModel =
 -- STYLES
 -----------------------------------------------------------------------------
 
-howDidYouHearCss =
-  [ css "width" "400px"
-  , css "margin-left" "auto"
-  , css "margin-right" "auto"
-  , css "margin-top" "80px"
+howDidYouHearStyle = style
+  [ "width" => "350px"
+  , "margin-left" => "auto"
+  , "margin-right" => "auto"
+  , "padding-left" => "125px"
+  , "text-align" => "left"
   ]

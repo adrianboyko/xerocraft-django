@@ -148,53 +148,26 @@ ageChoice kioskModel =
     sceneModel = kioskModel.newMemberModel
     idBase = mdlIdBase NewMember
   in
-    Lists.ul ageListCss
-      [ (Lists.li ageListItemCss
-          [ Lists.content [] [text "I'm aged 18 or older"]
-          , Lists.content2 []
-            [ Toggles.radio MdlVector [idBase+idOver18] kioskModel.mdl
-                [ Toggles.value (Maybe.withDefault False sceneModel.isAdult)
-                , Options.onToggle (NewMemberVector <| ToggleIsAdult <| False)
-                ]
-                []
-            ]
+    div []
+      [ vspace 40
+      , Toggles.radio MdlVector [idBase+idOver18] kioskModel.mdl
+          [ Toggles.value (Maybe.withDefault False sceneModel.isAdult)
+          , Options.onToggle (NewMemberVector <| ToggleIsAdult <| False)
           ]
-        )
-      , (Lists.li ageListItemCss
-          [ Lists.content [] [text "I'm younger than 18"]
-          , Lists.content2 []
-            [ Toggles.radio MdlVector [idBase+idUnder18] kioskModel.mdl
-                [ Toggles.value (
-                    case sceneModel.isAdult of
-                      Nothing -> False
-                      Just x -> not x
-                  )
-                , Options.onToggle (NewMemberVector << ToggleIsAdult <| True)
-                ]
-                []
-            ]
+          [text "I'm aged 18 or older"]
+      , vspace 30
+      , Toggles.radio MdlVector [idBase+idUnder18] kioskModel.mdl
+          [ Toggles.value
+              ( case sceneModel.isAdult of
+                  Nothing -> False
+                  Just x -> not x
+              )
+            , Options.onToggle (NewMemberVector << ToggleIsAdult <| True)
           ]
-        )
+          [text "I'm younger than 18"]
+      , vspace 10
       ]
 
-
-
-
------------------------------------------------------------------------------
--- STYLES
------------------------------------------------------------------------------
-
-ageListCss =
-  [ css "width" "335px"
-  , css "margin-left" "auto"
-  , css "margin-right" "auto"
-  , css "margin-top" "80px"
-  ]
-
-ageListItemCss =
-  [ css "font-size" "22pt"
-  , css "padding" "0"
-  ]
 
 -----------------------------------------------------------------------------
 -- UTILITIES
