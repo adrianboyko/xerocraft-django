@@ -17,7 +17,9 @@ from freezegun import freeze_time
 import members.notifications as notifications
 
 # Local
-from members.models import Member, Tag, Tagging, VisitEvent, Membership, Pushover, MembershipGiftCard
+from members.models import (
+    Member, Tag, Tagging, VisitEvent, Membership, Pushover, MembershipGiftCard, DiscoveryMethod
+)
 from members.views import _calculate_accrued_membership_revenue
 from members.notifications import pushover_available
 from members.management.commands.membershipnudge import Command as MembershipNudgeCmd
@@ -417,3 +419,64 @@ class RfidEntry(TestCase):
         path = reverse('memb:rfid-entry-denied', args=[self.registered_card])
         response = self.client.get(path)
         self.assertTrue(response.status_code == 200)
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# RECEPTION KIOSK API
+
+class TestReceptionKioskApi(TestCase):
+
+    def setUp(self):
+        self.pw = "fake"
+        u = User.objects.create_user(
+            username='abtest',
+            first_name="Andrew", last_name="Baker",
+            password=self.pw,
+            email="fake@example.com",
+        )
+        self.memb = u.member  # type: Member
+        self.memb.clean()
+
+    def test_reception_kiosk_add_discovery_method(self):
+        dm = DiscoveryMethod.objects.create(name="Spam", visible=True, order=1)
+        urlstr = reverse("memb:reception-kiosk-add-discovery-method")
+        data = {
+            'member_pk': self.memb.pk,
+            'member_pw': self.pw,
+            'method_pk': dm.pk
+        }
+        response = self.client.post(urlstr, json.dumps(data), 'application/json')
+        self.assertEqual(len(self.memb.discovery.all()), 1)
+
+    def test_reception_kiosk_add_discovery_method_bad_pw(self):
+        dm = DiscoveryMethod.objects.create(name="Spam", visible=True, order=1)
+        urlstr = reverse("memb:reception-kiosk-add-discovery-method")
+        data = {
+            'member_pk': self.memb.pk,
+            'member_pw': "WRONG",
+            'method_pk': dm.pk
+        }
+        response = self.client.post(urlstr, json.dumps(data), 'application/json')
+        self.assertEqual(response.status_code, 401)
+
+    def test_reception_kiosk_set_is_adult(self):
+        urlstr = reverse("memb:reception-kiosk-set-is-adult")
+        data = {
+            'member_pk': self.memb.pk,
+            'member_pw': self.pw,
+            'is_adult': True
+        }
+        response = self.client.post(urlstr, json.dumps(data), 'application/json')
+        self.memb.refresh_from_db()
+        self.assertIsNotNone(self.memb.is_adult)
+        self.assertEqual(self.memb.is_adult, True)
+
+    def test_reception_kiosk_set_is_adult_bad_pw(self):
+        urlstr = reverse("memb:reception-kiosk-set-is-adult")
+        data = {
+            'member_pk': self.memb.pk,
+            'member_pw': "WRONG",
+            'is_adult': True
+        }
+        response = self.client.post(urlstr, json.dumps(data), 'application/json')
+        self.assertEqual(response.status_code, 401)

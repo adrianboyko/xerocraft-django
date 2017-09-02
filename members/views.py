@@ -7,6 +7,7 @@ import csv
 from decimal import Decimal
 from logging import getLogger
 from typing import Union, Tuple, Optional
+import json
 
 # Third party
 from django.shortcuts import get_object_or_404
@@ -15,8 +16,10 @@ from django.shortcuts import render, redirect
 from django.http import HttpResponse, JsonResponse
 from django.core.urlresolvers import reverse
 from django.core.exceptions import PermissionDenied
+from django.contrib.auth.hashers import check_password
 from django.contrib.auth.decorators import login_required
 from django.views.generic import View
+from django.views.decorators.csrf import ensure_csrf_cookie
 from django.conf import settings
 from django.db.models import Q
 from rest_framework import viewsets
@@ -28,7 +31,6 @@ from reportlab.graphics.barcode.qr import QrCodeWidget
 from reportlab.graphics import renderPDF
 from reportlab.lib.units import inch, mm
 from reportlab.lib.pagesizes import letter
-from django.views.decorators.csrf import ensure_csrf_cookie
 
 
 # Local
@@ -594,4 +596,45 @@ def reception_kiosk_log_visit_event(request, member_pk, event_type, reason) -> J
     else:
         assert isinstance(info, str)
         return JsonResponse({"result": info})
+
+
+def reception_kiosk_add_discovery_method(request) -> JsonResponse:
+
+    # Does request.is_ajax() matter?
+
+    if request.method == 'POST':
+
+        data = json.loads(request.body.decode())
+        member_pk = int(data['member_pk'])
+        member_pw = data['member_pw']
+        method_pk = int(data['method_pk'])
+
+        member = Member.objects.get(pk=member_pk)
+        if check_password(member_pw, member.auth_user.password):
+            method = DiscoveryMethod.objects.get(pk=method_pk)
+            member.discovery.add(method)
+            member.save()
+            return JsonResponse({"result": "success"})
+        else:
+            return JsonResponse(status=401, data={"result": "failure"})
+
+
+def reception_kiosk_set_is_adult(request) -> JsonResponse:
+
+    # if request.is_ajax():
+
+    if request.method == 'POST':
+
+        data = json.loads(request.body.decode())
+        member_pk = int(data['member_pk'])
+        member_pw = data['member_pw']
+        is_adult = bool(data['is_adult'])
+
+        member = Member.objects.get(pk=member_pk)
+        if check_password(member_pw, member.auth_user.password):
+            member.is_adult = is_adult
+            member.save()
+            return JsonResponse({"result": "success"})
+        else:
+            return JsonResponse(status=401, data={"result": "failure"})
 

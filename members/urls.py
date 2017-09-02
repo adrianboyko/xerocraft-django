@@ -14,14 +14,30 @@ router.register(r'wifi-mac-detected', views.WifiMacDetectedViewSet)
 urlpatterns = [
 
     # For reception desk kiosk (check-in, sign-up, etc):
-    url(r'^reception/$', views.reception_kiosk_spa,
+
+    url(r'^reception/$',
+        views.reception_kiosk_spa,
         name="reception-kiosk"),
-    url(r'^reception/matching-accts/(?P<flexid>[-a-zA-Z0-9_@+.]{1,32})/$', views.reception_kiosk_matching_accts,
+
+    url(r'^reception/matching-accts/(?P<flexid>[-a-zA-Z0-9_@+.]{1,32})/$',
+        views.reception_kiosk_matching_accts,
         name="reception-kiosk-matching-accts"),
-    url(r'^reception/checked-in-accts/$', views.reception_kiosk_checked_in_accts,
+
+    url(r'^reception/checked-in-accts/$',
+        views.reception_kiosk_checked_in_accts,
         name="reception-kiosk-checked-in-accts"),
-    url(r'^reception/log-visit-event/(?P<member_pk>[0-9]*)_(?P<event_type>[APD])_(?P<reason>[A-Z]{3})/$', views.reception_kiosk_log_visit_event,
+
+    url(r'^reception/log-visit-event/(?P<member_pk>[0-9]*)_(?P<event_type>[APD])_(?P<reason>[A-Z]{3})/$',
+        views.reception_kiosk_log_visit_event,
         name="reception-kiosk-log-visit-event"),
+
+    url(r'^reception/add-discovery-method/$',
+        views.reception_kiosk_add_discovery_method,
+        name="reception-kiosk-add-discovery-method"),
+
+    url(r'^reception/set-is-adult/$',
+        views.reception_kiosk_set_is_adult,
+        name="reception-kiosk-set-is-adult"),
 
     # For desktop:
     url(r'^create-card/$', views.create_card, name='create-card'),
