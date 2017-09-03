@@ -50,7 +50,7 @@ view kioskModel =
     "Just one more thing..."
     (p [sceneTextStyle]
       [ vspace 30
-      , text "You much check in each time you visit"
+      , text "You must check in each time you visit"
       , br [] []
       , text "so please remember that your userid is:"
       , vspace 40
