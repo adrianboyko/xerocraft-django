@@ -427,9 +427,10 @@ class RfidEntry(TestCase):
 class TestReceptionKioskApi(TestCase):
 
     def setUp(self):
+        self.username = "abtest"
         self.pw = "fake"
         u = User.objects.create_user(
-            username='abtest',
+            username=self.username,
             first_name="Andrew", last_name="Baker",
             password=self.pw,
             email="fake@example.com",
@@ -441,9 +442,9 @@ class TestReceptionKioskApi(TestCase):
         dm = DiscoveryMethod.objects.create(name="Spam", visible=True, order=1)
         urlstr = reverse("memb:reception-kiosk-add-discovery-method")
         data = {
-            'member_pk': self.memb.pk,
-            'member_pw': self.pw,
-            'method_pk': dm.pk
+            'username': self.username,
+            'userpw': self.pw,
+            'methodpk': dm.pk
         }
         response = self.client.post(urlstr, json.dumps(data), 'application/json')
         self.assertEqual(len(self.memb.discovery.all()), 1)
@@ -452,9 +453,9 @@ class TestReceptionKioskApi(TestCase):
         dm = DiscoveryMethod.objects.create(name="Spam", visible=True, order=1)
         urlstr = reverse("memb:reception-kiosk-add-discovery-method")
         data = {
-            'member_pk': self.memb.pk,
-            'member_pw': "WRONG",
-            'method_pk': dm.pk
+            'username': self.username,
+            'userpw': "WRONG",
+            'methodpk': dm.pk
         }
         response = self.client.post(urlstr, json.dumps(data), 'application/json')
         self.assertEqual(response.status_code, 401)
@@ -462,9 +463,9 @@ class TestReceptionKioskApi(TestCase):
     def test_reception_kiosk_set_is_adult(self):
         urlstr = reverse("memb:reception-kiosk-set-is-adult")
         data = {
-            'member_pk': self.memb.pk,
-            'member_pw': self.pw,
-            'is_adult': True
+            'username': self.username,
+            'userpw': self.pw,
+            'isadult': True
         }
         response = self.client.post(urlstr, json.dumps(data), 'application/json')
         self.memb.refresh_from_db()
@@ -474,9 +475,9 @@ class TestReceptionKioskApi(TestCase):
     def test_reception_kiosk_set_is_adult_bad_pw(self):
         urlstr = reverse("memb:reception-kiosk-set-is-adult")
         data = {
-            'member_pk': self.memb.pk,
-            'member_pw': "WRONG",
-            'is_adult': True
+            'username': self.username,
+            'userpw': "WRONG",
+            'isadult': True
         }
         response = self.client.post(urlstr, json.dumps(data), 'application/json')
         self.assertEqual(response.status_code, 401)

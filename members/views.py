@@ -16,7 +16,7 @@ from django.shortcuts import render, redirect
 from django.http import HttpResponse, JsonResponse
 from django.core.urlresolvers import reverse
 from django.core.exceptions import PermissionDenied
-from django.contrib.auth.hashers import check_password
+from django.contrib.auth import authenticate
 from django.contrib.auth.decorators import login_required
 from django.views.generic import View
 from django.views.decorators.csrf import ensure_csrf_cookie
@@ -605,13 +605,14 @@ def reception_kiosk_add_discovery_method(request) -> JsonResponse:
     if request.method == 'POST':
 
         data = json.loads(request.body.decode())
-        member_pk = int(data['member_pk'])
-        member_pw = data['member_pw']
-        method_pk = int(data['method_pk'])
+        username = data['username']  # type: str
+        userpw = data['userpw']  # type: str
+        methodpk = int(data['methodpk'])  # type: int
 
-        member = Member.objects.get(pk=member_pk)
-        if check_password(member_pw, member.auth_user.password):
-            method = DiscoveryMethod.objects.get(pk=method_pk)
+        user = authenticate(username=username, password=userpw)
+        if user is not None:
+            member = user.member
+            method = DiscoveryMethod.objects.get(pk=methodpk)
             member.discovery.add(method)
             member.save()
             return JsonResponse({"result": "success"})
@@ -626,12 +627,13 @@ def reception_kiosk_set_is_adult(request) -> JsonResponse:
     if request.method == 'POST':
 
         data = json.loads(request.body.decode())
-        member_pk = int(data['member_pk'])
-        member_pw = data['member_pw']
-        is_adult = bool(data['is_adult'])
+        username = data['username']  # type: str
+        userpw = data['userpw']  # type: str
+        is_adult = bool(data['isadult'])  # type: bool
 
-        member = Member.objects.get(pk=member_pk)
-        if check_password(member_pw, member.auth_user.password):
+        user = authenticate(username=username, password=userpw)
+        if user is not None:
+            member = user.member
             member.is_adult = is_adult
             member.save()
             return JsonResponse({"result": "success"})
