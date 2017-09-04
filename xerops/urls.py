@@ -44,6 +44,7 @@ urlpatterns = [
     url(r'^books/', include('books.urls', namespace="book")),
     url(r'^tasks/', include('tasks.urls', namespace="task")),
     url(r'^inventory/', include('inventory.urls', namespace="inv")),
+    url(r'^xis/', include('xis.urls', namespace="xis")),
     #url('', include('social.apps.django_app.urls', namespace='social')),
 
     # DJANGO REST FRAMEWORK API
