@@ -10,7 +10,6 @@ import List.Extra
 -- Third Party
 import Material.Toggles as Toggles
 import Material.Options as Options exposing (css)
-import Material.List as Lists
 
 -- Local
 import MembersApi as MembersApi
@@ -24,6 +23,7 @@ import ReceptionKiosk.SceneUtils exposing (..)
 
 type alias HowDidYouHearModel =
   { discoveryMethods : List MembersApi.DiscoveryMethod  -- Fetched from MembersApi
+  , selectedMethodPks : List Int
   , badNews : List String
   }
 
@@ -33,7 +33,7 @@ type alias KioskModel a = (SceneUtilModel {a | howDidYouHearModel : HowDidYouHea
 init : Flags -> (HowDidYouHearModel, Cmd Msg)
 init flags =
   let
-    sceneModel = { discoveryMethods=[], badNews=[] }
+    sceneModel = { discoveryMethods=[], selectedMethodPks=[], badNews=[] }
     getDiscoveryMethods = MembersApi.getDiscoveryMethods flags
     request = getDiscoveryMethods (HowDidYouHearVector << AccDiscoveryMethods)
   in
@@ -62,12 +62,13 @@ update msg kioskModel =
 
     ToggleDiscoveryMethod dm ->
       let
-        replace = List.Extra.replaceIf
-        picker = \x -> x.id == dm.id
-        newDm = { dm | selected = not dm.selected }
+        newSelectedMethodPks =
+          if List.member dm.id sceneModel.selectedMethodPks then
+            List.Extra.remove dm.id sceneModel.selectedMethodPks
+          else
+            dm.id :: sceneModel.selectedMethodPks
       in
-        -- TODO: This should also add/remove the discovery method choice on the MembersApi.
-        ({sceneModel | discoveryMethods = replace picker newDm sceneModel.discoveryMethods}, Cmd.none)
+        ({sceneModel | selectedMethodPks=newSelectedMethodPks}, Cmd.none)
 
 
 -----------------------------------------------------------------------------
@@ -95,7 +96,7 @@ howDidYouHearChoices kioskModel =
           ( \dm ->
               span []
                 [ Toggles.checkbox MdlVector [idBase+dm.id] kioskModel.mdl
-                      [ Toggles.value dm.selected
+                      [ Toggles.value (List.member dm.id sceneModel.selectedMethodPks)
                       , Options.onToggle (HowDidYouHearVector <| ToggleDiscoveryMethod <| dm)
                       ]
                       [text dm.name]

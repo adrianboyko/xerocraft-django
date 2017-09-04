@@ -19,14 +19,14 @@ import ReceptionKiosk.ReasonForVisitScene exposing (ReasonForVisitModel)
 import ReceptionKiosk.NewMemberScene exposing (NewMemberModel)
 import ReceptionKiosk.NewUserScene exposing (NewUserModel)
 import ReceptionKiosk.WaiverScene exposing (WaiverModel)
+import ReceptionKiosk.HowDidYouHearScene exposing (HowDidYouHearModel)
 
 -----------------------------------------------------------------------------
 -- INIT
 -----------------------------------------------------------------------------
 
 type alias CreatingAcctModel =
-  { waitingForScrape : Bool
-  , checkCount: Int
+  { waitCount: Int
   , badNews : List String
   }
 
@@ -35,9 +35,10 @@ type alias KioskModel a =
   (SceneUtilModel
     { a
     | creatingAcctModel : CreatingAcctModel
+    , howDidYouHearModel : HowDidYouHearModel
     , newMemberModel : NewMemberModel
     , newUserModel: NewUserModel
-    , reasonForVisitModel: ReasonForVisitModel
+    , howDidYouHearModel: HowDidYouHearModel
     , waiverModel : WaiverModel
     }
   )
@@ -45,8 +46,7 @@ type alias KioskModel a =
 init : Flags -> (CreatingAcctModel, Cmd Msg)
 init flags =
   let sceneModel =
-    { waitingForScrape = False
-    , checkCount = 0
+    { waitCount = 0
     , badNews = []
     }
   in (sceneModel, Cmd.none)
@@ -58,7 +58,12 @@ init flags =
 update : CreatingAcctMsg -> KioskModel a -> (CreatingAcctModel, Cmd Msg)
 update msg kioskModel =
 
-  let sceneModel = kioskModel.creatingAcctModel
+  let
+    sceneModel = kioskModel.creatingAcctModel
+    newMemberModel = kioskModel.newMemberModel
+    newUserModel = kioskModel.newUserModel
+    howDidYouHearModel = kioskModel.howDidYouHearModel
+
   in case msg of
 
     CreatingAcctSceneWillAppear ->
@@ -90,13 +95,14 @@ update msg kioskModel =
 
           "You have successfully registered your check in! Welcome to Xerocraft!" ->
             -- This is the result we wanted. Account creation was successful.
-            -- Rebase the scene stack since we don't want the user backtracking into acct creation again.
             let
-              newModel = {sceneModel | badNews=[]}
-              scrapeLogins = XcApi.scrapeXcOrgLogins kioskModel.flags.scrapeLoginsUrl
-              cmd = scrapeLogins (CreatingAcctVector << XcScrapeStarted)
+              sceneModel = kioskModel.creatingAcctModel
+              userModel = kioskModel.newUserModel
+              flags = kioskModel.flags
+              cloneFn = XcApi.cloneAcctToXis flags.cloneAcctUrl flags.csrfToken
+              resultToMsg = CreatingAcctVector << CloneAttempted
             in
-              (newModel, cmd)
+              ({sceneModel | badNews=[]}, cloneFn userModel.userName userModel.password1 resultToMsg)
 
           "" ->
             -- Couldn't find a message so dump the entire response body as a debugging aid.
@@ -110,30 +116,54 @@ update msg kioskModel =
             ({sceneModel | badNews = [msg]}, Cmd.none)
 
     XcAcctCreationAttempted (Err error) ->
-      -- These will be http errors.
-      ({sceneModel | badNews = [toString error]}, Cmd.none)
+      -- This is genuinely bad news as creating this acct is the main point of sign up.
+      ({sceneModel | badNews = ["Could not create acct on xerocraft.org", toString error]}, Cmd.none)
 
-    XcScrapeStarted (Ok ignored) ->
-      ({sceneModel | waitingForScrape=True}, Cmd.none)
+    CloneAttempted (Err error) ->
+      -- It's not critically important that this succeeds.
+      -- Worst case scenario is that new account will be cloned by the acct scraper, that night.
+      -- TODO: log/report error somewhere. ["Acct created but not cloned.", toString error]
+      ({sceneModel | badNews = []}, infoToXisAcct kioskModel)
 
-    XcScrapeStarted (Err error) ->
-      -- These will be http errors.
-      ({sceneModel | badNews=[toString error], waitingForScrape=False}, Cmd.none)
+    CloneAttempted (Ok responseStr) ->
+      -- The clone to XIS has succeeded so we can now push info that XIS wants.
+      ({sceneModel | badNews = []}, infoToXisAcct kioskModel)
 
-    CheckedForAcct (Ok {target, matches}) ->
-      if List.isEmpty matches then
-        -- Nothing yet. Will try again on next Tick message.
-      ({sceneModel | waitingForScrape=True}, Cmd.none)
-      else
-        let
-          model = {sceneModel | waitingForScrape=False }
-          cmd = send (WizardVector <| RebaseTo <| SignUpDone)
-        in
-          (model, cmd)
+    IsAdultWasSet (Ok ignored) ->
+      -- User has moved on while this ran in the background. No action required on success.
+      (sceneModel, Cmd.none)
 
-    CheckedForAcct (Err error) ->
-      -- These will be http errors.
-      ({sceneModel | badNews=[toString error], waitingForScrape=False}, Cmd.none)
+    IsAdultWasSet (Err error) ->
+      -- It's not critically important that this succeeds. Hundreds of existing accts don't have adult/minor info.
+      -- TODO: log/report error somewhere. ["Setting isAdult failed.", toString error]
+      (sceneModel, Cmd.none)
+
+    DiscoveryMethodAdded (Ok ignored) ->
+      -- User has moved on while this ran in the background. No action required on success.
+      (sceneModel, Cmd.none)
+
+    DiscoveryMethodAdded (Err error) ->
+      -- It's not critically important that this succeeds.
+      -- TODO: log/report error somewhere. ["Adding discovery method failed.", toString error]
+      (sceneModel, Cmd.none)
+
+
+infoToXisAcct : KioskModel a -> Cmd Msg
+infoToXisAcct kioskModel =
+  let
+    sceneModel = kioskModel.creatingAcctModel
+    memberModel = kioskModel.newMemberModel
+    userModel = kioskModel.newUserModel
+    howDidYouHearModel = kioskModel.howDidYouHearModel
+    setIsAdult = MembersApi.setIsAdult kioskModel.flags userModel.userName userModel.password1
+    isAdultVal = Maybe.withDefault False memberModel.isAdult  -- Can't be Nothing at this point in program. "False" is the safest default if this assertion fails.
+    addMethods = MembersApi.addDiscoveryMethods kioskModel.flags userModel.userName userModel.password1
+  in
+    Cmd.batch
+      [ send (WizardVector <| RebaseTo <| SignUpDone)
+      , setIsAdult isAdultVal (CreatingAcctVector << IsAdultWasSet)
+      , addMethods howDidYouHearModel.selectedMethodPks (CreatingAcctVector << DiscoveryMethodAdded)
+      ]
 
 -----------------------------------------------------------------------------
 -- VIEW
@@ -154,7 +184,7 @@ view kioskModel =
             [ vspace 40
             , text "Working"
             , vspace 20
-            , text (String.repeat sceneModel.checkCount "●")
+            , text (String.repeat sceneModel.waitCount "●")
             ]
         else
             [ vspace 40
@@ -172,24 +202,7 @@ tick : Time -> KioskModel a -> (CreatingAcctModel, Cmd Msg)
 tick time kioskModel =
   let
     sceneModel = kioskModel.creatingAcctModel
+    inc = if List.isEmpty sceneModel.badNews then 1 else 0
+    newWaitCount = sceneModel.waitCount + 1
   in
-    if sceneModel.waitingForScrape then
-      checkForScrapedAcct kioskModel
-    else
-      (sceneModel, Cmd.none)
-
--- There are ways to drive this aside from ticks, so I've kept it as a separate function.
-checkForScrapedAcct : KioskModel a -> (CreatingAcctModel, Cmd Msg)
-checkForScrapedAcct kioskModel =
-    let
-      sceneModel = kioskModel.creatingAcctModel
-      newCheckCount = sceneModel.checkCount + 1
-      userId = kioskModel.newUserModel.userName
-      getMatchingAccts = MembersApi.getMatchingAccts kioskModel.flags
-      checkCmd = getMatchingAccts userId (CreatingAcctVector << CheckedForAcct)
-      timeoutMsg = "Timeout waiting for new acct to migrate to XIS."
-    in
-      if newCheckCount > 20 then
-        ({sceneModel | badNews=[timeoutMsg], waitingForScrape=False}, Cmd.none)
-      else
-        ({sceneModel | badNews=[], checkCount=newCheckCount, waitingForScrape=True}, checkCmd)
+    ({sceneModel | waitCount=newWaitCount}, Cmd.none)

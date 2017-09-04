@@ -20120,6 +20120,109 @@ var _rluiten$elm_date_extra$Date_Extra_Format$utcIsoString = function (date) {
 };
 var _rluiten$elm_date_extra$Date_Extra_Format$isoFormat = '%Y-%m-%dT%H:%M:%S';
 
+var _user$project$MembersApi$addDiscoveryMethods = F5(
+	function (flags, username, userpw, methodPks, resultToMsg) {
+		var oneCmd = function (req) {
+			return A2(_elm_lang$http$Http$send, resultToMsg, req);
+		};
+		var request = function (bo) {
+			return _elm_lang$http$Http$request(
+				{
+					method: 'POST',
+					url: flags.addDiscoveryMethodUrl,
+					headers: {
+						ctor: '::',
+						_0: A2(_elm_lang$http$Http$header, 'X-CSRFToken', flags.csrfToken),
+						_1: {ctor: '[]'}
+					},
+					withCredentials: false,
+					body: _elm_lang$http$Http$jsonBody(
+						_elm_lang$core$Json_Encode$object(bo)),
+					timeout: _elm_lang$core$Maybe$Nothing,
+					expect: _elm_lang$http$Http$expectString
+				});
+		};
+		var bodyObject = function (pk) {
+			return {
+				ctor: '::',
+				_0: {
+					ctor: '_Tuple2',
+					_0: 'username',
+					_1: _elm_lang$core$Json_Encode$string(username)
+				},
+				_1: {
+					ctor: '::',
+					_0: {
+						ctor: '_Tuple2',
+						_0: 'userpw',
+						_1: _elm_lang$core$Json_Encode$string(userpw)
+					},
+					_1: {
+						ctor: '::',
+						_0: {
+							ctor: '_Tuple2',
+							_0: 'methodpk',
+							_1: _elm_lang$core$Json_Encode$int(pk)
+						},
+						_1: {ctor: '[]'}
+					}
+				}
+			};
+		};
+		return _elm_lang$core$Platform_Cmd$batch(
+			A2(
+				_elm_lang$core$List$map,
+				function (_p0) {
+					return oneCmd(
+						request(
+							bodyObject(_p0)));
+				},
+				methodPks));
+	});
+var _user$project$MembersApi$setIsAdult = F5(
+	function (flags, username, userpw, newValue, resultToMsg) {
+		var bodyObject = {
+			ctor: '::',
+			_0: {
+				ctor: '_Tuple2',
+				_0: 'username',
+				_1: _elm_lang$core$Json_Encode$string(username)
+			},
+			_1: {
+				ctor: '::',
+				_0: {
+					ctor: '_Tuple2',
+					_0: 'userpw',
+					_1: _elm_lang$core$Json_Encode$string(userpw)
+				},
+				_1: {
+					ctor: '::',
+					_0: {
+						ctor: '_Tuple2',
+						_0: 'isadult',
+						_1: _elm_lang$core$Json_Encode$bool(newValue)
+					},
+					_1: {ctor: '[]'}
+				}
+			}
+		};
+		var request = _elm_lang$http$Http$request(
+			{
+				method: 'POST',
+				url: flags.setIsAdultUrl,
+				headers: {
+					ctor: '::',
+					_0: A2(_elm_lang$http$Http$header, 'X-CSRFToken', flags.csrfToken),
+					_1: {ctor: '[]'}
+				},
+				withCredentials: false,
+				body: _elm_lang$http$Http$jsonBody(
+					_elm_lang$core$Json_Encode$object(bodyObject)),
+				timeout: _elm_lang$core$Maybe$Nothing,
+				expect: _elm_lang$http$Http$expectString
+			});
+		return A2(_elm_lang$http$Http$send, resultToMsg, request);
+	});
 var _user$project$MembersApi$createNewAcct = F6(
 	function (fullName, userName, email, password, signature, thing) {
 		var enc = _elm_lang$http$Http$encodeUri;
@@ -20196,7 +20299,7 @@ var _user$project$MembersApi$replaceAll = F3(
 			_elm_lang$core$Regex$replace,
 			_elm_lang$core$Regex$All,
 			_elm_lang$core$Regex$regex(oldSub),
-			function (_p0) {
+			function (_p1) {
 				return newSub;
 			},
 			theString);
@@ -20241,30 +20344,27 @@ var _user$project$MembersApi$getMatchingAccts = F3(
 		var request = A2(_elm_lang$http$Http$get, url, _user$project$MembersApi$decodeMatchingAcctInfo);
 		return A2(_elm_lang$http$Http$send, thing, request);
 	});
-var _user$project$MembersApi$DiscoveryMethod = F5(
-	function (a, b, c, d, e) {
-		return {id: a, name: b, order: c, visible: d, selected: e};
+var _user$project$MembersApi$DiscoveryMethod = F4(
+	function (a, b, c, d) {
+		return {id: a, name: b, order: c, visible: d};
 	});
-var _user$project$MembersApi$decodeDiscoveryMethod = A2(
-	_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$hardcoded,
-	false,
+var _user$project$MembersApi$decodeDiscoveryMethod = A3(
+	_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
+	'visible',
+	_elm_lang$core$Json_Decode$bool,
 	A3(
 		_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
-		'visible',
-		_elm_lang$core$Json_Decode$bool,
+		'order',
+		_elm_lang$core$Json_Decode$int,
 		A3(
 			_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
-			'order',
-			_elm_lang$core$Json_Decode$int,
+			'name',
+			_elm_lang$core$Json_Decode$string,
 			A3(
 				_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
-				'name',
-				_elm_lang$core$Json_Decode$string,
-				A3(
-					_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
-					'id',
-					_elm_lang$core$Json_Decode$int,
-					_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$decode(_user$project$MembersApi$DiscoveryMethod))))));
+				'id',
+				_elm_lang$core$Json_Decode$int,
+				_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$decode(_user$project$MembersApi$DiscoveryMethod)))));
 var _user$project$MembersApi$DiscoveryMethodInfo = F4(
 	function (a, b, c, d) {
 		return {count: a, next: b, previous: c, results: d};
@@ -20300,8 +20400,8 @@ var _user$project$MembersApi$decodeGenericResult = A2(
 var _user$project$MembersApi$logVisitEvent = F5(
 	function (flags, memberPK, eventType, reason, thing) {
 		var reasonVal = function () {
-			var _p1 = reason;
-			switch (_p1.ctor) {
+			var _p2 = reason;
+			switch (_p2.ctor) {
 				case 'Curiousity':
 					return 'CUR';
 				case 'ClassParticipant':
@@ -20317,8 +20417,8 @@ var _user$project$MembersApi$logVisitEvent = F5(
 			}
 		}();
 		var eventVal = function () {
-			var _p2 = eventType;
-			switch (_p2.ctor) {
+			var _p3 = eventType;
+			switch (_p3.ctor) {
 				case 'Arrival':
 					return 'A';
 				case 'Present':
@@ -20864,7 +20964,9 @@ var _user$project$ReceptionKiosk_Types$Flags = function (a) {
 								return function (i) {
 									return function (j) {
 										return function (k) {
-											return {csrfToken: a, orgName: b, bannerTopUrl: c, bannerBottomUrl: d, discoveryMethodsUrl: e, checkedInAcctsUrl: f, matchingAcctsUrl: g, logVisitEventUrl: h, scrapeLoginsUrl: i, addDiscoveryMethodUrl: j, setIsAdultUrl: k};
+											return function (l) {
+												return {csrfToken: a, orgName: b, bannerTopUrl: c, bannerBottomUrl: d, discoveryMethodsUrl: e, checkedInAcctsUrl: f, matchingAcctsUrl: g, logVisitEventUrl: h, scrapeLoginsUrl: i, addDiscoveryMethodUrl: j, setIsAdultUrl: k, cloneAcctUrl: l};
+											};
 										};
 									};
 								};
@@ -20906,13 +21008,16 @@ var _user$project$ReceptionKiosk_Types$LogCheckOut = function (a) {
 var _user$project$ReceptionKiosk_Types$UpdateCheckedInAccts = function (a) {
 	return {ctor: 'UpdateCheckedInAccts', _0: a};
 };
-var _user$project$ReceptionKiosk_Types$CheckedForAcct = function (a) {
-	return {ctor: 'CheckedForAcct', _0: a};
+var _user$project$ReceptionKiosk_Types$DiscoveryMethodAdded = function (a) {
+	return {ctor: 'DiscoveryMethodAdded', _0: a};
 };
-var _user$project$ReceptionKiosk_Types$XcScrapeStarted = function (a) {
-	return {ctor: 'XcScrapeStarted', _0: a};
+var _user$project$ReceptionKiosk_Types$IsAdultWasSet = function (a) {
+	return {ctor: 'IsAdultWasSet', _0: a};
 };
 var _user$project$ReceptionKiosk_Types$CreatingAcctSceneWillAppear = {ctor: 'CreatingAcctSceneWillAppear'};
+var _user$project$ReceptionKiosk_Types$CloneAttempted = function (a) {
+	return {ctor: 'CloneAttempted', _0: a};
+};
 var _user$project$ReceptionKiosk_Types$XcAcctCreationAttempted = function (a) {
 	return {ctor: 'XcAcctCreationAttempted', _0: a};
 };
@@ -22189,6 +22294,48 @@ var _user$project$ReceptionKiosk_CheckOutDoneScene$init = function (flags) {
 };
 var _user$project$ReceptionKiosk_CheckOutDoneScene$CheckOutDoneModel = {};
 
+var _user$project$XerocraftApi$cloneAcctToXis = F5(
+	function (url, csrfToken, username, userpw, resultToMsg) {
+		var makeCmd = function (req) {
+			return A2(_elm_lang$http$Http$send, resultToMsg, req);
+		};
+		var makeRequest = function (bo) {
+			return _elm_lang$http$Http$request(
+				{
+					method: 'POST',
+					url: url,
+					headers: {
+						ctor: '::',
+						_0: A2(_elm_lang$http$Http$header, 'X-CSRFToken', csrfToken),
+						_1: {ctor: '[]'}
+					},
+					withCredentials: false,
+					body: _elm_lang$http$Http$jsonBody(
+						_elm_lang$core$Json_Encode$object(bo)),
+					timeout: _elm_lang$core$Maybe$Nothing,
+					expect: _elm_lang$http$Http$expectString
+				});
+		};
+		var bodyObject = {
+			ctor: '::',
+			_0: {
+				ctor: '_Tuple2',
+				_0: 'username',
+				_1: _elm_lang$core$Json_Encode$string(username)
+			},
+			_1: {
+				ctor: '::',
+				_0: {
+					ctor: '_Tuple2',
+					_0: 'userpw',
+					_1: _elm_lang$core$Json_Encode$string(userpw)
+				},
+				_1: {ctor: '[]'}
+			}
+		};
+		return makeCmd(
+			makeRequest(bodyObject));
+	});
 var _user$project$XerocraftApi$scrapeXcOrgLogins = F2(
 	function (url, result2Msg) {
 		var request = _elm_lang$http$Http$getString(url);
@@ -23544,48 +23691,183 @@ var _user$project$ReceptionKiosk_WaiverScene$WaiverModel = F3(
 		return {isSigning: a, signature: b, badNews: c};
 	});
 
-var _user$project$ReceptionKiosk_CreatingAcctScene$checkForScrapedAcct = function (kioskModel) {
-	var timeoutMsg = 'Timeout waiting for new acct to migrate to XIS.';
-	var getMatchingAccts = _user$project$MembersApi$getMatchingAccts(kioskModel.flags);
-	var userId = kioskModel.newUserModel.userName;
-	var checkCmd = A2(
-		getMatchingAccts,
-		userId,
-		function (_p0) {
-			return _user$project$ReceptionKiosk_Types$CreatingAcctVector(
-				_user$project$ReceptionKiosk_Types$CheckedForAcct(_p0));
-		});
-	var sceneModel = kioskModel.creatingAcctModel;
-	var newCheckCount = sceneModel.checkCount + 1;
-	return (_elm_lang$core$Native_Utils.cmp(newCheckCount, 20) > 0) ? {
-		ctor: '_Tuple2',
-		_0: _elm_lang$core$Native_Utils.update(
-			sceneModel,
-			{
-				badNews: {
+var _user$project$ReceptionKiosk_HowDidYouHearScene$howDidYouHearStyle = _elm_lang$html$Html_Attributes$style(
+	{
+		ctor: '::',
+		_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'width', '350px'),
+		_1: {
+			ctor: '::',
+			_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'margin-left', 'auto'),
+			_1: {
+				ctor: '::',
+				_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'margin-right', 'auto'),
+				_1: {
 					ctor: '::',
-					_0: timeoutMsg,
-					_1: {ctor: '[]'}
-				},
-				waitingForScrape: false
-			}),
-		_1: _elm_lang$core$Platform_Cmd$none
-	} : {
-		ctor: '_Tuple2',
-		_0: _elm_lang$core$Native_Utils.update(
-			sceneModel,
+					_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'padding-left', '125px'),
+					_1: {
+						ctor: '::',
+						_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'text-align', 'left'),
+						_1: {ctor: '[]'}
+					}
+				}
+			}
+		}
+	});
+var _user$project$ReceptionKiosk_HowDidYouHearScene$howDidYouHearChoices = function (kioskModel) {
+	var idBase = _user$project$ReceptionKiosk_Types$mdlIdBase(_user$project$ReceptionKiosk_Types$HowDidYouHear);
+	var sceneModel = kioskModel.howDidYouHearModel;
+	var visibleMethods = A2(
+		_elm_lang$core$List$filter,
+		function (_) {
+			return _.visible;
+		},
+		sceneModel.discoveryMethods);
+	return A2(
+		_elm_lang$html$Html$div,
+		{
+			ctor: '::',
+			_0: _user$project$ReceptionKiosk_HowDidYouHearScene$howDidYouHearStyle,
+			_1: {ctor: '[]'}
+		},
+		A2(
+			_elm_lang$core$Basics_ops['++'],
 			{
-				badNews: {ctor: '[]'},
-				checkCount: newCheckCount,
-				waitingForScrape: true
-			}),
-		_1: checkCmd
-	};
+				ctor: '::',
+				_0: _user$project$ReceptionKiosk_SceneUtils$vspace(30),
+				_1: {ctor: '[]'}
+			},
+			A2(
+				_elm_lang$core$List$map,
+				function (dm) {
+					return A2(
+						_elm_lang$html$Html$span,
+						{ctor: '[]'},
+						{
+							ctor: '::',
+							_0: A5(
+								_debois$elm_mdl$Material_Toggles$checkbox,
+								_user$project$ReceptionKiosk_Types$MdlVector,
+								{
+									ctor: '::',
+									_0: idBase + dm.id,
+									_1: {ctor: '[]'}
+								},
+								kioskModel.mdl,
+								{
+									ctor: '::',
+									_0: _debois$elm_mdl$Material_Toggles$value(
+										A2(_elm_lang$core$List$member, dm.id, sceneModel.selectedMethodPks)),
+									_1: {
+										ctor: '::',
+										_0: _debois$elm_mdl$Material_Options$onToggle(
+											_user$project$ReceptionKiosk_Types$HowDidYouHearVector(
+												_user$project$ReceptionKiosk_Types$ToggleDiscoveryMethod(dm))),
+										_1: {ctor: '[]'}
+									}
+								},
+								{
+									ctor: '::',
+									_0: _elm_lang$html$Html$text(dm.name),
+									_1: {ctor: '[]'}
+								}),
+							_1: {
+								ctor: '::',
+								_0: _user$project$ReceptionKiosk_SceneUtils$vspace(30),
+								_1: {ctor: '[]'}
+							}
+						});
+				},
+				visibleMethods)));
 };
+var _user$project$ReceptionKiosk_HowDidYouHearScene$view = function (kioskModel) {
+	return A5(
+		_user$project$ReceptionKiosk_SceneUtils$genericScene,
+		kioskModel,
+		'Just Wondering',
+		'How did you hear about us?',
+		_user$project$ReceptionKiosk_HowDidYouHearScene$howDidYouHearChoices(kioskModel),
+		{
+			ctor: '::',
+			_0: A2(
+				_user$project$ReceptionKiosk_SceneUtils$ButtonSpec,
+				'OK',
+				_user$project$ReceptionKiosk_Types$WizardVector(
+					_user$project$ReceptionKiosk_Types$Push(_user$project$ReceptionKiosk_Types$NewMember))),
+			_1: {ctor: '[]'}
+		});
+};
+var _user$project$ReceptionKiosk_HowDidYouHearScene$update = F2(
+	function (msg, kioskModel) {
+		var sceneModel = kioskModel.howDidYouHearModel;
+		var _p0 = msg;
+		if (_p0.ctor === 'AccDiscoveryMethods') {
+			if (_p0._0.ctor === 'Ok') {
+				var newMethods = A2(_elm_lang$core$Basics_ops['++'], sceneModel.discoveryMethods, _p0._0._0.results);
+				return {
+					ctor: '_Tuple2',
+					_0: _elm_lang$core$Native_Utils.update(
+						sceneModel,
+						{discoveryMethods: newMethods}),
+					_1: _elm_lang$core$Platform_Cmd$none
+				};
+			} else {
+				return {
+					ctor: '_Tuple2',
+					_0: _elm_lang$core$Native_Utils.update(
+						sceneModel,
+						{
+							badNews: {
+								ctor: '::',
+								_0: _elm_lang$core$Basics$toString(_p0._0._0),
+								_1: {ctor: '[]'}
+							}
+						}),
+					_1: _elm_lang$core$Platform_Cmd$none
+				};
+			}
+		} else {
+			var _p1 = _p0._0;
+			var newSelectedMethodPks = A2(_elm_lang$core$List$member, _p1.id, sceneModel.selectedMethodPks) ? A2(_elm_community$list_extra$List_Extra$remove, _p1.id, sceneModel.selectedMethodPks) : {ctor: '::', _0: _p1.id, _1: sceneModel.selectedMethodPks};
+			return {
+				ctor: '_Tuple2',
+				_0: _elm_lang$core$Native_Utils.update(
+					sceneModel,
+					{selectedMethodPks: newSelectedMethodPks}),
+				_1: _elm_lang$core$Platform_Cmd$none
+			};
+		}
+	});
+var _user$project$ReceptionKiosk_HowDidYouHearScene$init = function (flags) {
+	var getDiscoveryMethods = _user$project$MembersApi$getDiscoveryMethods(flags);
+	var request = getDiscoveryMethods(
+		function (_p2) {
+			return _user$project$ReceptionKiosk_Types$HowDidYouHearVector(
+				_user$project$ReceptionKiosk_Types$AccDiscoveryMethods(_p2));
+		});
+	var sceneModel = {
+		discoveryMethods: {ctor: '[]'},
+		selectedMethodPks: {ctor: '[]'},
+		badNews: {ctor: '[]'}
+	};
+	return {ctor: '_Tuple2', _0: sceneModel, _1: request};
+};
+var _user$project$ReceptionKiosk_HowDidYouHearScene$HowDidYouHearModel = F3(
+	function (a, b, c) {
+		return {discoveryMethods: a, selectedMethodPks: b, badNews: c};
+	});
+
 var _user$project$ReceptionKiosk_CreatingAcctScene$tick = F2(
 	function (time, kioskModel) {
 		var sceneModel = kioskModel.creatingAcctModel;
-		return sceneModel.waitingForScrape ? _user$project$ReceptionKiosk_CreatingAcctScene$checkForScrapedAcct(kioskModel) : {ctor: '_Tuple2', _0: sceneModel, _1: _elm_lang$core$Platform_Cmd$none};
+		var inc = _elm_lang$core$List$isEmpty(sceneModel.badNews) ? 1 : 0;
+		var newWaitCount = sceneModel.waitCount + 1;
+		return {
+			ctor: '_Tuple2',
+			_0: _elm_lang$core$Native_Utils.update(
+				sceneModel,
+				{waitCount: newWaitCount}),
+			_1: _elm_lang$core$Platform_Cmd$none
+		};
 	});
 var _user$project$ReceptionKiosk_CreatingAcctScene$view = function (kioskModel) {
 	var sceneModel = kioskModel.creatingAcctModel;
@@ -23609,7 +23891,7 @@ var _user$project$ReceptionKiosk_CreatingAcctScene$view = function (kioskModel) 
 						_1: {
 							ctor: '::',
 							_0: _elm_lang$html$Html$text(
-								A2(_elm_lang$core$String$repeat, sceneModel.checkCount, '●')),
+								A2(_elm_lang$core$String$repeat, sceneModel.waitCount, '●')),
 							_1: {ctor: '[]'}
 						}
 					}
@@ -23625,11 +23907,51 @@ var _user$project$ReceptionKiosk_CreatingAcctScene$view = function (kioskModel) 
 			}),
 		{ctor: '[]'});
 };
+var _user$project$ReceptionKiosk_CreatingAcctScene$infoToXisAcct = function (kioskModel) {
+	var howDidYouHearModel = kioskModel.howDidYouHearModel;
+	var userModel = kioskModel.newUserModel;
+	var setIsAdult = A3(_user$project$MembersApi$setIsAdult, kioskModel.flags, userModel.userName, userModel.password1);
+	var addMethods = A3(_user$project$MembersApi$addDiscoveryMethods, kioskModel.flags, userModel.userName, userModel.password1);
+	var memberModel = kioskModel.newMemberModel;
+	var isAdultVal = A2(_elm_lang$core$Maybe$withDefault, false, memberModel.isAdult);
+	var sceneModel = kioskModel.creatingAcctModel;
+	return _elm_lang$core$Platform_Cmd$batch(
+		{
+			ctor: '::',
+			_0: _user$project$ReceptionKiosk_SceneUtils$send(
+				_user$project$ReceptionKiosk_Types$WizardVector(
+					_user$project$ReceptionKiosk_Types$RebaseTo(_user$project$ReceptionKiosk_Types$SignUpDone))),
+			_1: {
+				ctor: '::',
+				_0: A2(
+					setIsAdult,
+					isAdultVal,
+					function (_p0) {
+						return _user$project$ReceptionKiosk_Types$CreatingAcctVector(
+							_user$project$ReceptionKiosk_Types$IsAdultWasSet(_p0));
+					}),
+				_1: {
+					ctor: '::',
+					_0: A2(
+						addMethods,
+						howDidYouHearModel.selectedMethodPks,
+						function (_p1) {
+							return _user$project$ReceptionKiosk_Types$CreatingAcctVector(
+								_user$project$ReceptionKiosk_Types$DiscoveryMethodAdded(_p1));
+						}),
+					_1: {ctor: '[]'}
+				}
+			}
+		});
+};
 var _user$project$ReceptionKiosk_CreatingAcctScene$update = F2(
 	function (msg, kioskModel) {
+		var howDidYouHearModel = kioskModel.howDidYouHearModel;
+		var newUserModel = kioskModel.newUserModel;
+		var newMemberModel = kioskModel.newMemberModel;
 		var sceneModel = kioskModel.creatingAcctModel;
-		var _p1 = msg;
-		switch (_p1.ctor) {
+		var _p2 = msg;
+		switch (_p2.ctor) {
 			case 'CreatingAcctSceneWillAppear':
 				var waiverModel = kioskModel.waiverModel;
 				var userModel = kioskModel.newUserModel;
@@ -23653,46 +23975,51 @@ var _user$project$ReceptionKiosk_CreatingAcctScene$update = F2(
 					memberModel.email,
 					userModel.password1,
 					waiverModel.signature,
-					function (_p2) {
+					function (_p3) {
 						return _user$project$ReceptionKiosk_Types$CreatingAcctVector(
-							_user$project$ReceptionKiosk_Types$XcAcctCreationAttempted(_p2));
+							_user$project$ReceptionKiosk_Types$XcAcctCreationAttempted(_p3));
 					});
 				return {ctor: '_Tuple2', _0: sceneModel, _1: cmd};
 			case 'XcAcctCreationAttempted':
-				if (_p1._0.ctor === 'Ok') {
-					var _p6 = _p1._0._0;
+				if (_p2._0.ctor === 'Ok') {
+					var _p7 = _p2._0._0;
 					var tagRegex = _elm_lang$core$Regex$regex('<[^>]*>');
 					var msgRegex = _elm_lang$core$Regex$regex('<div id=\\\"Message\\\">.*</div>');
 					var msgsFound = A3(
 						_elm_lang$core$Regex$find,
 						_elm_lang$core$Regex$AtMost(1),
 						msgRegex,
-						_p6);
+						_p7);
 					var msg = function () {
-						var _p3 = _elm_lang$core$List$head(msgsFound);
-						if (_p3.ctor === 'Nothing') {
+						var _p4 = _elm_lang$core$List$head(msgsFound);
+						if (_p4.ctor === 'Nothing') {
 							return '';
 						} else {
-							return _elm_community$string_extra$String_Extra$stripTags(_p3._0.match);
+							return _elm_community$string_extra$String_Extra$stripTags(_p4._0.match);
 						}
 					}();
 					var userNameInUseIndicator = '<h2></h2>';
 					var successIndicator = '<h1>You have successfully registered your check in! Welcome to Xerocraft!</h1>';
-					var _p4 = msg;
-					switch (_p4) {
+					var _p5 = msg;
+					switch (_p5) {
 						case 'You have successfully registered your check in! Welcome to Xerocraft!':
-							var scrapeLogins = _user$project$XerocraftApi$scrapeXcOrgLogins(kioskModel.flags.scrapeLoginsUrl);
-							var cmd = scrapeLogins(
-								function (_p5) {
-									return _user$project$ReceptionKiosk_Types$CreatingAcctVector(
-										_user$project$ReceptionKiosk_Types$XcScrapeStarted(_p5));
-								});
-							var newModel = _elm_lang$core$Native_Utils.update(
-								sceneModel,
-								{
-									badNews: {ctor: '[]'}
-								});
-							return {ctor: '_Tuple2', _0: newModel, _1: cmd};
+							var resultToMsg = function (_p6) {
+								return _user$project$ReceptionKiosk_Types$CreatingAcctVector(
+									_user$project$ReceptionKiosk_Types$CloneAttempted(_p6));
+							};
+							var flags = kioskModel.flags;
+							var cloneFn = A2(_user$project$XerocraftApi$cloneAcctToXis, flags.cloneAcctUrl, flags.csrfToken);
+							var userModel = kioskModel.newUserModel;
+							var sceneModel = kioskModel.creatingAcctModel;
+							return {
+								ctor: '_Tuple2',
+								_0: _elm_lang$core$Native_Utils.update(
+									sceneModel,
+									{
+										badNews: {ctor: '[]'}
+									}),
+								_1: A3(cloneFn, userModel.userName, userModel.password1, resultToMsg)
+							};
 						case '':
 							return {
 								ctor: '_Tuple2',
@@ -23701,7 +24028,7 @@ var _user$project$ReceptionKiosk_CreatingAcctScene$update = F2(
 									{
 										badNews: {
 											ctor: '::',
-											_0: _elm_community$string_extra$String_Extra$stripTags(_p6),
+											_0: _elm_community$string_extra$String_Extra$stripTags(_p7),
 											_1: {ctor: '[]'}
 										}
 									}),
@@ -23730,21 +24057,27 @@ var _user$project$ReceptionKiosk_CreatingAcctScene$update = F2(
 							{
 								badNews: {
 									ctor: '::',
-									_0: _elm_lang$core$Basics$toString(_p1._0._0),
-									_1: {ctor: '[]'}
+									_0: 'Could not create acct on xerocraft.org',
+									_1: {
+										ctor: '::',
+										_0: _elm_lang$core$Basics$toString(_p2._0._0),
+										_1: {ctor: '[]'}
+									}
 								}
 							}),
 						_1: _elm_lang$core$Platform_Cmd$none
 					};
 				}
-			case 'XcScrapeStarted':
-				if (_p1._0.ctor === 'Ok') {
+			case 'CloneAttempted':
+				if (_p2._0.ctor === 'Err') {
 					return {
 						ctor: '_Tuple2',
 						_0: _elm_lang$core$Native_Utils.update(
 							sceneModel,
-							{waitingForScrape: true}),
-						_1: _elm_lang$core$Platform_Cmd$none
+							{
+								badNews: {ctor: '[]'}
+							}),
+						_1: _user$project$ReceptionKiosk_CreatingAcctScene$infoToXisAcct(kioskModel)
 					};
 				} else {
 					return {
@@ -23752,64 +24085,35 @@ var _user$project$ReceptionKiosk_CreatingAcctScene$update = F2(
 						_0: _elm_lang$core$Native_Utils.update(
 							sceneModel,
 							{
-								badNews: {
-									ctor: '::',
-									_0: _elm_lang$core$Basics$toString(_p1._0._0),
-									_1: {ctor: '[]'}
-								},
-								waitingForScrape: false
+								badNews: {ctor: '[]'}
 							}),
-						_1: _elm_lang$core$Platform_Cmd$none
+						_1: _user$project$ReceptionKiosk_CreatingAcctScene$infoToXisAcct(kioskModel)
 					};
 				}
-			default:
-				if (_p1._0.ctor === 'Ok') {
-					if (_elm_lang$core$List$isEmpty(_p1._0._0.matches)) {
-						return {
-							ctor: '_Tuple2',
-							_0: _elm_lang$core$Native_Utils.update(
-								sceneModel,
-								{waitingForScrape: true}),
-							_1: _elm_lang$core$Platform_Cmd$none
-						};
-					} else {
-						var cmd = _user$project$ReceptionKiosk_SceneUtils$send(
-							_user$project$ReceptionKiosk_Types$WizardVector(
-								_user$project$ReceptionKiosk_Types$RebaseTo(_user$project$ReceptionKiosk_Types$SignUpDone)));
-						var model = _elm_lang$core$Native_Utils.update(
-							sceneModel,
-							{waitingForScrape: false});
-						return {ctor: '_Tuple2', _0: model, _1: cmd};
-					}
+			case 'IsAdultWasSet':
+				if (_p2._0.ctor === 'Ok') {
+					return {ctor: '_Tuple2', _0: sceneModel, _1: _elm_lang$core$Platform_Cmd$none};
 				} else {
-					return {
-						ctor: '_Tuple2',
-						_0: _elm_lang$core$Native_Utils.update(
-							sceneModel,
-							{
-								badNews: {
-									ctor: '::',
-									_0: _elm_lang$core$Basics$toString(_p1._0._0),
-									_1: {ctor: '[]'}
-								},
-								waitingForScrape: false
-							}),
-						_1: _elm_lang$core$Platform_Cmd$none
-					};
+					return {ctor: '_Tuple2', _0: sceneModel, _1: _elm_lang$core$Platform_Cmd$none};
+				}
+			default:
+				if (_p2._0.ctor === 'Ok') {
+					return {ctor: '_Tuple2', _0: sceneModel, _1: _elm_lang$core$Platform_Cmd$none};
+				} else {
+					return {ctor: '_Tuple2', _0: sceneModel, _1: _elm_lang$core$Platform_Cmd$none};
 				}
 		}
 	});
 var _user$project$ReceptionKiosk_CreatingAcctScene$init = function (flags) {
 	var sceneModel = {
-		waitingForScrape: false,
-		checkCount: 0,
+		waitCount: 0,
 		badNews: {ctor: '[]'}
 	};
 	return {ctor: '_Tuple2', _0: sceneModel, _1: _elm_lang$core$Platform_Cmd$none};
 };
-var _user$project$ReceptionKiosk_CreatingAcctScene$CreatingAcctModel = F3(
-	function (a, b, c) {
-		return {waitingForScrape: a, checkCount: b, badNews: c};
+var _user$project$ReceptionKiosk_CreatingAcctScene$CreatingAcctModel = F2(
+	function (a, b) {
+		return {waitCount: a, badNews: b};
 	});
 
 var _user$project$ReceptionKiosk_EmailInUseScene$view = function (kioskModel) {
@@ -23939,177 +24243,6 @@ var _user$project$ReceptionKiosk_EmailInUseScene$init = function (flags) {
 };
 var _user$project$ReceptionKiosk_EmailInUseScene$EmailInUseModel = {};
 
-var _user$project$ReceptionKiosk_HowDidYouHearScene$howDidYouHearStyle = _elm_lang$html$Html_Attributes$style(
-	{
-		ctor: '::',
-		_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'width', '350px'),
-		_1: {
-			ctor: '::',
-			_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'margin-left', 'auto'),
-			_1: {
-				ctor: '::',
-				_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'margin-right', 'auto'),
-				_1: {
-					ctor: '::',
-					_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'padding-left', '125px'),
-					_1: {
-						ctor: '::',
-						_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'text-align', 'left'),
-						_1: {ctor: '[]'}
-					}
-				}
-			}
-		}
-	});
-var _user$project$ReceptionKiosk_HowDidYouHearScene$howDidYouHearChoices = function (kioskModel) {
-	var idBase = _user$project$ReceptionKiosk_Types$mdlIdBase(_user$project$ReceptionKiosk_Types$HowDidYouHear);
-	var sceneModel = kioskModel.howDidYouHearModel;
-	var visibleMethods = A2(
-		_elm_lang$core$List$filter,
-		function (_) {
-			return _.visible;
-		},
-		sceneModel.discoveryMethods);
-	return A2(
-		_elm_lang$html$Html$div,
-		{
-			ctor: '::',
-			_0: _user$project$ReceptionKiosk_HowDidYouHearScene$howDidYouHearStyle,
-			_1: {ctor: '[]'}
-		},
-		A2(
-			_elm_lang$core$Basics_ops['++'],
-			{
-				ctor: '::',
-				_0: _user$project$ReceptionKiosk_SceneUtils$vspace(30),
-				_1: {ctor: '[]'}
-			},
-			A2(
-				_elm_lang$core$List$map,
-				function (dm) {
-					return A2(
-						_elm_lang$html$Html$span,
-						{ctor: '[]'},
-						{
-							ctor: '::',
-							_0: A5(
-								_debois$elm_mdl$Material_Toggles$checkbox,
-								_user$project$ReceptionKiosk_Types$MdlVector,
-								{
-									ctor: '::',
-									_0: idBase + dm.id,
-									_1: {ctor: '[]'}
-								},
-								kioskModel.mdl,
-								{
-									ctor: '::',
-									_0: _debois$elm_mdl$Material_Toggles$value(dm.selected),
-									_1: {
-										ctor: '::',
-										_0: _debois$elm_mdl$Material_Options$onToggle(
-											_user$project$ReceptionKiosk_Types$HowDidYouHearVector(
-												_user$project$ReceptionKiosk_Types$ToggleDiscoveryMethod(dm))),
-										_1: {ctor: '[]'}
-									}
-								},
-								{
-									ctor: '::',
-									_0: _elm_lang$html$Html$text(dm.name),
-									_1: {ctor: '[]'}
-								}),
-							_1: {
-								ctor: '::',
-								_0: _user$project$ReceptionKiosk_SceneUtils$vspace(30),
-								_1: {ctor: '[]'}
-							}
-						});
-				},
-				visibleMethods)));
-};
-var _user$project$ReceptionKiosk_HowDidYouHearScene$view = function (kioskModel) {
-	return A5(
-		_user$project$ReceptionKiosk_SceneUtils$genericScene,
-		kioskModel,
-		'Just Wondering',
-		'How did you hear about us?',
-		_user$project$ReceptionKiosk_HowDidYouHearScene$howDidYouHearChoices(kioskModel),
-		{
-			ctor: '::',
-			_0: A2(
-				_user$project$ReceptionKiosk_SceneUtils$ButtonSpec,
-				'OK',
-				_user$project$ReceptionKiosk_Types$WizardVector(
-					_user$project$ReceptionKiosk_Types$Push(_user$project$ReceptionKiosk_Types$NewMember))),
-			_1: {ctor: '[]'}
-		});
-};
-var _user$project$ReceptionKiosk_HowDidYouHearScene$update = F2(
-	function (msg, kioskModel) {
-		var sceneModel = kioskModel.howDidYouHearModel;
-		var _p0 = msg;
-		if (_p0.ctor === 'AccDiscoveryMethods') {
-			if (_p0._0.ctor === 'Ok') {
-				var newMethods = A2(_elm_lang$core$Basics_ops['++'], sceneModel.discoveryMethods, _p0._0._0.results);
-				return {
-					ctor: '_Tuple2',
-					_0: _elm_lang$core$Native_Utils.update(
-						sceneModel,
-						{discoveryMethods: newMethods}),
-					_1: _elm_lang$core$Platform_Cmd$none
-				};
-			} else {
-				return {
-					ctor: '_Tuple2',
-					_0: _elm_lang$core$Native_Utils.update(
-						sceneModel,
-						{
-							badNews: {
-								ctor: '::',
-								_0: _elm_lang$core$Basics$toString(_p0._0._0),
-								_1: {ctor: '[]'}
-							}
-						}),
-					_1: _elm_lang$core$Platform_Cmd$none
-				};
-			}
-		} else {
-			var _p1 = _p0._0;
-			var newDm = _elm_lang$core$Native_Utils.update(
-				_p1,
-				{selected: !_p1.selected});
-			var picker = function (x) {
-				return _elm_lang$core$Native_Utils.eq(x.id, _p1.id);
-			};
-			var replace = _elm_community$list_extra$List_Extra$replaceIf;
-			return {
-				ctor: '_Tuple2',
-				_0: _elm_lang$core$Native_Utils.update(
-					sceneModel,
-					{
-						discoveryMethods: A3(replace, picker, newDm, sceneModel.discoveryMethods)
-					}),
-				_1: _elm_lang$core$Platform_Cmd$none
-			};
-		}
-	});
-var _user$project$ReceptionKiosk_HowDidYouHearScene$init = function (flags) {
-	var getDiscoveryMethods = _user$project$MembersApi$getDiscoveryMethods(flags);
-	var request = getDiscoveryMethods(
-		function (_p2) {
-			return _user$project$ReceptionKiosk_Types$HowDidYouHearVector(
-				_user$project$ReceptionKiosk_Types$AccDiscoveryMethods(_p2));
-		});
-	var sceneModel = {
-		discoveryMethods: {ctor: '[]'},
-		badNews: {ctor: '[]'}
-	};
-	return {ctor: '_Tuple2', _0: sceneModel, _1: request};
-};
-var _user$project$ReceptionKiosk_HowDidYouHearScene$HowDidYouHearModel = F2(
-	function (a, b) {
-		return {discoveryMethods: a, badNews: b};
-	});
-
 var _user$project$ReceptionKiosk_SignUpDoneScene$view = function (kioskModel) {
 	var userModel = kioskModel.newUserModel;
 	return A5(
@@ -24129,7 +24262,7 @@ var _user$project$ReceptionKiosk_SignUpDoneScene$view = function (kioskModel) {
 				_0: _user$project$ReceptionKiosk_SceneUtils$vspace(30),
 				_1: {
 					ctor: '::',
-					_0: _elm_lang$html$Html$text('You much check in each time you visit'),
+					_0: _elm_lang$html$Html$text('You must check in each time you visit'),
 					_1: {
 						ctor: '::',
 						_0: A2(
@@ -24899,41 +25032,46 @@ var _user$project$ReceptionKiosk$main = _elm_lang$html$Html$programWithFlags(
 								function (checkedInAcctsUrl) {
 									return A2(
 										_elm_lang$core$Json_Decode$andThen,
-										function (csrfToken) {
+										function (cloneAcctUrl) {
 											return A2(
 												_elm_lang$core$Json_Decode$andThen,
-												function (discoveryMethodsUrl) {
+												function (csrfToken) {
 													return A2(
 														_elm_lang$core$Json_Decode$andThen,
-														function (logVisitEventUrl) {
+														function (discoveryMethodsUrl) {
 															return A2(
 																_elm_lang$core$Json_Decode$andThen,
-																function (matchingAcctsUrl) {
+																function (logVisitEventUrl) {
 																	return A2(
 																		_elm_lang$core$Json_Decode$andThen,
-																		function (orgName) {
+																		function (matchingAcctsUrl) {
 																			return A2(
 																				_elm_lang$core$Json_Decode$andThen,
-																				function (scrapeLoginsUrl) {
+																				function (orgName) {
 																					return A2(
 																						_elm_lang$core$Json_Decode$andThen,
-																						function (setIsAdultUrl) {
-																							return _elm_lang$core$Json_Decode$succeed(
-																								{addDiscoveryMethodUrl: addDiscoveryMethodUrl, bannerBottomUrl: bannerBottomUrl, bannerTopUrl: bannerTopUrl, checkedInAcctsUrl: checkedInAcctsUrl, csrfToken: csrfToken, discoveryMethodsUrl: discoveryMethodsUrl, logVisitEventUrl: logVisitEventUrl, matchingAcctsUrl: matchingAcctsUrl, orgName: orgName, scrapeLoginsUrl: scrapeLoginsUrl, setIsAdultUrl: setIsAdultUrl});
+																						function (scrapeLoginsUrl) {
+																							return A2(
+																								_elm_lang$core$Json_Decode$andThen,
+																								function (setIsAdultUrl) {
+																									return _elm_lang$core$Json_Decode$succeed(
+																										{addDiscoveryMethodUrl: addDiscoveryMethodUrl, bannerBottomUrl: bannerBottomUrl, bannerTopUrl: bannerTopUrl, checkedInAcctsUrl: checkedInAcctsUrl, cloneAcctUrl: cloneAcctUrl, csrfToken: csrfToken, discoveryMethodsUrl: discoveryMethodsUrl, logVisitEventUrl: logVisitEventUrl, matchingAcctsUrl: matchingAcctsUrl, orgName: orgName, scrapeLoginsUrl: scrapeLoginsUrl, setIsAdultUrl: setIsAdultUrl});
+																								},
+																								A2(_elm_lang$core$Json_Decode$field, 'setIsAdultUrl', _elm_lang$core$Json_Decode$string));
 																						},
-																						A2(_elm_lang$core$Json_Decode$field, 'setIsAdultUrl', _elm_lang$core$Json_Decode$string));
+																						A2(_elm_lang$core$Json_Decode$field, 'scrapeLoginsUrl', _elm_lang$core$Json_Decode$string));
 																				},
-																				A2(_elm_lang$core$Json_Decode$field, 'scrapeLoginsUrl', _elm_lang$core$Json_Decode$string));
+																				A2(_elm_lang$core$Json_Decode$field, 'orgName', _elm_lang$core$Json_Decode$string));
 																		},
-																		A2(_elm_lang$core$Json_Decode$field, 'orgName', _elm_lang$core$Json_Decode$string));
+																		A2(_elm_lang$core$Json_Decode$field, 'matchingAcctsUrl', _elm_lang$core$Json_Decode$string));
 																},
-																A2(_elm_lang$core$Json_Decode$field, 'matchingAcctsUrl', _elm_lang$core$Json_Decode$string));
+																A2(_elm_lang$core$Json_Decode$field, 'logVisitEventUrl', _elm_lang$core$Json_Decode$string));
 														},
-														A2(_elm_lang$core$Json_Decode$field, 'logVisitEventUrl', _elm_lang$core$Json_Decode$string));
+														A2(_elm_lang$core$Json_Decode$field, 'discoveryMethodsUrl', _elm_lang$core$Json_Decode$string));
 												},
-												A2(_elm_lang$core$Json_Decode$field, 'discoveryMethodsUrl', _elm_lang$core$Json_Decode$string));
+												A2(_elm_lang$core$Json_Decode$field, 'csrfToken', _elm_lang$core$Json_Decode$string));
 										},
-										A2(_elm_lang$core$Json_Decode$field, 'csrfToken', _elm_lang$core$Json_Decode$string));
+										A2(_elm_lang$core$Json_Decode$field, 'cloneAcctUrl', _elm_lang$core$Json_Decode$string));
 								},
 								A2(_elm_lang$core$Json_Decode$field, 'checkedInAcctsUrl', _elm_lang$core$Json_Decode$string));
 						},

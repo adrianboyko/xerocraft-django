@@ -28,6 +28,7 @@ type alias Flags =
   , scrapeLoginsUrl: String
   , addDiscoveryMethodUrl: String
   , setIsAdultUrl: String
+  , cloneAcctUrl: String
   }
 
 -----------------------------------------------------------------------------
@@ -70,7 +71,6 @@ mdlIdBase scene =
     Welcome -> 1400
 
 
-
 -----------------------------------------------------------------------------
 -- MSG TYPES
 -----------------------------------------------------------------------------
@@ -86,10 +86,11 @@ type CheckOutMsg
   | CheckOutSceneWillAppear
 
 type CreatingAcctMsg
-  = XcAcctCreationAttempted(Result Http.Error String)
+  = XcAcctCreationAttempted (Result Http.Error String)
+  | CloneAttempted (Result Http.Error String)
   | CreatingAcctSceneWillAppear
-  | XcScrapeStarted (Result Http.Error String)
-  | CheckedForAcct (Result Http.Error MatchingAcctInfo)
+  | IsAdultWasSet (Result Http.Error String)
+  | DiscoveryMethodAdded (Result Http.Error String)
 
 type HowDidYouHearMsg
   = AccDiscoveryMethods (Result Http.Error DiscoveryMethodInfo)  -- "Acc" means "accumulate"

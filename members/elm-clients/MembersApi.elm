@@ -7,6 +7,8 @@ module MembersApi exposing
   , getMatchingAccts
   , getCheckedInAccts
   , logVisitEvent
+  , setIsAdult
+  , addDiscoveryMethods
   , MatchingAcct
   , MatchingAcctInfo
   , GenericResult
@@ -126,6 +128,50 @@ createNewAcct fullName userName email password signature thing =
    in
      Http.send thing request
 
+type alias SiaFlags a = {a | setIsAdultUrl:String, csrfToken:String}
+setIsAdult : SiaFlags a -> String -> String -> Bool -> (Result Http.Error String -> msg) -> Cmd msg
+setIsAdult flags username userpw newValue resultToMsg =
+  let
+    bodyObject =
+      [ ("username", Enc.string username)
+      , ("userpw", Enc.string userpw)
+      , ("isadult", Enc.bool newValue)
+      ]
+    request = Http.request
+      { method = "POST"
+      , url = flags.setIsAdultUrl
+      , headers = [ Http.header "X-CSRFToken" flags.csrfToken ]
+      , withCredentials = False
+      , body = bodyObject |> Enc.object |> Http.jsonBody
+      , timeout = Nothing
+      , expect = Http.expectString
+      }
+  in
+    Http.send resultToMsg request
+
+
+type alias AdmFlags a = {a | addDiscoveryMethodUrl:String, csrfToken:String}
+addDiscoveryMethods : AdmFlags a -> String -> String -> List Int -> (Result Http.Error String -> msg) -> Cmd msg
+addDiscoveryMethods flags username userpw methodPks resultToMsg =
+  let
+    bodyObject = \pk ->
+      [ ("username", Enc.string username)
+      , ("userpw", Enc.string userpw)
+      , ("methodpk", Enc.int pk)
+      ]
+    request = \bo -> Http.request
+      { method = "POST"
+      , url = flags.addDiscoveryMethodUrl
+      , headers = [ Http.header "X-CSRFToken" flags.csrfToken ]
+      , withCredentials = False
+      , body = bo |> Enc.object |> Http.jsonBody
+      , timeout = Nothing
+      , expect = Http.expectString
+      }
+    oneCmd = \req -> Http.send resultToMsg req
+  in
+    Cmd.batch (List.map (oneCmd << request << bodyObject) methodPks)
+
 -----------------------------------------------------------------------------
 -- TYPES
 -----------------------------------------------------------------------------
@@ -145,7 +191,6 @@ type alias DiscoveryMethod =
   , name: String
   , order: Int
   , visible: Bool
-  , selected: Bool  -- This is a GUI field. Use extensible records to move this to scene?
   }
 
 type alias DiscoveryMethodInfo =
@@ -182,7 +227,6 @@ decodeDiscoveryMethod =
     |> required "name" Dec.string
     |> required "order" Dec.int
     |> required "visible" Dec.bool
-    |> hardcoded False
 
 decodeDiscoveryMethodInfo : Dec.Decoder DiscoveryMethodInfo
 decodeDiscoveryMethodInfo =
