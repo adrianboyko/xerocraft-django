@@ -2,6 +2,7 @@ module XerocraftApi exposing (..)
 
 -- Standard
 import Http
+import Json.Encode as Enc
 
 -- Third-Party
 
@@ -17,4 +18,25 @@ scrapeXcOrgLogins url result2Msg =
     request = Http.getString url
   in
     Http.send result2Msg request
+
+
+cloneAcctToXis : String -> String -> String -> String -> (Result Http.Error String -> msg) -> Cmd msg
+cloneAcctToXis url csrfToken username userpw resultToMsg =
+  let
+    bodyObject =
+      [ ("username", Enc.string username)
+      , ("userpw", Enc.string userpw)
+      ]
+    makeRequest = \bo -> Http.request
+      { method = "POST"
+      , url = url
+      , headers = [ Http.header "X-CSRFToken" csrfToken ]
+      , withCredentials = False
+      , body = bo |> Enc.object |> Http.jsonBody
+      , timeout = Nothing
+      , expect = Http.expectString
+      }
+    makeCmd = \req -> Http.send resultToMsg req
+  in
+    bodyObject |> makeRequest |> makeCmd
 
