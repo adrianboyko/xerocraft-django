@@ -614,7 +614,6 @@ def reception_kiosk_add_discovery_method(request) -> JsonResponse:
             member = user.member
             method = DiscoveryMethod.objects.get(pk=methodpk)
             member.discovery.add(method)
-            member.save()
             return JsonResponse({"result": "success"})
         else:
             return JsonResponse(status=401, data={"result": "failure"})
@@ -635,7 +634,7 @@ def reception_kiosk_set_is_adult(request) -> JsonResponse:
         if user is not None:
             member = user.member
             member.is_adult = is_adult
-            member.save()
+            member.save(update_fields=['is_adult'])
             return JsonResponse({"result": "success"})
         else:
             return JsonResponse(status=401, data={"result": "failure"})
