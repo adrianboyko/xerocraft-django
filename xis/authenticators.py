@@ -5,6 +5,7 @@ import logging
 # Third Party
 import requests
 from django.contrib.auth.backends import ModelBackend
+from django.conf import settings
 
 # Local
 from xis.xerocraft_org_utils.accountscraper import AccountScraper
@@ -21,7 +22,7 @@ class XerocraftBackend(ModelBackend):
         identifier = username  # Given "username" is actually a more generic identifier.
         session = requests.session()
         logger = logging.getLogger("xis")
-        server = "https://www.xerocraft.org/"  # Allows easy switching to test site. IMPORTANT: Restore before commit
+        server = "https://www.xerocraft.org/kfritz/" if settings.ISDEVHOST else "https://www.xerocraft.org/"
         action_url = server+"actions.php"
 
         # Try logging in to xerocraft.org to authenticate given username and password:

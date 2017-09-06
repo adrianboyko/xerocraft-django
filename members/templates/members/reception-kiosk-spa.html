@@ -81,7 +81,7 @@
             "orgName":               "{{ org_name }}",
             "scrapeLoginsUrl":       "{% url 'scrape-xerocraft-org-checkins' %}",
             "setIsAdultUrl":         "{% url 'memb:reception-kiosk-set-is-adult' %}",
-            "xcOrgActionUrl":        "https://www.xerocraft.org/kfritz/checkinActions2.php"
+            "xcOrgActionUrl":        "{{ action_url }}"
         };
 
         var signaturePad = null;

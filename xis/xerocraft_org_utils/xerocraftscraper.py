@@ -4,10 +4,7 @@ import logging
 import os
 
 # Third party
-from django.contrib.auth.models import User
-from nameparser import HumanName
-from social.apps.django_app.default.models import UserSocialAuth
-import lxml.html
+from django.conf import settings
 import requests
 
 # Local
@@ -16,7 +13,7 @@ import requests
 __author__ = 'adrian'
 
 # IMPORTANT: Check SERVER URL before commit. Don't commit test server.
-SERVER = "https://www.xerocraft.org/"
+SERVER = "https://www.xerocraft.org/kfritz/" if settings.ISDEVHOST else "https://www.xerocraft.org/"
 ACTION_URL = SERVER+"actions.php"
 
 

@@ -541,7 +541,12 @@ def desktop_earned_membership_revenue(request):
 
 @ensure_csrf_cookie
 def reception_kiosk_spa(request) -> HttpResponse:
-    props = {"org_name": ORG_NAME}
+    SERVER = "https://www.xerocraft.org/kfritz/" if settings.ISDEVHOST else "https://www.xerocraft.org/"
+    ACTION_URL = SERVER + "checkinActions2.php"
+    props = {
+        "org_name": ORG_NAME,
+        "action_url": ACTION_URL,
+    }
     return render(request, "members/reception-kiosk-spa.html", props)
 
 
@@ -585,11 +590,7 @@ def reception_kiosk_checked_in_accts(request) -> JsonResponse:
 
 def reception_kiosk_log_visit_event(request, member_pk, event_type, reason) -> JsonResponse:
 
-    if settings.ISDEVHOST:  # TODO: Remove this guard when we this goes into production.
-        success, info = _log_visit_event(int(member_pk), event_type, reason)
-    else:
-        success = True
-        info = "Not enabled on production system."
+    success, info = _log_visit_event(int(member_pk), event_type, reason)
 
     if success:
         return JsonResponse({"result": "success"})
