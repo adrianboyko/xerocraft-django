@@ -2,7 +2,8 @@
 module ReceptionKiosk.ReasonForVisitScene exposing (init, update, view, ReasonForVisitModel)
 
 -- Standard
-import Html exposing (Html, text, div)
+import Html exposing (Html, text, div, span)
+import Html.Attributes exposing (style)
 
 -- Third Party
 import Material.Toggles as Toggles
@@ -109,35 +110,42 @@ view kioskModel =
 
 makeActivityList : KioskModel a -> List ReasonForVisit -> Html Msg
 makeActivityList kioskModel reasons =
-  let sceneModel = kioskModel.reasonForVisitModel
-  in Lists.ul activityListCss
-    (List.indexedMap
-      ( \index reason ->
-          Lists.li [css "font-size" "18pt"]
-            [ Lists.content [] [text (reasonString kioskModel reason)]
-            , Lists.content2 []
-              [ Toggles.radio MdlVector [2000+index] kioskModel.mdl  -- 2000 establishes an id range for these.
+  let
+    sceneModel = kioskModel.reasonForVisitModel
+  in
+    div [reasonListStyle]
+      (
+        [vspace 50]
+        ++
+        (List.indexedMap
+          (\index reason ->
+            span []
+              [ Toggles.radio MdlVector [mdlIdBase ReasonForVisit + index] kioskModel.mdl
                   [ Toggles.value
-                      ( case sceneModel.reasonForVisit of
-                          Nothing -> False
-                          Just r -> r == reason
+                      (case sceneModel.reasonForVisit of
+                        Nothing -> False
+                        Just r -> r == reason
                       )
                   , Options.onToggle (ReasonForVisitVector <| UpdateReasonForVisit <| reason)
                   ]
-                  []
+                  [text (reasonString kioskModel reason)]
+              , vspace 30
               ]
-            ]
+          )
+          reasons
+        )
       )
-      reasons
-    )
+
 
 -----------------------------------------------------------------------------
 -- STYLES
 -----------------------------------------------------------------------------
 
-activityListCss =
-  [ css "width" "450px"
-  , css "margin-left" "auto"
-  , css "margin-right" "auto"
-  , css "margin-top" "80px"
+reasonListStyle = style
+  [ "width" => "350px"
+  , "margin-left" => "auto"
+  , "margin-right" => "auto"
+  , "padding-left" => "45px"
+  , "text-align" => "left"
   ]
+

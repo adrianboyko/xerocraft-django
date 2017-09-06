@@ -22343,23 +22343,28 @@ var _user$project$XerocraftApi$scrapeXcOrgLogins = F2(
 		return A2(_elm_lang$http$Http$send, result2Msg, request);
 	});
 
-var _user$project$ReceptionKiosk_ReasonForVisitScene$activityListCss = {
-	ctor: '::',
-	_0: A2(_debois$elm_mdl$Material_Options$css, 'width', '450px'),
-	_1: {
+var _user$project$ReceptionKiosk_ReasonForVisitScene$reasonListStyle = _elm_lang$html$Html_Attributes$style(
+	{
 		ctor: '::',
-		_0: A2(_debois$elm_mdl$Material_Options$css, 'margin-left', 'auto'),
+		_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'width', '350px'),
 		_1: {
 			ctor: '::',
-			_0: A2(_debois$elm_mdl$Material_Options$css, 'margin-right', 'auto'),
+			_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'margin-left', 'auto'),
 			_1: {
 				ctor: '::',
-				_0: A2(_debois$elm_mdl$Material_Options$css, 'margin-top', '80px'),
-				_1: {ctor: '[]'}
+				_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'margin-right', 'auto'),
+				_1: {
+					ctor: '::',
+					_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'padding-left', '45px'),
+					_1: {
+						ctor: '::',
+						_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'text-align', 'left'),
+						_1: {ctor: '[]'}
+					}
+				}
 			}
 		}
-	}
-};
+	});
 var _user$project$ReceptionKiosk_ReasonForVisitScene$reasonString = F2(
 	function (kioskModel, reason) {
 		var _p0 = reason;
@@ -22382,73 +22387,70 @@ var _user$project$ReceptionKiosk_ReasonForVisitScene$makeActivityList = F2(
 	function (kioskModel, reasons) {
 		var sceneModel = kioskModel.reasonForVisitModel;
 		return A2(
-			_debois$elm_mdl$Material_List$ul,
-			_user$project$ReceptionKiosk_ReasonForVisitScene$activityListCss,
+			_elm_lang$html$Html$div,
+			{
+				ctor: '::',
+				_0: _user$project$ReceptionKiosk_ReasonForVisitScene$reasonListStyle,
+				_1: {ctor: '[]'}
+			},
 			A2(
-				_elm_lang$core$List$indexedMap,
-				F2(
-					function (index, reason) {
-						return A2(
-							_debois$elm_mdl$Material_List$li,
-							{
-								ctor: '::',
-								_0: A2(_debois$elm_mdl$Material_Options$css, 'font-size', '18pt'),
-								_1: {ctor: '[]'}
-							},
-							{
-								ctor: '::',
-								_0: A2(
-									_debois$elm_mdl$Material_List$content,
-									{ctor: '[]'},
-									{
-										ctor: '::',
-										_0: _elm_lang$html$Html$text(
-											A2(_user$project$ReceptionKiosk_ReasonForVisitScene$reasonString, kioskModel, reason)),
-										_1: {ctor: '[]'}
-									}),
-								_1: {
+				_elm_lang$core$Basics_ops['++'],
+				{
+					ctor: '::',
+					_0: _user$project$ReceptionKiosk_SceneUtils$vspace(50),
+					_1: {ctor: '[]'}
+				},
+				A2(
+					_elm_lang$core$List$indexedMap,
+					F2(
+						function (index, reason) {
+							return A2(
+								_elm_lang$html$Html$span,
+								{ctor: '[]'},
+								{
 									ctor: '::',
-									_0: A2(
-										_debois$elm_mdl$Material_List$content2,
-										{ctor: '[]'},
+									_0: A5(
+										_debois$elm_mdl$Material_Toggles$radio,
+										_user$project$ReceptionKiosk_Types$MdlVector,
 										{
 											ctor: '::',
-											_0: A5(
-												_debois$elm_mdl$Material_Toggles$radio,
-												_user$project$ReceptionKiosk_Types$MdlVector,
-												{
-													ctor: '::',
-													_0: 2000 + index,
-													_1: {ctor: '[]'}
-												},
-												kioskModel.mdl,
-												{
-													ctor: '::',
-													_0: _debois$elm_mdl$Material_Toggles$value(
-														function () {
-															var _p1 = sceneModel.reasonForVisit;
-															if (_p1.ctor === 'Nothing') {
-																return false;
-															} else {
-																return _elm_lang$core$Native_Utils.eq(_p1._0, reason);
-															}
-														}()),
-													_1: {
-														ctor: '::',
-														_0: _debois$elm_mdl$Material_Options$onToggle(
-															_user$project$ReceptionKiosk_Types$ReasonForVisitVector(
-																_user$project$ReceptionKiosk_Types$UpdateReasonForVisit(reason))),
-														_1: {ctor: '[]'}
+											_0: _user$project$ReceptionKiosk_Types$mdlIdBase(_user$project$ReceptionKiosk_Types$ReasonForVisit) + index,
+											_1: {ctor: '[]'}
+										},
+										kioskModel.mdl,
+										{
+											ctor: '::',
+											_0: _debois$elm_mdl$Material_Toggles$value(
+												function () {
+													var _p1 = sceneModel.reasonForVisit;
+													if (_p1.ctor === 'Nothing') {
+														return false;
+													} else {
+														return _elm_lang$core$Native_Utils.eq(_p1._0, reason);
 													}
-												},
-												{ctor: '[]'}),
+												}()),
+											_1: {
+												ctor: '::',
+												_0: _debois$elm_mdl$Material_Options$onToggle(
+													_user$project$ReceptionKiosk_Types$ReasonForVisitVector(
+														_user$project$ReceptionKiosk_Types$UpdateReasonForVisit(reason))),
+												_1: {ctor: '[]'}
+											}
+										},
+										{
+											ctor: '::',
+											_0: _elm_lang$html$Html$text(
+												A2(_user$project$ReceptionKiosk_ReasonForVisitScene$reasonString, kioskModel, reason)),
 											_1: {ctor: '[]'}
 										}),
-									_1: {ctor: '[]'}
-								}
-							});
-					}),
-				reasons));
+									_1: {
+										ctor: '::',
+										_0: _user$project$ReceptionKiosk_SceneUtils$vspace(30),
+										_1: {ctor: '[]'}
+									}
+								});
+						}),
+					reasons)));
 	});
 var _user$project$ReceptionKiosk_ReasonForVisitScene$view = function (kioskModel) {
 	return A5(
