@@ -21057,6 +21057,7 @@ var _user$project$ReceptionKiosk_Types$ValidateUserNameUnique = function (a) {
 	return {ctor: 'ValidateUserNameUnique', _0: a};
 };
 var _user$project$ReceptionKiosk_Types$ValidateUserNameAndPw = {ctor: 'ValidateUserNameAndPw'};
+var _user$project$ReceptionKiosk_Types$ReasonForVisitSceneWillAppear = {ctor: 'ReasonForVisitSceneWillAppear'};
 var _user$project$ReceptionKiosk_Types$LogCheckInResult = function (a) {
 	return {ctor: 'LogCheckInResult', _0: a};
 };
@@ -21064,7 +21065,6 @@ var _user$project$ReceptionKiosk_Types$ValidateReason = {ctor: 'ValidateReason'}
 var _user$project$ReceptionKiosk_Types$UpdateReasonForVisit = function (a) {
 	return {ctor: 'UpdateReasonForVisit', _0: a};
 };
-var _user$project$ReceptionKiosk_Types$VolunteerInSceneWillAppear = {ctor: 'VolunteerInSceneWillAppear'};
 var _user$project$ReceptionKiosk_Types$ToggleTask = function (a) {
 	return {ctor: 'ToggleTask', _0: a};
 };
@@ -22512,6 +22512,13 @@ var _user$project$ReceptionKiosk_ReasonForVisitScene$update = F2(
 		var sceneModel = kioskModel.reasonForVisitModel;
 		var _p2 = msg;
 		switch (_p2.ctor) {
+			case 'ReasonForVisitSceneWillAppear':
+				var request = _user$project$TaskApi$getCurrCalendarPage(
+					function (_p3) {
+						return _user$project$ReceptionKiosk_Types$VolunteerInVector(
+							_user$project$ReceptionKiosk_Types$CalendarPageResult(_p3));
+					});
+				return {ctor: '_Tuple2', _0: sceneModel, _1: request};
 			case 'UpdateReasonForVisit':
 				return {
 					ctor: '_Tuple2',
@@ -22523,8 +22530,8 @@ var _user$project$ReceptionKiosk_ReasonForVisitScene$update = F2(
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 			case 'ValidateReason':
-				var _p3 = sceneModel.reasonForVisit;
-				if (_p3.ctor === 'Nothing') {
+				var _p4 = sceneModel.reasonForVisit;
+				if (_p4.ctor === 'Nothing') {
 					return {
 						ctor: '_Tuple2',
 						_0: _elm_lang$core$Native_Utils.update(
@@ -22544,17 +22551,17 @@ var _user$project$ReceptionKiosk_ReasonForVisitScene$update = F2(
 						logVisitEvent,
 						checkInModel.memberNum,
 						_user$project$MembersApi$Arrival,
-						_p3._0,
-						function (_p4) {
+						_p4._0,
+						function (_p5) {
 							return _user$project$ReceptionKiosk_Types$ReasonForVisitVector(
-								_user$project$ReceptionKiosk_Types$LogCheckInResult(_p4));
+								_user$project$ReceptionKiosk_Types$LogCheckInResult(_p5));
 						});
 					return {ctor: '_Tuple2', _0: sceneModel, _1: cmd};
 				}
 			default:
 				if (_p2._0.ctor === 'Ok') {
-					var _p5 = sceneModel.reasonForVisit;
-					if ((_p5.ctor === 'Just') && (_p5._0.ctor === 'Volunteer')) {
+					var _p6 = sceneModel.reasonForVisit;
+					if ((_p6.ctor === 'Just') && (_p6._0.ctor === 'Volunteer')) {
 						return {
 							ctor: '_Tuple2',
 							_0: sceneModel,
@@ -24327,91 +24334,93 @@ var _user$project$ReceptionKiosk_SignUpDoneScene$init = function (flags) {
 };
 var _user$project$ReceptionKiosk_SignUpDoneScene$SignUpDoneModel = {};
 
-var _user$project$ReceptionKiosk_VolunteerInScene$volunteerInCss = {
-	ctor: '::',
-	_0: A2(_debois$elm_mdl$Material_Options$css, 'width', '400px'),
-	_1: {
+var _user$project$ReceptionKiosk_VolunteerInScene$volunteerInStyle = _elm_lang$html$Html_Attributes$style(
+	{
 		ctor: '::',
-		_0: A2(_debois$elm_mdl$Material_Options$css, 'margin-left', 'auto'),
+		_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'width', '350px'),
 		_1: {
 			ctor: '::',
-			_0: A2(_debois$elm_mdl$Material_Options$css, 'margin-right', 'auto'),
+			_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'margin-left', 'auto'),
 			_1: {
 				ctor: '::',
-				_0: A2(_debois$elm_mdl$Material_Options$css, 'margin-top', '80px'),
-				_1: {ctor: '[]'}
+				_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'margin-right', 'auto'),
+				_1: {
+					ctor: '::',
+					_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'padding-left', '125px'),
+					_1: {
+						ctor: '::',
+						_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'text-align', 'left'),
+						_1: {ctor: '[]'}
+					}
+				}
 			}
 		}
-	}
-};
+	});
 var _user$project$ReceptionKiosk_VolunteerInScene$taskChoices = function (kioskModel) {
 	var sceneModel = kioskModel.volunteerInModel;
 	return A2(
-		_debois$elm_mdl$Material_List$ul,
-		_user$project$ReceptionKiosk_VolunteerInScene$volunteerInCss,
+		_elm_lang$html$Html$div,
+		{
+			ctor: '::',
+			_0: _user$project$ReceptionKiosk_VolunteerInScene$volunteerInStyle,
+			_1: {ctor: '[]'}
+		},
 		A2(
-			_elm_lang$core$List$map,
-			function (wt) {
-				return A2(
-					_debois$elm_mdl$Material_List$li,
-					{
-						ctor: '::',
-						_0: A2(_debois$elm_mdl$Material_Options$css, 'font-size', '18pt'),
-						_1: {ctor: '[]'}
-					},
-					{
-						ctor: '::',
-						_0: A2(
-							_debois$elm_mdl$Material_List$content,
-							{ctor: '[]'},
-							{
-								ctor: '::',
-								_0: _elm_lang$html$Html$text(wt.shortDesc),
-								_1: {ctor: '[]'}
-							}),
-						_1: {
+			_elm_lang$core$Basics_ops['++'],
+			{
+				ctor: '::',
+				_0: _user$project$ReceptionKiosk_SceneUtils$vspace(30),
+				_1: {ctor: '[]'}
+			},
+			A2(
+				_elm_lang$core$List$map,
+				function (wt) {
+					return A2(
+						_elm_lang$html$Html$div,
+						{ctor: '[]'},
+						{
 							ctor: '::',
-							_0: A2(
-								_debois$elm_mdl$Material_List$content2,
-								{ctor: '[]'},
+							_0: A5(
+								_debois$elm_mdl$Material_Toggles$radio,
+								_user$project$ReceptionKiosk_Types$MdlVector,
 								{
 									ctor: '::',
-									_0: A5(
-										_debois$elm_mdl$Material_Toggles$checkbox,
-										_user$project$ReceptionKiosk_Types$MdlVector,
-										{
-											ctor: '::',
-											_0: 2000 + wt.taskId,
-											_1: {ctor: '[]'}
-										},
-										kioskModel.mdl,
-										{
-											ctor: '::',
-											_0: _debois$elm_mdl$Material_Toggles$value(
-												function () {
-													var _p0 = sceneModel.selectedTask;
-													if (_p0.ctor === 'Nothing') {
-														return false;
-													} else {
-														return _elm_lang$core$Native_Utils.eq(_p0._0, wt);
-													}
-												}()),
-											_1: {
-												ctor: '::',
-												_0: _debois$elm_mdl$Material_Options$onToggle(
-													_user$project$ReceptionKiosk_Types$VolunteerInVector(
-														_user$project$ReceptionKiosk_Types$ToggleTask(wt))),
-												_1: {ctor: '[]'}
+									_0: _user$project$ReceptionKiosk_Types$mdlIdBase(_user$project$ReceptionKiosk_Types$VolunteerIn) + wt.taskId,
+									_1: {ctor: '[]'}
+								},
+								kioskModel.mdl,
+								{
+									ctor: '::',
+									_0: _debois$elm_mdl$Material_Toggles$value(
+										function () {
+											var _p0 = sceneModel.selectedTask;
+											if (_p0.ctor === 'Nothing') {
+												return false;
+											} else {
+												return _elm_lang$core$Native_Utils.eq(_p0._0, wt);
 											}
-										},
-										{ctor: '[]'}),
+										}()),
+									_1: {
+										ctor: '::',
+										_0: _debois$elm_mdl$Material_Options$onToggle(
+											_user$project$ReceptionKiosk_Types$VolunteerInVector(
+												_user$project$ReceptionKiosk_Types$ToggleTask(wt))),
+										_1: {ctor: '[]'}
+									}
+								},
+								{
+									ctor: '::',
+									_0: _elm_lang$html$Html$text(wt.shortDesc),
 									_1: {ctor: '[]'}
 								}),
-							_1: {ctor: '[]'}
-						}
-					});
-			},
-			sceneModel.workableTasks));
+							_1: {
+								ctor: '::',
+								_0: _user$project$ReceptionKiosk_SceneUtils$vspace(30),
+								_1: {ctor: '[]'}
+							}
+						});
+				},
+				sceneModel.workableTasks)));
 };
 var _user$project$ReceptionKiosk_VolunteerInScene$view = function (kioskModel) {
 	return A5(
@@ -24448,42 +24457,42 @@ var _user$project$ReceptionKiosk_VolunteerInScene$update = F2(
 	function (msg, kioskModel) {
 		var sceneModel = kioskModel.volunteerInModel;
 		var _p1 = msg;
-		switch (_p1.ctor) {
-			case 'VolunteerInSceneWillAppear':
-				var request = _user$project$TaskApi$getCurrCalendarPage(
-					function (_p2) {
-						return _user$project$ReceptionKiosk_Types$VolunteerInVector(
-							_user$project$ReceptionKiosk_Types$CalendarPageResult(_p2));
-					});
-				return {ctor: '_Tuple2', _0: sceneModel, _1: request};
-			case 'CalendarPageResult':
-				if (_p1._0.ctor === 'Ok') {
-					return {
-						ctor: '_Tuple2',
-						_0: _elm_lang$core$Native_Utils.update(
-							sceneModel,
-							{
-								workableTasks: _user$project$ReceptionKiosk_VolunteerInScene$extractTodaysTasks(_p1._0._0)
-							}),
-						_1: _elm_lang$core$Platform_Cmd$none
-					};
-				} else {
-					return {
-						ctor: '_Tuple2',
-						_0: _elm_lang$core$Native_Utils.update(
-							sceneModel,
-							{
-								badNews: {
-									ctor: '::',
-									_0: _elm_lang$core$Basics$toString(_p1._0._0),
-									_1: {ctor: '[]'}
-								}
-							}),
-						_1: _elm_lang$core$Platform_Cmd$none
-					};
-				}
-			default:
-				return {ctor: '_Tuple2', _0: sceneModel, _1: _elm_lang$core$Platform_Cmd$none};
+		if (_p1.ctor === 'CalendarPageResult') {
+			if (_p1._0.ctor === 'Ok') {
+				return {
+					ctor: '_Tuple2',
+					_0: _elm_lang$core$Native_Utils.update(
+						sceneModel,
+						{
+							workableTasks: _user$project$ReceptionKiosk_VolunteerInScene$extractTodaysTasks(_p1._0._0)
+						}),
+					_1: _elm_lang$core$Platform_Cmd$none
+				};
+			} else {
+				return {
+					ctor: '_Tuple2',
+					_0: _elm_lang$core$Native_Utils.update(
+						sceneModel,
+						{
+							badNews: {
+								ctor: '::',
+								_0: _elm_lang$core$Basics$toString(_p1._0._0),
+								_1: {ctor: '[]'}
+							}
+						}),
+					_1: _elm_lang$core$Platform_Cmd$none
+				};
+			}
+		} else {
+			return {
+				ctor: '_Tuple2',
+				_0: _elm_lang$core$Native_Utils.update(
+					sceneModel,
+					{
+						selectedTask: _elm_lang$core$Maybe$Just(_p1._0)
+					}),
+				_1: _elm_lang$core$Platform_Cmd$none
+			};
 		}
 	});
 var _user$project$ReceptionKiosk_VolunteerInScene$init = function (flags) {
@@ -24867,12 +24876,12 @@ var _user$project$ReceptionKiosk$update = F2(
 									{ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none},
 									_user$project$ReceptionKiosk$update(
 										_user$project$ReceptionKiosk_Types$CreatingAcctVector(_user$project$ReceptionKiosk_Types$CreatingAcctSceneWillAppear)));
-							case 'VolunteerIn':
+							case 'ReasonForVisit':
 								return A2(
 									_ccapndave$elm_update_extra$Update_Extra_Infix_ops[':>'],
 									{ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none},
 									_user$project$ReceptionKiosk$update(
-										_user$project$ReceptionKiosk_Types$VolunteerInVector(_user$project$ReceptionKiosk_Types$VolunteerInSceneWillAppear)));
+										_user$project$ReceptionKiosk_Types$ReasonForVisitVector(_user$project$ReceptionKiosk_Types$ReasonForVisitSceneWillAppear)));
 							case 'Waiver':
 								return A2(
 									_ccapndave$elm_update_extra$Update_Extra_Infix_ops[':>'],

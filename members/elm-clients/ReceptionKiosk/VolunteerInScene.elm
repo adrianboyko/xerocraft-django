@@ -2,9 +2,9 @@
 module ReceptionKiosk.VolunteerInScene exposing (init, update, view, VolunteerInModel)
 
 -- Standard
-import Html exposing (Html, text)
+import Html exposing (Html, text, div)
+import Html.Attributes exposing (style)
 import Http
-import List.Extra
 
 -- Third Party
 import Material.Toggles as Toggles
@@ -14,7 +14,6 @@ import Material.List as Lists
 -- Local
 import ReceptionKiosk.Types exposing (..)
 import ReceptionKiosk.SceneUtils exposing (..)
-import ReceptionKiosk.CheckInScene exposing (CheckInModel)
 import TaskApi exposing (..)
 
 
@@ -33,7 +32,6 @@ type alias KioskModel a =
   (SceneUtilModel
     { a
     | volunteerInModel : VolunteerInModel
-    , checkInModel : CheckInModel
     }
   )
 
@@ -52,10 +50,6 @@ update msg kioskModel =
   let sceneModel = kioskModel.volunteerInModel
   in case msg of
 
-    VolunteerInSceneWillAppear ->
-      let request = getCurrCalendarPage (VolunteerInVector << CalendarPageResult)
-      in (sceneModel, request)
-
     CalendarPageResult (Ok page) ->
       ({sceneModel | workableTasks = extractTodaysTasks page}, Cmd.none)
 
@@ -63,14 +57,8 @@ update msg kioskModel =
       ({sceneModel | badNews = [toString error]}, Cmd.none)
 
     ToggleTask opsTask ->
---      let
---        replace = List.Extra.replaceIf
---        picker = \x -> x.id == dm.id
---        newDm = { dm | selected = not dm.selected }
---      in
---        -- TODO: This should also add/remove the discovery method choice on the MembersApi.
---        ({sceneModel | discoveryMethods = replace picker newDm sceneModel.discoveryMethods}, Cmd.none)
-        (sceneModel, Cmd.none)
+      ({sceneModel | selectedTask = Just opsTask}, Cmd.none)
+
 
 
 
@@ -99,23 +87,23 @@ view kioskModel =
 taskChoices : KioskModel a -> Html Msg
 taskChoices kioskModel =
   let sceneModel = kioskModel.volunteerInModel
-  in Lists.ul volunteerInCss
-    (List.map
+  in div [volunteerInStyle]
+    ([vspace 30]
+    ++
+    List.map
       ( \wt ->
-          Lists.li [css "font-size" "18pt"]
-            [ Lists.content [] [ text wt.shortDesc ]
-            , Lists.content2 []
-              [ Toggles.checkbox MdlVector [2000+wt.taskId] kioskModel.mdl  -- 2000 establishes an id range for these.
-                  [ Toggles.value
-                      (case sceneModel.selectedTask of
-                        Nothing -> False
-                        Just st -> st == wt
-                      )
-                  , Options.onToggle (VolunteerInVector <| ToggleTask <| wt)
-                  ]
-                  []
-              ]
+        div []
+          [ Toggles.radio MdlVector [mdlIdBase VolunteerIn + wt.taskId] kioskModel.mdl
+            [ Toggles.value
+              (case sceneModel.selectedTask of
+                Nothing -> False
+                Just st -> st == wt
+              )
+            , Options.onToggle (VolunteerInVector <| ToggleTask <| wt)
             ]
+            [text wt.shortDesc]
+          , vspace 30
+          ]
       )
       sceneModel.workableTasks
     )
@@ -125,9 +113,10 @@ taskChoices kioskModel =
 -- STYLES
 -----------------------------------------------------------------------------
 
-volunteerInCss =
-  [ css "width" "400px"
-  , css "margin-left" "auto"
-  , css "margin-right" "auto"
-  , css "margin-top" "80px"
+volunteerInStyle = style
+  [ "width" => "350px"
+  , "margin-left" => "auto"
+  , "margin-right" => "auto"
+  , "padding-left" => "125px"
+  , "text-align" => "left"
   ]

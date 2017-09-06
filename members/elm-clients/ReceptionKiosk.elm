@@ -165,7 +165,7 @@ update msg model =
             case appearingScene of
               CheckOut -> (model, Cmd.none) :> update (CheckOutVector CheckOutSceneWillAppear)
               CreatingAcct -> (model, Cmd.none) :> update (CreatingAcctVector CreatingAcctSceneWillAppear)
-              VolunteerIn -> (model, Cmd.none) :> update (VolunteerInVector VolunteerInSceneWillAppear)
+              ReasonForVisit -> (model, Cmd.none) :> update (ReasonForVisitVector ReasonForVisitSceneWillAppear)
               Waiver -> (model, Cmd.none) :> update (WaiverVector WaiverSceneWillAppear)
               Welcome -> (model, Cmd.none) :> update (WelcomeVector WelcomeSceneWillAppear)
               _ -> (model, Cmd.none)

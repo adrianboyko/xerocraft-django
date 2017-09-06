@@ -117,11 +117,11 @@ type ReasonForVisitMsg
   = UpdateReasonForVisit ReasonForVisit
   | ValidateReason
   | LogCheckInResult (Result Http.Error GenericResult)
+  | ReasonForVisitSceneWillAppear
 
 type VolunteerInMsg
   = CalendarPageResult (Result Http.Error CalendarPage)
   | ToggleTask OpsTask
-  | VolunteerInSceneWillAppear
 
 type WaiverMsg
   = ShowSignaturePad String

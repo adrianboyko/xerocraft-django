@@ -12,6 +12,7 @@ import Material.List as Lists
 
 -- Local
 import MembersApi as MembersApi exposing (ReasonForVisit(..))
+import TaskApi exposing (..)
 import ReceptionKiosk.Types exposing (..)
 import ReceptionKiosk.SceneUtils exposing (..)
 import ReceptionKiosk.CheckInScene exposing (CheckInModel)
@@ -50,6 +51,11 @@ update msg kioskModel =
     checkInModel = kioskModel.checkInModel
 
   in case msg of
+
+    ReasonForVisitSceneWillAppear ->
+      -- Start fetching workable tasks NOW in case they choose the "volunteering" reason.
+      let request = getCurrCalendarPage (VolunteerInVector << CalendarPageResult)
+      in (sceneModel, request)
 
     UpdateReasonForVisit reason ->
       ({sceneModel | reasonForVisit = Just reason}, Cmd.none)
