@@ -160,6 +160,7 @@ infoToXisAcct kioskModel =
     memberModel = kioskModel.newMemberModel
     userModel = kioskModel.newUserModel
     howDidYouHearModel = kioskModel.howDidYouHearModel
+    -- TODO: Change setIsAdult to setMemberInfo and also pass fname, lname, and email.
     setIsAdult = MembersApi.setIsAdult kioskModel.flags userModel.userName userModel.password1
     isAdultVal = Maybe.withDefault False memberModel.isAdult  -- Can't be Nothing at this point in program. "False" is the safest default if this assertion fails.
     addMethods = MembersApi.addDiscoveryMethods kioskModel.flags userModel.userName userModel.password1
