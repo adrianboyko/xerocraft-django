@@ -30,7 +30,7 @@ class Command(AccountScraper, BaseCommand):
         page = 1  # IMPORTANT: Set to 1 before commit!
         while True:
             post_data = {"action": "ViewMembersList", "p": page}
-            response = self.session.post(ACTION_URL, data=post_data)
+            response = self.session.post(self.action_url, data=post_data)
             if response.text.find("There are no users to display") >= 0:
                 return
 

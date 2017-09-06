@@ -15,7 +15,6 @@ from pytz import timezone
 from members.models import VisitEvent
 from xis.xerocraft_org_utils.accountscraper import (
     AccountScraper,
-    SERVER,
     USERNAME_KEY,
     DJANGO_USERNAME_KEY,
     USERNUM_KEY,
@@ -83,7 +82,7 @@ class CheckinScraper(AccountScraper):
         yesterday_str = (date.today() + relativedelta.relativedelta(days=-days)).isoformat()
         today_str = date.today().isoformat()
         post_data = {"viewing": "Total", "Start": yesterday_str, "End": today_str, "submit": ""}
-        response = self.session.post(SERVER+"checkinanalytics.php", data=post_data)
+        response = self.session.post(self.server+"checkinanalytics.php", data=post_data)
         response.raise_for_status()
 
         page_parsed = lxml.html.fromstring(response.text)

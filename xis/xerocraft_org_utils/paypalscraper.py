@@ -12,6 +12,10 @@ from xis.xerocraft_org_utils.xerocraftscraper import XerocraftScraper
 
 class PaypalScraper(XerocraftScraper):
 
+    def __init__(self):
+        # Only the production xerocraft.org server has purchase info to scrape.
+        super().__init__(server_override=XerocraftScraper.SERVER_PROD)
+
     def scrape_agreement_ids(self):
 
         # Attempt to log into xerocraft.org using an account that has access to treasurer tools:

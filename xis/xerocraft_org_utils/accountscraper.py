@@ -11,11 +11,9 @@ import lxml.html
 import requests
 
 # Local
-from xis.xerocraft_org_utils.xerocraftscraper import XerocraftScraper, SERVER
+from xis.xerocraft_org_utils.xerocraftscraper import XerocraftScraper
 
 __author__ = 'adrian'
-
-ACTION_URL = SERVER+"actions.php"
 
 EMAIL_KEY = "Email address"
 PHONE_KEY = "Phone number"
@@ -118,7 +116,7 @@ class AccountScraper(XerocraftScraper):
 
         # Get the profile corresponding to user_num
         post_data = {"action": "ViewProfile", "id": user_num, "ax": "y"}
-        response = self.session.post(ACTION_URL, data=post_data)
+        response = self.session.post(self.server+"actions.php", data=post_data)
         profile_parsed = lxml.html.fromstring(response.text)
         if profile_parsed is None: raise AssertionError("Couldn't parse profile for usernum"+user_num)
 
