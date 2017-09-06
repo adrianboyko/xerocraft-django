@@ -16,19 +16,21 @@ import TaskApi exposing (..)
 -- FLAGS
 -----------------------------------------------------------------------------
 
+-- This type can move into ReceiptionKiosk.elm, but for the banner fields.
 type alias Flags =
-  { csrfToken: String
-  , orgName: String
-  , bannerTopUrl: String
-  , bannerBottomUrl: String
-  , discoveryMethodsUrl: String
-  , checkedInAcctsUrl: String
-  , matchingAcctsUrl: String
-  , logVisitEventUrl: String
-  , scrapeLoginsUrl: String
-  , addDiscoveryMethodUrl: String
-  , setIsAdultUrl: String
-  , cloneAcctUrl: String
+  { addDiscoveryMethodUrl : String
+  , bannerBottomUrl : String
+  , bannerTopUrl : String
+  , checkedInAcctsUrl : String
+  , cloneAcctUrl : String
+  , csrfToken : String
+  , discoveryMethodsUrl : String
+  , logVisitEventUrl : String
+  , matchingAcctsUrl : String
+  , orgName : String
+  , scrapeLoginsUrl : String
+  , setIsAdultUrl : String
+  , xcOrgActionUrl : String
   }
 
 -----------------------------------------------------------------------------

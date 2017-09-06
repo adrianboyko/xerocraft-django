@@ -20223,8 +20223,8 @@ var _user$project$MembersApi$setIsAdult = F5(
 			});
 		return A2(_elm_lang$http$Http$send, resultToMsg, request);
 	});
-var _user$project$MembersApi$createNewAcct = F6(
-	function (fullName, userName, email, password, signature, thing) {
+var _user$project$MembersApi$createNewAcct = F7(
+	function (flags, fullName, userName, email, password, signature, thing) {
 		var enc = _elm_lang$http$Http$encodeUri;
 		var eq = F2(
 			function (key, value) {
@@ -20280,12 +20280,11 @@ var _user$project$MembersApi$createNewAcct = F6(
 					}
 				}
 			});
-		var url = 'https://www.xerocraft.org/kfritz/checkinActions2.php';
 		var request = _elm_lang$http$Http$request(
 			{
 				method: 'POST',
 				headers: {ctor: '[]'},
-				url: url,
+				url: flags.xcOrgActionUrl,
 				body: A2(_elm_lang$http$Http$stringBody, 'application/x-www-form-urlencoded', formData),
 				expect: _elm_lang$http$Http$expectString,
 				timeout: _elm_lang$core$Maybe$Nothing,
@@ -20386,9 +20385,9 @@ var _user$project$MembersApi$decodeDiscoveryMethodInfo = A5(
 		'results',
 		_elm_lang$core$Json_Decode$list(_user$project$MembersApi$decodeDiscoveryMethod)));
 var _user$project$MembersApi$getDiscoveryMethods = F2(
-	function (flags, thing) {
-		var request = A2(_elm_lang$http$Http$get, flags.discoveryMethodsUrl, _user$project$MembersApi$decodeDiscoveryMethodInfo);
-		return A2(_elm_lang$http$Http$send, thing, request);
+	function (model, resultToMsg) {
+		var request = A2(_elm_lang$http$Http$get, model.discoveryMethodsUrl, _user$project$MembersApi$decodeDiscoveryMethodInfo);
+		return A2(_elm_lang$http$Http$send, resultToMsg, request);
 	});
 var _user$project$MembersApi$GenericResult = function (a) {
 	return {result: a};
@@ -20965,7 +20964,9 @@ var _user$project$ReceptionKiosk_Types$Flags = function (a) {
 									return function (j) {
 										return function (k) {
 											return function (l) {
-												return {csrfToken: a, orgName: b, bannerTopUrl: c, bannerBottomUrl: d, discoveryMethodsUrl: e, checkedInAcctsUrl: f, matchingAcctsUrl: g, logVisitEventUrl: h, scrapeLoginsUrl: i, addDiscoveryMethodUrl: j, setIsAdultUrl: k, cloneAcctUrl: l};
+												return function (m) {
+													return {addDiscoveryMethodUrl: a, bannerBottomUrl: b, bannerTopUrl: c, checkedInAcctsUrl: d, cloneAcctUrl: e, csrfToken: f, discoveryMethodsUrl: g, logVisitEventUrl: h, matchingAcctsUrl: i, orgName: j, scrapeLoginsUrl: k, setIsAdultUrl: l, xcOrgActionUrl: m};
+												};
 											};
 										};
 									};
@@ -23968,8 +23969,9 @@ var _user$project$ReceptionKiosk_CreatingAcctScene$update = F2(
 							_1: {ctor: '[]'}
 						}
 					});
-				var cmd = A6(
+				var cmd = A7(
 					_user$project$MembersApi$createNewAcct,
+					kioskModel.flags,
 					fullName,
 					userModel.userName,
 					memberModel.email,
@@ -25054,8 +25056,13 @@ var _user$project$ReceptionKiosk$main = _elm_lang$html$Html$programWithFlags(
 																							return A2(
 																								_elm_lang$core$Json_Decode$andThen,
 																								function (setIsAdultUrl) {
-																									return _elm_lang$core$Json_Decode$succeed(
-																										{addDiscoveryMethodUrl: addDiscoveryMethodUrl, bannerBottomUrl: bannerBottomUrl, bannerTopUrl: bannerTopUrl, checkedInAcctsUrl: checkedInAcctsUrl, cloneAcctUrl: cloneAcctUrl, csrfToken: csrfToken, discoveryMethodsUrl: discoveryMethodsUrl, logVisitEventUrl: logVisitEventUrl, matchingAcctsUrl: matchingAcctsUrl, orgName: orgName, scrapeLoginsUrl: scrapeLoginsUrl, setIsAdultUrl: setIsAdultUrl});
+																									return A2(
+																										_elm_lang$core$Json_Decode$andThen,
+																										function (xcOrgActionUrl) {
+																											return _elm_lang$core$Json_Decode$succeed(
+																												{addDiscoveryMethodUrl: addDiscoveryMethodUrl, bannerBottomUrl: bannerBottomUrl, bannerTopUrl: bannerTopUrl, checkedInAcctsUrl: checkedInAcctsUrl, cloneAcctUrl: cloneAcctUrl, csrfToken: csrfToken, discoveryMethodsUrl: discoveryMethodsUrl, logVisitEventUrl: logVisitEventUrl, matchingAcctsUrl: matchingAcctsUrl, orgName: orgName, scrapeLoginsUrl: scrapeLoginsUrl, setIsAdultUrl: setIsAdultUrl, xcOrgActionUrl: xcOrgActionUrl});
+																										},
+																										A2(_elm_lang$core$Json_Decode$field, 'xcOrgActionUrl', _elm_lang$core$Json_Decode$string));
 																								},
 																								A2(_elm_lang$core$Json_Decode$field, 'setIsAdultUrl', _elm_lang$core$Json_Decode$string));
 																						},

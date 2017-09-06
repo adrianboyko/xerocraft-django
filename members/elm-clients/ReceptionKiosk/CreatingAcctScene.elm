@@ -73,7 +73,12 @@ update msg kioskModel =
         waiverModel = kioskModel.waiverModel
         fullName = String.join " " [memberModel.firstName, memberModel.lastName]
         cmd = MembersApi.createNewAcct
-          fullName userModel.userName memberModel.email userModel.password1 waiverModel.signature
+          kioskModel.flags
+          fullName
+          userModel.userName
+          memberModel.email
+          userModel.password1
+          waiverModel.signature
           (CreatingAcctVector << XcAcctCreationAttempted)
       in
         (sceneModel, cmd)

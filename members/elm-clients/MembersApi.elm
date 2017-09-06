@@ -40,27 +40,49 @@ replaceAll : String -> String -> String -> String
 replaceAll oldSub newSub theString =
   Regex.replace Regex.All (regex oldSub) (\_ -> newSub) theString
 
-getDiscoveryMethods : {a|discoveryMethodsUrl:String} -> (Result Http.Error DiscoveryMethodInfo -> msg) -> Cmd msg
-getDiscoveryMethods flags thing =
-  let request = Http.get flags.discoveryMethodsUrl decodeDiscoveryMethodInfo
-  in Http.send thing request
+-----------------------------------------------------------------------------
+-- API TYPES
+-----------------------------------------------------------------------------
 
-getCheckedInAccts: {a|checkedInAcctsUrl:String} -> (Result Http.Error MatchingAcctInfo -> msg) -> Cmd msg
-getCheckedInAccts flags thing =
-  let
-    url = flags.checkedInAcctsUrl++"?format=json"  -- Easier than an "Accept" header.
-    request = Http.get url decodeMatchingAcctInfo
-  in
-    Http.send thing request
+type alias MembersApiModel a =
+  { a
+  | addDiscoveryMethodUrl : String
+  , checkedInAcctsUrl : String
+  , csrfToken : String
+  , discoveryMethodsUrl : String
+  , logVisitEventUrl : String
+  , matchingAcctsUrl : String
+  , setIsAdultUrl : String
+  , xcOrgActionUrl : String
+  }
 
-getMatchingAccts: {a|matchingAcctsUrl:String} -> String -> (Result Http.Error MatchingAcctInfo -> msg) -> Cmd msg
-getMatchingAccts flags flexId thing =
-  let
-    url = flags.matchingAcctsUrl++"?format=json"  -- Easier than an "Accept" header.
-      |> replaceAll "FLEXID" flexId
-    request = Http.get url decodeMatchingAcctInfo
-  in
-    Http.send thing request
+type alias MatchingAcct =
+  { userName : String
+  , memberNum : Int
+  }
+
+type alias MatchingAcctInfo =
+  { target : String
+  , matches : List MatchingAcct
+  }
+
+type alias DiscoveryMethod =
+  { id : Int
+  , name : String
+  , order : Int
+  , visible : Bool
+  }
+
+type alias DiscoveryMethodInfo =
+  { count : Int
+  , next : Maybe String
+  , previous : Maybe String
+  , results : List DiscoveryMethod
+  }
+
+type alias GenericResult =
+  { result : String
+  }
 
 type VisitEventType
   = Arrival
@@ -75,7 +97,33 @@ type ReasonForVisit
   | Volunteer
   | Other
 
-logVisitEvent : {a|logVisitEventUrl:String}
+-----------------------------------------------------------------------------
+-- API
+-----------------------------------------------------------------------------
+
+getDiscoveryMethods : MembersApiModel a -> (Result Http.Error DiscoveryMethodInfo -> msg) -> Cmd msg
+getDiscoveryMethods model resultToMsg =
+  let request = Http.get model.discoveryMethodsUrl decodeDiscoveryMethodInfo
+  in Http.send resultToMsg request
+
+getCheckedInAccts: MembersApiModel a -> (Result Http.Error MatchingAcctInfo -> msg) -> Cmd msg
+getCheckedInAccts flags thing =
+  let
+    url = flags.checkedInAcctsUrl++"?format=json"  -- Easier than an "Accept" header.
+    request = Http.get url decodeMatchingAcctInfo
+  in
+    Http.send thing request
+
+getMatchingAccts: MembersApiModel a -> String -> (Result Http.Error MatchingAcctInfo -> msg) -> Cmd msg
+getMatchingAccts flags flexId thing =
+  let
+    url = flags.matchingAcctsUrl++"?format=json"  -- Easier than an "Accept" header.
+      |> replaceAll "FLEXID" flexId
+    request = Http.get url decodeMatchingAcctInfo
+  in
+    Http.send thing request
+
+logVisitEvent : MembersApiModel a
   -> Int
   -> VisitEventType
   -> ReasonForVisit
@@ -101,10 +149,9 @@ logVisitEvent flags memberPK eventType reason thing =
   in
     Http.send thing request
 
-createNewAcct : String -> String -> String -> String -> String -> (Result Http.Error String -> msg) -> Cmd msg
-createNewAcct fullName userName email password signature thing =
+createNewAcct : MembersApiModel a -> String -> String -> String -> String -> String -> (Result Http.Error String -> msg) -> Cmd msg
+createNewAcct flags fullName userName email password signature thing =
   let
-    url = "https://www.xerocraft.org/kfritz/checkinActions2.php"
     eq = \key value -> key++"="++value
     enc = Http.encodeUri
     formData = String.join "&"
@@ -119,7 +166,7 @@ createNewAcct fullName userName email password signature thing =
     request = Http.request
       { method = "POST"
       , headers = []
-      , url = url
+      , url = flags.xcOrgActionUrl
       , body = Http.stringBody "application/x-www-form-urlencoded" formData
       , expect = Http.expectString
       , timeout = Nothing
@@ -128,8 +175,7 @@ createNewAcct fullName userName email password signature thing =
    in
      Http.send thing request
 
-type alias SiaFlags a = {a | setIsAdultUrl:String, csrfToken:String}
-setIsAdult : SiaFlags a -> String -> String -> Bool -> (Result Http.Error String -> msg) -> Cmd msg
+setIsAdult : MembersApiModel a -> String -> String -> Bool -> (Result Http.Error String -> msg) -> Cmd msg
 setIsAdult flags username userpw newValue resultToMsg =
   let
     bodyObject =
@@ -149,9 +195,7 @@ setIsAdult flags username userpw newValue resultToMsg =
   in
     Http.send resultToMsg request
 
-
-type alias AdmFlags a = {a | addDiscoveryMethodUrl:String, csrfToken:String}
-addDiscoveryMethods : AdmFlags a -> String -> String -> List Int -> (Result Http.Error String -> msg) -> Cmd msg
+addDiscoveryMethods : MembersApiModel a -> String -> String -> List Int -> (Result Http.Error String -> msg) -> Cmd msg
 addDiscoveryMethods flags username userpw methodPks resultToMsg =
   let
     bodyObject = \pk ->
@@ -172,37 +216,6 @@ addDiscoveryMethods flags username userpw methodPks resultToMsg =
   in
     Cmd.batch (List.map (oneCmd << request << bodyObject) methodPks)
 
------------------------------------------------------------------------------
--- TYPES
------------------------------------------------------------------------------
-
-type alias MatchingAcct =
-  { userName: String
-  , memberNum: Int
-  }
-
-type alias MatchingAcctInfo =
-  { target: String
-  , matches: List MatchingAcct
-  }
-
-type alias DiscoveryMethod =
-  { id: Int
-  , name: String
-  , order: Int
-  , visible: Bool
-  }
-
-type alias DiscoveryMethodInfo =
-  { count: Int
-  , next: Maybe String
-  , previous: Maybe String
-  , results: List DiscoveryMethod
-  }
-
-type alias GenericResult =
-  { result: String
-  }
 
 -----------------------------------------------------------------------------
 -- JSON

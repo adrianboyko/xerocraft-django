@@ -69,18 +69,19 @@
     <script>
         var csrfToken = Cookies.get('csrftoken');
         var flags = {
-            "csrfToken": csrfToken,
-            "orgName": "{{ org_name }}",
-            "bannerTopUrl":          "{% static 'xerops/GenericBannerTop_800x155.png' %}",
-            "bannerBottomUrl":       "{% static 'xerops/GenericBannerBottom_800x84.png' %}",
-            "discoveryMethodsUrl":   "{% url 'memb:discoverymethod-list' %}",
-            "checkedInAcctsUrl":     "{% url 'memb:reception-kiosk-checked-in-accts' %}",
-            "matchingAcctsUrl":      "{% url 'memb:reception-kiosk-matching-accts' flexid='FLEXID' %}",
-            "logVisitEventUrl":      "{% url 'memb:reception-kiosk-log-visit-event' member_pk='12345' event_type='A' reason='OTH' %}",
-            "scrapeLoginsUrl":       "{% url 'scrape-xerocraft-org-checkins' %}",
             "addDiscoveryMethodUrl": "{% url 'memb:reception-kiosk-add-discovery-method' %}",
+            "bannerBottomUrl":       "{% static 'xerops/GenericBannerBottom_800x84.png' %}",
+            "bannerTopUrl":          "{% static 'xerops/GenericBannerTop_800x155.png' %}",
+            "checkedInAcctsUrl":     "{% url 'memb:reception-kiosk-checked-in-accts' %}",
+            "cloneAcctUrl":          "{% url 'xis:clone-acct' %}",
+            "csrfToken":             csrfToken,
+            "discoveryMethodsUrl":   "{% url 'memb:discoverymethod-list' %}",
+            "logVisitEventUrl":      "{% url 'memb:reception-kiosk-log-visit-event' member_pk='12345' event_type='A' reason='OTH' %}",
+            "matchingAcctsUrl":      "{% url 'memb:reception-kiosk-matching-accts' flexid='FLEXID' %}",
+            "orgName":               "{{ org_name }}",
+            "scrapeLoginsUrl":       "{% url 'scrape-xerocraft-org-checkins' %}",
             "setIsAdultUrl":         "{% url 'memb:reception-kiosk-set-is-adult' %}",
-            "cloneAcctUrl":          "{% url 'xis:clone-acct' %}"
+            "xcOrgActionUrl":        "https://www.xerocraft.org/kfritz/checkinActions2.php"
         };
 
         var signaturePad = null;
