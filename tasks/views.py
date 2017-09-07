@@ -4,7 +4,7 @@ from hashlib import md5
 from datetime import date, datetime, timedelta
 import logging
 import json
-from typing import Generator, Tuple
+from typing import Generator, Tuple, Optional
 import calendar
 
 # Third Party
@@ -12,7 +12,6 @@ from dateutil.parser import parse  # python-dateutil in requirements.txt
 from django.core.urlresolvers import reverse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse, JsonResponse, Http404
-from django.template import loader, Context
 from django.contrib.auth import authenticate
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
@@ -21,8 +20,8 @@ from icalendar import Calendar, Event
 
 # Local
 from tasks.forms import Desktop_TimeSheetForm
-from tasks.models import Task, Nag, Claim, Work, WorkNote, Worker, TimeWindowedObject
-from members.models import Member, VisitEvent
+from tasks.models import Task, Nag, Claim, Work, WorkNote, Worker
+from members.models import Member
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -580,6 +579,11 @@ def ops_calendar_unstaffed(request) -> HttpResponse:
 
 
 def _ops_calendar_json(request, year, month):
+    member = request.user.member if request.user.is_authenticated() else None  # type: Member
+    return _ops_calendar_4member_json(member, year, month)
+
+
+def _ops_calendar_4member_json(member: Optional[Member], year, month):
 
     # Python standard libs include the ability to produce padded calendars for a month:
     cal = calendar.Calendar(firstweekday=6)  # Sunday
@@ -603,15 +607,14 @@ def _ops_calendar_json(request, year, month):
         else:
             window = None
 
-        user = request.user
-        actions = task.possible_actions_for(user.member) if user.is_authenticated() else []
+        actions = task.possible_actions_for(member) if member is not None else []
 
         staffed_by_names = []
         users_claim = None
         for claim in task.claim_set.all():
             if claim.status == Claim.STAT_CURRENT:
                 staffed_by_names.append(claim.claiming_member.friendly_name)
-            if user.is_authenticated() and user.member == claim.claiming_member:
+            if member is not None and member == claim.claiming_member:
                 users_claim = claim.pk
 
         return {
@@ -637,9 +640,8 @@ def _ops_calendar_json(request, year, month):
         }
 
     user_info = None
-    u = request.user
-    if u.is_authenticated():
-        user_info = {"memberId": u.member.pk, "name": u.member.friendly_name}
+    if member is not None:
+        user_info = {"memberId": member.pk, "name": member.friendly_name}
     return {
         "user": user_info,
         "tasks": [list(tasks_on_date(day) for day in week) for week in calpage],
@@ -656,6 +658,15 @@ def ops_calendar_json(request, year=None, month=None) -> JsonResponse:
     year = int(year)
     month = int(month)
     return JsonResponse(_ops_calendar_json(request, year, month))
+
+
+def ops_calendar_4member_json(request) -> JsonResponse:
+    if request.method == 'POST':
+        data = json.loads(request.body.decode())
+        member_pk = int(data['memberpk'])  # type: int
+        member = Member.objects.get(pk=member_pk)  # type: Member
+        today = date.today()
+        return JsonResponse(_ops_calendar_4member_json(member, today.year, today.month))
 
 
 @ensure_csrf_cookie

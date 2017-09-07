@@ -11,6 +11,7 @@ module TaskApi
         , durationToString
         , getCalendarPage
         , getCurrCalendarPage
+        , getCurrCalendarPageForMember
         , TimeWindow
         , RestUrls
         , OpsTask
@@ -356,6 +357,22 @@ getCurrCalendarPage resultToMsg =
             Http.get url decodeCalendarPage
     in
         Http.send resultToMsg request
+
+getCurrCalendarPageForMember : String -> Int -> (Result Http.Error CalendarPage -> msg) -> Cmd msg
+getCurrCalendarPageForMember csrfToken memberpk resultToMsg =
+    let
+      request = Http.request
+        { method = "POST"
+        , url = "/tasks/ops-calendar-4member-json/"  -- TODO: URL should be passed in from Django, not hard-coded here.
+        , headers = [ Http.header "X-CSRFToken" csrfToken ]
+        , withCredentials = False
+        , body = [("memberpk", Enc.int memberpk)] |> Enc.object |> Http.jsonBody
+        , timeout = Nothing
+        , expect = Http.expectJson decodeCalendarPage
+        }
+    in
+      Http.send resultToMsg request
+
 
 -----------------------------------------------------------------------------
 -- DECODERS
