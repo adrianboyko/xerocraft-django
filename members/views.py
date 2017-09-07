@@ -551,14 +551,22 @@ def reception_kiosk_spa(request) -> HttpResponse:
 
 
 def reception_kiosk_matching_accts(request, flexid) -> JsonResponse:
+
     usernameq = Q(auth_user__username__istartswith=flexid, auth_user__is_active=True)
     surnameq = Q(auth_user__last_name__istartswith=flexid, auth_user__is_active=True)
     emailq = Q(auth_user__email__iexact=flexid, auth_user__is_active=True)
     membs = Member.objects.filter(usernameq | surnameq | emailq)
 
     if len(membs) > 10:
-        # More than 10 results will just overwhelm the user, so return none.
-        return JsonResponse({"target": flexid, "matches": []})
+        lflexid = flexid.lower()
+        def exact_match(m: Member):
+            usernameMatch = m.auth_user.username.lower() == lflexid
+            surnameMatch = m.auth_user.last_name.lower() == lflexid
+            emailMatch = m.auth_user.email.lower == lflexid
+            return usernameMatch or surnameMatch or emailMatch
+
+        # Since there are too many matches, lets try to filter it down to EXACT matches.
+        membs = list(filter(exact_match, membs))
 
     accts = []
     for memb in membs:  # type: Member
