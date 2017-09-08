@@ -8,8 +8,8 @@ import Html.Attributes exposing (src, width, style)
 -- Third Party
 
 -- Local
+import Wizard.SceneUtils exposing (..)
 import ReceptionKiosk.Types exposing (..)
-import ReceptionKiosk.SceneUtils exposing (..)
 
 -----------------------------------------------------------------------------
 -- INIT

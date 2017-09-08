@@ -7,8 +7,8 @@ import Html exposing (Html, text, div)
 -- Third Party
 
 -- Local
+import Wizard.SceneUtils exposing (..)
 import ReceptionKiosk.Types exposing (..)
-import ReceptionKiosk.SceneUtils exposing (..)
 
 -----------------------------------------------------------------------------
 -- INIT

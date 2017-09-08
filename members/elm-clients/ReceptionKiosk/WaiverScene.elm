@@ -10,8 +10,8 @@ import Regex exposing (regex)
 import String.Extra exposing (..)
 
 -- Local
+import Wizard.SceneUtils exposing (..)
 import ReceptionKiosk.Types exposing (..)
-import ReceptionKiosk.SceneUtils exposing (..)
 
 -----------------------------------------------------------------------------
 -- INIT

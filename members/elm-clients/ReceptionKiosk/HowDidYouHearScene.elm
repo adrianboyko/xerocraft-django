@@ -13,8 +13,8 @@ import Material.Options as Options exposing (css)
 
 -- Local
 import MembersApi as MembersApi
+import Wizard.SceneUtils exposing (..)
 import ReceptionKiosk.Types exposing (..)
-import ReceptionKiosk.SceneUtils exposing (..)
 
 -----------------------------------------------------------------------------
 -- INIT

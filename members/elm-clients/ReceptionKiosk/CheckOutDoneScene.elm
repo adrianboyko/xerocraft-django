@@ -8,7 +8,7 @@ import Html exposing (Html, text)
 
 -- Local
 import ReceptionKiosk.Types exposing (..)
-import ReceptionKiosk.SceneUtils exposing (..)
+import Wizard.SceneUtils exposing (..)
 
 -----------------------------------------------------------------------------
 -- INIT

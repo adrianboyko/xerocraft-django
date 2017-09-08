@@ -8,8 +8,8 @@ import Html exposing (Html, text, p, br, span)
 import Material.Options as Options exposing (css)
 
 -- Local
+import Wizard.SceneUtils exposing (..)
 import ReceptionKiosk.Types exposing (..)
-import ReceptionKiosk.SceneUtils exposing (..)
 import ReceptionKiosk.NewUserScene exposing (NewUserModel)
 
 -----------------------------------------------------------------------------

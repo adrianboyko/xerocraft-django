@@ -21165,7 +21165,7 @@ var _user$project$ReceptionKiosk_Types$Push = function (a) {
 	return {ctor: 'Push', _0: a};
 };
 
-var _user$project$ReceptionKiosk_SceneUtils$sceneButtonCss = {
+var _user$project$Wizard_SceneUtils$sceneButtonCss = {
 	ctor: '::',
 	_0: A2(_debois$elm_mdl$Material_Options$css, 'margin-left', '10px'),
 	_1: {
@@ -21194,7 +21194,7 @@ var _user$project$ReceptionKiosk_SceneUtils$sceneButtonCss = {
 		}
 	}
 };
-var _user$project$ReceptionKiosk_SceneUtils$navButtonCss = {
+var _user$project$Wizard_SceneUtils$navButtonCss = {
 	ctor: '::',
 	_0: A2(_debois$elm_mdl$Material_Options$css, 'display', 'inline-block'),
 	_1: {
@@ -21211,62 +21211,62 @@ var _user$project$ReceptionKiosk_SceneUtils$navButtonCss = {
 		}
 	}
 };
-var _user$project$ReceptionKiosk_SceneUtils$sceneDivBorderWidth = 1;
-var _user$project$ReceptionKiosk_SceneUtils$bottomBannerHeight = 84;
-var _user$project$ReceptionKiosk_SceneUtils$topBannerHeight = 155;
-var _user$project$ReceptionKiosk_SceneUtils$sceneHeight = 1280;
-var _user$project$ReceptionKiosk_SceneUtils$sceneWidth = 800;
-var _user$project$ReceptionKiosk_SceneUtils$px = function (num) {
+var _user$project$Wizard_SceneUtils$sceneDivBorderWidth = 1;
+var _user$project$Wizard_SceneUtils$bottomBannerHeight = 84;
+var _user$project$Wizard_SceneUtils$topBannerHeight = 155;
+var _user$project$Wizard_SceneUtils$sceneHeight = 1280;
+var _user$project$Wizard_SceneUtils$sceneWidth = 800;
+var _user$project$Wizard_SceneUtils$px = function (num) {
 	return A2(
 		_elm_lang$core$Basics_ops['++'],
 		_elm_lang$core$Basics$toString(num),
 		'px');
 };
-var _user$project$ReceptionKiosk_SceneUtils_ops = _user$project$ReceptionKiosk_SceneUtils_ops || {};
-_user$project$ReceptionKiosk_SceneUtils_ops['=>'] = F2(
+var _user$project$Wizard_SceneUtils_ops = _user$project$Wizard_SceneUtils_ops || {};
+_user$project$Wizard_SceneUtils_ops['=>'] = F2(
 	function (v0, v1) {
 		return {ctor: '_Tuple2', _0: v0, _1: v1};
 	});
-var _user$project$ReceptionKiosk_SceneUtils$frameDivStyle = _elm_lang$html$Html_Attributes$style(
+var _user$project$Wizard_SceneUtils$frameDivStyle = _elm_lang$html$Html_Attributes$style(
 	{
 		ctor: '::',
-		_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'font-family', 'Roboto Condensed, Arial, Helvetica'),
+		_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'font-family', 'Roboto Condensed, Arial, Helvetica'),
 		_1: {
 			ctor: '::',
-			_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'text-align', 'center'),
+			_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'text-align', 'center'),
 			_1: {
 				ctor: '::',
-				_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'padding-left', '0'),
+				_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'padding-left', '0'),
 				_1: {
 					ctor: '::',
-					_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'padding-right', '0'),
+					_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'padding-right', '0'),
 					_1: {
 						ctor: '::',
 						_0: A2(
-							_user$project$ReceptionKiosk_SceneUtils_ops['=>'],
+							_user$project$Wizard_SceneUtils_ops['=>'],
 							'padding-top',
-							_user$project$ReceptionKiosk_SceneUtils$px(_user$project$ReceptionKiosk_SceneUtils$topBannerHeight)),
+							_user$project$Wizard_SceneUtils$px(_user$project$Wizard_SceneUtils$topBannerHeight)),
 						_1: {
 							ctor: '::',
 							_0: A2(
-								_user$project$ReceptionKiosk_SceneUtils_ops['=>'],
+								_user$project$Wizard_SceneUtils_ops['=>'],
 								'padding-bottom',
-								_user$project$ReceptionKiosk_SceneUtils$px(_user$project$ReceptionKiosk_SceneUtils$bottomBannerHeight)),
+								_user$project$Wizard_SceneUtils$px(_user$project$Wizard_SceneUtils$bottomBannerHeight)),
 							_1: {
 								ctor: '::',
-								_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'position', 'absolute'),
+								_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'position', 'absolute'),
 								_1: {
 									ctor: '::',
-									_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'top', '0'),
+									_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'top', '0'),
 									_1: {
 										ctor: '::',
-										_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'bottom', '0'),
+										_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'bottom', '0'),
 										_1: {
 											ctor: '::',
-											_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'left', '0'),
+											_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'left', '0'),
 											_1: {
 												ctor: '::',
-												_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'right', '0'),
+												_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'right', '0'),
 												_1: {ctor: '[]'}
 											}
 										}
@@ -21279,28 +21279,28 @@ var _user$project$ReceptionKiosk_SceneUtils$frameDivStyle = _elm_lang$html$Html_
 			}
 		}
 	});
-var _user$project$ReceptionKiosk_SceneUtils$sceneDivStyle = _elm_lang$html$Html_Attributes$style(
+var _user$project$Wizard_SceneUtils$sceneDivStyle = _elm_lang$html$Html_Attributes$style(
 	{
 		ctor: '::',
-		_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'margin-left', 'auto'),
+		_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'margin-left', 'auto'),
 		_1: {
 			ctor: '::',
-			_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'margin-right', 'auto'),
+			_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'margin-right', 'auto'),
 			_1: {
 				ctor: '::',
-				_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'border', '1px solid #bbbbbb'),
+				_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'border', '1px solid #bbbbbb'),
 				_1: {
 					ctor: '::',
-					_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'background-color', 'white'),
+					_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'background-color', 'white'),
 					_1: {
 						ctor: '::',
 						_0: A2(
-							_user$project$ReceptionKiosk_SceneUtils_ops['=>'],
+							_user$project$Wizard_SceneUtils_ops['=>'],
 							'width',
-							_user$project$ReceptionKiosk_SceneUtils$px(_user$project$ReceptionKiosk_SceneUtils$sceneWidth - (2 * _user$project$ReceptionKiosk_SceneUtils$sceneDivBorderWidth))),
+							_user$project$Wizard_SceneUtils$px(_user$project$Wizard_SceneUtils$sceneWidth - (2 * _user$project$Wizard_SceneUtils$sceneDivBorderWidth))),
 						_1: {
 							ctor: '::',
-							_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'min-height', '99.8%'),
+							_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'min-height', '99.8%'),
 							_1: {ctor: '[]'}
 						}
 					}
@@ -21308,88 +21308,88 @@ var _user$project$ReceptionKiosk_SceneUtils$sceneDivStyle = _elm_lang$html$Html_
 			}
 		}
 	});
-var _user$project$ReceptionKiosk_SceneUtils$sceneTitleStyle = _elm_lang$html$Html_Attributes$style(
+var _user$project$Wizard_SceneUtils$sceneTitleStyle = _elm_lang$html$Html_Attributes$style(
 	{
 		ctor: '::',
-		_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'font-size', '32pt'),
+		_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'font-size', '32pt'),
 		_1: {
 			ctor: '::',
-			_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'margin-left', 'auto'),
+			_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'margin-left', 'auto'),
 			_1: {
 				ctor: '::',
-				_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'margin-right', 'auto'),
+				_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'margin-right', 'auto'),
 				_1: {
 					ctor: '::',
-					_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'margin-top', '2em'),
+					_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'margin-top', '2em'),
 					_1: {
 						ctor: '::',
-						_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'margin-bottom', '0.5em'),
+						_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'margin-bottom', '0.5em'),
 						_1: {ctor: '[]'}
 					}
 				}
 			}
 		}
 	});
-var _user$project$ReceptionKiosk_SceneUtils$sceneTextStyle = _elm_lang$html$Html_Attributes$style(
+var _user$project$Wizard_SceneUtils$sceneTextStyle = _elm_lang$html$Html_Attributes$style(
 	{
 		ctor: '::',
-		_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'font-size', '22pt'),
+		_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'font-size', '22pt'),
 		_1: {
 			ctor: '::',
-			_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'line-height', '1em'),
+			_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'line-height', '1em'),
 			_1: {ctor: '[]'}
 		}
 	});
-var _user$project$ReceptionKiosk_SceneUtils$sceneSubtitleStyle = _elm_lang$html$Html_Attributes$style(
+var _user$project$Wizard_SceneUtils$sceneSubtitleStyle = _elm_lang$html$Html_Attributes$style(
 	{
 		ctor: '::',
-		_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'font-size', '24pt'),
+		_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'font-size', '24pt'),
 		_1: {
 			ctor: '::',
-			_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'margin-left', 'auto'),
+			_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'margin-left', 'auto'),
 			_1: {
 				ctor: '::',
-				_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'margin-right', 'auto'),
+				_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'margin-right', 'auto'),
 				_1: {
 					ctor: '::',
-					_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'margin-bottom', '1em'),
+					_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'margin-bottom', '1em'),
 					_1: {
 						ctor: '::',
-						_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'margin-top', '0'),
+						_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'margin-top', '0'),
 						_1: {ctor: '[]'}
 					}
 				}
 			}
 		}
 	});
-var _user$project$ReceptionKiosk_SceneUtils$bannerTopStyle = _elm_lang$html$Html_Attributes$style(
+var _user$project$Wizard_SceneUtils$bannerTopStyle = _elm_lang$html$Html_Attributes$style(
 	{
 		ctor: '::',
-		_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'display', 'block'),
+		_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'display', 'block'),
 		_1: {
 			ctor: '::',
 			_0: A2(
-				_user$project$ReceptionKiosk_SceneUtils_ops['=>'],
+				_user$project$Wizard_SceneUtils_ops['=>'],
 				'margin-top',
-				_user$project$ReceptionKiosk_SceneUtils$px(-1 * _user$project$ReceptionKiosk_SceneUtils$topBannerHeight)),
+				_user$project$Wizard_SceneUtils$px(-1 * _user$project$Wizard_SceneUtils$topBannerHeight)),
 			_1: {
 				ctor: '::',
-				_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'margin-left', 'auto'),
+				_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'margin-left', 'auto'),
 				_1: {
 					ctor: '::',
-					_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'margin-right', 'auto'),
+					_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'margin-right', 'auto'),
 					_1: {
 						ctor: '::',
 						_0: A2(
-							_user$project$ReceptionKiosk_SceneUtils_ops['=>'],
+							_user$project$Wizard_SceneUtils_ops['=>'],
 							'height',
-							_user$project$ReceptionKiosk_SceneUtils$px(_user$project$ReceptionKiosk_SceneUtils$topBannerHeight)),
+							_user$project$Wizard_SceneUtils$px(_user$project$Wizard_SceneUtils$topBannerHeight)),
 						_1: {
 							ctor: '::',
 							_0: A2(
-								_user$project$ReceptionKiosk_SceneUtils_ops['=>'],
+								_user$project$Wizard_SceneUtils_ops['=>'],
 								'width',
-								_user$project$ReceptionKiosk_SceneUtils$px(_user$project$ReceptionKiosk_SceneUtils$sceneWidth)),
+								_user$project$Wizard_SceneUtils$px(_user$project$Wizard_SceneUtils$sceneWidth)),
 							_1: {ctor: '[]'}
 						}
 					}
@@ -21397,34 +21397,34 @@ var _user$project$ReceptionKiosk_SceneUtils$bannerTopStyle = _elm_lang$html$Html
 			}
 		}
 	});
-var _user$project$ReceptionKiosk_SceneUtils$bannerBottomStyle = _elm_lang$html$Html_Attributes$style(
+var _user$project$Wizard_SceneUtils$bannerBottomStyle = _elm_lang$html$Html_Attributes$style(
 	{
 		ctor: '::',
-		_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'display', 'block'),
+		_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'display', 'block'),
 		_1: {
 			ctor: '::',
 			_0: A2(
-				_user$project$ReceptionKiosk_SceneUtils_ops['=>'],
+				_user$project$Wizard_SceneUtils_ops['=>'],
 				'margin-bottom',
-				_user$project$ReceptionKiosk_SceneUtils$px(-1 * _user$project$ReceptionKiosk_SceneUtils$bottomBannerHeight)),
+				_user$project$Wizard_SceneUtils$px(-1 * _user$project$Wizard_SceneUtils$bottomBannerHeight)),
 			_1: {
 				ctor: '::',
-				_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'margin-left', 'auto'),
+				_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'margin-left', 'auto'),
 				_1: {
 					ctor: '::',
-					_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'margin-right', 'auto'),
+					_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'margin-right', 'auto'),
 					_1: {
 						ctor: '::',
 						_0: A2(
-							_user$project$ReceptionKiosk_SceneUtils_ops['=>'],
+							_user$project$Wizard_SceneUtils_ops['=>'],
 							'height',
-							_user$project$ReceptionKiosk_SceneUtils$px(_user$project$ReceptionKiosk_SceneUtils$bottomBannerHeight)),
+							_user$project$Wizard_SceneUtils$px(_user$project$Wizard_SceneUtils$bottomBannerHeight)),
 						_1: {
 							ctor: '::',
 							_0: A2(
-								_user$project$ReceptionKiosk_SceneUtils_ops['=>'],
+								_user$project$Wizard_SceneUtils_ops['=>'],
 								'width',
-								_user$project$ReceptionKiosk_SceneUtils$px(_user$project$ReceptionKiosk_SceneUtils$sceneWidth)),
+								_user$project$Wizard_SceneUtils$px(_user$project$Wizard_SceneUtils$sceneWidth)),
 							_1: {ctor: '[]'}
 						}
 					}
@@ -21432,32 +21432,32 @@ var _user$project$ReceptionKiosk_SceneUtils$bannerBottomStyle = _elm_lang$html$H
 			}
 		}
 	});
-var _user$project$ReceptionKiosk_SceneUtils$navDivStyle = _user$project$ReceptionKiosk_SceneUtils$bannerBottomStyle;
-var _user$project$ReceptionKiosk_SceneUtils$errorMsgStyle = _elm_lang$html$Html_Attributes$style(
+var _user$project$Wizard_SceneUtils$navDivStyle = _user$project$Wizard_SceneUtils$bannerBottomStyle;
+var _user$project$Wizard_SceneUtils$errorMsgStyle = _elm_lang$html$Html_Attributes$style(
 	{
 		ctor: '::',
-		_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'color', 'red'),
+		_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'color', 'red'),
 		_1: {
 			ctor: '::',
-			_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'font-size', '22pt'),
+			_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'font-size', '22pt'),
 			_1: {ctor: '[]'}
 		}
 	});
-var _user$project$ReceptionKiosk_SceneUtils$userIdStyle = _elm_lang$html$Html_Attributes$style(
+var _user$project$Wizard_SceneUtils$userIdStyle = _elm_lang$html$Html_Attributes$style(
 	{
 		ctor: '::',
-		_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'margin', '10px'),
+		_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'margin', '10px'),
 		_1: {
 			ctor: '::',
-			_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'padding', '10px'),
+			_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'padding', '10px'),
 			_1: {
 				ctor: '::',
-				_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'background-color', '#ccffff'),
+				_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'background-color', '#ccffff'),
 				_1: {ctor: '[]'}
 			}
 		}
 	});
-var _user$project$ReceptionKiosk_SceneUtils$hspace = function (amount) {
+var _user$project$Wizard_SceneUtils$hspace = function (amount) {
 	return A2(
 		_elm_lang$html$Html$div,
 		{
@@ -21465,11 +21465,11 @@ var _user$project$ReceptionKiosk_SceneUtils$hspace = function (amount) {
 			_0: _elm_lang$html$Html_Attributes$style(
 				{
 					ctor: '::',
-					_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'display', 'inline-block'),
+					_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'display', 'inline-block'),
 					_1: {
 						ctor: '::',
 						_0: A2(
-							_user$project$ReceptionKiosk_SceneUtils_ops['=>'],
+							_user$project$Wizard_SceneUtils_ops['=>'],
 							'width',
 							A2(
 								_elm_lang$core$Basics_ops['++'],
@@ -21482,7 +21482,7 @@ var _user$project$ReceptionKiosk_SceneUtils$hspace = function (amount) {
 		},
 		{ctor: '[]'});
 };
-var _user$project$ReceptionKiosk_SceneUtils$vspace = function (amount) {
+var _user$project$Wizard_SceneUtils$vspace = function (amount) {
 	return A2(
 		_elm_lang$html$Html$div,
 		{
@@ -21491,7 +21491,7 @@ var _user$project$ReceptionKiosk_SceneUtils$vspace = function (amount) {
 				{
 					ctor: '::',
 					_0: A2(
-						_user$project$ReceptionKiosk_SceneUtils_ops['=>'],
+						_user$project$Wizard_SceneUtils_ops['=>'],
 						'height',
 						A2(
 							_elm_lang$core$Basics_ops['++'],
@@ -21503,7 +21503,7 @@ var _user$project$ReceptionKiosk_SceneUtils$vspace = function (amount) {
 		},
 		{ctor: '[]'});
 };
-var _user$project$ReceptionKiosk_SceneUtils$formatBadNews = function (msgs) {
+var _user$project$Wizard_SceneUtils$formatBadNews = function (msgs) {
 	return _elm_lang$core$Native_Utils.eq(
 		msgs,
 		{ctor: '[]'}) ? _elm_lang$html$Html$text('') : A2(
@@ -21521,7 +21521,7 @@ var _user$project$ReceptionKiosk_SceneUtils$formatBadNews = function (msgs) {
 							_0: _elm_lang$html$Html_Attributes$style(
 								{
 									ctor: '::',
-									_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'font-size', '32pt'),
+									_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'font-size', '32pt'),
 									_1: {ctor: '[]'}
 								}),
 							_1: {ctor: '[]'}
@@ -21533,7 +21533,7 @@ var _user$project$ReceptionKiosk_SceneUtils$formatBadNews = function (msgs) {
 						}),
 					_1: {
 						ctor: '::',
-						_0: _user$project$ReceptionKiosk_SceneUtils$vspace(15),
+						_0: _user$project$Wizard_SceneUtils$vspace(15),
 						_1: {ctor: '[]'}
 					}
 				},
@@ -21546,7 +21546,7 @@ var _user$project$ReceptionKiosk_SceneUtils$formatBadNews = function (msgs) {
 								_elm_lang$html$Html$p,
 								{
 									ctor: '::',
-									_0: _user$project$ReceptionKiosk_SceneUtils$errorMsgStyle,
+									_0: _user$project$Wizard_SceneUtils$errorMsgStyle,
 									_1: {ctor: '[]'}
 								},
 								{
@@ -21575,7 +21575,7 @@ var _user$project$ReceptionKiosk_SceneUtils$formatBadNews = function (msgs) {
 				}
 			}));
 };
-var _user$project$ReceptionKiosk_SceneUtils$sceneCheckbox = F5(
+var _user$project$Wizard_SceneUtils$sceneCheckbox = F5(
 	function (model, index, label, value, msger) {
 		return A2(
 			_elm_lang$html$Html$div,
@@ -21584,13 +21584,13 @@ var _user$project$ReceptionKiosk_SceneUtils$sceneCheckbox = F5(
 				_0: _elm_lang$html$Html_Attributes$style(
 					{
 						ctor: '::',
-						_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'text-align', 'left'),
+						_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'text-align', 'left'),
 						_1: {
 							ctor: '::',
-							_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'display', 'inline-block'),
+							_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'display', 'inline-block'),
 							_1: {
 								ctor: '::',
-								_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'width', '400px'),
+								_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'width', '400px'),
 								_1: {ctor: '[]'}
 							}
 						}
@@ -21626,10 +21626,10 @@ var _user$project$ReceptionKiosk_SceneUtils$sceneCheckbox = F5(
 								_0: _elm_lang$html$Html_Attributes$style(
 									{
 										ctor: '::',
-										_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'font-size', '24pt'),
+										_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'font-size', '24pt'),
 										_1: {
 											ctor: '::',
-											_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'margin-left', '16px'),
+											_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'margin-left', '16px'),
 											_1: {ctor: '[]'}
 										}
 									}),
@@ -21645,7 +21645,7 @@ var _user$project$ReceptionKiosk_SceneUtils$sceneCheckbox = F5(
 				_1: {ctor: '[]'}
 			});
 	});
-var _user$project$ReceptionKiosk_SceneUtils$sceneGenericTextField = F6(
+var _user$project$Wizard_SceneUtils$sceneGenericTextField = F6(
 	function (model, index, hint, value, msger, options) {
 		return A5(
 			_debois$elm_mdl$Material_Textfield$render,
@@ -21682,10 +21682,10 @@ var _user$project$ReceptionKiosk_SceneUtils$sceneGenericTextField = F6(
 				options),
 			_elm_lang$html$Html$text('spam'));
 	});
-var _user$project$ReceptionKiosk_SceneUtils$sceneTextField = F5(
+var _user$project$Wizard_SceneUtils$sceneTextField = F5(
 	function (model, index, hint, value, msger) {
 		return A6(
-			_user$project$ReceptionKiosk_SceneUtils$sceneGenericTextField,
+			_user$project$Wizard_SceneUtils$sceneGenericTextField,
 			model,
 			index,
 			hint,
@@ -21693,10 +21693,10 @@ var _user$project$ReceptionKiosk_SceneUtils$sceneTextField = F5(
 			msger,
 			{ctor: '[]'});
 	});
-var _user$project$ReceptionKiosk_SceneUtils$scenePasswordField = F5(
+var _user$project$Wizard_SceneUtils$scenePasswordField = F5(
 	function (model, index, hint, value, msger) {
 		return A6(
-			_user$project$ReceptionKiosk_SceneUtils$sceneGenericTextField,
+			_user$project$Wizard_SceneUtils$sceneGenericTextField,
 			model,
 			index,
 			hint,
@@ -21708,10 +21708,10 @@ var _user$project$ReceptionKiosk_SceneUtils$scenePasswordField = F5(
 				_1: {ctor: '[]'}
 			});
 	});
-var _user$project$ReceptionKiosk_SceneUtils$sceneEmailField = F5(
+var _user$project$Wizard_SceneUtils$sceneEmailField = F5(
 	function (model, index, hint, value, msger) {
 		return A6(
-			_user$project$ReceptionKiosk_SceneUtils$sceneGenericTextField,
+			_user$project$Wizard_SceneUtils$sceneGenericTextField,
 			model,
 			index,
 			hint,
@@ -21723,7 +21723,7 @@ var _user$project$ReceptionKiosk_SceneUtils$sceneEmailField = F5(
 				_1: {ctor: '[]'}
 			});
 	});
-var _user$project$ReceptionKiosk_SceneUtils$sceneButton = F2(
+var _user$project$Wizard_SceneUtils$sceneButton = F2(
 	function (model, buttonSpec) {
 		return A5(
 			_debois$elm_mdl$Material_Button$render,
@@ -21745,20 +21745,20 @@ var _user$project$ReceptionKiosk_SceneUtils$sceneButton = F2(
 						_1: {ctor: '[]'}
 					}
 				},
-				_user$project$ReceptionKiosk_SceneUtils$sceneButtonCss),
+				_user$project$Wizard_SceneUtils$sceneButtonCss),
 			{
 				ctor: '::',
 				_0: _elm_lang$html$Html$text(buttonSpec.title),
 				_1: {ctor: '[]'}
 			});
 	});
-var _user$project$ReceptionKiosk_SceneUtils$frameNavButtons = function (model) {
+var _user$project$Wizard_SceneUtils$frameNavButtons = function (model) {
 	var isBaseScene = _mgold$elm_nonempty_list$List_Nonempty$isSingleton(model.sceneStack);
 	return A2(
 		_elm_lang$html$Html$div,
 		{
 			ctor: '::',
-			_0: _user$project$ReceptionKiosk_SceneUtils$navDivStyle,
+			_0: _user$project$Wizard_SceneUtils$navDivStyle,
 			_1: {ctor: '[]'}
 		},
 		{
@@ -21788,7 +21788,7 @@ var _user$project$ReceptionKiosk_SceneUtils$frameNavButtons = function (model) {
 							}
 						}
 					},
-					_user$project$ReceptionKiosk_SceneUtils$navButtonCss),
+					_user$project$Wizard_SceneUtils$navButtonCss),
 				{
 					ctor: '::',
 					_0: _elm_lang$html$Html$text('Back'),
@@ -21796,7 +21796,7 @@ var _user$project$ReceptionKiosk_SceneUtils$frameNavButtons = function (model) {
 				}),
 			_1: {
 				ctor: '::',
-				_0: _user$project$ReceptionKiosk_SceneUtils$hspace(600),
+				_0: _user$project$Wizard_SceneUtils$hspace(600),
 				_1: {
 					ctor: '::',
 					_0: A5(
@@ -21821,7 +21821,7 @@ var _user$project$ReceptionKiosk_SceneUtils$frameNavButtons = function (model) {
 									_1: {ctor: '[]'}
 								}
 							},
-							_user$project$ReceptionKiosk_SceneUtils$navButtonCss),
+							_user$project$Wizard_SceneUtils$navButtonCss),
 						{
 							ctor: '::',
 							_0: _elm_lang$html$Html$text('Quit'),
@@ -21832,13 +21832,13 @@ var _user$project$ReceptionKiosk_SceneUtils$frameNavButtons = function (model) {
 			}
 		});
 };
-var _user$project$ReceptionKiosk_SceneUtils$sceneFrame = F2(
+var _user$project$Wizard_SceneUtils$sceneFrame = F2(
 	function (model, sceneHtml) {
 		return A2(
 			_elm_lang$html$Html$div,
 			{
 				ctor: '::',
-				_0: _user$project$ReceptionKiosk_SceneUtils$frameDivStyle,
+				_0: _user$project$Wizard_SceneUtils$frameDivStyle,
 				_1: {ctor: '[]'}
 			},
 			{
@@ -21850,7 +21850,7 @@ var _user$project$ReceptionKiosk_SceneUtils$sceneFrame = F2(
 						_0: _elm_lang$html$Html_Attributes$src(model.flags.bannerTopUrl),
 						_1: {
 							ctor: '::',
-							_0: _user$project$ReceptionKiosk_SceneUtils$bannerTopStyle,
+							_0: _user$project$Wizard_SceneUtils$bannerTopStyle,
 							_1: {ctor: '[]'}
 						}
 					},
@@ -21861,13 +21861,13 @@ var _user$project$ReceptionKiosk_SceneUtils$sceneFrame = F2(
 						_elm_lang$html$Html$div,
 						{
 							ctor: '::',
-							_0: _user$project$ReceptionKiosk_SceneUtils$sceneDivStyle,
+							_0: _user$project$Wizard_SceneUtils$sceneDivStyle,
 							_1: {ctor: '[]'}
 						},
 						sceneHtml),
 					_1: {
 						ctor: '::',
-						_0: _user$project$ReceptionKiosk_SceneUtils$frameNavButtons(model),
+						_0: _user$project$Wizard_SceneUtils$frameNavButtons(model),
 						_1: {
 							ctor: '::',
 							_0: A2(
@@ -21877,7 +21877,7 @@ var _user$project$ReceptionKiosk_SceneUtils$sceneFrame = F2(
 									_0: _elm_lang$html$Html_Attributes$src(model.flags.bannerBottomUrl),
 									_1: {
 										ctor: '::',
-										_0: _user$project$ReceptionKiosk_SceneUtils$bannerBottomStyle,
+										_0: _user$project$Wizard_SceneUtils$bannerBottomStyle,
 										_1: {ctor: '[]'}
 									}
 								},
@@ -21888,7 +21888,7 @@ var _user$project$ReceptionKiosk_SceneUtils$sceneFrame = F2(
 				}
 			});
 	});
-var _user$project$ReceptionKiosk_SceneUtils$genericScene = F5(
+var _user$project$Wizard_SceneUtils$genericScene = F5(
 	function (model, title, subtitle, extraContent, buttonSpecs) {
 		var sceneHtml = {
 			ctor: '::',
@@ -21896,7 +21896,7 @@ var _user$project$ReceptionKiosk_SceneUtils$genericScene = F5(
 				_elm_lang$html$Html$p,
 				{
 					ctor: '::',
-					_0: _user$project$ReceptionKiosk_SceneUtils$sceneTitleStyle,
+					_0: _user$project$Wizard_SceneUtils$sceneTitleStyle,
 					_1: {ctor: '[]'}
 				},
 				{
@@ -21910,7 +21910,7 @@ var _user$project$ReceptionKiosk_SceneUtils$genericScene = F5(
 					_elm_lang$html$Html$p,
 					{
 						ctor: '::',
-						_0: _user$project$ReceptionKiosk_SceneUtils$sceneSubtitleStyle,
+						_0: _user$project$Wizard_SceneUtils$sceneSubtitleStyle,
 						_1: {ctor: '[]'}
 					},
 					{
@@ -21923,7 +21923,7 @@ var _user$project$ReceptionKiosk_SceneUtils$genericScene = F5(
 					_0: extraContent,
 					_1: {
 						ctor: '::',
-						_0: _user$project$ReceptionKiosk_SceneUtils$vspace(50),
+						_0: _user$project$Wizard_SceneUtils$vspace(50),
 						_1: {
 							ctor: '::',
 							_0: A2(
@@ -21931,7 +21931,7 @@ var _user$project$ReceptionKiosk_SceneUtils$genericScene = F5(
 								{ctor: '[]'},
 								A2(
 									_elm_lang$core$List$map,
-									_user$project$ReceptionKiosk_SceneUtils$sceneButton(model),
+									_user$project$Wizard_SceneUtils$sceneButton(model),
 									buttonSpecs)),
 							_1: {ctor: '[]'}
 						}
@@ -21939,15 +21939,15 @@ var _user$project$ReceptionKiosk_SceneUtils$genericScene = F5(
 				}
 			}
 		};
-		return A2(_user$project$ReceptionKiosk_SceneUtils$sceneFrame, model, sceneHtml);
+		return A2(_user$project$Wizard_SceneUtils$sceneFrame, model, sceneHtml);
 	});
-var _user$project$ReceptionKiosk_SceneUtils$send = function (msg) {
+var _user$project$Wizard_SceneUtils$send = function (msg) {
 	return A2(
 		_elm_lang$core$Task$perform,
 		_elm_lang$core$Basics$identity,
 		_elm_lang$core$Task$succeed(msg));
 };
-var _user$project$ReceptionKiosk_SceneUtils$ButtonSpec = F2(
+var _user$project$Wizard_SceneUtils$ButtonSpec = F2(
 	function (a, b) {
 		return {title: a, msg: b};
 	});
@@ -21987,7 +21987,7 @@ var _user$project$ReceptionKiosk_CheckInScene$view = function (kioskModel) {
 	};
 	var sceneModel = kioskModel.checkInModel;
 	return A5(
-		_user$project$ReceptionKiosk_SceneUtils$genericScene,
+		_user$project$Wizard_SceneUtils$genericScene,
 		kioskModel,
 		'Let\'s Get You Checked-In!',
 		'Who are you?',
@@ -22000,7 +22000,7 @@ var _user$project$ReceptionKiosk_CheckInScene$view = function (kioskModel) {
 					_0: {
 						ctor: '::',
 						_0: A5(
-							_user$project$ReceptionKiosk_SceneUtils$sceneTextField,
+							_user$project$Wizard_SceneUtils$sceneTextField,
 							kioskModel,
 							1,
 							'Your Username or Surname',
@@ -22011,7 +22011,7 @@ var _user$project$ReceptionKiosk_CheckInScene$view = function (kioskModel) {
 							}),
 						_1: {
 							ctor: '::',
-							_0: _user$project$ReceptionKiosk_SceneUtils$vspace(0),
+							_0: _user$project$Wizard_SceneUtils$vspace(0),
 							_1: {ctor: '[]'}
 						}
 					},
@@ -22021,19 +22021,19 @@ var _user$project$ReceptionKiosk_CheckInScene$view = function (kioskModel) {
 							_elm_lang$core$List$length(sceneModel.matches),
 							0) > 0) ? {
 							ctor: '::',
-							_0: _user$project$ReceptionKiosk_SceneUtils$vspace(30),
+							_0: _user$project$Wizard_SceneUtils$vspace(30),
 							_1: {
 								ctor: '::',
 								_0: _elm_lang$html$Html$text('Tap your userid, below:'),
 								_1: {
 									ctor: '::',
-									_0: _user$project$ReceptionKiosk_SceneUtils$vspace(20),
+									_0: _user$project$Wizard_SceneUtils$vspace(20),
 									_1: {ctor: '[]'}
 								}
 							}
 						} : {
 							ctor: '::',
-							_0: _user$project$ReceptionKiosk_SceneUtils$vspace(0),
+							_0: _user$project$Wizard_SceneUtils$vspace(0),
 							_1: {ctor: '[]'}
 						},
 						_1: {
@@ -22043,7 +22043,7 @@ var _user$project$ReceptionKiosk_CheckInScene$view = function (kioskModel) {
 								ctor: '::',
 								_0: {
 									ctor: '::',
-									_0: _user$project$ReceptionKiosk_SceneUtils$vspace(
+									_0: _user$project$Wizard_SceneUtils$vspace(
 										(_elm_lang$core$Native_Utils.cmp(
 											_elm_lang$core$List$length(sceneModel.badNews),
 											0) > 0) ? 40 : 0),
@@ -22053,7 +22053,7 @@ var _user$project$ReceptionKiosk_CheckInScene$view = function (kioskModel) {
 									ctor: '::',
 									_0: {
 										ctor: '::',
-										_0: _user$project$ReceptionKiosk_SceneUtils$formatBadNews(sceneModel.badNews),
+										_0: _user$project$Wizard_SceneUtils$formatBadNews(sceneModel.badNews),
 										_1: {ctor: '[]'}
 									},
 									_1: {ctor: '[]'}
@@ -22129,7 +22129,7 @@ var _user$project$ReceptionKiosk_CheckInScene$update = F2(
 					_0: _elm_lang$core$Native_Utils.update(
 						sceneModel,
 						{memberNum: _p1._0}),
-					_1: _user$project$ReceptionKiosk_SceneUtils$send(
+					_1: _user$project$Wizard_SceneUtils$send(
 						_user$project$ReceptionKiosk_Types$WizardVector(
 							_user$project$ReceptionKiosk_Types$Push(_user$project$ReceptionKiosk_Types$ReasonForVisit)))
 				};
@@ -22151,7 +22151,7 @@ var _user$project$ReceptionKiosk_CheckInScene$CheckInModel = F4(
 
 var _user$project$ReceptionKiosk_CheckInDoneScene$view = function (model) {
 	return A5(
-		_user$project$ReceptionKiosk_SceneUtils$genericScene,
+		_user$project$Wizard_SceneUtils$genericScene,
 		model,
 		'You\'re Checked In',
 		'Have fun!',
@@ -22159,7 +22159,7 @@ var _user$project$ReceptionKiosk_CheckInDoneScene$view = function (model) {
 		{
 			ctor: '::',
 			_0: A2(
-				_user$project$ReceptionKiosk_SceneUtils$ButtonSpec,
+				_user$project$Wizard_SceneUtils$ButtonSpec,
 				'Ok',
 				_user$project$ReceptionKiosk_Types$WizardVector(
 					_user$project$ReceptionKiosk_Types$Push(_user$project$ReceptionKiosk_Types$Welcome))),
@@ -22210,7 +22210,7 @@ var _user$project$ReceptionKiosk_CheckOutScene$view = function (kioskModel) {
 	};
 	var sceneModel = kioskModel.checkOutModel;
 	return A5(
-		_user$project$ReceptionKiosk_SceneUtils$genericScene,
+		_user$project$Wizard_SceneUtils$genericScene,
 		kioskModel,
 		'Hope You Had Fun!',
 		'Tap your userid, below:',
@@ -22225,7 +22225,7 @@ var _user$project$ReceptionKiosk_CheckOutScene$view = function (kioskModel) {
 						ctor: '::',
 						_0: {
 							ctor: '::',
-							_0: _user$project$ReceptionKiosk_SceneUtils$vspace(
+							_0: _user$project$Wizard_SceneUtils$vspace(
 								(_elm_lang$core$Native_Utils.cmp(
 									_elm_lang$core$List$length(sceneModel.badNews),
 									0) > 0) ? 40 : 0),
@@ -22235,7 +22235,7 @@ var _user$project$ReceptionKiosk_CheckOutScene$view = function (kioskModel) {
 							ctor: '::',
 							_0: {
 								ctor: '::',
-								_0: _user$project$ReceptionKiosk_SceneUtils$formatBadNews(sceneModel.badNews),
+								_0: _user$project$Wizard_SceneUtils$formatBadNews(sceneModel.badNews),
 								_1: {ctor: '[]'}
 							},
 							_1: {ctor: '[]'}
@@ -22282,7 +22282,7 @@ var _user$project$ReceptionKiosk_CheckOutScene$update = F2(
 				return {
 					ctor: '_Tuple2',
 					_0: sceneModel,
-					_1: _user$project$ReceptionKiosk_SceneUtils$send(
+					_1: _user$project$Wizard_SceneUtils$send(
 						_user$project$ReceptionKiosk_Types$WizardVector(
 							_user$project$ReceptionKiosk_Types$Push(_user$project$ReceptionKiosk_Types$CheckOutDone)))
 				};
@@ -22302,7 +22302,7 @@ var _user$project$ReceptionKiosk_CheckOutScene$CheckOutModel = F2(
 
 var _user$project$ReceptionKiosk_CheckOutDoneScene$view = function (model) {
 	return A5(
-		_user$project$ReceptionKiosk_SceneUtils$genericScene,
+		_user$project$Wizard_SceneUtils$genericScene,
 		model,
 		'You\'re Checked Out',
 		'Have a Nice Day!',
@@ -22310,7 +22310,7 @@ var _user$project$ReceptionKiosk_CheckOutDoneScene$view = function (model) {
 		{
 			ctor: '::',
 			_0: A2(
-				_user$project$ReceptionKiosk_SceneUtils$ButtonSpec,
+				_user$project$Wizard_SceneUtils$ButtonSpec,
 				'OK',
 				_user$project$ReceptionKiosk_Types$WizardVector(
 					_user$project$ReceptionKiosk_Types$Push(_user$project$ReceptionKiosk_Types$Welcome))),
@@ -22377,19 +22377,19 @@ var _user$project$XerocraftApi$scrapeXcOrgLogins = F2(
 var _user$project$ReceptionKiosk_ReasonForVisitScene$reasonListStyle = _elm_lang$html$Html_Attributes$style(
 	{
 		ctor: '::',
-		_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'width', '350px'),
+		_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'width', '350px'),
 		_1: {
 			ctor: '::',
-			_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'margin-left', 'auto'),
+			_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'margin-left', 'auto'),
 			_1: {
 				ctor: '::',
-				_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'margin-right', 'auto'),
+				_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'margin-right', 'auto'),
 				_1: {
 					ctor: '::',
-					_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'padding-left', '45px'),
+					_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'padding-left', '45px'),
 					_1: {
 						ctor: '::',
-						_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'text-align', 'left'),
+						_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'text-align', 'left'),
 						_1: {ctor: '[]'}
 					}
 				}
@@ -22428,7 +22428,7 @@ var _user$project$ReceptionKiosk_ReasonForVisitScene$makeActivityList = F2(
 				_elm_lang$core$Basics_ops['++'],
 				{
 					ctor: '::',
-					_0: _user$project$ReceptionKiosk_SceneUtils$vspace(50),
+					_0: _user$project$Wizard_SceneUtils$vspace(50),
 					_1: {ctor: '[]'}
 				},
 				A2(
@@ -22476,7 +22476,7 @@ var _user$project$ReceptionKiosk_ReasonForVisitScene$makeActivityList = F2(
 										}),
 									_1: {
 										ctor: '::',
-										_0: _user$project$ReceptionKiosk_SceneUtils$vspace(30),
+										_0: _user$project$Wizard_SceneUtils$vspace(30),
 										_1: {ctor: '[]'}
 									}
 								});
@@ -22485,7 +22485,7 @@ var _user$project$ReceptionKiosk_ReasonForVisitScene$makeActivityList = F2(
 	});
 var _user$project$ReceptionKiosk_ReasonForVisitScene$view = function (kioskModel) {
 	return A5(
-		_user$project$ReceptionKiosk_SceneUtils$genericScene,
+		_user$project$Wizard_SceneUtils$genericScene,
 		kioskModel,
 		'Today\'s Activity',
 		'Let us know what you\'ll be doing today',
@@ -22524,14 +22524,14 @@ var _user$project$ReceptionKiosk_ReasonForVisitScene$view = function (kioskModel
 					}),
 				_1: {
 					ctor: '::',
-					_0: _user$project$ReceptionKiosk_SceneUtils$formatBadNews(kioskModel.reasonForVisitModel.badNews),
+					_0: _user$project$Wizard_SceneUtils$formatBadNews(kioskModel.reasonForVisitModel.badNews),
 					_1: {ctor: '[]'}
 				}
 			}),
 		{
 			ctor: '::',
 			_0: A2(
-				_user$project$ReceptionKiosk_SceneUtils$ButtonSpec,
+				_user$project$Wizard_SceneUtils$ButtonSpec,
 				'OK',
 				_user$project$ReceptionKiosk_Types$ReasonForVisitVector(_user$project$ReceptionKiosk_Types$ValidateReason)),
 			_1: {ctor: '[]'}
@@ -22599,7 +22599,7 @@ var _user$project$ReceptionKiosk_ReasonForVisitScene$update = F2(
 						return {
 							ctor: '_Tuple2',
 							_0: sceneModel,
-							_1: _user$project$ReceptionKiosk_SceneUtils$send(
+							_1: _user$project$Wizard_SceneUtils$send(
 								_user$project$ReceptionKiosk_Types$WizardVector(
 									_user$project$ReceptionKiosk_Types$Push(_user$project$ReceptionKiosk_Types$VolunteerIn)))
 						};
@@ -22607,7 +22607,7 @@ var _user$project$ReceptionKiosk_ReasonForVisitScene$update = F2(
 						return {
 							ctor: '_Tuple2',
 							_0: sceneModel,
-							_1: _user$project$ReceptionKiosk_SceneUtils$send(
+							_1: _user$project$Wizard_SceneUtils$send(
 								_user$project$ReceptionKiosk_Types$WizardVector(
 									_user$project$ReceptionKiosk_Types$Push(_user$project$ReceptionKiosk_Types$CheckInDone)))
 						};
@@ -22666,7 +22666,7 @@ var _user$project$ReceptionKiosk_NewMemberScene$ageChoice = function (kioskModel
 		{ctor: '[]'},
 		{
 			ctor: '::',
-			_0: _user$project$ReceptionKiosk_SceneUtils$vspace(40),
+			_0: _user$project$Wizard_SceneUtils$vspace(40),
 			_1: {
 				ctor: '::',
 				_0: A5(
@@ -22697,7 +22697,7 @@ var _user$project$ReceptionKiosk_NewMemberScene$ageChoice = function (kioskModel
 					}),
 				_1: {
 					ctor: '::',
-					_0: _user$project$ReceptionKiosk_SceneUtils$vspace(30),
+					_0: _user$project$Wizard_SceneUtils$vspace(30),
 					_1: {
 						ctor: '::',
 						_0: A5(
@@ -22737,7 +22737,7 @@ var _user$project$ReceptionKiosk_NewMemberScene$ageChoice = function (kioskModel
 							}),
 						_1: {
 							ctor: '::',
-							_0: _user$project$ReceptionKiosk_SceneUtils$vspace(10),
+							_0: _user$project$Wizard_SceneUtils$vspace(10),
 							_1: {ctor: '[]'}
 						}
 					}
@@ -22748,7 +22748,7 @@ var _user$project$ReceptionKiosk_NewMemberScene$ageChoice = function (kioskModel
 var _user$project$ReceptionKiosk_NewMemberScene$view = function (kioskModel) {
 	var sceneModel = kioskModel.newMemberModel;
 	return A5(
-		_user$project$ReceptionKiosk_SceneUtils$genericScene,
+		_user$project$Wizard_SceneUtils$genericScene,
 		kioskModel,
 		'Let\'s Create an Account!',
 		'Please tell us about yourself:',
@@ -22758,7 +22758,7 @@ var _user$project$ReceptionKiosk_NewMemberScene$view = function (kioskModel) {
 			{
 				ctor: '::',
 				_0: A5(
-					_user$project$ReceptionKiosk_SceneUtils$sceneTextField,
+					_user$project$Wizard_SceneUtils$sceneTextField,
 					kioskModel,
 					2,
 					'Your first name',
@@ -22769,11 +22769,11 @@ var _user$project$ReceptionKiosk_NewMemberScene$view = function (kioskModel) {
 					}),
 				_1: {
 					ctor: '::',
-					_0: _user$project$ReceptionKiosk_SceneUtils$vspace(0),
+					_0: _user$project$Wizard_SceneUtils$vspace(0),
 					_1: {
 						ctor: '::',
 						_0: A5(
-							_user$project$ReceptionKiosk_SceneUtils$sceneTextField,
+							_user$project$Wizard_SceneUtils$sceneTextField,
 							kioskModel,
 							3,
 							'Your last name',
@@ -22784,11 +22784,11 @@ var _user$project$ReceptionKiosk_NewMemberScene$view = function (kioskModel) {
 							}),
 						_1: {
 							ctor: '::',
-							_0: _user$project$ReceptionKiosk_SceneUtils$vspace(0),
+							_0: _user$project$Wizard_SceneUtils$vspace(0),
 							_1: {
 								ctor: '::',
 								_0: A5(
-									_user$project$ReceptionKiosk_SceneUtils$sceneEmailField,
+									_user$project$Wizard_SceneUtils$sceneEmailField,
 									kioskModel,
 									4,
 									'Your email address',
@@ -22799,19 +22799,19 @@ var _user$project$ReceptionKiosk_NewMemberScene$view = function (kioskModel) {
 									}),
 								_1: {
 									ctor: '::',
-									_0: _user$project$ReceptionKiosk_SceneUtils$vspace(0),
+									_0: _user$project$Wizard_SceneUtils$vspace(0),
 									_1: {
 										ctor: '::',
 										_0: _user$project$ReceptionKiosk_NewMemberScene$ageChoice(kioskModel),
 										_1: {
 											ctor: '::',
-											_0: _user$project$ReceptionKiosk_SceneUtils$vspace(
+											_0: _user$project$Wizard_SceneUtils$vspace(
 												(_elm_lang$core$Native_Utils.cmp(
 													_elm_lang$core$List$length(sceneModel.badNews),
 													0) > 0) ? 40 : 0),
 											_1: {
 												ctor: '::',
-												_0: _user$project$ReceptionKiosk_SceneUtils$formatBadNews(sceneModel.badNews),
+												_0: _user$project$Wizard_SceneUtils$formatBadNews(sceneModel.badNews),
 												_1: {ctor: '[]'}
 											}
 										}
@@ -22825,7 +22825,7 @@ var _user$project$ReceptionKiosk_NewMemberScene$view = function (kioskModel) {
 		{
 			ctor: '::',
 			_0: A2(
-				_user$project$ReceptionKiosk_SceneUtils$ButtonSpec,
+				_user$project$Wizard_SceneUtils$ButtonSpec,
 				'OK',
 				_user$project$ReceptionKiosk_Types$NewMemberVector(_user$project$ReceptionKiosk_Types$Validate)),
 			_1: {ctor: '[]'}
@@ -22957,7 +22957,7 @@ var _user$project$ReceptionKiosk_NewMemberScene$update = F2(
 							_0: _elm_lang$core$Native_Utils.update(
 								sceneModel,
 								{userIds: userIds}),
-							_1: _user$project$ReceptionKiosk_SceneUtils$send(
+							_1: _user$project$Wizard_SceneUtils$send(
 								_user$project$ReceptionKiosk_Types$WizardVector(
 									_user$project$ReceptionKiosk_Types$Push(_user$project$ReceptionKiosk_Types$EmailInUse)))
 						};
@@ -22965,7 +22965,7 @@ var _user$project$ReceptionKiosk_NewMemberScene$update = F2(
 						return {
 							ctor: '_Tuple2',
 							_0: sceneModel,
-							_1: _user$project$ReceptionKiosk_SceneUtils$send(
+							_1: _user$project$Wizard_SceneUtils$send(
 								_user$project$ReceptionKiosk_Types$WizardVector(
 									_user$project$ReceptionKiosk_Types$Push(_user$project$ReceptionKiosk_Types$NewUser)))
 						};
@@ -23010,7 +23010,7 @@ var _user$project$ReceptionKiosk_NewMemberScene$NewMemberModel = F6(
 var _user$project$ReceptionKiosk_NewUserScene$view = function (kioskModel) {
 	var sceneModel = kioskModel.newUserModel;
 	return A5(
-		_user$project$ReceptionKiosk_SceneUtils$genericScene,
+		_user$project$Wizard_SceneUtils$genericScene,
 		kioskModel,
 		'Login Details',
 		'Choose an id and password for our website:',
@@ -23020,7 +23020,7 @@ var _user$project$ReceptionKiosk_NewUserScene$view = function (kioskModel) {
 			{
 				ctor: '::',
 				_0: A5(
-					_user$project$ReceptionKiosk_SceneUtils$sceneTextField,
+					_user$project$Wizard_SceneUtils$sceneTextField,
 					kioskModel,
 					6,
 					'Choose a login id',
@@ -23031,11 +23031,11 @@ var _user$project$ReceptionKiosk_NewUserScene$view = function (kioskModel) {
 					}),
 				_1: {
 					ctor: '::',
-					_0: _user$project$ReceptionKiosk_SceneUtils$vspace(0),
+					_0: _user$project$Wizard_SceneUtils$vspace(0),
 					_1: {
 						ctor: '::',
 						_0: A5(
-							_user$project$ReceptionKiosk_SceneUtils$scenePasswordField,
+							_user$project$Wizard_SceneUtils$scenePasswordField,
 							kioskModel,
 							7,
 							'Choose a password',
@@ -23046,11 +23046,11 @@ var _user$project$ReceptionKiosk_NewUserScene$view = function (kioskModel) {
 							}),
 						_1: {
 							ctor: '::',
-							_0: _user$project$ReceptionKiosk_SceneUtils$vspace(0),
+							_0: _user$project$Wizard_SceneUtils$vspace(0),
 							_1: {
 								ctor: '::',
 								_0: A5(
-									_user$project$ReceptionKiosk_SceneUtils$scenePasswordField,
+									_user$project$Wizard_SceneUtils$scenePasswordField,
 									kioskModel,
 									8,
 									'Type password again',
@@ -23061,10 +23061,10 @@ var _user$project$ReceptionKiosk_NewUserScene$view = function (kioskModel) {
 									}),
 								_1: {
 									ctor: '::',
-									_0: _user$project$ReceptionKiosk_SceneUtils$vspace(30),
+									_0: _user$project$Wizard_SceneUtils$vspace(30),
 									_1: {
 										ctor: '::',
-										_0: _user$project$ReceptionKiosk_SceneUtils$formatBadNews(sceneModel.badNews),
+										_0: _user$project$Wizard_SceneUtils$formatBadNews(sceneModel.badNews),
 										_1: {ctor: '[]'}
 									}
 								}
@@ -23076,7 +23076,7 @@ var _user$project$ReceptionKiosk_NewUserScene$view = function (kioskModel) {
 		{
 			ctor: '::',
 			_0: A2(
-				_user$project$ReceptionKiosk_SceneUtils$ButtonSpec,
+				_user$project$Wizard_SceneUtils$ButtonSpec,
 				'OK',
 				_user$project$ReceptionKiosk_Types$NewUserVector(_user$project$ReceptionKiosk_Types$ValidateUserNameAndPw)),
 			_1: {ctor: '[]'}
@@ -23113,7 +23113,7 @@ var _user$project$ReceptionKiosk_NewUserScene$validateUserNameUnique = F2(
 					{
 						badNews: {ctor: '[]'}
 					}),
-				_1: _user$project$ReceptionKiosk_SceneUtils$send(
+				_1: _user$project$Wizard_SceneUtils$send(
 					_user$project$ReceptionKiosk_Types$WizardVector(
 						_user$project$ReceptionKiosk_Types$Push(_user$project$ReceptionKiosk_Types$Waiver)))
 			};
@@ -23282,13 +23282,13 @@ var _user$project$ReceptionKiosk_WaiverScene$waiverHtml = {
 			_0: _elm_lang$html$Html_Attributes$style(
 				{
 					ctor: '::',
-					_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'font-size', '20pt'),
+					_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'font-size', '20pt'),
 					_1: {
 						ctor: '::',
-						_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'font-weight', 'bold'),
+						_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'font-weight', 'bold'),
 						_1: {
 							ctor: '::',
-							_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'margin-top', '10px'),
+							_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'margin-top', '10px'),
 							_1: {ctor: '[]'}
 						}
 					}
@@ -23320,10 +23320,10 @@ var _user$project$ReceptionKiosk_WaiverScene$waiverHtml = {
 				_0: _elm_lang$html$Html_Attributes$style(
 					{
 						ctor: '::',
-						_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'text-align', 'left'),
+						_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'text-align', 'left'),
 						_1: {
 							ctor: '::',
-							_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'margin-top', '20px'),
+							_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'margin-top', '20px'),
 							_1: {ctor: '[]'}
 						}
 					}),
@@ -23338,10 +23338,10 @@ var _user$project$ReceptionKiosk_WaiverScene$waiverHtml = {
 						_0: _elm_lang$html$Html_Attributes$style(
 							{
 								ctor: '::',
-								_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'font-size', '16pt'),
+								_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'font-size', '16pt'),
 								_1: {
 									ctor: '::',
-									_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'line-height', '15pt'),
+									_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'line-height', '15pt'),
 									_1: {ctor: '[]'}
 								}
 							}),
@@ -23361,10 +23361,10 @@ var _user$project$ReceptionKiosk_WaiverScene$waiverHtml = {
 							_0: _elm_lang$html$Html_Attributes$style(
 								{
 									ctor: '::',
-									_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'font-size', '16pt'),
+									_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'font-size', '16pt'),
 									_1: {
 										ctor: '::',
-										_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'line-height', '15pt'),
+										_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'line-height', '15pt'),
 										_1: {ctor: '[]'}
 									}
 								}),
@@ -23379,7 +23379,7 @@ var _user$project$ReceptionKiosk_WaiverScene$waiverHtml = {
 									_0: _elm_lang$html$Html_Attributes$style(
 										{
 											ctor: '::',
-											_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'margin-bottom', '15px'),
+											_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'margin-bottom', '15px'),
 											_1: {ctor: '[]'}
 										}),
 									_1: {ctor: '[]'}
@@ -23398,7 +23398,7 @@ var _user$project$ReceptionKiosk_WaiverScene$waiverHtml = {
 										_0: _elm_lang$html$Html_Attributes$style(
 											{
 												ctor: '::',
-												_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'margin-bottom', '15px'),
+												_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'margin-bottom', '15px'),
 												_1: {ctor: '[]'}
 											}),
 										_1: {ctor: '[]'}
@@ -23446,10 +23446,10 @@ var _user$project$ReceptionKiosk_WaiverScene$waiverHtml = {
 								_0: _elm_lang$html$Html_Attributes$style(
 									{
 										ctor: '::',
-										_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'font-size', '16pt'),
+										_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'font-size', '16pt'),
 										_1: {
 											ctor: '::',
-											_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'line-height', '15pt'),
+											_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'line-height', '15pt'),
 											_1: {ctor: '[]'}
 										}
 									}),
@@ -23481,25 +23481,25 @@ var _user$project$ReceptionKiosk_WaiverScene$waiverHtml = {
 var _user$project$ReceptionKiosk_WaiverScene$signaturePadStyle = _elm_lang$html$Html_Attributes$style(
 	{
 		ctor: '::',
-		_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'height', '200px'),
+		_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'height', '200px'),
 		_1: {
 			ctor: '::',
-			_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'width', '760px'),
+			_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'width', '760px'),
 			_1: {
 				ctor: '::',
-				_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'border', '1px solid #bbbbbb'),
+				_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'border', '1px solid #bbbbbb'),
 				_1: {
 					ctor: '::',
-					_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'cursor', 'crosshair'),
+					_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'cursor', 'crosshair'),
 					_1: {
 						ctor: '::',
-						_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'touch-action', 'none'),
+						_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'touch-action', 'none'),
 						_1: {
 							ctor: '::',
-							_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'margin-top', '50px'),
+							_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'margin-top', '50px'),
 							_1: {
 								ctor: '::',
-								_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'margin-bottom', '50px'),
+								_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'margin-bottom', '50px'),
 								_1: {ctor: '[]'}
 							}
 						}
@@ -23513,27 +23513,27 @@ var _user$project$ReceptionKiosk_WaiverScene$waiverBoxStyle = function (isSignin
 		{
 			ctor: '::',
 			_0: A2(
-				_user$project$ReceptionKiosk_SceneUtils_ops['=>'],
+				_user$project$Wizard_SceneUtils_ops['=>'],
 				'height',
 				isSigning ? '200px' : '600px'),
 			_1: {
 				ctor: '::',
-				_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'overflow-y', 'scroll'),
+				_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'overflow-y', 'scroll'),
 				_1: {
 					ctor: '::',
-					_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'margin-left', '20px'),
+					_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'margin-left', '20px'),
 					_1: {
 						ctor: '::',
-						_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'margin-right', '20px'),
+						_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'margin-right', '20px'),
 						_1: {
 							ctor: '::',
-							_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'border', '1px solid #bbbbbb'),
+							_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'border', '1px solid #bbbbbb'),
 							_1: {
 								ctor: '::',
-								_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'font-size', '16pt'),
+								_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'font-size', '16pt'),
 								_1: {
 									ctor: '::',
-									_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'padding', '5px'),
+									_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'padding', '5px'),
 									_1: {ctor: '[]'}
 								}
 							}
@@ -23546,7 +23546,7 @@ var _user$project$ReceptionKiosk_WaiverScene$waiverBoxStyle = function (isSignin
 var _user$project$ReceptionKiosk_WaiverScene$view = function (kioskModel) {
 	var sceneModel = kioskModel.waiverModel;
 	return A5(
-		_user$project$ReceptionKiosk_SceneUtils$genericScene,
+		_user$project$Wizard_SceneUtils$genericScene,
 		kioskModel,
 		A2(
 			_elm_lang$core$Basics_ops['++'],
@@ -23558,7 +23558,7 @@ var _user$project$ReceptionKiosk_WaiverScene$view = function (kioskModel) {
 			{ctor: '[]'},
 			{
 				ctor: '::',
-				_0: _user$project$ReceptionKiosk_SceneUtils$vspace(20),
+				_0: _user$project$Wizard_SceneUtils$vspace(20),
 				_1: {
 					ctor: '::',
 					_0: A2(
@@ -23583,7 +23583,7 @@ var _user$project$ReceptionKiosk_WaiverScene$view = function (kioskModel) {
 									{
 										ctor: '::',
 										_0: A2(
-											_user$project$ReceptionKiosk_SceneUtils_ops['=>'],
+											_user$project$Wizard_SceneUtils_ops['=>'],
 											'display',
 											sceneModel.isSigning ? 'block' : 'none'),
 										_1: {ctor: '[]'}
@@ -23616,7 +23616,7 @@ var _user$project$ReceptionKiosk_WaiverScene$view = function (kioskModel) {
 							}),
 						_1: {
 							ctor: '::',
-							_0: _user$project$ReceptionKiosk_SceneUtils$formatBadNews(sceneModel.badNews),
+							_0: _user$project$Wizard_SceneUtils$formatBadNews(sceneModel.badNews),
 							_1: {ctor: '[]'}
 						}
 					}
@@ -23625,13 +23625,13 @@ var _user$project$ReceptionKiosk_WaiverScene$view = function (kioskModel) {
 		sceneModel.isSigning ? {
 			ctor: '::',
 			_0: A2(
-				_user$project$ReceptionKiosk_SceneUtils$ButtonSpec,
+				_user$project$Wizard_SceneUtils$ButtonSpec,
 				'Accept',
 				_user$project$ReceptionKiosk_Types$WaiverVector(_user$project$ReceptionKiosk_Types$GetSignature)),
 			_1: {
 				ctor: '::',
 				_0: A2(
-					_user$project$ReceptionKiosk_SceneUtils$ButtonSpec,
+					_user$project$Wizard_SceneUtils$ButtonSpec,
 					'Clear',
 					_user$project$ReceptionKiosk_Types$WaiverVector(
 						_user$project$ReceptionKiosk_Types$ClearSignaturePad('signature-pad'))),
@@ -23640,7 +23640,7 @@ var _user$project$ReceptionKiosk_WaiverScene$view = function (kioskModel) {
 		} : {
 			ctor: '::',
 			_0: A2(
-				_user$project$ReceptionKiosk_SceneUtils$ButtonSpec,
+				_user$project$Wizard_SceneUtils$ButtonSpec,
 				'Sign',
 				_user$project$ReceptionKiosk_Types$WaiverVector(
 					_user$project$ReceptionKiosk_Types$ShowSignaturePad('signature-pad'))),
@@ -23711,7 +23711,7 @@ var _user$project$ReceptionKiosk_WaiverScene$update = F2(
 					_0: _elm_lang$core$Native_Utils.update(
 						sceneModel,
 						{signature: _p0._0}),
-					_1: _user$project$ReceptionKiosk_SceneUtils$send(
+					_1: _user$project$Wizard_SceneUtils$send(
 						_user$project$ReceptionKiosk_Types$WizardVector(
 							_user$project$ReceptionKiosk_Types$Push(_user$project$ReceptionKiosk_Types$CreatingAcct)))
 				};
@@ -23738,19 +23738,19 @@ var _user$project$ReceptionKiosk_WaiverScene$WaiverModel = F3(
 var _user$project$ReceptionKiosk_HowDidYouHearScene$howDidYouHearStyle = _elm_lang$html$Html_Attributes$style(
 	{
 		ctor: '::',
-		_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'width', '350px'),
+		_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'width', '350px'),
 		_1: {
 			ctor: '::',
-			_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'margin-left', 'auto'),
+			_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'margin-left', 'auto'),
 			_1: {
 				ctor: '::',
-				_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'margin-right', 'auto'),
+				_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'margin-right', 'auto'),
 				_1: {
 					ctor: '::',
-					_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'padding-left', '125px'),
+					_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'padding-left', '125px'),
 					_1: {
 						ctor: '::',
-						_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'text-align', 'left'),
+						_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'text-align', 'left'),
 						_1: {ctor: '[]'}
 					}
 				}
@@ -23777,7 +23777,7 @@ var _user$project$ReceptionKiosk_HowDidYouHearScene$howDidYouHearChoices = funct
 			_elm_lang$core$Basics_ops['++'],
 			{
 				ctor: '::',
-				_0: _user$project$ReceptionKiosk_SceneUtils$vspace(30),
+				_0: _user$project$Wizard_SceneUtils$vspace(30),
 				_1: {ctor: '[]'}
 			},
 			A2(
@@ -23816,7 +23816,7 @@ var _user$project$ReceptionKiosk_HowDidYouHearScene$howDidYouHearChoices = funct
 								}),
 							_1: {
 								ctor: '::',
-								_0: _user$project$ReceptionKiosk_SceneUtils$vspace(30),
+								_0: _user$project$Wizard_SceneUtils$vspace(30),
 								_1: {ctor: '[]'}
 							}
 						});
@@ -23825,7 +23825,7 @@ var _user$project$ReceptionKiosk_HowDidYouHearScene$howDidYouHearChoices = funct
 };
 var _user$project$ReceptionKiosk_HowDidYouHearScene$view = function (kioskModel) {
 	return A5(
-		_user$project$ReceptionKiosk_SceneUtils$genericScene,
+		_user$project$Wizard_SceneUtils$genericScene,
 		kioskModel,
 		'Just Wondering',
 		'How did you hear about us?',
@@ -23833,7 +23833,7 @@ var _user$project$ReceptionKiosk_HowDidYouHearScene$view = function (kioskModel)
 		{
 			ctor: '::',
 			_0: A2(
-				_user$project$ReceptionKiosk_SceneUtils$ButtonSpec,
+				_user$project$Wizard_SceneUtils$ButtonSpec,
 				'OK',
 				_user$project$ReceptionKiosk_Types$WizardVector(
 					_user$project$ReceptionKiosk_Types$Push(_user$project$ReceptionKiosk_Types$NewMember))),
@@ -23916,7 +23916,7 @@ var _user$project$ReceptionKiosk_CreatingAcctScene$tick = F2(
 var _user$project$ReceptionKiosk_CreatingAcctScene$view = function (kioskModel) {
 	var sceneModel = kioskModel.creatingAcctModel;
 	return A5(
-		_user$project$ReceptionKiosk_SceneUtils$genericScene,
+		_user$project$Wizard_SceneUtils$genericScene,
 		kioskModel,
 		'Creating Your Account!',
 		'One moment please',
@@ -23925,13 +23925,13 @@ var _user$project$ReceptionKiosk_CreatingAcctScene$view = function (kioskModel) 
 			{ctor: '[]'},
 			_elm_lang$core$List$isEmpty(sceneModel.badNews) ? {
 				ctor: '::',
-				_0: _user$project$ReceptionKiosk_SceneUtils$vspace(40),
+				_0: _user$project$Wizard_SceneUtils$vspace(40),
 				_1: {
 					ctor: '::',
 					_0: _elm_lang$html$Html$text('Working'),
 					_1: {
 						ctor: '::',
-						_0: _user$project$ReceptionKiosk_SceneUtils$vspace(20),
+						_0: _user$project$Wizard_SceneUtils$vspace(20),
 						_1: {
 							ctor: '::',
 							_0: _elm_lang$html$Html$text(
@@ -23942,10 +23942,10 @@ var _user$project$ReceptionKiosk_CreatingAcctScene$view = function (kioskModel) 
 				}
 			} : {
 				ctor: '::',
-				_0: _user$project$ReceptionKiosk_SceneUtils$vspace(40),
+				_0: _user$project$Wizard_SceneUtils$vspace(40),
 				_1: {
 					ctor: '::',
-					_0: _user$project$ReceptionKiosk_SceneUtils$formatBadNews(sceneModel.badNews),
+					_0: _user$project$Wizard_SceneUtils$formatBadNews(sceneModel.badNews),
 					_1: {ctor: '[]'}
 				}
 			}),
@@ -23962,7 +23962,7 @@ var _user$project$ReceptionKiosk_CreatingAcctScene$infoToXisAcct = function (kio
 	return _elm_lang$core$Platform_Cmd$batch(
 		{
 			ctor: '::',
-			_0: _user$project$ReceptionKiosk_SceneUtils$send(
+			_0: _user$project$Wizard_SceneUtils$send(
 				_user$project$ReceptionKiosk_Types$WizardVector(
 					_user$project$ReceptionKiosk_Types$RebaseTo(_user$project$ReceptionKiosk_Types$SignUpDone))),
 			_1: {
@@ -24163,7 +24163,7 @@ var _user$project$ReceptionKiosk_CreatingAcctScene$CreatingAcctModel = F2(
 
 var _user$project$ReceptionKiosk_EmailInUseScene$view = function (kioskModel) {
 	return A5(
-		_user$project$ReceptionKiosk_SceneUtils$genericScene,
+		_user$project$Wizard_SceneUtils$genericScene,
 		kioskModel,
 		'Already Registered!',
 		'',
@@ -24171,20 +24171,20 @@ var _user$project$ReceptionKiosk_EmailInUseScene$view = function (kioskModel) {
 			_elm_lang$html$Html$div,
 			{
 				ctor: '::',
-				_0: _user$project$ReceptionKiosk_SceneUtils$sceneTextStyle,
+				_0: _user$project$Wizard_SceneUtils$sceneTextStyle,
 				_1: {ctor: '[]'}
 			},
 			A2(
 				_elm_lang$core$Basics_ops['++'],
 				{
 					ctor: '::',
-					_0: _user$project$ReceptionKiosk_SceneUtils$vspace(30),
+					_0: _user$project$Wizard_SceneUtils$vspace(30),
 					_1: {
 						ctor: '::',
 						_0: _elm_lang$html$Html$text('The following accounts are using your email address:'),
 						_1: {
 							ctor: '::',
-							_0: _user$project$ReceptionKiosk_SceneUtils$vspace(30),
+							_0: _user$project$Wizard_SceneUtils$vspace(30),
 							_1: {ctor: '[]'}
 						}
 					}
@@ -24198,7 +24198,7 @@ var _user$project$ReceptionKiosk_EmailInUseScene$view = function (kioskModel) {
 								_elm_lang$html$Html$span,
 								{
 									ctor: '::',
-									_0: _user$project$ReceptionKiosk_SceneUtils$userIdStyle,
+									_0: _user$project$Wizard_SceneUtils$userIdStyle,
 									_1: {ctor: '[]'}
 								},
 								{
@@ -24210,7 +24210,7 @@ var _user$project$ReceptionKiosk_EmailInUseScene$view = function (kioskModel) {
 						kioskModel.newMemberModel.userIds),
 					{
 						ctor: '::',
-						_0: _user$project$ReceptionKiosk_SceneUtils$vspace(50),
+						_0: _user$project$Wizard_SceneUtils$vspace(50),
 						_1: {
 							ctor: '::',
 							_0: _elm_lang$html$Html$text('If you recognize one of them as yours,'),
@@ -24225,20 +24225,20 @@ var _user$project$ReceptionKiosk_EmailInUseScene$view = function (kioskModel) {
 									_0: _elm_lang$html$Html$text('please remember it and use it to:'),
 									_1: {
 										ctor: '::',
-										_0: _user$project$ReceptionKiosk_SceneUtils$vspace(20),
+										_0: _user$project$Wizard_SceneUtils$vspace(20),
 										_1: {
 											ctor: '::',
 											_0: A2(
-												_user$project$ReceptionKiosk_SceneUtils$sceneButton,
+												_user$project$Wizard_SceneUtils$sceneButton,
 												kioskModel,
 												A2(
-													_user$project$ReceptionKiosk_SceneUtils$ButtonSpec,
+													_user$project$Wizard_SceneUtils$ButtonSpec,
 													'Check In',
 													_user$project$ReceptionKiosk_Types$WizardVector(
 														_user$project$ReceptionKiosk_Types$Push(_user$project$ReceptionKiosk_Types$CheckIn)))),
 											_1: {
 												ctor: '::',
-												_0: _user$project$ReceptionKiosk_SceneUtils$vspace(50),
+												_0: _user$project$Wizard_SceneUtils$vspace(50),
 												_1: {
 													ctor: '::',
 													_0: _elm_lang$html$Html$text('If you don\'t recognize any of them'),
@@ -24253,14 +24253,14 @@ var _user$project$ReceptionKiosk_EmailInUseScene$view = function (kioskModel) {
 															_0: _elm_lang$html$Html$text('please speak to a staff member.'),
 															_1: {
 																ctor: '::',
-																_0: _user$project$ReceptionKiosk_SceneUtils$vspace(20),
+																_0: _user$project$Wizard_SceneUtils$vspace(20),
 																_1: {
 																	ctor: '::',
 																	_0: A2(
-																		_user$project$ReceptionKiosk_SceneUtils$sceneButton,
+																		_user$project$Wizard_SceneUtils$sceneButton,
 																		kioskModel,
 																		A2(
-																			_user$project$ReceptionKiosk_SceneUtils$ButtonSpec,
+																			_user$project$Wizard_SceneUtils$ButtonSpec,
 																			'Ok',
 																			_user$project$ReceptionKiosk_Types$WizardVector(
 																				_user$project$ReceptionKiosk_Types$Push(_user$project$ReceptionKiosk_Types$Welcome)))),
@@ -24291,7 +24291,7 @@ var _user$project$ReceptionKiosk_EmailInUseScene$EmailInUseModel = {};
 var _user$project$ReceptionKiosk_SignUpDoneScene$view = function (kioskModel) {
 	var userModel = kioskModel.newUserModel;
 	return A5(
-		_user$project$ReceptionKiosk_SceneUtils$genericScene,
+		_user$project$Wizard_SceneUtils$genericScene,
 		kioskModel,
 		'Xerocraft Account Created!',
 		'Just one more thing...',
@@ -24299,12 +24299,12 @@ var _user$project$ReceptionKiosk_SignUpDoneScene$view = function (kioskModel) {
 			_elm_lang$html$Html$p,
 			{
 				ctor: '::',
-				_0: _user$project$ReceptionKiosk_SceneUtils$sceneTextStyle,
+				_0: _user$project$Wizard_SceneUtils$sceneTextStyle,
 				_1: {ctor: '[]'}
 			},
 			{
 				ctor: '::',
-				_0: _user$project$ReceptionKiosk_SceneUtils$vspace(30),
+				_0: _user$project$Wizard_SceneUtils$vspace(30),
 				_1: {
 					ctor: '::',
 					_0: _elm_lang$html$Html$text('You must check in each time you visit'),
@@ -24319,14 +24319,14 @@ var _user$project$ReceptionKiosk_SignUpDoneScene$view = function (kioskModel) {
 							_0: _elm_lang$html$Html$text('so please remember that your userid is:'),
 							_1: {
 								ctor: '::',
-								_0: _user$project$ReceptionKiosk_SceneUtils$vspace(40),
+								_0: _user$project$Wizard_SceneUtils$vspace(40),
 								_1: {
 									ctor: '::',
 									_0: A2(
 										_elm_lang$html$Html$span,
 										{
 											ctor: '::',
-											_0: _user$project$ReceptionKiosk_SceneUtils$userIdStyle,
+											_0: _user$project$Wizard_SceneUtils$userIdStyle,
 											_1: {ctor: '[]'}
 										},
 										{
@@ -24336,7 +24336,7 @@ var _user$project$ReceptionKiosk_SignUpDoneScene$view = function (kioskModel) {
 										}),
 									_1: {
 										ctor: '::',
-										_0: _user$project$ReceptionKiosk_SceneUtils$vspace(40),
+										_0: _user$project$Wizard_SceneUtils$vspace(40),
 										_1: {
 											ctor: '::',
 											_0: _elm_lang$html$Html$text('Click the button below to check in now!'),
@@ -24352,7 +24352,7 @@ var _user$project$ReceptionKiosk_SignUpDoneScene$view = function (kioskModel) {
 		{
 			ctor: '::',
 			_0: A2(
-				_user$project$ReceptionKiosk_SceneUtils$ButtonSpec,
+				_user$project$Wizard_SceneUtils$ButtonSpec,
 				'Check In',
 				_user$project$ReceptionKiosk_Types$WizardVector(
 					_user$project$ReceptionKiosk_Types$Push(_user$project$ReceptionKiosk_Types$CheckIn))),
@@ -24371,13 +24371,13 @@ var _user$project$ReceptionKiosk_SignUpDoneScene$SignUpDoneModel = {};
 var _user$project$ReceptionKiosk_VolunteerInScene$taskDivStyle = _elm_lang$html$Html_Attributes$style(
 	{
 		ctor: '::',
-		_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'background-color', '#eeeeee'),
+		_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'background-color', '#eeeeee'),
 		_1: {
 			ctor: '::',
-			_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'padding', '10px'),
+			_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'padding', '10px'),
 			_1: {
 				ctor: '::',
-				_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'margin', '10px'),
+				_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'margin', '10px'),
 				_1: {ctor: '[]'}
 			}
 		}
@@ -24385,16 +24385,16 @@ var _user$project$ReceptionKiosk_VolunteerInScene$taskDivStyle = _elm_lang$html$
 var _user$project$ReceptionKiosk_VolunteerInScene$volunteerInStyle = _elm_lang$html$Html_Attributes$style(
 	{
 		ctor: '::',
-		_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'width', '500px'),
+		_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'width', '500px'),
 		_1: {
 			ctor: '::',
-			_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'margin-left', 'auto'),
+			_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'margin-left', 'auto'),
 			_1: {
 				ctor: '::',
-				_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'margin-right', 'auto'),
+				_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'margin-right', 'auto'),
 				_1: {
 					ctor: '::',
-					_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'text-align', 'left'),
+					_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'text-align', 'left'),
 					_1: {ctor: '[]'}
 				}
 			}
@@ -24413,7 +24413,7 @@ var _user$project$ReceptionKiosk_VolunteerInScene$taskChoices = function (kioskM
 			_elm_lang$core$Basics_ops['++'],
 			{
 				ctor: '::',
-				_0: _user$project$ReceptionKiosk_SceneUtils$vspace(30),
+				_0: _user$project$Wizard_SceneUtils$vspace(30),
 				_1: {ctor: '[]'}
 			},
 			A2(
@@ -24468,7 +24468,7 @@ var _user$project$ReceptionKiosk_VolunteerInScene$taskChoices = function (kioskM
 };
 var _user$project$ReceptionKiosk_VolunteerInScene$listTasksScene = function (kioskModel) {
 	return A5(
-		_user$project$ReceptionKiosk_SceneUtils$genericScene,
+		_user$project$Wizard_SceneUtils$genericScene,
 		kioskModel,
 		'Choose a Task',
 		'Here are some you can work',
@@ -24476,7 +24476,7 @@ var _user$project$ReceptionKiosk_VolunteerInScene$listTasksScene = function (kio
 		{
 			ctor: '::',
 			_0: A2(
-				_user$project$ReceptionKiosk_SceneUtils$ButtonSpec,
+				_user$project$Wizard_SceneUtils$ButtonSpec,
 				'OK',
 				_user$project$ReceptionKiosk_Types$WizardVector(
 					_user$project$ReceptionKiosk_Types$Push(_user$project$ReceptionKiosk_Types$VolunteerInDone))),
@@ -24485,7 +24485,7 @@ var _user$project$ReceptionKiosk_VolunteerInScene$listTasksScene = function (kio
 };
 var _user$project$ReceptionKiosk_VolunteerInScene$noTasksScene = function (kioskModel) {
 	return A5(
-		_user$project$ReceptionKiosk_SceneUtils$genericScene,
+		_user$project$Wizard_SceneUtils$genericScene,
 		kioskModel,
 		'You Need a Task!',
 		'Please talk to a Staff Member',
@@ -24493,7 +24493,7 @@ var _user$project$ReceptionKiosk_VolunteerInScene$noTasksScene = function (kiosk
 		{
 			ctor: '::',
 			_0: A2(
-				_user$project$ReceptionKiosk_SceneUtils$ButtonSpec,
+				_user$project$Wizard_SceneUtils$ButtonSpec,
 				'OK',
 				_user$project$ReceptionKiosk_Types$WizardVector(
 					_user$project$ReceptionKiosk_Types$Push(_user$project$ReceptionKiosk_Types$VolunteerInDone))),
@@ -24585,7 +24585,7 @@ var _user$project$ReceptionKiosk_VolunteerInScene$VolunteerInModel = F3(
 
 var _user$project$ReceptionKiosk_VolunteerInDoneScene$view = function (model) {
 	return A5(
-		_user$project$ReceptionKiosk_SceneUtils$genericScene,
+		_user$project$Wizard_SceneUtils$genericScene,
 		model,
 		'You\'re Checked In',
 		'Here are your next steps',
@@ -24594,13 +24594,13 @@ var _user$project$ReceptionKiosk_VolunteerInDoneScene$view = function (model) {
 			{ctor: '[]'},
 			{
 				ctor: '::',
-				_0: _user$project$ReceptionKiosk_SceneUtils$vspace(50),
+				_0: _user$project$Wizard_SceneUtils$vspace(50),
 				_1: {
 					ctor: '::',
 					_0: _elm_lang$html$Html$text('Under Construction!'),
 					_1: {
 						ctor: '::',
-						_0: _user$project$ReceptionKiosk_SceneUtils$vspace(50),
+						_0: _user$project$Wizard_SceneUtils$vspace(50),
 						_1: {ctor: '[]'}
 					}
 				}
@@ -24608,7 +24608,7 @@ var _user$project$ReceptionKiosk_VolunteerInDoneScene$view = function (model) {
 		{
 			ctor: '::',
 			_0: A2(
-				_user$project$ReceptionKiosk_SceneUtils$ButtonSpec,
+				_user$project$Wizard_SceneUtils$ButtonSpec,
 				'Ok',
 				_user$project$ReceptionKiosk_Types$WizardVector(
 					_user$project$ReceptionKiosk_Types$Push(_user$project$ReceptionKiosk_Types$Welcome))),
@@ -24627,20 +24627,20 @@ var _user$project$ReceptionKiosk_VolunteerInDoneScene$VolunteerInDoneModel = {};
 var _user$project$ReceptionKiosk_WelcomeScene$bottomImgStyle = _elm_lang$html$Html_Attributes$style(
 	{
 		ctor: '::',
-		_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'text-align', 'center'),
+		_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'text-align', 'center'),
 		_1: {
 			ctor: '::',
-			_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'padding-left', '30px'),
+			_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'padding-left', '30px'),
 			_1: {
 				ctor: '::',
-				_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'padding-right', '0'),
+				_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'padding-right', '0'),
 				_1: {ctor: '[]'}
 			}
 		}
 	});
 var _user$project$ReceptionKiosk_WelcomeScene$view = function (kioskModel) {
 	return A5(
-		_user$project$ReceptionKiosk_SceneUtils$genericScene,
+		_user$project$Wizard_SceneUtils$genericScene,
 		kioskModel,
 		'Welcome!',
 		'Choose one of the following:',
@@ -24648,60 +24648,60 @@ var _user$project$ReceptionKiosk_WelcomeScene$view = function (kioskModel) {
 			_elm_lang$html$Html$div,
 			{
 				ctor: '::',
-				_0: _user$project$ReceptionKiosk_SceneUtils$sceneTextStyle,
+				_0: _user$project$Wizard_SceneUtils$sceneTextStyle,
 				_1: {ctor: '[]'}
 			},
 			{
 				ctor: '::',
-				_0: _user$project$ReceptionKiosk_SceneUtils$vspace(50),
+				_0: _user$project$Wizard_SceneUtils$vspace(50),
 				_1: {
 					ctor: '::',
 					_0: _elm_lang$html$Html$text('If you\'ve never signed up here or on our website:'),
 					_1: {
 						ctor: '::',
-						_0: _user$project$ReceptionKiosk_SceneUtils$vspace(20),
+						_0: _user$project$Wizard_SceneUtils$vspace(20),
 						_1: {
 							ctor: '::',
 							_0: A2(
-								_user$project$ReceptionKiosk_SceneUtils$sceneButton,
+								_user$project$Wizard_SceneUtils$sceneButton,
 								kioskModel,
 								A2(
-									_user$project$ReceptionKiosk_SceneUtils$ButtonSpec,
+									_user$project$Wizard_SceneUtils$ButtonSpec,
 									'I\'m new!',
 									_user$project$ReceptionKiosk_Types$WizardVector(
 										_user$project$ReceptionKiosk_Types$Push(_user$project$ReceptionKiosk_Types$HowDidYouHear)))),
 							_1: {
 								ctor: '::',
-								_0: _user$project$ReceptionKiosk_SceneUtils$vspace(70),
+								_0: _user$project$Wizard_SceneUtils$vspace(70),
 								_1: {
 									ctor: '::',
 									_0: _elm_lang$html$Html$text('If you\'ve already signed up here or on our website:'),
 									_1: {
 										ctor: '::',
-										_0: _user$project$ReceptionKiosk_SceneUtils$vspace(20),
+										_0: _user$project$Wizard_SceneUtils$vspace(20),
 										_1: {
 											ctor: '::',
 											_0: A2(
-												_user$project$ReceptionKiosk_SceneUtils$sceneButton,
+												_user$project$Wizard_SceneUtils$sceneButton,
 												kioskModel,
 												A2(
-													_user$project$ReceptionKiosk_SceneUtils$ButtonSpec,
+													_user$project$Wizard_SceneUtils$ButtonSpec,
 													'Check In',
 													_user$project$ReceptionKiosk_Types$WizardVector(
 														_user$project$ReceptionKiosk_Types$Push(_user$project$ReceptionKiosk_Types$CheckIn)))),
 											_1: {
 												ctor: '::',
 												_0: A2(
-													_user$project$ReceptionKiosk_SceneUtils$sceneButton,
+													_user$project$Wizard_SceneUtils$sceneButton,
 													kioskModel,
 													A2(
-														_user$project$ReceptionKiosk_SceneUtils$ButtonSpec,
+														_user$project$Wizard_SceneUtils$ButtonSpec,
 														'Check Out',
 														_user$project$ReceptionKiosk_Types$WizardVector(
 															_user$project$ReceptionKiosk_Types$Push(_user$project$ReceptionKiosk_Types$CheckOut)))),
 												_1: {
 													ctor: '::',
-													_0: _user$project$ReceptionKiosk_SceneUtils$vspace(150),
+													_0: _user$project$Wizard_SceneUtils$vspace(150),
 													_1: {
 														ctor: '::',
 														_0: A2(
@@ -24738,7 +24738,7 @@ var _user$project$ReceptionKiosk_WelcomeScene$update = F2(
 		return {
 			ctor: '_Tuple2',
 			_0: sceneModel,
-			_1: _user$project$ReceptionKiosk_SceneUtils$send(
+			_1: _user$project$Wizard_SceneUtils$send(
 				_user$project$ReceptionKiosk_Types$WizardVector(_user$project$ReceptionKiosk_Types$Reset))
 		};
 	});

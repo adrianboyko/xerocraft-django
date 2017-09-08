@@ -13,8 +13,8 @@ import String.Extra exposing (..)
 -- Local
 import MembersApi as MembersApi
 import XerocraftApi as XcApi
+import Wizard.SceneUtils exposing (..)
 import ReceptionKiosk.Types exposing (..)
-import ReceptionKiosk.SceneUtils exposing (..)
 import ReceptionKiosk.ReasonForVisitScene exposing (ReasonForVisitModel)
 import ReceptionKiosk.NewMemberScene exposing (NewMemberModel)
 import ReceptionKiosk.NewUserScene exposing (NewUserModel)

@@ -1,5 +1,5 @@
 
-module ReceptionKiosk.SceneUtils exposing (..)
+module Wizard.SceneUtils exposing (..)
 
 -- Standard
 import Html exposing (Html, div, img, text, p, span)
@@ -25,7 +25,7 @@ send msg =
   Task.succeed msg
   |> Task.perform identity
 
-type alias SceneUtilModel a = {a|mdl : Mat.Model, flags : Flags, sceneStack : Nonempty Scene}
+type alias SceneUtilModel a = {a | mdl : Mat.Model, flags : Flags, sceneStack : Nonempty Scene}
 
 -----------------------------------------------------------------------------
 -- VIEW UTILITIES
@@ -56,7 +56,7 @@ frameNavButtons model =
       ]
 
 
-genericScene : (SceneUtilModel a) -> String -> String -> Html Msg -> List (ButtonSpec Msg) -> Html Msg
+genericScene : SceneUtilModel a -> String -> String -> Html Msg -> List (ButtonSpec Msg) -> Html Msg
 genericScene model title subtitle extraContent buttonSpecs =
   let sceneHtml =
     [ p [sceneTitleStyle] [text title]

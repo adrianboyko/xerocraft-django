@@ -12,10 +12,10 @@ import Material.Options as Options exposing (css)
 import Material.List as Lists
 
 -- Local
+import TaskApi exposing (..)
+import Wizard.SceneUtils exposing (..)
 import ReceptionKiosk.Types exposing (..)
 import ReceptionKiosk.CheckInScene exposing (CheckInModel)
-import ReceptionKiosk.SceneUtils exposing (..)
-import TaskApi exposing (..)
 
 
 

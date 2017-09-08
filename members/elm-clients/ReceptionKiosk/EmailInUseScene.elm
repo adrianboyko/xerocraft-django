@@ -9,8 +9,8 @@ import Color exposing (rgb)
 -- Third Party
 
 -- Local
+import Wizard.SceneUtils exposing (..)
 import ReceptionKiosk.Types exposing (..)
-import ReceptionKiosk.SceneUtils exposing (..)
 import ReceptionKiosk.NewMemberScene exposing (NewMemberModel)
 
 -----------------------------------------------------------------------------

@@ -9,8 +9,8 @@ import Http
 
 -- Local
 import MembersApi as MembersApi
+import Wizard.SceneUtils exposing (..)
 import ReceptionKiosk.Types exposing (..)
-import ReceptionKiosk.SceneUtils exposing (..)
 import ReceptionKiosk.NewMemberScene exposing (NewMemberModel)
 
 -----------------------------------------------------------------------------

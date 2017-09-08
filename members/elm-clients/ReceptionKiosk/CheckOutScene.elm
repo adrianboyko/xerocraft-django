@@ -12,7 +12,7 @@ import Material.Options as Options exposing (css)
 
 -- Local
 import ReceptionKiosk.Types exposing (..)
-import ReceptionKiosk.SceneUtils exposing (..)
+import Wizard.SceneUtils exposing (..)
 import MembersApi as MembersApi
 
 -----------------------------------------------------------------------------
