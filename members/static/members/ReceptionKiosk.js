@@ -24583,25 +24583,82 @@ var _user$project$ReceptionKiosk_VolunteerInScene$VolunteerInModel = F3(
 		return {workableTasks: a, selectedTask: b, badNews: c};
 	});
 
-var _user$project$ReceptionKiosk_VolunteerInDoneScene$view = function (model) {
-	return A5(
-		_user$project$Wizard_SceneUtils$genericScene,
-		model,
-		'You\'re Checked In',
-		'Here are your next steps',
-		A2(
-			_elm_lang$html$Html$div,
-			{ctor: '[]'},
-			{
+var _user$project$ReceptionKiosk_VolunteerInDoneScene$instructionPara = _elm_lang$html$Html_Attributes$style(
+	{
+		ctor: '::',
+		_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'font-size', '16pt'),
+		_1: {ctor: '[]'}
+	});
+var _user$project$ReceptionKiosk_VolunteerInDoneScene$instructionDiv = _elm_lang$html$Html_Attributes$style(
+	{
+		ctor: '::',
+		_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'width', '650px'),
+		_1: {
+			ctor: '::',
+			_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'margin-left', 'auto'),
+			_1: {
 				ctor: '::',
-				_0: _user$project$Wizard_SceneUtils$vspace(50),
+				_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'margin-right', 'auto'),
 				_1: {
 					ctor: '::',
-					_0: _elm_lang$html$Html$text('Under Construction!'),
+					_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'line-height', '1'),
+					_1: {ctor: '[]'}
+				}
+			}
+		}
+	});
+var _user$project$ReceptionKiosk_VolunteerInDoneScene$view = function (kioskModel) {
+	var volunteerInModel = kioskModel.volunteerInModel;
+	var instructions = function () {
+		var _p0 = volunteerInModel.selectedTask;
+		if (_p0.ctor === 'Just') {
+			return _p0._0.instructions;
+		} else {
+			return 'Please see a Staff Member.';
+		}
+	}();
+	var sceneModel = kioskModel.volunteerInDoneModel;
+	return A5(
+		_user$project$Wizard_SceneUtils$genericScene,
+		kioskModel,
+		'You\'re Checked In!',
+		'Instructions Follow:',
+		A2(
+			_elm_lang$html$Html$div,
+			{
+				ctor: '::',
+				_0: _user$project$ReceptionKiosk_VolunteerInDoneScene$instructionDiv,
+				_1: {ctor: '[]'}
+			},
+			{
+				ctor: '::',
+				_0: _user$project$Wizard_SceneUtils$vspace(20),
+				_1: {
+					ctor: '::',
+					_0: A2(
+						_elm_lang$html$Html$p,
+						{
+							ctor: '::',
+							_0: _user$project$ReceptionKiosk_VolunteerInDoneScene$instructionPara,
+							_1: {ctor: '[]'}
+						},
+						{
+							ctor: '::',
+							_0: _elm_lang$html$Html$text(instructions),
+							_1: {ctor: '[]'}
+						}),
 					_1: {
 						ctor: '::',
-						_0: _user$project$Wizard_SceneUtils$vspace(50),
-						_1: {ctor: '[]'}
+						_0: _user$project$Wizard_SceneUtils$vspace(30),
+						_1: {
+							ctor: '::',
+							_0: _elm_lang$html$Html$text('When the task is completed, return to this kiosk and use Check Out to close it.'),
+							_1: {
+								ctor: '::',
+								_0: _user$project$Wizard_SceneUtils$vspace(20),
+								_1: {ctor: '[]'}
+							}
+						}
 					}
 				}
 			}),
@@ -24609,7 +24666,7 @@ var _user$project$ReceptionKiosk_VolunteerInDoneScene$view = function (model) {
 			ctor: '::',
 			_0: A2(
 				_user$project$Wizard_SceneUtils$ButtonSpec,
-				'Ok',
+				'Got It!',
 				_user$project$ReceptionKiosk_Types$WizardVector(
 					_user$project$ReceptionKiosk_Types$Push(_user$project$ReceptionKiosk_Types$Welcome))),
 			_1: {ctor: '[]'}
