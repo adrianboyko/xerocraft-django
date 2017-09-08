@@ -26,6 +26,7 @@ import ReceptionKiosk.NewMemberScene as NewMemberScene
 import ReceptionKiosk.NewUserScene as NewUserScene
 import ReceptionKiosk.ReasonForVisitScene as ReasonForVisitScene
 import ReceptionKiosk.VolunteerInScene as VolunteerInScene
+import ReceptionKiosk.VolunteerInDoneScene as VolunteerInDoneScene
 import ReceptionKiosk.WaiverScene as WaiverScene
 import ReceptionKiosk.WelcomeScene as WelcomeScene
 
@@ -51,58 +52,61 @@ type alias Model =
   -- elm-mdl model:
   , mdl : Material.Model  -- TODO: Should there be one dedicated Material model per scene so index scope is smaller?
   -- Scene models:
-  , checkInModel        : CheckInScene.CheckInModel
-  , checkInDoneModel    : CheckInDoneScene.CheckInDoneModel
-  , checkOutModel       : CheckOutScene.CheckOutModel
-  , checkOutDoneModel   : CheckOutDoneScene.CheckOutDoneModel
-  , creatingAcctModel   : CreatingAcctScene.CreatingAcctModel
-  , emailInUseModel     : EmailInUseScene.EmailInUseModel
-  , howDidYouHearModel  : HowDidYouHearScene.HowDidYouHearModel
-  , signUpDoneModel     : SignUpDoneScene.SignUpDoneModel
-  , newMemberModel      : NewMemberScene.NewMemberModel
-  , newUserModel        : NewUserScene.NewUserModel
-  , reasonForVisitModel : ReasonForVisitScene.ReasonForVisitModel
-  , volunteerInModel    : VolunteerInScene.VolunteerInModel
-  , waiverModel         : WaiverScene.WaiverModel
-  , welcomeModel        : WelcomeScene.WelcomeModel
+  , checkInModel         : CheckInScene.CheckInModel
+  , checkInDoneModel     : CheckInDoneScene.CheckInDoneModel
+  , checkOutModel        : CheckOutScene.CheckOutModel
+  , checkOutDoneModel    : CheckOutDoneScene.CheckOutDoneModel
+  , creatingAcctModel    : CreatingAcctScene.CreatingAcctModel
+  , emailInUseModel      : EmailInUseScene.EmailInUseModel
+  , howDidYouHearModel   : HowDidYouHearScene.HowDidYouHearModel
+  , signUpDoneModel      : SignUpDoneScene.SignUpDoneModel
+  , newMemberModel       : NewMemberScene.NewMemberModel
+  , newUserModel         : NewUserScene.NewUserModel
+  , reasonForVisitModel  : ReasonForVisitScene.ReasonForVisitModel
+  , volunteerInModel     : VolunteerInScene.VolunteerInModel
+  , volunteerInDoneModel : VolunteerInDoneScene.VolunteerInDoneModel
+  , waiverModel          : WaiverScene.WaiverModel
+  , welcomeModel         : WelcomeScene.WelcomeModel
   }
 
 init : Flags -> (Model, Cmd Msg)
 init f =
   let
-    (checkInModel,        checkInCmd       ) = CheckInScene.init        f
-    (checkInDoneModel,    checkInDoneCmd   ) = CheckInDoneScene.init    f
-    (checkOutModel,       checkOutCmd      ) = CheckOutScene.init       f
-    (checkOutDoneModel,   checkOutDoneCmd  ) = CheckOutDoneScene.init   f
-    (creatingAcctModel,   creatingAcctCmd  ) = CreatingAcctScene.init   f
-    (emailInUseModel,     emailInUseCmd    ) = EmailInUseScene.init     f
-    (howDidYouHearModel,  howDidYouHearCmd ) = HowDidYouHearScene.init  f
-    (newMemberModel,      newMemberCmd     ) = NewMemberScene.init      f
-    (newUserModel,        newUserCmd       ) = NewUserScene.init        f
-    (reasonForVisitModel, reasonForVisitCmd) = ReasonForVisitScene.init f
-    (signUpDoneModel,     signUpDoneCmd    ) = SignUpDoneScene.init     f
-    (volunteerInModel,    volunteerInCmd   ) = VolunteerInScene.init    f
-    (waiverModel,         waiverCmd        ) = WaiverScene.init         f
-    (welcomeModel,        welcomeCmd       ) = WelcomeScene.init        f
+    (checkInModel,         checkInCmd        ) = CheckInScene.init         f
+    (checkInDoneModel,     checkInDoneCmd    ) = CheckInDoneScene.init     f
+    (checkOutModel,        checkOutCmd       ) = CheckOutScene.init        f
+    (checkOutDoneModel,    checkOutDoneCmd   ) = CheckOutDoneScene.init    f
+    (creatingAcctModel,    creatingAcctCmd   ) = CreatingAcctScene.init    f
+    (emailInUseModel,      emailInUseCmd     ) = EmailInUseScene.init      f
+    (howDidYouHearModel,   howDidYouHearCmd  ) = HowDidYouHearScene.init   f
+    (newMemberModel,       newMemberCmd      ) = NewMemberScene.init       f
+    (newUserModel,         newUserCmd        ) = NewUserScene.init         f
+    (reasonForVisitModel,  reasonForVisitCmd ) = ReasonForVisitScene.init  f
+    (signUpDoneModel,      signUpDoneCmd     ) = SignUpDoneScene.init      f
+    (volunteerInModel,     volunteerInCmd    ) = VolunteerInScene.init     f
+    (volunteerInDoneModel, volunteerInDoneCmd) = VolunteerInDoneScene.init f
+    (waiverModel,          waiverCmd         ) = WaiverScene.init          f
+    (welcomeModel,         welcomeCmd        ) = WelcomeScene.init         f
     model =
       { flags = f
       , sceneStack = List.Nonempty.fromElement Welcome
       , mdl = Material.model
       -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
-      , checkInModel        = checkInModel
-      , checkInDoneModel    = checkInDoneModel
-      , checkOutModel       = checkOutModel
-      , checkOutDoneModel   = checkOutDoneModel
-      , creatingAcctModel   = creatingAcctModel
-      , emailInUseModel     = emailInUseModel
-      , howDidYouHearModel  = howDidYouHearModel
-      , newMemberModel      = newMemberModel
-      , newUserModel        = newUserModel
-      , reasonForVisitModel = reasonForVisitModel
-      , signUpDoneModel     = signUpDoneModel
-      , volunteerInModel    = volunteerInModel
-      , waiverModel         = waiverModel
-      , welcomeModel        = welcomeModel
+      , checkInModel         = checkInModel
+      , checkInDoneModel     = checkInDoneModel
+      , checkOutModel        = checkOutModel
+      , checkOutDoneModel    = checkOutDoneModel
+      , creatingAcctModel    = creatingAcctModel
+      , emailInUseModel      = emailInUseModel
+      , howDidYouHearModel   = howDidYouHearModel
+      , newMemberModel       = newMemberModel
+      , newUserModel         = newUserModel
+      , reasonForVisitModel  = reasonForVisitModel
+      , signUpDoneModel      = signUpDoneModel
+      , volunteerInModel     = volunteerInModel
+      , volunteerInDoneModel = volunteerInDoneModel
+      , waiverModel          = waiverModel
+      , welcomeModel         = welcomeModel
       }
     cmds =
       [ checkInCmd
@@ -116,6 +120,7 @@ init f =
       , newUserCmd
       , reasonForVisitCmd
       , volunteerInCmd
+      , volunteerInDoneCmd
       , waiverCmd
       , welcomeCmd
       ]
@@ -229,20 +234,21 @@ view : Model -> Html Msg
 view model =
   let currScene = List.Nonempty.head model.sceneStack
   in case currScene of
-    CheckIn        -> CheckInScene.view        model
-    CheckInDone    -> CheckInDoneScene.view    model
-    CheckOut       -> CheckOutScene.view       model
-    CheckOutDone   -> CheckOutDoneScene.view   model
-    CreatingAcct   -> CreatingAcctScene.view   model
-    EmailInUse     -> EmailInUseScene.view     model
-    HowDidYouHear  -> HowDidYouHearScene.view  model
-    NewMember      -> NewMemberScene.view      model
-    NewUser        -> NewUserScene.view        model
-    ReasonForVisit -> ReasonForVisitScene.view model
-    SignUpDone     -> SignUpDoneScene.view     model
-    VolunteerIn    -> VolunteerInScene.view    model
-    Waiver         -> WaiverScene.view         model
-    Welcome        -> WelcomeScene.view        model
+    CheckIn         -> CheckInScene.view         model
+    CheckInDone     -> CheckInDoneScene.view     model
+    CheckOut        -> CheckOutScene.view        model
+    CheckOutDone    -> CheckOutDoneScene.view    model
+    CreatingAcct    -> CreatingAcctScene.view    model
+    EmailInUse      -> EmailInUseScene.view      model
+    HowDidYouHear   -> HowDidYouHearScene.view   model
+    NewMember       -> NewMemberScene.view       model
+    NewUser         -> NewUserScene.view         model
+    ReasonForVisit  -> ReasonForVisitScene.view  model
+    SignUpDone      -> SignUpDoneScene.view      model
+    VolunteerIn     -> VolunteerInScene.view     model
+    VolunteerInDone -> VolunteerInDoneScene.view model
+    Waiver          -> WaiverScene.view          model
+    Welcome         -> WelcomeScene.view         model
 
 -----------------------------------------------------------------------------
 -- SUBSCRIPTIONS

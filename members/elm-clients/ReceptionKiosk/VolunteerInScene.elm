@@ -13,8 +13,10 @@ import Material.List as Lists
 
 -- Local
 import ReceptionKiosk.Types exposing (..)
+import ReceptionKiosk.CheckInScene exposing (CheckInModel)
 import ReceptionKiosk.SceneUtils exposing (..)
 import TaskApi exposing (..)
+
 
 
 -----------------------------------------------------------------------------
@@ -32,6 +34,7 @@ type alias KioskModel a =
   (SceneUtilModel
     { a
     | volunteerInModel : VolunteerInModel
+    , checkInModel : CheckInModel
     }
   )
 
@@ -51,15 +54,13 @@ update msg kioskModel =
   in case msg of
 
     CalendarPageResult (Ok page) ->
-      ({sceneModel | workableTasks = extractTodaysTasks page}, Cmd.none)
+      ({sceneModel | workableTasks = page |> extractTodaysTasks |> extractWorkableTasks }, Cmd.none)
 
     CalendarPageResult (Err error) ->
       ({sceneModel | badNews = [toString error]}, Cmd.none)
 
     ToggleTask opsTask ->
       ({sceneModel | selectedTask = Just opsTask}, Cmd.none)
-
-
 
 
 extractTodaysTasks : CalendarPage -> List OpsTask
@@ -71,6 +72,9 @@ extractTodaysTasks page =
   in
     extractMonthTasks page.tasks
 
+extractWorkableTasks : List OpsTask -> List OpsTask
+extractWorkableTasks tasks =
+  List.filter (\t -> List.length t.possibleActions > 0) tasks
 
 -----------------------------------------------------------------------------
 -- VIEW
@@ -78,21 +82,33 @@ extractTodaysTasks page =
 
 view : KioskModel a -> Html Msg
 view kioskModel =
+  if List.isEmpty kioskModel.volunteerInModel.workableTasks then
+    noTasksScene kioskModel
+  else
+    listTasksScene kioskModel
+
+noTasksScene kioskModel =
+  genericScene kioskModel
+    "You Need a Task!"
+    "Please talk to a Staff Member"
+    (text "")
+    [ButtonSpec "OK" (WizardVector <| Push <| VolunteerInDone)]  -- TODO: Wrong destination
+
+
+listTasksScene kioskModel =
   genericScene kioskModel
     "Choose a Task"
     "Here are some you can work"
     (taskChoices kioskModel)
-    [ButtonSpec "OK" (WizardVector <| Push <| CheckInDone)]  -- TODO: Wrong destination
+    [ButtonSpec "OK" (WizardVector <| Push <| VolunteerInDone)]  -- TODO: Wrong destination
 
 taskChoices : KioskModel a -> Html Msg
 taskChoices kioskModel =
   let sceneModel = kioskModel.volunteerInModel
   in div [volunteerInStyle]
-    ([vspace 30]
-    ++
-    List.map
-      ( \wt ->
-        div []
+    ([vspace 30] ++ List.map
+      (\wt ->
+        div [taskDivStyle]
           [ Toggles.radio MdlVector [mdlIdBase VolunteerIn + wt.taskId] kioskModel.mdl
             [ Toggles.value
               (case sceneModel.selectedTask of
@@ -102,7 +118,6 @@ taskChoices kioskModel =
             , Options.onToggle (VolunteerInVector <| ToggleTask <| wt)
             ]
             [text wt.shortDesc]
-          , vspace 30
           ]
       )
       sceneModel.workableTasks
@@ -114,9 +129,14 @@ taskChoices kioskModel =
 -----------------------------------------------------------------------------
 
 volunteerInStyle = style
-  [ "width" => "350px"
+  [ "width" => "500px"
   , "margin-left" => "auto"
   , "margin-right" => "auto"
-  , "padding-left" => "125px"
   , "text-align" => "left"
+  ]
+
+taskDivStyle = style
+  [ "background-color" => "#eeeeee"
+  , "padding" => "10px"
+  , "margin" => "10px"
   ]

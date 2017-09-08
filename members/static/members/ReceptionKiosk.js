@@ -20609,8 +20609,8 @@ var _user$project$TaskApi$durationFromString = function (s) {
 			return _elm_lang$core$Native_Utils.crashCase(
 				'TaskApi',
 				{
-					start: {line: 162, column: 17},
-					end: {line: 167, column: 40}
+					start: {line: 163, column: 17},
+					end: {line: 168, column: 40}
 				},
 				_p3)(_p3._0);
 		}
@@ -20814,6 +20814,34 @@ var _user$project$TaskApi$getCurrCalendarPage = function (resultToMsg) {
 	var request = A2(_elm_lang$http$Http$get, url, _user$project$TaskApi$decodeCalendarPage);
 	return A2(_elm_lang$http$Http$send, resultToMsg, request);
 };
+var _user$project$TaskApi$getCurrCalendarPageForMember = F3(
+	function (csrfToken, memberpk, resultToMsg) {
+		var request = _elm_lang$http$Http$request(
+			{
+				method: 'POST',
+				url: '/tasks/ops-calendar-4member-json/',
+				headers: {
+					ctor: '::',
+					_0: A2(_elm_lang$http$Http$header, 'X-CSRFToken', csrfToken),
+					_1: {ctor: '[]'}
+				},
+				withCredentials: false,
+				body: _elm_lang$http$Http$jsonBody(
+					_elm_lang$core$Json_Encode$object(
+						{
+							ctor: '::',
+							_0: {
+								ctor: '_Tuple2',
+								_0: 'memberpk',
+								_1: _elm_lang$core$Json_Encode$int(memberpk)
+							},
+							_1: {ctor: '[]'}
+						})),
+				timeout: _elm_lang$core$Maybe$Nothing,
+				expect: _elm_lang$http$Http$expectJson(_user$project$TaskApi$decodeCalendarPage)
+			});
+		return A2(_elm_lang$http$Http$send, resultToMsg, request);
+	});
 var _user$project$TaskApi$Claim = F5(
 	function (a, b, c, d, e) {
 		return {taskId: a, claimantId: b, startOfClaim: c, durationOfClaim: d, verifiedOn: e};
@@ -20946,10 +20974,12 @@ var _user$project$ReceptionKiosk_Types$mdlIdBase = function (scene) {
 			return 1100;
 		case 'VolunteerIn':
 			return 1200;
-		case 'Waiver':
+		case 'VolunteerInDone':
 			return 1300;
-		default:
+		case 'Waiver':
 			return 1400;
+		default:
+			return 1500;
 	}
 };
 var _user$project$ReceptionKiosk_Types$Flags = function (a) {
@@ -20981,6 +21011,7 @@ var _user$project$ReceptionKiosk_Types$Flags = function (a) {
 };
 var _user$project$ReceptionKiosk_Types$Welcome = {ctor: 'Welcome'};
 var _user$project$ReceptionKiosk_Types$Waiver = {ctor: 'Waiver'};
+var _user$project$ReceptionKiosk_Types$VolunteerInDone = {ctor: 'VolunteerInDone'};
 var _user$project$ReceptionKiosk_Types$VolunteerIn = {ctor: 'VolunteerIn'};
 var _user$project$ReceptionKiosk_Types$ReasonForVisit = {ctor: 'ReasonForVisit'};
 var _user$project$ReceptionKiosk_Types$NewUser = {ctor: 'NewUser'};
@@ -22513,7 +22544,10 @@ var _user$project$ReceptionKiosk_ReasonForVisitScene$update = F2(
 		var _p2 = msg;
 		switch (_p2.ctor) {
 			case 'ReasonForVisitSceneWillAppear':
-				var request = _user$project$TaskApi$getCurrCalendarPage(
+				var request = A3(
+					_user$project$TaskApi$getCurrCalendarPageForMember,
+					kioskModel.flags.csrfToken,
+					checkInModel.memberNum,
 					function (_p3) {
 						return _user$project$ReceptionKiosk_Types$VolunteerInVector(
 							_user$project$ReceptionKiosk_Types$CalendarPageResult(_p3));
@@ -24334,10 +24368,24 @@ var _user$project$ReceptionKiosk_SignUpDoneScene$init = function (flags) {
 };
 var _user$project$ReceptionKiosk_SignUpDoneScene$SignUpDoneModel = {};
 
+var _user$project$ReceptionKiosk_VolunteerInScene$taskDivStyle = _elm_lang$html$Html_Attributes$style(
+	{
+		ctor: '::',
+		_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'background-color', '#eeeeee'),
+		_1: {
+			ctor: '::',
+			_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'padding', '10px'),
+			_1: {
+				ctor: '::',
+				_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'margin', '10px'),
+				_1: {ctor: '[]'}
+			}
+		}
+	});
 var _user$project$ReceptionKiosk_VolunteerInScene$volunteerInStyle = _elm_lang$html$Html_Attributes$style(
 	{
 		ctor: '::',
-		_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'width', '350px'),
+		_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'width', '500px'),
 		_1: {
 			ctor: '::',
 			_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'margin-left', 'auto'),
@@ -24346,12 +24394,8 @@ var _user$project$ReceptionKiosk_VolunteerInScene$volunteerInStyle = _elm_lang$h
 				_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'margin-right', 'auto'),
 				_1: {
 					ctor: '::',
-					_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'padding-left', '125px'),
-					_1: {
-						ctor: '::',
-						_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'text-align', 'left'),
-						_1: {ctor: '[]'}
-					}
+					_0: A2(_user$project$ReceptionKiosk_SceneUtils_ops['=>'], 'text-align', 'left'),
+					_1: {ctor: '[]'}
 				}
 			}
 		}
@@ -24377,7 +24421,11 @@ var _user$project$ReceptionKiosk_VolunteerInScene$taskChoices = function (kioskM
 				function (wt) {
 					return A2(
 						_elm_lang$html$Html$div,
-						{ctor: '[]'},
+						{
+							ctor: '::',
+							_0: _user$project$ReceptionKiosk_VolunteerInScene$taskDivStyle,
+							_1: {ctor: '[]'}
+						},
 						{
 							ctor: '::',
 							_0: A5(
@@ -24413,16 +24461,12 @@ var _user$project$ReceptionKiosk_VolunteerInScene$taskChoices = function (kioskM
 									_0: _elm_lang$html$Html$text(wt.shortDesc),
 									_1: {ctor: '[]'}
 								}),
-							_1: {
-								ctor: '::',
-								_0: _user$project$ReceptionKiosk_SceneUtils$vspace(30),
-								_1: {ctor: '[]'}
-							}
+							_1: {ctor: '[]'}
 						});
 				},
 				sceneModel.workableTasks)));
 };
-var _user$project$ReceptionKiosk_VolunteerInScene$view = function (kioskModel) {
+var _user$project$ReceptionKiosk_VolunteerInScene$listTasksScene = function (kioskModel) {
 	return A5(
 		_user$project$ReceptionKiosk_SceneUtils$genericScene,
 		kioskModel,
@@ -24435,9 +24479,39 @@ var _user$project$ReceptionKiosk_VolunteerInScene$view = function (kioskModel) {
 				_user$project$ReceptionKiosk_SceneUtils$ButtonSpec,
 				'OK',
 				_user$project$ReceptionKiosk_Types$WizardVector(
-					_user$project$ReceptionKiosk_Types$Push(_user$project$ReceptionKiosk_Types$CheckInDone))),
+					_user$project$ReceptionKiosk_Types$Push(_user$project$ReceptionKiosk_Types$VolunteerInDone))),
 			_1: {ctor: '[]'}
 		});
+};
+var _user$project$ReceptionKiosk_VolunteerInScene$noTasksScene = function (kioskModel) {
+	return A5(
+		_user$project$ReceptionKiosk_SceneUtils$genericScene,
+		kioskModel,
+		'You Need a Task!',
+		'Please talk to a Staff Member',
+		_elm_lang$html$Html$text(''),
+		{
+			ctor: '::',
+			_0: A2(
+				_user$project$ReceptionKiosk_SceneUtils$ButtonSpec,
+				'OK',
+				_user$project$ReceptionKiosk_Types$WizardVector(
+					_user$project$ReceptionKiosk_Types$Push(_user$project$ReceptionKiosk_Types$VolunteerInDone))),
+			_1: {ctor: '[]'}
+		});
+};
+var _user$project$ReceptionKiosk_VolunteerInScene$view = function (kioskModel) {
+	return _elm_lang$core$List$isEmpty(kioskModel.volunteerInModel.workableTasks) ? _user$project$ReceptionKiosk_VolunteerInScene$noTasksScene(kioskModel) : _user$project$ReceptionKiosk_VolunteerInScene$listTasksScene(kioskModel);
+};
+var _user$project$ReceptionKiosk_VolunteerInScene$extractWorkableTasks = function (tasks) {
+	return A2(
+		_elm_lang$core$List$filter,
+		function (t) {
+			return _elm_lang$core$Native_Utils.cmp(
+				_elm_lang$core$List$length(t.possibleActions),
+				0) > 0;
+		},
+		tasks);
 };
 var _user$project$ReceptionKiosk_VolunteerInScene$extractTodaysTasks = function (page) {
 	var extractDayTasks = function (dot) {
@@ -24464,7 +24538,8 @@ var _user$project$ReceptionKiosk_VolunteerInScene$update = F2(
 					_0: _elm_lang$core$Native_Utils.update(
 						sceneModel,
 						{
-							workableTasks: _user$project$ReceptionKiosk_VolunteerInScene$extractTodaysTasks(_p1._0._0)
+							workableTasks: _user$project$ReceptionKiosk_VolunteerInScene$extractWorkableTasks(
+								_user$project$ReceptionKiosk_VolunteerInScene$extractTodaysTasks(_p1._0._0))
 						}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
@@ -24507,6 +24582,47 @@ var _user$project$ReceptionKiosk_VolunteerInScene$VolunteerInModel = F3(
 	function (a, b, c) {
 		return {workableTasks: a, selectedTask: b, badNews: c};
 	});
+
+var _user$project$ReceptionKiosk_VolunteerInDoneScene$view = function (model) {
+	return A5(
+		_user$project$ReceptionKiosk_SceneUtils$genericScene,
+		model,
+		'You\'re Checked In',
+		'Here are your next steps',
+		A2(
+			_elm_lang$html$Html$div,
+			{ctor: '[]'},
+			{
+				ctor: '::',
+				_0: _user$project$ReceptionKiosk_SceneUtils$vspace(50),
+				_1: {
+					ctor: '::',
+					_0: _elm_lang$html$Html$text('Under Construction!'),
+					_1: {
+						ctor: '::',
+						_0: _user$project$ReceptionKiosk_SceneUtils$vspace(50),
+						_1: {ctor: '[]'}
+					}
+				}
+			}),
+		{
+			ctor: '::',
+			_0: A2(
+				_user$project$ReceptionKiosk_SceneUtils$ButtonSpec,
+				'Ok',
+				_user$project$ReceptionKiosk_Types$WizardVector(
+					_user$project$ReceptionKiosk_Types$Push(_user$project$ReceptionKiosk_Types$Welcome))),
+			_1: {ctor: '[]'}
+		});
+};
+var _user$project$ReceptionKiosk_VolunteerInDoneScene$init = function (flags) {
+	return {
+		ctor: '_Tuple2',
+		_0: {},
+		_1: _elm_lang$core$Platform_Cmd$none
+	};
+};
+var _user$project$ReceptionKiosk_VolunteerInDoneScene$VolunteerInDoneModel = {};
 
 var _user$project$ReceptionKiosk_WelcomeScene$bottomImgStyle = _elm_lang$html$Html_Attributes$style(
 	{
@@ -24683,6 +24799,8 @@ var _user$project$ReceptionKiosk$view = function (model) {
 			return _user$project$ReceptionKiosk_SignUpDoneScene$view(model);
 		case 'VolunteerIn':
 			return _user$project$ReceptionKiosk_VolunteerInScene$view(model);
+		case 'VolunteerInDone':
+			return _user$project$ReceptionKiosk_VolunteerInDoneScene$view(model);
 		case 'Waiver':
 			return _user$project$ReceptionKiosk_WaiverScene$view(model);
 		default:
@@ -24696,42 +24814,45 @@ var _user$project$ReceptionKiosk$init = function (f) {
 	var _p3 = _user$project$ReceptionKiosk_WaiverScene$init(f);
 	var waiverModel = _p3._0;
 	var waiverCmd = _p3._1;
-	var _p4 = _user$project$ReceptionKiosk_VolunteerInScene$init(f);
-	var volunteerInModel = _p4._0;
-	var volunteerInCmd = _p4._1;
-	var _p5 = _user$project$ReceptionKiosk_SignUpDoneScene$init(f);
-	var signUpDoneModel = _p5._0;
-	var signUpDoneCmd = _p5._1;
-	var _p6 = _user$project$ReceptionKiosk_ReasonForVisitScene$init(f);
-	var reasonForVisitModel = _p6._0;
-	var reasonForVisitCmd = _p6._1;
-	var _p7 = _user$project$ReceptionKiosk_NewUserScene$init(f);
-	var newUserModel = _p7._0;
-	var newUserCmd = _p7._1;
-	var _p8 = _user$project$ReceptionKiosk_NewMemberScene$init(f);
-	var newMemberModel = _p8._0;
-	var newMemberCmd = _p8._1;
-	var _p9 = _user$project$ReceptionKiosk_HowDidYouHearScene$init(f);
-	var howDidYouHearModel = _p9._0;
-	var howDidYouHearCmd = _p9._1;
-	var _p10 = _user$project$ReceptionKiosk_EmailInUseScene$init(f);
-	var emailInUseModel = _p10._0;
-	var emailInUseCmd = _p10._1;
-	var _p11 = _user$project$ReceptionKiosk_CreatingAcctScene$init(f);
-	var creatingAcctModel = _p11._0;
-	var creatingAcctCmd = _p11._1;
-	var _p12 = _user$project$ReceptionKiosk_CheckOutDoneScene$init(f);
-	var checkOutDoneModel = _p12._0;
-	var checkOutDoneCmd = _p12._1;
-	var _p13 = _user$project$ReceptionKiosk_CheckOutScene$init(f);
-	var checkOutModel = _p13._0;
-	var checkOutCmd = _p13._1;
-	var _p14 = _user$project$ReceptionKiosk_CheckInDoneScene$init(f);
-	var checkInDoneModel = _p14._0;
-	var checkInDoneCmd = _p14._1;
-	var _p15 = _user$project$ReceptionKiosk_CheckInScene$init(f);
-	var checkInModel = _p15._0;
-	var checkInCmd = _p15._1;
+	var _p4 = _user$project$ReceptionKiosk_VolunteerInDoneScene$init(f);
+	var volunteerInDoneModel = _p4._0;
+	var volunteerInDoneCmd = _p4._1;
+	var _p5 = _user$project$ReceptionKiosk_VolunteerInScene$init(f);
+	var volunteerInModel = _p5._0;
+	var volunteerInCmd = _p5._1;
+	var _p6 = _user$project$ReceptionKiosk_SignUpDoneScene$init(f);
+	var signUpDoneModel = _p6._0;
+	var signUpDoneCmd = _p6._1;
+	var _p7 = _user$project$ReceptionKiosk_ReasonForVisitScene$init(f);
+	var reasonForVisitModel = _p7._0;
+	var reasonForVisitCmd = _p7._1;
+	var _p8 = _user$project$ReceptionKiosk_NewUserScene$init(f);
+	var newUserModel = _p8._0;
+	var newUserCmd = _p8._1;
+	var _p9 = _user$project$ReceptionKiosk_NewMemberScene$init(f);
+	var newMemberModel = _p9._0;
+	var newMemberCmd = _p9._1;
+	var _p10 = _user$project$ReceptionKiosk_HowDidYouHearScene$init(f);
+	var howDidYouHearModel = _p10._0;
+	var howDidYouHearCmd = _p10._1;
+	var _p11 = _user$project$ReceptionKiosk_EmailInUseScene$init(f);
+	var emailInUseModel = _p11._0;
+	var emailInUseCmd = _p11._1;
+	var _p12 = _user$project$ReceptionKiosk_CreatingAcctScene$init(f);
+	var creatingAcctModel = _p12._0;
+	var creatingAcctCmd = _p12._1;
+	var _p13 = _user$project$ReceptionKiosk_CheckOutDoneScene$init(f);
+	var checkOutDoneModel = _p13._0;
+	var checkOutDoneCmd = _p13._1;
+	var _p14 = _user$project$ReceptionKiosk_CheckOutScene$init(f);
+	var checkOutModel = _p14._0;
+	var checkOutCmd = _p14._1;
+	var _p15 = _user$project$ReceptionKiosk_CheckInDoneScene$init(f);
+	var checkInDoneModel = _p15._0;
+	var checkInDoneCmd = _p15._1;
+	var _p16 = _user$project$ReceptionKiosk_CheckInScene$init(f);
+	var checkInModel = _p16._0;
+	var checkInCmd = _p16._1;
 	var model = {
 		flags: f,
 		sceneStack: _mgold$elm_nonempty_list$List_Nonempty$fromElement(_user$project$ReceptionKiosk_Types$Welcome),
@@ -24748,6 +24869,7 @@ var _user$project$ReceptionKiosk$init = function (f) {
 		reasonForVisitModel: reasonForVisitModel,
 		signUpDoneModel: signUpDoneModel,
 		volunteerInModel: volunteerInModel,
+		volunteerInDoneModel: volunteerInDoneModel,
 		waiverModel: waiverModel,
 		welcomeModel: welcomeModel
 	};
@@ -24786,11 +24908,15 @@ var _user$project$ReceptionKiosk$init = function (f) {
 												_0: volunteerInCmd,
 												_1: {
 													ctor: '::',
-													_0: waiverCmd,
+													_0: volunteerInDoneCmd,
 													_1: {
 														ctor: '::',
-														_0: welcomeCmd,
-														_1: {ctor: '[]'}
+														_0: waiverCmd,
+														_1: {
+															ctor: '::',
+															_0: welcomeCmd,
+															_1: {ctor: '[]'}
+														}
 													}
 												}
 											}
@@ -24815,24 +24941,24 @@ var _user$project$ReceptionKiosk$reset = function (m) {
 };
 var _user$project$ReceptionKiosk$update = F2(
 	function (msg, model) {
-		var _p16 = msg;
-		switch (_p16.ctor) {
+		var _p17 = msg;
+		switch (_p17.ctor) {
 			case 'WizardVector':
-				var _p17 = _p16._0;
-				switch (_p17.ctor) {
+				var _p18 = _p17._0;
+				switch (_p18.ctor) {
 					case 'Push':
-						var _p18 = _p17._0;
+						var _p19 = _p18._0;
 						var newModel = _elm_lang$core$Native_Utils.update(
 							model,
 							{
-								sceneStack: A2(_mgold$elm_nonempty_list$List_Nonempty$cons, _p18, model.sceneStack)
+								sceneStack: A2(_mgold$elm_nonempty_list$List_Nonempty$cons, _p19, model.sceneStack)
 							});
 						return A2(
 							_ccapndave$elm_update_extra$Update_Extra_Infix_ops[':>'],
 							{ctor: '_Tuple2', _0: newModel, _1: _elm_lang$core$Platform_Cmd$none},
 							_user$project$ReceptionKiosk$update(
 								_user$project$ReceptionKiosk_Types$WizardVector(
-									_user$project$ReceptionKiosk_Types$SceneWillAppear(_p18))));
+									_user$project$ReceptionKiosk_Types$SceneWillAppear(_p19))));
 					case 'Pop':
 						var newModel = _elm_lang$core$Native_Utils.update(
 							model,
@@ -24847,23 +24973,23 @@ var _user$project$ReceptionKiosk$update = F2(
 								_user$project$ReceptionKiosk_Types$WizardVector(
 									_user$project$ReceptionKiosk_Types$SceneWillAppear(newScene))));
 					case 'RebaseTo':
-						var _p19 = _p17._0;
+						var _p20 = _p18._0;
 						var newModel = _elm_lang$core$Native_Utils.update(
 							model,
 							{
-								sceneStack: _mgold$elm_nonempty_list$List_Nonempty$fromElement(_p19)
+								sceneStack: _mgold$elm_nonempty_list$List_Nonempty$fromElement(_p20)
 							});
 						return A2(
 							_ccapndave$elm_update_extra$Update_Extra_Infix_ops[':>'],
 							{ctor: '_Tuple2', _0: newModel, _1: _elm_lang$core$Platform_Cmd$none},
 							_user$project$ReceptionKiosk$update(
 								_user$project$ReceptionKiosk_Types$WizardVector(
-									_user$project$ReceptionKiosk_Types$SceneWillAppear(_p19))));
+									_user$project$ReceptionKiosk_Types$SceneWillAppear(_p20))));
 					case 'Reset':
 						return _user$project$ReceptionKiosk$reset(model);
 					case 'SceneWillAppear':
-						var _p20 = _p17._0;
-						switch (_p20.ctor) {
+						var _p21 = _p18._0;
+						switch (_p21.ctor) {
 							case 'CheckOut':
 								return A2(
 									_ccapndave$elm_update_extra$Update_Extra_Infix_ops[':>'],
@@ -24899,11 +25025,11 @@ var _user$project$ReceptionKiosk$update = F2(
 						}
 					default:
 						var currScene = _mgold$elm_nonempty_list$List_Nonempty$head(model.sceneStack);
-						var _p21 = currScene;
-						if (_p21.ctor === 'CreatingAcct') {
-							var _p22 = A2(_user$project$ReceptionKiosk_CreatingAcctScene$tick, _p17._0, model);
-							var sm = _p22._0;
-							var cmd = _p22._1;
+						var _p22 = currScene;
+						if (_p22.ctor === 'CreatingAcct') {
+							var _p23 = A2(_user$project$ReceptionKiosk_CreatingAcctScene$tick, _p18._0, model);
+							var sm = _p23._0;
+							var cmd = _p23._1;
 							return {
 								ctor: '_Tuple2',
 								_0: _elm_lang$core$Native_Utils.update(
@@ -24916,9 +25042,9 @@ var _user$project$ReceptionKiosk$update = F2(
 						}
 				}
 			case 'CheckInVector':
-				var _p23 = A2(_user$project$ReceptionKiosk_CheckInScene$update, _p16._0, model);
-				var sm = _p23._0;
-				var cmd = _p23._1;
+				var _p24 = A2(_user$project$ReceptionKiosk_CheckInScene$update, _p17._0, model);
+				var sm = _p24._0;
+				var cmd = _p24._1;
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
@@ -24927,9 +25053,9 @@ var _user$project$ReceptionKiosk$update = F2(
 					_1: cmd
 				};
 			case 'CheckOutVector':
-				var _p24 = A2(_user$project$ReceptionKiosk_CheckOutScene$update, _p16._0, model);
-				var sm = _p24._0;
-				var cmd = _p24._1;
+				var _p25 = A2(_user$project$ReceptionKiosk_CheckOutScene$update, _p17._0, model);
+				var sm = _p25._0;
+				var cmd = _p25._1;
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
@@ -24938,9 +25064,9 @@ var _user$project$ReceptionKiosk$update = F2(
 					_1: cmd
 				};
 			case 'CreatingAcctVector':
-				var _p25 = A2(_user$project$ReceptionKiosk_CreatingAcctScene$update, _p16._0, model);
-				var sm = _p25._0;
-				var cmd = _p25._1;
+				var _p26 = A2(_user$project$ReceptionKiosk_CreatingAcctScene$update, _p17._0, model);
+				var sm = _p26._0;
+				var cmd = _p26._1;
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
@@ -24949,9 +25075,9 @@ var _user$project$ReceptionKiosk$update = F2(
 					_1: cmd
 				};
 			case 'HowDidYouHearVector':
-				var _p26 = A2(_user$project$ReceptionKiosk_HowDidYouHearScene$update, _p16._0, model);
-				var sm = _p26._0;
-				var cmd = _p26._1;
+				var _p27 = A2(_user$project$ReceptionKiosk_HowDidYouHearScene$update, _p17._0, model);
+				var sm = _p27._0;
+				var cmd = _p27._1;
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
@@ -24960,9 +25086,9 @@ var _user$project$ReceptionKiosk$update = F2(
 					_1: cmd
 				};
 			case 'NewMemberVector':
-				var _p27 = A2(_user$project$ReceptionKiosk_NewMemberScene$update, _p16._0, model);
-				var sm = _p27._0;
-				var cmd = _p27._1;
+				var _p28 = A2(_user$project$ReceptionKiosk_NewMemberScene$update, _p17._0, model);
+				var sm = _p28._0;
+				var cmd = _p28._1;
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
@@ -24971,9 +25097,9 @@ var _user$project$ReceptionKiosk$update = F2(
 					_1: cmd
 				};
 			case 'NewUserVector':
-				var _p28 = A2(_user$project$ReceptionKiosk_NewUserScene$update, _p16._0, model);
-				var sm = _p28._0;
-				var cmd = _p28._1;
+				var _p29 = A2(_user$project$ReceptionKiosk_NewUserScene$update, _p17._0, model);
+				var sm = _p29._0;
+				var cmd = _p29._1;
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
@@ -24982,9 +25108,9 @@ var _user$project$ReceptionKiosk$update = F2(
 					_1: cmd
 				};
 			case 'ReasonForVisitVector':
-				var _p29 = A2(_user$project$ReceptionKiosk_ReasonForVisitScene$update, _p16._0, model);
-				var sm = _p29._0;
-				var cmd = _p29._1;
+				var _p30 = A2(_user$project$ReceptionKiosk_ReasonForVisitScene$update, _p17._0, model);
+				var sm = _p30._0;
+				var cmd = _p30._1;
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
@@ -24993,9 +25119,9 @@ var _user$project$ReceptionKiosk$update = F2(
 					_1: cmd
 				};
 			case 'VolunteerInVector':
-				var _p30 = A2(_user$project$ReceptionKiosk_VolunteerInScene$update, _p16._0, model);
-				var sm = _p30._0;
-				var cmd = _p30._1;
+				var _p31 = A2(_user$project$ReceptionKiosk_VolunteerInScene$update, _p17._0, model);
+				var sm = _p31._0;
+				var cmd = _p31._1;
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
@@ -25004,9 +25130,9 @@ var _user$project$ReceptionKiosk$update = F2(
 					_1: cmd
 				};
 			case 'WaiverVector':
-				var _p31 = A2(_user$project$ReceptionKiosk_WaiverScene$update, _p16._0, model);
-				var sm = _p31._0;
-				var cmd = _p31._1;
+				var _p32 = A2(_user$project$ReceptionKiosk_WaiverScene$update, _p17._0, model);
+				var sm = _p32._0;
+				var cmd = _p32._1;
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
@@ -25015,9 +25141,9 @@ var _user$project$ReceptionKiosk$update = F2(
 					_1: cmd
 				};
 			case 'WelcomeVector':
-				var _p32 = A2(_user$project$ReceptionKiosk_WelcomeScene$update, _p16._0, model);
-				var sm = _p32._0;
-				var cmd = _p32._1;
+				var _p33 = A2(_user$project$ReceptionKiosk_WelcomeScene$update, _p17._0, model);
+				var sm = _p33._0;
+				var cmd = _p33._1;
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
@@ -25026,7 +25152,7 @@ var _user$project$ReceptionKiosk$update = F2(
 					_1: cmd
 				};
 			default:
-				return A3(_debois$elm_mdl$Material$update, _user$project$ReceptionKiosk_Types$MdlVector, _p16._0, model);
+				return A3(_debois$elm_mdl$Material$update, _user$project$ReceptionKiosk_Types$MdlVector, _p17._0, model);
 		}
 	});
 var _user$project$ReceptionKiosk$main = _elm_lang$html$Html$programWithFlags(
@@ -25115,7 +25241,9 @@ var _user$project$ReceptionKiosk$Model = function (a) {
 														return function (o) {
 															return function (p) {
 																return function (q) {
-																	return {flags: a, sceneStack: b, mdl: c, checkInModel: d, checkInDoneModel: e, checkOutModel: f, checkOutDoneModel: g, creatingAcctModel: h, emailInUseModel: i, howDidYouHearModel: j, signUpDoneModel: k, newMemberModel: l, newUserModel: m, reasonForVisitModel: n, volunteerInModel: o, waiverModel: p, welcomeModel: q};
+																	return function (r) {
+																		return {flags: a, sceneStack: b, mdl: c, checkInModel: d, checkInDoneModel: e, checkOutModel: f, checkOutDoneModel: g, creatingAcctModel: h, emailInUseModel: i, howDidYouHearModel: j, signUpDoneModel: k, newMemberModel: l, newUserModel: m, reasonForVisitModel: n, volunteerInModel: o, volunteerInDoneModel: p, waiverModel: q, welcomeModel: r};
+																	};
 																};
 															};
 														};

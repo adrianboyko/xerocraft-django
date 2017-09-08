@@ -50,6 +50,7 @@ type Scene
   | NewUser
   | ReasonForVisit
   | VolunteerIn
+  | VolunteerInDone
   | Waiver
   | Welcome
 
@@ -69,8 +70,9 @@ mdlIdBase scene =
     NewUser -> 1000
     ReasonForVisit -> 1100
     VolunteerIn -> 1200
-    Waiver -> 1300
-    Welcome -> 1400
+    VolunteerInDone -> 1300
+    Waiver -> 1400
+    Welcome -> 1500
 
 
 -----------------------------------------------------------------------------

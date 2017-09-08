@@ -27,6 +27,7 @@ type alias KioskModel a =
     { a
     | reasonForVisitModel : ReasonForVisitModel
     , checkInModel : CheckInModel
+    , flags : Flags
     }
   )
 
@@ -54,7 +55,12 @@ update msg kioskModel =
 
     ReasonForVisitSceneWillAppear ->
       -- Start fetching workable tasks NOW in case they choose the "volunteering" reason.
-      let request = getCurrCalendarPage (VolunteerInVector << CalendarPageResult)
+      let
+        request = getCurrCalendarPageForMember
+          kioskModel.flags.csrfToken
+          checkInModel.memberNum
+          (VolunteerInVector << CalendarPageResult)
+
       in (sceneModel, request)
 
     UpdateReasonForVisit reason ->
