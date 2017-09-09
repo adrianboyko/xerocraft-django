@@ -21741,8 +21741,12 @@ var _user$project$Wizard_SceneUtils$sceneButton = F2(
 					_0: _debois$elm_mdl$Material_Button$raised,
 					_1: {
 						ctor: '::',
-						_0: _debois$elm_mdl$Material_Options$onClick(buttonSpec.msg),
-						_1: {ctor: '[]'}
+						_0: _debois$elm_mdl$Material_Button$colored,
+						_1: {
+							ctor: '::',
+							_0: _debois$elm_mdl$Material_Options$onClick(buttonSpec.msg),
+							_1: {ctor: '[]'}
+						}
 					}
 				},
 				_user$project$Wizard_SceneUtils$sceneButtonCss),
@@ -21962,14 +21966,17 @@ var _user$project$ReceptionKiosk_CheckInScene$sceneChipCss = {
 	}
 };
 var _user$project$ReceptionKiosk_CheckInScene$view = function (kioskModel) {
-	var acct2chip = function (acct) {
+	var clickMsg = function (acct) {
+		return _user$project$ReceptionKiosk_Types$CheckInVector(
+			_user$project$ReceptionKiosk_Types$UpdateMemberNum(acct.memberNum));
+	};
+	var acctToChip = function (acct) {
 		return A2(
 			_debois$elm_mdl$Material_Chip$button,
 			{
 				ctor: '::',
 				_0: _debois$elm_mdl$Material_Options$onClick(
-					_user$project$ReceptionKiosk_Types$CheckInVector(
-						_user$project$ReceptionKiosk_Types$UpdateMemberNum(acct.memberNum))),
+					clickMsg(acct)),
 				_1: {ctor: '[]'}
 			},
 			{
@@ -22038,7 +22045,7 @@ var _user$project$ReceptionKiosk_CheckInScene$view = function (kioskModel) {
 						},
 						_1: {
 							ctor: '::',
-							_0: A2(_elm_lang$core$List$map, acct2chip, sceneModel.matches),
+							_0: A2(_elm_lang$core$List$map, acctToChip, sceneModel.matches),
 							_1: {
 								ctor: '::',
 								_0: {
@@ -24614,7 +24621,7 @@ var _user$project$ReceptionKiosk_VolunteerInDoneScene$view = function (kioskMode
 		if (_p0.ctor === 'Just') {
 			return _p0._0.instructions;
 		} else {
-			return 'Please see a Staff Member.';
+			return 'Please see a Staff Member for instructions.';
 		}
 	}();
 	var sceneModel = kioskModel.volunteerInDoneModel;

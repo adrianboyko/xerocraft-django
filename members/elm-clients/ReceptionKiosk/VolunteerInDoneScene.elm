@@ -49,7 +49,7 @@ view kioskModel =
     instructions =
       case volunteerInModel.selectedTask of
         Just opsTask -> opsTask.instructions
-        Nothing -> "Please see a Staff Member."
+        Nothing -> "Please see a Staff Member for instructions."
   in
     genericScene kioskModel
       "You're Checked In!"

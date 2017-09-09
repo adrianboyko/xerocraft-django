@@ -71,8 +71,8 @@ genericScene model title subtitle extraContent buttonSpecs =
 type alias ButtonSpec msg = { title : String, msg: msg }
 sceneButton : (SceneUtilModel a) -> ButtonSpec Msg -> Html Msg
 sceneButton model buttonSpec =
-  Button.render MdlVector [0] model.mdl
-    ([ Button.raised, Options.onClick buttonSpec.msg]++sceneButtonCss)
+  Button.render MdlVector [0] model.mdl  -- REVIEW: Index 0 is ok because buttons don't have state?
+    ([ Button.raised, Button.colored, Options.onClick buttonSpec.msg]++sceneButtonCss)
     [ text buttonSpec.title ]
 
 sceneGenericTextField : (SceneUtilModel a) -> Int -> String -> String -> (String -> Msg) -> List (Textfield.Property Msg) -> Html Msg
