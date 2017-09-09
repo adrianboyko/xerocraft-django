@@ -54,8 +54,13 @@ update msg kioskModel =
   in case msg of
 
     TaskListSceneWillAppear ->
-      -- TODO: If there are no available tasks, should skip through to Volunteer Done scene.
-      (sceneModel, Cmd.none)
+      if List.isEmpty sceneModel.workableTasks then
+        -- No tasks are queued for the member checking in, so skip to task info.
+        -- Task info will display generic "talk to a staffer" info in this case.
+        (sceneModel, send (WizardVector <| Push <| VolunteerInDone))
+      else
+        (sceneModel, Cmd.none)
+
 
     CalendarPageResult (Ok page) ->
       ({sceneModel | workableTasks = page |> extractTodaysTasks |> extractWorkableTasks }, Cmd.none)

@@ -24521,7 +24521,13 @@ var _user$project$ReceptionKiosk_TaskListScene$update = F2(
 		var _p1 = msg;
 		switch (_p1.ctor) {
 			case 'TaskListSceneWillAppear':
-				return {ctor: '_Tuple2', _0: sceneModel, _1: _elm_lang$core$Platform_Cmd$none};
+				return _elm_lang$core$List$isEmpty(sceneModel.workableTasks) ? {
+					ctor: '_Tuple2',
+					_0: sceneModel,
+					_1: _user$project$Wizard_SceneUtils$send(
+						_user$project$ReceptionKiosk_Types$WizardVector(
+							_user$project$ReceptionKiosk_Types$Push(_user$project$ReceptionKiosk_Types$VolunteerInDone)))
+				} : {ctor: '_Tuple2', _0: sceneModel, _1: _elm_lang$core$Platform_Cmd$none};
 			case 'CalendarPageResult':
 				if (_p1._0.ctor === 'Ok') {
 					return {
@@ -25056,6 +25062,12 @@ var _user$project$ReceptionKiosk$update = F2(
 									{ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none},
 									_user$project$ReceptionKiosk$update(
 										_user$project$ReceptionKiosk_Types$ReasonForVisitVector(_user$project$ReceptionKiosk_Types$ReasonForVisitSceneWillAppear)));
+							case 'TaskList':
+								return A2(
+									_ccapndave$elm_update_extra$Update_Extra_Infix_ops[':>'],
+									{ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none},
+									_user$project$ReceptionKiosk$update(
+										_user$project$ReceptionKiosk_Types$TaskListVector(_user$project$ReceptionKiosk_Types$TaskListSceneWillAppear)));
 							case 'Waiver':
 								return A2(
 									_ccapndave$elm_update_extra$Update_Extra_Infix_ops[':>'],

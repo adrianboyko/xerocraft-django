@@ -171,6 +171,7 @@ update msg model =
               CheckOut -> (model, Cmd.none) :> update (CheckOutVector CheckOutSceneWillAppear)
               CreatingAcct -> (model, Cmd.none) :> update (CreatingAcctVector CreatingAcctSceneWillAppear)
               ReasonForVisit -> (model, Cmd.none) :> update (ReasonForVisitVector ReasonForVisitSceneWillAppear)
+              TaskList -> (model, Cmd.none) :> update (TaskListVector TaskListSceneWillAppear)
               Waiver -> (model, Cmd.none) :> update (WaiverVector WaiverSceneWillAppear)
               Welcome -> (model, Cmd.none) :> update (WelcomeVector WelcomeSceneWillAppear)
               _ -> (model, Cmd.none)
