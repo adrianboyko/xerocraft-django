@@ -79,9 +79,10 @@ view : KioskModel a -> Html Msg
 view kioskModel =
   let
     sceneModel = kioskModel.checkInModel
-    acct2chip = \acct ->
+    clickMsg = \acct -> CheckInVector <| UpdateMemberNum <| acct.memberNum
+    acctToChip = \acct ->
       Chip.button
-        [Options.onClick (CheckInVector <| UpdateMemberNum <| acct.memberNum)]
+        [Options.onClick (clickMsg acct)]
         [Chip.content [] [text acct.userName]]
 
   in genericScene kioskModel
@@ -93,7 +94,7 @@ view kioskModel =
           , if List.length sceneModel.matches > 0
              then [vspace 30, text "Tap your userid, below:", vspace 20]
              else [vspace 0]
-          , List.map acct2chip sceneModel.matches
+          , List.map acctToChip sceneModel.matches
           , [ vspace (if List.length sceneModel.badNews > 0 then 40 else 0) ]
           , [ formatBadNews sceneModel.badNews ]
           ]
