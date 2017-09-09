@@ -24475,11 +24475,12 @@ var _user$project$ReceptionKiosk_TaskListScene$taskChoices = function (kioskMode
 				sceneModel.workableTasks)));
 };
 var _user$project$ReceptionKiosk_TaskListScene$view = function (kioskModel) {
+	var sceneModel = kioskModel.taskListModel;
 	return A5(
 		_user$project$Wizard_SceneUtils$genericScene,
 		kioskModel,
 		'Choose a Task',
-		'Here are some you can work',
+		sceneModel.calendarPageRcvd ? 'Here are some you can work' : 'Looking for tasks. One moment, please!',
 		_user$project$ReceptionKiosk_TaskListScene$taskChoices(kioskModel),
 		{
 			ctor: '::',
@@ -24518,10 +24519,12 @@ var _user$project$ReceptionKiosk_TaskListScene$extractTodaysTasks = function (pa
 var _user$project$ReceptionKiosk_TaskListScene$update = F2(
 	function (msg, kioskModel) {
 		var sceneModel = kioskModel.taskListModel;
+		var calPageRcvd = sceneModel.calendarPageRcvd;
+		var noTasks = _elm_lang$core$List$isEmpty(sceneModel.workableTasks);
 		var _p1 = msg;
 		switch (_p1.ctor) {
 			case 'TaskListSceneWillAppear':
-				return _elm_lang$core$List$isEmpty(sceneModel.workableTasks) ? {
+				return (calPageRcvd && noTasks) ? {
 					ctor: '_Tuple2',
 					_0: sceneModel,
 					_1: _user$project$Wizard_SceneUtils$send(
@@ -24530,14 +24533,13 @@ var _user$project$ReceptionKiosk_TaskListScene$update = F2(
 				} : {ctor: '_Tuple2', _0: sceneModel, _1: _elm_lang$core$Platform_Cmd$none};
 			case 'CalendarPageResult':
 				if (_p1._0.ctor === 'Ok') {
+					var workableTasks = _user$project$ReceptionKiosk_TaskListScene$extractWorkableTasks(
+						_user$project$ReceptionKiosk_TaskListScene$extractTodaysTasks(_p1._0._0));
 					return {
 						ctor: '_Tuple2',
 						_0: _elm_lang$core$Native_Utils.update(
 							sceneModel,
-							{
-								workableTasks: _user$project$ReceptionKiosk_TaskListScene$extractWorkableTasks(
-									_user$project$ReceptionKiosk_TaskListScene$extractTodaysTasks(_p1._0._0))
-							}),
+							{calendarPageRcvd: true, workableTasks: workableTasks}),
 						_1: _elm_lang$core$Platform_Cmd$none
 					};
 				} else {
@@ -24569,15 +24571,16 @@ var _user$project$ReceptionKiosk_TaskListScene$update = F2(
 	});
 var _user$project$ReceptionKiosk_TaskListScene$init = function (flags) {
 	var sceneModel = {
+		calendarPageRcvd: false,
 		workableTasks: {ctor: '[]'},
 		selectedTask: _elm_lang$core$Maybe$Nothing,
 		badNews: {ctor: '[]'}
 	};
 	return {ctor: '_Tuple2', _0: sceneModel, _1: _elm_lang$core$Platform_Cmd$none};
 };
-var _user$project$ReceptionKiosk_TaskListScene$TaskListModel = F3(
-	function (a, b, c) {
-		return {workableTasks: a, selectedTask: b, badNews: c};
+var _user$project$ReceptionKiosk_TaskListScene$TaskListModel = F4(
+	function (a, b, c, d) {
+		return {calendarPageRcvd: a, workableTasks: b, selectedTask: c, badNews: d};
 	});
 
 var _user$project$ReceptionKiosk_VolunteerInDoneScene$instructionPara = _elm_lang$html$Html_Attributes$style(

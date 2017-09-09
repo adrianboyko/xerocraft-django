@@ -24,7 +24,8 @@ import ReceptionKiosk.CheckInScene exposing (CheckInModel)
 -----------------------------------------------------------------------------
 
 type alias TaskListModel =
-  { workableTasks : List OpsTask
+  { calendarPageRcvd : Bool  -- There's no guarantee that cal page will be recvd before we get to view func.
+  , workableTasks : List OpsTask
   , selectedTask : Maybe OpsTask
   , badNews : List String
   }
@@ -40,7 +41,12 @@ type alias KioskModel a =
 
 init : Flags -> (TaskListModel, Cmd Msg)
 init flags =
-  let sceneModel = { workableTasks=[], selectedTask=Nothing, badNews=[] }
+  let sceneModel =
+    { calendarPageRcvd = False
+    , workableTasks = []
+    , selectedTask = Nothing
+    , badNews = []
+    }
   in (sceneModel, Cmd.none)
 
 
@@ -50,20 +56,23 @@ init flags =
 
 update : TaskListMsg -> KioskModel a -> (TaskListModel, Cmd Msg)
 update msg kioskModel =
-  let sceneModel = kioskModel.taskListModel
+  let
+    sceneModel = kioskModel.taskListModel
+    calPageRcvd = sceneModel.calendarPageRcvd
+    noTasks = List.isEmpty sceneModel.workableTasks
   in case msg of
 
     TaskListSceneWillAppear ->
-      if List.isEmpty sceneModel.workableTasks then
+      if calPageRcvd && noTasks then
         -- No tasks are queued for the member checking in, so skip to task info.
         -- Task info will display generic "talk to a staffer" info in this case.
         (sceneModel, send (WizardVector <| Push <| VolunteerInDone))
       else
         (sceneModel, Cmd.none)
 
-
     CalendarPageResult (Ok page) ->
-      ({sceneModel | workableTasks = page |> extractTodaysTasks |> extractWorkableTasks }, Cmd.none)
+      let workableTasks = page |> extractTodaysTasks |> extractWorkableTasks
+      in ({sceneModel | calendarPageRcvd=True, workableTasks=workableTasks }, Cmd.none)
 
     CalendarPageResult (Err error) ->
       ({sceneModel | badNews = [toString error]}, Cmd.none)
@@ -91,11 +100,16 @@ extractWorkableTasks tasks =
 
 view : KioskModel a -> Html Msg
 view kioskModel =
-  genericScene kioskModel
+  let sceneModel = kioskModel.taskListModel
+  in genericScene kioskModel
     "Choose a Task"
-    "Here are some you can work"
+    ( if sceneModel.calendarPageRcvd then
+        "Here are some you can work"
+      else
+        "Looking for tasks. One moment, please!"
+    )
     (taskChoices kioskModel)
-    [ButtonSpec "OK" (WizardVector <| Push <| VolunteerInDone)]  -- TODO: Wrong destination
+    [ButtonSpec "OK" (WizardVector <| Push <| VolunteerInDone)]
 
 taskChoices : KioskModel a -> Html Msg
 taskChoices kioskModel =
