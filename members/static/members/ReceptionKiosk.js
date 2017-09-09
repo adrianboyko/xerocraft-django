@@ -22423,6 +22423,10 @@ var _user$project$ReceptionKiosk_ReasonForVisitScene$reasonString = F2(
 	});
 var _user$project$ReceptionKiosk_ReasonForVisitScene$makeActivityList = F2(
 	function (kioskModel, reasons) {
+		var reasonMsg = function (reason) {
+			return _user$project$ReceptionKiosk_Types$ReasonForVisitVector(
+				_user$project$ReceptionKiosk_Types$UpdateReasonForVisit(reason));
+		};
 		var sceneModel = kioskModel.reasonForVisitModel;
 		return A2(
 			_elm_lang$html$Html$div,
@@ -22470,8 +22474,7 @@ var _user$project$ReceptionKiosk_ReasonForVisitScene$makeActivityList = F2(
 											_1: {
 												ctor: '::',
 												_0: _debois$elm_mdl$Material_Options$onToggle(
-													_user$project$ReceptionKiosk_Types$ReasonForVisitVector(
-														_user$project$ReceptionKiosk_Types$UpdateReasonForVisit(reason))),
+													reasonMsg(reason)),
 												_1: {ctor: '[]'}
 											}
 										},
@@ -22587,16 +22590,13 @@ var _user$project$ReceptionKiosk_ReasonForVisitScene$update = F2(
 						_1: _elm_lang$core$Platform_Cmd$none
 					};
 				} else {
+					var visitingMemberPk = checkInModel.memberNum;
+					var msg = function (_p5) {
+						return _user$project$ReceptionKiosk_Types$ReasonForVisitVector(
+							_user$project$ReceptionKiosk_Types$LogCheckInResult(_p5));
+					};
 					var logVisitEvent = _user$project$MembersApi$logVisitEvent(kioskModel.flags);
-					var cmd = A4(
-						logVisitEvent,
-						checkInModel.memberNum,
-						_user$project$MembersApi$Arrival,
-						_p4._0,
-						function (_p5) {
-							return _user$project$ReceptionKiosk_Types$ReasonForVisitVector(
-								_user$project$ReceptionKiosk_Types$LogCheckInResult(_p5));
-						});
+					var cmd = A4(logVisitEvent, visitingMemberPk, _user$project$MembersApi$Arrival, _p4._0, msg);
 					return {ctor: '_Tuple2', _0: sceneModel, _1: cmd};
 				}
 			default:

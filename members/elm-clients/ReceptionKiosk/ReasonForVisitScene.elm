@@ -74,7 +74,9 @@ update msg kioskModel =
         Just reasonForVisit ->
           let
             logVisitEvent = MembersApi.logVisitEvent  kioskModel.flags
-            cmd = logVisitEvent checkInModel.memberNum MembersApi.Arrival reasonForVisit (ReasonForVisitVector << LogCheckInResult)
+            msg = ReasonForVisitVector << LogCheckInResult
+            visitingMemberPk = checkInModel.memberNum
+            cmd = logVisitEvent visitingMemberPk MembersApi.Arrival reasonForVisit msg
           in (sceneModel, cmd)
 
     LogCheckInResult (Ok {result}) ->
@@ -124,6 +126,7 @@ makeActivityList : KioskModel a -> List ReasonForVisit -> Html Msg
 makeActivityList kioskModel reasons =
   let
     sceneModel = kioskModel.reasonForVisitModel
+    reasonMsg reason = ReasonForVisitVector <| UpdateReasonForVisit <| reason
   in
     div [reasonListStyle]
       (
@@ -138,7 +141,7 @@ makeActivityList kioskModel reasons =
                         Nothing -> False
                         Just r -> r == reason
                       )
-                  , Options.onToggle (ReasonForVisitVector <| UpdateReasonForVisit <| reason)
+                  , Options.onToggle (reasonMsg reason)
                   ]
                   [text (reasonString kioskModel reason)]
               , vspace 30
