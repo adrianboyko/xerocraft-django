@@ -59,7 +59,7 @@ update msg kioskModel =
         request = getCurrCalendarPageForMember
           kioskModel.flags.csrfToken
           checkInModel.memberNum
-          (VolunteerInVector << CalendarPageResult)
+          (TaskListVector << CalendarPageResult)
 
       in (sceneModel, request)
 
@@ -82,7 +82,7 @@ update msg kioskModel =
     LogCheckInResult (Ok {result}) ->
       case sceneModel.reasonForVisit of
         Just Volunteer ->
-          (sceneModel, send (WizardVector <| Push <| VolunteerIn))
+          (sceneModel, send (WizardVector <| Push <| TaskList))
         _ ->
           (sceneModel, send (WizardVector <| Push <| CheckInDone))
 

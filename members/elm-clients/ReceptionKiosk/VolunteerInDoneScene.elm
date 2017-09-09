@@ -10,7 +10,7 @@ import Html.Attributes exposing (style)
 -- Local
 import Wizard.SceneUtils exposing (..)
 import ReceptionKiosk.Types exposing (..)
-import ReceptionKiosk.VolunteerInScene exposing (VolunteerInModel)
+import ReceptionKiosk.TaskListScene exposing (TaskListModel)
 
 -----------------------------------------------------------------------------
 -- INIT
@@ -27,7 +27,7 @@ type alias KioskModel a =
   SceneUtilModel
     { a
     | volunteerInDoneModel : VolunteerInDoneModel
-    , volunteerInModel : VolunteerInModel
+    , taskListModel : TaskListModel
     }
 
 init : Flags -> (VolunteerInDoneModel, Cmd Msg)
@@ -45,9 +45,9 @@ view : KioskModel a -> Html Msg
 view kioskModel =
   let
     sceneModel = kioskModel.volunteerInDoneModel
-    volunteerInModel = kioskModel.volunteerInModel
+    taskListModel = kioskModel.taskListModel
     instructions =
-      case volunteerInModel.selectedTask of
+      case taskListModel.selectedTask of
         Just opsTask -> opsTask.instructions
         Nothing -> "Please see a Staff Member for instructions."
   in

@@ -49,7 +49,7 @@ type Scene
   | NewMember
   | NewUser
   | ReasonForVisit
-  | VolunteerIn
+  | TaskList
   | VolunteerInDone
   | Waiver
   | Welcome
@@ -69,7 +69,7 @@ mdlIdBase scene =
     NewMember -> 900
     NewUser -> 1000
     ReasonForVisit -> 1100
-    VolunteerIn -> 1200
+    TaskList -> 1200
     VolunteerInDone -> 1300
     Waiver -> 1400
     Welcome -> 1500
@@ -121,8 +121,9 @@ type ReasonForVisitMsg
   | LogCheckInResult (Result Http.Error GenericResult)
   | ReasonForVisitSceneWillAppear
 
-type VolunteerInMsg
-  = CalendarPageResult (Result Http.Error CalendarPage)
+type TaskListMsg
+  = TaskListSceneWillAppear
+  | CalendarPageResult (Result Http.Error CalendarPage)
   | ToggleTask OpsTask
 
 type WaiverMsg
@@ -145,7 +146,7 @@ type Msg
   | NewMemberVector NewMemberMsg
   | NewUserVector NewUserMsg
   | ReasonForVisitVector ReasonForVisitMsg
-  | VolunteerInVector VolunteerInMsg
+  | TaskListVector TaskListMsg
   | WaiverVector WaiverMsg
   | WelcomeVector WelcomeMsg
 

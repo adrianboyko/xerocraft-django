@@ -25,7 +25,7 @@ import ReceptionKiosk.SignUpDoneScene as SignUpDoneScene
 import ReceptionKiosk.NewMemberScene as NewMemberScene
 import ReceptionKiosk.NewUserScene as NewUserScene
 import ReceptionKiosk.ReasonForVisitScene as ReasonForVisitScene
-import ReceptionKiosk.VolunteerInScene as VolunteerInScene
+import ReceptionKiosk.TaskListScene as TaskListScene
 import ReceptionKiosk.VolunteerInDoneScene as VolunteerInDoneScene
 import ReceptionKiosk.WaiverScene as WaiverScene
 import ReceptionKiosk.WelcomeScene as WelcomeScene
@@ -63,7 +63,7 @@ type alias Model =
   , newMemberModel       : NewMemberScene.NewMemberModel
   , newUserModel         : NewUserScene.NewUserModel
   , reasonForVisitModel  : ReasonForVisitScene.ReasonForVisitModel
-  , volunteerInModel     : VolunteerInScene.VolunteerInModel
+  , taskListModel        : TaskListScene.TaskListModel
   , volunteerInDoneModel : VolunteerInDoneScene.VolunteerInDoneModel
   , waiverModel          : WaiverScene.WaiverModel
   , welcomeModel         : WelcomeScene.WelcomeModel
@@ -83,7 +83,7 @@ init f =
     (newUserModel,         newUserCmd        ) = NewUserScene.init         f
     (reasonForVisitModel,  reasonForVisitCmd ) = ReasonForVisitScene.init  f
     (signUpDoneModel,      signUpDoneCmd     ) = SignUpDoneScene.init      f
-    (volunteerInModel,     volunteerInCmd    ) = VolunteerInScene.init     f
+    (taskListModel,        taskListCmd       ) = TaskListScene.init        f
     (volunteerInDoneModel, volunteerInDoneCmd) = VolunteerInDoneScene.init f
     (waiverModel,          waiverCmd         ) = WaiverScene.init          f
     (welcomeModel,         welcomeCmd        ) = WelcomeScene.init         f
@@ -103,7 +103,7 @@ init f =
       , newUserModel         = newUserModel
       , reasonForVisitModel  = reasonForVisitModel
       , signUpDoneModel      = signUpDoneModel
-      , volunteerInModel     = volunteerInModel
+      , taskListModel        = taskListModel
       , volunteerInDoneModel = volunteerInDoneModel
       , waiverModel          = waiverModel
       , welcomeModel         = welcomeModel
@@ -119,7 +119,7 @@ init f =
       , newMemberCmd
       , newUserCmd
       , reasonForVisitCmd
-      , volunteerInCmd
+      , taskListCmd
       , volunteerInDoneCmd
       , waiverCmd
       , welcomeCmd
@@ -211,9 +211,9 @@ update msg model =
       let (sm, cmd) = ReasonForVisitScene.update x model
       in ({model | reasonForVisitModel = sm}, cmd)
 
-    VolunteerInVector x ->
-      let (sm, cmd) = VolunteerInScene.update x model
-      in ({model | volunteerInModel = sm}, cmd)
+    TaskListVector x ->
+      let (sm, cmd) = TaskListScene.update x model
+      in ({model | taskListModel = sm}, cmd)
 
     WaiverVector x ->
       let (sm, cmd) = WaiverScene.update x model
@@ -245,7 +245,7 @@ view model =
     NewUser         -> NewUserScene.view         model
     ReasonForVisit  -> ReasonForVisitScene.view  model
     SignUpDone      -> SignUpDoneScene.view      model
-    VolunteerIn     -> VolunteerInScene.view     model
+    TaskList        -> TaskListScene.view        model
     VolunteerInDone -> VolunteerInDoneScene.view model
     Waiver          -> WaiverScene.view          model
     Welcome         -> WelcomeScene.view         model

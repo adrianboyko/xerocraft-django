@@ -20972,7 +20972,7 @@ var _user$project$ReceptionKiosk_Types$mdlIdBase = function (scene) {
 			return 1000;
 		case 'ReasonForVisit':
 			return 1100;
-		case 'VolunteerIn':
+		case 'TaskList':
 			return 1200;
 		case 'VolunteerInDone':
 			return 1300;
@@ -21012,7 +21012,7 @@ var _user$project$ReceptionKiosk_Types$Flags = function (a) {
 var _user$project$ReceptionKiosk_Types$Welcome = {ctor: 'Welcome'};
 var _user$project$ReceptionKiosk_Types$Waiver = {ctor: 'Waiver'};
 var _user$project$ReceptionKiosk_Types$VolunteerInDone = {ctor: 'VolunteerInDone'};
-var _user$project$ReceptionKiosk_Types$VolunteerIn = {ctor: 'VolunteerIn'};
+var _user$project$ReceptionKiosk_Types$TaskList = {ctor: 'TaskList'};
 var _user$project$ReceptionKiosk_Types$ReasonForVisit = {ctor: 'ReasonForVisit'};
 var _user$project$ReceptionKiosk_Types$NewUser = {ctor: 'NewUser'};
 var _user$project$ReceptionKiosk_Types$NewMember = {ctor: 'NewMember'};
@@ -21102,6 +21102,7 @@ var _user$project$ReceptionKiosk_Types$ToggleTask = function (a) {
 var _user$project$ReceptionKiosk_Types$CalendarPageResult = function (a) {
 	return {ctor: 'CalendarPageResult', _0: a};
 };
+var _user$project$ReceptionKiosk_Types$TaskListSceneWillAppear = {ctor: 'TaskListSceneWillAppear'};
 var _user$project$ReceptionKiosk_Types$WaiverSceneWillAppear = {ctor: 'WaiverSceneWillAppear'};
 var _user$project$ReceptionKiosk_Types$UpdateSignature = function (a) {
 	return {ctor: 'UpdateSignature', _0: a};
@@ -21120,8 +21121,8 @@ var _user$project$ReceptionKiosk_Types$WelcomeVector = function (a) {
 var _user$project$ReceptionKiosk_Types$WaiverVector = function (a) {
 	return {ctor: 'WaiverVector', _0: a};
 };
-var _user$project$ReceptionKiosk_Types$VolunteerInVector = function (a) {
-	return {ctor: 'VolunteerInVector', _0: a};
+var _user$project$ReceptionKiosk_Types$TaskListVector = function (a) {
+	return {ctor: 'TaskListVector', _0: a};
 };
 var _user$project$ReceptionKiosk_Types$ReasonForVisitVector = function (a) {
 	return {ctor: 'ReasonForVisitVector', _0: a};
@@ -22559,7 +22560,7 @@ var _user$project$ReceptionKiosk_ReasonForVisitScene$update = F2(
 					kioskModel.flags.csrfToken,
 					checkInModel.memberNum,
 					function (_p3) {
-						return _user$project$ReceptionKiosk_Types$VolunteerInVector(
+						return _user$project$ReceptionKiosk_Types$TaskListVector(
 							_user$project$ReceptionKiosk_Types$CalendarPageResult(_p3));
 					});
 				return {ctor: '_Tuple2', _0: sceneModel, _1: request};
@@ -22608,7 +22609,7 @@ var _user$project$ReceptionKiosk_ReasonForVisitScene$update = F2(
 							_0: sceneModel,
 							_1: _user$project$Wizard_SceneUtils$send(
 								_user$project$ReceptionKiosk_Types$WizardVector(
-									_user$project$ReceptionKiosk_Types$Push(_user$project$ReceptionKiosk_Types$VolunteerIn)))
+									_user$project$ReceptionKiosk_Types$Push(_user$project$ReceptionKiosk_Types$TaskList)))
 						};
 					} else {
 						return {
@@ -24375,7 +24376,7 @@ var _user$project$ReceptionKiosk_SignUpDoneScene$init = function (flags) {
 };
 var _user$project$ReceptionKiosk_SignUpDoneScene$SignUpDoneModel = {};
 
-var _user$project$ReceptionKiosk_VolunteerInScene$taskDivStyle = _elm_lang$html$Html_Attributes$style(
+var _user$project$ReceptionKiosk_TaskListScene$taskDivStyle = _elm_lang$html$Html_Attributes$style(
 	{
 		ctor: '::',
 		_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'background-color', '#eeeeee'),
@@ -24389,7 +24390,7 @@ var _user$project$ReceptionKiosk_VolunteerInScene$taskDivStyle = _elm_lang$html$
 			}
 		}
 	});
-var _user$project$ReceptionKiosk_VolunteerInScene$volunteerInStyle = _elm_lang$html$Html_Attributes$style(
+var _user$project$ReceptionKiosk_TaskListScene$taskListStyle = _elm_lang$html$Html_Attributes$style(
 	{
 		ctor: '::',
 		_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'width', '500px'),
@@ -24407,13 +24408,13 @@ var _user$project$ReceptionKiosk_VolunteerInScene$volunteerInStyle = _elm_lang$h
 			}
 		}
 	});
-var _user$project$ReceptionKiosk_VolunteerInScene$taskChoices = function (kioskModel) {
-	var sceneModel = kioskModel.volunteerInModel;
+var _user$project$ReceptionKiosk_TaskListScene$taskChoices = function (kioskModel) {
+	var sceneModel = kioskModel.taskListModel;
 	return A2(
 		_elm_lang$html$Html$div,
 		{
 			ctor: '::',
-			_0: _user$project$ReceptionKiosk_VolunteerInScene$volunteerInStyle,
+			_0: _user$project$ReceptionKiosk_TaskListScene$taskListStyle,
 			_1: {ctor: '[]'}
 		},
 		A2(
@@ -24430,7 +24431,7 @@ var _user$project$ReceptionKiosk_VolunteerInScene$taskChoices = function (kioskM
 						_elm_lang$html$Html$div,
 						{
 							ctor: '::',
-							_0: _user$project$ReceptionKiosk_VolunteerInScene$taskDivStyle,
+							_0: _user$project$ReceptionKiosk_TaskListScene$taskDivStyle,
 							_1: {ctor: '[]'}
 						},
 						{
@@ -24440,7 +24441,7 @@ var _user$project$ReceptionKiosk_VolunteerInScene$taskChoices = function (kioskM
 								_user$project$ReceptionKiosk_Types$MdlVector,
 								{
 									ctor: '::',
-									_0: _user$project$ReceptionKiosk_Types$mdlIdBase(_user$project$ReceptionKiosk_Types$VolunteerIn) + wt.taskId,
+									_0: _user$project$ReceptionKiosk_Types$mdlIdBase(_user$project$ReceptionKiosk_Types$TaskList) + wt.taskId,
 									_1: {ctor: '[]'}
 								},
 								kioskModel.mdl,
@@ -24458,7 +24459,7 @@ var _user$project$ReceptionKiosk_VolunteerInScene$taskChoices = function (kioskM
 									_1: {
 										ctor: '::',
 										_0: _debois$elm_mdl$Material_Options$onToggle(
-											_user$project$ReceptionKiosk_Types$VolunteerInVector(
+											_user$project$ReceptionKiosk_Types$TaskListVector(
 												_user$project$ReceptionKiosk_Types$ToggleTask(wt))),
 										_1: {ctor: '[]'}
 									}
@@ -24473,13 +24474,13 @@ var _user$project$ReceptionKiosk_VolunteerInScene$taskChoices = function (kioskM
 				},
 				sceneModel.workableTasks)));
 };
-var _user$project$ReceptionKiosk_VolunteerInScene$listTasksScene = function (kioskModel) {
+var _user$project$ReceptionKiosk_TaskListScene$view = function (kioskModel) {
 	return A5(
 		_user$project$Wizard_SceneUtils$genericScene,
 		kioskModel,
 		'Choose a Task',
 		'Here are some you can work',
-		_user$project$ReceptionKiosk_VolunteerInScene$taskChoices(kioskModel),
+		_user$project$ReceptionKiosk_TaskListScene$taskChoices(kioskModel),
 		{
 			ctor: '::',
 			_0: A2(
@@ -24490,27 +24491,7 @@ var _user$project$ReceptionKiosk_VolunteerInScene$listTasksScene = function (kio
 			_1: {ctor: '[]'}
 		});
 };
-var _user$project$ReceptionKiosk_VolunteerInScene$noTasksScene = function (kioskModel) {
-	return A5(
-		_user$project$Wizard_SceneUtils$genericScene,
-		kioskModel,
-		'You Need a Task!',
-		'Please talk to a Staff Member',
-		_elm_lang$html$Html$text(''),
-		{
-			ctor: '::',
-			_0: A2(
-				_user$project$Wizard_SceneUtils$ButtonSpec,
-				'OK',
-				_user$project$ReceptionKiosk_Types$WizardVector(
-					_user$project$ReceptionKiosk_Types$Push(_user$project$ReceptionKiosk_Types$VolunteerInDone))),
-			_1: {ctor: '[]'}
-		});
-};
-var _user$project$ReceptionKiosk_VolunteerInScene$view = function (kioskModel) {
-	return _elm_lang$core$List$isEmpty(kioskModel.volunteerInModel.workableTasks) ? _user$project$ReceptionKiosk_VolunteerInScene$noTasksScene(kioskModel) : _user$project$ReceptionKiosk_VolunteerInScene$listTasksScene(kioskModel);
-};
-var _user$project$ReceptionKiosk_VolunteerInScene$extractWorkableTasks = function (tasks) {
+var _user$project$ReceptionKiosk_TaskListScene$extractWorkableTasks = function (tasks) {
 	return A2(
 		_elm_lang$core$List$filter,
 		function (t) {
@@ -24520,7 +24501,7 @@ var _user$project$ReceptionKiosk_VolunteerInScene$extractWorkableTasks = functio
 		},
 		tasks);
 };
-var _user$project$ReceptionKiosk_VolunteerInScene$extractTodaysTasks = function (page) {
+var _user$project$ReceptionKiosk_TaskListScene$extractTodaysTasks = function (page) {
 	var extractDayTasks = function (dot) {
 		return dot.isToday ? dot.tasks : {ctor: '[]'};
 	};
@@ -24534,50 +24515,53 @@ var _user$project$ReceptionKiosk_VolunteerInScene$extractTodaysTasks = function 
 	};
 	return extractMonthTasks(page.tasks);
 };
-var _user$project$ReceptionKiosk_VolunteerInScene$update = F2(
+var _user$project$ReceptionKiosk_TaskListScene$update = F2(
 	function (msg, kioskModel) {
-		var sceneModel = kioskModel.volunteerInModel;
+		var sceneModel = kioskModel.taskListModel;
 		var _p1 = msg;
-		if (_p1.ctor === 'CalendarPageResult') {
-			if (_p1._0.ctor === 'Ok') {
+		switch (_p1.ctor) {
+			case 'TaskListSceneWillAppear':
+				return {ctor: '_Tuple2', _0: sceneModel, _1: _elm_lang$core$Platform_Cmd$none};
+			case 'CalendarPageResult':
+				if (_p1._0.ctor === 'Ok') {
+					return {
+						ctor: '_Tuple2',
+						_0: _elm_lang$core$Native_Utils.update(
+							sceneModel,
+							{
+								workableTasks: _user$project$ReceptionKiosk_TaskListScene$extractWorkableTasks(
+									_user$project$ReceptionKiosk_TaskListScene$extractTodaysTasks(_p1._0._0))
+							}),
+						_1: _elm_lang$core$Platform_Cmd$none
+					};
+				} else {
+					return {
+						ctor: '_Tuple2',
+						_0: _elm_lang$core$Native_Utils.update(
+							sceneModel,
+							{
+								badNews: {
+									ctor: '::',
+									_0: _elm_lang$core$Basics$toString(_p1._0._0),
+									_1: {ctor: '[]'}
+								}
+							}),
+						_1: _elm_lang$core$Platform_Cmd$none
+					};
+				}
+			default:
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
 						sceneModel,
 						{
-							workableTasks: _user$project$ReceptionKiosk_VolunteerInScene$extractWorkableTasks(
-								_user$project$ReceptionKiosk_VolunteerInScene$extractTodaysTasks(_p1._0._0))
+							selectedTask: _elm_lang$core$Maybe$Just(_p1._0)
 						}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
-			} else {
-				return {
-					ctor: '_Tuple2',
-					_0: _elm_lang$core$Native_Utils.update(
-						sceneModel,
-						{
-							badNews: {
-								ctor: '::',
-								_0: _elm_lang$core$Basics$toString(_p1._0._0),
-								_1: {ctor: '[]'}
-							}
-						}),
-					_1: _elm_lang$core$Platform_Cmd$none
-				};
-			}
-		} else {
-			return {
-				ctor: '_Tuple2',
-				_0: _elm_lang$core$Native_Utils.update(
-					sceneModel,
-					{
-						selectedTask: _elm_lang$core$Maybe$Just(_p1._0)
-					}),
-				_1: _elm_lang$core$Platform_Cmd$none
-			};
 		}
 	});
-var _user$project$ReceptionKiosk_VolunteerInScene$init = function (flags) {
+var _user$project$ReceptionKiosk_TaskListScene$init = function (flags) {
 	var sceneModel = {
 		workableTasks: {ctor: '[]'},
 		selectedTask: _elm_lang$core$Maybe$Nothing,
@@ -24585,7 +24569,7 @@ var _user$project$ReceptionKiosk_VolunteerInScene$init = function (flags) {
 	};
 	return {ctor: '_Tuple2', _0: sceneModel, _1: _elm_lang$core$Platform_Cmd$none};
 };
-var _user$project$ReceptionKiosk_VolunteerInScene$VolunteerInModel = F3(
+var _user$project$ReceptionKiosk_TaskListScene$TaskListModel = F3(
 	function (a, b, c) {
 		return {workableTasks: a, selectedTask: b, badNews: c};
 	});
@@ -24615,9 +24599,9 @@ var _user$project$ReceptionKiosk_VolunteerInDoneScene$instructionDiv = _elm_lang
 		}
 	});
 var _user$project$ReceptionKiosk_VolunteerInDoneScene$view = function (kioskModel) {
-	var volunteerInModel = kioskModel.volunteerInModel;
+	var taskListModel = kioskModel.taskListModel;
 	var instructions = function () {
-		var _p0 = volunteerInModel.selectedTask;
+		var _p0 = taskListModel.selectedTask;
 		if (_p0.ctor === 'Just') {
 			return _p0._0.instructions;
 		} else {
@@ -24861,8 +24845,8 @@ var _user$project$ReceptionKiosk$view = function (model) {
 			return _user$project$ReceptionKiosk_ReasonForVisitScene$view(model);
 		case 'SignUpDone':
 			return _user$project$ReceptionKiosk_SignUpDoneScene$view(model);
-		case 'VolunteerIn':
-			return _user$project$ReceptionKiosk_VolunteerInScene$view(model);
+		case 'TaskList':
+			return _user$project$ReceptionKiosk_TaskListScene$view(model);
 		case 'VolunteerInDone':
 			return _user$project$ReceptionKiosk_VolunteerInDoneScene$view(model);
 		case 'Waiver':
@@ -24881,9 +24865,9 @@ var _user$project$ReceptionKiosk$init = function (f) {
 	var _p4 = _user$project$ReceptionKiosk_VolunteerInDoneScene$init(f);
 	var volunteerInDoneModel = _p4._0;
 	var volunteerInDoneCmd = _p4._1;
-	var _p5 = _user$project$ReceptionKiosk_VolunteerInScene$init(f);
-	var volunteerInModel = _p5._0;
-	var volunteerInCmd = _p5._1;
+	var _p5 = _user$project$ReceptionKiosk_TaskListScene$init(f);
+	var taskListModel = _p5._0;
+	var taskListCmd = _p5._1;
 	var _p6 = _user$project$ReceptionKiosk_SignUpDoneScene$init(f);
 	var signUpDoneModel = _p6._0;
 	var signUpDoneCmd = _p6._1;
@@ -24932,7 +24916,7 @@ var _user$project$ReceptionKiosk$init = function (f) {
 		newUserModel: newUserModel,
 		reasonForVisitModel: reasonForVisitModel,
 		signUpDoneModel: signUpDoneModel,
-		volunteerInModel: volunteerInModel,
+		taskListModel: taskListModel,
 		volunteerInDoneModel: volunteerInDoneModel,
 		waiverModel: waiverModel,
 		welcomeModel: welcomeModel
@@ -24969,7 +24953,7 @@ var _user$project$ReceptionKiosk$init = function (f) {
 											_0: reasonForVisitCmd,
 											_1: {
 												ctor: '::',
-												_0: volunteerInCmd,
+												_0: taskListCmd,
 												_1: {
 													ctor: '::',
 													_0: volunteerInDoneCmd,
@@ -25182,15 +25166,15 @@ var _user$project$ReceptionKiosk$update = F2(
 						{reasonForVisitModel: sm}),
 					_1: cmd
 				};
-			case 'VolunteerInVector':
-				var _p31 = A2(_user$project$ReceptionKiosk_VolunteerInScene$update, _p17._0, model);
+			case 'TaskListVector':
+				var _p31 = A2(_user$project$ReceptionKiosk_TaskListScene$update, _p17._0, model);
 				var sm = _p31._0;
 				var cmd = _p31._1;
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
 						model,
-						{volunteerInModel: sm}),
+						{taskListModel: sm}),
 					_1: cmd
 				};
 			case 'WaiverVector':
@@ -25306,7 +25290,7 @@ var _user$project$ReceptionKiosk$Model = function (a) {
 															return function (p) {
 																return function (q) {
 																	return function (r) {
-																		return {flags: a, sceneStack: b, mdl: c, checkInModel: d, checkInDoneModel: e, checkOutModel: f, checkOutDoneModel: g, creatingAcctModel: h, emailInUseModel: i, howDidYouHearModel: j, signUpDoneModel: k, newMemberModel: l, newUserModel: m, reasonForVisitModel: n, volunteerInModel: o, volunteerInDoneModel: p, waiverModel: q, welcomeModel: r};
+																		return {flags: a, sceneStack: b, mdl: c, checkInModel: d, checkInDoneModel: e, checkOutModel: f, checkOutDoneModel: g, creatingAcctModel: h, emailInUseModel: i, howDidYouHearModel: j, signUpDoneModel: k, newMemberModel: l, newUserModel: m, reasonForVisitModel: n, taskListModel: o, volunteerInDoneModel: p, waiverModel: q, welcomeModel: r};
 																	};
 																};
 															};
