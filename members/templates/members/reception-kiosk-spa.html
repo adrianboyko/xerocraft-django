@@ -49,12 +49,18 @@
         .mdl-radio {font-size: smaller;}
         .mdl-radio__label { margin-left: 10px; }
         .mdl-radio__outer-circle { width:25px; height:25px; top:0; left:0; }
-        .mdl-radio__inner-circle { width:13px; height:13px; top:6px; left:6px; margin:0; padding:0;}
+        .mdl-radio__inner-circle {
+            width:13px; height:13px; top:6px; left:6px; margin:0; padding:0;
+            transition-duration: 0s;  /* Necessary because kiosk app on tablet doesn't do transitions right. */
+        }
 
         /* Tweeks to checkbox list */
         .mdl-checkbox__label {font-size: smaller; margin-left: 10px;}
         .mdl-checkbox__box-outline { width:24px; height:24px; margin-top:-3px }
         .mdl-checkbox__focus-helper { width:40px; height:40px; top:-7px; left:-7px;}
+        .mdl-checkbox__tick-outline {
+            transition-duration: 0s;  /* Necessary because kiosk app on tablet doesn't do transitions right. */
+        }
 
 
     </style>
