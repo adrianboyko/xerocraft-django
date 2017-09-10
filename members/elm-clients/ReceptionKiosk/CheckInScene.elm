@@ -15,6 +15,9 @@ import ReceptionKiosk.Types exposing (..)
 import Wizard.SceneUtils exposing (..)
 import MembersApi as MembersApi
 
+-- TODO: Before user types flexid, could show usernames of recent RFID swipers?
+-- TODO: If user is signing in after acct creation, show a username hint?
+
 -----------------------------------------------------------------------------
 -- INIT
 -----------------------------------------------------------------------------
