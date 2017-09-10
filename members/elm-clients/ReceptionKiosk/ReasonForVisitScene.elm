@@ -131,11 +131,11 @@ makeActivityList kioskModel reasons =
   in
     div [reasonListStyle]
       (
-        [vspace 50]
+        [vspace 30]
         ++
         (List.indexedMap
           (\index reason ->
-            span []
+            div [reasonDivStyle]
               [ Toggles.radio MdlVector [mdlIdBase ReasonForVisit + index] kioskModel.mdl
                   [ Toggles.value
                       (case sceneModel.reasonForVisit of
@@ -145,7 +145,6 @@ makeActivityList kioskModel reasons =
                   , Options.onToggle (reasonMsg reason)
                   ]
                   [text (reasonString kioskModel reason)]
-              , vspace 30
               ]
           )
           reasons
@@ -158,10 +157,15 @@ makeActivityList kioskModel reasons =
 -----------------------------------------------------------------------------
 
 reasonListStyle = style
-  [ "width" => "350px"
+  [ "width" => "450px"
   , "margin-left" => "auto"
   , "margin-right" => "auto"
-  , "padding-left" => "45px"
   , "text-align" => "left"
   ]
 
+reasonDivStyle = style
+  [ "background-color" => "#eeeeee"
+  , "padding" => "10px"
+  , "margin" => "15px"
+  , "border-radius" => "20px"
+  ]
