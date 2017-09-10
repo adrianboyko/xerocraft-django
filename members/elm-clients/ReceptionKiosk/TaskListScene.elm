@@ -98,6 +98,8 @@ extractWorkableTasks tasks =
 -- VIEW
 -----------------------------------------------------------------------------
 
+idxTaskListScene = mdlIdBase TaskList
+
 view : KioskModel a -> Html Msg
 view kioskModel =
   let sceneModel = kioskModel.taskListModel
@@ -115,10 +117,10 @@ taskChoices : KioskModel a -> Html Msg
 taskChoices kioskModel =
   let sceneModel = kioskModel.taskListModel
   in div [taskListStyle]
-    ([vspace 30] ++ List.map
-      (\wt ->
+    ([vspace 30] ++ List.indexedMap
+      (\index wt ->
         div [taskDivStyle]
-          [ Toggles.radio MdlVector [mdlIdBase TaskList + wt.taskId] kioskModel.mdl
+          [ Toggles.radio MdlVector [idxTaskListScene, index] kioskModel.mdl
             [ Toggles.value
               (case sceneModel.selectedTask of
                 Nothing -> False

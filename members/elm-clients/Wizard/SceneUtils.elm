@@ -13,19 +13,24 @@ import Material.Toggles as Toggles
 import Material.Chip as Chip
 import Material.Options as Options exposing (css)
 import Material.List as Lists
-import Material as Mat
+import Material as Material
 import List.Nonempty exposing (Nonempty)
 
 -- Local
 import ReceptionKiosk.Types exposing (..)
 
+-----------------------------------------------------------------------------
+-- MISC
+-----------------------------------------------------------------------------
 
 send : msg -> Cmd msg
 send msg =
   Task.succeed msg
   |> Task.perform identity
 
-type alias SceneUtilModel a = {a | mdl : Mat.Model, flags : Flags, sceneStack : Nonempty Scene}
+type alias SceneUtilModel a = {a | mdl : Material.Model, flags : Flags, sceneStack : Nonempty Scene}
+
+type alias Index = List Int  -- elm-mdl doesn't expose this type.
 
 -----------------------------------------------------------------------------
 -- VIEW UTILITIES
@@ -75,9 +80,9 @@ sceneButton model buttonSpec =
     ([ Button.raised, Button.colored, Options.onClick buttonSpec.msg]++sceneButtonCss)
     [ text buttonSpec.title ]
 
-sceneGenericTextField : (SceneUtilModel a) -> Int -> String -> String -> (String -> Msg) -> List (Textfield.Property Msg) -> Html Msg
+sceneGenericTextField : (SceneUtilModel a) -> Index -> String -> String -> (String -> Msg) -> List (Textfield.Property Msg) -> Html Msg
 sceneGenericTextField model index hint value msger options =
-  Textfield.render MdlVector [index] model.mdl
+  Textfield.render MdlVector index model.mdl
     (
       [ Textfield.label hint
       , Textfield.floatingLabel
@@ -90,23 +95,23 @@ sceneGenericTextField model index hint value msger options =
     )
     []
 
-sceneTextField : (SceneUtilModel a) -> Int -> String -> String -> (String -> Msg) -> Html Msg
+sceneTextField : (SceneUtilModel a) -> Index -> String -> String -> (String -> Msg) -> Html Msg
 sceneTextField model index hint value msger =
   sceneGenericTextField model index hint value msger []
 
-scenePasswordField : (SceneUtilModel a) -> Int -> String -> String -> (String -> Msg) -> Html Msg
+scenePasswordField : (SceneUtilModel a) -> Index -> String -> String -> (String -> Msg) -> Html Msg
 scenePasswordField model index hint value msger =
   sceneGenericTextField model index hint value msger [Textfield.password]
 
-sceneEmailField : (SceneUtilModel a) -> Int -> String -> String -> (String -> Msg) -> Html Msg
+sceneEmailField : (SceneUtilModel a) -> Index -> String -> String -> (String -> Msg) -> Html Msg
 sceneEmailField model index hint value msger =
   sceneGenericTextField model index hint value msger [Textfield.email]
 
-sceneCheckbox : (SceneUtilModel a) -> Int -> String -> Bool -> Msg -> Html Msg
+sceneCheckbox : (SceneUtilModel a) -> Index -> String -> Bool -> Msg -> Html Msg
 sceneCheckbox model index label value msger =
   -- Toggle.checkbox doesn't seem to handle centering very well. The following div compensates for that.
   div [style ["text-align"=>"left", "display"=>"inline-block", "width"=>"400px"]]
-    [ Toggles.checkbox MdlVector [index] model.mdl
+    [ Toggles.checkbox MdlVector index model.mdl
         [ Options.onToggle msger
         , Toggles.value value
         ]

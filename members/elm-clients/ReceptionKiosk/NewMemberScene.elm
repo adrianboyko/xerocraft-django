@@ -118,8 +118,12 @@ validate kioskModel =
 -- VIEW
 -----------------------------------------------------------------------------
 
-idUnder18 = 1
-idOver18 = 2
+idxNewMemberScene = mdlIdBase NewMember
+idxUnder18 = [idxNewMemberScene, 1]
+idxOver18 = [idxNewMemberScene, 2]
+idxFirstName = [idxNewMemberScene, 3]
+idxLastName = [idxNewMemberScene, 4]
+idxEmail = [idxNewMemberScene, 5]
 
 view : KioskModel a -> Html Msg
 view kioskModel =
@@ -128,11 +132,11 @@ view kioskModel =
     "Let's Create an Account!"
     "Please tell us about yourself:"
     ( div []
-        [ sceneTextField kioskModel 2 "Your first name" sceneModel.firstName (NewMemberVector << UpdateFirstName)
+        [ sceneTextField kioskModel idxFirstName "Your first name" sceneModel.firstName (NewMemberVector << UpdateFirstName)
         , vspace 0
-        , sceneTextField kioskModel 3 "Your last name" sceneModel.lastName (NewMemberVector << UpdateLastName)
+        , sceneTextField kioskModel idxLastName "Your last name" sceneModel.lastName (NewMemberVector << UpdateLastName)
         , vspace 0
-        , sceneEmailField kioskModel 4 "Your email address" sceneModel.email (NewMemberVector << UpdateEmail)
+        , sceneEmailField kioskModel idxEmail "Your email address" sceneModel.email (NewMemberVector << UpdateEmail)
         , vspace 0
         , ageChoice kioskModel
         , vspace (if List.length sceneModel.badNews > 0 then 40 else 0)
@@ -146,17 +150,16 @@ ageChoice : KioskModel a -> Html Msg
 ageChoice kioskModel =
   let
     sceneModel = kioskModel.newMemberModel
-    idBase = mdlIdBase NewMember
   in
     div []
       [ vspace 40
-      , Toggles.radio MdlVector [idBase+idOver18] kioskModel.mdl
+      , Toggles.radio MdlVector idxOver18 kioskModel.mdl
           [ Toggles.value (Maybe.withDefault False sceneModel.isAdult)
           , Options.onToggle (NewMemberVector <| ToggleIsAdult <| False)
           ]
           [text "I'm aged 18 or older"]
       , vspace 30
-      , Toggles.radio MdlVector [idBase+idUnder18] kioskModel.mdl
+      , Toggles.radio MdlVector idxUnder18 kioskModel.mdl
           [ Toggles.value
               ( case sceneModel.isAdult of
                   Nothing -> False

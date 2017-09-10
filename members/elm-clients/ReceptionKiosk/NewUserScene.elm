@@ -123,6 +123,11 @@ validateUserNameUnique kioskModel result =
 -- VIEW
 -----------------------------------------------------------------------------
 
+idxNewUserScene = mdlIdBase NewUser
+idxUserName = [idxNewUserScene, 1]
+idxPassword1 = [idxNewUserScene, 2]
+idxPassword2 = [idxNewUserScene, 3]
+
 view : KioskModel a -> Html Msg
 view kioskModel =
   let sceneModel = kioskModel.newUserModel
@@ -130,11 +135,11 @@ view kioskModel =
     "Login Details"
     "Choose an id and password for our website:"
     ( div []
-        [ sceneTextField kioskModel 6 "Choose a login id" sceneModel.userName (NewUserVector << UpdateUserName)
+        [ sceneTextField kioskModel idxUserName "Choose a login id" sceneModel.userName (NewUserVector << UpdateUserName)
         , vspace 0
-        , scenePasswordField kioskModel 7 "Choose a password" sceneModel.password1 (NewUserVector << UpdatePassword1)
+        , scenePasswordField kioskModel idxPassword1 "Choose a password" sceneModel.password1 (NewUserVector << UpdatePassword1)
         , vspace 0
-        , scenePasswordField kioskModel 8 "Type password again" sceneModel.password2 (NewUserVector << UpdatePassword2)
+        , scenePasswordField kioskModel idxPassword2 "Type password again" sceneModel.password2 (NewUserVector << UpdatePassword2)
         , vspace 30
         , formatBadNews sceneModel.badNews
         ]

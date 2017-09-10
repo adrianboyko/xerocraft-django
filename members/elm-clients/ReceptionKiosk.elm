@@ -50,7 +50,7 @@ type alias Model =
   { flags : Flags
   , sceneStack : Nonempty Scene -- 1st element is the top of the stack
   -- elm-mdl model:
-  , mdl : Material.Model  -- TODO: Should there be one dedicated Material model per scene so index scope is smaller?
+  , mdl : Material.Model
   -- Scene models:
   , checkInModel         : CheckInScene.CheckInModel
   , checkInDoneModel     : CheckInDoneScene.CheckInDoneModel

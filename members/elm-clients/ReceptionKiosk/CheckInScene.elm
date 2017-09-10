@@ -75,6 +75,9 @@ update msg kioskModel =
 -- VIEW
 -----------------------------------------------------------------------------
 
+idxCheckInScene = mdlIdBase CheckIn
+idxFlexId = [idxCheckInScene, 1]
+
 view : KioskModel a -> Html Msg
 view kioskModel =
   let
@@ -90,7 +93,7 @@ view kioskModel =
     "Who are you?"
     ( div []
         (List.concat
-          [ [sceneTextField kioskModel 1 "Your Username or Surname" sceneModel.flexId (CheckInVector << UpdateFlexId), vspace 0]
+          [ [sceneTextField kioskModel idxFlexId "Your Username or Surname" sceneModel.flexId (CheckInVector << UpdateFlexId), vspace 0]
           , if List.length sceneModel.matches > 0
              then [vspace 30, text "Tap your userid, below:", vspace 20]
              else [vspace 0]

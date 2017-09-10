@@ -21603,11 +21603,7 @@ var _user$project$Wizard_SceneUtils$sceneCheckbox = F5(
 				_0: A5(
 					_debois$elm_mdl$Material_Toggles$checkbox,
 					_user$project$ReceptionKiosk_Types$MdlVector,
-					{
-						ctor: '::',
-						_0: index,
-						_1: {ctor: '[]'}
-					},
+					index,
 					model.mdl,
 					{
 						ctor: '::',
@@ -21651,11 +21647,7 @@ var _user$project$Wizard_SceneUtils$sceneGenericTextField = F6(
 		return A5(
 			_debois$elm_mdl$Material_Textfield$render,
 			_user$project$ReceptionKiosk_Types$MdlVector,
-			{
-				ctor: '::',
-				_0: index,
-				_1: {ctor: '[]'}
-			},
+			index,
 			model.mdl,
 			A2(
 				_elm_lang$core$Basics_ops['++'],
@@ -21681,7 +21673,7 @@ var _user$project$Wizard_SceneUtils$sceneGenericTextField = F6(
 					}
 				},
 				options),
-			_elm_lang$html$Html$text('spam'));
+			{ctor: '[]'});
 	});
 var _user$project$Wizard_SceneUtils$sceneTextField = F5(
 	function (model, index, hint, value, msger) {
@@ -21966,6 +21958,16 @@ var _user$project$ReceptionKiosk_CheckInScene$sceneChipCss = {
 		_1: {ctor: '[]'}
 	}
 };
+var _user$project$ReceptionKiosk_CheckInScene$idxCheckInScene = _user$project$ReceptionKiosk_Types$mdlIdBase(_user$project$ReceptionKiosk_Types$CheckIn);
+var _user$project$ReceptionKiosk_CheckInScene$idxFlexId = {
+	ctor: '::',
+	_0: _user$project$ReceptionKiosk_CheckInScene$idxCheckInScene,
+	_1: {
+		ctor: '::',
+		_0: 1,
+		_1: {ctor: '[]'}
+	}
+};
 var _user$project$ReceptionKiosk_CheckInScene$view = function (kioskModel) {
 	var clickMsg = function (acct) {
 		return _user$project$ReceptionKiosk_Types$CheckInVector(
@@ -22010,7 +22012,7 @@ var _user$project$ReceptionKiosk_CheckInScene$view = function (kioskModel) {
 						_0: A5(
 							_user$project$Wizard_SceneUtils$sceneTextField,
 							kioskModel,
-							1,
+							_user$project$ReceptionKiosk_CheckInScene$idxFlexId,
 							'Your Username or Surname',
 							sceneModel.flexId,
 							function (_p0) {
@@ -22664,10 +22666,26 @@ var _user$project$ReceptionKiosk_NewMemberScene$emailRegex = function () {
 			A3(_elm_community$string_extra$String_Extra$replace, 'E', echar, '^E+(?:\\.E+)*@(?:A(?:D*A)?\\.)+A(?:D*A)?$')));
 	return _elm_lang$core$Regex$regex(emailRegexStr);
 }();
-var _user$project$ReceptionKiosk_NewMemberScene$idOver18 = 2;
-var _user$project$ReceptionKiosk_NewMemberScene$idUnder18 = 1;
+var _user$project$ReceptionKiosk_NewMemberScene$idxNewMemberScene = _user$project$ReceptionKiosk_Types$mdlIdBase(_user$project$ReceptionKiosk_Types$NewMember);
+var _user$project$ReceptionKiosk_NewMemberScene$idxUnder18 = {
+	ctor: '::',
+	_0: _user$project$ReceptionKiosk_NewMemberScene$idxNewMemberScene,
+	_1: {
+		ctor: '::',
+		_0: 1,
+		_1: {ctor: '[]'}
+	}
+};
+var _user$project$ReceptionKiosk_NewMemberScene$idxOver18 = {
+	ctor: '::',
+	_0: _user$project$ReceptionKiosk_NewMemberScene$idxNewMemberScene,
+	_1: {
+		ctor: '::',
+		_0: 2,
+		_1: {ctor: '[]'}
+	}
+};
 var _user$project$ReceptionKiosk_NewMemberScene$ageChoice = function (kioskModel) {
-	var idBase = _user$project$ReceptionKiosk_Types$mdlIdBase(_user$project$ReceptionKiosk_Types$NewMember);
 	var sceneModel = kioskModel.newMemberModel;
 	return A2(
 		_elm_lang$html$Html$div,
@@ -22680,11 +22698,7 @@ var _user$project$ReceptionKiosk_NewMemberScene$ageChoice = function (kioskModel
 				_0: A5(
 					_debois$elm_mdl$Material_Toggles$radio,
 					_user$project$ReceptionKiosk_Types$MdlVector,
-					{
-						ctor: '::',
-						_0: idBase + _user$project$ReceptionKiosk_NewMemberScene$idOver18,
-						_1: {ctor: '[]'}
-					},
+					_user$project$ReceptionKiosk_NewMemberScene$idxOver18,
 					kioskModel.mdl,
 					{
 						ctor: '::',
@@ -22711,11 +22725,7 @@ var _user$project$ReceptionKiosk_NewMemberScene$ageChoice = function (kioskModel
 						_0: A5(
 							_debois$elm_mdl$Material_Toggles$radio,
 							_user$project$ReceptionKiosk_Types$MdlVector,
-							{
-								ctor: '::',
-								_0: idBase + _user$project$ReceptionKiosk_NewMemberScene$idUnder18,
-								_1: {ctor: '[]'}
-							},
+							_user$project$ReceptionKiosk_NewMemberScene$idxUnder18,
 							kioskModel.mdl,
 							{
 								ctor: '::',
@@ -22753,6 +22763,33 @@ var _user$project$ReceptionKiosk_NewMemberScene$ageChoice = function (kioskModel
 			}
 		});
 };
+var _user$project$ReceptionKiosk_NewMemberScene$idxFirstName = {
+	ctor: '::',
+	_0: _user$project$ReceptionKiosk_NewMemberScene$idxNewMemberScene,
+	_1: {
+		ctor: '::',
+		_0: 3,
+		_1: {ctor: '[]'}
+	}
+};
+var _user$project$ReceptionKiosk_NewMemberScene$idxLastName = {
+	ctor: '::',
+	_0: _user$project$ReceptionKiosk_NewMemberScene$idxNewMemberScene,
+	_1: {
+		ctor: '::',
+		_0: 4,
+		_1: {ctor: '[]'}
+	}
+};
+var _user$project$ReceptionKiosk_NewMemberScene$idxEmail = {
+	ctor: '::',
+	_0: _user$project$ReceptionKiosk_NewMemberScene$idxNewMemberScene,
+	_1: {
+		ctor: '::',
+		_0: 5,
+		_1: {ctor: '[]'}
+	}
+};
 var _user$project$ReceptionKiosk_NewMemberScene$view = function (kioskModel) {
 	var sceneModel = kioskModel.newMemberModel;
 	return A5(
@@ -22768,7 +22805,7 @@ var _user$project$ReceptionKiosk_NewMemberScene$view = function (kioskModel) {
 				_0: A5(
 					_user$project$Wizard_SceneUtils$sceneTextField,
 					kioskModel,
-					2,
+					_user$project$ReceptionKiosk_NewMemberScene$idxFirstName,
 					'Your first name',
 					sceneModel.firstName,
 					function (_p2) {
@@ -22783,7 +22820,7 @@ var _user$project$ReceptionKiosk_NewMemberScene$view = function (kioskModel) {
 						_0: A5(
 							_user$project$Wizard_SceneUtils$sceneTextField,
 							kioskModel,
-							3,
+							_user$project$ReceptionKiosk_NewMemberScene$idxLastName,
 							'Your last name',
 							sceneModel.lastName,
 							function (_p3) {
@@ -22798,7 +22835,7 @@ var _user$project$ReceptionKiosk_NewMemberScene$view = function (kioskModel) {
 								_0: A5(
 									_user$project$Wizard_SceneUtils$sceneEmailField,
 									kioskModel,
-									4,
+									_user$project$ReceptionKiosk_NewMemberScene$idxEmail,
 									'Your email address',
 									sceneModel.email,
 									function (_p4) {
@@ -23015,6 +23052,34 @@ var _user$project$ReceptionKiosk_NewMemberScene$NewMemberModel = F6(
 		return {firstName: a, lastName: b, email: c, isAdult: d, userIds: e, badNews: f};
 	});
 
+var _user$project$ReceptionKiosk_NewUserScene$idxNewUserScene = _user$project$ReceptionKiosk_Types$mdlIdBase(_user$project$ReceptionKiosk_Types$NewUser);
+var _user$project$ReceptionKiosk_NewUserScene$idxUserName = {
+	ctor: '::',
+	_0: _user$project$ReceptionKiosk_NewUserScene$idxNewUserScene,
+	_1: {
+		ctor: '::',
+		_0: 1,
+		_1: {ctor: '[]'}
+	}
+};
+var _user$project$ReceptionKiosk_NewUserScene$idxPassword1 = {
+	ctor: '::',
+	_0: _user$project$ReceptionKiosk_NewUserScene$idxNewUserScene,
+	_1: {
+		ctor: '::',
+		_0: 2,
+		_1: {ctor: '[]'}
+	}
+};
+var _user$project$ReceptionKiosk_NewUserScene$idxPassword2 = {
+	ctor: '::',
+	_0: _user$project$ReceptionKiosk_NewUserScene$idxNewUserScene,
+	_1: {
+		ctor: '::',
+		_0: 3,
+		_1: {ctor: '[]'}
+	}
+};
 var _user$project$ReceptionKiosk_NewUserScene$view = function (kioskModel) {
 	var sceneModel = kioskModel.newUserModel;
 	return A5(
@@ -23030,7 +23095,7 @@ var _user$project$ReceptionKiosk_NewUserScene$view = function (kioskModel) {
 				_0: A5(
 					_user$project$Wizard_SceneUtils$sceneTextField,
 					kioskModel,
-					6,
+					_user$project$ReceptionKiosk_NewUserScene$idxUserName,
 					'Choose a login id',
 					sceneModel.userName,
 					function (_p0) {
@@ -23045,7 +23110,7 @@ var _user$project$ReceptionKiosk_NewUserScene$view = function (kioskModel) {
 						_0: A5(
 							_user$project$Wizard_SceneUtils$scenePasswordField,
 							kioskModel,
-							7,
+							_user$project$ReceptionKiosk_NewUserScene$idxPassword1,
 							'Choose a password',
 							sceneModel.password1,
 							function (_p1) {
@@ -23060,7 +23125,7 @@ var _user$project$ReceptionKiosk_NewUserScene$view = function (kioskModel) {
 								_0: A5(
 									_user$project$Wizard_SceneUtils$scenePasswordField,
 									kioskModel,
-									8,
+									_user$project$ReceptionKiosk_NewUserScene$idxPassword2,
 									'Type password again',
 									sceneModel.password2,
 									function (_p2) {
@@ -24408,6 +24473,7 @@ var _user$project$ReceptionKiosk_TaskListScene$taskListStyle = _elm_lang$html$Ht
 			}
 		}
 	});
+var _user$project$ReceptionKiosk_TaskListScene$idxTaskListScene = _user$project$ReceptionKiosk_Types$mdlIdBase(_user$project$ReceptionKiosk_Types$TaskList);
 var _user$project$ReceptionKiosk_TaskListScene$taskChoices = function (kioskModel) {
 	var sceneModel = kioskModel.taskListModel;
 	return A2(
@@ -24425,53 +24491,58 @@ var _user$project$ReceptionKiosk_TaskListScene$taskChoices = function (kioskMode
 				_1: {ctor: '[]'}
 			},
 			A2(
-				_elm_lang$core$List$map,
-				function (wt) {
-					return A2(
-						_elm_lang$html$Html$div,
-						{
-							ctor: '::',
-							_0: _user$project$ReceptionKiosk_TaskListScene$taskDivStyle,
-							_1: {ctor: '[]'}
-						},
-						{
-							ctor: '::',
-							_0: A5(
-								_debois$elm_mdl$Material_Toggles$radio,
-								_user$project$ReceptionKiosk_Types$MdlVector,
-								{
-									ctor: '::',
-									_0: _user$project$ReceptionKiosk_Types$mdlIdBase(_user$project$ReceptionKiosk_Types$TaskList) + wt.taskId,
-									_1: {ctor: '[]'}
-								},
-								kioskModel.mdl,
-								{
-									ctor: '::',
-									_0: _debois$elm_mdl$Material_Toggles$value(
-										function () {
-											var _p0 = sceneModel.selectedTask;
-											if (_p0.ctor === 'Nothing') {
-												return false;
-											} else {
-												return _elm_lang$core$Native_Utils.eq(_p0._0, wt);
-											}
-										}()),
-									_1: {
+				_elm_lang$core$List$indexedMap,
+				F2(
+					function (index, wt) {
+						return A2(
+							_elm_lang$html$Html$div,
+							{
+								ctor: '::',
+								_0: _user$project$ReceptionKiosk_TaskListScene$taskDivStyle,
+								_1: {ctor: '[]'}
+							},
+							{
+								ctor: '::',
+								_0: A5(
+									_debois$elm_mdl$Material_Toggles$radio,
+									_user$project$ReceptionKiosk_Types$MdlVector,
+									{
 										ctor: '::',
-										_0: _debois$elm_mdl$Material_Options$onToggle(
-											_user$project$ReceptionKiosk_Types$TaskListVector(
-												_user$project$ReceptionKiosk_Types$ToggleTask(wt))),
+										_0: _user$project$ReceptionKiosk_TaskListScene$idxTaskListScene,
+										_1: {
+											ctor: '::',
+											_0: index,
+											_1: {ctor: '[]'}
+										}
+									},
+									kioskModel.mdl,
+									{
+										ctor: '::',
+										_0: _debois$elm_mdl$Material_Toggles$value(
+											function () {
+												var _p0 = sceneModel.selectedTask;
+												if (_p0.ctor === 'Nothing') {
+													return false;
+												} else {
+													return _elm_lang$core$Native_Utils.eq(_p0._0, wt);
+												}
+											}()),
+										_1: {
+											ctor: '::',
+											_0: _debois$elm_mdl$Material_Options$onToggle(
+												_user$project$ReceptionKiosk_Types$TaskListVector(
+													_user$project$ReceptionKiosk_Types$ToggleTask(wt))),
+											_1: {ctor: '[]'}
+										}
+									},
+									{
+										ctor: '::',
+										_0: _elm_lang$html$Html$text(wt.shortDesc),
 										_1: {ctor: '[]'}
-									}
-								},
-								{
-									ctor: '::',
-									_0: _elm_lang$html$Html$text(wt.shortDesc),
-									_1: {ctor: '[]'}
-								}),
-							_1: {ctor: '[]'}
-						});
-				},
+									}),
+								_1: {ctor: '[]'}
+							});
+					}),
 				sceneModel.workableTasks)));
 };
 var _user$project$ReceptionKiosk_TaskListScene$view = function (kioskModel) {
