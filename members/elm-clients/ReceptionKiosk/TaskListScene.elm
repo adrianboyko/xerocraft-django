@@ -112,6 +112,7 @@ view kioskModel =
     )
     (taskChoices kioskModel)
     [ButtonSpec "OK" (WizardVector <| Push <| VolunteerInDone)]
+    sceneModel.badNews
 
 taskChoices : KioskModel a -> Html Msg
 taskChoices kioskModel =

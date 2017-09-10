@@ -40,4 +40,5 @@ view model =
     "Have a Nice Day!"
     (text "")
     [ButtonSpec "OK" (WizardVector <| Push <| Welcome)]
+    [] -- Never any bad news for this scene
 

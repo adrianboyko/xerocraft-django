@@ -92,7 +92,6 @@ view kioskModel =
       , div [id "waiver-box", waiverBoxStyle sceneModel.isSigning] waiverHtml
       , div [style ["display"=>if sceneModel.isSigning then "block" else "none"]]
           [ canvas [width 760, height 200, id "signature-pad", signaturePadStyle] [] ]
-      , formatBadNews sceneModel.badNews
       ]
     )
     ( if sceneModel.isSigning then
@@ -103,6 +102,7 @@ view kioskModel =
         [ ButtonSpec "Sign" (WaiverVector <| ShowSignaturePad <| "signature-pad")
         ]
     )
+    sceneModel.badNews
 
 -----------------------------------------------------------------------------
 -- SUBSCRIPTIONS

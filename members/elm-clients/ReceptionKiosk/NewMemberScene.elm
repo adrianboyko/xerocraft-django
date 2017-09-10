@@ -139,11 +139,10 @@ view kioskModel =
         , sceneEmailField kioskModel idxEmail "Your email address" sceneModel.email (NewMemberVector << UpdateEmail)
         , vspace 0
         , ageChoice kioskModel
-        , vspace (if List.length sceneModel.badNews > 0 then 40 else 0)
-        , formatBadNews sceneModel.badNews
         ]
     )
     [ButtonSpec "OK" (NewMemberVector <| Validate)]
+    sceneModel.badNews
 
 
 ageChoice : KioskModel a -> Html Msg

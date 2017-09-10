@@ -141,7 +141,7 @@ view kioskModel =
         , vspace 0
         , scenePasswordField kioskModel idxPassword2 "Type password again" sceneModel.password2 (NewUserVector << UpdatePassword2)
         , vspace 30
-        , formatBadNews sceneModel.badNews
         ]
     )
     [ButtonSpec "OK" (NewUserVector ValidateUserNameAndPw)]
+    sceneModel.badNews

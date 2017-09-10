@@ -63,6 +63,7 @@ view kioskModel =
         ]
       )
       [ButtonSpec "Got It!" (WizardVector <| Push <| Welcome)]
+      []  -- Never any bad news for this scene.
 
 
 -----------------------------------------------------------------------------

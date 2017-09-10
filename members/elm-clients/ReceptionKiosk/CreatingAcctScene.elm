@@ -194,11 +194,11 @@ view kioskModel =
             ]
         else
             [ vspace 40
-            , formatBadNews sceneModel.badNews
             ]
         )
       )
       []  -- No buttons. Scene will automatically transition.
+      sceneModel.badNews
 
 -----------------------------------------------------------------------------
 -- TICK (called each second)

@@ -77,11 +77,13 @@ update msg kioskModel =
 
 view : KioskModel a -> Html Msg
 view kioskModel =
-  genericScene kioskModel
+  let sceneModel = kioskModel.howDidYouHearModel
+  in genericScene kioskModel
     "Just Wondering"
     "How did you hear about us?"
     (howDidYouHearChoices kioskModel)
     [ButtonSpec "OK" (WizardVector <| Push <| NewMember)]
+    sceneModel.badNews
 
 howDidYouHearChoices : KioskModel a -> Html Msg
 howDidYouHearChoices kioskModel =

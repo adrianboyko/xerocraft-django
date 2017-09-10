@@ -105,7 +105,8 @@ reasonString kioskModel reason =
 
 view : KioskModel a -> Html Msg
 view kioskModel =
-  genericScene kioskModel
+  let sceneModel = kioskModel.reasonForVisitModel
+  in genericScene kioskModel
     "Today's Activity"
     "Let us know what you'll be doing today"
     ( div []
@@ -117,10 +118,10 @@ view kioskModel =
            , GuestOfMember
            , Other
            ]
-        , formatBadNews kioskModel.reasonForVisitModel.badNews
         ]
     )
     [ButtonSpec "OK" (ReasonForVisitVector <| ValidateReason)]
+    sceneModel.badNews
 
 makeActivityList : KioskModel a -> List ReasonForVisit -> Html Msg
 makeActivityList kioskModel reasons =

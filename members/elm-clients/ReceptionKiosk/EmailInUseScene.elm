@@ -73,4 +73,5 @@ view kioskModel =
       )
     )
     []  -- Buttons for this scene are woven into the scene content.
+    []  -- Never any bad news for this scene
 

@@ -1,5 +1,19 @@
 
-module Wizard.SceneUtils exposing (..)
+module Wizard.SceneUtils exposing
+  ( SceneUtilModel
+  , genericScene
+  , sceneButton
+  , ButtonSpec
+  , sceneEmailField
+  , scenePasswordField
+  , sceneTextField
+  , sceneTextStyle
+  , userIdStyle
+  , vspace
+  , hspace
+  , (=>)
+  , send
+  )
 
 -- Standard
 import Html exposing (Html, div, img, text, p, span)
@@ -36,7 +50,7 @@ type alias Index = List Int  -- elm-mdl doesn't expose this type.
 -- VIEW UTILITIES
 -----------------------------------------------------------------------------
 
-sceneFrame : (SceneUtilModel a) -> List (Html Msg) -> Html Msg
+sceneFrame : SceneUtilModel a -> List (Html Msg) -> Html Msg
 sceneFrame model sceneHtml =
   div [frameDivStyle]
     [ img [src model.flags.bannerTopUrl, bannerTopStyle] []
@@ -45,7 +59,7 @@ sceneFrame model sceneHtml =
     , img [src model.flags.bannerBottomUrl, bannerBottomStyle] []
     ]
 
-frameNavButtons : (SceneUtilModel a) -> Html Msg
+frameNavButtons : SceneUtilModel a -> Html Msg
 frameNavButtons model =
   let
     isBaseScene = List.Nonempty.isSingleton model.sceneStack
@@ -61,26 +75,27 @@ frameNavButtons model =
       ]
 
 
-genericScene : SceneUtilModel a -> String -> String -> Html Msg -> List (ButtonSpec Msg) -> Html Msg
-genericScene model title subtitle extraContent buttonSpecs =
+genericScene : SceneUtilModel a -> String -> String -> Html Msg -> List (ButtonSpec Msg) -> List String -> Html Msg
+genericScene model title subtitle extraContent buttonSpecs badNews =
   let sceneHtml =
     [ p [sceneTitleStyle] [text title]
     , p [sceneSubtitleStyle] [text subtitle]
     , extraContent
     , vspace 50
-    -- TODO: Print BAD NEWS here.
+    , formatBadNews badNews
+    , vspace (if List.isEmpty badNews then 0 else 50)
     , div [] (List.map (sceneButton model) buttonSpecs)
     ]
   in sceneFrame model sceneHtml
 
 type alias ButtonSpec msg = { title : String, msg: msg }
-sceneButton : (SceneUtilModel a) -> ButtonSpec Msg -> Html Msg
+sceneButton : SceneUtilModel a -> ButtonSpec Msg -> Html Msg
 sceneButton model buttonSpec =
   Button.render MdlVector [0] model.mdl  -- REVIEW: Index 0 is ok because buttons don't have state?
     ([ Button.raised, Button.colored, Options.onClick buttonSpec.msg]++sceneButtonCss)
     [ text buttonSpec.title ]
 
-sceneGenericTextField : (SceneUtilModel a) -> Index -> String -> String -> (String -> Msg) -> List (Textfield.Property Msg) -> Html Msg
+sceneGenericTextField : SceneUtilModel a -> Index -> String -> String -> (String -> Msg) -> List (Textfield.Property Msg) -> Html Msg
 sceneGenericTextField model index hint value msger options =
   Textfield.render MdlVector index model.mdl
     (
@@ -95,19 +110,19 @@ sceneGenericTextField model index hint value msger options =
     )
     []
 
-sceneTextField : (SceneUtilModel a) -> Index -> String -> String -> (String -> Msg) -> Html Msg
+sceneTextField : SceneUtilModel a -> Index -> String -> String -> (String -> Msg) -> Html Msg
 sceneTextField model index hint value msger =
   sceneGenericTextField model index hint value msger []
 
-scenePasswordField : (SceneUtilModel a) -> Index -> String -> String -> (String -> Msg) -> Html Msg
+scenePasswordField : SceneUtilModel a -> Index -> String -> String -> (String -> Msg) -> Html Msg
 scenePasswordField model index hint value msger =
   sceneGenericTextField model index hint value msger [Textfield.password]
 
-sceneEmailField : (SceneUtilModel a) -> Index -> String -> String -> (String -> Msg) -> Html Msg
+sceneEmailField : SceneUtilModel a -> Index -> String -> String -> (String -> Msg) -> Html Msg
 sceneEmailField model index hint value msger =
   sceneGenericTextField model index hint value msger [Textfield.email]
 
-sceneCheckbox : (SceneUtilModel a) -> Index -> String -> Bool -> Msg -> Html Msg
+sceneCheckbox : SceneUtilModel a -> Index -> String -> Bool -> Msg -> Html Msg
 sceneCheckbox model index label value msger =
   -- Toggle.checkbox doesn't seem to handle centering very well. The following div compensates for that.
   div [style ["text-align"=>"left", "display"=>"inline-block", "width"=>"400px"]]

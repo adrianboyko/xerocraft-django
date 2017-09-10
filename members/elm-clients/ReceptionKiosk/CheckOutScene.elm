@@ -81,11 +81,11 @@ view kioskModel =
           ( List.concat
               [ List.map acct2chip sceneModel.checkedInAccts
               , [ vspace (if List.length sceneModel.badNews > 0 then 40 else 0) ]
-              , [ formatBadNews sceneModel.badNews ]
               ]
           )
       )
       []  -- No buttons
+      sceneModel.badNews
 
 -----------------------------------------------------------------------------
 -- STYLES

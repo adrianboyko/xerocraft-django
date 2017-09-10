@@ -61,7 +61,8 @@ view kioskModel =
       , img [src "/static/members/cactuses.png", bottomImgStyle] []
       ]
     )
-    [] -- Buttons are woven into the rest of the content on this scene.
+    []  -- Buttons are woven into the rest of the content on this scene.
+    []  -- Never any bad news for this scene.
 
 bottomImgStyle = style
   [ "text-align" => "center"

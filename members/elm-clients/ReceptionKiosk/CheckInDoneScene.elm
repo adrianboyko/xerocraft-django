@@ -41,4 +41,4 @@ view model =
     "Have fun!"
     (text "")
     [ButtonSpec "Ok" (WizardVector <| Push <| Welcome)]
-
+    []

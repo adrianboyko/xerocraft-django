@@ -21885,8 +21885,8 @@ var _user$project$Wizard_SceneUtils$sceneFrame = F2(
 				}
 			});
 	});
-var _user$project$Wizard_SceneUtils$genericScene = F5(
-	function (model, title, subtitle, extraContent, buttonSpecs) {
+var _user$project$Wizard_SceneUtils$genericScene = F6(
+	function (model, title, subtitle, extraContent, buttonSpecs, badNews) {
 		var sceneHtml = {
 			ctor: '::',
 			_0: A2(
@@ -21923,14 +21923,23 @@ var _user$project$Wizard_SceneUtils$genericScene = F5(
 						_0: _user$project$Wizard_SceneUtils$vspace(50),
 						_1: {
 							ctor: '::',
-							_0: A2(
-								_elm_lang$html$Html$div,
-								{ctor: '[]'},
-								A2(
-									_elm_lang$core$List$map,
-									_user$project$Wizard_SceneUtils$sceneButton(model),
-									buttonSpecs)),
-							_1: {ctor: '[]'}
+							_0: _user$project$Wizard_SceneUtils$formatBadNews(badNews),
+							_1: {
+								ctor: '::',
+								_0: _user$project$Wizard_SceneUtils$vspace(
+									_elm_lang$core$List$isEmpty(badNews) ? 0 : 50),
+								_1: {
+									ctor: '::',
+									_0: A2(
+										_elm_lang$html$Html$div,
+										{ctor: '[]'},
+										A2(
+											_elm_lang$core$List$map,
+											_user$project$Wizard_SceneUtils$sceneButton(model),
+											buttonSpecs)),
+									_1: {ctor: '[]'}
+								}
+							}
 						}
 					}
 				}
@@ -21996,7 +22005,7 @@ var _user$project$ReceptionKiosk_CheckInScene$view = function (kioskModel) {
 			});
 	};
 	var sceneModel = kioskModel.checkInModel;
-	return A5(
+	return A6(
 		_user$project$Wizard_SceneUtils$genericScene,
 		kioskModel,
 		'Let\'s Get You Checked-In!',
@@ -22059,20 +22068,13 @@ var _user$project$ReceptionKiosk_CheckInScene$view = function (kioskModel) {
 											0) > 0) ? 40 : 0),
 									_1: {ctor: '[]'}
 								},
-								_1: {
-									ctor: '::',
-									_0: {
-										ctor: '::',
-										_0: _user$project$Wizard_SceneUtils$formatBadNews(sceneModel.badNews),
-										_1: {ctor: '[]'}
-									},
-									_1: {ctor: '[]'}
-								}
+								_1: {ctor: '[]'}
 							}
 						}
 					}
 				})),
-		{ctor: '[]'});
+		{ctor: '[]'},
+		sceneModel.badNews);
 };
 var _user$project$ReceptionKiosk_CheckInScene$update = F2(
 	function (msg, kioskModel) {
@@ -22160,7 +22162,7 @@ var _user$project$ReceptionKiosk_CheckInScene$CheckInModel = F4(
 	});
 
 var _user$project$ReceptionKiosk_CheckInDoneScene$view = function (model) {
-	return A5(
+	return A6(
 		_user$project$Wizard_SceneUtils$genericScene,
 		model,
 		'You\'re Checked In',
@@ -22174,7 +22176,8 @@ var _user$project$ReceptionKiosk_CheckInDoneScene$view = function (model) {
 				_user$project$ReceptionKiosk_Types$WizardVector(
 					_user$project$ReceptionKiosk_Types$Push(_user$project$ReceptionKiosk_Types$Welcome))),
 			_1: {ctor: '[]'}
-		});
+		},
+		{ctor: '[]'});
 };
 var _user$project$ReceptionKiosk_CheckInDoneScene$init = function (flags) {
 	return {
@@ -22219,7 +22222,7 @@ var _user$project$ReceptionKiosk_CheckOutScene$view = function (kioskModel) {
 			});
 	};
 	var sceneModel = kioskModel.checkOutModel;
-	return A5(
+	return A6(
 		_user$project$Wizard_SceneUtils$genericScene,
 		kioskModel,
 		'Hope You Had Fun!',
@@ -22241,18 +22244,11 @@ var _user$project$ReceptionKiosk_CheckOutScene$view = function (kioskModel) {
 									0) > 0) ? 40 : 0),
 							_1: {ctor: '[]'}
 						},
-						_1: {
-							ctor: '::',
-							_0: {
-								ctor: '::',
-								_0: _user$project$Wizard_SceneUtils$formatBadNews(sceneModel.badNews),
-								_1: {ctor: '[]'}
-							},
-							_1: {ctor: '[]'}
-						}
+						_1: {ctor: '[]'}
 					}
 				})),
-		{ctor: '[]'});
+		{ctor: '[]'},
+		sceneModel.badNews);
 };
 var _user$project$ReceptionKiosk_CheckOutScene$update = F2(
 	function (msg, kioskModel) {
@@ -22311,7 +22307,7 @@ var _user$project$ReceptionKiosk_CheckOutScene$CheckOutModel = F2(
 	});
 
 var _user$project$ReceptionKiosk_CheckOutDoneScene$view = function (model) {
-	return A5(
+	return A6(
 		_user$project$Wizard_SceneUtils$genericScene,
 		model,
 		'You\'re Checked Out',
@@ -22325,7 +22321,8 @@ var _user$project$ReceptionKiosk_CheckOutDoneScene$view = function (model) {
 				_user$project$ReceptionKiosk_Types$WizardVector(
 					_user$project$ReceptionKiosk_Types$Push(_user$project$ReceptionKiosk_Types$Welcome))),
 			_1: {ctor: '[]'}
-		});
+		},
+		{ctor: '[]'});
 };
 var _user$project$ReceptionKiosk_CheckOutDoneScene$init = function (flags) {
 	return {
@@ -22497,7 +22494,8 @@ var _user$project$ReceptionKiosk_ReasonForVisitScene$makeActivityList = F2(
 					reasons)));
 	});
 var _user$project$ReceptionKiosk_ReasonForVisitScene$view = function (kioskModel) {
-	return A5(
+	var sceneModel = kioskModel.reasonForVisitModel;
+	return A6(
 		_user$project$Wizard_SceneUtils$genericScene,
 		kioskModel,
 		'Today\'s Activity',
@@ -22535,11 +22533,7 @@ var _user$project$ReceptionKiosk_ReasonForVisitScene$view = function (kioskModel
 							}
 						}
 					}),
-				_1: {
-					ctor: '::',
-					_0: _user$project$Wizard_SceneUtils$formatBadNews(kioskModel.reasonForVisitModel.badNews),
-					_1: {ctor: '[]'}
-				}
+				_1: {ctor: '[]'}
 			}),
 		{
 			ctor: '::',
@@ -22548,7 +22542,8 @@ var _user$project$ReceptionKiosk_ReasonForVisitScene$view = function (kioskModel
 				'OK',
 				_user$project$ReceptionKiosk_Types$ReasonForVisitVector(_user$project$ReceptionKiosk_Types$ValidateReason)),
 			_1: {ctor: '[]'}
-		});
+		},
+		sceneModel.badNews);
 };
 var _user$project$ReceptionKiosk_ReasonForVisitScene$update = F2(
 	function (msg, kioskModel) {
@@ -22792,7 +22787,7 @@ var _user$project$ReceptionKiosk_NewMemberScene$idxEmail = {
 };
 var _user$project$ReceptionKiosk_NewMemberScene$view = function (kioskModel) {
 	var sceneModel = kioskModel.newMemberModel;
-	return A5(
+	return A6(
 		_user$project$Wizard_SceneUtils$genericScene,
 		kioskModel,
 		'Let\'s Create an Account!',
@@ -22848,18 +22843,7 @@ var _user$project$ReceptionKiosk_NewMemberScene$view = function (kioskModel) {
 									_1: {
 										ctor: '::',
 										_0: _user$project$ReceptionKiosk_NewMemberScene$ageChoice(kioskModel),
-										_1: {
-											ctor: '::',
-											_0: _user$project$Wizard_SceneUtils$vspace(
-												(_elm_lang$core$Native_Utils.cmp(
-													_elm_lang$core$List$length(sceneModel.badNews),
-													0) > 0) ? 40 : 0),
-											_1: {
-												ctor: '::',
-												_0: _user$project$Wizard_SceneUtils$formatBadNews(sceneModel.badNews),
-												_1: {ctor: '[]'}
-											}
-										}
+										_1: {ctor: '[]'}
 									}
 								}
 							}
@@ -22874,7 +22858,8 @@ var _user$project$ReceptionKiosk_NewMemberScene$view = function (kioskModel) {
 				'OK',
 				_user$project$ReceptionKiosk_Types$NewMemberVector(_user$project$ReceptionKiosk_Types$Validate)),
 			_1: {ctor: '[]'}
-		});
+		},
+		sceneModel.badNews);
 };
 var _user$project$ReceptionKiosk_NewMemberScene$validate = function (kioskModel) {
 	var getMatchingAccts = _user$project$MembersApi$getMatchingAccts(kioskModel.flags);
@@ -23082,7 +23067,7 @@ var _user$project$ReceptionKiosk_NewUserScene$idxPassword2 = {
 };
 var _user$project$ReceptionKiosk_NewUserScene$view = function (kioskModel) {
 	var sceneModel = kioskModel.newUserModel;
-	return A5(
+	return A6(
 		_user$project$Wizard_SceneUtils$genericScene,
 		kioskModel,
 		'Login Details',
@@ -23135,11 +23120,7 @@ var _user$project$ReceptionKiosk_NewUserScene$view = function (kioskModel) {
 								_1: {
 									ctor: '::',
 									_0: _user$project$Wizard_SceneUtils$vspace(30),
-									_1: {
-										ctor: '::',
-										_0: _user$project$Wizard_SceneUtils$formatBadNews(sceneModel.badNews),
-										_1: {ctor: '[]'}
-									}
+									_1: {ctor: '[]'}
 								}
 							}
 						}
@@ -23153,7 +23134,8 @@ var _user$project$ReceptionKiosk_NewUserScene$view = function (kioskModel) {
 				'OK',
 				_user$project$ReceptionKiosk_Types$NewUserVector(_user$project$ReceptionKiosk_Types$ValidateUserNameAndPw)),
 			_1: {ctor: '[]'}
-		});
+		},
+		sceneModel.badNews);
 };
 var _user$project$ReceptionKiosk_NewUserScene$validateUserNameUnique = F2(
 	function (kioskModel, result) {
@@ -23618,7 +23600,7 @@ var _user$project$ReceptionKiosk_WaiverScene$waiverBoxStyle = function (isSignin
 };
 var _user$project$ReceptionKiosk_WaiverScene$view = function (kioskModel) {
 	var sceneModel = kioskModel.waiverModel;
-	return A5(
+	return A6(
 		_user$project$Wizard_SceneUtils$genericScene,
 		kioskModel,
 		A2(
@@ -23687,11 +23669,7 @@ var _user$project$ReceptionKiosk_WaiverScene$view = function (kioskModel) {
 									{ctor: '[]'}),
 								_1: {ctor: '[]'}
 							}),
-						_1: {
-							ctor: '::',
-							_0: _user$project$Wizard_SceneUtils$formatBadNews(sceneModel.badNews),
-							_1: {ctor: '[]'}
-						}
+						_1: {ctor: '[]'}
 					}
 				}
 			}),
@@ -23718,7 +23696,8 @@ var _user$project$ReceptionKiosk_WaiverScene$view = function (kioskModel) {
 				_user$project$ReceptionKiosk_Types$WaiverVector(
 					_user$project$ReceptionKiosk_Types$ShowSignaturePad('signature-pad'))),
 			_1: {ctor: '[]'}
-		});
+		},
+		sceneModel.badNews);
 };
 var _user$project$ReceptionKiosk_WaiverScene$init = function (flags) {
 	var sceneModel = {
@@ -23897,7 +23876,8 @@ var _user$project$ReceptionKiosk_HowDidYouHearScene$howDidYouHearChoices = funct
 				visibleMethods)));
 };
 var _user$project$ReceptionKiosk_HowDidYouHearScene$view = function (kioskModel) {
-	return A5(
+	var sceneModel = kioskModel.howDidYouHearModel;
+	return A6(
 		_user$project$Wizard_SceneUtils$genericScene,
 		kioskModel,
 		'Just Wondering',
@@ -23911,7 +23891,8 @@ var _user$project$ReceptionKiosk_HowDidYouHearScene$view = function (kioskModel)
 				_user$project$ReceptionKiosk_Types$WizardVector(
 					_user$project$ReceptionKiosk_Types$Push(_user$project$ReceptionKiosk_Types$NewMember))),
 			_1: {ctor: '[]'}
-		});
+		},
+		sceneModel.badNews);
 };
 var _user$project$ReceptionKiosk_HowDidYouHearScene$update = F2(
 	function (msg, kioskModel) {
@@ -23988,7 +23969,7 @@ var _user$project$ReceptionKiosk_CreatingAcctScene$tick = F2(
 	});
 var _user$project$ReceptionKiosk_CreatingAcctScene$view = function (kioskModel) {
 	var sceneModel = kioskModel.creatingAcctModel;
-	return A5(
+	return A6(
 		_user$project$Wizard_SceneUtils$genericScene,
 		kioskModel,
 		'Creating Your Account!',
@@ -24016,13 +23997,10 @@ var _user$project$ReceptionKiosk_CreatingAcctScene$view = function (kioskModel) 
 			} : {
 				ctor: '::',
 				_0: _user$project$Wizard_SceneUtils$vspace(40),
-				_1: {
-					ctor: '::',
-					_0: _user$project$Wizard_SceneUtils$formatBadNews(sceneModel.badNews),
-					_1: {ctor: '[]'}
-				}
+				_1: {ctor: '[]'}
 			}),
-		{ctor: '[]'});
+		{ctor: '[]'},
+		sceneModel.badNews);
 };
 var _user$project$ReceptionKiosk_CreatingAcctScene$infoToXisAcct = function (kioskModel) {
 	var howDidYouHearModel = kioskModel.howDidYouHearModel;
@@ -24235,7 +24213,7 @@ var _user$project$ReceptionKiosk_CreatingAcctScene$CreatingAcctModel = F2(
 	});
 
 var _user$project$ReceptionKiosk_EmailInUseScene$view = function (kioskModel) {
-	return A5(
+	return A6(
 		_user$project$Wizard_SceneUtils$genericScene,
 		kioskModel,
 		'Already Registered!',
@@ -24350,6 +24328,7 @@ var _user$project$ReceptionKiosk_EmailInUseScene$view = function (kioskModel) {
 							}
 						}
 					}))),
+		{ctor: '[]'},
 		{ctor: '[]'});
 };
 var _user$project$ReceptionKiosk_EmailInUseScene$init = function (flags) {
@@ -24363,7 +24342,7 @@ var _user$project$ReceptionKiosk_EmailInUseScene$EmailInUseModel = {};
 
 var _user$project$ReceptionKiosk_SignUpDoneScene$view = function (kioskModel) {
 	var userModel = kioskModel.newUserModel;
-	return A5(
+	return A6(
 		_user$project$Wizard_SceneUtils$genericScene,
 		kioskModel,
 		'Xerocraft Account Created!',
@@ -24430,7 +24409,8 @@ var _user$project$ReceptionKiosk_SignUpDoneScene$view = function (kioskModel) {
 				_user$project$ReceptionKiosk_Types$WizardVector(
 					_user$project$ReceptionKiosk_Types$Push(_user$project$ReceptionKiosk_Types$CheckIn))),
 			_1: {ctor: '[]'}
-		});
+		},
+		{ctor: '[]'});
 };
 var _user$project$ReceptionKiosk_SignUpDoneScene$init = function (flags) {
 	return {
@@ -24547,7 +24527,7 @@ var _user$project$ReceptionKiosk_TaskListScene$taskChoices = function (kioskMode
 };
 var _user$project$ReceptionKiosk_TaskListScene$view = function (kioskModel) {
 	var sceneModel = kioskModel.taskListModel;
-	return A5(
+	return A6(
 		_user$project$Wizard_SceneUtils$genericScene,
 		kioskModel,
 		'Choose a Task',
@@ -24561,7 +24541,8 @@ var _user$project$ReceptionKiosk_TaskListScene$view = function (kioskModel) {
 				_user$project$ReceptionKiosk_Types$WizardVector(
 					_user$project$ReceptionKiosk_Types$Push(_user$project$ReceptionKiosk_Types$VolunteerInDone))),
 			_1: {ctor: '[]'}
-		});
+		},
+		sceneModel.badNews);
 };
 var _user$project$ReceptionKiosk_TaskListScene$extractWorkableTasks = function (tasks) {
 	return A2(
@@ -24689,7 +24670,7 @@ var _user$project$ReceptionKiosk_VolunteerInDoneScene$view = function (kioskMode
 		}
 	}();
 	var sceneModel = kioskModel.volunteerInDoneModel;
-	return A5(
+	return A6(
 		_user$project$Wizard_SceneUtils$genericScene,
 		kioskModel,
 		'You\'re Checked In!',
@@ -24741,7 +24722,8 @@ var _user$project$ReceptionKiosk_VolunteerInDoneScene$view = function (kioskMode
 				_user$project$ReceptionKiosk_Types$WizardVector(
 					_user$project$ReceptionKiosk_Types$Push(_user$project$ReceptionKiosk_Types$Welcome))),
 			_1: {ctor: '[]'}
-		});
+		},
+		{ctor: '[]'});
 };
 var _user$project$ReceptionKiosk_VolunteerInDoneScene$init = function (flags) {
 	return {
@@ -24767,7 +24749,7 @@ var _user$project$ReceptionKiosk_WelcomeScene$bottomImgStyle = _elm_lang$html$Ht
 		}
 	});
 var _user$project$ReceptionKiosk_WelcomeScene$view = function (kioskModel) {
-	return A5(
+	return A6(
 		_user$project$Wizard_SceneUtils$genericScene,
 		kioskModel,
 		'Welcome!',
@@ -24856,6 +24838,7 @@ var _user$project$ReceptionKiosk_WelcomeScene$view = function (kioskModel) {
 					}
 				}
 			}),
+		{ctor: '[]'},
 		{ctor: '[]'});
 };
 var _user$project$ReceptionKiosk_WelcomeScene$update = F2(
