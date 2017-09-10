@@ -78,7 +78,15 @@ update msg kioskModel =
       ({sceneModel | badNews = [toString error]}, Cmd.none)
 
     ToggleTask opsTask ->
-      ({sceneModel | selectedTask = Just opsTask}, Cmd.none)
+      ({sceneModel | selectedTask=Just opsTask, badNews=[]}, Cmd.none)
+
+    ValidateTaskChoice ->
+      case sceneModel.selectedTask of
+        Just task ->
+          (sceneModel, send (WizardVector <| Push <| VolunteerInDone))
+        Nothing ->
+          ({sceneModel | badNews=["You must choose a task to work!"]}, Cmd.none)
+
 
 
 extractTodaysTasks : CalendarPage -> List OpsTask
@@ -111,7 +119,7 @@ view kioskModel =
         "Looking for tasks. One moment, please!"
     )
     (taskChoices kioskModel)
-    [ButtonSpec "OK" (WizardVector <| Push <| VolunteerInDone)]
+    [ButtonSpec "OK" (TaskListVector <| ValidateTaskChoice)]
     sceneModel.badNews
 
 taskChoices : KioskModel a -> Html Msg
@@ -135,7 +143,6 @@ taskChoices kioskModel =
       sceneModel.workableTasks
     )
 
-
 -----------------------------------------------------------------------------
 -- STYLES
 -----------------------------------------------------------------------------
@@ -150,5 +157,6 @@ taskListStyle = style
 taskDivStyle = style
   [ "background-color" => "#eeeeee"
   , "padding" => "10px"
-  , "margin" => "10px"
+  , "margin" => "15px"
+  , "border-radius" => "20px"
   ]

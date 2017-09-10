@@ -125,6 +125,7 @@ type TaskListMsg
   = TaskListSceneWillAppear
   | CalendarPageResult (Result Http.Error CalendarPage)
   | ToggleTask OpsTask
+  | ValidateTaskChoice
 
 type WaiverMsg
   = ShowSignaturePad String

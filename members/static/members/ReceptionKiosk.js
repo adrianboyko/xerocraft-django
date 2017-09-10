@@ -21096,6 +21096,7 @@ var _user$project$ReceptionKiosk_Types$ValidateReason = {ctor: 'ValidateReason'}
 var _user$project$ReceptionKiosk_Types$UpdateReasonForVisit = function (a) {
 	return {ctor: 'UpdateReasonForVisit', _0: a};
 };
+var _user$project$ReceptionKiosk_Types$ValidateTaskChoice = {ctor: 'ValidateTaskChoice'};
 var _user$project$ReceptionKiosk_Types$ToggleTask = function (a) {
 	return {ctor: 'ToggleTask', _0: a};
 };
@@ -22381,10 +22382,28 @@ var _user$project$XerocraftApi$scrapeXcOrgLogins = F2(
 		return A2(_elm_lang$http$Http$send, result2Msg, request);
 	});
 
+var _user$project$ReceptionKiosk_ReasonForVisitScene$reasonDivStyle = _elm_lang$html$Html_Attributes$style(
+	{
+		ctor: '::',
+		_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'background-color', '#eeeeee'),
+		_1: {
+			ctor: '::',
+			_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'padding', '10px'),
+			_1: {
+				ctor: '::',
+				_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'margin', '15px'),
+				_1: {
+					ctor: '::',
+					_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'border-radius', '20px'),
+					_1: {ctor: '[]'}
+				}
+			}
+		}
+	});
 var _user$project$ReceptionKiosk_ReasonForVisitScene$reasonListStyle = _elm_lang$html$Html_Attributes$style(
 	{
 		ctor: '::',
-		_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'width', '350px'),
+		_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'width', '450px'),
 		_1: {
 			ctor: '::',
 			_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'margin-left', 'auto'),
@@ -22393,12 +22412,8 @@ var _user$project$ReceptionKiosk_ReasonForVisitScene$reasonListStyle = _elm_lang
 				_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'margin-right', 'auto'),
 				_1: {
 					ctor: '::',
-					_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'padding-left', '45px'),
-					_1: {
-						ctor: '::',
-						_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'text-align', 'left'),
-						_1: {ctor: '[]'}
-					}
+					_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'text-align', 'left'),
+					_1: {ctor: '[]'}
 				}
 			}
 		}
@@ -22439,7 +22454,7 @@ var _user$project$ReceptionKiosk_ReasonForVisitScene$makeActivityList = F2(
 				_elm_lang$core$Basics_ops['++'],
 				{
 					ctor: '::',
-					_0: _user$project$Wizard_SceneUtils$vspace(50),
+					_0: _user$project$Wizard_SceneUtils$vspace(30),
 					_1: {ctor: '[]'}
 				},
 				A2(
@@ -22447,8 +22462,12 @@ var _user$project$ReceptionKiosk_ReasonForVisitScene$makeActivityList = F2(
 					F2(
 						function (index, reason) {
 							return A2(
-								_elm_lang$html$Html$span,
-								{ctor: '[]'},
+								_elm_lang$html$Html$div,
+								{
+									ctor: '::',
+									_0: _user$project$ReceptionKiosk_ReasonForVisitScene$reasonDivStyle,
+									_1: {ctor: '[]'}
+								},
 								{
 									ctor: '::',
 									_0: A5(
@@ -22484,11 +22503,7 @@ var _user$project$ReceptionKiosk_ReasonForVisitScene$makeActivityList = F2(
 												A2(_user$project$ReceptionKiosk_ReasonForVisitScene$reasonString, kioskModel, reason)),
 											_1: {ctor: '[]'}
 										}),
-									_1: {
-										ctor: '::',
-										_0: _user$project$Wizard_SceneUtils$vspace(30),
-										_1: {ctor: '[]'}
-									}
+									_1: {ctor: '[]'}
 								});
 						}),
 					reasons)));
@@ -24430,8 +24445,12 @@ var _user$project$ReceptionKiosk_TaskListScene$taskDivStyle = _elm_lang$html$Htm
 			_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'padding', '10px'),
 			_1: {
 				ctor: '::',
-				_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'margin', '10px'),
-				_1: {ctor: '[]'}
+				_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'margin', '15px'),
+				_1: {
+					ctor: '::',
+					_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'border-radius', '20px'),
+					_1: {ctor: '[]'}
+				}
 			}
 		}
 	});
@@ -24538,8 +24557,7 @@ var _user$project$ReceptionKiosk_TaskListScene$view = function (kioskModel) {
 			_0: A2(
 				_user$project$Wizard_SceneUtils$ButtonSpec,
 				'OK',
-				_user$project$ReceptionKiosk_Types$WizardVector(
-					_user$project$ReceptionKiosk_Types$Push(_user$project$ReceptionKiosk_Types$VolunteerInDone))),
+				_user$project$ReceptionKiosk_Types$TaskListVector(_user$project$ReceptionKiosk_Types$ValidateTaskChoice)),
 			_1: {ctor: '[]'}
 		},
 		sceneModel.badNews);
@@ -24609,16 +24627,42 @@ var _user$project$ReceptionKiosk_TaskListScene$update = F2(
 						_1: _elm_lang$core$Platform_Cmd$none
 					};
 				}
-			default:
+			case 'ToggleTask':
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
 						sceneModel,
 						{
-							selectedTask: _elm_lang$core$Maybe$Just(_p1._0)
+							selectedTask: _elm_lang$core$Maybe$Just(_p1._0),
+							badNews: {ctor: '[]'}
 						}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
+			default:
+				var _p2 = sceneModel.selectedTask;
+				if (_p2.ctor === 'Just') {
+					return {
+						ctor: '_Tuple2',
+						_0: sceneModel,
+						_1: _user$project$Wizard_SceneUtils$send(
+							_user$project$ReceptionKiosk_Types$WizardVector(
+								_user$project$ReceptionKiosk_Types$Push(_user$project$ReceptionKiosk_Types$VolunteerInDone)))
+					};
+				} else {
+					return {
+						ctor: '_Tuple2',
+						_0: _elm_lang$core$Native_Utils.update(
+							sceneModel,
+							{
+								badNews: {
+									ctor: '::',
+									_0: 'You must choose a task to work!',
+									_1: {ctor: '[]'}
+								}
+							}),
+						_1: _elm_lang$core$Platform_Cmd$none
+					};
+				}
 		}
 	});
 var _user$project$ReceptionKiosk_TaskListScene$init = function (flags) {
