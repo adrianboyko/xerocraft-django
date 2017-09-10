@@ -78,14 +78,17 @@ sceneButton model buttonSpec =
 sceneGenericTextField : (SceneUtilModel a) -> Int -> String -> String -> (String -> Msg) -> List (Textfield.Property Msg) -> Html Msg
 sceneGenericTextField model index hint value msger options =
   Textfield.render MdlVector [index] model.mdl
-    ( [ Textfield.label hint
+    (
+      [ Textfield.label hint
       , Textfield.floatingLabel
       , Textfield.value value
       , Options.onInput msger
       , css "width" "500px"
-      ] ++ options
+      ]
+      ++
+      options
     )
-    (text "spam") -- What is this Html Msg argument?
+    []
 
 sceneTextField : (SceneUtilModel a) -> Int -> String -> String -> (String -> Msg) -> Html Msg
 sceneTextField model index hint value msger =
