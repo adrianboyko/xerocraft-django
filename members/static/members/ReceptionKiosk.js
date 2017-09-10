@@ -22415,7 +22415,7 @@ var _user$project$ReceptionKiosk_ReasonForVisitScene$reasonString = F2(
 			case 'ClassParticipant':
 				return 'Attending a class or workshop';
 			case 'MemberPrivileges':
-				return 'Membership privileges';
+				return 'Personal project';
 			case 'GuestOfMember':
 				return 'Guest of a paying member';
 			case 'Volunteer':
@@ -22512,16 +22512,16 @@ var _user$project$ReceptionKiosk_ReasonForVisitScene$view = function (kioskModel
 					kioskModel,
 					{
 						ctor: '::',
-						_0: _user$project$MembersApi$MemberPrivileges,
+						_0: _user$project$MembersApi$ClassParticipant,
 						_1: {
 							ctor: '::',
-							_0: _user$project$MembersApi$Volunteer,
+							_0: _user$project$MembersApi$Curiousity,
 							_1: {
 								ctor: '::',
-								_0: _user$project$MembersApi$Curiousity,
+								_0: _user$project$MembersApi$MemberPrivileges,
 								_1: {
 									ctor: '::',
-									_0: _user$project$MembersApi$ClassParticipant,
+									_0: _user$project$MembersApi$Volunteer,
 									_1: {
 										ctor: '::',
 										_0: _user$project$MembersApi$GuestOfMember,

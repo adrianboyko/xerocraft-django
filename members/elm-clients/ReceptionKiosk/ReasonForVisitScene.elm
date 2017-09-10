@@ -98,7 +98,7 @@ reasonString kioskModel reason =
   case reason of
     Curiousity -> "Checking out " ++ kioskModel.flags.orgName
     ClassParticipant -> "Attending a class or workshop"
-    MemberPrivileges -> "Membership privileges"
+    MemberPrivileges -> "Personal project"
     GuestOfMember -> "Guest of a paying member"
     Volunteer -> "Volunteering or staffing"
     Other -> "Other"
@@ -110,10 +110,10 @@ view kioskModel =
     "Let us know what you'll be doing today"
     ( div []
         [ makeActivityList kioskModel
-           [ MemberPrivileges
-           , Volunteer
+           [ ClassParticipant
            , Curiousity
-           , ClassParticipant
+           , MemberPrivileges
+           , Volunteer
            , GuestOfMember
            , Other
            ]
