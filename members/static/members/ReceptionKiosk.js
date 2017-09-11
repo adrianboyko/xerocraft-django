@@ -22069,7 +22069,30 @@ var _user$project$ReceptionKiosk_CheckInScene$view = function (kioskModel) {
 											0) > 0) ? 40 : 0),
 									_1: {ctor: '[]'}
 								},
-								_1: {ctor: '[]'}
+								_1: {
+									ctor: '::',
+									_0: (!_elm_lang$core$List$isEmpty(sceneModel.matches)) ? {
+										ctor: '::',
+										_0: A2(
+											_elm_lang$html$Html$audio,
+											{
+												ctor: '::',
+												_0: _elm_lang$html$Html_Attributes$src('/static/members/beep-22.mp3'),
+												_1: {
+													ctor: '::',
+													_0: _elm_lang$html$Html_Attributes$autoplay(true),
+													_1: {ctor: '[]'}
+												}
+											},
+											{ctor: '[]'}),
+										_1: {ctor: '[]'}
+									} : {
+										ctor: '::',
+										_0: _user$project$Wizard_SceneUtils$vspace(0),
+										_1: {ctor: '[]'}
+									},
+									_1: {ctor: '[]'}
+								}
 							}
 						}
 					}

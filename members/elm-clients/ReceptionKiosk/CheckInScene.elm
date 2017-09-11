@@ -2,7 +2,9 @@
 module ReceptionKiosk.CheckInScene exposing (init, view, update, CheckInModel)
 
 -- Standard
-import Html exposing (..)
+import Html exposing (Html, div, text, audio)
+import Html.Attributes exposing (src, autoplay)
+
 import Http
 
 -- Third Party
@@ -102,6 +104,9 @@ view kioskModel =
              else [vspace 0]
           , List.map acctToChip sceneModel.matches
           , [ vspace (if List.length sceneModel.badNews > 0 then 40 else 0) ]
+          , if not (List.isEmpty sceneModel.matches)
+             then [audio [src "/static/members/beep-22.mp3", autoplay True] []]
+             else [vspace 0]
           ]
         )
     )
