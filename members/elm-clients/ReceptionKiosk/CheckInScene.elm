@@ -105,8 +105,11 @@ view kioskModel =
           , List.map acctToChip sceneModel.matches
           , [ vspace (if List.length sceneModel.badNews > 0 then 40 else 0) ]
           , if not (List.isEmpty sceneModel.matches)
-             then [audio [src "/static/members/beep-22.mp3", autoplay True] []]
-             else [vspace 0]
+             then
+               -- TODO: Audio tag lag can be very bad. See https://lowlag.alienbill.com/
+               [audio [src "/static/members/beep-22.mp3", autoplay True] []]
+             else
+               [vspace 0]
           ]
         )
     )
