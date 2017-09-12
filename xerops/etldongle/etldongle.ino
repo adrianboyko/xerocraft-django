@@ -21,8 +21,16 @@ void setup() {
 void loop() {
   delay(1000);
   Keyboard.begin();
+  delay(1000);
 
-  slow_print("xerops.etlfetchers.paypal xerops.etlfetchers.square xerops.etlfetchers.twocheckout xerops.etlfetchers.wepay");
+  for (int i=0; i<25; i++) {
+    Keyboard.print(" ");
+    delay(100);
+    Keyboard.print("\b");
+    delay(100);
+  }
+
+  slow_print("");
   slow_print("");
 
   slow_print("");
