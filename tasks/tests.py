@@ -27,7 +27,7 @@ from members.models import Member, Tag, VisitEvent
 import tasks.restapi as restapi
 from members.notifications import notify
 
-USER_VOLUNTEER = settings.XEROPS_TASKS_CONFIG.get("USER_VOLUNTEER", None)
+USER_VOLUNTEER = settings.BZWOPS_TASKS_CONFIG.get("USER_VOLUNTEER", None)
 
 ONEDAY = timedelta(days=1)
 TWODAYS   = 2 * ONEDAY

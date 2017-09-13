@@ -22,12 +22,12 @@ class Command(BaseCommand):
         print("")
 
         rest_token = input("REST API token: ")
-        # rest_token = os.getenv('XEROPS_ETL_REST_TOKEN', None)
+        # rest_token = os.getenv('BZWOPS_ETL_REST_TOKEN', None)
 
         fetchers = input("Fetchers: ").split()
-        # fetchers = ["xerops.etlfetchers.paypal"]
-        # fetchers = ["xerops.etlfetchers.wepay"]
-        # fetchers = ["xerops.etlfetchers.square_v2"]
+        # fetchers = ["bzw_ops.etlfetchers.paypal"]
+        # fetchers = ["bzw_ops.etlfetchers.wepay"]
+        # fetchers = ["bzw_ops.etlfetchers.square_v2"]
 
         fetchers = [__import__(x, fromlist=["Fetcher"]) for x in fetchers]
         fetchers = [getattr(x, 'Fetcher') for x in fetchers]

@@ -38,7 +38,7 @@ from members.models import Member  # Temporary
 
 _logger = getLogger("books")
 
-SQUAREUP_APIV1_TOKEN = settings.XEROPS_BOOKS_CONFIG['SQUAREUP_APIV1_TOKEN']
+SQUAREUP_APIV1_TOKEN = settings.BZWOPS_BOOKS_CONFIG['SQUAREUP_APIV1_TOKEN']
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =

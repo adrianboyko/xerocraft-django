@@ -11,11 +11,11 @@ import paho.mqtt.client as mqtt
 # Local
 
 
-MQTT_SERVER = settings.XEROPS_SODA_CONFIG.get('MQTT_SERVER', None)
-MQTT_PORT = settings.XEROPS_SODA_CONFIG.get('MQTT_PORT', None)
-MQTT_USER = settings.XEROPS_SODA_CONFIG.get('MQTT_USER', None)
-MQTT_PW = settings.XEROPS_SODA_CONFIG.get('MQTT_PW', None)
-MQTT_TOPIC = settings.XEROPS_SODA_CONFIG.get('MQTT_TOPIC', None)
+MQTT_SERVER = settings.BZWOPS_SODA_CONFIG.get('MQTT_SERVER', None)
+MQTT_PORT = settings.BZWOPS_SODA_CONFIG.get('MQTT_PORT', None)
+MQTT_USER = settings.BZWOPS_SODA_CONFIG.get('MQTT_USER', None)
+MQTT_PW = settings.BZWOPS_SODA_CONFIG.get('MQTT_PW', None)
+MQTT_TOPIC = settings.BZWOPS_SODA_CONFIG.get('MQTT_TOPIC', None)
 
 
 class Product(models.Model):

@@ -9,7 +9,7 @@ from dateutil.parser import parse
 import twocheckout
 
 # Local
-from xerops.etlfetchers.abstractfetcher import AbstractFetcher
+from bzw_ops.etlfetchers.abstractfetcher import AbstractFetcher
 from members.models import Membership
 from books.models import Sale
 

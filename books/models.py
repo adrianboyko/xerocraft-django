@@ -24,7 +24,7 @@ from abutils.utils import generate_ctrlid
 
 logger = getLogger("books")
 
-ORG_NAME = settings.XEROPS_CONFIG['ORG_NAME']
+ORG_NAME = settings.BZWOPS_CONFIG['ORG_NAME']
 
 ACCT_LIABILITY_PAYABLE = 39
 ACCT_LIABILITY_UNEARNED_MSHIP_REVENUE = 46

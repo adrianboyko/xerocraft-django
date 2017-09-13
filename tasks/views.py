@@ -28,7 +28,7 @@ from members.models import Member
 
 _logger = logging.getLogger("tasks")
 
-_ORG_NAME_POSSESSIVE = settings.XEROPS_ORG_NAME_POSSESSIVE
+_ORG_NAME_POSSESSIVE = settings.BZWOPS_ORG_NAME_POSSESSIVE
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -240,7 +240,8 @@ def cal_task_details(request, task_pk):
 
 def kiosk_task_details(request, task_pk):
     task = get_object_or_404(Task, pk=task_pk)
-    return render(request, "tasks/kiosk_task_details.html", {'task': task, 'notes':task.notes.all()})
+    response = render(request, "tasks/kiosk_task_details.html", {'task': task, 'notes':task.notes.all()})
+    return response
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =

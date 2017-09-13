@@ -15,17 +15,17 @@ from rq import Queue
 
 # Local
 from members.models import Membership, VisitEvent
-from xerops.worker import conn
+from bzw_ops.worker import conn
 
 __author__ = 'Adrian'
 
 
 def index(request):
-    return render(request, 'xerops/xerocraft-home.html', {})
+    return render(request, 'bzw_ops/xerocraft-home.html', {})
 
 
 def credits(request):
-    return render(request, 'xerops/credits.html', {})
+    return render(request, 'bzw_ops/credits.html', {})
 
 
 @login_required
@@ -33,7 +33,7 @@ def accounting_menu(request):
     if not request.user.member.is_tagged_with("Director"):
         return HttpResponse("This page is for Directors only.")
     else:
-        return render(request, 'xerops/accounting-menu.html', {})
+        return render(request, 'bzw_ops/accounting-menu.html', {})
 
 
 # Based on code from http://www.tangowithdjango.com/book/chapters/login.html
@@ -75,7 +75,7 @@ def login(request):
     # The request is not a HTTP POST, so display the login form.
     # This scenario would most likely be a HTTP GET.
     else:
-        t = loader.get_template('xerops/login.html')  # type:Template
+        t = loader.get_template('bzw_ops/login.html')  # type:Template
         context = {'next': request.GET.get('next')}
         http = t.render(context=context, request=request)
         return HttpResponse(http)

@@ -42,9 +42,9 @@ from abutils.utils import request_is_from_host
 
 logger = getLogger("members")
 
-ORG_NAME = settings.XEROPS_ORG_NAME
-ORG_NAME_POSSESSIVE = settings.XEROPS_ORG_NAME_POSSESSIVE
-FACILITY_PUBLIC_IP = settings.XEROPS_FACILITY_PUBLIC_IP
+ORG_NAME = settings.BZWOPS_ORG_NAME
+ORG_NAME_POSSESSIVE = settings.BZWOPS_ORG_NAME_POSSESSIVE
+FACILITY_PUBLIC_IP = settings.BZWOPS_FACILITY_PUBLIC_IP
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = PRIVATE

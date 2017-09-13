@@ -19,7 +19,7 @@ import members.notifications as notifications
 __author__ = 'Adrian'
 
 logger = logging.getLogger("tasks")
-USER_VOLUNTEER = settings.XEROPS_TASKS_CONFIG.get("USER_VOLUNTEER", None)
+USER_VOLUNTEER = settings.BZWOPS_TASKS_CONFIG.get("USER_VOLUNTEER", None)
 
 
 def unused(x): x  # To suppress unused argument warnings.

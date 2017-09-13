@@ -9,7 +9,7 @@ inventory/migrations/
 members/migrations/
 modelmailer/migrations/
 tasks/migrations/
-xerops/migrations/
+bzw_ops/migrations/
 xis/migrations/
 
 abutils/static/
@@ -18,6 +18,6 @@ inventory/static/
 members/static/
 modelmailer/static/
 tasks/static/
-xerops/static/
+bzw_ops/static/
 xis/static/
 

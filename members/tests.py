@@ -344,7 +344,7 @@ class RfidEntry(TestCase):
         views.FACILITY_PUBLIC_IP = "127.0.0.1"
 
     def tearDown(self):
-        views.FACILITY_PUBLIC_IP = settings.XEROPS_FACILITY_PUBLIC_IP
+        views.FACILITY_PUBLIC_IP = settings.BZWOPS_FACILITY_PUBLIC_IP
 
     def test_ip(self):
 

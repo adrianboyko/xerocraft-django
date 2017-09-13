@@ -32,7 +32,7 @@ class DbCheck(unittest.TestCase):
         problems = []
 
         #TODO: Get list of apps from settings module.
-        for appname in ['books', 'inventory', 'members', 'modelmailer', 'tasks', 'xerops', 'xis']:
+        for appname in ['books', 'inventory', 'members', 'modelmailer', 'tasks', 'bzw_ops', 'xis']:
             print(appname)
             app = apps.get_app_config(appname)
             for modelname, model in app.models.items():

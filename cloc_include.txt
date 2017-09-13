@@ -1,9 +1,9 @@
 abutils
 books
+bzw_ops
 flock
 inventory
 members
 modelmailer
 tasks
-xerops
 xis

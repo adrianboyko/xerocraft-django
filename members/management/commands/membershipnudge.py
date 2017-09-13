@@ -16,8 +16,8 @@ from members.models import Membership, VisitEvent
 
 __author__ = 'adrian'
 
-EMAIL_TREASURER = settings.XEROPS_CONFIG['EMAIL_TREASURER']
-EMAIL_ARCHIVE = settings.XEROPS_CONFIG['EMAIL_ARCHIVE']
+EMAIL_TREASURER = settings.BZWOPS_CONFIG['EMAIL_TREASURER']
+EMAIL_ARCHIVE = settings.BZWOPS_CONFIG['EMAIL_ARCHIVE']
 
 # Why aren't these defined in datetime?
 MONDAY    = 0

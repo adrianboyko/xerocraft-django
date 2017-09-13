@@ -2,8 +2,8 @@ from django.apps import AppConfig
 
 
 class BezewyOpsAppConfig(AppConfig):
-    name = 'xerops'
+    name = 'bzw_ops'
     verbose_name = 'Bezewy Ops'
 
     def ready(self):
-        import xerops.signals.handlers
+        import bzw_ops.signals.handlers

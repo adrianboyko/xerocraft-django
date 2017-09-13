@@ -24,7 +24,7 @@ from django.conf.urls.static import static
 from django_sabayon import urls as sabayon_urls
 
 # Local
-from xerops import views
+from bzw_ops import views
 
 urlpatterns = [
     url(r'^$', views.index),
