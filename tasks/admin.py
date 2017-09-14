@@ -101,9 +101,12 @@ class DayOfWeekListFilterForTemplates(admin.SimpleListFilter):
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-def duration_fmt(dur:datetime.timedelta):
-    if dur is None: return
+def duration_fmt(dur: datetime.timedelta):
+    if dur is None:
+        return
     return duration_str2(dur)
+
+
 duration_fmt.short_description = "Duration"
 
 
