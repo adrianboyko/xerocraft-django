@@ -17,6 +17,7 @@ import nptime
 # Local
 from members import models as mm
 from abutils.deprecation import deprecated
+from abutils.time import days_of_week_str
 
 
 class TimeWindowedObject(object):
@@ -402,16 +403,7 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
         if (not days_of_week) and (not intervals):
             return "?"
         if days_of_week:
-            blank = '\u25CC'
-            return "%s%s%s%s%s%s%s" % (
-                "S" if self.sunday else blank,
-                "M" if self.monday else blank,
-                "T" if self.tuesday else blank,
-                "W" if self.wednesday else blank,
-                "T" if self.thursday else blank,
-                "F" if self.friday else blank,
-                "S" if self.saturday else blank,
-            )
+            return days_of_week_str(self)
         if intervals:
             if self.repeat_interval == 1:
                 return "every day"
