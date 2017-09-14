@@ -5,19 +5,19 @@ tasks/elm-clients/elm-stuff/
 
 abutils/migrations/
 books/migrations/
+bzw_ops/migrations/
 inventory/migrations/
 members/migrations/
 modelmailer/migrations/
 tasks/migrations/
-bzw_ops/migrations/
 xis/migrations/
 
 abutils/static/
 books/static/
+bzw_ops/static/
 inventory/static/
 members/static/
 modelmailer/static/
 tasks/static/
-bzw_ops/static/
 xis/static/
 
