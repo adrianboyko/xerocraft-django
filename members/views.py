@@ -12,13 +12,12 @@ import json
 # Third party
 from django.shortcuts import get_object_or_404
 from dateutil.relativedelta import relativedelta
-from django.shortcuts import render, redirect
+from django.shortcuts import render
 from django.http import HttpResponse, JsonResponse
 from django.core.urlresolvers import reverse
 from django.core.exceptions import PermissionDenied
 from django.contrib.auth import authenticate
 from django.contrib.auth.decorators import login_required
-from django.views.generic import View
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.conf import settings
 from django.db.models import Q
@@ -305,7 +304,8 @@ class MembershipViewSet(viewsets.ModelViewSet):
     """
     queryset = Membership.objects.all().order_by('-start_date')
     serializer_class = ser.MembershipSerializer
-    filter_fields = {'ctrlid'}
+    filter_fields = {'ctrlid', 'member'}
+    ordering_fields = {'start_date'}
 
 
 class DiscoveryMethodViewSet(viewsets.ModelViewSet):
