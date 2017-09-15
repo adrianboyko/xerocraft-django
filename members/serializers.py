@@ -1,5 +1,6 @@
 
 # Standard
+from typing import Type
 
 # Third Party
 from rest_framework import serializers
@@ -9,7 +10,7 @@ import members.models as models
 from books.models import Sale
 
 
-def get_MemberSerializer(respect_privacy: bool) -> serializers.ModelSerializer:
+def get_MemberSerializer(respect_privacy: bool) -> Type[serializers.ModelSerializer]:
 
     private_fields = (
         'first_name',
