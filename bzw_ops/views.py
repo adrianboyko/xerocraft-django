@@ -1,6 +1,7 @@
 # Standard
 import time
 from typing import Optional
+from logging import getLogger
 
 # Third Party
 from django.core.management import call_command
@@ -19,6 +20,15 @@ from bzw_ops.worker import conn
 
 __author__ = 'Adrian'
 
+logger = getLogger("bzw_ops")
+
+# REVIEW: What is the best place to create the asynch task queue?
+q = Queue(connection=conn)
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# XIS WEBSITE PAGES
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 def index(request):
     return render(request, 'bzw_ops/xerocraft-home.html', {})
@@ -35,6 +45,10 @@ def accounting_menu(request):
     else:
         return render(request, 'bzw_ops/accounting-menu.html', {})
 
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# LOGIN / LOGOUT
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 # Based on code from http://www.tangowithdjango.com/book/chapters/login.html
 def login(request):
@@ -77,7 +91,7 @@ def login(request):
     else:
         t = loader.get_template('bzw_ops/login.html')  # type:Template
         context = {'next': request.GET.get('next')}
-        http = t.render(context=context, request=request)
+        http = t.render(context=context)
         return HttpResponse(http)
 
 
@@ -86,12 +100,17 @@ def logout(request):
     return HttpResponseRedirect("/")
 
 
-def api_get_membership_info(request, provider: str, id: str) -> HttpResponse:
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# XEROCRAFT.ORG
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# TODO: This is not generic functionality. Move to XIS.
+
+def api_get_membership_info(request, provider: str, uid: str) -> HttpResponse:
     """
     This allows the Xerocraft.org website to query Django's more-complete membership info.
     :param request: The http request
     :param provider: Some value from social_auth_usersocialauth's provider column.
-    :param id: Some value from social_auth_usersocialauth's uid column.
+    :param uid: Some value from social_auth_usersocialauth's uid column.
     :return: JSON dict or 401 or 403. JSON dict will include 'current':T/F on success else 'error':<msg>.
     """
 
@@ -112,12 +131,12 @@ def api_get_membership_info(request, provider: str, id: str) -> HttpResponse:
     if (not token_row.user.is_staff) or (not token_row.user.is_active):
         return HttpResponse('User not authorized', status=403)
 
-    social_auth = UserSocialAuth.objects.get_social_auth(provider, id)
+    social_auth = UserSocialAuth.objects.get_social_auth(provider, uid)
     if social_auth is None:
         return JsonResponse({
             'provider': provider,
-            'id': id,
-            'error': "{}/{} does not exist.".format(provider, id)
+            'uid': uid,
+            'error': "{}/{} does not exist.".format(provider, uid)
         })
 
     member = social_auth.user.member
@@ -131,7 +150,7 @@ def api_get_membership_info(request, provider: str, id: str) -> HttpResponse:
         latest_pm = Membership.objects.filter(member=member).latest('start_date')
         json = {
             'provider': provider,
-            'id': id,
+            'uid': uid,
             'username': username,
             'current': member.is_currently_paid(),
             'start-date': latest_pm.start_date,
@@ -140,14 +159,10 @@ def api_get_membership_info(request, provider: str, id: str) -> HttpResponse:
     except Membership.DoesNotExist:
         json = {
             'provider': provider,
-            'id': id,
+            'uid': uid,
             'current': False,
         }
     return JsonResponse(json)
-
-
-# REVIEW: What is the best place to create the queue?
-q = Queue(connection=conn)
 
 
 def scrape_checkins():
@@ -178,6 +193,10 @@ def scrape_xerocraft_org_checkins(request) -> JsonResponse:
     return JsonResponse({'result': "success"})
 
 
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# TEST URL FOR MONITORING SERVICE(S)
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
 def test(request) -> JsonResponse:
     """Run various quick sanity tests for the uptime monitor."""
 
@@ -189,6 +208,10 @@ def test(request) -> JsonResponse:
         pass
     return JsonResponse({'result': "success"})
 
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# OTHER
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 def paypal_webhook(request):
     # Not yet sure what the proper response is. This "OK" response is for testing purposes.
