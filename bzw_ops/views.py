@@ -91,7 +91,7 @@ def login(request):
     else:
         t = loader.get_template('bzw_ops/login.html')  # type:Template
         context = {'next': request.GET.get('next')}
-        http = t.render(context=context)
+        http = t.render(context=context, request=request)
         return HttpResponse(http)
 
 
