@@ -1,10 +1,12 @@
 
-module ReceptionKiosk.CheckInDoneScene exposing (init, view, CheckInDoneModel)
+module ReceptionKiosk.CheckInDoneScene exposing (init, view, tick, CheckInDoneModel)
 
 -- Standard
-import Html exposing (Html, text)
+import Html exposing (Html, text, div)
+import Time exposing (Time)
 
 -- Third Party
+import List.Nonempty
 
 -- Local
 import ReceptionKiosk.Types exposing (..)
@@ -14,17 +16,16 @@ import Wizard.SceneUtils exposing (..)
 -- INIT
 -----------------------------------------------------------------------------
 
--- TODO: There should be a time out back to Welcome
-
 type alias CheckInDoneModel =
   {
+    displayTimeRemaining : Int
   }
 
 -- This type alias describes the type of kiosk model that this scene requires.
 type alias KioskModel a = (SceneUtilModel {a | checkInDoneModel : CheckInDoneModel})
 
 init : Flags -> (CheckInDoneModel, Cmd Msg)
-init flags = ({}, Cmd.none)
+init flags = ({displayTimeRemaining=5}, Cmd.none)
 
 -----------------------------------------------------------------------------
 -- UPDATE
@@ -35,10 +36,37 @@ init flags = ({}, Cmd.none)
 -----------------------------------------------------------------------------
 
 view : KioskModel a -> Html Msg
-view model =
-  genericScene model
+view kioskModel =
+  let sceneModel = kioskModel.checkInDoneModel
+  in genericScene kioskModel
     "You're Checked In"
     "Have fun!"
-    (text "")
-    [ButtonSpec "Ok" (WizardVector <| Push <| Welcome)]
+    ( div []
+      [ vspace 40
+      , sceneButton kioskModel <| ButtonSpec "Ok" (WizardVector <| Push <| Welcome)
+      , vspace 70
+      , (text (String.repeat sceneModel.displayTimeRemaining "●"))
+      ]
+    )
     []
+    []
+
+-----------------------------------------------------------------------------
+-- TICK (called each second)
+-----------------------------------------------------------------------------
+
+tick : Time -> KioskModel a -> (CheckInDoneModel, Cmd Msg)
+tick time kioskModel =
+  let
+    sceneModel = kioskModel.checkInDoneModel
+    sceneIsVisible = (List.Nonempty.head kioskModel.sceneStack == CheckInDone)
+    dec = if sceneIsVisible then 1 else 0
+    newTimeRemaining = sceneModel.displayTimeRemaining - dec
+    cmd =
+      if newTimeRemaining <= 0 then
+        send (WizardVector <| Push <| Welcome)
+      else
+        Cmd.none
+  in
+    ({sceneModel | displayTimeRemaining=newTimeRemaining}, cmd)
+

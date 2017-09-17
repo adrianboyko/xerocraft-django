@@ -179,9 +179,15 @@ update msg model =
         Tick time ->
           let currScene = List.Nonempty.head model.sceneStack
           in case currScene of
+
             CreatingAcct ->
               let (sm, cmd) = CreatingAcctScene.tick time model
               in ({model | creatingAcctModel = sm}, cmd)
+
+            CheckInDone ->
+              let (sm, cmd) = CheckInDoneScene.tick time model
+              in ({model | checkInDoneModel = sm}, cmd)
+
             _ -> (model, Cmd.none)
 
     CheckInVector x ->

@@ -35,7 +35,12 @@
         }
 
         .mdl-textfield__input { text-align: center; font-size:24pt; }
-        .mdl-textfield__label { text-align: center; font-size:24pt; overflow:visible;}
+        .mdl-textfield__label {
+            color: #559999;  /* Users are not noticing the field when it is the default color */
+            text-align: center;
+            font-size:24pt;
+            overflow:visible;
+        }
 
         .mdl-textfield--floating-label.is-dirty .mdl-textfield__label,
         .mdl-textfield--floating-label.is-focused .mdl-textfield__label {

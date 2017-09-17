@@ -132,11 +132,11 @@ view kioskModel =
     "Let's Create an Account!"
     "Please tell us about yourself:"
     ( div []
-        [ sceneTextField kioskModel idxFirstName "Your first name" sceneModel.firstName (NewMemberVector << UpdateFirstName)
+        [ sceneTextField kioskModel idxFirstName "Enter your first name here" sceneModel.firstName (NewMemberVector << UpdateFirstName)
         , vspace 0
-        , sceneTextField kioskModel idxLastName "Your last name" sceneModel.lastName (NewMemberVector << UpdateLastName)
+        , sceneTextField kioskModel idxLastName "Enter your last name here" sceneModel.lastName (NewMemberVector << UpdateLastName)
         , vspace 0
-        , sceneEmailField kioskModel idxEmail "Your email address" sceneModel.email (NewMemberVector << UpdateEmail)
+        , sceneEmailField kioskModel idxEmail "Enter your email address here" sceneModel.email (NewMemberVector << UpdateEmail)
         , vspace 0
         , ageChoice kioskModel
         ]
