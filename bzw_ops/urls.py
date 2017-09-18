@@ -22,9 +22,15 @@ from django.contrib import admin
 from django.conf import settings
 from django.conf.urls.static import static
 from django_sabayon import urls as sabayon_urls
+from rest_framework import routers
 
 # Local
 from bzw_ops import views
+import bzw_ops.restapi.views as restviews
+
+router = routers.DefaultRouter()
+router.register(r'time_blocks', restviews.TimeBlockViewSet)
+router.register(r'time_block_types', restviews.TimeBlockTypeViewSet)
 
 urlpatterns = [
     url(r'^$', views.index),
@@ -48,7 +54,7 @@ urlpatterns = [
     #url('', include('social.apps.django_app.urls', namespace='social')),
 
     # DJANGO REST FRAMEWORK API
-    url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
+    url(r'^ops/api/', include(router.urls)),
 
     url(r'^helpdesk/', include('helpdesk.urls')),
 

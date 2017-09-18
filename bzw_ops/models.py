@@ -2,18 +2,20 @@
 
 # Standard
 from decimal import Decimal
-from datetime import datetime
-from typing import Union, List, Set, Dict, Type
+from datetime import datetime, date, time
 
 # Third-party
 from django.db import models
 from django.core.exceptions import ValidationError
+from nptime import nptime
 
 # Local
 from abutils.time import (
     days_of_week_str,
     duration_single_unit_str,
-    ordinals_of_month_str
+    ordinals_of_month_str,
+    matches_weekday_of_month_pattern,
+    currently_in_timespan
 )
 
 
@@ -55,6 +57,12 @@ class TimeBlock(models.Model):
     sunday = models.BooleanField(default=False)
 
     types = models.ManyToManyField(TimeBlockType)
+
+    @property
+    def is_now(self) -> bool:
+        if not matches_weekday_of_month_pattern(self, date.today()):
+            return False
+        return currently_in_timespan(self.start_time, self.duration)
 
     def clean(self):
         particular = self.first or self.second or self.third or self.fourth or self.last
