@@ -12,12 +12,11 @@ from django.db import models
 from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
 from django.utils.translation import ugettext_lazy as _
-import nptime
 
 # Local
 from members import models as mm
 from abutils.deprecation import deprecated
-from abutils.time import days_of_week_str
+from abutils.time import days_of_week_str, matches_weekday_of_month_pattern
 
 
 class TimeWindowedObject(object):
@@ -247,22 +246,6 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
         return days_since.days >= self.repeat_interval  # >= instead of == b/c of a bootstrapping scenario.
 
     def date_matches_template_certain_days(self, d: date):
-
-        def nth_xday(d):
-            """ Return a value which indicates that date d is the nth <x>day of the month. """
-            dom_num = d.day
-            ord_num = 1
-            while dom_num > 7:
-                dom_num -= 7
-                ord_num += 1
-            return ord_num
-
-        def is_last_xday(d):
-            """ Return a value which indicates whether date d is the LAST <x>day of the month. """
-            month = d.month
-            d += timedelta(weeks=+1)
-            return d.month != month  # Don't use gt because 1 is not gt 12
-
         month_matches = (d.month == 1 and self.jan) \
             or (d.month == 2 and self.feb) \
             or (d.month == 3 and self.mar) \
@@ -277,30 +260,7 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
             or (d.month == 12 and self.dec)
         if not month_matches:
             return False
-
-        dow_num = d.weekday()  # day-of-week number
-        day_matches = (dow_num == 0 and self.monday) \
-            or (dow_num == 1 and self.tuesday) \
-            or (dow_num == 2 and self.wednesday) \
-            or (dow_num == 3 and self.thursday) \
-            or (dow_num == 4 and self.friday) \
-            or (dow_num == 5 and self.saturday) \
-            or (dow_num == 6 and self.sunday)
-        if not day_matches:
-            return False  # Doesn't match template if day-of-week doesn't match.
-        if self.every:
-            return True  # Does match if it happens every week and the day-of-week matches.
-        if is_last_xday(d) and self.last:
-            return True  # Check for last <x>day match.
-
-        # Otherwise, figure out the ordinal and see if we match it.
-        ord_num = nth_xday(d)
-        ordinal_matches = (ord_num == 1 and self.first) \
-            or (ord_num == 2 and self.second) \
-            or (ord_num == 3 and self.third) \
-            or (ord_num == 4 and self.fourth)
-
-        return ordinal_matches
+        return matches_weekday_of_month_pattern(self, d)
 
     def is_dow_chosen(self):
         return self.monday    \

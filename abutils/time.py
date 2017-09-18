@@ -1,9 +1,10 @@
 # Standard
-from datetime import date, timedelta
+from datetime import date, time, timedelta, datetime
 from decimal import Decimal
 import calendar
 
 # Third-Party
+from nptime import nptime
 
 # Local
 
@@ -53,6 +54,61 @@ def ordinals_of_month_str(obj) -> str:
             "4" if obj.fourth else blank,
             "L" if obj.last else blank,
         )
+
+
+# REVIEW: There are a few classes that have this form. Make an ABC?
+def matches_weekday_of_month_pattern(pattern, d: date) -> bool:
+
+    def nth_xday(d):
+        """ Return a value which indicates that date d is the nth <x>day of the month. """
+        dom_num = d.day
+        ord_num = 1
+        while dom_num > 7:
+            dom_num -= 7
+            ord_num += 1
+        return ord_num
+
+    def is_last_xday(d):
+        """ Return a value which indicates whether date d is the LAST <x>day of the month. """
+        month = d.month
+        d += timedelta(weeks=+1)
+        return d.month != month  # Don't use gt because 1 is not gt 12
+
+    dow_num = d.weekday()  # day-of-week number
+    day_matches = (dow_num == 0 and pattern.monday) \
+        or (dow_num == 1 and pattern.tuesday) \
+        or (dow_num == 2 and pattern.wednesday) \
+        or (dow_num == 3 and pattern.thursday) \
+        or (dow_num == 4 and pattern.friday) \
+        or (dow_num == 5 and pattern.saturday) \
+        or (dow_num == 6 and pattern.sunday)
+    if not day_matches:
+        return False  # Doesn't match template if day-of-week doesn't match.
+    if pattern.every:
+        return True  # Does match if it happens every week and the day-of-week matches.
+    if is_last_xday(d) and pattern.last:
+        return True  # Check for last <x>day match.
+
+    # Otherwise, figure out the ordinal and see if we match it.
+    ord_num = nth_xday(d)
+    ordinal_matches = (ord_num == 1 and pattern.first) \
+        or (ord_num == 2 and pattern.second) \
+        or (ord_num == 3 and pattern.third) \
+        or (ord_num == 4 and pattern.fourth)
+
+    return ordinal_matches
+
+
+def time_in_timespan(test_time: time, spans_start_time: time, spans_duration: timedelta) -> bool:
+    test_nptime = nptime.from_time(test_time)  # type: nptime
+    start_nptime = nptime.from_time(spans_start_time)  # type: nptime
+    end_nptime = start_nptime + spans_duration  # type: nptime
+    return start_nptime <= test_nptime < end_nptime
+
+
+def currently_in_timespan(spans_start_time: time, spans_duration: timedelta) -> bool:
+    test_time = datetime.now().time()  # type: time
+    return time_in_timespan(test_time, spans_start_time, spans_duration)
 
 
 def duration_single_unit_str(d: timedelta) -> str:
