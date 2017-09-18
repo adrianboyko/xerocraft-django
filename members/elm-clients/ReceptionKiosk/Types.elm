@@ -100,6 +100,9 @@ type HowDidYouHearMsg
   = AccDiscoveryMethods (Result Http.Error DiscoveryMethodInfo)  -- "Acc" means "accumulate"
   | ToggleDiscoveryMethod DiscoveryMethod
 
+type MembersOnlyMsg
+  = MembersOnlySceneWillAppear
+
 type NewMemberMsg
   = UpdateFirstName String
   | UpdateLastName String
@@ -144,6 +147,7 @@ type Msg
   | CheckOutVector CheckOutMsg
   | CreatingAcctVector CreatingAcctMsg
   | HowDidYouHearVector HowDidYouHearMsg
+  | MembersOnlyVector MembersOnlyMsg
   | NewMemberVector NewMemberMsg
   | NewUserVector NewUserMsg
   | ReasonForVisitVector ReasonForVisitMsg

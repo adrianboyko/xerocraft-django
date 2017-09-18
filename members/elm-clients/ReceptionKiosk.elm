@@ -22,6 +22,7 @@ import ReceptionKiosk.CreatingAcctScene as CreatingAcctScene
 import ReceptionKiosk.EmailInUseScene as EmailInUseScene
 import ReceptionKiosk.HowDidYouHearScene as HowDidYouHearScene
 import ReceptionKiosk.SignUpDoneScene as SignUpDoneScene
+import ReceptionKiosk.MembersOnlyScene as MembersOnlyScene
 import ReceptionKiosk.NewMemberScene as NewMemberScene
 import ReceptionKiosk.NewUserScene as NewUserScene
 import ReceptionKiosk.ReasonForVisitScene as ReasonForVisitScene
@@ -59,6 +60,7 @@ type alias Model =
   , creatingAcctModel    : CreatingAcctScene.CreatingAcctModel
   , emailInUseModel      : EmailInUseScene.EmailInUseModel
   , howDidYouHearModel   : HowDidYouHearScene.HowDidYouHearModel
+  , membersOnlyModel     : MembersOnlyScene.MembersOnlyModel
   , signUpDoneModel      : SignUpDoneScene.SignUpDoneModel
   , newMemberModel       : NewMemberScene.NewMemberModel
   , newUserModel         : NewUserScene.NewUserModel
@@ -79,6 +81,7 @@ init f =
     (creatingAcctModel,    creatingAcctCmd   ) = CreatingAcctScene.init    f
     (emailInUseModel,      emailInUseCmd     ) = EmailInUseScene.init      f
     (howDidYouHearModel,   howDidYouHearCmd  ) = HowDidYouHearScene.init   f
+    (membersOnlyModel,     membersOnlyCmd    ) = MembersOnlyScene.init     f
     (newMemberModel,       newMemberCmd      ) = NewMemberScene.init       f
     (newUserModel,         newUserCmd        ) = NewUserScene.init         f
     (reasonForVisitModel,  reasonForVisitCmd ) = ReasonForVisitScene.init  f
@@ -99,6 +102,7 @@ init f =
       , creatingAcctModel    = creatingAcctModel
       , emailInUseModel      = emailInUseModel
       , howDidYouHearModel   = howDidYouHearModel
+      , membersOnlyModel     = membersOnlyModel
       , newMemberModel       = newMemberModel
       , newUserModel         = newUserModel
       , reasonForVisitModel  = reasonForVisitModel
@@ -116,6 +120,7 @@ init f =
       , creatingAcctCmd
       , emailInUseCmd
       , howDidYouHearCmd
+      , membersOnlyCmd
       , newMemberCmd
       , newUserCmd
       , reasonForVisitCmd
@@ -205,6 +210,10 @@ update msg model =
     HowDidYouHearVector x ->
       let (sm, cmd) = HowDidYouHearScene.update x model
       in ({model | howDidYouHearModel = sm}, cmd)
+
+    MembersOnlyVector x ->
+      let (sm, cmd) = MembersOnlyScene.update x model
+      in ({model | membersOnlyModel = sm}, cmd)
 
     NewMemberVector x ->
       let (sm, cmd) = NewMemberScene.update x model
