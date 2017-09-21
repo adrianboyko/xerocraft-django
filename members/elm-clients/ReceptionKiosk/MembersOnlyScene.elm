@@ -20,16 +20,18 @@ import String.Extra exposing (..)
 -- Local
 import MembersApi as MembersApi
 import XerocraftApi as XcApi
-import OpsApi as Ops
+import OpsApi as Ops exposing (TimeBlock, TimeBlockType)
 import Wizard.SceneUtils exposing (..)
 import ReceptionKiosk.Types exposing (..)
+
 
 -----------------------------------------------------------------------------
 -- INIT
 -----------------------------------------------------------------------------
 
 type alias MembersOnlyModel =
-  { currTimeBlock : Maybe Ops.TimeBlock
+  { currTimeBlock : Maybe TimeBlock
+  , currTimeBlockTypes : List TimeBlockType
   , badNews : List String
   }
 
@@ -45,6 +47,7 @@ init : Flags -> (MembersOnlyModel, Cmd Msg)
 init flags =
   let sceneModel =
     { currTimeBlock = Nothing
+    , currTimeBlockTypes = []
     , badNews = []
     }
   in (sceneModel, Cmd.none)
@@ -68,7 +71,7 @@ sceneWillAppear kioskModel appearingScene =
         Just block ->
           (sceneModel, Cmd.none)
         Nothing ->
-          (sceneModel, send (WizardVector <| Push <| CheckInDone))
+          (sceneModel, segueTo CheckInDone)
 
     _ ->
       (kioskModel.membersOnlyModel, Cmd.none)
@@ -90,10 +93,33 @@ update msg kioskModel =
         blocks = pageOfTimeBlocks.results
         nowBlocks = List.filter .isNow blocks
         currBlock = List.head nowBlocks
+        followUpCmd = getTimeBlockTypes kioskModel
       in
-        ({sceneModel | badNews = [], currTimeBlock = currBlock }, Cmd.none)
+        ({sceneModel | badNews = [], currTimeBlock = currBlock }, followUpCmd)
 
     UpdateTimeBlocks (Err error) ->
+      ({sceneModel | badNews = [toString error]}, Cmd.none)
+
+    UpdateTimeBlockTypes (Ok pageOfTimeBlockTypes) ->
+      case sceneModel.currTimeBlock of
+
+        Just currTimeBlock ->
+          let
+            allBlockTypes = pageOfTimeBlockTypes.results
+            relatedBlockTypeIds = List.map Ops.getIdFromUrl currTimeBlock.types
+            isRelatedBlockType x = List.member (Ok x.id) relatedBlockTypeIds
+            currBlockTypes = List.filter isRelatedBlockType allBlockTypes
+          in
+            ({sceneModel | badNews = [], currTimeBlockTypes = currBlockTypes }, Cmd.none)
+
+        Nothing ->
+          let
+            errMsgs = ["Current time block unexpectedly unavailable."]
+            newSceneModel = {sceneModel | badNews = errMsgs}
+          in
+            (newSceneModel, segueTo CheckInDone)
+
+    UpdateTimeBlockTypes (Err error) ->
       ({sceneModel | badNews = [toString error]}, Cmd.none)
 
 -----------------------------------------------------------------------------
@@ -109,10 +135,14 @@ view kioskModel =
       "Members Only Time"
       "Is your membership up to date?"
       (div []
+        (
         [ case sceneModel.currTimeBlock of
-            Nothing -> text "not in block"
+            Nothing -> text "not in block"  -- This shouldn't appear b/c we should skip scene if so.
             Just block -> text block.startTime
         ]
+        ++
+        List.map (\x -> text x.name) sceneModel.currTimeBlockTypes
+        )
       )
       []  -- No buttons. Scene will automatically transition.
       []  -- No bad news. Scene will fail silently, but should log somewhere.
@@ -127,3 +157,10 @@ getTimeBlocks kioskModel =
     getTimeBlocksFn = Ops.getTimeBlocks kioskModel.flags
   in
     getTimeBlocksFn (MembersOnlyVector << UpdateTimeBlocks)
+
+getTimeBlockTypes : KioskModel a  -> Cmd Msg
+getTimeBlockTypes kioskModel =
+  let
+    getTimeBlockTypesFn = Ops.getTimeBlockTypes kioskModel.flags
+  in
+    getTimeBlockTypesFn (MembersOnlyVector << UpdateTimeBlockTypes)

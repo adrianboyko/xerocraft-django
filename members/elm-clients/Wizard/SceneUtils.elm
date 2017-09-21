@@ -13,6 +13,7 @@ module Wizard.SceneUtils exposing
   , hspace
   , (=>)
   , send
+  , segueTo
   )
 
 -- Standard
@@ -45,6 +46,9 @@ send msg =
 type alias SceneUtilModel a = {a | mdl : Material.Model, flags : Flags, sceneStack : Nonempty Scene}
 
 type alias Index = List Int  -- elm-mdl doesn't expose this type.
+
+segueTo : Scene -> Cmd Msg
+segueTo scene = send (WizardVector <| Push <| scene)
 
 -----------------------------------------------------------------------------
 -- VIEW UTILITIES

@@ -105,6 +105,7 @@ type HowDidYouHearMsg
 
 type MembersOnlyMsg
   = UpdateTimeBlocks (Result Http.Error PageOfTimeBlocks)
+  | UpdateTimeBlockTypes (Result Http.Error PageOfTimeBlockTypes)
 
 type NewMemberMsg
   = UpdateFirstName String
