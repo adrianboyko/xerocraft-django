@@ -6,7 +6,8 @@
     "source-directories": [
         ".",
         "../../tasks/elm-clients",
-        "../../xis/elm-clients"
+        "../../xis/elm-clients",
+        "../../bzw_ops/elm-clients"
     ],
     "exposed-modules": [],
     "dependencies": {

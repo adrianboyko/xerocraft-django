@@ -1,5 +1,12 @@
 
-port module ReceptionKiosk.WaiverScene exposing (init, update, view, subscriptions, WaiverModel)
+port module ReceptionKiosk.WaiverScene exposing
+  ( init
+  , sceneWillAppear
+  , update
+  , view
+  , subscriptions
+  , WaiverModel
+  )
 
 -- Standard
 import Html exposing (..)
@@ -50,6 +57,19 @@ port sendSignatureImage : String -> Cmd msg  -- "image/png", "image/jpeg", or "i
 port signatureImage : (String -> msg) -> Sub msg  -- requested signature data arrives via this port
 
 -----------------------------------------------------------------------------
+-- SCENE WILL APPEAR
+-----------------------------------------------------------------------------
+
+sceneWillAppear : KioskModel a -> Scene -> (WaiverModel, Cmd Msg)
+sceneWillAppear kioskModel appearingScene =
+  if appearingScene == Waiver
+    then
+      let sceneModel = kioskModel.waiverModel
+      in ({sceneModel | isSigning=False}, Cmd.none)
+    else
+      (kioskModel.waiverModel, Cmd.none)
+
+-----------------------------------------------------------------------------
 -- UPDATE
 -----------------------------------------------------------------------------
 
@@ -57,10 +77,6 @@ update : WaiverMsg -> KioskModel a -> (WaiverModel, Cmd Msg)
 update msg kioskModel =
   let sceneModel = kioskModel.waiverModel
   in case msg of
-
-    WaiverSceneWillAppear ->
-      let sceneModel = kioskModel.waiverModel
-      in ({sceneModel | isSigning=False}, Cmd.none)
 
     ShowSignaturePad canvasId ->
       ({sceneModel | isSigning=True}, initSignaturePad (canvasId, sceneModel.signature))

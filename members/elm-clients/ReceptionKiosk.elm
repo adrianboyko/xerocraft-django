@@ -132,6 +132,10 @@ init f =
   in
     (model, Cmd.batch cmds)
 
+-----------------------------------------------------------------------------
+-- RESET
+-----------------------------------------------------------------------------
+
 -- reset restores the model as it was after init.
 reset : Model -> (Model, Cmd Msg)
 reset m =
@@ -172,14 +176,25 @@ update msg model =
         Reset -> reset model
 
         SceneWillAppear appearingScene ->
-            case appearingScene of
-              CheckOut -> (model, Cmd.none) :> update (CheckOutVector CheckOutSceneWillAppear)
-              CreatingAcct -> (model, Cmd.none) :> update (CreatingAcctVector CreatingAcctSceneWillAppear)
-              ReasonForVisit -> (model, Cmd.none) :> update (ReasonForVisitVector ReasonForVisitSceneWillAppear)
-              TaskList -> (model, Cmd.none) :> update (TaskListVector TaskListSceneWillAppear)
-              Waiver -> (model, Cmd.none) :> update (WaiverVector WaiverSceneWillAppear)
-              Welcome -> (model, Cmd.none) :> update (WelcomeVector WelcomeSceneWillAppear)
-              _ -> (model, Cmd.none)
+
+          let
+            (m1, c1) = CheckOutScene.sceneWillAppear model appearingScene
+            (m2, c2) = CreatingAcctScene.sceneWillAppear model appearingScene
+            (m3, c3) = MembersOnlyScene.sceneWillAppear model appearingScene
+            (m4, c4) = TaskListScene.sceneWillAppear model appearingScene
+            (m5, c5) = WaiverScene.sceneWillAppear model appearingScene
+            (m6, c6) = WelcomeScene.sceneWillAppear model appearingScene
+            newModel =
+              { model
+              | checkOutModel = m1
+              , creatingAcctModel = m2
+              , membersOnlyModel = m3
+              , taskListModel = m4
+              , waiverModel = m5
+              , welcomeModel = m6
+              }
+          in
+            (newModel, Cmd.batch [c1, c2, c3, c4, c5, c6])
 
         Tick time ->
           let currScene = List.Nonempty.head model.sceneStack
@@ -235,10 +250,6 @@ update msg model =
       let (sm, cmd) = WaiverScene.update x model
       in ({model | waiverModel = sm}, cmd)
 
-    WelcomeVector x ->
-      let (sm, cmd) = WelcomeScene.update x model
-      in ({model | welcomeModel = sm}, cmd)
-
     MdlVector x ->
       Material.update MdlVector x model
 
@@ -257,6 +268,7 @@ view model =
     CreatingAcct    -> CreatingAcctScene.view    model
     EmailInUse      -> EmailInUseScene.view      model
     HowDidYouHear   -> HowDidYouHearScene.view   model
+    MembersOnly     -> MembersOnlyScene.view     model
     NewMember       -> NewMemberScene.view       model
     NewUser         -> NewUserScene.view         model
     ReasonForVisit  -> ReasonForVisitScene.view  model
@@ -278,5 +290,3 @@ subscriptions model =
     subs = [mySubs, waiverSubs]
   in
     Sub.batch subs
-
-

@@ -1,5 +1,11 @@
 
-module ReceptionKiosk.TaskListScene exposing (init, update, view, TaskListModel)
+module ReceptionKiosk.TaskListScene exposing
+  ( init
+  , sceneWillAppear
+  , update
+  , view
+  , TaskListModel
+  )
 
 -- Standard
 import Html exposing (Html, text, div)
@@ -51,24 +57,49 @@ init flags =
 
 
 -----------------------------------------------------------------------------
+-- SCENE WILL APPEAR
+-----------------------------------------------------------------------------
+
+sceneWillAppear : KioskModel a -> Scene -> (TaskListModel, Cmd Msg)
+sceneWillAppear kioskModel appearingScene =
+  case appearingScene of
+
+    ReasonForVisit ->
+      -- Start fetching workable tasks b/c they *might* be on their way to this (TaskList) scene.
+      let
+        cmd = getCurrCalendarPageForMember
+          kioskModel.flags.csrfToken
+          kioskModel.checkInModel.memberNum
+          (TaskListVector << CalendarPageResult)
+      in (kioskModel.taskListModel, cmd)
+
+    TaskList ->
+      let
+        sceneModel = kioskModel.taskListModel
+        calPageRcvd = sceneModel.calendarPageRcvd
+        noTasks = List.isEmpty sceneModel.workableTasks
+      in
+        if calPageRcvd && noTasks
+          then
+            -- No tasks are queued for the member checking in, so skip to task info.
+            -- Task info will display generic "talk to a staffer" info in this case.
+            (sceneModel, send (WizardVector <| Push <| VolunteerInDone))
+          else
+            (sceneModel, Cmd.none)
+
+    _ ->
+      (kioskModel.taskListModel, Cmd.none)
+
+
+-----------------------------------------------------------------------------
 -- UPDATE
 -----------------------------------------------------------------------------
 
 update : TaskListMsg -> KioskModel a -> (TaskListModel, Cmd Msg)
 update msg kioskModel =
-  let
-    sceneModel = kioskModel.taskListModel
-    calPageRcvd = sceneModel.calendarPageRcvd
-    noTasks = List.isEmpty sceneModel.workableTasks
-  in case msg of
+  let sceneModel = kioskModel.taskListModel
 
-    TaskListSceneWillAppear ->
-      if calPageRcvd && noTasks then
-        -- No tasks are queued for the member checking in, so skip to task info.
-        -- Task info will display generic "talk to a staffer" info in this case.
-        (sceneModel, send (WizardVector <| Push <| VolunteerInDone))
-      else
-        (sceneModel, Cmd.none)
+  in case msg of
 
     CalendarPageResult (Ok page) ->
       let workableTasks = page |> extractTodaysTasks |> extractWorkableTasks
@@ -101,6 +132,7 @@ extractTodaysTasks page =
 extractWorkableTasks : List OpsTask -> List OpsTask
 extractWorkableTasks tasks =
   List.filter (\t -> List.length t.possibleActions > 0) tasks
+
 
 -----------------------------------------------------------------------------
 -- VIEW
@@ -142,6 +174,7 @@ taskChoices kioskModel =
       )
       sceneModel.workableTasks
     )
+
 
 -----------------------------------------------------------------------------
 -- STYLES

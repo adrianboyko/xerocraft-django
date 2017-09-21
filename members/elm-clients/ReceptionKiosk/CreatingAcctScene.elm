@@ -1,5 +1,12 @@
 
-module ReceptionKiosk.CreatingAcctScene exposing (init, update, view, tick, CreatingAcctModel)
+module ReceptionKiosk.CreatingAcctScene exposing
+  ( init
+  , sceneWillAppear
+  , update
+  , view
+  , tick
+  , CreatingAcctModel
+  )
 
 -- Standard
 import Html exposing (..)
@@ -52,21 +59,13 @@ init flags =
   in (sceneModel, Cmd.none)
 
 -----------------------------------------------------------------------------
--- UPDATE
+-- SCENE WILL APPEAR
 -----------------------------------------------------------------------------
 
-update : CreatingAcctMsg -> KioskModel a -> (CreatingAcctModel, Cmd Msg)
-update msg kioskModel =
-
-  let
-    sceneModel = kioskModel.creatingAcctModel
-    newMemberModel = kioskModel.newMemberModel
-    newUserModel = kioskModel.newUserModel
-    howDidYouHearModel = kioskModel.howDidYouHearModel
-
-  in case msg of
-
-    CreatingAcctSceneWillAppear ->
+sceneWillAppear : KioskModel a -> Scene -> (CreatingAcctModel, Cmd Msg)
+sceneWillAppear kioskModel appearingScene =
+  if appearingScene == CreatingAcct
+    then
       let
         memberModel = kioskModel.newMemberModel
         userModel = kioskModel.newUserModel
@@ -81,7 +80,25 @@ update msg kioskModel =
           waiverModel.signature
           (CreatingAcctVector << XcAcctCreationAttempted)
       in
-        (sceneModel, cmd)
+        (kioskModel.creatingAcctModel, cmd)
+    else
+      (kioskModel.creatingAcctModel, Cmd.none)
+
+
+-----------------------------------------------------------------------------
+-- UPDATE
+-----------------------------------------------------------------------------
+
+update : CreatingAcctMsg -> KioskModel a -> (CreatingAcctModel, Cmd Msg)
+update msg kioskModel =
+
+  let
+    sceneModel = kioskModel.creatingAcctModel
+    newMemberModel = kioskModel.newMemberModel
+    newUserModel = kioskModel.newUserModel
+    howDidYouHearModel = kioskModel.howDidYouHearModel
+
+  in case msg of
 
     XcAcctCreationAttempted (Ok htmlResponseBody) ->
       let

@@ -53,16 +53,6 @@ update msg kioskModel =
 
   in case msg of
 
-    ReasonForVisitSceneWillAppear ->
-      -- Start fetching workable tasks NOW in case they choose the "volunteering" reason.
-      let
-        request = getCurrCalendarPageForMember
-          kioskModel.flags.csrfToken
-          checkInModel.memberNum
-          (TaskListVector << CalendarPageResult)
-
-      in (sceneModel, request)
-
     UpdateReasonForVisit reason ->
       ({sceneModel | reasonForVisit = Just reason}, Cmd.none)
 
@@ -83,6 +73,8 @@ update msg kioskModel =
       case sceneModel.reasonForVisit of
         Just Volunteer ->
           (sceneModel, send (WizardVector <| Push <| TaskList))
+        Just MemberPrivileges ->
+          (sceneModel, send (WizardVector <| Push <| MembersOnly))
         _ ->
           (sceneModel, send (WizardVector <| Push <| CheckInDone))
 

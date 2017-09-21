@@ -11,6 +11,7 @@ import List.Nonempty exposing (Nonempty)
 -- Local
 import MembersApi exposing (..)
 import TaskApi exposing (..)
+import OpsApi exposing (..)
 
 -----------------------------------------------------------------------------
 -- FLAGS
@@ -31,6 +32,8 @@ type alias Flags =
   , scrapeLoginsUrl : String
   , setIsAdultUrl : String
   , xcOrgActionUrl : String
+  , timeBlocksUrl : String
+  , timeBlockTypesUrl : String
   }
 
 -----------------------------------------------------------------------------
@@ -46,6 +49,7 @@ type Scene
   | EmailInUse
   | HowDidYouHear
   | SignUpDone
+  | MembersOnly
   | NewMember
   | NewUser
   | ReasonForVisit
@@ -65,14 +69,15 @@ mdlIdBase scene =
     CreatingAcct -> 500
     EmailInUse -> 600
     HowDidYouHear -> 700
-    SignUpDone -> 800
+    MembersOnly -> 800
     NewMember -> 900
     NewUser -> 1000
     ReasonForVisit -> 1100
-    TaskList -> 1200
-    VolunteerInDone -> 1300
-    Waiver -> 1400
-    Welcome -> 1500
+    SignUpDone -> 1200
+    TaskList -> 1300
+    VolunteerInDone -> 1400
+    Waiver -> 1500
+    Welcome -> 1600
 
 
 -----------------------------------------------------------------------------
@@ -87,12 +92,10 @@ type CheckInMsg
 type CheckOutMsg
   = UpdateCheckedInAccts (Result Http.Error MatchingAcctInfo)
   | LogCheckOut Int
-  | CheckOutSceneWillAppear
 
 type CreatingAcctMsg
   = XcAcctCreationAttempted (Result Http.Error String)
   | CloneAttempted (Result Http.Error String)
-  | CreatingAcctSceneWillAppear
   | IsAdultWasSet (Result Http.Error String)
   | DiscoveryMethodAdded (Result Http.Error String)
 
@@ -101,7 +104,7 @@ type HowDidYouHearMsg
   | ToggleDiscoveryMethod DiscoveryMethod
 
 type MembersOnlyMsg
-  = MembersOnlySceneWillAppear
+  = UpdateTimeBlocks (Result Http.Error PageOfTimeBlocks)
 
 type NewMemberMsg
   = UpdateFirstName String
@@ -122,11 +125,9 @@ type ReasonForVisitMsg
   = UpdateReasonForVisit ReasonForVisit
   | ValidateReason
   | LogCheckInResult (Result Http.Error GenericResult)
-  | ReasonForVisitSceneWillAppear
 
 type TaskListMsg
-  = TaskListSceneWillAppear
-  | CalendarPageResult (Result Http.Error CalendarPage)
+  = CalendarPageResult (Result Http.Error CalendarPage)
   | ToggleTask OpsTask
   | ValidateTaskChoice
 
@@ -135,10 +136,6 @@ type WaiverMsg
   | ClearSignaturePad String
   | GetSignature
   | UpdateSignature String  -- String is a data URL representation of an image.
-  | WaiverSceneWillAppear
-
-type WelcomeMsg
-  = WelcomeSceneWillAppear
 
 type Msg
   = MdlVector (Material.Msg Msg)
@@ -153,7 +150,6 @@ type Msg
   | ReasonForVisitVector ReasonForVisitMsg
   | TaskListVector TaskListMsg
   | WaiverVector WaiverMsg
-  | WelcomeVector WelcomeMsg
 
 type WizardMsg
   = Push Scene

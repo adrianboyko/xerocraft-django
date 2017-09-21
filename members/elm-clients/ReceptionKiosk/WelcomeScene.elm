@@ -1,5 +1,5 @@
 
-module ReceptionKiosk.WelcomeScene exposing (init, update, view, WelcomeModel)
+module ReceptionKiosk.WelcomeScene exposing (init, sceneWillAppear, view, WelcomeModel)
 
 -- Standard
 import Html exposing (Html, div, text, img, br)
@@ -26,17 +26,21 @@ init : Flags -> (WelcomeModel, Cmd Msg)
 init flags = ({}, Cmd.none)
 
 -----------------------------------------------------------------------------
--- UPDATE
+-- SCENE WILL APPEAR
 -----------------------------------------------------------------------------
 
-update : WelcomeMsg -> KioskModel a -> (WelcomeModel, Cmd Msg)
-update msg kioskModel =
-  let sceneModel = kioskModel.welcomeModel
-  in case msg of
-
-    WelcomeSceneWillAppear ->
+sceneWillAppear : KioskModel a -> Scene -> (WelcomeModel, Cmd Msg)
+sceneWillAppear kioskModel appearingScene =
+  if appearingScene == Welcome
+    then
       let sceneModel = kioskModel.welcomeModel
       in (sceneModel, send (WizardVector <| Reset))
+    else
+      (kioskModel.welcomeModel, Cmd.none)
+
+-----------------------------------------------------------------------------
+-- UPDATE
+-----------------------------------------------------------------------------
 
 -----------------------------------------------------------------------------
 -- VIEW

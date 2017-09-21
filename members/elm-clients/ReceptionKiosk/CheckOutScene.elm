@@ -1,5 +1,5 @@
 
-module ReceptionKiosk.CheckOutScene exposing (init, view, update, CheckOutModel)
+module ReceptionKiosk.CheckOutScene exposing (init, view, sceneWillAppear, update, CheckOutModel)
 
 -- Standard
 import Html exposing (..)
@@ -33,6 +33,21 @@ init flags =
   in (model, Cmd.none)
 
 -----------------------------------------------------------------------------
+-- SCENE WILL APPEAR
+-----------------------------------------------------------------------------
+
+sceneWillAppear : KioskModel a -> Scene -> (CheckOutModel, Cmd Msg)
+sceneWillAppear kioskModel appearingScene =
+  if appearingScene == CheckOut
+    then
+      let
+        getCheckedInAccts = MembersApi.getCheckedInAccts kioskModel.flags
+        request = getCheckedInAccts (CheckOutVector << UpdateCheckedInAccts)
+      in (kioskModel.checkOutModel, request)
+    else
+      (kioskModel.checkOutModel, Cmd.none)
+
+-----------------------------------------------------------------------------
 -- UPDATE
 -----------------------------------------------------------------------------
 
@@ -40,14 +55,6 @@ update : CheckOutMsg -> KioskModel a -> (CheckOutModel, Cmd Msg)
 update msg kioskModel =
   let sceneModel = kioskModel.checkOutModel
   in case msg of
-
-    CheckOutSceneWillAppear ->
-      let
-        getCheckedInAccts = MembersApi.getCheckedInAccts kioskModel.flags
-        request = getCheckedInAccts (CheckOutVector << UpdateCheckedInAccts)
-      in
-        (sceneModel, request)
-
 
     UpdateCheckedInAccts (Ok {target, matches}) ->
       let newModel = {sceneModel | checkedInAccts = matches}

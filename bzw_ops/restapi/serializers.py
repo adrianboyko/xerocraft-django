@@ -19,6 +19,7 @@ class TimeBlockSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.TimeBlock
         fields = (
+            'id',
             'is_now',
             'start_time',
             'duration',
@@ -30,6 +31,7 @@ class TimeBlockSerializer(serializers.ModelSerializer):
             'every',
             'monday',
             'tuesday',
+            'wednesday',
             'thursday',
             'friday',
             'saturday',
@@ -43,6 +45,7 @@ class TimeBlockTypeSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.TimeBlockType
         fields = (
+            'id',
             'name',
             'description',
         )
