@@ -72,11 +72,11 @@ update msg kioskModel =
     LogCheckInResult (Ok {result}) ->
       case sceneModel.reasonForVisit of
         Just Volunteer ->
-          (sceneModel, send (WizardVector <| Push <| TaskList))
+          (sceneModel, segueTo TaskList)
         Just MemberPrivileges ->
-          (sceneModel, send (WizardVector <| Push <| MembersOnly))
+          (sceneModel, segueTo MembersOnly)
         _ ->
-          (sceneModel, send (WizardVector <| Push <| CheckInDone))
+          (sceneModel, segueTo CheckInDone)
 
     LogCheckInResult (Err error) ->
       ({sceneModel | badNews = [toString error]}, Cmd.none)

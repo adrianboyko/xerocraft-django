@@ -88,7 +88,7 @@ update msg kioskModel =
       (sceneModel, sendSignatureImage "image/png")
 
     UpdateSignature dataUrl ->
-      ({sceneModel | signature = dataUrl}, send (WizardVector <| Push <| CreatingAcct))
+      ({sceneModel | signature = dataUrl}, segueTo CreatingAcct)
 
 
 -----------------------------------------------------------------------------

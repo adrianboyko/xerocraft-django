@@ -74,9 +74,9 @@ update msg kioskModel =
     ValidateEmailUnique (Ok {target, matches}) ->
       if List.length matches > 0 then
         let userIds = List.map .userName matches
-        in ({sceneModel | userIds=userIds}, send (WizardVector <| Push <| EmailInUse))
+        in ({sceneModel | userIds=userIds}, segueTo EmailInUse)
       else
-        (sceneModel, send (WizardVector <| Push <| NewUser))
+        (sceneModel, segueTo NewUser)
 
     ValidateEmailUnique (Err error) ->
       ({sceneModel | badNews = [toString error]}, Cmd.none)

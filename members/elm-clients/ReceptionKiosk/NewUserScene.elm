@@ -114,7 +114,7 @@ validateUserNameUnique kioskModel result =
         if List.member chosenName matchingNames then
           ({sceneModel | badNews = ["That user name is already in use."]}, Cmd.none)
         else
-          ({sceneModel | badNews = []}, send (WizardVector <| Push <| Waiver))
+          ({sceneModel | badNews = []}, segueTo Waiver)
     Err error ->
       ({sceneModel | badNews = [toString error]}, Cmd.none)
 

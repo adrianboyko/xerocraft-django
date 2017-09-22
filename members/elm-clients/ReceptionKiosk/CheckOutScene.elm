@@ -65,7 +65,7 @@ update msg kioskModel =
 
     LogCheckOut memberNum ->
       -- TODO: L. Might be last feature to be implemented to avoid collecting bogus visits during alpha testing.
-      (sceneModel, send (WizardVector <| Push <| CheckOutDone))
+      (sceneModel, segueTo CheckOutDone)
 
 -----------------------------------------------------------------------------
 -- VIEW

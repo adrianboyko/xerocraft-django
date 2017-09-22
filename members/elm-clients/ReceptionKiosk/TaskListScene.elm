@@ -83,7 +83,7 @@ sceneWillAppear kioskModel appearingScene =
           then
             -- No tasks are queued for the member checking in, so skip to task info.
             -- Task info will display generic "talk to a staffer" info in this case.
-            (sceneModel, send (WizardVector <| Push <| VolunteerInDone))
+            (sceneModel, segueTo VolunteerInDone)
           else
             (sceneModel, Cmd.none)
 
@@ -114,7 +114,7 @@ update msg kioskModel =
     ValidateTaskChoice ->
       case sceneModel.selectedTask of
         Just task ->
-          (sceneModel, send (WizardVector <| Push <| VolunteerInDone))
+          (sceneModel, segueTo VolunteerInDone)
         Nothing ->
           ({sceneModel | badNews=["You must choose a task to work!"]}, Cmd.none)
 

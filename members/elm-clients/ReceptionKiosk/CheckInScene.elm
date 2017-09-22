@@ -74,7 +74,7 @@ update msg kioskModel =
       ({sceneModel | badNews = [toString error]}, Cmd.none)
 
     UpdateMemberNum memberNum ->
-      ({sceneModel | memberNum = memberNum}, send (WizardVector <| Push <| ReasonForVisit))
+      ({sceneModel | memberNum = memberNum}, segueTo ReasonForVisit)
 
 -----------------------------------------------------------------------------
 -- VIEW

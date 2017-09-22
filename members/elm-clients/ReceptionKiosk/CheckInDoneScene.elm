@@ -64,7 +64,7 @@ tick time kioskModel =
     newTimeRemaining = sceneModel.displayTimeRemaining - dec
     cmd =
       if newTimeRemaining <= 0 then
-        send (WizardVector <| Push <| Welcome)
+        segueTo Welcome
       else
         Cmd.none
   in
