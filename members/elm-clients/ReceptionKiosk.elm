@@ -204,9 +204,21 @@ update msg model =
               let (sm, cmd) = CreatingAcctScene.tick time model
               in ({model | creatingAcctModel = sm}, cmd)
 
+            CheckIn ->
+              let (sm, cmd) = CheckInScene.tick time model
+              in ({model | checkInModel = sm}, cmd)
+
             CheckInDone ->
               let (sm, cmd) = CheckInDoneScene.tick time model
               in ({model | checkInDoneModel = sm}, cmd)
+
+            NewMember ->
+              let (sm, cmd) = NewMemberScene.tick time model
+              in ({model | newMemberModel = sm}, cmd)
+
+            NewUser ->
+              let (sm, cmd) = NewUserScene.tick time model
+              in ({model | newUserModel = sm}, cmd)
 
             _ -> (model, Cmd.none)
 

@@ -6,7 +6,6 @@ import Html exposing (Html, text, div)
 import Time exposing (Time)
 
 -- Third Party
-import List.Nonempty
 
 -- Local
 import ReceptionKiosk.Types exposing (..)
@@ -59,8 +58,8 @@ tick : Time -> KioskModel a -> (CheckInDoneModel, Cmd Msg)
 tick time kioskModel =
   let
     sceneModel = kioskModel.checkInDoneModel
-    sceneIsVisible = (List.Nonempty.head kioskModel.sceneStack == CheckInDone)
-    dec = if sceneIsVisible then 1 else 0
+    visible = sceneIsVisible kioskModel CheckInDone
+    dec = if visible then 1 else 0
     newTimeRemaining = sceneModel.displayTimeRemaining - dec
     cmd =
       if newTimeRemaining <= 0 then

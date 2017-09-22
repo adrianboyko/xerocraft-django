@@ -1,11 +1,11 @@
 
-module ReceptionKiosk.CheckInScene exposing (init, view, update, CheckInModel)
+module ReceptionKiosk.CheckInScene exposing (init, view, update, tick, CheckInModel)
 
 -- Standard
 import Html exposing (Html, div, text, audio)
 import Html.Attributes exposing (src, autoplay)
-
 import Http
+import Time exposing (Time)
 
 -- Third Party
 import Material
@@ -27,6 +27,7 @@ import MembersApi as MembersApi
 -- REVIEW: Strictly speaking, flexID and memberNum should be Maybes.
 type alias CheckInModel =
   { flexId : String  -- UserName or surname.
+  , secondsIdle : Int
   , matches : List MembersApi.MatchingAcct  -- Matches to username/surname
   , memberNum : Int -- The member number that the person chose to check in as.
   , badNews : List String
@@ -39,6 +40,7 @@ init : Flags -> (CheckInModel, Cmd Msg)
 init flags =
   let model =
     { flexId = ""  -- A harmless initial value.
+    , secondsIdle = 0
     , matches = []
     , memberNum = -99  -- A harmless initial value.
     , badNews = []
@@ -61,9 +63,13 @@ update msg kioskModel =
       in
         if (String.length id) > 1
         then
-          ({sceneModel | flexId = id}, getMatchingAccts id (CheckInVector << UpdateMatchingAccts))
+          ( {sceneModel | flexId = id, secondsIdle = 0}
+          , getMatchingAccts id (CheckInVector << UpdateMatchingAccts)
+          )
         else
-          ({sceneModel | matches = [], flexId = id}, Cmd.none )
+          ( {sceneModel | matches = [], flexId = id, secondsIdle = 0}
+          , Cmd.none
+          )
 
     UpdateMatchingAccts (Ok {target, matches}) ->
       if target == sceneModel.flexId
@@ -115,6 +121,28 @@ view kioskModel =
     )
     []  -- No buttons
     sceneModel.badNews
+
+-----------------------------------------------------------------------------
+-- TICK (called each second)
+-----------------------------------------------------------------------------
+
+tick : Time -> KioskModel a -> (CheckInModel, Cmd Msg)
+tick time kioskModel =
+  let
+    sceneModel = kioskModel.checkInModel
+    visible = sceneIsVisible kioskModel CheckIn
+    inc = if visible then 1 else 0
+    newSecondsIdle = sceneModel.secondsIdle + inc
+    newSceneModel = {sceneModel | secondsIdle = newSecondsIdle}
+    cmd =
+       if newSecondsIdle > 30
+         then segueTo Welcome
+         else idxFlexId |> toString |> setFocusIfNoFocus
+  in
+    if visible
+      then (newSceneModel, cmd)
+      else (newSceneModel, Cmd.none)
+
 
 -----------------------------------------------------------------------------
 -- STYLES

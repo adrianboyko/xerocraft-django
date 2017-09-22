@@ -130,9 +130,20 @@
             else app.ports.signatureImage.send(signaturePad.toDataURL(imgType));
         }
 
+        function setFocusIfNoFocus(idToFocus) {
+            var active = document.activeElement;
+            if (active === null || active.tagName === "BODY") {
+                var elToFocus = document.getElementById(idToFocus);
+                if (elToFocus !== null) {
+                    elToFocus.focus()
+                }
+            }
+        }
+
         app.ports.initSignaturePad.subscribe(initSignaturePad);
         app.ports.clearSignaturePad.subscribe(clearSignaturePad);
         app.ports.sendSignatureImage.subscribe(sendSignatureImage);
+        app.ports.setFocusIfNoFocus.subscribe(setFocusIfNoFocus);
 
     </script>
 </body>

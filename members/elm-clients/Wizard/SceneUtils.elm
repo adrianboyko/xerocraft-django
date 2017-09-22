@@ -1,5 +1,4 @@
-
-module Wizard.SceneUtils exposing
+port module Wizard.SceneUtils exposing
   ( SceneUtilModel
   , genericScene
   , sceneButton
@@ -14,6 +13,8 @@ module Wizard.SceneUtils exposing
   , (=>)
   , send
   , segueTo
+  , setFocusIfNoFocus
+  , sceneIsVisible
   )
 
 -- Standard
@@ -35,6 +36,16 @@ import List.Nonempty exposing (Nonempty)
 import ReceptionKiosk.Types exposing (..)
 
 -----------------------------------------------------------------------------
+-- PORTS
+-----------------------------------------------------------------------------
+
+{-| Sets focus on the element with the given id but ONLY IF there is NOT
+an element that already has focus. Since scenes appear with no default
+focus, use this to set one.
+-}
+port setFocusIfNoFocus : String -> Cmd msg
+
+-----------------------------------------------------------------------------
 -- MISC
 -----------------------------------------------------------------------------
 
@@ -49,6 +60,9 @@ type alias Index = List Int  -- elm-mdl doesn't expose this type.
 
 segueTo : Scene -> Cmd Msg
 segueTo scene = send (WizardVector <| Push <| scene)
+
+sceneIsVisible : SceneUtilModel a -> Scene -> Bool
+sceneIsVisible model scene = List.Nonempty.head model.sceneStack == scene
 
 -----------------------------------------------------------------------------
 -- VIEW UTILITIES
@@ -107,6 +121,7 @@ sceneGenericTextField model index hint value msger options =
       , Textfield.floatingLabel
       , Textfield.value value
       , Options.onInput msger
+      , Options.attribute <| Html.Attributes.id <| toString index
       , css "width" "500px"
       ]
       ++

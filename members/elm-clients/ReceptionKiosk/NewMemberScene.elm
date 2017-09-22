@@ -1,17 +1,17 @@
 
-module ReceptionKiosk.NewMemberScene exposing (init, update, view, NewMemberModel)
+module ReceptionKiosk.NewMemberScene exposing (init, update, tick, view, NewMemberModel)
 
 -- Standard
 import Html exposing (..)
 import Http
 import Regex exposing (..)
+import Time exposing (Time)
 
 -- Third Party
 import String.Extra as SE
 import Material.List as Lists
 import Material.Toggles as Toggles
 import Material.Options as Options exposing (css)
-
 
 -- Local
 import MembersApi as MembersApi
@@ -169,6 +169,22 @@ ageChoice kioskModel =
           [text "I'm younger than 18"]
       , vspace 10
       ]
+
+
+-----------------------------------------------------------------------------
+-- TICK (called each second)
+-----------------------------------------------------------------------------
+
+tick : Time -> KioskModel a -> (NewMemberModel, Cmd Msg)
+tick time kioskModel =
+  let
+    sceneModel = kioskModel.newMemberModel
+    visible = sceneIsVisible kioskModel NewMember
+    noBadNews = List.length sceneModel.badNews == 0
+    okToFocus = visible && noBadNews
+    cmd = if okToFocus then idxFirstName |> toString |> setFocusIfNoFocus else Cmd.none
+  in
+    (sceneModel, cmd)
 
 
 -----------------------------------------------------------------------------

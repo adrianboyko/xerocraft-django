@@ -1,9 +1,10 @@
 
-module ReceptionKiosk.NewUserScene exposing (init, view, update, NewUserModel)
+module ReceptionKiosk.NewUserScene exposing (init, view, update, tick, NewUserModel)
 
 -- Standard
 import Html exposing (Html, div)
 import Http
+import Time exposing (Time)
 
 -- Third Party
 
@@ -117,6 +118,22 @@ validateUserNameUnique kioskModel result =
           ({sceneModel | badNews = []}, segueTo Waiver)
     Err error ->
       ({sceneModel | badNews = [toString error]}, Cmd.none)
+
+
+-----------------------------------------------------------------------------
+-- TICK (called each second)
+-----------------------------------------------------------------------------
+
+tick : Time -> KioskModel a -> (NewUserModel, Cmd Msg)
+tick time kioskModel =
+  let
+    sceneModel = kioskModel.newUserModel
+    visible = sceneIsVisible kioskModel NewUser
+    noBadNews = List.length sceneModel.badNews == 0
+    okToFocus = visible && noBadNews
+    cmd = if okToFocus then idxUserName |> toString |> setFocusIfNoFocus else Cmd.none
+  in
+    (sceneModel, cmd)
 
 
 -----------------------------------------------------------------------------

@@ -74,7 +74,7 @@ update msg kioskModel =
         Just Volunteer ->
           (sceneModel, segueTo TaskList)
         Just MemberPrivileges ->
-          (sceneModel, segueTo MembersOnly)
+          (sceneModel, segueTo CheckInDone)  -- Temporarily bypassing MembersOnly
         _ ->
           (sceneModel, segueTo CheckInDone)
 
