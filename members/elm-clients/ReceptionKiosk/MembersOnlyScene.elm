@@ -61,17 +61,17 @@ sceneWillAppear kioskModel appearingScene =
   let sceneModel = kioskModel.membersOnlyModel
   in case appearingScene of
 
-    ReasonForVisit ->
-      -- We want to have the current time block on hand by the time MembersOnly
-      -- appears, so start the fetch when ReasonForVisit appears.
-      (sceneModel, getTimeBlocks kioskModel)
-
-    MembersOnly ->
-      case sceneModel.currTimeBlock of
-        Just block ->
-          (sceneModel, Cmd.none)
-        Nothing ->
-          (sceneModel, segueTo CheckInDone)
+--    ReasonForVisit ->
+--      -- We want to have the current time block on hand by the time MembersOnly
+--      -- appears, so start the fetch when ReasonForVisit appears.
+--      (sceneModel, getTimeBlocks kioskModel)
+--
+--    MembersOnly ->
+--      case sceneModel.currTimeBlock of
+--        Just block ->
+--          (sceneModel, Cmd.none)
+--        Nothing ->
+--          (sceneModel, segueTo CheckInDone)
 
     _ ->
       (kioskModel.membersOnlyModel, Cmd.none)

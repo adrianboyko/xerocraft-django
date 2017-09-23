@@ -24911,27 +24911,7 @@ var _user$project$ReceptionKiosk_MembersOnlyScene$sceneWillAppear = F2(
 	function (kioskModel, appearingScene) {
 		var sceneModel = kioskModel.membersOnlyModel;
 		var _p5 = appearingScene;
-		switch (_p5.ctor) {
-			case 'ReasonForVisit':
-				return {
-					ctor: '_Tuple2',
-					_0: sceneModel,
-					_1: _user$project$ReceptionKiosk_MembersOnlyScene$getTimeBlocks(kioskModel)
-				};
-			case 'MembersOnly':
-				var _p6 = sceneModel.currTimeBlock;
-				if (_p6.ctor === 'Just') {
-					return {ctor: '_Tuple2', _0: sceneModel, _1: _elm_lang$core$Platform_Cmd$none};
-				} else {
-					return {
-						ctor: '_Tuple2',
-						_0: sceneModel,
-						_1: _user$project$Wizard_SceneUtils$segueTo(_user$project$ReceptionKiosk_Types$CheckInDone)
-					};
-				}
-			default:
-				return {ctor: '_Tuple2', _0: kioskModel.membersOnlyModel, _1: _elm_lang$core$Platform_Cmd$none};
-		}
+		return {ctor: '_Tuple2', _0: kioskModel.membersOnlyModel, _1: _elm_lang$core$Platform_Cmd$none};
 	});
 var _user$project$ReceptionKiosk_MembersOnlyScene$init = function (flags) {
 	var sceneModel = {
