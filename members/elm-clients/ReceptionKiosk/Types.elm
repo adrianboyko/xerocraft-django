@@ -88,6 +88,7 @@ type CheckInMsg
   = UpdateMatchingAccts (Result Http.Error MatchingAcctInfo)
   | UpdateFlexId String
   | UpdateMemberNum Int
+  | FlexIdFocusSet Bool
 
 type CheckOutMsg
   = UpdateCheckedInAccts (Result Http.Error MatchingAcctInfo)
@@ -114,6 +115,7 @@ type NewMemberMsg
   | ToggleIsAdult Bool
   | Validate
   | ValidateEmailUnique (Result Http.Error MatchingAcctInfo)
+  | FirstNameFocusSet Bool
 
 type NewUserMsg
   = ValidateUserNameAndPw
@@ -121,6 +123,7 @@ type NewUserMsg
   | UpdateUserName String
   | UpdatePassword1 String
   | UpdatePassword2 String
+  | UserNameFocusSet Bool
 
 type ReasonForVisitMsg
   = UpdateReasonForVisit ReasonForVisit

@@ -132,13 +132,16 @@
 
         function setFocusIfNoFocus(idToFocus) {
             var active = document.activeElement;
-            if (active === null || active.tagName === "BODY") {
+            if (active === null || active.tagName.toLowerCase() === "body") {
                 var elToFocus = document.getElementById(idToFocus);
                 if (elToFocus !== null) {
                     elToFocus.focus();
                     elToFocus.click();
+                    app.ports.focusWasSet.send(true);
+                    return;
                 }
             }
+            app.ports.focusWasSet.send(false);
         }
 
         app.ports.initSignaturePad.subscribe(initSignaturePad);

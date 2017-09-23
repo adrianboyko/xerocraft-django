@@ -1,5 +1,5 @@
 
-module ReceptionKiosk.NewUserScene exposing (init, view, update, tick, NewUserModel)
+module ReceptionKiosk.NewUserScene exposing (init, view, update, tick, subscriptions, NewUserModel)
 
 -- Standard
 import Html exposing (Html, div)
@@ -19,10 +19,11 @@ import ReceptionKiosk.NewMemberScene exposing (NewMemberModel)
 -----------------------------------------------------------------------------
 
 type alias NewUserModel =
-  { userName: String
-  , password1: String
-  , password2: String
-  , badNews: List String
+  { userName : String
+  , password1 : String
+  , password2 : String
+  , doneWithFocus : Bool
+  , badNews : List String
   }
 
 -- This type alias describes the type of kiosk model that this scene requires.
@@ -30,7 +31,7 @@ type alias KioskModel a =
   ( SceneUtilModel
     { a
     | newUserModel : NewUserModel
-    , newMemberModel: NewMemberModel
+    , newMemberModel : NewMemberModel
     }
   )
 
@@ -40,6 +41,7 @@ init flags =
     { userName = ""
     , password1 = ""
     , password2 = ""
+    , doneWithFocus = False
     , badNews = []
     }
   in (sceneModel, Cmd.none)
@@ -69,6 +71,13 @@ update msg kioskModel =
 
     ValidateUserNameUnique result ->
       validateUserNameUnique kioskModel result
+
+    UserNameFocusSet wasSet ->
+      let
+        currDoneWithFocus = sceneModel.doneWithFocus
+        newDoneWithFocus = currDoneWithFocus || wasSet
+      in
+        ({sceneModel | doneWithFocus = newDoneWithFocus}, Cmd.none)
 
 validateUserIdAndPw : KioskModel a -> (NewUserModel, Cmd Msg)
 validateUserIdAndPw kioskModel =
@@ -130,10 +139,21 @@ tick time kioskModel =
     sceneModel = kioskModel.newUserModel
     visible = sceneIsVisible kioskModel NewUser
     noBadNews = List.length sceneModel.badNews == 0
-    okToFocus = visible && noBadNews
+    okToFocus = visible && noBadNews && not sceneModel.doneWithFocus
     cmd = if okToFocus then idxUserName |> toString |> setFocusIfNoFocus else Cmd.none
   in
     (sceneModel, cmd)
+
+
+-----------------------------------------------------------------------------
+-- SUBSCRIPTIONS
+-----------------------------------------------------------------------------
+
+subscriptions: KioskModel a -> Sub Msg
+subscriptions model =
+  if sceneIsVisible model NewUser
+    then focusWasSet (NewUserVector << UserNameFocusSet)
+    else Sub.none
 
 
 -----------------------------------------------------------------------------

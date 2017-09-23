@@ -1,5 +1,5 @@
 
-module ReceptionKiosk.NewMemberScene exposing (init, update, tick, view, NewMemberModel)
+module ReceptionKiosk.NewMemberScene exposing (init, update, tick, view, subscriptions, NewMemberModel)
 
 -- Standard
 import Html exposing (..)
@@ -28,6 +28,7 @@ type alias NewMemberModel =
   , email : String
   , isAdult : Maybe Bool
   , userIds : List String
+  , doneWithFocus : Bool
   , badNews : List String
   }
 
@@ -41,7 +42,8 @@ init flags =
    , lastName = ""
    , email = ""
    , isAdult = Nothing
-   , userIds = ["larry"]
+   , userIds = []
+   , doneWithFocus = False
    , badNews = []
    }
   in (model, Cmd.none)
@@ -81,6 +83,12 @@ update msg kioskModel =
     ValidateEmailUnique (Err error) ->
       ({sceneModel | badNews = [toString error]}, Cmd.none)
 
+    FirstNameFocusSet wasSet ->
+      let
+        currDoneWithFocus = sceneModel.doneWithFocus
+        newDoneWithFocus = currDoneWithFocus || wasSet
+      in
+        ({sceneModel | doneWithFocus = newDoneWithFocus}, Cmd.none)
 
 -----------------------------------------------------------------------------
 -- VALIDATE
@@ -181,10 +189,21 @@ tick time kioskModel =
     sceneModel = kioskModel.newMemberModel
     visible = sceneIsVisible kioskModel NewMember
     noBadNews = List.length sceneModel.badNews == 0
-    okToFocus = visible && noBadNews
+    okToFocus = visible && noBadNews && not sceneModel.doneWithFocus
     cmd = if okToFocus then idxFirstName |> toString |> setFocusIfNoFocus else Cmd.none
   in
     (sceneModel, cmd)
+
+
+-----------------------------------------------------------------------------
+-- SUBSCRIPTIONS
+-----------------------------------------------------------------------------
+
+subscriptions: KioskModel a -> Sub Msg
+subscriptions model =
+  if sceneIsVisible model NewMember
+    then focusWasSet (NewMemberVector << FirstNameFocusSet)
+    else Sub.none
 
 
 -----------------------------------------------------------------------------

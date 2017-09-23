@@ -21224,6 +21224,9 @@ var _user$project$ReceptionKiosk_Types$CheckOutDone = {ctor: 'CheckOutDone'};
 var _user$project$ReceptionKiosk_Types$CheckOut = {ctor: 'CheckOut'};
 var _user$project$ReceptionKiosk_Types$CheckInDone = {ctor: 'CheckInDone'};
 var _user$project$ReceptionKiosk_Types$CheckIn = {ctor: 'CheckIn'};
+var _user$project$ReceptionKiosk_Types$FlexIdFocusSet = function (a) {
+	return {ctor: 'FlexIdFocusSet', _0: a};
+};
 var _user$project$ReceptionKiosk_Types$UpdateMemberNum = function (a) {
 	return {ctor: 'UpdateMemberNum', _0: a};
 };
@@ -21263,6 +21266,9 @@ var _user$project$ReceptionKiosk_Types$UpdateTimeBlockTypes = function (a) {
 var _user$project$ReceptionKiosk_Types$UpdateTimeBlocks = function (a) {
 	return {ctor: 'UpdateTimeBlocks', _0: a};
 };
+var _user$project$ReceptionKiosk_Types$FirstNameFocusSet = function (a) {
+	return {ctor: 'FirstNameFocusSet', _0: a};
+};
 var _user$project$ReceptionKiosk_Types$ValidateEmailUnique = function (a) {
 	return {ctor: 'ValidateEmailUnique', _0: a};
 };
@@ -21278,6 +21284,9 @@ var _user$project$ReceptionKiosk_Types$UpdateLastName = function (a) {
 };
 var _user$project$ReceptionKiosk_Types$UpdateFirstName = function (a) {
 	return {ctor: 'UpdateFirstName', _0: a};
+};
+var _user$project$ReceptionKiosk_Types$UserNameFocusSet = function (a) {
+	return {ctor: 'UserNameFocusSet', _0: a};
 };
 var _user$project$ReceptionKiosk_Types$UpdatePassword2 = function (a) {
 	return {ctor: 'UpdatePassword2', _0: a};
@@ -22176,6 +22185,7 @@ var _user$project$Wizard_SceneUtils$setFocusIfNoFocus = _elm_lang$core$Native_Pl
 	function (v) {
 		return v;
 	});
+var _user$project$Wizard_SceneUtils$focusWasSet = _elm_lang$core$Native_Platform.incomingPort('focusWasSet', _elm_lang$core$Json_Decode$bool);
 var _user$project$Wizard_SceneUtils$ButtonSpec = F2(
 	function (a, b) {
 		return {title: a, msg: b};
@@ -22189,6 +22199,13 @@ var _user$project$ReceptionKiosk_CheckInScene$sceneChipCss = {
 		_0: A2(_debois$elm_mdl$Material_Options$css, 'margin-right', '3px'),
 		_1: {ctor: '[]'}
 	}
+};
+var _user$project$ReceptionKiosk_CheckInScene$subscriptions = function (model) {
+	return A2(_user$project$Wizard_SceneUtils$sceneIsVisible, model, _user$project$ReceptionKiosk_Types$CheckIn) ? _user$project$Wizard_SceneUtils$focusWasSet(
+		function (_p0) {
+			return _user$project$ReceptionKiosk_Types$CheckInVector(
+				_user$project$ReceptionKiosk_Types$FlexIdFocusSet(_p0));
+		}) : _elm_lang$core$Platform_Sub$none;
 };
 var _user$project$ReceptionKiosk_CheckInScene$idxCheckInScene = _user$project$ReceptionKiosk_Types$mdlIdBase(_user$project$ReceptionKiosk_Types$CheckIn);
 var _user$project$ReceptionKiosk_CheckInScene$idxFlexId = {
@@ -22247,9 +22264,9 @@ var _user$project$ReceptionKiosk_CheckInScene$view = function (kioskModel) {
 							_user$project$ReceptionKiosk_CheckInScene$idxFlexId,
 							'Enter your Userid or Last Name',
 							sceneModel.flexId,
-							function (_p0) {
+							function (_p1) {
 								return _user$project$ReceptionKiosk_Types$CheckInVector(
-									_user$project$ReceptionKiosk_Types$UpdateFlexId(_p0));
+									_user$project$ReceptionKiosk_Types$UpdateFlexId(_p1));
 							}),
 						_1: {
 							ctor: '::',
@@ -22328,21 +22345,22 @@ var _user$project$ReceptionKiosk_CheckInScene$tick = F2(
 		var inc = visible ? 1 : 0;
 		var sceneModel = kioskModel.checkInModel;
 		var newSecondsIdle = sceneModel.secondsIdle + inc;
-		var cmd = (_elm_lang$core$Native_Utils.cmp(newSecondsIdle, 30) > 0) ? _user$project$Wizard_SceneUtils$segueTo(_user$project$ReceptionKiosk_Types$Welcome) : _user$project$Wizard_SceneUtils$setFocusIfNoFocus(
-			_elm_lang$core$Basics$toString(_user$project$ReceptionKiosk_CheckInScene$idxFlexId));
 		var newSceneModel = _elm_lang$core$Native_Utils.update(
 			sceneModel,
 			{secondsIdle: newSecondsIdle});
+		var setFocusCmd = sceneModel.doneWithFocus ? _elm_lang$core$Platform_Cmd$none : _user$project$Wizard_SceneUtils$setFocusIfNoFocus(
+			_elm_lang$core$Basics$toString(_user$project$ReceptionKiosk_CheckInScene$idxFlexId));
+		var cmd = (_elm_lang$core$Native_Utils.cmp(newSecondsIdle, 30) > 0) ? _user$project$Wizard_SceneUtils$segueTo(_user$project$ReceptionKiosk_Types$Welcome) : setFocusCmd;
 		return visible ? {ctor: '_Tuple2', _0: newSceneModel, _1: cmd} : {ctor: '_Tuple2', _0: newSceneModel, _1: _elm_lang$core$Platform_Cmd$none};
 	});
 var _user$project$ReceptionKiosk_CheckInScene$update = F2(
 	function (msg, kioskModel) {
 		var sceneModel = kioskModel.checkInModel;
-		var _p1 = msg;
-		switch (_p1.ctor) {
+		var _p2 = msg;
+		switch (_p2.ctor) {
 			case 'UpdateFlexId':
 				var getMatchingAccts = _user$project$MembersApi$getMatchingAccts(kioskModel.flags);
-				var id = _user$project$MembersApi$djangoizeId(_p1._0);
+				var id = _user$project$MembersApi$djangoizeId(_p2._0);
 				return (_elm_lang$core$Native_Utils.cmp(
 					_elm_lang$core$String$length(id),
 					1) > 0) ? {
@@ -22353,9 +22371,9 @@ var _user$project$ReceptionKiosk_CheckInScene$update = F2(
 					_1: A2(
 						getMatchingAccts,
 						id,
-						function (_p2) {
+						function (_p3) {
 							return _user$project$ReceptionKiosk_Types$CheckInVector(
-								_user$project$ReceptionKiosk_Types$UpdateMatchingAccts(_p2));
+								_user$project$ReceptionKiosk_Types$UpdateMatchingAccts(_p3));
 						})
 				} : {
 					ctor: '_Tuple2',
@@ -22369,13 +22387,13 @@ var _user$project$ReceptionKiosk_CheckInScene$update = F2(
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 			case 'UpdateMatchingAccts':
-				if (_p1._0.ctor === 'Ok') {
-					return _elm_lang$core$Native_Utils.eq(_p1._0._0.target, sceneModel.flexId) ? {
+				if (_p2._0.ctor === 'Ok') {
+					return _elm_lang$core$Native_Utils.eq(_p2._0._0.target, sceneModel.flexId) ? {
 						ctor: '_Tuple2',
 						_0: _elm_lang$core$Native_Utils.update(
 							sceneModel,
 							{
-								matches: _p1._0._0.matches,
+								matches: _p2._0._0.matches,
 								badNews: {ctor: '[]'}
 							}),
 						_1: _elm_lang$core$Platform_Cmd$none
@@ -22388,20 +22406,30 @@ var _user$project$ReceptionKiosk_CheckInScene$update = F2(
 							{
 								badNews: {
 									ctor: '::',
-									_0: _elm_lang$core$Basics$toString(_p1._0._0),
+									_0: _elm_lang$core$Basics$toString(_p2._0._0),
 									_1: {ctor: '[]'}
 								}
 							}),
 						_1: _elm_lang$core$Platform_Cmd$none
 					};
 				}
-			default:
+			case 'UpdateMemberNum':
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
 						sceneModel,
-						{memberNum: _p1._0}),
+						{memberNum: _p2._0}),
 					_1: _user$project$Wizard_SceneUtils$segueTo(_user$project$ReceptionKiosk_Types$ReasonForVisit)
+				};
+			default:
+				var currDoneWithFocus = sceneModel.doneWithFocus;
+				var newDoneWithFocus = currDoneWithFocus || _p2._0;
+				return {
+					ctor: '_Tuple2',
+					_0: _elm_lang$core$Native_Utils.update(
+						sceneModel,
+						{doneWithFocus: newDoneWithFocus}),
+					_1: _elm_lang$core$Platform_Cmd$none
 				};
 		}
 	});
@@ -22411,13 +22439,14 @@ var _user$project$ReceptionKiosk_CheckInScene$init = function (flags) {
 		secondsIdle: 0,
 		matches: {ctor: '[]'},
 		memberNum: -99,
+		doneWithFocus: false,
 		badNews: {ctor: '[]'}
 	};
 	return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
 };
-var _user$project$ReceptionKiosk_CheckInScene$CheckInModel = F5(
-	function (a, b, c, d, e) {
-		return {flexId: a, secondsIdle: b, matches: c, memberNum: d, badNews: e};
+var _user$project$ReceptionKiosk_CheckInScene$CheckInModel = F6(
+	function (a, b, c, d, e, f) {
+		return {flexId: a, secondsIdle: b, matches: c, memberNum: d, doneWithFocus: e, badNews: f};
 	});
 
 var _user$project$ReceptionKiosk_CheckInDoneScene$tick = F2(
@@ -22975,6 +23004,13 @@ var _user$project$ReceptionKiosk_NewMemberScene$emailRegex = function () {
 			A3(_elm_community$string_extra$String_Extra$replace, 'E', echar, '^E+(?:\\.E+)*@(?:A(?:D*A)?\\.)+A(?:D*A)?$')));
 	return _elm_lang$core$Regex$regex(emailRegexStr);
 }();
+var _user$project$ReceptionKiosk_NewMemberScene$subscriptions = function (model) {
+	return A2(_user$project$Wizard_SceneUtils$sceneIsVisible, model, _user$project$ReceptionKiosk_Types$NewMember) ? _user$project$Wizard_SceneUtils$focusWasSet(
+		function (_p0) {
+			return _user$project$ReceptionKiosk_Types$NewMemberVector(
+				_user$project$ReceptionKiosk_Types$FirstNameFocusSet(_p0));
+		}) : _elm_lang$core$Platform_Sub$none;
+};
 var _user$project$ReceptionKiosk_NewMemberScene$idxNewMemberScene = _user$project$ReceptionKiosk_Types$mdlIdBase(_user$project$ReceptionKiosk_Types$NewMember);
 var _user$project$ReceptionKiosk_NewMemberScene$idxUnder18 = {
 	ctor: '::',
@@ -23040,19 +23076,19 @@ var _user$project$ReceptionKiosk_NewMemberScene$ageChoice = function (kioskModel
 								ctor: '::',
 								_0: _debois$elm_mdl$Material_Toggles$value(
 									function () {
-										var _p0 = sceneModel.isAdult;
-										if (_p0.ctor === 'Nothing') {
+										var _p1 = sceneModel.isAdult;
+										if (_p1.ctor === 'Nothing') {
 											return false;
 										} else {
-											return !_p0._0;
+											return !_p1._0;
 										}
 									}()),
 								_1: {
 									ctor: '::',
 									_0: _debois$elm_mdl$Material_Options$onToggle(
-										function (_p1) {
+										function (_p2) {
 											return _user$project$ReceptionKiosk_Types$NewMemberVector(
-												_user$project$ReceptionKiosk_Types$ToggleIsAdult(_p1));
+												_user$project$ReceptionKiosk_Types$ToggleIsAdult(_p2));
 										}(true)),
 									_1: {ctor: '[]'}
 								}
@@ -23088,7 +23124,7 @@ var _user$project$ReceptionKiosk_NewMemberScene$tick = F2(
 		var noBadNews = _elm_lang$core$Native_Utils.eq(
 			_elm_lang$core$List$length(sceneModel.badNews),
 			0);
-		var okToFocus = visible && noBadNews;
+		var okToFocus = visible && (noBadNews && (!sceneModel.doneWithFocus));
 		var cmd = okToFocus ? _user$project$Wizard_SceneUtils$setFocusIfNoFocus(
 			_elm_lang$core$Basics$toString(_user$project$ReceptionKiosk_NewMemberScene$idxFirstName)) : _elm_lang$core$Platform_Cmd$none;
 		return {ctor: '_Tuple2', _0: sceneModel, _1: cmd};
@@ -23129,9 +23165,9 @@ var _user$project$ReceptionKiosk_NewMemberScene$view = function (kioskModel) {
 					_user$project$ReceptionKiosk_NewMemberScene$idxFirstName,
 					'Enter your first name here',
 					sceneModel.firstName,
-					function (_p2) {
+					function (_p3) {
 						return _user$project$ReceptionKiosk_Types$NewMemberVector(
-							_user$project$ReceptionKiosk_Types$UpdateFirstName(_p2));
+							_user$project$ReceptionKiosk_Types$UpdateFirstName(_p3));
 					}),
 				_1: {
 					ctor: '::',
@@ -23144,9 +23180,9 @@ var _user$project$ReceptionKiosk_NewMemberScene$view = function (kioskModel) {
 							_user$project$ReceptionKiosk_NewMemberScene$idxLastName,
 							'Enter your last name here',
 							sceneModel.lastName,
-							function (_p3) {
+							function (_p4) {
 								return _user$project$ReceptionKiosk_Types$NewMemberVector(
-									_user$project$ReceptionKiosk_Types$UpdateLastName(_p3));
+									_user$project$ReceptionKiosk_Types$UpdateLastName(_p4));
 							}),
 						_1: {
 							ctor: '::',
@@ -23159,9 +23195,9 @@ var _user$project$ReceptionKiosk_NewMemberScene$view = function (kioskModel) {
 									_user$project$ReceptionKiosk_NewMemberScene$idxEmail,
 									'Enter your email address here',
 									sceneModel.email,
-									function (_p4) {
+									function (_p5) {
 										return _user$project$ReceptionKiosk_Types$NewMemberVector(
-											_user$project$ReceptionKiosk_Types$UpdateEmail(_p4));
+											_user$project$ReceptionKiosk_Types$UpdateEmail(_p5));
 									}),
 								_1: {
 									ctor: '::',
@@ -23243,9 +23279,9 @@ var _user$project$ReceptionKiosk_NewMemberScene$validate = function (kioskModel)
 		0) > 0) ? _elm_lang$core$Platform_Cmd$none : A2(
 		getMatchingAccts,
 		sceneModel.email,
-		function (_p5) {
+		function (_p6) {
 			return _user$project$ReceptionKiosk_Types$NewMemberVector(
-				_user$project$ReceptionKiosk_Types$ValidateEmailUnique(_p5));
+				_user$project$ReceptionKiosk_Types$ValidateEmailUnique(_p6));
 		});
 	return {
 		ctor: '_Tuple2',
@@ -23258,14 +23294,14 @@ var _user$project$ReceptionKiosk_NewMemberScene$validate = function (kioskModel)
 var _user$project$ReceptionKiosk_NewMemberScene$update = F2(
 	function (msg, kioskModel) {
 		var sceneModel = kioskModel.newMemberModel;
-		var _p6 = msg;
-		switch (_p6.ctor) {
+		var _p7 = msg;
+		switch (_p7.ctor) {
 			case 'UpdateFirstName':
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
 						sceneModel,
-						{firstName: _p6._0}),
+						{firstName: _p7._0}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 			case 'UpdateLastName':
@@ -23273,7 +23309,7 @@ var _user$project$ReceptionKiosk_NewMemberScene$update = F2(
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
 						sceneModel,
-						{lastName: _p6._0}),
+						{lastName: _p7._0}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 			case 'UpdateEmail':
@@ -23281,12 +23317,12 @@ var _user$project$ReceptionKiosk_NewMemberScene$update = F2(
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
 						sceneModel,
-						{email: _p6._0}),
+						{email: _p7._0}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 			case 'ToggleIsAdult':
 				var newVal = _elm_lang$core$Maybe$Just(
-					!A2(_elm_lang$core$Maybe$withDefault, _p6._0, sceneModel.isAdult));
+					!A2(_elm_lang$core$Maybe$withDefault, _p7._0, sceneModel.isAdult));
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
@@ -23296,18 +23332,18 @@ var _user$project$ReceptionKiosk_NewMemberScene$update = F2(
 				};
 			case 'Validate':
 				return _user$project$ReceptionKiosk_NewMemberScene$validate(kioskModel);
-			default:
-				if (_p6._0.ctor === 'Ok') {
-					var _p7 = _p6._0._0.matches;
+			case 'ValidateEmailUnique':
+				if (_p7._0.ctor === 'Ok') {
+					var _p8 = _p7._0._0.matches;
 					if (_elm_lang$core$Native_Utils.cmp(
-						_elm_lang$core$List$length(_p7),
+						_elm_lang$core$List$length(_p8),
 						0) > 0) {
 						var userIds = A2(
 							_elm_lang$core$List$map,
 							function (_) {
 								return _.userName;
 							},
-							_p7);
+							_p8);
 						return {
 							ctor: '_Tuple2',
 							_0: _elm_lang$core$Native_Utils.update(
@@ -23330,13 +23366,23 @@ var _user$project$ReceptionKiosk_NewMemberScene$update = F2(
 							{
 								badNews: {
 									ctor: '::',
-									_0: _elm_lang$core$Basics$toString(_p6._0._0),
+									_0: _elm_lang$core$Basics$toString(_p7._0._0),
 									_1: {ctor: '[]'}
 								}
 							}),
 						_1: _elm_lang$core$Platform_Cmd$none
 					};
 				}
+			default:
+				var currDoneWithFocus = sceneModel.doneWithFocus;
+				var newDoneWithFocus = currDoneWithFocus || _p7._0;
+				return {
+					ctor: '_Tuple2',
+					_0: _elm_lang$core$Native_Utils.update(
+						sceneModel,
+						{doneWithFocus: newDoneWithFocus}),
+					_1: _elm_lang$core$Platform_Cmd$none
+				};
 		}
 	});
 var _user$project$ReceptionKiosk_NewMemberScene$init = function (flags) {
@@ -23345,18 +23391,15 @@ var _user$project$ReceptionKiosk_NewMemberScene$init = function (flags) {
 		lastName: '',
 		email: '',
 		isAdult: _elm_lang$core$Maybe$Nothing,
-		userIds: {
-			ctor: '::',
-			_0: 'larry',
-			_1: {ctor: '[]'}
-		},
+		userIds: {ctor: '[]'},
+		doneWithFocus: false,
 		badNews: {ctor: '[]'}
 	};
 	return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
 };
-var _user$project$ReceptionKiosk_NewMemberScene$NewMemberModel = F6(
-	function (a, b, c, d, e, f) {
-		return {firstName: a, lastName: b, email: c, isAdult: d, userIds: e, badNews: f};
+var _user$project$ReceptionKiosk_NewMemberScene$NewMemberModel = F7(
+	function (a, b, c, d, e, f, g) {
+		return {firstName: a, lastName: b, email: c, isAdult: d, userIds: e, doneWithFocus: f, badNews: g};
 	});
 
 var _user$project$ReceptionKiosk_NewUserScene$idxNewUserScene = _user$project$ReceptionKiosk_Types$mdlIdBase(_user$project$ReceptionKiosk_Types$NewUser);
@@ -23459,6 +23502,13 @@ var _user$project$ReceptionKiosk_NewUserScene$view = function (kioskModel) {
 		},
 		sceneModel.badNews);
 };
+var _user$project$ReceptionKiosk_NewUserScene$subscriptions = function (model) {
+	return A2(_user$project$Wizard_SceneUtils$sceneIsVisible, model, _user$project$ReceptionKiosk_Types$NewUser) ? _user$project$Wizard_SceneUtils$focusWasSet(
+		function (_p3) {
+			return _user$project$ReceptionKiosk_Types$NewUserVector(
+				_user$project$ReceptionKiosk_Types$UserNameFocusSet(_p3));
+		}) : _elm_lang$core$Platform_Sub$none;
+};
 var _user$project$ReceptionKiosk_NewUserScene$tick = F2(
 	function (time, kioskModel) {
 		var visible = A2(_user$project$Wizard_SceneUtils$sceneIsVisible, kioskModel, _user$project$ReceptionKiosk_Types$NewUser);
@@ -23466,7 +23516,7 @@ var _user$project$ReceptionKiosk_NewUserScene$tick = F2(
 		var noBadNews = _elm_lang$core$Native_Utils.eq(
 			_elm_lang$core$List$length(sceneModel.badNews),
 			0);
-		var okToFocus = visible && noBadNews;
+		var okToFocus = visible && (noBadNews && (!sceneModel.doneWithFocus));
 		var cmd = okToFocus ? _user$project$Wizard_SceneUtils$setFocusIfNoFocus(
 			_elm_lang$core$Basics$toString(_user$project$ReceptionKiosk_NewUserScene$idxUserName)) : _elm_lang$core$Platform_Cmd$none;
 		return {ctor: '_Tuple2', _0: sceneModel, _1: cmd};
@@ -23474,15 +23524,15 @@ var _user$project$ReceptionKiosk_NewUserScene$tick = F2(
 var _user$project$ReceptionKiosk_NewUserScene$validateUserNameUnique = F2(
 	function (kioskModel, result) {
 		var sceneModel = kioskModel.newUserModel;
-		var _p3 = result;
-		if (_p3.ctor === 'Ok') {
+		var _p4 = result;
+		if (_p4.ctor === 'Ok') {
 			var chosenName = _elm_lang$core$String$toLower(sceneModel.userName);
 			var matchingNames = A2(
 				_elm_lang$core$List$map,
 				function (x) {
 					return _elm_lang$core$String$toLower(x.userName);
 				},
-				_p3._0.matches);
+				_p4._0.matches);
 			return A2(_elm_lang$core$List$member, chosenName, matchingNames) ? {
 				ctor: '_Tuple2',
 				_0: _elm_lang$core$Native_Utils.update(
@@ -23512,7 +23562,7 @@ var _user$project$ReceptionKiosk_NewUserScene$validateUserNameUnique = F2(
 					{
 						badNews: {
 							ctor: '::',
-							_0: _elm_lang$core$Basics$toString(_p3._0),
+							_0: _elm_lang$core$Basics$toString(_p4._0),
 							_1: {ctor: '[]'}
 						}
 					}),
@@ -23522,9 +23572,9 @@ var _user$project$ReceptionKiosk_NewUserScene$validateUserNameUnique = F2(
 	});
 var _user$project$ReceptionKiosk_NewUserScene$validateUserIdAndPw = function (kioskModel) {
 	var getMatchingAccts = _user$project$MembersApi$getMatchingAccts(kioskModel.flags);
-	var norm = function (_p4) {
+	var norm = function (_p5) {
 		return _elm_lang$core$String$toLower(
-			_elm_lang$core$String$trim(_p4));
+			_elm_lang$core$String$trim(_p5));
 	};
 	var memberModel = kioskModel.newMemberModel;
 	var fname = norm(memberModel.firstName);
@@ -23598,9 +23648,9 @@ var _user$project$ReceptionKiosk_NewUserScene$validateUserIdAndPw = function (ki
 		0) > 0) ? _elm_lang$core$Platform_Cmd$none : A2(
 		getMatchingAccts,
 		sceneModel.userName,
-		function (_p5) {
+		function (_p6) {
 			return _user$project$ReceptionKiosk_Types$NewUserVector(
-				_user$project$ReceptionKiosk_Types$ValidateUserNameUnique(_p5));
+				_user$project$ReceptionKiosk_Types$ValidateUserNameUnique(_p6));
 		});
 	return {
 		ctor: '_Tuple2',
@@ -23613,10 +23663,10 @@ var _user$project$ReceptionKiosk_NewUserScene$validateUserIdAndPw = function (ki
 var _user$project$ReceptionKiosk_NewUserScene$update = F2(
 	function (msg, kioskModel) {
 		var sceneModel = kioskModel.newUserModel;
-		var _p6 = msg;
-		switch (_p6.ctor) {
+		var _p7 = msg;
+		switch (_p7.ctor) {
 			case 'UpdateUserName':
-				var djangoizedVal = _user$project$MembersApi$djangoizeId(_p6._0);
+				var djangoizedVal = _user$project$MembersApi$djangoizeId(_p7._0);
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
@@ -23629,7 +23679,7 @@ var _user$project$ReceptionKiosk_NewUserScene$update = F2(
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
 						sceneModel,
-						{password1: _p6._0}),
+						{password1: _p7._0}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 			case 'UpdatePassword2':
@@ -23637,13 +23687,23 @@ var _user$project$ReceptionKiosk_NewUserScene$update = F2(
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
 						sceneModel,
-						{password2: _p6._0}),
+						{password2: _p7._0}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 			case 'ValidateUserNameAndPw':
 				return _user$project$ReceptionKiosk_NewUserScene$validateUserIdAndPw(kioskModel);
+			case 'ValidateUserNameUnique':
+				return A2(_user$project$ReceptionKiosk_NewUserScene$validateUserNameUnique, kioskModel, _p7._0);
 			default:
-				return A2(_user$project$ReceptionKiosk_NewUserScene$validateUserNameUnique, kioskModel, _p6._0);
+				var currDoneWithFocus = sceneModel.doneWithFocus;
+				var newDoneWithFocus = currDoneWithFocus || _p7._0;
+				return {
+					ctor: '_Tuple2',
+					_0: _elm_lang$core$Native_Utils.update(
+						sceneModel,
+						{doneWithFocus: newDoneWithFocus}),
+					_1: _elm_lang$core$Platform_Cmd$none
+				};
 		}
 	});
 var _user$project$ReceptionKiosk_NewUserScene$init = function (flags) {
@@ -23651,13 +23711,14 @@ var _user$project$ReceptionKiosk_NewUserScene$init = function (flags) {
 		userName: '',
 		password1: '',
 		password2: '',
+		doneWithFocus: false,
 		badNews: {ctor: '[]'}
 	};
 	return {ctor: '_Tuple2', _0: sceneModel, _1: _elm_lang$core$Platform_Cmd$none};
 };
-var _user$project$ReceptionKiosk_NewUserScene$NewUserModel = F4(
-	function (a, b, c, d) {
-		return {userName: a, password1: b, password2: c, badNews: d};
+var _user$project$ReceptionKiosk_NewUserScene$NewUserModel = F5(
+	function (a, b, c, d, e) {
+		return {userName: a, password1: b, password2: c, doneWithFocus: d, badNews: e};
 	});
 
 var _user$project$ReceptionKiosk_WaiverScene$waiverHtml = {
@@ -25415,6 +25476,9 @@ var _user$project$ReceptionKiosk_WelcomeScene$WelcomeModel = {};
 
 var _user$project$ReceptionKiosk$subscriptions = function (model) {
 	var waiverSubs = _user$project$ReceptionKiosk_WaiverScene$subscriptions(model);
+	var newUserSubs = _user$project$ReceptionKiosk_NewUserScene$subscriptions(model);
+	var newMemberSubs = _user$project$ReceptionKiosk_NewMemberScene$subscriptions(model);
+	var checkInSubs = _user$project$ReceptionKiosk_CheckInScene$subscriptions(model);
 	var mySubs = A2(
 		_elm_lang$core$Time$every,
 		_elm_lang$core$Time$second,
@@ -25427,8 +25491,20 @@ var _user$project$ReceptionKiosk$subscriptions = function (model) {
 		_0: mySubs,
 		_1: {
 			ctor: '::',
-			_0: waiverSubs,
-			_1: {ctor: '[]'}
+			_0: checkInSubs,
+			_1: {
+				ctor: '::',
+				_0: newMemberSubs,
+				_1: {
+					ctor: '::',
+					_0: newUserSubs,
+					_1: {
+						ctor: '::',
+						_0: waiverSubs,
+						_1: {ctor: '[]'}
+					}
+				}
+			}
 		}
 	};
 	return _elm_lang$core$Platform_Sub$batch(subs);

@@ -298,7 +298,16 @@ subscriptions: Model -> Sub Msg
 subscriptions model =
   let
     mySubs = Time.every second (WizardVector << Tick)
+    checkInSubs = CheckInScene.subscriptions model
+    newMemberSubs = NewMemberScene.subscriptions model
+    newUserSubs = NewUserScene.subscriptions model
     waiverSubs = WaiverScene.subscriptions model
-    subs = [mySubs, waiverSubs]
+    subs =
+      [ mySubs
+      , checkInSubs
+      , newMemberSubs
+      , newUserSubs
+      , waiverSubs
+      ]
   in
     Sub.batch subs

@@ -1,5 +1,5 @@
 
-module ReceptionKiosk.CheckInScene exposing (init, view, update, tick, CheckInModel)
+module ReceptionKiosk.CheckInScene exposing (init, view, update, tick, subscriptions, CheckInModel)
 
 -- Standard
 import Html exposing (Html, div, text, audio)
@@ -30,6 +30,7 @@ type alias CheckInModel =
   , secondsIdle : Int
   , matches : List MembersApi.MatchingAcct  -- Matches to username/surname
   , memberNum : Int -- The member number that the person chose to check in as.
+  , doneWithFocus : Bool  -- Only want to set default focus once.
   , badNews : List String
   }
 
@@ -43,6 +44,7 @@ init flags =
     , secondsIdle = 0
     , matches = []
     , memberNum = -99  -- A harmless initial value.
+    , doneWithFocus = False
     , badNews = []
     }
   in (model, Cmd.none)
@@ -81,6 +83,14 @@ update msg kioskModel =
 
     UpdateMemberNum memberNum ->
       ({sceneModel | memberNum = memberNum}, segueTo ReasonForVisit)
+
+    FlexIdFocusSet wasSet ->
+      let
+        currDoneWithFocus = sceneModel.doneWithFocus
+        newDoneWithFocus = currDoneWithFocus || wasSet
+      in
+        ({sceneModel | doneWithFocus = newDoneWithFocus}, Cmd.none)
+
 
 -----------------------------------------------------------------------------
 -- VIEW
@@ -134,14 +144,25 @@ tick time kioskModel =
     inc = if visible then 1 else 0
     newSecondsIdle = sceneModel.secondsIdle + inc
     newSceneModel = {sceneModel | secondsIdle = newSecondsIdle}
+    setFocusCmd = if sceneModel.doneWithFocus then Cmd.none else idxFlexId |> toString |> setFocusIfNoFocus
     cmd =
        if newSecondsIdle > 30
          then segueTo Welcome
-         else idxFlexId |> toString |> setFocusIfNoFocus
+         else setFocusCmd
   in
     if visible
       then (newSceneModel, cmd)
       else (newSceneModel, Cmd.none)
+
+-----------------------------------------------------------------------------
+-- SUBSCRIPTIONS
+-----------------------------------------------------------------------------
+
+subscriptions: KioskModel a -> Sub Msg
+subscriptions model =
+  if sceneIsVisible model CheckIn
+    then focusWasSet (CheckInVector << FlexIdFocusSet)
+    else Sub.none
 
 
 -----------------------------------------------------------------------------

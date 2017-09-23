@@ -14,6 +14,7 @@ port module Wizard.SceneUtils exposing
   , send
   , segueTo
   , setFocusIfNoFocus
+  , focusWasSet
   , sceneIsVisible
   )
 
@@ -44,6 +45,12 @@ an element that already has focus. Since scenes appear with no default
 focus, use this to set one.
 -}
 port setFocusIfNoFocus : String -> Cmd msg
+
+{-| This port is for asynchronous result information from setFocusIfNoFocus.
+If focus is successfully set, a True will be sent back via this port, else
+a False will be sent.
+-}
+port focusWasSet : (Bool -> msg) -> Sub msg
 
 -----------------------------------------------------------------------------
 -- MISC
