@@ -135,7 +135,8 @@
             if (active === null || active.tagName === "BODY") {
                 var elToFocus = document.getElementById(idToFocus);
                 if (elToFocus !== null) {
-                    elToFocus.focus()
+                    elToFocus.focus();
+                    elToFocus.click();
                 }
             }
         }
