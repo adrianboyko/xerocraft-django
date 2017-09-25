@@ -1,5 +1,8 @@
 port module Wizard.SceneUtils exposing
   ( SceneUtilModel
+  , sceneWidth
+  , sceneHeight
+  , px
   , genericScene
   , sceneButton
   , ButtonSpec
