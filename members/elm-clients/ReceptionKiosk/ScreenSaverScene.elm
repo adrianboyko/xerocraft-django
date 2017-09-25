@@ -126,7 +126,7 @@ view kioskModel =
     div [bgDivStyle]
       [ div [msgDivStyle, positionStyle]
         -- TODO: Do I want to pass all imgs in as flags, as was done with banners?
-        [ img [src "/static/bzw_ops/Big Bold X.png", logoImgStyle] []
+        [ img [src "/static/bzw_ops/Logo, Light, 100w.png", logoImgStyle] []
         , vspace 20
         , text "START"
         , vspace 20
@@ -158,12 +158,10 @@ bgDivStyle = style
 
 msgDivStyle = style
   [ "text-align" => "center"
-  , "color" => "white"
+  , "color" => "red"
   , "position" => "absolute"
   ]
 
 logoImgStyle = style
-  [ "filter" => "invert(100%)"
-  , "width" => px 100
-
+  [ "width" => px 100
   ]

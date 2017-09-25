@@ -25590,15 +25590,11 @@ var _user$project$ReceptionKiosk_MembersOnlyScene$MembersOnlyModel = F3(
 var _user$project$ReceptionKiosk_ScreenSaverScene$logoImgStyle = _elm_lang$html$Html_Attributes$style(
 	{
 		ctor: '::',
-		_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'filter', 'invert(100%)'),
-		_1: {
-			ctor: '::',
-			_0: A2(
-				_user$project$Wizard_SceneUtils_ops['=>'],
-				'width',
-				_user$project$Wizard_SceneUtils$px(100)),
-			_1: {ctor: '[]'}
-		}
+		_0: A2(
+			_user$project$Wizard_SceneUtils_ops['=>'],
+			'width',
+			_user$project$Wizard_SceneUtils$px(100)),
+		_1: {ctor: '[]'}
 	});
 var _user$project$ReceptionKiosk_ScreenSaverScene$msgDivStyle = _elm_lang$html$Html_Attributes$style(
 	{
@@ -25606,7 +25602,7 @@ var _user$project$ReceptionKiosk_ScreenSaverScene$msgDivStyle = _elm_lang$html$H
 		_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'text-align', 'center'),
 		_1: {
 			ctor: '::',
-			_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'color', 'white'),
+			_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'color', 'red'),
 			_1: {
 				ctor: '::',
 				_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'position', 'absolute'),
@@ -25684,7 +25680,7 @@ var _user$project$ReceptionKiosk_ScreenSaverScene$view = function (kioskModel) {
 						_elm_lang$html$Html$img,
 						{
 							ctor: '::',
-							_0: _elm_lang$html$Html_Attributes$src('/static/bzw_ops/Big Bold X.png'),
+							_0: _elm_lang$html$Html_Attributes$src('/static/bzw_ops/Logo, Light, 100w.png'),
 							_1: {
 								ctor: '::',
 								_0: _user$project$ReceptionKiosk_ScreenSaverScene$logoImgStyle,
