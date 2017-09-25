@@ -53,6 +53,7 @@ type Scene
   | NewMember
   | NewUser
   | ReasonForVisit
+  | ScreenSaver
   | TaskList
   | VolunteerInDone
   | Waiver
@@ -73,11 +74,12 @@ mdlIdBase scene =
     NewMember -> 900
     NewUser -> 1000
     ReasonForVisit -> 1100
-    SignUpDone -> 1200
-    TaskList -> 1300
-    VolunteerInDone -> 1400
-    Waiver -> 1500
-    Welcome -> 1600
+    ScreenSaver -> 1200
+    SignUpDone -> 1300
+    TaskList -> 1400
+    VolunteerInDone -> 1500
+    Waiver -> 1600
+    Welcome -> 1700
 
 
 -----------------------------------------------------------------------------
@@ -130,6 +132,10 @@ type ReasonForVisitMsg
   | ValidateReason
   | LogCheckInResult (Result Http.Error GenericResult)
 
+type ScreenSaverMsg
+  = NewMsgPosition (Int, Int)
+  | ScreenSaverTapped
+
 type TaskListMsg
   = CalendarPageResult (Result Http.Error CalendarPage)
   | ToggleTask OpsTask
@@ -152,6 +158,7 @@ type Msg
   | NewMemberVector NewMemberMsg
   | NewUserVector NewUserMsg
   | ReasonForVisitVector ReasonForVisitMsg
+  | ScreenSaverVector ScreenSaverMsg
   | TaskListVector TaskListMsg
   | WaiverVector WaiverMsg
 

@@ -19623,6 +19623,53 @@ var _rluiten$elm_date_extra$Date_Extra_Core$daysInPrevMonth = _rluiten$elm_date_
 var _rluiten$elm_date_extra$Date_Extra_Core$daysInNextMonth = _rluiten$elm_date_extra$Date_Extra_Internal2$daysInNextMonth;
 var _rluiten$elm_date_extra$Date_Extra_Core$daysInMonth = _rluiten$elm_date_extra$Date_Extra_Internal2$daysInMonth;
 
+var _rluiten$elm_date_extra$Date_Extra_Compare$is3 = F4(
+	function (comp, date1, date2, date3) {
+		var time3 = _rluiten$elm_date_extra$Date_Extra_Core$toTime(date3);
+		var time2 = _rluiten$elm_date_extra$Date_Extra_Core$toTime(date2);
+		var highBound = A2(_elm_lang$core$Basics$max, time2, time3);
+		var lowBound = A2(_elm_lang$core$Basics$min, time2, time3);
+		var time1 = _rluiten$elm_date_extra$Date_Extra_Core$toTime(date1);
+		var _p0 = comp;
+		switch (_p0.ctor) {
+			case 'Between':
+				return (_elm_lang$core$Native_Utils.cmp(time1, lowBound) > 0) && (_elm_lang$core$Native_Utils.cmp(time1, highBound) < 0);
+			case 'BetweenOpenStart':
+				return (_elm_lang$core$Native_Utils.cmp(time1, lowBound) > -1) && (_elm_lang$core$Native_Utils.cmp(time1, highBound) < 0);
+			case 'BetweenOpenEnd':
+				return (_elm_lang$core$Native_Utils.cmp(time1, lowBound) > 0) && (_elm_lang$core$Native_Utils.cmp(time1, highBound) < 1);
+			default:
+				return (_elm_lang$core$Native_Utils.cmp(time1, lowBound) > -1) && (_elm_lang$core$Native_Utils.cmp(time1, highBound) < 1);
+		}
+	});
+var _rluiten$elm_date_extra$Date_Extra_Compare$is = F3(
+	function (comp, date1, date2) {
+		var time2 = _rluiten$elm_date_extra$Date_Extra_Core$toTime(date2);
+		var time1 = _rluiten$elm_date_extra$Date_Extra_Core$toTime(date1);
+		var _p1 = comp;
+		switch (_p1.ctor) {
+			case 'Before':
+				return _elm_lang$core$Native_Utils.cmp(time1, time2) < 0;
+			case 'After':
+				return _elm_lang$core$Native_Utils.cmp(time1, time2) > 0;
+			case 'Same':
+				return _elm_lang$core$Native_Utils.eq(time1, time2);
+			case 'SameOrBefore':
+				return _elm_lang$core$Native_Utils.cmp(time1, time2) < 1;
+			default:
+				return _elm_lang$core$Native_Utils.cmp(time1, time2) > -1;
+		}
+	});
+var _rluiten$elm_date_extra$Date_Extra_Compare$SameOrBefore = {ctor: 'SameOrBefore'};
+var _rluiten$elm_date_extra$Date_Extra_Compare$SameOrAfter = {ctor: 'SameOrAfter'};
+var _rluiten$elm_date_extra$Date_Extra_Compare$Same = {ctor: 'Same'};
+var _rluiten$elm_date_extra$Date_Extra_Compare$Before = {ctor: 'Before'};
+var _rluiten$elm_date_extra$Date_Extra_Compare$After = {ctor: 'After'};
+var _rluiten$elm_date_extra$Date_Extra_Compare$BetweenOpen = {ctor: 'BetweenOpen'};
+var _rluiten$elm_date_extra$Date_Extra_Compare$BetweenOpenEnd = {ctor: 'BetweenOpenEnd'};
+var _rluiten$elm_date_extra$Date_Extra_Compare$BetweenOpenStart = {ctor: 'BetweenOpenStart'};
+var _rluiten$elm_date_extra$Date_Extra_Compare$Between = {ctor: 'Between'};
+
 var _rluiten$elm_date_extra$Date_Extra_TwelveHourClock$PM = {ctor: 'PM'};
 var _rluiten$elm_date_extra$Date_Extra_TwelveHourClock$AM = {ctor: 'AM'};
 var _rluiten$elm_date_extra$Date_Extra_TwelveHourClock$twelveHourPeriod = function (d) {
@@ -19798,6 +19845,530 @@ var _rluiten$elm_date_extra$Date_Extra_Create$dateFromFields = F7(
 			A7(_rluiten$elm_date_extra$Date_Extra_Internal$ticksFromFields, year, month, day, hour, minute, second, millisecond));
 	});
 var _rluiten$elm_date_extra$Date_Extra_Create$timeFromFields = A3(_rluiten$elm_date_extra$Date_Extra_Create$dateFromFields, 1970, _elm_lang$core$Date$Jan, 1);
+
+var _rluiten$elm_date_extra$Date_Extra_Duration$positiveDiffDays = F3(
+	function (date1, date2, multiplier) {
+		var date2DaysFromCivil = A3(
+			_rluiten$elm_date_extra$Date_Extra_Internal$daysFromCivil,
+			_elm_lang$core$Date$year(date2),
+			_rluiten$elm_date_extra$Date_Extra_Core$monthToInt(
+				_elm_lang$core$Date$month(date2)),
+			_elm_lang$core$Date$day(date2));
+		var date1DaysFromCivil = A3(
+			_rluiten$elm_date_extra$Date_Extra_Internal$daysFromCivil,
+			_elm_lang$core$Date$year(date1),
+			_rluiten$elm_date_extra$Date_Extra_Core$monthToInt(
+				_elm_lang$core$Date$month(date1)),
+			_elm_lang$core$Date$day(date1));
+		return (date1DaysFromCivil - date2DaysFromCivil) * multiplier;
+	});
+var _rluiten$elm_date_extra$Date_Extra_Duration$diffDays = F2(
+	function (date1, date2) {
+		return A3(_rluiten$elm_date_extra$Date_Extra_Compare$is, _rluiten$elm_date_extra$Date_Extra_Compare$After, date1, date2) ? A3(_rluiten$elm_date_extra$Date_Extra_Duration$positiveDiffDays, date1, date2, 1) : A3(_rluiten$elm_date_extra$Date_Extra_Duration$positiveDiffDays, date2, date1, -1);
+	});
+var _rluiten$elm_date_extra$Date_Extra_Duration$positiveDiff = F3(
+	function (date1, date2, multiplier) {
+		var accDiff = F4(
+			function (acc, v1, v2, maxV2) {
+				return (_elm_lang$core$Native_Utils.cmp(v1, v2) < 0) ? {ctor: '_Tuple2', _0: acc - 1, _1: (maxV2 + v1) - v2} : {ctor: '_Tuple2', _0: acc, _1: v1 - v2};
+			});
+		var msec2 = _elm_lang$core$Date$millisecond(date2);
+		var msec1 = _elm_lang$core$Date$millisecond(date1);
+		var second2 = _elm_lang$core$Date$second(date2);
+		var second1 = _elm_lang$core$Date$second(date1);
+		var minute2 = _elm_lang$core$Date$minute(date2);
+		var minute1 = _elm_lang$core$Date$minute(date1);
+		var hour2 = _elm_lang$core$Date$hour(date2);
+		var hour1 = _elm_lang$core$Date$hour(date1);
+		var day2 = _elm_lang$core$Date$day(date2);
+		var day1 = _elm_lang$core$Date$day(date1);
+		var month2Mon = _elm_lang$core$Date$month(date2);
+		var month2 = _rluiten$elm_date_extra$Date_Extra_Core$monthToInt(month2Mon);
+		var month1Mon = _elm_lang$core$Date$month(date1);
+		var month1 = _rluiten$elm_date_extra$Date_Extra_Core$monthToInt(month1Mon);
+		var year2 = _elm_lang$core$Date$year(date2);
+		var daysInDate2Month = A2(_rluiten$elm_date_extra$Date_Extra_Core$daysInMonth, year2, month2Mon);
+		var year1 = _elm_lang$core$Date$year(date1);
+		var _p0 = A4(accDiff, year1 - year2, month1, month2, 12);
+		var yearDiff = _p0._0;
+		var monthDiffA = _p0._1;
+		var _p1 = A4(accDiff, monthDiffA, day1, day2, daysInDate2Month);
+		var monthDiff = _p1._0;
+		var dayDiffA = _p1._1;
+		var _p2 = A4(accDiff, dayDiffA, hour1, hour2, 24);
+		var dayDiff = _p2._0;
+		var hourDiffA = _p2._1;
+		var _p3 = A4(accDiff, hourDiffA, minute1, minute2, 60);
+		var hourDiff = _p3._0;
+		var minuteDiffA = _p3._1;
+		var _p4 = A4(accDiff, minuteDiffA, second1, second2, 60);
+		var minuteDiff = _p4._0;
+		var secondDiffA = _p4._1;
+		var _p5 = A4(accDiff, secondDiffA, msec1, msec2, 1000);
+		var secondDiff = _p5._0;
+		var msecDiff = _p5._1;
+		return {year: yearDiff * multiplier, month: monthDiff * multiplier, day: dayDiff * multiplier, hour: hourDiff * multiplier, minute: minuteDiff * multiplier, second: secondDiff * multiplier, millisecond: msecDiff * multiplier};
+	});
+var _rluiten$elm_date_extra$Date_Extra_Duration$diff = F2(
+	function (date1, date2) {
+		return A3(_rluiten$elm_date_extra$Date_Extra_Compare$is, _rluiten$elm_date_extra$Date_Extra_Compare$After, date1, date2) ? A3(_rluiten$elm_date_extra$Date_Extra_Duration$positiveDiff, date1, date2, 1) : A3(_rluiten$elm_date_extra$Date_Extra_Duration$positiveDiff, date2, date1, -1);
+	});
+var _rluiten$elm_date_extra$Date_Extra_Duration$addMonth = F2(
+	function (monthCount, date) {
+		var day = _elm_lang$core$Date$day(date);
+		var monthInt = _rluiten$elm_date_extra$Date_Extra_Core$monthToInt(
+			_elm_lang$core$Date$month(date));
+		var newMonthInt = monthInt + monthCount;
+		var targetMonthInt = A2(_elm_lang$core$Basics_ops['%'], newMonthInt, 12);
+		var yearOffset = ((_elm_lang$core$Native_Utils.cmp(newMonthInt, 0) < 0) && (!_elm_lang$core$Native_Utils.eq(targetMonthInt, 0))) ? (((newMonthInt / 12) | 0) - 1) : ((newMonthInt / 12) | 0);
+		var year = _elm_lang$core$Date$year(date);
+		var inputCivil = A3(_rluiten$elm_date_extra$Date_Extra_Internal$daysFromCivil, year, monthInt, day);
+		var newYear = year + yearOffset;
+		var newDay = A2(
+			_elm_lang$core$Basics$min,
+			A2(
+				_rluiten$elm_date_extra$Date_Extra_Core$daysInMonth,
+				newYear,
+				_rluiten$elm_date_extra$Date_Extra_Core$intToMonth(newMonthInt)),
+			day);
+		var newCivil = A3(_rluiten$elm_date_extra$Date_Extra_Internal$daysFromCivil, newYear, targetMonthInt, newDay);
+		var daysDifferent = newCivil - inputCivil;
+		return A3(_rluiten$elm_date_extra$Date_Extra_Period$add, _rluiten$elm_date_extra$Date_Extra_Period$Day, daysDifferent, date);
+	});
+var _rluiten$elm_date_extra$Date_Extra_Duration$addYear = F2(
+	function (yearCount, date) {
+		return A2(_rluiten$elm_date_extra$Date_Extra_Duration$addMonth, 12 * yearCount, date);
+	});
+var _rluiten$elm_date_extra$Date_Extra_Duration$daylightOffsetCompensate = F2(
+	function (dateBefore, dateAfter) {
+		var offsetAfter = _rluiten$elm_date_extra$Date_Extra_Create$getTimezoneOffset(dateAfter);
+		var offsetBefore = _rluiten$elm_date_extra$Date_Extra_Create$getTimezoneOffset(dateBefore);
+		if (!_elm_lang$core$Native_Utils.eq(offsetBefore, offsetAfter)) {
+			var adjustedDate = A3(_rluiten$elm_date_extra$Date_Extra_Period$add, _rluiten$elm_date_extra$Date_Extra_Period$Millisecond, (offsetAfter - offsetBefore) * _rluiten$elm_date_extra$Date_Extra_Core$ticksAMinute, dateAfter);
+			var adjustedOffset = _rluiten$elm_date_extra$Date_Extra_Create$getTimezoneOffset(adjustedDate);
+			return (!_elm_lang$core$Native_Utils.eq(adjustedOffset, offsetAfter)) ? dateAfter : adjustedDate;
+		} else {
+			return dateAfter;
+		}
+	});
+var _rluiten$elm_date_extra$Date_Extra_Duration$requireDaylightCompensateInAdd = function (duration) {
+	var _p6 = duration;
+	switch (_p6.ctor) {
+		case 'Millisecond':
+			return false;
+		case 'Second':
+			return false;
+		case 'Minute':
+			return false;
+		case 'Hour':
+			return false;
+		case 'Day':
+			return true;
+		case 'Week':
+			return true;
+		case 'Month':
+			return true;
+		case 'Year':
+			return true;
+		default:
+			var _p7 = _p6._0;
+			return (!_elm_lang$core$Native_Utils.eq(_p7.day, 0)) || ((!_elm_lang$core$Native_Utils.eq(_p7.month, 0)) || (!_elm_lang$core$Native_Utils.eq(_p7.year, 0)));
+	}
+};
+var _rluiten$elm_date_extra$Date_Extra_Duration$zeroDelta = {year: 0, month: 0, day: 0, hour: 0, minute: 0, second: 0, millisecond: 0};
+var _rluiten$elm_date_extra$Date_Extra_Duration$DeltaRecord = F7(
+	function (a, b, c, d, e, f, g) {
+		return {year: a, month: b, day: c, hour: d, minute: e, second: f, millisecond: g};
+	});
+var _rluiten$elm_date_extra$Date_Extra_Duration$Delta = function (a) {
+	return {ctor: 'Delta', _0: a};
+};
+var _rluiten$elm_date_extra$Date_Extra_Duration$Year = {ctor: 'Year'};
+var _rluiten$elm_date_extra$Date_Extra_Duration$Month = {ctor: 'Month'};
+var _rluiten$elm_date_extra$Date_Extra_Duration$doAdd = F3(
+	function (duration, addend, date) {
+		var _p8 = duration;
+		switch (_p8.ctor) {
+			case 'Millisecond':
+				return A3(_rluiten$elm_date_extra$Date_Extra_Period$add, _rluiten$elm_date_extra$Date_Extra_Period$Millisecond, addend, date);
+			case 'Second':
+				return A3(_rluiten$elm_date_extra$Date_Extra_Period$add, _rluiten$elm_date_extra$Date_Extra_Period$Second, addend, date);
+			case 'Minute':
+				return A3(_rluiten$elm_date_extra$Date_Extra_Period$add, _rluiten$elm_date_extra$Date_Extra_Period$Minute, addend, date);
+			case 'Hour':
+				return A3(_rluiten$elm_date_extra$Date_Extra_Period$add, _rluiten$elm_date_extra$Date_Extra_Period$Hour, addend, date);
+			case 'Day':
+				return A3(_rluiten$elm_date_extra$Date_Extra_Period$add, _rluiten$elm_date_extra$Date_Extra_Period$Day, addend, date);
+			case 'Week':
+				return A3(_rluiten$elm_date_extra$Date_Extra_Period$add, _rluiten$elm_date_extra$Date_Extra_Period$Week, addend, date);
+			case 'Month':
+				return A2(_rluiten$elm_date_extra$Date_Extra_Duration$addMonth, addend, date);
+			case 'Year':
+				return A2(_rluiten$elm_date_extra$Date_Extra_Duration$addYear, addend, date);
+			default:
+				var _p9 = _p8._0;
+				return A3(
+					_rluiten$elm_date_extra$Date_Extra_Period$add,
+					_rluiten$elm_date_extra$Date_Extra_Period$Delta(
+						{week: 0, day: _p9.day, hour: _p9.hour, minute: _p9.minute, second: _p9.second, millisecond: _p9.millisecond}),
+					addend,
+					A3(
+						_rluiten$elm_date_extra$Date_Extra_Duration$doAdd,
+						_rluiten$elm_date_extra$Date_Extra_Duration$Month,
+						_p9.month,
+						A3(_rluiten$elm_date_extra$Date_Extra_Duration$doAdd, _rluiten$elm_date_extra$Date_Extra_Duration$Year, _p9.year, date)));
+		}
+	});
+var _rluiten$elm_date_extra$Date_Extra_Duration$add = F3(
+	function (duration, addend, date) {
+		var outputDate = A3(_rluiten$elm_date_extra$Date_Extra_Duration$doAdd, duration, addend, date);
+		return _rluiten$elm_date_extra$Date_Extra_Duration$requireDaylightCompensateInAdd(duration) ? A2(_rluiten$elm_date_extra$Date_Extra_Duration$daylightOffsetCompensate, date, outputDate) : outputDate;
+	});
+var _rluiten$elm_date_extra$Date_Extra_Duration$Week = {ctor: 'Week'};
+var _rluiten$elm_date_extra$Date_Extra_Duration$Day = {ctor: 'Day'};
+var _rluiten$elm_date_extra$Date_Extra_Duration$Hour = {ctor: 'Hour'};
+var _rluiten$elm_date_extra$Date_Extra_Duration$Minute = {ctor: 'Minute'};
+var _rluiten$elm_date_extra$Date_Extra_Duration$Second = {ctor: 'Second'};
+var _rluiten$elm_date_extra$Date_Extra_Duration$Millisecond = {ctor: 'Millisecond'};
+
+var _rluiten$elm_date_extra$Date_Extra_Field$dayOfWeekToDate = F3(
+	function (newDayOfWeek, startOfWeekDay, date) {
+		var targetIsoDay = _rluiten$elm_date_extra$Date_Extra_Core$isoDayOfWeek(newDayOfWeek);
+		var dayOfWeek = _elm_lang$core$Date$dayOfWeek(date);
+		var daysToStartOfWeek = A2(_rluiten$elm_date_extra$Date_Extra_Core$daysBackToStartOfWeek, dayOfWeek, startOfWeekDay);
+		var isoDay = _rluiten$elm_date_extra$Date_Extra_Core$isoDayOfWeek(dayOfWeek);
+		var dayDiff = targetIsoDay - isoDay;
+		var adjustedDiff = (_elm_lang$core$Native_Utils.cmp(daysToStartOfWeek + dayDiff, 0) < 0) ? (dayDiff + 7) : dayDiff;
+		return A3(_rluiten$elm_date_extra$Date_Extra_Duration$add, _rluiten$elm_date_extra$Date_Extra_Duration$Day, adjustedDiff, date);
+	});
+var _rluiten$elm_date_extra$Date_Extra_Field$monthToDate = F2(
+	function (month, date) {
+		var monthInt = _rluiten$elm_date_extra$Date_Extra_Core$monthToInt(
+			_elm_lang$core$Date$month(date));
+		var targetMonthInt = _rluiten$elm_date_extra$Date_Extra_Core$monthToInt(month);
+		return A3(_rluiten$elm_date_extra$Date_Extra_Duration$add, _rluiten$elm_date_extra$Date_Extra_Duration$Month, targetMonthInt - monthInt, date);
+	});
+var _rluiten$elm_date_extra$Date_Extra_Field$fieldToDateClamp = F2(
+	function (field, date) {
+		var _p0 = field;
+		switch (_p0.ctor) {
+			case 'Millisecond':
+				return A3(
+					_rluiten$elm_date_extra$Date_Extra_Duration$add,
+					_rluiten$elm_date_extra$Date_Extra_Duration$Millisecond,
+					A3(_elm_lang$core$Basics$clamp, 0, 999, _p0._0) - _elm_lang$core$Date$millisecond(date),
+					date);
+			case 'Second':
+				return A3(
+					_rluiten$elm_date_extra$Date_Extra_Duration$add,
+					_rluiten$elm_date_extra$Date_Extra_Duration$Second,
+					A3(_elm_lang$core$Basics$clamp, 0, 59, _p0._0) - _elm_lang$core$Date$second(date),
+					date);
+			case 'Minute':
+				return A3(
+					_rluiten$elm_date_extra$Date_Extra_Duration$add,
+					_rluiten$elm_date_extra$Date_Extra_Duration$Minute,
+					A3(_elm_lang$core$Basics$clamp, 0, 59, _p0._0) - _elm_lang$core$Date$minute(date),
+					date);
+			case 'Hour':
+				return A3(
+					_rluiten$elm_date_extra$Date_Extra_Duration$add,
+					_rluiten$elm_date_extra$Date_Extra_Duration$Hour,
+					A3(_elm_lang$core$Basics$clamp, 0, 23, _p0._0) - _elm_lang$core$Date$hour(date),
+					date);
+			case 'DayOfWeek':
+				return A3(_rluiten$elm_date_extra$Date_Extra_Field$dayOfWeekToDate, _p0._0._0, _p0._0._1, date);
+			case 'DayOfMonth':
+				var maxDays = _rluiten$elm_date_extra$Date_Extra_Core$daysInMonthDate(date);
+				return A3(
+					_rluiten$elm_date_extra$Date_Extra_Duration$add,
+					_rluiten$elm_date_extra$Date_Extra_Duration$Day,
+					A3(_elm_lang$core$Basics$clamp, 1, maxDays, _p0._0) - _elm_lang$core$Date$day(date),
+					date);
+			case 'Month':
+				return A2(_rluiten$elm_date_extra$Date_Extra_Field$monthToDate, _p0._0, date);
+			default:
+				var _p1 = _p0._0;
+				var minYear = (_elm_lang$core$Native_Utils.cmp(_p1, 0) < 0) ? 0 : _p1;
+				return A3(
+					_rluiten$elm_date_extra$Date_Extra_Duration$add,
+					_rluiten$elm_date_extra$Date_Extra_Duration$Year,
+					minYear - _elm_lang$core$Date$year(date),
+					date);
+		}
+	});
+var _rluiten$elm_date_extra$Date_Extra_Field$fieldToDate = F2(
+	function (field, date) {
+		var _p2 = field;
+		switch (_p2.ctor) {
+			case 'Millisecond':
+				var _p3 = _p2._0;
+				return ((_elm_lang$core$Native_Utils.cmp(_p3, 0) < 0) || (_elm_lang$core$Native_Utils.cmp(_p3, 999) > 0)) ? _elm_lang$core$Maybe$Nothing : _elm_lang$core$Maybe$Just(
+					A3(
+						_rluiten$elm_date_extra$Date_Extra_Duration$add,
+						_rluiten$elm_date_extra$Date_Extra_Duration$Millisecond,
+						_p3 - _elm_lang$core$Date$millisecond(date),
+						date));
+			case 'Second':
+				var _p4 = _p2._0;
+				return ((_elm_lang$core$Native_Utils.cmp(_p4, 0) < 0) || (_elm_lang$core$Native_Utils.cmp(_p4, 59) > 0)) ? _elm_lang$core$Maybe$Nothing : _elm_lang$core$Maybe$Just(
+					A3(
+						_rluiten$elm_date_extra$Date_Extra_Duration$add,
+						_rluiten$elm_date_extra$Date_Extra_Duration$Second,
+						_p4 - _elm_lang$core$Date$second(date),
+						date));
+			case 'Minute':
+				var _p5 = _p2._0;
+				return ((_elm_lang$core$Native_Utils.cmp(_p5, 0) < 0) || (_elm_lang$core$Native_Utils.cmp(_p5, 59) > 0)) ? _elm_lang$core$Maybe$Nothing : _elm_lang$core$Maybe$Just(
+					A3(
+						_rluiten$elm_date_extra$Date_Extra_Duration$add,
+						_rluiten$elm_date_extra$Date_Extra_Duration$Minute,
+						_p5 - _elm_lang$core$Date$minute(date),
+						date));
+			case 'Hour':
+				var _p6 = _p2._0;
+				return ((_elm_lang$core$Native_Utils.cmp(_p6, 0) < 0) || (_elm_lang$core$Native_Utils.cmp(_p6, 23) > 0)) ? _elm_lang$core$Maybe$Nothing : _elm_lang$core$Maybe$Just(
+					A3(
+						_rluiten$elm_date_extra$Date_Extra_Duration$add,
+						_rluiten$elm_date_extra$Date_Extra_Duration$Hour,
+						_p6 - _elm_lang$core$Date$hour(date),
+						date));
+			case 'DayOfWeek':
+				return _elm_lang$core$Maybe$Just(
+					A3(_rluiten$elm_date_extra$Date_Extra_Field$dayOfWeekToDate, _p2._0._0, _p2._0._1, date));
+			case 'DayOfMonth':
+				var _p7 = _p2._0;
+				var maxDays = _rluiten$elm_date_extra$Date_Extra_Core$daysInMonthDate(date);
+				return ((_elm_lang$core$Native_Utils.cmp(_p7, 1) < 0) || (_elm_lang$core$Native_Utils.cmp(_p7, maxDays) > 0)) ? _elm_lang$core$Maybe$Nothing : _elm_lang$core$Maybe$Just(
+					A3(
+						_rluiten$elm_date_extra$Date_Extra_Duration$add,
+						_rluiten$elm_date_extra$Date_Extra_Duration$Day,
+						_p7 - _elm_lang$core$Date$day(date),
+						date));
+			case 'Month':
+				return _elm_lang$core$Maybe$Just(
+					A2(_rluiten$elm_date_extra$Date_Extra_Field$monthToDate, _p2._0, date));
+			default:
+				var _p8 = _p2._0;
+				return (_elm_lang$core$Native_Utils.cmp(_p8, 0) < 0) ? _elm_lang$core$Maybe$Nothing : _elm_lang$core$Maybe$Just(
+					A3(
+						_rluiten$elm_date_extra$Date_Extra_Duration$add,
+						_rluiten$elm_date_extra$Date_Extra_Duration$Year,
+						_p8 - _elm_lang$core$Date$year(date),
+						date));
+		}
+	});
+var _rluiten$elm_date_extra$Date_Extra_Field$Year = function (a) {
+	return {ctor: 'Year', _0: a};
+};
+var _rluiten$elm_date_extra$Date_Extra_Field$Month = function (a) {
+	return {ctor: 'Month', _0: a};
+};
+var _rluiten$elm_date_extra$Date_Extra_Field$DayOfMonth = function (a) {
+	return {ctor: 'DayOfMonth', _0: a};
+};
+var _rluiten$elm_date_extra$Date_Extra_Field$DayOfWeek = function (a) {
+	return {ctor: 'DayOfWeek', _0: a};
+};
+var _rluiten$elm_date_extra$Date_Extra_Field$Hour = function (a) {
+	return {ctor: 'Hour', _0: a};
+};
+var _rluiten$elm_date_extra$Date_Extra_Field$Minute = function (a) {
+	return {ctor: 'Minute', _0: a};
+};
+var _rluiten$elm_date_extra$Date_Extra_Field$Second = function (a) {
+	return {ctor: 'Second', _0: a};
+};
+var _rluiten$elm_date_extra$Date_Extra_Field$Millisecond = function (a) {
+	return {ctor: 'Millisecond', _0: a};
+};
+
+var _rluiten$elm_date_extra$Date_Extra_TimeUnit$Year = {ctor: 'Year'};
+var _rluiten$elm_date_extra$Date_Extra_TimeUnit$Month = {ctor: 'Month'};
+var _rluiten$elm_date_extra$Date_Extra_TimeUnit$Day = {ctor: 'Day'};
+var _rluiten$elm_date_extra$Date_Extra_TimeUnit$Hour = {ctor: 'Hour'};
+var _rluiten$elm_date_extra$Date_Extra_TimeUnit$Minute = {ctor: 'Minute'};
+var _rluiten$elm_date_extra$Date_Extra_TimeUnit$Second = {ctor: 'Second'};
+var _rluiten$elm_date_extra$Date_Extra_TimeUnit$startOfTime = F2(
+	function (unit, date) {
+		var _p0 = unit;
+		switch (_p0.ctor) {
+			case 'Millisecond':
+				return date;
+			case 'Second':
+				return A2(
+					_rluiten$elm_date_extra$Date_Extra_Field$fieldToDateClamp,
+					_rluiten$elm_date_extra$Date_Extra_Field$Millisecond(0),
+					date);
+			case 'Minute':
+				return A2(
+					_rluiten$elm_date_extra$Date_Extra_Field$fieldToDateClamp,
+					_rluiten$elm_date_extra$Date_Extra_Field$Second(0),
+					A2(_rluiten$elm_date_extra$Date_Extra_TimeUnit$startOfTime, _rluiten$elm_date_extra$Date_Extra_TimeUnit$Second, date));
+			case 'Hour':
+				return A2(
+					_rluiten$elm_date_extra$Date_Extra_Field$fieldToDateClamp,
+					_rluiten$elm_date_extra$Date_Extra_Field$Minute(0),
+					A2(_rluiten$elm_date_extra$Date_Extra_TimeUnit$startOfTime, _rluiten$elm_date_extra$Date_Extra_TimeUnit$Minute, date));
+			case 'Day':
+				return A2(
+					_rluiten$elm_date_extra$Date_Extra_Field$fieldToDateClamp,
+					_rluiten$elm_date_extra$Date_Extra_Field$Hour(0),
+					A2(_rluiten$elm_date_extra$Date_Extra_TimeUnit$startOfTime, _rluiten$elm_date_extra$Date_Extra_TimeUnit$Hour, date));
+			case 'Month':
+				return A2(
+					_rluiten$elm_date_extra$Date_Extra_Field$fieldToDateClamp,
+					_rluiten$elm_date_extra$Date_Extra_Field$DayOfMonth(1),
+					A2(_rluiten$elm_date_extra$Date_Extra_TimeUnit$startOfTime, _rluiten$elm_date_extra$Date_Extra_TimeUnit$Day, date));
+			default:
+				return _rluiten$elm_date_extra$Date_Extra_TimeUnit$startOfTimeYear(date);
+		}
+	});
+var _rluiten$elm_date_extra$Date_Extra_TimeUnit$startOfTimeYear = function (date) {
+	var startMonthDate = A2(
+		_rluiten$elm_date_extra$Date_Extra_Field$fieldToDateClamp,
+		_rluiten$elm_date_extra$Date_Extra_Field$DayOfMonth(1),
+		date);
+	var startYearDate = A2(
+		_rluiten$elm_date_extra$Date_Extra_Field$fieldToDateClamp,
+		_rluiten$elm_date_extra$Date_Extra_Field$Month(_elm_lang$core$Date$Jan),
+		startMonthDate);
+	var monthTicks = _rluiten$elm_date_extra$Date_Extra_Core$toTime(startMonthDate) - _rluiten$elm_date_extra$Date_Extra_Core$toTime(startYearDate);
+	var updatedDate = _rluiten$elm_date_extra$Date_Extra_Core$fromTime(
+		_rluiten$elm_date_extra$Date_Extra_Core$toTime(date) - monthTicks);
+	return A2(_rluiten$elm_date_extra$Date_Extra_TimeUnit$startOfTime, _rluiten$elm_date_extra$Date_Extra_TimeUnit$Month, updatedDate);
+};
+var _rluiten$elm_date_extra$Date_Extra_TimeUnit$endOfTime = F2(
+	function (unit, date) {
+		var _p1 = unit;
+		switch (_p1.ctor) {
+			case 'Millisecond':
+				return date;
+			case 'Second':
+				return A2(
+					_rluiten$elm_date_extra$Date_Extra_Field$fieldToDateClamp,
+					_rluiten$elm_date_extra$Date_Extra_Field$Millisecond(999),
+					date);
+			case 'Minute':
+				return A2(
+					_rluiten$elm_date_extra$Date_Extra_Field$fieldToDateClamp,
+					_rluiten$elm_date_extra$Date_Extra_Field$Second(59),
+					A2(_rluiten$elm_date_extra$Date_Extra_TimeUnit$endOfTime, _rluiten$elm_date_extra$Date_Extra_TimeUnit$Second, date));
+			case 'Hour':
+				return A2(
+					_rluiten$elm_date_extra$Date_Extra_Field$fieldToDateClamp,
+					_rluiten$elm_date_extra$Date_Extra_Field$Minute(59),
+					A2(_rluiten$elm_date_extra$Date_Extra_TimeUnit$endOfTime, _rluiten$elm_date_extra$Date_Extra_TimeUnit$Minute, date));
+			case 'Day':
+				return A2(
+					_rluiten$elm_date_extra$Date_Extra_Field$fieldToDateClamp,
+					_rluiten$elm_date_extra$Date_Extra_Field$Hour(23),
+					A2(_rluiten$elm_date_extra$Date_Extra_TimeUnit$endOfTime, _rluiten$elm_date_extra$Date_Extra_TimeUnit$Hour, date));
+			case 'Month':
+				return A2(
+					_rluiten$elm_date_extra$Date_Extra_Field$fieldToDateClamp,
+					_rluiten$elm_date_extra$Date_Extra_Field$DayOfMonth(31),
+					A2(_rluiten$elm_date_extra$Date_Extra_TimeUnit$endOfTime, _rluiten$elm_date_extra$Date_Extra_TimeUnit$Day, date));
+			default:
+				var extraYear = A3(_rluiten$elm_date_extra$Date_Extra_Duration$add, _rluiten$elm_date_extra$Date_Extra_Duration$Year, 1, date);
+				var startYear = A2(_rluiten$elm_date_extra$Date_Extra_TimeUnit$startOfTime, _rluiten$elm_date_extra$Date_Extra_TimeUnit$Year, extraYear);
+				return A3(_rluiten$elm_date_extra$Date_Extra_Duration$add, _rluiten$elm_date_extra$Date_Extra_Duration$Millisecond, -1, startYear);
+		}
+	});
+var _rluiten$elm_date_extra$Date_Extra_TimeUnit$Millisecond = {ctor: 'Millisecond'};
+
+var _rluiten$elm_date_extra$Date_Extra_Utils$unsafeFromString = function (dateStr) {
+	var _p0 = _elm_lang$core$Date$fromString(dateStr);
+	if (_p0.ctor === 'Ok') {
+		return _p0._0;
+	} else {
+		return _elm_lang$core$Native_Utils.crashCase(
+			'Date.Extra.Utils',
+			{
+				start: {line: 146, column: 5},
+				end: {line: 151, column: 43}
+			},
+			_p0)('unsafeFromString');
+	}
+};
+var _rluiten$elm_date_extra$Date_Extra_Utils$isoDayofWeekMonday = _rluiten$elm_date_extra$Date_Extra_Core$isoDayOfWeek(_elm_lang$core$Date$Mon);
+var _rluiten$elm_date_extra$Date_Extra_Utils$isoWeekOne = function (year) {
+	var dateJan4 = A7(_rluiten$elm_date_extra$Date_Extra_Create$dateFromFields, year, _elm_lang$core$Date$Jan, 4, 0, 0, 0, 0);
+	return A3(
+		_rluiten$elm_date_extra$Date_Extra_Duration$add,
+		_rluiten$elm_date_extra$Date_Extra_Duration$Day,
+		_rluiten$elm_date_extra$Date_Extra_Utils$isoDayofWeekMonday - _rluiten$elm_date_extra$Date_Extra_Core$isoDayOfWeek(
+			_elm_lang$core$Date$dayOfWeek(dateJan4)),
+		dateJan4);
+};
+var _rluiten$elm_date_extra$Date_Extra_Utils$getYearIsoWeekDate = function (date) {
+	var inputYear = _elm_lang$core$Date$year(date);
+	var maxIsoWeekDateInYear = A7(_rluiten$elm_date_extra$Date_Extra_Create$dateFromFields, inputYear, _elm_lang$core$Date$Dec, 29, 0, 0, 0, 0);
+	if (A3(_rluiten$elm_date_extra$Date_Extra_Compare$is, _rluiten$elm_date_extra$Date_Extra_Compare$SameOrAfter, date, maxIsoWeekDateInYear)) {
+		var nextYearIsoWeek1Date = _rluiten$elm_date_extra$Date_Extra_Utils$isoWeekOne(inputYear + 1);
+		return A3(_rluiten$elm_date_extra$Date_Extra_Compare$is, _rluiten$elm_date_extra$Date_Extra_Compare$Before, date, nextYearIsoWeek1Date) ? {
+			ctor: '_Tuple2',
+			_0: inputYear,
+			_1: _rluiten$elm_date_extra$Date_Extra_Utils$isoWeekOne(inputYear)
+		} : {ctor: '_Tuple2', _0: inputYear + 1, _1: nextYearIsoWeek1Date};
+	} else {
+		var thisYearIsoWeek1Date = _rluiten$elm_date_extra$Date_Extra_Utils$isoWeekOne(inputYear);
+		return A3(_rluiten$elm_date_extra$Date_Extra_Compare$is, _rluiten$elm_date_extra$Date_Extra_Compare$Before, date, thisYearIsoWeek1Date) ? {
+			ctor: '_Tuple2',
+			_0: inputYear - 1,
+			_1: _rluiten$elm_date_extra$Date_Extra_Utils$isoWeekOne(inputYear - 1)
+		} : {ctor: '_Tuple2', _0: inputYear, _1: thisYearIsoWeek1Date};
+	}
+};
+var _rluiten$elm_date_extra$Date_Extra_Utils$isoWeek = function (date) {
+	var _p2 = _rluiten$elm_date_extra$Date_Extra_Utils$getYearIsoWeekDate(date);
+	var year = _p2._0;
+	var isoWeek1Date = _p2._1;
+	var daysSinceIsoWeek1 = A2(_rluiten$elm_date_extra$Date_Extra_Duration$diffDays, date, isoWeek1Date);
+	return {
+		ctor: '_Tuple3',
+		_0: year,
+		_1: ((daysSinceIsoWeek1 / 7) | 0) + 1,
+		_2: _rluiten$elm_date_extra$Date_Extra_Core$isoDayOfWeek(
+			_elm_lang$core$Date$dayOfWeek(date))
+	};
+};
+var _rluiten$elm_date_extra$Date_Extra_Utils$dayList_ = F3(
+	function (dayCount, date, list) {
+		dayList_:
+		while (true) {
+			if (_elm_lang$core$Native_Utils.eq(dayCount, 0)) {
+				return list;
+			} else {
+				if (_elm_lang$core$Native_Utils.cmp(dayCount, 0) > 0) {
+					var _v1 = dayCount - 1,
+						_v2 = A3(_rluiten$elm_date_extra$Date_Extra_Duration$add, _rluiten$elm_date_extra$Date_Extra_Duration$Day, 1, date),
+						_v3 = {ctor: '::', _0: date, _1: list};
+					dayCount = _v1;
+					date = _v2;
+					list = _v3;
+					continue dayList_;
+				} else {
+					var _v4 = dayCount + 1,
+						_v5 = A3(_rluiten$elm_date_extra$Date_Extra_Duration$add, _rluiten$elm_date_extra$Date_Extra_Duration$Day, -1, date),
+						_v6 = {ctor: '::', _0: date, _1: list};
+					dayCount = _v4;
+					date = _v5;
+					list = _v6;
+					continue dayList_;
+				}
+			}
+		}
+	});
+var _rluiten$elm_date_extra$Date_Extra_Utils$dayList = F2(
+	function (dayCount, startDate) {
+		return _elm_lang$core$List$reverse(
+			A3(
+				_rluiten$elm_date_extra$Date_Extra_Utils$dayList_,
+				dayCount,
+				startDate,
+				{ctor: '[]'}));
+	});
 
 var _rluiten$elm_date_extra$Date_Extra_Format$toHourMin = function (offsetMinutes) {
 	return {
@@ -20005,11 +20576,30 @@ var _rluiten$elm_date_extra$Date_Extra_Format$formatToken = F4(
 				return A2(_rluiten$elm_date_extra$Date_Extra_Format$formatOffsetStr, '', offset);
 			case ':z':
 				return A2(_rluiten$elm_date_extra$Date_Extra_Format$formatOffsetStr, ':', offset);
+			case 'G':
+				var _p4 = _rluiten$elm_date_extra$Date_Extra_Utils$isoWeek(d);
+				return A3(
+					_rluiten$elm_date_extra$Date_Extra_Format$padWithN,
+					3,
+					_elm_lang$core$Native_Utils.chr('0'),
+					_p4._0);
+			case 'V':
+				var _p5 = _rluiten$elm_date_extra$Date_Extra_Utils$isoWeek(d);
+				return A2(
+					_rluiten$elm_date_extra$Date_Extra_Format$padWith,
+					_elm_lang$core$Native_Utils.chr('0'),
+					_p5._1);
+			case '-V':
+				var _p6 = _rluiten$elm_date_extra$Date_Extra_Utils$isoWeek(d);
+				return _elm_lang$core$Basics$toString(_p6._1);
+			case 'u':
+				var _p7 = _rluiten$elm_date_extra$Date_Extra_Utils$isoWeek(d);
+				return _elm_lang$core$Basics$toString(_p7._2);
 			default:
 				return '';
 		}
 	});
-var _rluiten$elm_date_extra$Date_Extra_Format$formatRegex = _elm_lang$core$Regex$regex('%(y|Y|m|_m|-m|B|^B|b|^b|d|-d|-@d|e|@e|A|^A|a|^a|H|-H|k|I|-I|l|p|P|M|S|%|L|z|:z)');
+var _rluiten$elm_date_extra$Date_Extra_Format$formatRegex = _elm_lang$core$Regex$regex('%(y|Y|m|_m|-m|B|^B|b|^b|d|-d|-@d|e|@e|A|^A|a|^a|H|-H|k|I|-I|l|p|P|M|S|%|L|z|:z|G|V|-V|u)');
 var _rluiten$elm_date_extra$Date_Extra_Format$formatOffset = F4(
 	function (config, targetOffset, formatStr, date) {
 		var dateOffset = _rluiten$elm_date_extra$Date_Extra_Create$getTimezoneOffset(date);
@@ -21165,16 +21755,18 @@ var _user$project$ReceptionKiosk_Types$mdlIdBase = function (scene) {
 			return 1000;
 		case 'ReasonForVisit':
 			return 1100;
-		case 'SignUpDone':
+		case 'ScreenSaver':
 			return 1200;
-		case 'TaskList':
+		case 'SignUpDone':
 			return 1300;
-		case 'VolunteerInDone':
+		case 'TaskList':
 			return 1400;
-		case 'Waiver':
+		case 'VolunteerInDone':
 			return 1500;
-		default:
+		case 'Waiver':
 			return 1600;
+		default:
+			return 1700;
 	}
 };
 var _user$project$ReceptionKiosk_Types$Flags = function (a) {
@@ -21212,6 +21804,7 @@ var _user$project$ReceptionKiosk_Types$Welcome = {ctor: 'Welcome'};
 var _user$project$ReceptionKiosk_Types$Waiver = {ctor: 'Waiver'};
 var _user$project$ReceptionKiosk_Types$VolunteerInDone = {ctor: 'VolunteerInDone'};
 var _user$project$ReceptionKiosk_Types$TaskList = {ctor: 'TaskList'};
+var _user$project$ReceptionKiosk_Types$ScreenSaver = {ctor: 'ScreenSaver'};
 var _user$project$ReceptionKiosk_Types$ReasonForVisit = {ctor: 'ReasonForVisit'};
 var _user$project$ReceptionKiosk_Types$NewUser = {ctor: 'NewUser'};
 var _user$project$ReceptionKiosk_Types$NewMember = {ctor: 'NewMember'};
@@ -21308,6 +21901,10 @@ var _user$project$ReceptionKiosk_Types$ValidateReason = {ctor: 'ValidateReason'}
 var _user$project$ReceptionKiosk_Types$UpdateReasonForVisit = function (a) {
 	return {ctor: 'UpdateReasonForVisit', _0: a};
 };
+var _user$project$ReceptionKiosk_Types$ScreenSaverTapped = {ctor: 'ScreenSaverTapped'};
+var _user$project$ReceptionKiosk_Types$NewMsgPosition = function (a) {
+	return {ctor: 'NewMsgPosition', _0: a};
+};
 var _user$project$ReceptionKiosk_Types$ValidateTaskChoice = {ctor: 'ValidateTaskChoice'};
 var _user$project$ReceptionKiosk_Types$ToggleTask = function (a) {
 	return {ctor: 'ToggleTask', _0: a};
@@ -21330,6 +21927,9 @@ var _user$project$ReceptionKiosk_Types$WaiverVector = function (a) {
 };
 var _user$project$ReceptionKiosk_Types$TaskListVector = function (a) {
 	return {ctor: 'TaskListVector', _0: a};
+};
+var _user$project$ReceptionKiosk_Types$ScreenSaverVector = function (a) {
+	return {ctor: 'ScreenSaverVector', _0: a};
 };
 var _user$project$ReceptionKiosk_Types$ReasonForVisitVector = function (a) {
 	return {ctor: 'ReasonForVisitVector', _0: a};
@@ -24987,6 +25587,218 @@ var _user$project$ReceptionKiosk_MembersOnlyScene$MembersOnlyModel = F3(
 		return {currTimeBlock: a, currTimeBlockTypes: b, badNews: c};
 	});
 
+var _user$project$ReceptionKiosk_ScreenSaverScene$logoImgStyle = _elm_lang$html$Html_Attributes$style(
+	{
+		ctor: '::',
+		_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'filter', 'invert(100%)'),
+		_1: {
+			ctor: '::',
+			_0: A2(
+				_user$project$Wizard_SceneUtils_ops['=>'],
+				'width',
+				_user$project$Wizard_SceneUtils$px(100)),
+			_1: {ctor: '[]'}
+		}
+	});
+var _user$project$ReceptionKiosk_ScreenSaverScene$msgDivStyle = _elm_lang$html$Html_Attributes$style(
+	{
+		ctor: '::',
+		_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'text-align', 'center'),
+		_1: {
+			ctor: '::',
+			_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'color', 'white'),
+			_1: {
+				ctor: '::',
+				_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'position', 'absolute'),
+				_1: {ctor: '[]'}
+			}
+		}
+	});
+var _user$project$ReceptionKiosk_ScreenSaverScene$bgDivStyle = _elm_lang$html$Html_Attributes$style(
+	{
+		ctor: '::',
+		_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'background-color', 'black'),
+		_1: {
+			ctor: '::',
+			_0: A2(
+				_user$project$Wizard_SceneUtils_ops['=>'],
+				'height',
+				_user$project$Wizard_SceneUtils$px(_user$project$Wizard_SceneUtils$sceneHeight)),
+			_1: {
+				ctor: '::',
+				_0: A2(
+					_user$project$Wizard_SceneUtils_ops['=>'],
+					'width',
+					_user$project$Wizard_SceneUtils$px(_user$project$Wizard_SceneUtils$sceneWidth)),
+				_1: {ctor: '[]'}
+			}
+		}
+	});
+var _user$project$ReceptionKiosk_ScreenSaverScene$subscriptions = function (model) {
+	return A2(_user$project$Wizard_SceneUtils$sceneIsVisible, model, _user$project$ReceptionKiosk_Types$ScreenSaver) ? _elm_lang$mouse$Mouse$clicks(
+		function (_p0) {
+			return _user$project$ReceptionKiosk_Types$ScreenSaverVector(_user$project$ReceptionKiosk_Types$ScreenSaverTapped);
+		}) : _elm_lang$core$Platform_Sub$none;
+};
+var _user$project$ReceptionKiosk_ScreenSaverScene$view = function (kioskModel) {
+	var sceneModel = kioskModel.screenSaverModel;
+	var positionStyle = _elm_lang$html$Html_Attributes$style(
+		{
+			ctor: '::',
+			_0: A2(
+				_user$project$Wizard_SceneUtils_ops['=>'],
+				'top',
+				_user$project$Wizard_SceneUtils$px(sceneModel.yPos)),
+			_1: {
+				ctor: '::',
+				_0: A2(
+					_user$project$Wizard_SceneUtils_ops['=>'],
+					'left',
+					_user$project$Wizard_SceneUtils$px(sceneModel.xPos)),
+				_1: {ctor: '[]'}
+			}
+		});
+	return A2(
+		_elm_lang$html$Html$div,
+		{
+			ctor: '::',
+			_0: _user$project$ReceptionKiosk_ScreenSaverScene$bgDivStyle,
+			_1: {ctor: '[]'}
+		},
+		{
+			ctor: '::',
+			_0: A2(
+				_elm_lang$html$Html$div,
+				{
+					ctor: '::',
+					_0: _user$project$ReceptionKiosk_ScreenSaverScene$msgDivStyle,
+					_1: {
+						ctor: '::',
+						_0: positionStyle,
+						_1: {ctor: '[]'}
+					}
+				},
+				{
+					ctor: '::',
+					_0: A2(
+						_elm_lang$html$Html$img,
+						{
+							ctor: '::',
+							_0: _elm_lang$html$Html_Attributes$src('/static/bzw_ops/Big Bold X.png'),
+							_1: {
+								ctor: '::',
+								_0: _user$project$ReceptionKiosk_ScreenSaverScene$logoImgStyle,
+								_1: {ctor: '[]'}
+							}
+						},
+						{ctor: '[]'}),
+					_1: {
+						ctor: '::',
+						_0: _user$project$Wizard_SceneUtils$vspace(20),
+						_1: {
+							ctor: '::',
+							_0: _elm_lang$html$Html$text('START'),
+							_1: {
+								ctor: '::',
+								_0: _user$project$Wizard_SceneUtils$vspace(20),
+								_1: {
+									ctor: '::',
+									_0: _elm_lang$html$Html$text('HERE'),
+									_1: {ctor: '[]'}
+								}
+							}
+						}
+					}
+				}),
+			_1: {ctor: '[]'}
+		});
+};
+var _user$project$ReceptionKiosk_ScreenSaverScene$update = F2(
+	function (msg, kioskModel) {
+		var sceneModel = kioskModel.screenSaverModel;
+		var _p1 = msg;
+		if (_p1.ctor === 'NewMsgPosition') {
+			return {
+				ctor: '_Tuple2',
+				_0: _elm_lang$core$Native_Utils.update(
+					sceneModel,
+					{xPos: _p1._0._0, yPos: _p1._0._1}),
+				_1: _elm_lang$core$Platform_Cmd$none
+			};
+		} else {
+			return {
+				ctor: '_Tuple2',
+				_0: sceneModel,
+				_1: _user$project$Wizard_SceneUtils$send(
+					_user$project$ReceptionKiosk_Types$WizardVector(_user$project$ReceptionKiosk_Types$Pop))
+			};
+		}
+	});
+var _user$project$ReceptionKiosk_ScreenSaverScene$sceneWillAppear = F2(
+	function (kioskModel, appearingScene) {
+		var sceneModel = kioskModel.screenSaverModel;
+		return {
+			ctor: '_Tuple2',
+			_0: _elm_lang$core$Native_Utils.update(
+				sceneModel,
+				{secondsSinceSceneChange: 0}),
+			_1: _elm_lang$core$Platform_Cmd$none
+		};
+	});
+var _user$project$ReceptionKiosk_ScreenSaverScene$tooLong = 600;
+var _user$project$ReceptionKiosk_ScreenSaverScene$redrawPeriod = 3;
+var _user$project$ReceptionKiosk_ScreenSaverScene$msgDivHeight = 176;
+var _user$project$ReceptionKiosk_ScreenSaverScene$msgDivWidth = 102;
+var _user$project$ReceptionKiosk_ScreenSaverScene$init = function (flags) {
+	var sceneModel = {xPos: ((_user$project$Wizard_SceneUtils$sceneWidth - _user$project$ReceptionKiosk_ScreenSaverScene$msgDivWidth) / 2) | 0, yPos: ((_user$project$Wizard_SceneUtils$sceneHeight - _user$project$ReceptionKiosk_ScreenSaverScene$msgDivHeight) / 2) | 0, secondsSinceSceneChange: 0};
+	return {ctor: '_Tuple2', _0: sceneModel, _1: _elm_lang$core$Platform_Cmd$none};
+};
+var _user$project$ReceptionKiosk_ScreenSaverScene$tick = F2(
+	function (time, kioskModel) {
+		var visible = A2(_user$project$Wizard_SceneUtils$sceneIsVisible, kioskModel, _user$project$ReceptionKiosk_Types$ScreenSaver);
+		var sceneModel = kioskModel.screenSaverModel;
+		if (visible) {
+			if (_elm_lang$core$Native_Utils.eq(
+				A2(
+					_elm_lang$core$Basics_ops['%'],
+					_elm_lang$core$Basics$floor(
+						_elm_lang$core$Time$inSeconds(time)),
+					_user$project$ReceptionKiosk_ScreenSaverScene$redrawPeriod),
+				0)) {
+				var yRandGen = A2(_elm_lang$core$Random$int, 0, _user$project$Wizard_SceneUtils$sceneHeight - _user$project$ReceptionKiosk_ScreenSaverScene$msgDivHeight);
+				var xRandGen = A2(_elm_lang$core$Random$int, 0, _user$project$Wizard_SceneUtils$sceneWidth - _user$project$ReceptionKiosk_ScreenSaverScene$msgDivWidth);
+				var pairRandGen = A2(_elm_lang$core$Random$pair, xRandGen, yRandGen);
+				return {
+					ctor: '_Tuple2',
+					_0: sceneModel,
+					_1: A2(
+						_elm_lang$core$Random$generate,
+						function (_p2) {
+							return _user$project$ReceptionKiosk_Types$ScreenSaverVector(
+								_user$project$ReceptionKiosk_Types$NewMsgPosition(_p2));
+						},
+						pairRandGen)
+				};
+			} else {
+				return {ctor: '_Tuple2', _0: sceneModel, _1: _elm_lang$core$Platform_Cmd$none};
+			}
+		} else {
+			var newCount = sceneModel.secondsSinceSceneChange + 1;
+			var cmd = (_elm_lang$core$Native_Utils.cmp(newCount, _user$project$ReceptionKiosk_ScreenSaverScene$tooLong) > 0) ? _user$project$Wizard_SceneUtils$segueTo(_user$project$ReceptionKiosk_Types$ScreenSaver) : _elm_lang$core$Platform_Cmd$none;
+			return {
+				ctor: '_Tuple2',
+				_0: _elm_lang$core$Native_Utils.update(
+					sceneModel,
+					{secondsSinceSceneChange: newCount}),
+				_1: cmd
+			};
+		}
+	});
+var _user$project$ReceptionKiosk_ScreenSaverScene$ScreenSaverModel = F3(
+	function (a, b, c) {
+		return {xPos: a, yPos: b, secondsSinceSceneChange: c};
+	});
+
 var _user$project$ReceptionKiosk_TaskListScene$taskDivStyle = _elm_lang$html$Html_Attributes$style(
 	{
 		ctor: '::',
@@ -25476,6 +26288,7 @@ var _user$project$ReceptionKiosk_WelcomeScene$WelcomeModel = {};
 
 var _user$project$ReceptionKiosk$subscriptions = function (model) {
 	var waiverSubs = _user$project$ReceptionKiosk_WaiverScene$subscriptions(model);
+	var screenSaverSubs = _user$project$ReceptionKiosk_ScreenSaverScene$subscriptions(model);
 	var newUserSubs = _user$project$ReceptionKiosk_NewUserScene$subscriptions(model);
 	var newMemberSubs = _user$project$ReceptionKiosk_NewMemberScene$subscriptions(model);
 	var checkInSubs = _user$project$ReceptionKiosk_CheckInScene$subscriptions(model);
@@ -25500,8 +26313,12 @@ var _user$project$ReceptionKiosk$subscriptions = function (model) {
 					_0: newUserSubs,
 					_1: {
 						ctor: '::',
-						_0: waiverSubs,
-						_1: {ctor: '[]'}
+						_0: screenSaverSubs,
+						_1: {
+							ctor: '::',
+							_0: waiverSubs,
+							_1: {ctor: '[]'}
+						}
 					}
 				}
 			}
@@ -25535,6 +26352,8 @@ var _user$project$ReceptionKiosk$view = function (model) {
 			return _user$project$ReceptionKiosk_NewUserScene$view(model);
 		case 'ReasonForVisit':
 			return _user$project$ReceptionKiosk_ReasonForVisitScene$view(model);
+		case 'ScreenSaver':
+			return _user$project$ReceptionKiosk_ScreenSaverScene$view(model);
 		case 'SignUpDone':
 			return _user$project$ReceptionKiosk_SignUpDoneScene$view(model);
 		case 'TaskList':
@@ -25563,39 +26382,42 @@ var _user$project$ReceptionKiosk$init = function (f) {
 	var _p6 = _user$project$ReceptionKiosk_SignUpDoneScene$init(f);
 	var signUpDoneModel = _p6._0;
 	var signUpDoneCmd = _p6._1;
-	var _p7 = _user$project$ReceptionKiosk_ReasonForVisitScene$init(f);
-	var reasonForVisitModel = _p7._0;
-	var reasonForVisitCmd = _p7._1;
-	var _p8 = _user$project$ReceptionKiosk_NewUserScene$init(f);
-	var newUserModel = _p8._0;
-	var newUserCmd = _p8._1;
-	var _p9 = _user$project$ReceptionKiosk_NewMemberScene$init(f);
-	var newMemberModel = _p9._0;
-	var newMemberCmd = _p9._1;
-	var _p10 = _user$project$ReceptionKiosk_MembersOnlyScene$init(f);
-	var membersOnlyModel = _p10._0;
-	var membersOnlyCmd = _p10._1;
-	var _p11 = _user$project$ReceptionKiosk_HowDidYouHearScene$init(f);
-	var howDidYouHearModel = _p11._0;
-	var howDidYouHearCmd = _p11._1;
-	var _p12 = _user$project$ReceptionKiosk_EmailInUseScene$init(f);
-	var emailInUseModel = _p12._0;
-	var emailInUseCmd = _p12._1;
-	var _p13 = _user$project$ReceptionKiosk_CreatingAcctScene$init(f);
-	var creatingAcctModel = _p13._0;
-	var creatingAcctCmd = _p13._1;
-	var _p14 = _user$project$ReceptionKiosk_CheckOutDoneScene$init(f);
-	var checkOutDoneModel = _p14._0;
-	var checkOutDoneCmd = _p14._1;
-	var _p15 = _user$project$ReceptionKiosk_CheckOutScene$init(f);
-	var checkOutModel = _p15._0;
-	var checkOutCmd = _p15._1;
-	var _p16 = _user$project$ReceptionKiosk_CheckInDoneScene$init(f);
-	var checkInDoneModel = _p16._0;
-	var checkInDoneCmd = _p16._1;
-	var _p17 = _user$project$ReceptionKiosk_CheckInScene$init(f);
-	var checkInModel = _p17._0;
-	var checkInCmd = _p17._1;
+	var _p7 = _user$project$ReceptionKiosk_ScreenSaverScene$init(f);
+	var screenSaverModel = _p7._0;
+	var screenSaverCmd = _p7._1;
+	var _p8 = _user$project$ReceptionKiosk_ReasonForVisitScene$init(f);
+	var reasonForVisitModel = _p8._0;
+	var reasonForVisitCmd = _p8._1;
+	var _p9 = _user$project$ReceptionKiosk_NewUserScene$init(f);
+	var newUserModel = _p9._0;
+	var newUserCmd = _p9._1;
+	var _p10 = _user$project$ReceptionKiosk_NewMemberScene$init(f);
+	var newMemberModel = _p10._0;
+	var newMemberCmd = _p10._1;
+	var _p11 = _user$project$ReceptionKiosk_MembersOnlyScene$init(f);
+	var membersOnlyModel = _p11._0;
+	var membersOnlyCmd = _p11._1;
+	var _p12 = _user$project$ReceptionKiosk_HowDidYouHearScene$init(f);
+	var howDidYouHearModel = _p12._0;
+	var howDidYouHearCmd = _p12._1;
+	var _p13 = _user$project$ReceptionKiosk_EmailInUseScene$init(f);
+	var emailInUseModel = _p13._0;
+	var emailInUseCmd = _p13._1;
+	var _p14 = _user$project$ReceptionKiosk_CreatingAcctScene$init(f);
+	var creatingAcctModel = _p14._0;
+	var creatingAcctCmd = _p14._1;
+	var _p15 = _user$project$ReceptionKiosk_CheckOutDoneScene$init(f);
+	var checkOutDoneModel = _p15._0;
+	var checkOutDoneCmd = _p15._1;
+	var _p16 = _user$project$ReceptionKiosk_CheckOutScene$init(f);
+	var checkOutModel = _p16._0;
+	var checkOutCmd = _p16._1;
+	var _p17 = _user$project$ReceptionKiosk_CheckInDoneScene$init(f);
+	var checkInDoneModel = _p17._0;
+	var checkInDoneCmd = _p17._1;
+	var _p18 = _user$project$ReceptionKiosk_CheckInScene$init(f);
+	var checkInModel = _p18._0;
+	var checkInCmd = _p18._1;
 	var model = {
 		flags: f,
 		sceneStack: _mgold$elm_nonempty_list$List_Nonempty$fromElement(_user$project$ReceptionKiosk_Types$Welcome),
@@ -25611,6 +26433,7 @@ var _user$project$ReceptionKiosk$init = function (f) {
 		newMemberModel: newMemberModel,
 		newUserModel: newUserModel,
 		reasonForVisitModel: reasonForVisitModel,
+		screenSaverModel: screenSaverModel,
 		signUpDoneModel: signUpDoneModel,
 		taskListModel: taskListModel,
 		volunteerInDoneModel: volunteerInDoneModel,
@@ -25652,17 +26475,21 @@ var _user$project$ReceptionKiosk$init = function (f) {
 												_0: reasonForVisitCmd,
 												_1: {
 													ctor: '::',
-													_0: taskListCmd,
+													_0: screenSaverCmd,
 													_1: {
 														ctor: '::',
-														_0: volunteerInDoneCmd,
+														_0: taskListCmd,
 														_1: {
 															ctor: '::',
-															_0: waiverCmd,
+															_0: volunteerInDoneCmd,
 															_1: {
 																ctor: '::',
-																_0: welcomeCmd,
-																_1: {ctor: '[]'}
+																_0: waiverCmd,
+																_1: {
+																	ctor: '::',
+																	_0: welcomeCmd,
+																	_1: {ctor: '[]'}
+																}
 															}
 														}
 													}
@@ -25689,24 +26516,24 @@ var _user$project$ReceptionKiosk$reset = function (m) {
 };
 var _user$project$ReceptionKiosk$update = F2(
 	function (msg, model) {
-		var _p18 = msg;
-		switch (_p18.ctor) {
+		var _p19 = msg;
+		switch (_p19.ctor) {
 			case 'WizardVector':
-				var _p19 = _p18._0;
-				switch (_p19.ctor) {
+				var _p20 = _p19._0;
+				switch (_p20.ctor) {
 					case 'Push':
-						var _p20 = _p19._0;
+						var _p21 = _p20._0;
 						var newModel = _elm_lang$core$Native_Utils.update(
 							model,
 							{
-								sceneStack: A2(_mgold$elm_nonempty_list$List_Nonempty$cons, _p20, model.sceneStack)
+								sceneStack: A2(_mgold$elm_nonempty_list$List_Nonempty$cons, _p21, model.sceneStack)
 							});
 						return A2(
 							_ccapndave$elm_update_extra$Update_Extra_Infix_ops[':>'],
 							{ctor: '_Tuple2', _0: newModel, _1: _elm_lang$core$Platform_Cmd$none},
 							_user$project$ReceptionKiosk$update(
 								_user$project$ReceptionKiosk_Types$WizardVector(
-									_user$project$ReceptionKiosk_Types$SceneWillAppear(_p20))));
+									_user$project$ReceptionKiosk_Types$SceneWillAppear(_p21))));
 					case 'Pop':
 						var newModel = _elm_lang$core$Native_Utils.update(
 							model,
@@ -25721,43 +26548,103 @@ var _user$project$ReceptionKiosk$update = F2(
 								_user$project$ReceptionKiosk_Types$WizardVector(
 									_user$project$ReceptionKiosk_Types$SceneWillAppear(newScene))));
 					case 'RebaseTo':
-						var _p21 = _p19._0;
+						var _p22 = _p20._0;
 						var newModel = _elm_lang$core$Native_Utils.update(
 							model,
 							{
-								sceneStack: _mgold$elm_nonempty_list$List_Nonempty$fromElement(_p21)
+								sceneStack: _mgold$elm_nonempty_list$List_Nonempty$fromElement(_p22)
 							});
 						return A2(
 							_ccapndave$elm_update_extra$Update_Extra_Infix_ops[':>'],
 							{ctor: '_Tuple2', _0: newModel, _1: _elm_lang$core$Platform_Cmd$none},
 							_user$project$ReceptionKiosk$update(
 								_user$project$ReceptionKiosk_Types$WizardVector(
-									_user$project$ReceptionKiosk_Types$SceneWillAppear(_p21))));
+									_user$project$ReceptionKiosk_Types$SceneWillAppear(_p22))));
 					case 'Reset':
 						return _user$project$ReceptionKiosk$reset(model);
 					case 'SceneWillAppear':
-						var _p28 = _p19._0;
-						var _p22 = A2(_user$project$ReceptionKiosk_WelcomeScene$sceneWillAppear, model, _p28);
-						var m6 = _p22._0;
-						var c6 = _p22._1;
-						var _p23 = A2(_user$project$ReceptionKiosk_WaiverScene$sceneWillAppear, model, _p28);
-						var m5 = _p23._0;
-						var c5 = _p23._1;
-						var _p24 = A2(_user$project$ReceptionKiosk_TaskListScene$sceneWillAppear, model, _p28);
-						var m4 = _p24._0;
-						var c4 = _p24._1;
-						var _p25 = A2(_user$project$ReceptionKiosk_MembersOnlyScene$sceneWillAppear, model, _p28);
-						var m3 = _p25._0;
-						var c3 = _p25._1;
-						var _p26 = A2(_user$project$ReceptionKiosk_CreatingAcctScene$sceneWillAppear, model, _p28);
-						var m2 = _p26._0;
-						var c2 = _p26._1;
-						var _p27 = A2(_user$project$ReceptionKiosk_CheckOutScene$sceneWillAppear, model, _p28);
-						var m1 = _p27._0;
-						var c1 = _p27._1;
+						var _p30 = _p20._0;
+						var _p23 = A2(_user$project$ReceptionKiosk_WelcomeScene$sceneWillAppear, model, _p30);
+						var m7 = _p23._0;
+						var c7 = _p23._1;
+						var _p24 = A2(_user$project$ReceptionKiosk_WaiverScene$sceneWillAppear, model, _p30);
+						var m6 = _p24._0;
+						var c6 = _p24._1;
+						var _p25 = A2(_user$project$ReceptionKiosk_TaskListScene$sceneWillAppear, model, _p30);
+						var m5 = _p25._0;
+						var c5 = _p25._1;
+						var _p26 = A2(_user$project$ReceptionKiosk_ScreenSaverScene$sceneWillAppear, model, _p30);
+						var m4 = _p26._0;
+						var c4 = _p26._1;
+						var _p27 = A2(_user$project$ReceptionKiosk_MembersOnlyScene$sceneWillAppear, model, _p30);
+						var m3 = _p27._0;
+						var c3 = _p27._1;
+						var _p28 = A2(_user$project$ReceptionKiosk_CreatingAcctScene$sceneWillAppear, model, _p30);
+						var m2 = _p28._0;
+						var c2 = _p28._1;
+						var _p29 = A2(_user$project$ReceptionKiosk_CheckOutScene$sceneWillAppear, model, _p30);
+						var m1 = _p29._0;
+						var c1 = _p29._1;
 						var newModel = _elm_lang$core$Native_Utils.update(
 							model,
-							{checkOutModel: m1, creatingAcctModel: m2, membersOnlyModel: m3, taskListModel: m4, waiverModel: m5, welcomeModel: m6});
+							{checkOutModel: m1, creatingAcctModel: m2, membersOnlyModel: m3, screenSaverModel: m4, taskListModel: m5, waiverModel: m6, welcomeModel: m7});
+						return {
+							ctor: '_Tuple2',
+							_0: newModel,
+							_1: _elm_lang$core$Platform_Cmd$batch(
+								{
+									ctor: '::',
+									_0: c1,
+									_1: {
+										ctor: '::',
+										_0: c2,
+										_1: {
+											ctor: '::',
+											_0: c3,
+											_1: {
+												ctor: '::',
+												_0: c4,
+												_1: {
+													ctor: '::',
+													_0: c5,
+													_1: {
+														ctor: '::',
+														_0: c6,
+														_1: {
+															ctor: '::',
+															_0: c7,
+															_1: {ctor: '[]'}
+														}
+													}
+												}
+											}
+										}
+									}
+								})
+						};
+					default:
+						var _p37 = _p20._0;
+						var _p31 = A2(_user$project$ReceptionKiosk_ScreenSaverScene$tick, _p37, model);
+						var m6 = _p31._0;
+						var c6 = _p31._1;
+						var _p32 = A2(_user$project$ReceptionKiosk_NewUserScene$tick, _p37, model);
+						var m5 = _p32._0;
+						var c5 = _p32._1;
+						var _p33 = A2(_user$project$ReceptionKiosk_NewMemberScene$tick, _p37, model);
+						var m4 = _p33._0;
+						var c4 = _p33._1;
+						var _p34 = A2(_user$project$ReceptionKiosk_CheckInDoneScene$tick, _p37, model);
+						var m3 = _p34._0;
+						var c3 = _p34._1;
+						var _p35 = A2(_user$project$ReceptionKiosk_CheckInScene$tick, _p37, model);
+						var m2 = _p35._0;
+						var c2 = _p35._1;
+						var _p36 = A2(_user$project$ReceptionKiosk_CreatingAcctScene$tick, _p37, model);
+						var m1 = _p36._0;
+						var c1 = _p36._1;
+						var newModel = _elm_lang$core$Native_Utils.update(
+							model,
+							{creatingAcctModel: m1, checkInModel: m2, checkInDoneModel: m3, newMemberModel: m4, newUserModel: m5, screenSaverModel: m6});
 						return {
 							ctor: '_Tuple2',
 							_0: newModel,
@@ -25788,74 +26675,11 @@ var _user$project$ReceptionKiosk$update = F2(
 									}
 								})
 						};
-					default:
-						var _p35 = _p19._0;
-						var currScene = _mgold$elm_nonempty_list$List_Nonempty$head(model.sceneStack);
-						var _p29 = currScene;
-						switch (_p29.ctor) {
-							case 'CreatingAcct':
-								var _p30 = A2(_user$project$ReceptionKiosk_CreatingAcctScene$tick, _p35, model);
-								var sm = _p30._0;
-								var cmd = _p30._1;
-								return {
-									ctor: '_Tuple2',
-									_0: _elm_lang$core$Native_Utils.update(
-										model,
-										{creatingAcctModel: sm}),
-									_1: cmd
-								};
-							case 'CheckIn':
-								var _p31 = A2(_user$project$ReceptionKiosk_CheckInScene$tick, _p35, model);
-								var sm = _p31._0;
-								var cmd = _p31._1;
-								return {
-									ctor: '_Tuple2',
-									_0: _elm_lang$core$Native_Utils.update(
-										model,
-										{checkInModel: sm}),
-									_1: cmd
-								};
-							case 'CheckInDone':
-								var _p32 = A2(_user$project$ReceptionKiosk_CheckInDoneScene$tick, _p35, model);
-								var sm = _p32._0;
-								var cmd = _p32._1;
-								return {
-									ctor: '_Tuple2',
-									_0: _elm_lang$core$Native_Utils.update(
-										model,
-										{checkInDoneModel: sm}),
-									_1: cmd
-								};
-							case 'NewMember':
-								var _p33 = A2(_user$project$ReceptionKiosk_NewMemberScene$tick, _p35, model);
-								var sm = _p33._0;
-								var cmd = _p33._1;
-								return {
-									ctor: '_Tuple2',
-									_0: _elm_lang$core$Native_Utils.update(
-										model,
-										{newMemberModel: sm}),
-									_1: cmd
-								};
-							case 'NewUser':
-								var _p34 = A2(_user$project$ReceptionKiosk_NewUserScene$tick, _p35, model);
-								var sm = _p34._0;
-								var cmd = _p34._1;
-								return {
-									ctor: '_Tuple2',
-									_0: _elm_lang$core$Native_Utils.update(
-										model,
-										{newUserModel: sm}),
-									_1: cmd
-								};
-							default:
-								return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
-						}
 				}
 			case 'CheckInVector':
-				var _p36 = A2(_user$project$ReceptionKiosk_CheckInScene$update, _p18._0, model);
-				var sm = _p36._0;
-				var cmd = _p36._1;
+				var _p38 = A2(_user$project$ReceptionKiosk_CheckInScene$update, _p19._0, model);
+				var sm = _p38._0;
+				var cmd = _p38._1;
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
@@ -25864,9 +26688,9 @@ var _user$project$ReceptionKiosk$update = F2(
 					_1: cmd
 				};
 			case 'CheckOutVector':
-				var _p37 = A2(_user$project$ReceptionKiosk_CheckOutScene$update, _p18._0, model);
-				var sm = _p37._0;
-				var cmd = _p37._1;
+				var _p39 = A2(_user$project$ReceptionKiosk_CheckOutScene$update, _p19._0, model);
+				var sm = _p39._0;
+				var cmd = _p39._1;
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
@@ -25875,9 +26699,9 @@ var _user$project$ReceptionKiosk$update = F2(
 					_1: cmd
 				};
 			case 'CreatingAcctVector':
-				var _p38 = A2(_user$project$ReceptionKiosk_CreatingAcctScene$update, _p18._0, model);
-				var sm = _p38._0;
-				var cmd = _p38._1;
+				var _p40 = A2(_user$project$ReceptionKiosk_CreatingAcctScene$update, _p19._0, model);
+				var sm = _p40._0;
+				var cmd = _p40._1;
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
@@ -25886,9 +26710,9 @@ var _user$project$ReceptionKiosk$update = F2(
 					_1: cmd
 				};
 			case 'HowDidYouHearVector':
-				var _p39 = A2(_user$project$ReceptionKiosk_HowDidYouHearScene$update, _p18._0, model);
-				var sm = _p39._0;
-				var cmd = _p39._1;
+				var _p41 = A2(_user$project$ReceptionKiosk_HowDidYouHearScene$update, _p19._0, model);
+				var sm = _p41._0;
+				var cmd = _p41._1;
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
@@ -25897,9 +26721,9 @@ var _user$project$ReceptionKiosk$update = F2(
 					_1: cmd
 				};
 			case 'MembersOnlyVector':
-				var _p40 = A2(_user$project$ReceptionKiosk_MembersOnlyScene$update, _p18._0, model);
-				var sm = _p40._0;
-				var cmd = _p40._1;
+				var _p42 = A2(_user$project$ReceptionKiosk_MembersOnlyScene$update, _p19._0, model);
+				var sm = _p42._0;
+				var cmd = _p42._1;
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
@@ -25908,9 +26732,9 @@ var _user$project$ReceptionKiosk$update = F2(
 					_1: cmd
 				};
 			case 'NewMemberVector':
-				var _p41 = A2(_user$project$ReceptionKiosk_NewMemberScene$update, _p18._0, model);
-				var sm = _p41._0;
-				var cmd = _p41._1;
+				var _p43 = A2(_user$project$ReceptionKiosk_NewMemberScene$update, _p19._0, model);
+				var sm = _p43._0;
+				var cmd = _p43._1;
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
@@ -25919,9 +26743,9 @@ var _user$project$ReceptionKiosk$update = F2(
 					_1: cmd
 				};
 			case 'NewUserVector':
-				var _p42 = A2(_user$project$ReceptionKiosk_NewUserScene$update, _p18._0, model);
-				var sm = _p42._0;
-				var cmd = _p42._1;
+				var _p44 = A2(_user$project$ReceptionKiosk_NewUserScene$update, _p19._0, model);
+				var sm = _p44._0;
+				var cmd = _p44._1;
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
@@ -25930,9 +26754,9 @@ var _user$project$ReceptionKiosk$update = F2(
 					_1: cmd
 				};
 			case 'ReasonForVisitVector':
-				var _p43 = A2(_user$project$ReceptionKiosk_ReasonForVisitScene$update, _p18._0, model);
-				var sm = _p43._0;
-				var cmd = _p43._1;
+				var _p45 = A2(_user$project$ReceptionKiosk_ReasonForVisitScene$update, _p19._0, model);
+				var sm = _p45._0;
+				var cmd = _p45._1;
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
@@ -25940,10 +26764,21 @@ var _user$project$ReceptionKiosk$update = F2(
 						{reasonForVisitModel: sm}),
 					_1: cmd
 				};
+			case 'ScreenSaverVector':
+				var _p46 = A2(_user$project$ReceptionKiosk_ScreenSaverScene$update, _p19._0, model);
+				var sm = _p46._0;
+				var cmd = _p46._1;
+				return {
+					ctor: '_Tuple2',
+					_0: _elm_lang$core$Native_Utils.update(
+						model,
+						{screenSaverModel: sm}),
+					_1: cmd
+				};
 			case 'TaskListVector':
-				var _p44 = A2(_user$project$ReceptionKiosk_TaskListScene$update, _p18._0, model);
-				var sm = _p44._0;
-				var cmd = _p44._1;
+				var _p47 = A2(_user$project$ReceptionKiosk_TaskListScene$update, _p19._0, model);
+				var sm = _p47._0;
+				var cmd = _p47._1;
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
@@ -25952,9 +26787,9 @@ var _user$project$ReceptionKiosk$update = F2(
 					_1: cmd
 				};
 			case 'WaiverVector':
-				var _p45 = A2(_user$project$ReceptionKiosk_WaiverScene$update, _p18._0, model);
-				var sm = _p45._0;
-				var cmd = _p45._1;
+				var _p48 = A2(_user$project$ReceptionKiosk_WaiverScene$update, _p19._0, model);
+				var sm = _p48._0;
+				var cmd = _p48._1;
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
@@ -25963,7 +26798,7 @@ var _user$project$ReceptionKiosk$update = F2(
 					_1: cmd
 				};
 			default:
-				return A3(_debois$elm_mdl$Material$update, _user$project$ReceptionKiosk_Types$MdlVector, _p18._0, model);
+				return A3(_debois$elm_mdl$Material$update, _user$project$ReceptionKiosk_Types$MdlVector, _p19._0, model);
 		}
 	});
 var _user$project$ReceptionKiosk$main = _elm_lang$html$Html$programWithFlags(
@@ -26064,7 +26899,9 @@ var _user$project$ReceptionKiosk$Model = function (a) {
 																return function (q) {
 																	return function (r) {
 																		return function (s) {
-																			return {flags: a, sceneStack: b, mdl: c, checkInModel: d, checkInDoneModel: e, checkOutModel: f, checkOutDoneModel: g, creatingAcctModel: h, emailInUseModel: i, howDidYouHearModel: j, membersOnlyModel: k, signUpDoneModel: l, newMemberModel: m, newUserModel: n, reasonForVisitModel: o, taskListModel: p, volunteerInDoneModel: q, waiverModel: r, welcomeModel: s};
+																			return function (t) {
+																				return {flags: a, sceneStack: b, mdl: c, checkInModel: d, checkInDoneModel: e, checkOutModel: f, checkOutDoneModel: g, creatingAcctModel: h, emailInUseModel: i, howDidYouHearModel: j, membersOnlyModel: k, screenSaverModel: l, signUpDoneModel: m, newMemberModel: n, newUserModel: o, reasonForVisitModel: p, taskListModel: q, volunteerInDoneModel: r, waiverModel: s, welcomeModel: t};
+																			};
 																		};
 																	};
 																};

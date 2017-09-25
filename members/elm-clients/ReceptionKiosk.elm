@@ -26,6 +26,7 @@ import ReceptionKiosk.MembersOnlyScene as MembersOnlyScene
 import ReceptionKiosk.NewMemberScene as NewMemberScene
 import ReceptionKiosk.NewUserScene as NewUserScene
 import ReceptionKiosk.ReasonForVisitScene as ReasonForVisitScene
+import ReceptionKiosk.ScreenSaverScene as ScreenSaverScene
 import ReceptionKiosk.TaskListScene as TaskListScene
 import ReceptionKiosk.VolunteerInDoneScene as VolunteerInDoneScene
 import ReceptionKiosk.WaiverScene as WaiverScene
@@ -61,6 +62,7 @@ type alias Model =
   , emailInUseModel      : EmailInUseScene.EmailInUseModel
   , howDidYouHearModel   : HowDidYouHearScene.HowDidYouHearModel
   , membersOnlyModel     : MembersOnlyScene.MembersOnlyModel
+  , screenSaverModel     : ScreenSaverScene.ScreenSaverModel
   , signUpDoneModel      : SignUpDoneScene.SignUpDoneModel
   , newMemberModel       : NewMemberScene.NewMemberModel
   , newUserModel         : NewUserScene.NewUserModel
@@ -85,6 +87,7 @@ init f =
     (newMemberModel,       newMemberCmd      ) = NewMemberScene.init       f
     (newUserModel,         newUserCmd        ) = NewUserScene.init         f
     (reasonForVisitModel,  reasonForVisitCmd ) = ReasonForVisitScene.init  f
+    (screenSaverModel,     screenSaverCmd    ) = ScreenSaverScene.init     f
     (signUpDoneModel,      signUpDoneCmd     ) = SignUpDoneScene.init      f
     (taskListModel,        taskListCmd       ) = TaskListScene.init        f
     (volunteerInDoneModel, volunteerInDoneCmd) = VolunteerInDoneScene.init f
@@ -106,6 +109,7 @@ init f =
       , newMemberModel       = newMemberModel
       , newUserModel         = newUserModel
       , reasonForVisitModel  = reasonForVisitModel
+      , screenSaverModel     = screenSaverModel
       , signUpDoneModel      = signUpDoneModel
       , taskListModel        = taskListModel
       , volunteerInDoneModel = volunteerInDoneModel
@@ -124,6 +128,7 @@ init f =
       , newMemberCmd
       , newUserCmd
       , reasonForVisitCmd
+      , screenSaverCmd
       , taskListCmd
       , volunteerInDoneCmd
       , waiverCmd
@@ -176,51 +181,46 @@ update msg model =
         Reset -> reset model
 
         SceneWillAppear appearingScene ->
-
           let
             (m1, c1) = CheckOutScene.sceneWillAppear model appearingScene
             (m2, c2) = CreatingAcctScene.sceneWillAppear model appearingScene
             (m3, c3) = MembersOnlyScene.sceneWillAppear model appearingScene
-            (m4, c4) = TaskListScene.sceneWillAppear model appearingScene
-            (m5, c5) = WaiverScene.sceneWillAppear model appearingScene
-            (m6, c6) = WelcomeScene.sceneWillAppear model appearingScene
+            (m4, c4) = ScreenSaverScene.sceneWillAppear model appearingScene
+            (m5, c5) = TaskListScene.sceneWillAppear model appearingScene
+            (m6, c6) = WaiverScene.sceneWillAppear model appearingScene
+            (m7, c7) = WelcomeScene.sceneWillAppear model appearingScene
             newModel =
               { model
               | checkOutModel = m1
               , creatingAcctModel = m2
               , membersOnlyModel = m3
-              , taskListModel = m4
-              , waiverModel = m5
-              , welcomeModel = m6
+              , screenSaverModel = m4
+              , taskListModel = m5
+              , waiverModel = m6
+              , welcomeModel = m7
+              }
+          in
+            (newModel, Cmd.batch [c1, c2, c3, c4, c5, c6, c7])
+
+        Tick time ->
+          let
+            (m1, c1) = CreatingAcctScene.tick time model
+            (m2, c2) = CheckInScene.tick time model
+            (m3, c3) = CheckInDoneScene.tick time model
+            (m4, c4) = NewMemberScene.tick time model
+            (m5, c5) = NewUserScene.tick time model
+            (m6, c6) = ScreenSaverScene.tick time model
+            newModel =
+              { model
+              | creatingAcctModel = m1
+              , checkInModel = m2
+              , checkInDoneModel = m3
+              , newMemberModel = m4
+              , newUserModel = m5
+              , screenSaverModel = m6
               }
           in
             (newModel, Cmd.batch [c1, c2, c3, c4, c5, c6])
-
-        Tick time ->
-          let currScene = List.Nonempty.head model.sceneStack
-          in case currScene of
-
-            CreatingAcct ->
-              let (sm, cmd) = CreatingAcctScene.tick time model
-              in ({model | creatingAcctModel = sm}, cmd)
-
-            CheckIn ->
-              let (sm, cmd) = CheckInScene.tick time model
-              in ({model | checkInModel = sm}, cmd)
-
-            CheckInDone ->
-              let (sm, cmd) = CheckInDoneScene.tick time model
-              in ({model | checkInDoneModel = sm}, cmd)
-
-            NewMember ->
-              let (sm, cmd) = NewMemberScene.tick time model
-              in ({model | newMemberModel = sm}, cmd)
-
-            NewUser ->
-              let (sm, cmd) = NewUserScene.tick time model
-              in ({model | newUserModel = sm}, cmd)
-
-            _ -> (model, Cmd.none)
 
     CheckInVector x ->
       let (sm, cmd) = CheckInScene.update x model
@@ -254,6 +254,10 @@ update msg model =
       let (sm, cmd) = ReasonForVisitScene.update x model
       in ({model | reasonForVisitModel = sm}, cmd)
 
+    ScreenSaverVector x ->
+      let (sm, cmd) = ScreenSaverScene.update x model
+      in ({model | screenSaverModel = sm}, cmd)
+
     TaskListVector x ->
       let (sm, cmd) = TaskListScene.update x model
       in ({model | taskListModel = sm}, cmd)
@@ -284,6 +288,7 @@ view model =
     NewMember       -> NewMemberScene.view       model
     NewUser         -> NewUserScene.view         model
     ReasonForVisit  -> ReasonForVisitScene.view  model
+    ScreenSaver     -> ScreenSaverScene.view     model
     SignUpDone      -> SignUpDoneScene.view      model
     TaskList        -> TaskListScene.view        model
     VolunteerInDone -> VolunteerInDoneScene.view model
@@ -301,12 +306,14 @@ subscriptions model =
     checkInSubs = CheckInScene.subscriptions model
     newMemberSubs = NewMemberScene.subscriptions model
     newUserSubs = NewUserScene.subscriptions model
+    screenSaverSubs = ScreenSaverScene.subscriptions model
     waiverSubs = WaiverScene.subscriptions model
     subs =
       [ mySubs
       , checkInSubs
       , newMemberSubs
       , newUserSubs
+      , screenSaverSubs
       , waiverSubs
       ]
   in
