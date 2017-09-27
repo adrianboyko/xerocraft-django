@@ -7,7 +7,6 @@ from rest_framework import serializers
 
 # Local
 import members.models as models
-from books.models import Sale
 
 
 def get_MemberSerializer(respect_privacy: bool) -> Type[serializers.ModelSerializer]:

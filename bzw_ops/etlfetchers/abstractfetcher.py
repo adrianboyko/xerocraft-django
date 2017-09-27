@@ -1,17 +1,17 @@
 # Standard
-import abc
 import sys
 
+import abc
 # Third Party
 from django.db.models import Model
-from rest_framework.test import APIRequestFactory
 from requests import Session
+from rest_framework.test import APIRequestFactory
 
 # Local
 import books.models as bm
 import books.serializers as bs
 import members.models as mm
-import members.serializers as ms
+import members.restapi.serializers as ms
 
 
 def has_new_data(older, newer):

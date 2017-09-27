@@ -10,7 +10,6 @@ from typing import Union, Tuple, Optional
 import json
 
 # Third party
-from django.shortcuts import get_object_or_404
 from dateutil.relativedelta import relativedelta
 from django.shortcuts import render
 from django.http import HttpResponse, JsonResponse
@@ -21,9 +20,6 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.conf import settings
 from django.db.models import Q
-from rest_framework import viewsets
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from reportlab.pdfgen import canvas
 from reportlab.graphics.shapes import Drawing
 from reportlab.graphics.barcode.qr import QrCodeWidget
@@ -31,11 +27,9 @@ from reportlab.graphics import renderPDF
 from reportlab.lib.units import inch, mm
 from reportlab.lib.pagesizes import letter
 
-
 # Local
-from members.models import Member, Tag, Tagging, VisitEvent, Membership, DiscoveryMethod, MembershipGiftCardReference, WifiMacDetected
+from members.models import Member, Tag, Tagging, VisitEvent, Membership, DiscoveryMethod
 from members.forms import Desktop_ChooseUserForm
-import members.serializers as ser
 from members.models import GroupMembership
 from abutils.utils import request_is_from_host
 
@@ -272,66 +266,6 @@ def member_tags(request, tag_pk=None, member_pk=None, op=None):
         'staff_addable_tags': staff_addable_tags,
         'visitors': set(visitors),
     })
-
-
-# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = REST API
-
-class MemberViewSet(viewsets.ModelViewSet):
-    """
-    REST API endpoint that allows members to be viewed or edited.
-    """
-    queryset = Member.objects.all()
-    serializer_class = ser.get_MemberSerializer(True)  # Default to privacy.
-    permission_classes = [IsAuthenticated]
-
-    def retrieve(self, request, pk=None):
-        memb = get_object_or_404(self.queryset, pk=pk)
-
-        with_privacy = True
-        is_director = request.user.member.is_tagged_with("Director")
-        is_staff = request.user.member.is_tagged_with("Staff")
-        is_self = request.user.member.pk == memb.pk
-        if is_director or is_staff or is_self:
-            with_privacy = False
-
-        slizer = ser.get_MemberSerializer(with_privacy)(memb)
-        return Response(slizer.data)
-
-
-class MembershipViewSet(viewsets.ModelViewSet):
-    """
-    REST API endpoint that allows memberships to be viewed or edited.
-    """
-    queryset = Membership.objects.all().order_by('-start_date')
-    serializer_class = ser.MembershipSerializer
-    filter_fields = {'ctrlid', 'member'}
-    ordering_fields = {'start_date'}
-
-
-class DiscoveryMethodViewSet(viewsets.ModelViewSet):
-    """
-    REST API endpoint that allows discovery methods to be viewed or edited.
-    """
-    queryset = DiscoveryMethod.objects.all().order_by('order')
-    serializer_class = ser.DiscoveryMethodSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
-
-
-class MembershipGiftCardReferenceViewSet(viewsets.ModelViewSet):
-    """
-    REST API endpoint that allows memberships to be viewed or edited.
-    """
-    queryset = MembershipGiftCardReference.objects.all()
-    serializer_class = ser.MembershipGiftCardReferenceSerializer
-    filter_fields = {'ctrlid'}
-
-
-class WifiMacDetectedViewSet(viewsets.ModelViewSet):
-    """
-    REST API endpoint that allows WiFi MAC detections to be logged.
-    """
-    queryset = WifiMacDetected.objects.all()
-    serializer_class = ser.WifiMacDetectedSerializer
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
