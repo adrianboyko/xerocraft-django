@@ -23,7 +23,7 @@ void loop() {
   Keyboard.begin();
   delay(1000);
 
-  for (int i=0; i<25; i++) {
+  for (int i=0; i<10; i++) {
     Keyboard.print(" ");
     delay(100);
     Keyboard.print("\b");
