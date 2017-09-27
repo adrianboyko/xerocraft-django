@@ -16,7 +16,7 @@ from books.models import Sale, MonetaryDonation, Account
 
 
 try:
-    ACCT_KMKR_CAMPAIGN = Account.objects.get(name="Revenue, KMKR Fundraising Campaign")
+    ACCT_KMKR_CAMPAIGN = Account.objects.get(name="KMKR Campaign Revenue")
 except Account.DoesNotExist as e:
     raise RuntimeError("Couldn't find account: "+str(e))
 
