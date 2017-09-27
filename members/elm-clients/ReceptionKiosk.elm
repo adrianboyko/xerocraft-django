@@ -207,20 +207,22 @@ update msg model =
             (m1, c1) = CreatingAcctScene.tick time model
             (m2, c2) = CheckInScene.tick time model
             (m3, c3) = CheckInDoneScene.tick time model
-            (m4, c4) = NewMemberScene.tick time model
-            (m5, c5) = NewUserScene.tick time model
-            (m6, c6) = ScreenSaverScene.tick time model
+            (m4, c4) = CheckOutDoneScene.tick time model
+            (m5, c5) = NewMemberScene.tick time model
+            (m6, c6) = NewUserScene.tick time model
+            (m7, c7) = ScreenSaverScene.tick time model
             newModel =
               { model
               | creatingAcctModel = m1
               , checkInModel = m2
               , checkInDoneModel = m3
-              , newMemberModel = m4
-              , newUserModel = m5
-              , screenSaverModel = m6
+              , checkOutDoneModel = m4
+              , newMemberModel = m5
+              , newUserModel = m6
+              , screenSaverModel = m7
               }
           in
-            (newModel, Cmd.batch [c1, c2, c3, c4, c5, c6])
+            (newModel, Cmd.batch [c1, c2, c3, c4, c5, c6, c7])
 
     CheckInVector x ->
       let (sm, cmd) = CheckInScene.update x model

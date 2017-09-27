@@ -11,6 +11,14 @@ import Time exposing (Time)
 import ReceptionKiosk.Types exposing (..)
 import Wizard.SceneUtils exposing (..)
 
+
+-----------------------------------------------------------------------------
+-- CONSTANTS
+-----------------------------------------------------------------------------
+
+displayTimeout = 5
+
+
 -----------------------------------------------------------------------------
 -- INIT
 -----------------------------------------------------------------------------
@@ -24,11 +32,13 @@ type alias CheckInDoneModel =
 type alias KioskModel a = (SceneUtilModel {a | checkInDoneModel : CheckInDoneModel})
 
 init : Flags -> (CheckInDoneModel, Cmd Msg)
-init flags = ({displayTimeRemaining=5}, Cmd.none)
+init flags = ({displayTimeRemaining=displayTimeout}, Cmd.none)
+
 
 -----------------------------------------------------------------------------
 -- UPDATE
 -----------------------------------------------------------------------------
+
 
 -----------------------------------------------------------------------------
 -- VIEW
@@ -50,6 +60,7 @@ view kioskModel =
     []
     []
 
+
 -----------------------------------------------------------------------------
 -- TICK (called each second)
 -----------------------------------------------------------------------------
@@ -61,11 +72,7 @@ tick time kioskModel =
     visible = sceneIsVisible kioskModel CheckInDone
     dec = if visible then 1 else 0
     newTimeRemaining = sceneModel.displayTimeRemaining - dec
-    cmd =
-      if newTimeRemaining <= 0 then
-        segueTo Welcome
-      else
-        Cmd.none
+    cmd = if newTimeRemaining <= 0 then segueTo Welcome else Cmd.none
   in
     ({sceneModel | displayTimeRemaining=newTimeRemaining}, cmd)
 
