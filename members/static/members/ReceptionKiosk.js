@@ -25602,11 +25602,15 @@ var _user$project$ReceptionKiosk_ScreenSaverScene$msgDivStyle = _elm_lang$html$H
 		_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'text-align', 'center'),
 		_1: {
 			ctor: '::',
-			_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'color', 'red'),
+			_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'font-size', '36pt'),
 			_1: {
 				ctor: '::',
-				_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'position', 'absolute'),
-				_1: {ctor: '[]'}
+				_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'color', 'red'),
+				_1: {
+					ctor: '::',
+					_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'position', 'absolute'),
+					_1: {ctor: '[]'}
+				}
 			}
 		}
 	});
@@ -25690,16 +25694,16 @@ var _user$project$ReceptionKiosk_ScreenSaverScene$view = function (kioskModel) {
 						{ctor: '[]'}),
 					_1: {
 						ctor: '::',
-						_0: _user$project$Wizard_SceneUtils$vspace(20),
+						_0: _user$project$Wizard_SceneUtils$vspace(30),
 						_1: {
 							ctor: '::',
-							_0: _elm_lang$html$Html$text('START'),
+							_0: _elm_lang$html$Html$text('Tap Screen'),
 							_1: {
 								ctor: '::',
-								_0: _user$project$Wizard_SceneUtils$vspace(20),
+								_0: _user$project$Wizard_SceneUtils$vspace(35),
 								_1: {
 									ctor: '::',
-									_0: _elm_lang$html$Html$text('HERE'),
+									_0: _elm_lang$html$Html$text('To Start'),
 									_1: {ctor: '[]'}
 								}
 							}
@@ -25743,8 +25747,8 @@ var _user$project$ReceptionKiosk_ScreenSaverScene$sceneWillAppear = F2(
 	});
 var _user$project$ReceptionKiosk_ScreenSaverScene$tooLong = 600;
 var _user$project$ReceptionKiosk_ScreenSaverScene$redrawPeriod = 3;
-var _user$project$ReceptionKiosk_ScreenSaverScene$msgDivHeight = 176;
-var _user$project$ReceptionKiosk_ScreenSaverScene$msgDivWidth = 102;
+var _user$project$ReceptionKiosk_ScreenSaverScene$msgDivHeight = 250;
+var _user$project$ReceptionKiosk_ScreenSaverScene$msgDivWidth = 250;
 var _user$project$ReceptionKiosk_ScreenSaverScene$init = function (flags) {
 	var sceneModel = {xPos: ((_user$project$Wizard_SceneUtils$sceneWidth - _user$project$ReceptionKiosk_ScreenSaverScene$msgDivWidth) / 2) | 0, yPos: ((_user$project$Wizard_SceneUtils$sceneHeight - _user$project$ReceptionKiosk_ScreenSaverScene$msgDivHeight) / 2) | 0, secondsSinceSceneChange: 0};
 	return {ctor: '_Tuple2', _0: sceneModel, _1: _elm_lang$core$Platform_Cmd$none};

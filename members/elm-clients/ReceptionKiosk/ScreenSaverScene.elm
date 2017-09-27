@@ -27,8 +27,8 @@ import ReceptionKiosk.Types exposing (..)
 -- CONSTANTS
 -----------------------------------------------------------------------------
 
-msgDivWidth = 102  -- Measured in browser
-msgDivHeight = 176  -- Measured in browser
+msgDivWidth = 250  -- Measured in browser
+msgDivHeight = 250  -- Measured in browser
 redrawPeriod = 3  -- Move msg every redrawPeriod seconds
 tooLong = 600  -- Screen saver will activate after tooLong seconds
 
@@ -127,10 +127,10 @@ view kioskModel =
       [ div [msgDivStyle, positionStyle]
         -- TODO: Do I want to pass all imgs in as flags, as was done with banners?
         [ img [src "/static/bzw_ops/Logo, Light, 100w.png", logoImgStyle] []
-        , vspace 20
-        , text "START"
-        , vspace 20
-        , text "HERE"
+        , vspace 30
+        , text "Tap Screen"
+        , vspace 35
+        , text "To Start"
         ]
       ]
 
@@ -158,6 +158,7 @@ bgDivStyle = style
 
 msgDivStyle = style
   [ "text-align" => "center"
+  , "font-size" => "36pt"
   , "color" => "red"
   , "position" => "absolute"
   ]
