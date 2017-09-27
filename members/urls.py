@@ -1,15 +1,16 @@
 from django.conf.urls import url, include
 from . import views
+from .restapi import views as restviews
 from rest_framework import routers
 
 app_name = "members"  # This is the app namespace not the app name.
 
 router = routers.DefaultRouter()
-router.register(r'members', views.MemberViewSet)
-router.register(r'memberships', views.MembershipViewSet)
-router.register(r'discovery-methods', views.DiscoveryMethodViewSet)
-router.register(r'gift-card-refs', views.MembershipGiftCardReferenceViewSet)
-router.register(r'wifi-mac-detected', views.WifiMacDetectedViewSet)
+router.register(r'members', restviews.MemberViewSet)
+router.register(r'memberships', restviews.MembershipViewSet)
+router.register(r'discovery-methods', restviews.DiscoveryMethodViewSet)
+router.register(r'gift-card-refs', restviews.MembershipGiftCardReferenceViewSet)
+router.register(r'wifi-mac-detected', restviews.WifiMacDetectedViewSet)
 
 urlpatterns = [
 
