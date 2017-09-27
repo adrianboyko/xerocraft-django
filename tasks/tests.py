@@ -77,11 +77,11 @@ class Test_VerifyClaim_Base(LiveServerTestCase):
         management.call_command("scheduletasks", "0")
         self.task = rt.instances.all()[0]
 
-        display = Display(visible=0, size=(800, 800))
-        display.start()
-        DRIVER = "/usr/lib/chromium-browser/chromedriver"
-        os.environ["webdriver.chrome.driver"] = DRIVER
-        self.browser = webdriver.Chrome(DRIVER)
+        # display = Display(visible=0, size=(800, 800))
+        # display.start()
+        DRIVER = "/usr/local/bin/geckodriver"
+        # os.environ["webdriver.firefox.driver"] = DRIVER
+        self.browser = webdriver.Firefox(executable_path=DRIVER)
 
         try:
             for offset in range(-4, 2):
