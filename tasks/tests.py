@@ -77,8 +77,8 @@ class Test_VerifyClaim_Base(LiveServerTestCase):
         management.call_command("scheduletasks", "0")
         self.task = rt.instances.all()[0]
 
-        # display = Display(visible=0, size=(800, 800))
-        # display.start()
+        display = Display(visible=0, size=(1024, 768))
+        display.start()
         DRIVER = "/usr/local/bin/geckodriver"
         # os.environ["webdriver.firefox.driver"] = DRIVER
         self.browser = webdriver.Firefox(executable_path=DRIVER)
@@ -96,6 +96,7 @@ class Test_VerifyClaim_Base(LiveServerTestCase):
                         getattr(self, method_name)()
         finally:
             self.browser.quit()
+            display.stop()
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
