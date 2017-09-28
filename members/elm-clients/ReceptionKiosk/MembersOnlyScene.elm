@@ -67,14 +67,12 @@ sceneWillAppear kioskModel appearingScene =
 --      (sceneModel, getTimeBlocks kioskModel)
 --
 --    MembersOnly ->
---      case sceneModel.currTimeBlock of
---        Just block ->
---          (sceneModel, Cmd.none)
---        Nothing ->
---          (sceneModel, segueTo CheckInDone)
+--      if sceneModel.currTimeBlock == Nothing || List.isEmpty sceneModel.currTimeBlockTypes
+--        then (sceneModel, segueTo CheckInDone)
+--        else (sceneModel, Cmd.none)
 
     _ ->
-      (kioskModel.membersOnlyModel, Cmd.none)
+      (sceneModel, Cmd.none)
 
 -----------------------------------------------------------------------------
 -- UPDATE
@@ -93,7 +91,7 @@ update msg kioskModel =
         blocks = pageOfTimeBlocks.results
         nowBlocks = List.filter .isNow blocks
         currBlock = List.head nowBlocks
-        followUpCmd = getTimeBlockTypes kioskModel
+        followUpCmd = if List.isEmpty nowBlocks then Cmd.none else getTimeBlockTypes kioskModel
       in
         ({sceneModel | badNews = [], currTimeBlock = currBlock }, followUpCmd)
 
@@ -132,8 +130,8 @@ view kioskModel =
     sceneModel = kioskModel.membersOnlyModel
   in
     genericScene kioskModel
-      "Members Only Time"
-      "Is your membership up to date?"
+      "Supporting Members Only"
+      "Is your supporting membership up to date?"
       (div []
         (
         [ case sceneModel.currTimeBlock of

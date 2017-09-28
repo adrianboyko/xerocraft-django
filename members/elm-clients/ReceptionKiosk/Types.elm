@@ -19,7 +19,8 @@ import OpsApi exposing (..)
 
 -- This type can move into ReceiptionKiosk.elm, but for the banner fields.
 type alias Flags =
-  { addDiscoveryMethodUrl : String
+  { uniqueKioskId : String
+  , addDiscoveryMethodUrl : String
   , bannerBottomUrl : String
   , bannerTopUrl : String
   , checkedInAcctsUrl : String
