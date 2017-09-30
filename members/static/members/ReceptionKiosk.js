@@ -22788,6 +22788,11 @@ var _user$project$Wizard_SceneUtils$setFocusIfNoFocus = _elm_lang$core$Native_Pl
 		return v;
 	});
 var _user$project$Wizard_SceneUtils$focusWasSet = _elm_lang$core$Native_Platform.incomingPort('focusWasSet', _elm_lang$core$Json_Decode$bool);
+var _user$project$Wizard_SceneUtils$hideKeyboard = _elm_lang$core$Native_Platform.outgoingPort(
+	'hideKeyboard',
+	function (v) {
+		return null;
+	});
 var _user$project$Wizard_SceneUtils$ButtonSpec = F2(
 	function (a, b) {
 		return {title: a, msg: b};
@@ -22941,20 +22946,6 @@ var _user$project$ReceptionKiosk_CheckInScene$view = function (kioskModel) {
 		{ctor: '[]'},
 		sceneModel.badNews);
 };
-var _user$project$ReceptionKiosk_CheckInScene$tick = F2(
-	function (time, kioskModel) {
-		var visible = A2(_user$project$Wizard_SceneUtils$sceneIsVisible, kioskModel, _user$project$ReceptionKiosk_Types$CheckIn);
-		var inc = visible ? 1 : 0;
-		var sceneModel = kioskModel.checkInModel;
-		var newSecondsIdle = sceneModel.secondsIdle + inc;
-		var newSceneModel = _elm_lang$core$Native_Utils.update(
-			sceneModel,
-			{secondsIdle: newSecondsIdle});
-		var setFocusCmd = sceneModel.doneWithFocus ? _elm_lang$core$Platform_Cmd$none : _user$project$Wizard_SceneUtils$setFocusIfNoFocus(
-			_elm_lang$core$Basics$toString(_user$project$ReceptionKiosk_CheckInScene$idxFlexId));
-		var cmd = (_elm_lang$core$Native_Utils.cmp(newSecondsIdle, 30) > 0) ? _user$project$Wizard_SceneUtils$segueTo(_user$project$ReceptionKiosk_Types$Welcome) : setFocusCmd;
-		return visible ? {ctor: '_Tuple2', _0: newSceneModel, _1: cmd} : {ctor: '_Tuple2', _0: newSceneModel, _1: _elm_lang$core$Platform_Cmd$none};
-	});
 var _user$project$ReceptionKiosk_CheckInScene$update = F2(
 	function (msg, kioskModel) {
 		var sceneModel = kioskModel.checkInModel;
@@ -23046,6 +23037,21 @@ var _user$project$ReceptionKiosk_CheckInScene$init = function (flags) {
 	};
 	return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
 };
+var _user$project$ReceptionKiosk_CheckInScene$maxIdleSeconds = 30;
+var _user$project$ReceptionKiosk_CheckInScene$tick = F2(
+	function (time, kioskModel) {
+		var visible = A2(_user$project$Wizard_SceneUtils$sceneIsVisible, kioskModel, _user$project$ReceptionKiosk_Types$CheckIn);
+		var inc = visible ? 1 : 0;
+		var sceneModel = kioskModel.checkInModel;
+		var newSecondsIdle = sceneModel.secondsIdle + inc;
+		var newSceneModel = _elm_lang$core$Native_Utils.update(
+			sceneModel,
+			{secondsIdle: newSecondsIdle});
+		var setFocusCmd = sceneModel.doneWithFocus ? _elm_lang$core$Platform_Cmd$none : _user$project$Wizard_SceneUtils$setFocusIfNoFocus(
+			_elm_lang$core$Basics$toString(_user$project$ReceptionKiosk_CheckInScene$idxFlexId));
+		var cmd = (_elm_lang$core$Native_Utils.cmp(newSecondsIdle, _user$project$ReceptionKiosk_CheckInScene$maxIdleSeconds) > 0) ? _user$project$Wizard_SceneUtils$segueTo(_user$project$ReceptionKiosk_Types$Welcome) : setFocusCmd;
+		return visible ? {ctor: '_Tuple2', _0: newSceneModel, _1: cmd} : {ctor: '_Tuple2', _0: newSceneModel, _1: _elm_lang$core$Platform_Cmd$none};
+	});
 var _user$project$ReceptionKiosk_CheckInScene$CheckInModel = F6(
 	function (a, b, c, d, e, f) {
 		return {flexId: a, secondsIdle: b, matches: c, memberNum: d, doneWithFocus: e, badNews: f};
@@ -25786,7 +25792,7 @@ var _user$project$ReceptionKiosk_ScreenSaverScene$sceneWillAppear = F2(
 			_1: _elm_lang$core$Platform_Cmd$none
 		};
 	});
-var _user$project$ReceptionKiosk_ScreenSaverScene$tooLong = 600;
+var _user$project$ReceptionKiosk_ScreenSaverScene$tooLong = 900;
 var _user$project$ReceptionKiosk_ScreenSaverScene$redrawPeriod = 3;
 var _user$project$ReceptionKiosk_ScreenSaverScene$msgDivHeight = 250;
 var _user$project$ReceptionKiosk_ScreenSaverScene$msgDivWidth = 250;
@@ -26307,13 +26313,22 @@ var _user$project$ReceptionKiosk_WelcomeScene$view = function (kioskModel) {
 var _user$project$ReceptionKiosk_WelcomeScene$sceneWillAppear = F2(
 	function (kioskModel, appearingScene) {
 		if (_elm_lang$core$Native_Utils.eq(appearingScene, _user$project$ReceptionKiosk_Types$Welcome)) {
+			var cmd2 = _user$project$Wizard_SceneUtils$send(
+				_user$project$ReceptionKiosk_Types$WizardVector(_user$project$ReceptionKiosk_Types$Reset));
+			var cmd1 = _user$project$Wizard_SceneUtils$hideKeyboard(
+				{ctor: '_Tuple0'});
+			var cmds = _elm_lang$core$Platform_Cmd$batch(
+				{
+					ctor: '::',
+					_0: cmd1,
+					_1: {
+						ctor: '::',
+						_0: cmd2,
+						_1: {ctor: '[]'}
+					}
+				});
 			var sceneModel = kioskModel.welcomeModel;
-			return {
-				ctor: '_Tuple2',
-				_0: sceneModel,
-				_1: _user$project$Wizard_SceneUtils$send(
-					_user$project$ReceptionKiosk_Types$WizardVector(_user$project$ReceptionKiosk_Types$Reset))
-			};
+			return {ctor: '_Tuple2', _0: sceneModel, _1: cmds};
 		} else {
 			return {ctor: '_Tuple2', _0: kioskModel.welcomeModel, _1: _elm_lang$core$Platform_Cmd$none};
 		}

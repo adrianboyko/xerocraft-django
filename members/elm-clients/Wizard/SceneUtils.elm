@@ -17,6 +17,7 @@ port module Wizard.SceneUtils exposing
   , send
   , segueTo
   , setFocusIfNoFocus
+  , hideKeyboard
   , focusWasSet
   , sceneIsVisible
   )
@@ -45,7 +46,7 @@ import ReceptionKiosk.Types exposing (..)
 
 {-| Sets focus on the element with the given id but ONLY IF there is NOT
 an element that already has focus. Since scenes appear with no default
-focus, use this to set one.
+focus, use this to set one. This will also showKeyboard().
 -}
 port setFocusIfNoFocus : String -> Cmd msg
 
@@ -54,6 +55,11 @@ If focus is successfully set, a True will be sent back via this port, else
 a False will be sent.
 -}
 port focusWasSet : (Bool -> msg) -> Sub msg
+
+{-| This will hide the keyboard using the Kiosk App's API.
+-}
+port hideKeyboard : () -> Cmd msg  -- Note that () might go away, per https://github.com/evancz/guide.elm-lang.org/issues/34
+
 
 -----------------------------------------------------------------------------
 -- MISC

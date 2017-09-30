@@ -83,9 +83,9 @@
             uniqueKioskId = Android.getUniqueIdentifier();
         }
         catch(err) {
-            // This is for the test enviornment which is not running inside the kiosk app.
-            // This ID can be used to authenticate within the test environment only.
-            uniqueKioskId = "ffff0000-ffff-0000-ffff-0000ffff0000"
+            // This ID only authenticates within the test environment.
+            // The "test kiosk" is a regular browser (not the kiosk app) so we need to provide a fake ID.
+            uniqueKioskId = "testkiosk"
         }
         var csrfToken = Cookies.get('csrftoken');
         var flags = {
@@ -161,10 +161,21 @@
             app.ports.focusWasSet.send(false);
         }
 
+        function hideKeyboard(unit) {
+            try {
+                // Use Kiosk API to hide keyboard.
+                Android.hideKeyboard();
+            }
+            catch (err) {
+                // Test environment will end up here. Ignore the exception.
+            }
+        }
+
         app.ports.initSignaturePad.subscribe(initSignaturePad);
         app.ports.clearSignaturePad.subscribe(clearSignaturePad);
         app.ports.sendSignatureImage.subscribe(sendSignatureImage);
         app.ports.setFocusIfNoFocus.subscribe(setFocusIfNoFocus);
+        app.ports.hideKeyboard.subscribe(hideKeyboard);
 
     </script>
 </body>
