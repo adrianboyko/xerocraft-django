@@ -1,5 +1,12 @@
 
-module ReceptionKiosk.CheckInScene exposing (init, view, update, tick, subscriptions, CheckInModel)
+module ReceptionKiosk.CheckInScene exposing
+  ( init
+  , view
+  , update
+  , tick
+  , subscriptions
+  , CheckInModel
+  )
 
 -- Standard
 import Html exposing (Html, div, text, audio)
@@ -19,6 +26,13 @@ import MembersApi as MembersApi
 
 -- TODO: Before user types flexid, could show usernames of recent RFID swipers?
 -- TODO: If user is signing in after acct creation, show a username hint?
+
+-----------------------------------------------------------------------------
+-- CONSTANTS
+-----------------------------------------------------------------------------
+
+maxIdleSeconds = 30
+
 
 -----------------------------------------------------------------------------
 -- INIT
@@ -48,6 +62,7 @@ init flags =
     , badNews = []
     }
   in (model, Cmd.none)
+
 
 -----------------------------------------------------------------------------
 -- UPDATE
@@ -146,7 +161,7 @@ tick time kioskModel =
     newSceneModel = {sceneModel | secondsIdle = newSecondsIdle}
     setFocusCmd = if sceneModel.doneWithFocus then Cmd.none else idxFlexId |> toString |> setFocusIfNoFocus
     cmd =
-       if newSecondsIdle > 30
+       if newSecondsIdle > maxIdleSeconds
          then segueTo Welcome
          else setFocusCmd
   in
