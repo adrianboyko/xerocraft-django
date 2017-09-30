@@ -30,7 +30,8 @@ import ReceptionKiosk.Types exposing (..)
 msgDivWidth = 250  -- Measured in browser
 msgDivHeight = 250  -- Measured in browser
 redrawPeriod = 3  -- Move msg every redrawPeriod seconds
-tooLong = 600  -- Screen saver will activate after tooLong seconds
+tooLong = 900  -- Screen saver will activate after tooLong seconds
+
 
 -----------------------------------------------------------------------------
 -- INIT
