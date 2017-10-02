@@ -108,7 +108,8 @@ type HowDidYouHearMsg
   | ToggleDiscoveryMethod DiscoveryMethod
 
 type MembersOnlyMsg
-  = UpdateTimeBlocks (Result Http.Error PageOfTimeBlocks)
+  = UpdateMemberships (Result Http.Error PageOfMemberships)
+  | UpdateTimeBlocks (Result Http.Error PageOfTimeBlocks)
   | UpdateTimeBlockTypes (Result Http.Error PageOfTimeBlockTypes)
 
 type NewMemberMsg

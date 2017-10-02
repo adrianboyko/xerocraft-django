@@ -5,6 +5,7 @@
     "license": "BSD3",
     "source-directories": [
         ".",
+        "../../abutils/elm-clients",
         "../../tasks/elm-clients",
         "../../xis/elm-clients",
         "../../bzw_ops/elm-clients"

@@ -20710,6 +20710,36 @@ var _rluiten$elm_date_extra$Date_Extra_Format$utcIsoString = function (date) {
 };
 var _rluiten$elm_date_extra$Date_Extra_Format$isoFormat = '%Y-%m-%dT%H:%M:%S';
 
+var _user$project$DjangoRestFramework$authenticationHeader = function (token) {
+	return A2(
+		_elm_lang$http$Http$header,
+		'Authorization',
+		A2(_elm_lang$core$Basics_ops['++'], 'Token ', token));
+};
+var _user$project$DjangoRestFramework$PageOf = F4(
+	function (a, b, c, d) {
+		return {count: a, next: b, previous: c, results: d};
+	});
+var _user$project$DjangoRestFramework$decodePageOf = function (decoder) {
+	return A3(
+		_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
+		'results',
+		_elm_lang$core$Json_Decode$list(decoder),
+		A3(
+			_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
+			'previous',
+			_elm_lang$core$Json_Decode$maybe(_elm_lang$core$Json_Decode$string),
+			A3(
+				_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
+				'next',
+				_elm_lang$core$Json_Decode$maybe(_elm_lang$core$Json_Decode$string),
+				A3(
+					_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
+					'count',
+					_elm_lang$core$Json_Decode$int,
+					_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$decode(_user$project$DjangoRestFramework$PageOf)))));
+};
+
 var _user$project$MembersApi$addDiscoveryMethods = F5(
 	function (flags, username, userpw, methodPks, resultToMsg) {
 		var oneCmd = function (req) {
@@ -20882,19 +20912,23 @@ var _user$project$MembersApi$createNewAcct = F7(
 			});
 		return A2(_elm_lang$http$Http$send, thing, request);
 	});
-var _user$project$MembersApi$replaceAll = F3(
-	function (oldSub, newSub, theString) {
+var _user$project$MembersApi$replaceAll = F2(
+	function (_p1, whole) {
+		var _p2 = _p1;
 		return A4(
 			_elm_lang$core$Regex$replace,
 			_elm_lang$core$Regex$All,
-			_elm_lang$core$Regex$regex(oldSub),
-			function (_p1) {
-				return newSub;
+			_elm_lang$core$Regex$regex(_p2.oldSub),
+			function (_p3) {
+				return _p2.newSub;
 			},
-			theString);
+			whole);
 	});
 var _user$project$MembersApi$djangoizeId = function (rawId) {
-	return A3(_user$project$MembersApi$replaceAll, '[^-a-zA-Z0-9_@+.]', '_', rawId);
+	return A2(
+		_user$project$MembersApi$replaceAll,
+		{oldSub: '[^-a-zA-Z0-9_@+.]', newSub: '_'},
+		rawId);
 };
 var _user$project$MembersApi$MatchingAcct = F2(
 	function (a, b) {
@@ -20925,10 +20959,9 @@ var _user$project$MembersApi$getCheckedInAccts = F2(
 	});
 var _user$project$MembersApi$getMatchingAccts = F3(
 	function (flags, flexId, thing) {
-		var url = A3(
+		var url = A2(
 			_user$project$MembersApi$replaceAll,
-			'FLEXID',
-			flexId,
+			{oldSub: 'FLEXID', newSub: flexId},
 			A2(_elm_lang$core$Basics_ops['++'], flags.matchingAcctsUrl, '?format=json'));
 		var request = A2(_elm_lang$http$Http$get, url, _user$project$MembersApi$decodeMatchingAcctInfo);
 		return A2(_elm_lang$http$Http$send, thing, request);
@@ -20989,8 +21022,8 @@ var _user$project$MembersApi$decodeGenericResult = A2(
 var _user$project$MembersApi$logVisitEvent = F5(
 	function (flags, memberPK, eventType, reason, thing) {
 		var reasonVal = function () {
-			var _p2 = reason;
-			switch (_p2.ctor) {
+			var _p4 = reason;
+			switch (_p4.ctor) {
 				case 'Curiousity':
 					return 'CUR';
 				case 'ClassParticipant':
@@ -21006,8 +21039,8 @@ var _user$project$MembersApi$logVisitEvent = F5(
 			}
 		}();
 		var eventVal = function () {
-			var _p3 = eventType;
-			switch (_p3.ctor) {
+			var _p5 = eventType;
+			switch (_p5.ctor) {
 				case 'Arrival':
 					return 'A';
 				case 'Present':
@@ -21046,13 +21079,79 @@ var _user$project$MembersApi$logVisitEvent = F5(
 					}
 				}
 			});
-		var url = A3(
+		var url = A2(
 			_user$project$MembersApi$replaceAll,
-			'/12345_A_OTH/',
-			params,
+			{oldSub: '/12345_A_OTH/', newSub: params},
 			A2(_elm_lang$core$Basics_ops['++'], flags.logVisitEventUrl, '?format=json'));
 		var request = A2(_elm_lang$http$Http$get, url, _user$project$MembersApi$decodeGenericResult);
 		return A2(_elm_lang$http$Http$send, thing, request);
+	});
+var _user$project$MembersApi$Membership = F8(
+	function (a, b, c, d, e, f, g, h) {
+		return {id: a, member: b, startDate: c, endDate: d, sale: e, sale_price: f, ctrlid: g, $protected: h};
+	});
+var _user$project$MembersApi$decodeMembership = A3(
+	_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
+	'protected',
+	_elm_lang$core$Json_Decode$bool,
+	A3(
+		_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
+		'ctrlid',
+		_elm_lang$core$Json_Decode$string,
+		A3(
+			_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
+			'sale_price',
+			_elm_lang$core$Json_Decode$string,
+			A3(
+				_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
+				'sale',
+				_elm_lang$core$Json_Decode$int,
+				A3(
+					_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
+					'end-date',
+					_elm_lang$core$Json_Decode$string,
+					A3(
+						_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
+						'start-date',
+						_elm_lang$core$Json_Decode$string,
+						A3(
+							_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
+							'member',
+							_elm_lang$core$Json_Decode$string,
+							A3(
+								_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
+								'id',
+								_elm_lang$core$Json_Decode$int,
+								_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$decode(_user$project$MembersApi$Membership)))))))));
+var _user$project$MembersApi$getMemberships = F3(
+	function (flags, memberNum, resultToMsg) {
+		var placeHolder = 'MEMBERNUM';
+		var urlPattern = A2(
+			_elm_lang$core$Basics_ops['++'],
+			'/members/api/memberships/?format=json&member=',
+			A2(_elm_lang$core$Basics_ops['++'], placeHolder, '&ordering=-start_date'));
+		var request = _elm_lang$http$Http$request(
+			{
+				method: 'GET',
+				url: A2(
+					_user$project$MembersApi$replaceAll,
+					{
+						oldSub: placeHolder,
+						newSub: _elm_lang$core$Basics$toString(memberNum)
+					},
+					urlPattern),
+				headers: {
+					ctor: '::',
+					_0: _user$project$DjangoRestFramework$authenticationHeader(flags.uniqueKioskId),
+					_1: {ctor: '[]'}
+				},
+				withCredentials: false,
+				body: _elm_lang$http$Http$emptyBody,
+				timeout: _elm_lang$core$Maybe$Nothing,
+				expect: _elm_lang$http$Http$expectJson(
+					_user$project$DjangoRestFramework$decodePageOf(_user$project$MembersApi$decodeMembership))
+			});
+		return A2(_elm_lang$http$Http$send, resultToMsg, request);
 	});
 var _user$project$MembersApi$Departure = {ctor: 'Departure'};
 var _user$project$MembersApi$Present = {ctor: 'Present'};
@@ -21207,6 +21306,14 @@ var _user$project$OpsApi$decodeTimeBlock = A3(
 																		'id',
 																		_elm_lang$core$Json_Decode$int,
 																		_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$decode(_user$project$OpsApi$TimeBlock)))))))))))))))))));
+var _user$project$OpsApi$getTimeBlocks = F2(
+	function (model, resultToMsg) {
+		var request = A2(
+			_elm_lang$http$Http$get,
+			model.timeBlocksUrl,
+			_user$project$DjangoRestFramework$decodePageOf(_user$project$OpsApi$decodeTimeBlock));
+		return A2(_elm_lang$http$Http$send, resultToMsg, request);
+	});
 var _user$project$OpsApi$TimeBlockType = F3(
 	function (a, b, c) {
 		return {id: a, name: b, description: c};
@@ -21217,43 +21324,12 @@ var _user$project$OpsApi$decodeTimeBlockType = A4(
 	A2(_elm_lang$core$Json_Decode$field, 'id', _elm_lang$core$Json_Decode$int),
 	A2(_elm_lang$core$Json_Decode$field, 'name', _elm_lang$core$Json_Decode$string),
 	A2(_elm_lang$core$Json_Decode$field, 'description', _elm_lang$core$Json_Decode$string));
-var _user$project$OpsApi$PageOf = F4(
-	function (a, b, c, d) {
-		return {count: a, next: b, previous: c, results: d};
-	});
-var _user$project$OpsApi$decodePageOf = function (decoder) {
-	return A3(
-		_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
-		'results',
-		_elm_lang$core$Json_Decode$list(decoder),
-		A3(
-			_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
-			'previous',
-			_elm_lang$core$Json_Decode$maybe(_elm_lang$core$Json_Decode$string),
-			A3(
-				_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
-				'next',
-				_elm_lang$core$Json_Decode$maybe(_elm_lang$core$Json_Decode$string),
-				A3(
-					_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
-					'count',
-					_elm_lang$core$Json_Decode$int,
-					_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$decode(_user$project$OpsApi$PageOf)))));
-};
-var _user$project$OpsApi$getTimeBlocks = F2(
-	function (model, resultToMsg) {
-		var request = A2(
-			_elm_lang$http$Http$get,
-			model.timeBlocksUrl,
-			_user$project$OpsApi$decodePageOf(_user$project$OpsApi$decodeTimeBlock));
-		return A2(_elm_lang$http$Http$send, resultToMsg, request);
-	});
 var _user$project$OpsApi$getTimeBlockTypes = F2(
 	function (model, resultToMsg) {
 		var request = A2(
 			_elm_lang$http$Http$get,
 			model.timeBlockTypesUrl,
-			_user$project$OpsApi$decodePageOf(_user$project$OpsApi$decodeTimeBlockType));
+			_user$project$DjangoRestFramework$decodePageOf(_user$project$OpsApi$decodeTimeBlockType));
 		return A2(_elm_lang$http$Http$send, resultToMsg, request);
 	});
 
@@ -21860,6 +21936,9 @@ var _user$project$ReceptionKiosk_Types$UpdateTimeBlockTypes = function (a) {
 };
 var _user$project$ReceptionKiosk_Types$UpdateTimeBlocks = function (a) {
 	return {ctor: 'UpdateTimeBlocks', _0: a};
+};
+var _user$project$ReceptionKiosk_Types$UpdateMemberships = function (a) {
+	return {ctor: 'UpdateMemberships', _0: a};
 };
 var _user$project$ReceptionKiosk_Types$FirstNameFocusSet = function (a) {
 	return {ctor: 'FirstNameFocusSet', _0: a};
@@ -23593,7 +23672,7 @@ var _user$project$ReceptionKiosk_ReasonForVisitScene$update = F2(
 									return {
 										ctor: '_Tuple2',
 										_0: sceneModel,
-										_1: _user$project$Wizard_SceneUtils$segueTo(_user$project$ReceptionKiosk_Types$CheckInDone)
+										_1: _user$project$Wizard_SceneUtils$segueTo(_user$project$ReceptionKiosk_Types$MembersOnly)
 									};
 								default:
 									break _v4_2;
@@ -25471,20 +25550,33 @@ var _user$project$ReceptionKiosk_SignUpDoneScene$init = function (flags) {
 };
 var _user$project$ReceptionKiosk_SignUpDoneScene$SignUpDoneModel = {};
 
+var _user$project$ReceptionKiosk_MembersOnlyScene$getMemberships = F2(
+	function (kioskModel, memberNum) {
+		return A3(
+			_user$project$MembersApi$getMemberships,
+			kioskModel.flags,
+			memberNum,
+			function (_p0) {
+				return _user$project$ReceptionKiosk_Types$MembersOnlyVector(
+					_user$project$ReceptionKiosk_Types$UpdateMemberships(_p0));
+			});
+	});
 var _user$project$ReceptionKiosk_MembersOnlyScene$getTimeBlockTypes = function (kioskModel) {
-	var getTimeBlockTypesFn = _user$project$OpsApi$getTimeBlockTypes(kioskModel.flags);
-	return getTimeBlockTypesFn(
-		function (_p0) {
+	return A2(
+		_user$project$OpsApi$getTimeBlockTypes,
+		kioskModel.flags,
+		function (_p1) {
 			return _user$project$ReceptionKiosk_Types$MembersOnlyVector(
-				_user$project$ReceptionKiosk_Types$UpdateTimeBlockTypes(_p0));
+				_user$project$ReceptionKiosk_Types$UpdateTimeBlockTypes(_p1));
 		});
 };
 var _user$project$ReceptionKiosk_MembersOnlyScene$getTimeBlocks = function (kioskModel) {
-	var getTimeBlocksFn = _user$project$OpsApi$getTimeBlocks(kioskModel.flags);
-	return getTimeBlocksFn(
-		function (_p1) {
+	return A2(
+		_user$project$OpsApi$getTimeBlocks,
+		kioskModel.flags,
+		function (_p2) {
 			return _user$project$ReceptionKiosk_Types$MembersOnlyVector(
-				_user$project$ReceptionKiosk_Types$UpdateTimeBlocks(_p1));
+				_user$project$ReceptionKiosk_Types$UpdateTimeBlocks(_p2));
 		});
 };
 var _user$project$ReceptionKiosk_MembersOnlyScene$view = function (kioskModel) {
@@ -25502,137 +25594,213 @@ var _user$project$ReceptionKiosk_MembersOnlyScene$view = function (kioskModel) {
 				{
 					ctor: '::',
 					_0: function () {
-						var _p2 = sceneModel.currTimeBlock;
-						if (_p2.ctor === 'Nothing') {
-							return _elm_lang$html$Html$text('not in block');
+						var _p3 = sceneModel.block;
+						if (_p3.ctor === 'Received') {
+							if (_p3._0.ctor === 'Nothing') {
+								return _elm_lang$html$Html$text('not in block');
+							} else {
+								return _elm_lang$html$Html$text(_p3._0._0.startTime);
+							}
 						} else {
-							return _elm_lang$html$Html$text(_p2._0.startTime);
+							return _elm_lang$html$Html$text('Shouldn\'t happen.');
 						}
 					}(),
 					_1: {ctor: '[]'}
 				},
-				A2(
-					_elm_lang$core$List$map,
-					function (x) {
-						return _elm_lang$html$Html$text(x.name);
-					},
-					sceneModel.currTimeBlockTypes))),
+				function () {
+					var _p4 = sceneModel.types;
+					if (_p4.ctor === 'Received') {
+						return A2(
+							_elm_lang$core$List$map,
+							function (x) {
+								return _elm_lang$html$Html$text(x.name);
+							},
+							_p4._0);
+					} else {
+						return {ctor: '[]'};
+					}
+				}())),
 		{ctor: '[]'},
 		{ctor: '[]'});
+};
+var _user$project$ReceptionKiosk_MembersOnlyScene$received = function (x) {
+	var _p5 = x;
+	if (_p5.ctor === 'Received') {
+		return true;
+	} else {
+		return false;
+	}
+};
+var _user$project$ReceptionKiosk_MembersOnlyScene$sceneWillAppear = F2(
+	function (kioskModel, appearingScene) {
+		var sceneModel = kioskModel.membersOnlyModel;
+		var _p6 = appearingScene;
+		switch (_p6.ctor) {
+			case 'ReasonForVisit':
+				var cmd1 = _user$project$ReceptionKiosk_MembersOnlyScene$getTimeBlocks(kioskModel);
+				var memberNum = kioskModel.checkInModel.memberNum;
+				var cmd2 = A2(_user$project$ReceptionKiosk_MembersOnlyScene$getMemberships, kioskModel, memberNum);
+				var cmds = _elm_lang$core$Platform_Cmd$batch(
+					{
+						ctor: '::',
+						_0: cmd1,
+						_1: {
+							ctor: '::',
+							_0: cmd2,
+							_1: {ctor: '[]'}
+						}
+					});
+				return {ctor: '_Tuple2', _0: sceneModel, _1: cmds};
+			case 'MembersOnly':
+				return (_user$project$ReceptionKiosk_MembersOnlyScene$received(sceneModel.block) || _user$project$ReceptionKiosk_MembersOnlyScene$received(sceneModel.memberships)) ? {ctor: '_Tuple2', _0: sceneModel, _1: _elm_lang$core$Platform_Cmd$none} : {
+					ctor: '_Tuple2',
+					_0: sceneModel,
+					_1: _user$project$Wizard_SceneUtils$segueTo(_user$project$ReceptionKiosk_Types$CheckInDone)
+				};
+			default:
+				return {ctor: '_Tuple2', _0: sceneModel, _1: _elm_lang$core$Platform_Cmd$none};
+		}
+	});
+var _user$project$ReceptionKiosk_MembersOnlyScene$MembersOnlyModel = F4(
+	function (a, b, c, d) {
+		return {block: a, types: b, memberships: c, badNews: d};
+	});
+var _user$project$ReceptionKiosk_MembersOnlyScene$Failed = function (a) {
+	return {ctor: 'Failed', _0: a};
+};
+var _user$project$ReceptionKiosk_MembersOnlyScene$Received = function (a) {
+	return {ctor: 'Received', _0: a};
 };
 var _user$project$ReceptionKiosk_MembersOnlyScene$update = F2(
 	function (msg, kioskModel) {
 		var sceneModel = kioskModel.membersOnlyModel;
-		var _p3 = msg;
-		if (_p3.ctor === 'UpdateTimeBlocks') {
-			if (_p3._0.ctor === 'Ok') {
-				var blocks = _p3._0._0.results;
-				var nowBlocks = A2(
-					_elm_lang$core$List$filter,
-					function (_) {
-						return _.isNow;
-					},
-					blocks);
-				var currBlock = _elm_lang$core$List$head(nowBlocks);
-				var followUpCmd = _elm_lang$core$List$isEmpty(nowBlocks) ? _elm_lang$core$Platform_Cmd$none : _user$project$ReceptionKiosk_MembersOnlyScene$getTimeBlockTypes(kioskModel);
-				return {
-					ctor: '_Tuple2',
-					_0: _elm_lang$core$Native_Utils.update(
-						sceneModel,
-						{
-							badNews: {ctor: '[]'},
-							currTimeBlock: currBlock
-						}),
-					_1: followUpCmd
-				};
-			} else {
-				return {
-					ctor: '_Tuple2',
-					_0: _elm_lang$core$Native_Utils.update(
-						sceneModel,
-						{
-							badNews: {
-								ctor: '::',
-								_0: _elm_lang$core$Basics$toString(_p3._0._0),
-								_1: {ctor: '[]'}
-							}
-						}),
-					_1: _elm_lang$core$Platform_Cmd$none
-				};
-			}
-		} else {
-			if (_p3._0.ctor === 'Ok') {
-				var _p4 = sceneModel.currTimeBlock;
-				if (_p4.ctor === 'Just') {
-					var relatedBlockTypeIds = A2(_elm_lang$core$List$map, _user$project$OpsApi$getIdFromUrl, _p4._0.types);
-					var isRelatedBlockType = function (x) {
-						return A2(
-							_elm_lang$core$List$member,
-							_elm_lang$core$Result$Ok(x.id),
-							relatedBlockTypeIds);
-					};
-					var allBlockTypes = _p3._0._0.results;
-					var currBlockTypes = A2(_elm_lang$core$List$filter, isRelatedBlockType, allBlockTypes);
+		var _p7 = msg;
+		switch (_p7.ctor) {
+			case 'UpdateTimeBlocks':
+				if (_p7._0.ctor === 'Ok') {
+					var blocks = _p7._0._0.results;
+					var nowBlocks = A2(
+						_elm_lang$core$List$filter,
+						function (_) {
+							return _.isNow;
+						},
+						blocks);
+					var currBlock = _elm_lang$core$List$head(nowBlocks);
+					var followUpCmd = _elm_lang$core$List$isEmpty(nowBlocks) ? _elm_lang$core$Platform_Cmd$none : _user$project$ReceptionKiosk_MembersOnlyScene$getTimeBlockTypes(kioskModel);
 					return {
 						ctor: '_Tuple2',
 						_0: _elm_lang$core$Native_Utils.update(
 							sceneModel,
 							{
-								badNews: {ctor: '[]'},
-								currTimeBlockTypes: currBlockTypes
+								block: _user$project$ReceptionKiosk_MembersOnlyScene$Received(currBlock)
+							}),
+						_1: followUpCmd
+					};
+				} else {
+					var msg = A2(
+						_elm_lang$core$Debug$log,
+						'Error getting time blocks: ',
+						_elm_lang$core$Basics$toString(_p7._0._0));
+					return {
+						ctor: '_Tuple2',
+						_0: _elm_lang$core$Native_Utils.update(
+							sceneModel,
+							{
+								block: _user$project$ReceptionKiosk_MembersOnlyScene$Failed(msg)
+							}),
+						_1: _elm_lang$core$Platform_Cmd$none
+					};
+				}
+			case 'UpdateTimeBlockTypes':
+				if (_p7._0.ctor === 'Ok') {
+					var impossibleCase = function () {
+						var _p8 = A2(_elm_lang$core$Debug$log, 'Impossible. Block types are only requested AFTER block is successfully received.', sceneModel.block);
+						return {ctor: '_Tuple2', _0: sceneModel, _1: _elm_lang$core$Platform_Cmd$none};
+					}();
+					var _p9 = sceneModel.block;
+					switch (_p9.ctor) {
+						case 'Failed':
+							return impossibleCase;
+						case 'Pending':
+							return impossibleCase;
+						default:
+							if (_p9._0.ctor === 'Nothing') {
+								return impossibleCase;
+							} else {
+								var relatedBlockTypeIds = A2(_elm_lang$core$List$map, _user$project$OpsApi$getIdFromUrl, _p9._0._0.types);
+								var isRelatedBlockType = function (x) {
+									return A2(
+										_elm_lang$core$List$member,
+										_elm_lang$core$Result$Ok(x.id),
+										relatedBlockTypeIds);
+								};
+								var allBlockTypes = _p7._0._0.results;
+								var currBlockTypes = A2(_elm_lang$core$List$filter, isRelatedBlockType, allBlockTypes);
+								return {
+									ctor: '_Tuple2',
+									_0: _elm_lang$core$Native_Utils.update(
+										sceneModel,
+										{
+											types: _user$project$ReceptionKiosk_MembersOnlyScene$Received(currBlockTypes)
+										}),
+									_1: _elm_lang$core$Platform_Cmd$none
+								};
+							}
+					}
+				} else {
+					var msg = A2(
+						_elm_lang$core$Debug$log,
+						'Error getting time block types: ',
+						_elm_lang$core$Basics$toString(_p7._0._0));
+					return {
+						ctor: '_Tuple2',
+						_0: _elm_lang$core$Native_Utils.update(
+							sceneModel,
+							{
+								types: _user$project$ReceptionKiosk_MembersOnlyScene$Failed(msg)
+							}),
+						_1: _elm_lang$core$Platform_Cmd$none
+					};
+				}
+			default:
+				if (_p7._0.ctor === 'Ok') {
+					var memberships = _p7._0._0.results;
+					return {
+						ctor: '_Tuple2',
+						_0: _elm_lang$core$Native_Utils.update(
+							sceneModel,
+							{
+								memberships: _user$project$ReceptionKiosk_MembersOnlyScene$Received(memberships)
 							}),
 						_1: _elm_lang$core$Platform_Cmd$none
 					};
 				} else {
-					var errMsgs = {
-						ctor: '::',
-						_0: 'Current time block unexpectedly unavailable.',
-						_1: {ctor: '[]'}
-					};
-					var newSceneModel = _elm_lang$core$Native_Utils.update(
-						sceneModel,
-						{badNews: errMsgs});
+					var msg = A2(
+						_elm_lang$core$Debug$log,
+						'Error getting memberships: ',
+						_elm_lang$core$Basics$toString(_p7._0._0));
 					return {
 						ctor: '_Tuple2',
-						_0: newSceneModel,
-						_1: _user$project$Wizard_SceneUtils$segueTo(_user$project$ReceptionKiosk_Types$CheckInDone)
+						_0: _elm_lang$core$Native_Utils.update(
+							sceneModel,
+							{
+								memberships: _user$project$ReceptionKiosk_MembersOnlyScene$Failed(msg)
+							}),
+						_1: _elm_lang$core$Platform_Cmd$none
 					};
 				}
-			} else {
-				return {
-					ctor: '_Tuple2',
-					_0: _elm_lang$core$Native_Utils.update(
-						sceneModel,
-						{
-							badNews: {
-								ctor: '::',
-								_0: _elm_lang$core$Basics$toString(_p3._0._0),
-								_1: {ctor: '[]'}
-							}
-						}),
-					_1: _elm_lang$core$Platform_Cmd$none
-				};
-			}
 		}
 	});
-var _user$project$ReceptionKiosk_MembersOnlyScene$sceneWillAppear = F2(
-	function (kioskModel, appearingScene) {
-		var sceneModel = kioskModel.membersOnlyModel;
-		var _p5 = appearingScene;
-		return {ctor: '_Tuple2', _0: sceneModel, _1: _elm_lang$core$Platform_Cmd$none};
-	});
+var _user$project$ReceptionKiosk_MembersOnlyScene$Pending = {ctor: 'Pending'};
 var _user$project$ReceptionKiosk_MembersOnlyScene$init = function (flags) {
 	var sceneModel = {
-		currTimeBlock: _elm_lang$core$Maybe$Nothing,
-		currTimeBlockTypes: {ctor: '[]'},
+		block: _user$project$ReceptionKiosk_MembersOnlyScene$Pending,
+		types: _user$project$ReceptionKiosk_MembersOnlyScene$Pending,
+		memberships: _user$project$ReceptionKiosk_MembersOnlyScene$Pending,
 		badNews: {ctor: '[]'}
 	};
 	return {ctor: '_Tuple2', _0: sceneModel, _1: _elm_lang$core$Platform_Cmd$none};
 };
-var _user$project$ReceptionKiosk_MembersOnlyScene$MembersOnlyModel = F3(
-	function (a, b, c) {
-		return {currTimeBlock: a, currTimeBlockTypes: b, badNews: c};
-	});
 
 var _user$project$ReceptionKiosk_ScreenSaverScene$logoImgStyle = _elm_lang$html$Html_Attributes$style(
 	{

@@ -19,6 +19,8 @@ import Char
 import Json.Decode.Pipeline exposing (decode, required, optional, hardcoded)
 
 -- Local
+import DjangoRestFramework exposing (..)
+
 
 -----------------------------------------------------------------------------
 -- UTILITIES
@@ -80,14 +82,6 @@ type alias TimeBlockType =
   , description : String
   }
 
--- Following is the response format of Django Rest Framework
-type alias PageOf a =
-  { count : Int
-  , next : Maybe String
-  , previous: Maybe String
-  , results: List a
-  }
-
 type alias PageOfTimeBlocks = PageOf TimeBlock
 
 type alias PageOfTimeBlockTypes = PageOf TimeBlockType
@@ -140,12 +134,4 @@ decodeTimeBlock =
     |> required "saturday" Dec.bool
     |> required "sunday" Dec.bool
     |> required "types" (Dec.list Dec.string)
-
-decodePageOf : Dec.Decoder a -> Dec.Decoder (PageOf a)
-decodePageOf decoder =
-  decode PageOf
-    |> required "count" Dec.int
-    |> required "next" (Dec.maybe Dec.string)
-    |> required "previous" (Dec.maybe Dec.string)
-    |> required "results" (Dec.list decoder)
 

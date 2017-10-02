@@ -6,14 +6,17 @@ module MembersApi exposing
   , getDiscoveryMethods
   , getMatchingAccts
   , getCheckedInAccts
+  , getMemberships
   , logVisitEvent
   , setIsAdult
   , addDiscoveryMethods
   , MatchingAcct
   , MatchingAcctInfo
+  , Membership
   , GenericResult
   , VisitEventType (..)
   , ReasonForVisit (..)
+  , PageOfMemberships
   )
 
 -- Standard
@@ -26,6 +29,8 @@ import Http
 import Json.Decode.Pipeline exposing (decode, required, hardcoded)
 
 -- Local
+import DjangoRestFramework exposing (PageOf, decodePageOf, authenticationHeader)
+
 
 -----------------------------------------------------------------------------
 -- UTILITIES
@@ -34,11 +39,12 @@ import Json.Decode.Pipeline exposing (decode, required, hardcoded)
 djangoizeId : String -> String
 djangoizeId rawId =
   -- Django allows alphanumeric, _, @, +, . and -.
-  replaceAll "[^-a-zA-Z0-9_@+.]" "_" rawId
+  replaceAll {oldSub="[^-a-zA-Z0-9_@+.]", newSub="_"} rawId
 
-replaceAll : String -> String -> String -> String
-replaceAll oldSub newSub theString =
-  Regex.replace Regex.All (regex oldSub) (\_ -> newSub) theString
+replaceAll : {oldSub : String, newSub : String} -> String -> String
+replaceAll {oldSub, newSub} whole =
+  Regex.replace Regex.All (regex oldSub) (\_ -> newSub) whole
+
 
 -----------------------------------------------------------------------------
 -- API TYPES
@@ -53,6 +59,7 @@ type alias MembersApiModel a =
   , logVisitEventUrl : String
   , matchingAcctsUrl : String
   , setIsAdultUrl : String
+  , uniqueKioskId : String
   , xcOrgActionUrl : String
   }
 
@@ -97,6 +104,19 @@ type ReasonForVisit
   | Volunteer
   | Other
 
+type alias Membership =
+  { id : Int
+  , member : String
+  , startDate : String
+  , endDate : String
+  , sale : Int
+  , sale_price : String
+  , ctrlid : String
+  , protected : Bool
+  }
+
+type alias PageOfMemberships = PageOf Membership
+
 -----------------------------------------------------------------------------
 -- API
 -----------------------------------------------------------------------------
@@ -118,7 +138,7 @@ getMatchingAccts: MembersApiModel a -> String -> (Result Http.Error MatchingAcct
 getMatchingAccts flags flexId thing =
   let
     url = flags.matchingAcctsUrl++"?format=json"  -- Easier than an "Accept" header.
-      |> replaceAll "FLEXID" flexId
+      |> replaceAll {oldSub="FLEXID", newSub=flexId}
     request = Http.get url decodeMatchingAcctInfo
   in
     Http.send thing request
@@ -144,7 +164,7 @@ logVisitEvent flags memberPK eventType reason thing =
       Other -> "OTH"
     params = String.concat ["/", (toString memberPK), "_", eventVal, "_", reasonVal, "/"]
     url = flags.logVisitEventUrl++"?format=json"  -- Easier than an "Accept" header.
-      |> replaceAll "/12345_A_OTH/" params
+      |> replaceAll {oldSub="/12345_A_OTH/", newSub=params}
     request = Http.get url decodeGenericResult
   in
     Http.send thing request
@@ -217,6 +237,23 @@ addDiscoveryMethods flags username userpw methodPks resultToMsg =
     Cmd.batch (List.map (oneCmd << request << bodyObject) methodPks)
 
 
+getMemberships : MembersApiModel a -> Int -> (Result Http.Error PageOfMemberships -> msg) -> Cmd msg
+getMemberships flags memberNum resultToMsg =
+  let
+    placeHolder = "MEMBERNUM"
+    urlPattern = "/members/api/memberships/?format=json&member="++placeHolder++"&ordering=-start_date"
+    request = Http.request
+      { method = "GET"
+      , url = replaceAll {oldSub = placeHolder, newSub = toString memberNum} urlPattern
+      , headers = [ authenticationHeader flags.uniqueKioskId ]
+      , withCredentials = False
+      , body = Http.emptyBody
+      , timeout = Nothing
+      , expect = Http.expectJson (decodePageOf decodeMembership)
+      }
+  in
+    Http.send resultToMsg request
+
 -----------------------------------------------------------------------------
 -- JSON
 -----------------------------------------------------------------------------
@@ -253,3 +290,15 @@ decodeGenericResult : Dec.Decoder GenericResult
 decodeGenericResult =
   Dec.map GenericResult
     (Dec.field "result" Dec.string)
+
+decodeMembership : Dec.Decoder Membership
+decodeMembership =
+  decode Membership
+    |> required "id" Dec.int
+    |> required "member" Dec.string
+    |> required "start_date" Dec.string
+    |> required "end_date" Dec.string
+    |> required "sale" Dec.int
+    |> required "sale_price" Dec.string
+    |> required "ctrlid" Dec.string
+    |> required "protected" Dec.bool

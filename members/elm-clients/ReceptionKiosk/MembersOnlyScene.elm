@@ -18,10 +18,11 @@ import Time exposing (Time)
 import String.Extra exposing (..)
 
 -- Local
-import MembersApi as MembersApi
+import MembersApi as MembersApi exposing (Membership)
 import XerocraftApi as XcApi
-import OpsApi as Ops exposing (TimeBlock, TimeBlockType)
+import OpsApi as OpsApi exposing (TimeBlock, TimeBlockType)
 import Wizard.SceneUtils exposing (..)
+import ReceptionKiosk.CheckInScene exposing (CheckInModel)
 import ReceptionKiosk.Types exposing (..)
 
 
@@ -29,9 +30,20 @@ import ReceptionKiosk.Types exposing (..)
 -- INIT
 -----------------------------------------------------------------------------
 
+type Fetchable a
+  = Pending
+  | Received a
+  | Failed String
+
+received x =
+  case x of
+    Received _ -> True
+    _ -> False
+
 type alias MembersOnlyModel =
-  { currTimeBlock : Maybe TimeBlock
-  , currTimeBlockTypes : List TimeBlockType
+  { block : Fetchable (Maybe TimeBlock)
+  , types : Fetchable (List TimeBlockType)
+  , memberships : Fetchable (List Membership)
   , badNews : List String
   }
 
@@ -40,17 +52,20 @@ type alias KioskModel a =
   (SceneUtilModel
     { a
     | membersOnlyModel : MembersOnlyModel
+    , checkInModel : CheckInModel
     }
   )
 
 init : Flags -> (MembersOnlyModel, Cmd Msg)
 init flags =
   let sceneModel =
-    { currTimeBlock = Nothing
-    , currTimeBlockTypes = []
+    { block = Pending
+    , types = Pending
+    , memberships = Pending
     , badNews = []
     }
   in (sceneModel, Cmd.none)
+
 
 -----------------------------------------------------------------------------
 -- SCENE WILL APPEAR
@@ -61,18 +76,25 @@ sceneWillAppear kioskModel appearingScene =
   let sceneModel = kioskModel.membersOnlyModel
   in case appearingScene of
 
---    ReasonForVisit ->
---      -- We want to have the current time block on hand by the time MembersOnly
---      -- appears, so start the fetch when ReasonForVisit appears.
---      (sceneModel, getTimeBlocks kioskModel)
---
---    MembersOnly ->
---      if sceneModel.currTimeBlock == Nothing || List.isEmpty sceneModel.currTimeBlockTypes
---        then (sceneModel, segueTo CheckInDone)
---        else (sceneModel, Cmd.none)
+    ReasonForVisit ->
+      -- We want to have the current time block on hand by the time MembersOnly
+      -- appears, so start the fetch when ReasonForVisit appears.
+      let
+        memberNum = kioskModel.checkInModel.memberNum
+        cmd1 = getTimeBlocks kioskModel
+        cmd2 = getMemberships kioskModel memberNum
+        cmds = Cmd.batch [cmd1, cmd2]
+      in
+        (sceneModel, cmds)
+
+    MembersOnly ->
+      if received sceneModel.block || received sceneModel.memberships
+        then (sceneModel, Cmd.none)  -- Show this scene.
+        else (sceneModel, segueTo CheckInDone)  -- Not enough info, so skip it.
 
     _ ->
       (sceneModel, Cmd.none)
+
 
 -----------------------------------------------------------------------------
 -- UPDATE
@@ -86,6 +108,8 @@ update msg kioskModel =
 
   in case msg of
 
+    -- SUCCESSFUL FETCHES --
+
     UpdateTimeBlocks (Ok pageOfTimeBlocks) ->
       let
         blocks = pageOfTimeBlocks.results
@@ -93,32 +117,49 @@ update msg kioskModel =
         currBlock = List.head nowBlocks
         followUpCmd = if List.isEmpty nowBlocks then Cmd.none else getTimeBlockTypes kioskModel
       in
-        ({sceneModel | badNews = [], currTimeBlock = currBlock }, followUpCmd)
-
-    UpdateTimeBlocks (Err error) ->
-      ({sceneModel | badNews = [toString error]}, Cmd.none)
+        ({sceneModel | block = Received currBlock }, followUpCmd)
 
     UpdateTimeBlockTypes (Ok pageOfTimeBlockTypes) ->
-      case sceneModel.currTimeBlock of
+      let
+        impossibleCase =
+          let _ = Debug.log "Impossible. Block types are only requested AFTER block is successfully received." sceneModel.block
+          in (sceneModel, Cmd.none)
+      in
+        case sceneModel.block of
 
-        Just currTimeBlock ->
-          let
-            allBlockTypes = pageOfTimeBlockTypes.results
-            relatedBlockTypeIds = List.map Ops.getIdFromUrl currTimeBlock.types
-            isRelatedBlockType x = List.member (Ok x.id) relatedBlockTypeIds
-            currBlockTypes = List.filter isRelatedBlockType allBlockTypes
-          in
-            ({sceneModel | badNews = [], currTimeBlockTypes = currBlockTypes }, Cmd.none)
+          Received Nothing -> impossibleCase
+          Failed _ -> impossibleCase
+          Pending -> impossibleCase
 
-        Nothing ->
-          let
-            errMsgs = ["Current time block unexpectedly unavailable."]
-            newSceneModel = {sceneModel | badNews = errMsgs}
-          in
-            (newSceneModel, segueTo CheckInDone)
+          Received (Just block) ->
+            let
+              allBlockTypes = pageOfTimeBlockTypes.results
+              relatedBlockTypeIds = List.map OpsApi.getIdFromUrl block.types
+              isRelatedBlockType x = List.member (Ok x.id) relatedBlockTypeIds
+              currBlockTypes = List.filter isRelatedBlockType allBlockTypes
+            in
+              ({sceneModel | types = Received currBlockTypes }, Cmd.none)
+
+    UpdateMemberships (Ok pageOfMemberships) ->
+      let memberships = pageOfMemberships.results
+      in ({sceneModel | memberships = Received memberships}, Cmd.none)
+
+
+    -- FAILED FETCHES --
+
+    UpdateTimeBlocks (Err error) ->
+      let msg = Debug.log "Error getting time blocks: " (toString error)
+      in ({sceneModel | block = Failed msg}, Cmd.none)
 
     UpdateTimeBlockTypes (Err error) ->
-      ({sceneModel | badNews = [toString error]}, Cmd.none)
+      let msg = Debug.log "Error getting time block types: " (toString error)
+      in ({sceneModel | types = Failed msg}, Cmd.none)
+
+    UpdateMemberships (Err error) ->
+      let msg = Debug.log "Error getting memberships: " (toString error)
+      in ({sceneModel | memberships = Failed msg}, Cmd.none)
+
+
 
 -----------------------------------------------------------------------------
 -- VIEW
@@ -134,31 +175,41 @@ view kioskModel =
       "Is your supporting membership up to date?"
       (div []
         (
-        [ case sceneModel.currTimeBlock of
-            Nothing -> text "not in block"  -- This shouldn't appear b/c we should skip scene if so.
-            Just block -> text block.startTime
+        [ case sceneModel.block of
+            Received Nothing -> text "not in block"  -- This shouldn't appear b/c we should skip scene if so.
+            Received (Just block) -> text block.startTime
+            _ -> text "Shouldn't happen."
         ]
         ++
-        List.map (\x -> text x.name) sceneModel.currTimeBlockTypes
+        case sceneModel.types of
+          Received types ->
+            List.map (\x -> text x.name) types
+          _ -> []
         )
       )
       []  -- No buttons. Scene will automatically transition.
       []  -- No bad news. Scene will fail silently, but should log somewhere.
 
+
 -----------------------------------------------------------------------------
--- PREP CMDS (which are called by init or earlier scenes)
+-- COMMANDS
 -----------------------------------------------------------------------------
 
 getTimeBlocks : KioskModel a -> Cmd Msg
 getTimeBlocks kioskModel =
-  let
-    getTimeBlocksFn = Ops.getTimeBlocks kioskModel.flags
-  in
-    getTimeBlocksFn (MembersOnlyVector << UpdateTimeBlocks)
+  OpsApi.getTimeBlocks
+    kioskModel.flags
+    (MembersOnlyVector << UpdateTimeBlocks)
 
 getTimeBlockTypes : KioskModel a  -> Cmd Msg
 getTimeBlockTypes kioskModel =
-  let
-    getTimeBlockTypesFn = Ops.getTimeBlockTypes kioskModel.flags
-  in
-    getTimeBlockTypesFn (MembersOnlyVector << UpdateTimeBlockTypes)
+  OpsApi.getTimeBlockTypes
+    kioskModel.flags
+    (MembersOnlyVector << UpdateTimeBlockTypes)
+
+getMemberships : KioskModel a -> Int -> Cmd Msg
+getMemberships kioskModel memberNum =
+  MembersApi.getMemberships
+    kioskModel.flags
+    memberNum
+    (MembersOnlyVector << UpdateMemberships)
