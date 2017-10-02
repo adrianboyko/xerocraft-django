@@ -136,7 +136,7 @@ type ReasonForVisitMsg
 
 type ScreenSaverMsg
   = NewMsgPosition (Int, Int)
-  | ScreenSaverTapped
+  | UserActivityNoted
 
 type TaskListMsg
   = CalendarPageResult (Result Http.Error CalendarPage)

@@ -18652,6 +18652,175 @@ var _elm_lang$http$Http$StringPart = F2(
 	});
 var _elm_lang$http$Http$stringPart = _elm_lang$http$Http$StringPart;
 
+var _elm_lang$keyboard$Keyboard$onSelfMsg = F3(
+	function (router, _p0, state) {
+		var _p1 = _p0;
+		var _p2 = A2(_elm_lang$core$Dict$get, _p1.category, state);
+		if (_p2.ctor === 'Nothing') {
+			return _elm_lang$core$Task$succeed(state);
+		} else {
+			var send = function (tagger) {
+				return A2(
+					_elm_lang$core$Platform$sendToApp,
+					router,
+					tagger(_p1.keyCode));
+			};
+			return A2(
+				_elm_lang$core$Task$andThen,
+				function (_p3) {
+					return _elm_lang$core$Task$succeed(state);
+				},
+				_elm_lang$core$Task$sequence(
+					A2(_elm_lang$core$List$map, send, _p2._0.taggers)));
+		}
+	});
+var _elm_lang$keyboard$Keyboard_ops = _elm_lang$keyboard$Keyboard_ops || {};
+_elm_lang$keyboard$Keyboard_ops['&>'] = F2(
+	function (task1, task2) {
+		return A2(
+			_elm_lang$core$Task$andThen,
+			function (_p4) {
+				return task2;
+			},
+			task1);
+	});
+var _elm_lang$keyboard$Keyboard$init = _elm_lang$core$Task$succeed(_elm_lang$core$Dict$empty);
+var _elm_lang$keyboard$Keyboard$categorizeHelpHelp = F2(
+	function (value, maybeValues) {
+		var _p5 = maybeValues;
+		if (_p5.ctor === 'Nothing') {
+			return _elm_lang$core$Maybe$Just(
+				{
+					ctor: '::',
+					_0: value,
+					_1: {ctor: '[]'}
+				});
+		} else {
+			return _elm_lang$core$Maybe$Just(
+				{ctor: '::', _0: value, _1: _p5._0});
+		}
+	});
+var _elm_lang$keyboard$Keyboard$categorizeHelp = F2(
+	function (subs, subDict) {
+		categorizeHelp:
+		while (true) {
+			var _p6 = subs;
+			if (_p6.ctor === '[]') {
+				return subDict;
+			} else {
+				var _v4 = _p6._1,
+					_v5 = A3(
+					_elm_lang$core$Dict$update,
+					_p6._0._0,
+					_elm_lang$keyboard$Keyboard$categorizeHelpHelp(_p6._0._1),
+					subDict);
+				subs = _v4;
+				subDict = _v5;
+				continue categorizeHelp;
+			}
+		}
+	});
+var _elm_lang$keyboard$Keyboard$categorize = function (subs) {
+	return A2(_elm_lang$keyboard$Keyboard$categorizeHelp, subs, _elm_lang$core$Dict$empty);
+};
+var _elm_lang$keyboard$Keyboard$keyCode = A2(_elm_lang$core$Json_Decode$field, 'keyCode', _elm_lang$core$Json_Decode$int);
+var _elm_lang$keyboard$Keyboard$subscription = _elm_lang$core$Native_Platform.leaf('Keyboard');
+var _elm_lang$keyboard$Keyboard$Watcher = F2(
+	function (a, b) {
+		return {taggers: a, pid: b};
+	});
+var _elm_lang$keyboard$Keyboard$Msg = F2(
+	function (a, b) {
+		return {category: a, keyCode: b};
+	});
+var _elm_lang$keyboard$Keyboard$onEffects = F3(
+	function (router, newSubs, oldState) {
+		var rightStep = F3(
+			function (category, taggers, task) {
+				return A2(
+					_elm_lang$core$Task$andThen,
+					function (state) {
+						return A2(
+							_elm_lang$core$Task$andThen,
+							function (pid) {
+								return _elm_lang$core$Task$succeed(
+									A3(
+										_elm_lang$core$Dict$insert,
+										category,
+										A2(_elm_lang$keyboard$Keyboard$Watcher, taggers, pid),
+										state));
+							},
+							_elm_lang$core$Process$spawn(
+								A3(
+									_elm_lang$dom$Dom_LowLevel$onDocument,
+									category,
+									_elm_lang$keyboard$Keyboard$keyCode,
+									function (_p7) {
+										return A2(
+											_elm_lang$core$Platform$sendToSelf,
+											router,
+											A2(_elm_lang$keyboard$Keyboard$Msg, category, _p7));
+									})));
+					},
+					task);
+			});
+		var bothStep = F4(
+			function (category, _p8, taggers, task) {
+				var _p9 = _p8;
+				return A2(
+					_elm_lang$core$Task$map,
+					A2(
+						_elm_lang$core$Dict$insert,
+						category,
+						A2(_elm_lang$keyboard$Keyboard$Watcher, taggers, _p9.pid)),
+					task);
+			});
+		var leftStep = F3(
+			function (category, _p10, task) {
+				var _p11 = _p10;
+				return A2(
+					_elm_lang$keyboard$Keyboard_ops['&>'],
+					_elm_lang$core$Process$kill(_p11.pid),
+					task);
+			});
+		return A6(
+			_elm_lang$core$Dict$merge,
+			leftStep,
+			bothStep,
+			rightStep,
+			oldState,
+			_elm_lang$keyboard$Keyboard$categorize(newSubs),
+			_elm_lang$core$Task$succeed(_elm_lang$core$Dict$empty));
+	});
+var _elm_lang$keyboard$Keyboard$MySub = F2(
+	function (a, b) {
+		return {ctor: 'MySub', _0: a, _1: b};
+	});
+var _elm_lang$keyboard$Keyboard$presses = function (tagger) {
+	return _elm_lang$keyboard$Keyboard$subscription(
+		A2(_elm_lang$keyboard$Keyboard$MySub, 'keypress', tagger));
+};
+var _elm_lang$keyboard$Keyboard$downs = function (tagger) {
+	return _elm_lang$keyboard$Keyboard$subscription(
+		A2(_elm_lang$keyboard$Keyboard$MySub, 'keydown', tagger));
+};
+var _elm_lang$keyboard$Keyboard$ups = function (tagger) {
+	return _elm_lang$keyboard$Keyboard$subscription(
+		A2(_elm_lang$keyboard$Keyboard$MySub, 'keyup', tagger));
+};
+var _elm_lang$keyboard$Keyboard$subMap = F2(
+	function (func, _p12) {
+		var _p13 = _p12;
+		return A2(
+			_elm_lang$keyboard$Keyboard$MySub,
+			_p13._0,
+			function (_p14) {
+				return func(
+					_p13._1(_p14));
+			});
+	});
+_elm_lang$core$Native_Platform.effectManagers['Keyboard'] = {pkg: 'elm-lang/keyboard', init: _elm_lang$keyboard$Keyboard$init, onEffects: _elm_lang$keyboard$Keyboard$onEffects, onSelfMsg: _elm_lang$keyboard$Keyboard$onSelfMsg, tag: 'sub', subMap: _elm_lang$keyboard$Keyboard$subMap};
+
 var _mgold$elm_nonempty_list$List_Nonempty$foldl1 = F2(
 	function (f, _p0) {
 		var _p1 = _p0;
@@ -21108,11 +21277,11 @@ var _user$project$MembersApi$decodeMembership = A3(
 				_elm_lang$core$Json_Decode$int,
 				A3(
 					_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
-					'end-date',
+					'end_date',
 					_elm_lang$core$Json_Decode$string,
 					A3(
 						_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
-						'start-date',
+						'start_date',
 						_elm_lang$core$Json_Decode$string,
 						A3(
 							_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
@@ -21982,7 +22151,7 @@ var _user$project$ReceptionKiosk_Types$ValidateReason = {ctor: 'ValidateReason'}
 var _user$project$ReceptionKiosk_Types$UpdateReasonForVisit = function (a) {
 	return {ctor: 'UpdateReasonForVisit', _0: a};
 };
-var _user$project$ReceptionKiosk_Types$ScreenSaverTapped = {ctor: 'ScreenSaverTapped'};
+var _user$project$ReceptionKiosk_Types$UserActivityNoted = {ctor: 'UserActivityNoted'};
 var _user$project$ReceptionKiosk_Types$NewMsgPosition = function (a) {
 	return {ctor: 'NewMsgPosition', _0: a};
 };
@@ -23672,7 +23841,7 @@ var _user$project$ReceptionKiosk_ReasonForVisitScene$update = F2(
 									return {
 										ctor: '_Tuple2',
 										_0: sceneModel,
-										_1: _user$project$Wizard_SceneUtils$segueTo(_user$project$ReceptionKiosk_Types$MembersOnly)
+										_1: _user$project$Wizard_SceneUtils$segueTo(_user$project$ReceptionKiosk_Types$CheckInDone)
 									};
 								default:
 									break _v4_2;
@@ -25802,13 +25971,46 @@ var _user$project$ReceptionKiosk_MembersOnlyScene$init = function (flags) {
 	return {ctor: '_Tuple2', _0: sceneModel, _1: _elm_lang$core$Platform_Cmd$none};
 };
 
+var _user$project$ReceptionKiosk_ScreenSaverScene$h2Style = _elm_lang$html$Html_Attributes$style(
+	{
+		ctor: '::',
+		_0: A2(
+			_user$project$Wizard_SceneUtils_ops['=>'],
+			'margin',
+			_user$project$Wizard_SceneUtils$px(0)),
+		_1: {
+			ctor: '::',
+			_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'font-size', '24pt'),
+			_1: {
+				ctor: '::',
+				_0: A2(
+					_user$project$Wizard_SceneUtils_ops['=>'],
+					'margin-top',
+					_user$project$Wizard_SceneUtils$px(-10)),
+				_1: {
+					ctor: '::',
+					_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'line-height', '1'),
+					_1: {ctor: '[]'}
+				}
+			}
+		}
+	});
+var _user$project$ReceptionKiosk_ScreenSaverScene$h1Style = _elm_lang$html$Html_Attributes$style(
+	{
+		ctor: '::',
+		_0: A2(
+			_user$project$Wizard_SceneUtils_ops['=>'],
+			'margin',
+			_user$project$Wizard_SceneUtils$px(0)),
+		_1: {ctor: '[]'}
+	});
 var _user$project$ReceptionKiosk_ScreenSaverScene$logoImgStyle = _elm_lang$html$Html_Attributes$style(
 	{
 		ctor: '::',
 		_0: A2(
 			_user$project$Wizard_SceneUtils_ops['=>'],
 			'width',
-			_user$project$Wizard_SceneUtils$px(100)),
+			_user$project$Wizard_SceneUtils$px(150)),
 		_1: {ctor: '[]'}
 	});
 var _user$project$ReceptionKiosk_ScreenSaverScene$msgDivStyle = _elm_lang$html$Html_Attributes$style(
@@ -25823,8 +26025,12 @@ var _user$project$ReceptionKiosk_ScreenSaverScene$msgDivStyle = _elm_lang$html$H
 				_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'color', 'red'),
 				_1: {
 					ctor: '::',
-					_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'position', 'absolute'),
-					_1: {ctor: '[]'}
+					_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'position', 'relative'),
+					_1: {
+						ctor: '::',
+						_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'display', 'inline-block'),
+						_1: {ctor: '[]'}
+					}
 				}
 			}
 		}
@@ -25845,14 +26051,34 @@ var _user$project$ReceptionKiosk_ScreenSaverScene$bgDivStyle = _elm_lang$html$Ht
 					_user$project$Wizard_SceneUtils_ops['=>'],
 					'width',
 					_user$project$Wizard_SceneUtils$px(_user$project$Wizard_SceneUtils$sceneWidth)),
-				_1: {ctor: '[]'}
+				_1: {
+					ctor: '::',
+					_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'margin-left', 'auto'),
+					_1: {
+						ctor: '::',
+						_0: A2(_user$project$Wizard_SceneUtils_ops['=>'], 'margin-right', 'auto'),
+						_1: {ctor: '[]'}
+					}
+				}
 			}
 		}
 	});
 var _user$project$ReceptionKiosk_ScreenSaverScene$subscriptions = function (model) {
-	return A2(_user$project$Wizard_SceneUtils$sceneIsVisible, model, _user$project$ReceptionKiosk_Types$ScreenSaver) ? _elm_lang$mouse$Mouse$clicks(
-		function (_p0) {
-			return _user$project$ReceptionKiosk_Types$ScreenSaverVector(_user$project$ReceptionKiosk_Types$ScreenSaverTapped);
+	return A2(_user$project$Wizard_SceneUtils$sceneIsVisible, model, _user$project$ReceptionKiosk_Types$ScreenSaver) ? _elm_lang$core$Platform_Sub$batch(
+		{
+			ctor: '::',
+			_0: _elm_lang$mouse$Mouse$clicks(
+				function (_p0) {
+					return _user$project$ReceptionKiosk_Types$ScreenSaverVector(_user$project$ReceptionKiosk_Types$UserActivityNoted);
+				}),
+			_1: {
+				ctor: '::',
+				_0: _elm_lang$keyboard$Keyboard$presses(
+					function (_p1) {
+						return _user$project$ReceptionKiosk_Types$ScreenSaverVector(_user$project$ReceptionKiosk_Types$UserActivityNoted);
+					}),
+				_1: {ctor: '[]'}
+			}
 		}) : _elm_lang$core$Platform_Sub$none;
 };
 var _user$project$ReceptionKiosk_ScreenSaverScene$view = function (kioskModel) {
@@ -25909,19 +26135,33 @@ var _user$project$ReceptionKiosk_ScreenSaverScene$view = function (kioskModel) {
 						{ctor: '[]'}),
 					_1: {
 						ctor: '::',
-						_0: _user$project$Wizard_SceneUtils$vspace(30),
+						_0: A2(
+							_elm_lang$html$Html$h1,
+							{
+								ctor: '::',
+								_0: _user$project$ReceptionKiosk_ScreenSaverScene$h1Style,
+								_1: {ctor: '[]'}
+							},
+							{
+								ctor: '::',
+								_0: _elm_lang$html$Html$text('Welcome!'),
+								_1: {ctor: '[]'}
+							}),
 						_1: {
 							ctor: '::',
-							_0: _elm_lang$html$Html$text('Tap Screen'),
-							_1: {
-								ctor: '::',
-								_0: _user$project$Wizard_SceneUtils$vspace(35),
-								_1: {
+							_0: A2(
+								_elm_lang$html$Html$h2,
+								{
 									ctor: '::',
-									_0: _elm_lang$html$Html$text('To Start'),
+									_0: _user$project$ReceptionKiosk_ScreenSaverScene$h2Style,
 									_1: {ctor: '[]'}
-								}
-							}
+								},
+								{
+									ctor: '::',
+									_0: _elm_lang$html$Html$text('Tap Spacebar to Start'),
+									_1: {ctor: '[]'}
+								}),
+							_1: {ctor: '[]'}
 						}
 					}
 				}),
@@ -25931,13 +26171,13 @@ var _user$project$ReceptionKiosk_ScreenSaverScene$view = function (kioskModel) {
 var _user$project$ReceptionKiosk_ScreenSaverScene$update = F2(
 	function (msg, kioskModel) {
 		var sceneModel = kioskModel.screenSaverModel;
-		var _p1 = msg;
-		if (_p1.ctor === 'NewMsgPosition') {
+		var _p2 = msg;
+		if (_p2.ctor === 'NewMsgPosition') {
 			return {
 				ctor: '_Tuple2',
 				_0: _elm_lang$core$Native_Utils.update(
 					sceneModel,
-					{xPos: _p1._0._0, yPos: _p1._0._1}),
+					{xPos: _p2._0._0, yPos: _p2._0._1}),
 				_1: _elm_lang$core$Platform_Cmd$none
 			};
 		} else {
@@ -25962,8 +26202,8 @@ var _user$project$ReceptionKiosk_ScreenSaverScene$sceneWillAppear = F2(
 	});
 var _user$project$ReceptionKiosk_ScreenSaverScene$tooLong = 900;
 var _user$project$ReceptionKiosk_ScreenSaverScene$redrawPeriod = 3;
-var _user$project$ReceptionKiosk_ScreenSaverScene$msgDivHeight = 250;
-var _user$project$ReceptionKiosk_ScreenSaverScene$msgDivWidth = 250;
+var _user$project$ReceptionKiosk_ScreenSaverScene$msgDivHeight = 242;
+var _user$project$ReceptionKiosk_ScreenSaverScene$msgDivWidth = 317;
 var _user$project$ReceptionKiosk_ScreenSaverScene$init = function (flags) {
 	var sceneModel = {xPos: ((_user$project$Wizard_SceneUtils$sceneWidth - _user$project$ReceptionKiosk_ScreenSaverScene$msgDivWidth) / 2) | 0, yPos: ((_user$project$Wizard_SceneUtils$sceneHeight - _user$project$ReceptionKiosk_ScreenSaverScene$msgDivHeight) / 2) | 0, secondsSinceSceneChange: 0};
 	return {ctor: '_Tuple2', _0: sceneModel, _1: _elm_lang$core$Platform_Cmd$none};
@@ -25988,9 +26228,9 @@ var _user$project$ReceptionKiosk_ScreenSaverScene$tick = F2(
 					_0: sceneModel,
 					_1: A2(
 						_elm_lang$core$Random$generate,
-						function (_p2) {
+						function (_p3) {
 							return _user$project$ReceptionKiosk_Types$ScreenSaverVector(
-								_user$project$ReceptionKiosk_Types$NewMsgPosition(_p2));
+								_user$project$ReceptionKiosk_Types$NewMsgPosition(_p3));
 						},
 						pairRandGen)
 				};

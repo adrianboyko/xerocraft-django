@@ -10,11 +10,12 @@ module ReceptionKiosk.ScreenSaverScene exposing
   )
 
 -- Standard
-import Html exposing (Html, div, text, img, br)
+import Html exposing (Html, div, text, img, br, h1, h2)
 import Html.Attributes exposing (src, width, style)
 import Time exposing (Time)
 import Random
 import Mouse
+import Keyboard
 
 -- Third Party
 
@@ -27,8 +28,8 @@ import ReceptionKiosk.Types exposing (..)
 -- CONSTANTS
 -----------------------------------------------------------------------------
 
-msgDivWidth = 250  -- Measured in browser
-msgDivHeight = 250  -- Measured in browser
+msgDivWidth = 317  -- Measured in browser
+msgDivHeight = 242  -- Measured in browser
 redrawPeriod = 3  -- Move msg every redrawPeriod seconds
 tooLong = 900  -- Screen saver will activate after tooLong seconds
 
@@ -80,7 +81,7 @@ update msg kioskModel =
       NewMsgPosition (newX, newY) ->
         ({sceneModel | xPos=newX, yPos=newY}, Cmd.none)
 
-      ScreenSaverTapped ->
+      UserActivityNoted ->
         (sceneModel, send (WizardVector <| Pop))
 
 
@@ -128,10 +129,8 @@ view kioskModel =
       [ div [msgDivStyle, positionStyle]
         -- TODO: Do I want to pass all imgs in as flags, as was done with banners?
         [ img [src "/static/bzw_ops/Logo, Light, 100w.png", logoImgStyle] []
-        , vspace 30
-        , text "Tap Screen"
-        , vspace 35
-        , text "To Start"
+        , h1 [h1Style] [text "Welcome!"]
+        , h2 [h2Style] [text "Tap Spacebar to Start"]
         ]
       ]
 
@@ -143,8 +142,13 @@ view kioskModel =
 subscriptions: KioskModel a -> Sub Msg
 subscriptions model =
   if sceneIsVisible model ScreenSaver
-    then Mouse.clicks (\_ -> (ScreenSaverVector <| ScreenSaverTapped))
-    else Sub.none
+    then
+      Sub.batch
+        [ Mouse.clicks (\_ -> (ScreenSaverVector <| UserActivityNoted))
+        , Keyboard.presses (\_ -> (ScreenSaverVector <| UserActivityNoted))
+        ]
+    else
+      Sub.none
 
 
 -----------------------------------------------------------------------------
@@ -155,15 +159,29 @@ bgDivStyle = style
   [ "background-color" => "black"
   , "height" => px sceneHeight
   , "width" => px sceneWidth
+  , "margin-left" => "auto"
+  , "margin-right" => "auto"
   ]
 
 msgDivStyle = style
   [ "text-align" => "center"
   , "font-size" => "36pt"
   , "color" => "red"
-  , "position" => "absolute"
+  , "position" => "relative"
+  , "display" => "inline-block"
   ]
 
 logoImgStyle = style
-  [ "width" => px 100
+  [ "width" => px 150
+  ]
+
+h1Style = style
+  [ "margin" => px 0
+  ]
+
+h2Style = style
+  [ "margin" => px 0
+  , "font-size" => "24pt"
+  , "margin-top" => px -10
+  , "line-height" => "1"
   ]
