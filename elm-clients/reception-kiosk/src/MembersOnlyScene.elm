@@ -121,6 +121,7 @@ update msg kioskModel =
 
     UpdateTimeBlockTypes (Ok pageOfTimeBlockTypes) ->
       let
+        allBlockTypes = pageOfTimeBlockTypes.results
         impossibleNote = "Impossible. Block types are only requested AFTER block is successfully received."
         logImpossibleCase _ =  -- This needs to be a fn and not a constant, hence the "_" param.
           let _ = Debug.log impossibleNote sceneModel
@@ -128,18 +129,22 @@ update msg kioskModel =
       in
         case sceneModel.block of
 
-          Received Nothing -> logImpossibleCase ()
           Failed _ -> logImpossibleCase ()
           Pending -> logImpossibleCase ()
 
+          Received Nothing ->
+            let
+              defaultBlockTypes = List.filter .isDefault allBlockTypes  -- Should have length 0 or 1.
+            in
+              ({sceneModel | types = Received defaultBlockTypes}, Cmd.none)
+
           Received (Just block) ->
             let
-              allBlockTypes = pageOfTimeBlockTypes.results
               relatedBlockTypeIds = List.map OpsApi.getIdFromUrl block.types
               isRelatedBlockType x = List.member (Ok x.id) relatedBlockTypeIds
               currBlockTypes = List.filter isRelatedBlockType allBlockTypes
             in
-              ({sceneModel | types = Received currBlockTypes }, Cmd.none)
+              ({sceneModel | types = Received currBlockTypes}, Cmd.none)
 
     UpdateMemberships (Ok pageOfMemberships) ->
       let memberships = pageOfMemberships.results

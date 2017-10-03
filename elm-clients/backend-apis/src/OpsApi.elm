@@ -80,6 +80,7 @@ type alias TimeBlockType =
   { id : Int
   , name : String
   , description : String
+  , isDefault : Bool
   }
 
 type alias PageOfTimeBlocks = PageOf TimeBlock
@@ -108,10 +109,11 @@ getTimeBlockTypes model resultToMsg =
 
 decodeTimeBlockType : Dec.Decoder TimeBlockType
 decodeTimeBlockType =
-  Dec.map3 TimeBlockType
+  Dec.map4 TimeBlockType
     (Dec.field "id" Dec.int)
     (Dec.field "name" Dec.string)
     (Dec.field "description" Dec.string)
+    (Dec.field "is_default" Dec.bool)
 
 decodeTimeBlock : Dec.Decoder TimeBlock
 decodeTimeBlock =
