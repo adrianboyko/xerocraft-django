@@ -48,5 +48,6 @@ class TimeBlockTypeSerializer(serializers.ModelSerializer):
             'id',
             'name',
             'description',
+            'is_default',
         )
 
