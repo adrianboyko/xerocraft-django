@@ -1,5 +1,5 @@
 
-port module ReceptionKiosk.WaiverScene exposing
+port module WaiverScene exposing
   ( init
   , sceneWillAppear
   , update
@@ -18,7 +18,7 @@ import String.Extra exposing (..)
 
 -- Local
 import Wizard.SceneUtils exposing (..)
-import ReceptionKiosk.Types exposing (..)
+import Types exposing (..)
 
 -----------------------------------------------------------------------------
 -- INIT

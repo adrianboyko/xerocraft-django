@@ -1,5 +1,5 @@
 
-module ReceptionKiosk.HowDidYouHearScene exposing (init, update, view, HowDidYouHearModel)
+module HowDidYouHearScene exposing (init, update, view, HowDidYouHearModel)
 
 -- Standard
 import Html exposing (Html, text, div, span)
@@ -14,7 +14,7 @@ import Material.Options as Options exposing (css)
 -- Local
 import MembersApi as MembersApi
 import Wizard.SceneUtils exposing (..)
-import ReceptionKiosk.Types exposing (..)
+import Types exposing (..)
 
 -----------------------------------------------------------------------------
 -- INIT

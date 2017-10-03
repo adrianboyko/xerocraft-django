@@ -1,5 +1,5 @@
 
-module ReceptionKiosk.ReasonForVisitScene exposing (init, update, view, ReasonForVisitModel)
+module ReasonForVisitScene exposing (init, update, view, ReasonForVisitModel)
 
 -- Standard
 import Html exposing (Html, text, div, span)
@@ -14,8 +14,8 @@ import Material.List as Lists
 import MembersApi as MembersApi exposing (ReasonForVisit(..))
 import TaskApi exposing (..)
 import Wizard.SceneUtils exposing (..)
-import ReceptionKiosk.Types exposing (..)
-import ReceptionKiosk.CheckInScene exposing (CheckInModel)
+import Types exposing (..)
+import CheckInScene exposing (CheckInModel)
 
 -----------------------------------------------------------------------------
 -- INIT

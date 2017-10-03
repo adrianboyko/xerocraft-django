@@ -1,5 +1,5 @@
 
-module ReceptionKiosk.CheckInScene exposing
+module CheckInScene exposing
   ( init
   , view
   , update
@@ -20,7 +20,7 @@ import Material.Chip as Chip
 import Material.Options as Options exposing (css)
 
 -- Local
-import ReceptionKiosk.Types exposing (..)
+import Types exposing (..)
 import Wizard.SceneUtils exposing (..)
 import MembersApi as MembersApi
 

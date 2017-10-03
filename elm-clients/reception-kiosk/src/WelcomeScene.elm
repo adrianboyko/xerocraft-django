@@ -1,5 +1,5 @@
 
-module ReceptionKiosk.WelcomeScene exposing (init, sceneWillAppear, view, WelcomeModel)
+module WelcomeScene exposing (init, sceneWillAppear, view, WelcomeModel)
 
 -- Standard
 import Html exposing (Html, div, text, img, br)
@@ -9,7 +9,7 @@ import Html.Attributes exposing (src, width, style)
 
 -- Local
 import Wizard.SceneUtils exposing (..)
-import ReceptionKiosk.Types exposing (..)
+import Types exposing (..)
 
 -----------------------------------------------------------------------------
 -- INIT

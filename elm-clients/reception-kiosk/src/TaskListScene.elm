@@ -1,5 +1,5 @@
 
-module ReceptionKiosk.TaskListScene exposing
+module TaskListScene exposing
   ( init
   , sceneWillAppear
   , update
@@ -20,8 +20,8 @@ import Material.List as Lists
 -- Local
 import TaskApi exposing (..)
 import Wizard.SceneUtils exposing (..)
-import ReceptionKiosk.Types exposing (..)
-import ReceptionKiosk.CheckInScene exposing (CheckInModel)
+import Types exposing (..)
+import CheckInScene exposing (CheckInModel)
 
 
 

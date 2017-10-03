@@ -1,5 +1,5 @@
 
-module ReceptionKiosk.SignUpDoneScene exposing (init, view, SignUpDoneModel)
+module SignUpDoneScene exposing (init, view, SignUpDoneModel)
 
 -- Standard
 import Html exposing (Html, text, p, br, span)
@@ -9,8 +9,8 @@ import Material.Options as Options exposing (css)
 
 -- Local
 import Wizard.SceneUtils exposing (..)
-import ReceptionKiosk.Types exposing (..)
-import ReceptionKiosk.NewUserScene exposing (NewUserModel)
+import Types exposing (..)
+import NewUserScene exposing (NewUserModel)
 
 -----------------------------------------------------------------------------
 -- INIT

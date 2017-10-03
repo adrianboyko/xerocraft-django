@@ -13,24 +13,24 @@ import Material
 import Update.Extra.Infix exposing ((:>))
 
 -- Local
-import ReceptionKiosk.Types exposing (..)
-import ReceptionKiosk.CheckInScene as CheckInScene
-import ReceptionKiosk.CheckInDoneScene as CheckInDoneScene
-import ReceptionKiosk.CheckOutScene as CheckOutScene
-import ReceptionKiosk.CheckOutDoneScene as CheckOutDoneScene
-import ReceptionKiosk.CreatingAcctScene as CreatingAcctScene
-import ReceptionKiosk.EmailInUseScene as EmailInUseScene
-import ReceptionKiosk.HowDidYouHearScene as HowDidYouHearScene
-import ReceptionKiosk.SignUpDoneScene as SignUpDoneScene
-import ReceptionKiosk.MembersOnlyScene as MembersOnlyScene
-import ReceptionKiosk.NewMemberScene as NewMemberScene
-import ReceptionKiosk.NewUserScene as NewUserScene
-import ReceptionKiosk.ReasonForVisitScene as ReasonForVisitScene
-import ReceptionKiosk.ScreenSaverScene as ScreenSaverScene
-import ReceptionKiosk.TaskListScene as TaskListScene
-import ReceptionKiosk.VolunteerInDoneScene as VolunteerInDoneScene
-import ReceptionKiosk.WaiverScene as WaiverScene
-import ReceptionKiosk.WelcomeScene as WelcomeScene
+import Types exposing (..)
+import CheckInScene as CheckInScene
+import CheckInDoneScene as CheckInDoneScene
+import CheckOutScene as CheckOutScene
+import CheckOutDoneScene as CheckOutDoneScene
+import CreatingAcctScene as CreatingAcctScene
+import EmailInUseScene as EmailInUseScene
+import HowDidYouHearScene as HowDidYouHearScene
+import SignUpDoneScene as SignUpDoneScene
+import MembersOnlyScene as MembersOnlyScene
+import NewMemberScene as NewMemberScene
+import NewUserScene as NewUserScene
+import ReasonForVisitScene as ReasonForVisitScene
+import ScreenSaverScene as ScreenSaverScene
+import TaskListScene as TaskListScene
+import VolunteerInDoneScene as VolunteerInDoneScene
+import WaiverScene as WaiverScene
+import WelcomeScene as WelcomeScene
 
 -----------------------------------------------------------------------------
 -- MAIN

@@ -1,14 +1,14 @@
 
-module ReceptionKiosk.CheckOutDoneScene exposing (init, view, tick, CheckOutDoneModel)
+module CheckInDoneScene exposing (init, view, tick, CheckInDoneModel)
 
 -- Standard
-import Html exposing (Html, div, text)
+import Html exposing (Html, text, div)
 import Time exposing (Time)
 
 -- Third Party
 
 -- Local
-import ReceptionKiosk.Types exposing (..)
+import Types exposing (..)
 import Wizard.SceneUtils exposing (..)
 
 
@@ -23,15 +23,15 @@ displayTimeout = 5
 -- INIT
 -----------------------------------------------------------------------------
 
-type alias CheckOutDoneModel =
-  { displayTimeRemaining : Int
+type alias CheckInDoneModel =
+  {
+    displayTimeRemaining : Int
   }
 
 -- This type alias describes the type of kiosk model that this scene requires.
-type alias KioskModel a = (SceneUtilModel {a | checkOutDoneModel : CheckOutDoneModel})
+type alias KioskModel a = (SceneUtilModel {a | checkInDoneModel : CheckInDoneModel})
 
--- TODO: There should be a time out back to Welcome
-init : Flags -> (CheckOutDoneModel, Cmd Msg)
+init : Flags -> (CheckInDoneModel, Cmd Msg)
 init flags = ({displayTimeRemaining=displayTimeout}, Cmd.none)
 
 
@@ -46,10 +46,10 @@ init flags = ({displayTimeRemaining=displayTimeout}, Cmd.none)
 
 view : KioskModel a -> Html Msg
 view kioskModel =
-  let sceneModel = kioskModel.checkOutDoneModel
+  let sceneModel = kioskModel.checkInDoneModel
   in genericScene kioskModel
-    "You're Checked Out"
-    "Have a Nice Day!"
+    "You're Checked In"
+    "Have fun!"
     ( div []
       [ vspace 40
       , sceneButton kioskModel <| ButtonSpec "Ok" (WizardVector <| Push <| Welcome)
@@ -58,20 +58,21 @@ view kioskModel =
       ]
     )
     []
-    [] -- Never any bad news for this scene
+    []
 
 
 -----------------------------------------------------------------------------
 -- TICK (called each second)
 -----------------------------------------------------------------------------
 
-tick : Time -> KioskModel a -> (CheckOutDoneModel, Cmd Msg)
+tick : Time -> KioskModel a -> (CheckInDoneModel, Cmd Msg)
 tick time kioskModel =
   let
-    sceneModel = kioskModel.checkOutDoneModel
-    visible = sceneIsVisible kioskModel CheckOutDone
+    sceneModel = kioskModel.checkInDoneModel
+    visible = sceneIsVisible kioskModel CheckInDone
     dec = if visible then 1 else 0
     newTimeRemaining = sceneModel.displayTimeRemaining - dec
     cmd = if newTimeRemaining <= 0 then segueTo Welcome else Cmd.none
   in
     ({sceneModel | displayTimeRemaining=newTimeRemaining}, cmd)
+

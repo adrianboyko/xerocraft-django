@@ -1,5 +1,5 @@
 
-module ReceptionKiosk.VolunteerInDoneScene exposing (init, view, VolunteerInDoneModel)
+module VolunteerInDoneScene exposing (init, view, VolunteerInDoneModel)
 
 -- Standard
 import Html exposing (Html, text, div, p)
@@ -9,8 +9,8 @@ import Html.Attributes exposing (style)
 
 -- Local
 import Wizard.SceneUtils exposing (..)
-import ReceptionKiosk.Types exposing (..)
-import ReceptionKiosk.TaskListScene exposing (TaskListModel)
+import Types exposing (..)
+import TaskListScene exposing (TaskListModel)
 
 -----------------------------------------------------------------------------
 -- INIT

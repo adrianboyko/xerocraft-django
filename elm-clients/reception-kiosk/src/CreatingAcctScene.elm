@@ -1,5 +1,5 @@
 
-module ReceptionKiosk.CreatingAcctScene exposing
+module CreatingAcctScene exposing
   ( init
   , sceneWillAppear
   , update
@@ -21,12 +21,12 @@ import String.Extra exposing (..)
 import MembersApi as MembersApi
 import XerocraftApi as XcApi
 import Wizard.SceneUtils exposing (..)
-import ReceptionKiosk.Types exposing (..)
-import ReceptionKiosk.ReasonForVisitScene exposing (ReasonForVisitModel)
-import ReceptionKiosk.NewMemberScene exposing (NewMemberModel)
-import ReceptionKiosk.NewUserScene exposing (NewUserModel)
-import ReceptionKiosk.WaiverScene exposing (WaiverModel)
-import ReceptionKiosk.HowDidYouHearScene exposing (HowDidYouHearModel)
+import Types exposing (..)
+import ReasonForVisitScene exposing (ReasonForVisitModel)
+import NewMemberScene exposing (NewMemberModel)
+import NewUserScene exposing (NewUserModel)
+import WaiverScene exposing (WaiverModel)
+import HowDidYouHearScene exposing (HowDidYouHearModel)
 
 -----------------------------------------------------------------------------
 -- INIT

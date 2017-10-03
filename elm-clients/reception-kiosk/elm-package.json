@@ -1,14 +1,11 @@
 {
     "version": "1.0.0",
-    "summary": "Elm front ends for the 'members' app.",
+    "summary": "Elm front ends for XIS backend.",
     "repository": "https://github.com/user/project.git",
     "license": "BSD3",
     "source-directories": [
-        ".",
-        "../../abutils/elm-clients",
-        "../../tasks/elm-clients",
-        "../../xis/elm-clients",
-        "../../bzw_ops/elm-clients"
+        "src",
+        "../backend-apis/src"
     ],
     "exposed-modules": [],
     "dependencies": {

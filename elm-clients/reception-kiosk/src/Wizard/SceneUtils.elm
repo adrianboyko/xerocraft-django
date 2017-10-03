@@ -38,7 +38,7 @@ import Material as Material
 import List.Nonempty exposing (Nonempty)
 
 -- Local
-import ReceptionKiosk.Types exposing (..)
+import Types exposing (..)
 
 -----------------------------------------------------------------------------
 -- PORTS

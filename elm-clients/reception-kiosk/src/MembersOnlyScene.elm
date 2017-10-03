@@ -1,5 +1,5 @@
 
-module ReceptionKiosk.MembersOnlyScene exposing
+module MembersOnlyScene exposing
   ( init
   , sceneWillAppear
   , update
@@ -22,8 +22,8 @@ import MembersApi as MembersApi exposing (Membership)
 import XerocraftApi as XcApi
 import OpsApi as OpsApi exposing (TimeBlock, TimeBlockType)
 import Wizard.SceneUtils exposing (..)
-import ReceptionKiosk.CheckInScene exposing (CheckInModel)
-import ReceptionKiosk.Types exposing (..)
+import CheckInScene exposing (CheckInModel)
+import Types exposing (..)
 
 
 -----------------------------------------------------------------------------

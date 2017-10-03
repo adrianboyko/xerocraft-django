@@ -1,5 +1,5 @@
 
-module ReceptionKiosk.EmailInUseScene exposing (init, view, EmailInUseModel)
+module EmailInUseScene exposing (init, view, EmailInUseModel)
 
 -- Standard
 import Html exposing (Html, text, div, br, span)
@@ -10,8 +10,8 @@ import Color exposing (rgb)
 
 -- Local
 import Wizard.SceneUtils exposing (..)
-import ReceptionKiosk.Types exposing (..)
-import ReceptionKiosk.NewMemberScene exposing (NewMemberModel)
+import Types exposing (..)
+import NewMemberScene exposing (NewMemberModel)
 
 -----------------------------------------------------------------------------
 -- INIT

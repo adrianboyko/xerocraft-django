@@ -1,5 +1,5 @@
 
-module ReceptionKiosk.ScreenSaverScene exposing
+module ScreenSaverScene exposing
   ( init
   , sceneWillAppear
   , update
@@ -21,7 +21,7 @@ import Keyboard
 
 -- Local
 import Wizard.SceneUtils exposing (..)
-import ReceptionKiosk.Types exposing (..)
+import Types exposing (..)
 
 
 -----------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 
-module ReceptionKiosk.NewMemberScene exposing (init, update, tick, view, subscriptions, NewMemberModel)
+module NewMemberScene exposing (init, update, tick, view, subscriptions, NewMemberModel)
 
 -- Standard
 import Html exposing (..)
@@ -16,7 +16,7 @@ import Material.Options as Options exposing (css)
 -- Local
 import MembersApi as MembersApi
 import Wizard.SceneUtils exposing (..)
-import ReceptionKiosk.Types exposing (..)
+import Types exposing (..)
 
 -----------------------------------------------------------------------------
 -- INIT

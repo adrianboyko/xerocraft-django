@@ -1,4 +1,4 @@
-module ReceptionKiosk.Types exposing (..)
+module Types exposing (..)
 
 -- Standard
 import Http
