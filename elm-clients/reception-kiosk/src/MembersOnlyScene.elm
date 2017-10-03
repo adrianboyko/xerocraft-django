@@ -121,15 +121,16 @@ update msg kioskModel =
 
     UpdateTimeBlockTypes (Ok pageOfTimeBlockTypes) ->
       let
-        impossibleCase =
-          let _ = Debug.log "Impossible. Block types are only requested AFTER block is successfully received." sceneModel.block
+        impossibleNote = "Impossible. Block types are only requested AFTER block is successfully received."
+        logImpossibleCase _ =  -- This needs to be a fn and not a constant, hence the "_" param.
+          let _ = Debug.log impossibleNote sceneModel
           in (sceneModel, Cmd.none)
       in
         case sceneModel.block of
 
-          Received Nothing -> impossibleCase
-          Failed _ -> impossibleCase
-          Pending -> impossibleCase
+          Received Nothing -> logImpossibleCase ()
+          Failed _ -> logImpossibleCase ()
+          Pending -> logImpossibleCase ()
 
           Received (Just block) ->
             let
