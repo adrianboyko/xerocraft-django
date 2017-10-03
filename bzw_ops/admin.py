@@ -37,7 +37,6 @@ admin.site.register(User, CustomUserAdmin)
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-
 @admin.register(TimeBlock)
 class TimeBlockAdmin(admin.ModelAdmin):
 
@@ -93,7 +92,11 @@ TimeBlockAdmin.fmt_dur_str.short_description = "Duration"
 TimeBlockAdmin.fmt_types.short_description = "Activities"
 
 
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
 @admin.register(TimeBlockType)
 class TimeBlockTypeAdmin(admin.ModelAdmin):
-    pass
+
+    list_display = ['pk', 'name', 'is_default', 'description']
+    list_display_links = ['pk', 'name']
 

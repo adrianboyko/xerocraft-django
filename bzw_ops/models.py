@@ -27,8 +27,18 @@ class TimeBlockType(models.Model):
     description = models.TextField(max_length=2048, null=False, blank=False,
         help_text="A longer description for the time block type.")
 
+    is_default = models.BooleanField(default=False,
+        help_text="This block type should be the default for times not explicitly included in a block.")
+
     def __str__(self):
         return self.name
+
+    def clean(self):
+        if self.is_default:
+            defaults = TimeBlockType.objects.filter(is_default=True).exclude(pk=self.pk).all()
+            if len(defaults) > 0:
+                msg = "A default is already set. Clear it before setting a new one."
+                raise ValidationError(msg)
 
 
 class TimeBlock(models.Model):
