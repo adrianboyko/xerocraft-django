@@ -24,25 +24,16 @@ import OpsApi as OpsApi exposing (TimeBlock, TimeBlockType)
 import Wizard.SceneUtils exposing (..)
 import CheckInScene exposing (CheckInModel)
 import Types exposing (..)
+import Fetchable exposing (..)
 
 
 -----------------------------------------------------------------------------
 -- INIT
 -----------------------------------------------------------------------------
 
-type Fetchable a
-  = Pending
-  | Received a
-  | Failed String
-
-received x =
-  case x of
-    Received _ -> True
-    _ -> False
-
 type alias MembersOnlyModel =
-  { block : Fetchable (Maybe TimeBlock)
-  , types : Fetchable (List TimeBlockType)
+  { nowBlock : Fetchable (Maybe TimeBlock)
+  , allTypes : Fetchable (List TimeBlockType)
   , memberships : Fetchable (List Membership)
   , badNews : List String
   }
@@ -59,8 +50,8 @@ type alias KioskModel a =
 init : Flags -> (MembersOnlyModel, Cmd Msg)
 init flags =
   let sceneModel =
-    { block = Pending
-    , types = Pending
+    { nowBlock = Pending
+    , allTypes = Pending
     , memberships = Pending
     , badNews = []
     }
@@ -83,17 +74,46 @@ sceneWillAppear kioskModel appearingScene =
         memberNum = kioskModel.checkInModel.memberNum
         cmd1 = getTimeBlocks kioskModel
         cmd2 = getMemberships kioskModel memberNum
-        cmds = Cmd.batch [cmd1, cmd2]
+        cmd3 = getTimeBlockTypes kioskModel
+        cmds = Cmd.batch [cmd1, cmd2, cmd3]
       in
         (sceneModel, cmds)
 
     MembersOnly ->
-      if received sceneModel.block || received sceneModel.memberships
+      if haveSomethingToSay kioskModel
         then (sceneModel, Cmd.none)  -- Show this scene.
-        else (sceneModel, segueTo CheckInDone)  -- Not enough info, so skip it.
+        else (sceneModel, segueTo CheckInDone)  -- Skip it.
 
     _ ->
       (sceneModel, Cmd.none)
+
+{- Will keep this simple, for now. This scene will appear if all of the following are true:
+   (1) We know what type of time block we're in.
+   (2) The time block is tagged as being for Supporting Members Only.
+   (3) We have the user's membership info.
+-}
+haveSomethingToSay : KioskModel a -> Bool
+haveSomethingToSay kioskModel =
+  let
+    sceneModel = kioskModel.membersOnlyModel
+    membersOnlyStr = "Members Only"
+  in
+    case (sceneModel.nowBlock, sceneModel.allTypes, sceneModel.memberships) of
+
+      -- Following is the case where somebody arrives during an explicit time block.
+      (Received (Just nowBlock), Received allTypes, Received memberships) ->
+        let nowBlockTypes = OpsApi.blocksTypes nowBlock allTypes
+        in List.member membersOnlyStr (List.map .name nowBlockTypes)
+
+      -- Following is the case where we're not in any explicit time block.
+      -- So use default time block type, if one has been specified.
+      (Received Nothing, Received allTypes, Received memberships) ->
+        let defaultBlockType = OpsApi.defaultType allTypes
+        in case defaultBlockType of
+          Just bt -> bt.name == membersOnlyStr
+          Nothing -> False
+
+      _ -> False
 
 
 -----------------------------------------------------------------------------
@@ -114,37 +134,12 @@ update msg kioskModel =
       let
         blocks = pageOfTimeBlocks.results
         nowBlocks = List.filter .isNow blocks
-        currBlock = List.head nowBlocks
-        followUpCmd = if List.isEmpty nowBlocks then Cmd.none else getTimeBlockTypes kioskModel
+        nowBlock = List.head nowBlocks
       in
-        ({sceneModel | block = Received currBlock }, followUpCmd)
+        ({sceneModel | nowBlock = Received nowBlock }, Cmd.none)
 
     UpdateTimeBlockTypes (Ok pageOfTimeBlockTypes) ->
-      let
-        allBlockTypes = pageOfTimeBlockTypes.results
-        impossibleNote = "Impossible. Block types are only requested AFTER block is successfully received."
-        logImpossibleCase _ =  -- This needs to be a fn and not a constant, hence the "_" param.
-          let _ = Debug.log impossibleNote sceneModel
-          in (sceneModel, Cmd.none)
-      in
-        case sceneModel.block of
-
-          Failed _ -> logImpossibleCase ()
-          Pending -> logImpossibleCase ()
-
-          Received Nothing ->
-            let
-              defaultBlockTypes = List.filter .isDefault allBlockTypes  -- Should have length 0 or 1.
-            in
-              ({sceneModel | types = Received defaultBlockTypes}, Cmd.none)
-
-          Received (Just block) ->
-            let
-              relatedBlockTypeIds = List.map OpsApi.getIdFromUrl block.types
-              isRelatedBlockType x = List.member (Ok x.id) relatedBlockTypeIds
-              currBlockTypes = List.filter isRelatedBlockType allBlockTypes
-            in
-              ({sceneModel | types = Received currBlockTypes}, Cmd.none)
+      ({sceneModel | allTypes = Received pageOfTimeBlockTypes.results}, Cmd.none)
 
     UpdateMemberships (Ok pageOfMemberships) ->
       let memberships = pageOfMemberships.results
@@ -154,15 +149,15 @@ update msg kioskModel =
     -- FAILED FETCHES --
 
     UpdateTimeBlocks (Err error) ->
-      let msg = Debug.log "Error getting time blocks: " (toString error)
-      in ({sceneModel | block = Failed msg}, Cmd.none)
+      let msg = toString error |> Debug.log "Error getting time blocks: "
+      in ({sceneModel | nowBlock = Failed msg}, Cmd.none)
 
     UpdateTimeBlockTypes (Err error) ->
-      let msg = Debug.log "Error getting time block types: " (toString error)
-      in ({sceneModel | types = Failed msg}, Cmd.none)
+      let msg = toString error |> Debug.log "Error getting time block types: "
+      in ({sceneModel | allTypes = Failed msg}, Cmd.none)
 
     UpdateMemberships (Err error) ->
-      let msg = Debug.log "Error getting memberships: " (toString error)
+      let msg = toString error |> Debug.log "Error getting memberships: "
       in ({sceneModel | memberships = Failed msg}, Cmd.none)
 
 
@@ -179,23 +174,38 @@ view kioskModel =
     genericScene kioskModel
       "Supporting Members Only"
       "Is your supporting membership up to date?"
-      (div []
-        (
-        [ case sceneModel.block of
-            Received Nothing -> text "not in block"  -- This shouldn't appear b/c we should skip scene if so.
-            Received (Just block) -> text block.startTime
-            _ -> text "Shouldn't happen."
-        ]
-        ++
-        case sceneModel.types of
-          Received types ->
-            List.map (\x -> text x.name) types
-          _ -> []
-        )
+      (
+      case sceneModel.memberships of
+
+        Received memberships ->
+          case membershipStatus memberships of
+
+            Current -> text ""
+            ExpiredRecently -> text ""
+            ExpiredLongAgo -> text ""
+            Never -> text ""
+
+        _ -> text ""
       )
       []  -- No buttons. Scene will automatically transition.
       []  -- No bad news. Scene will fail silently, but should log somewhere.
 
+
+type MembershipStatus
+  = Current
+  | ExpiredRecently
+  | ExpiredLongAgo
+  | Never
+
+membershipStatus : List Membership -> MembershipStatus
+membershipStatus memberships =
+  case memberships of
+
+    [] ->
+      Never
+
+    membership::_ ->
+      Current
 
 -----------------------------------------------------------------------------
 -- COMMANDS

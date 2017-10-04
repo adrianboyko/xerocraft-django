@@ -3,6 +3,7 @@ module DjangoRestFramework exposing (..)
 -- Standard
 import Json.Decode as Dec
 import Http exposing (header)
+import Char
 
 -- Third-Party
 import Json.Decode.Pipeline exposing (decode, required, optional, hardcoded)
@@ -31,6 +32,22 @@ type alias PageOf a =
 authenticationHeader : String -> Http.Header
 authenticationHeader token =
   Http.header "Authorization" ("Token " ++ token)
+
+
+-- Example "https://localhost:8000/ops/api/time_block_types/4/" -> 4
+getIdFromUrl : String -> Result String Int
+getIdFromUrl url =
+  let
+    parts = String.split "/" url
+    numberStrs = parts |> List.filter (not << String.isEmpty) |> List.filter (String.all Char.isDigit)
+    numberStr = Maybe.withDefault "FOO" (List.head numberStrs)
+  in
+    if List.length numberStrs /= 1
+      then
+        Err "Unhandled URL format."
+      else
+        String.toInt numberStr
+
 
 
 -----------------------------------------------------------------------------

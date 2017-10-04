@@ -20,8 +20,10 @@ module MembersApi exposing
   )
 
 -- Standard
+import Date as Date
 import Json.Decode as Dec
 import Json.Encode as Enc
+import Json.Decode.Extra as DecX
 import Regex exposing (regex)
 import Http
 
@@ -107,8 +109,8 @@ type ReasonForVisit
 type alias Membership =
   { id : Int
   , member : String
-  , startDate : String
-  , endDate : String
+  , startDate : Date.Date
+  , endDate : Date.Date
   , sale : Int
   , sale_price : String
   , ctrlid : String
@@ -296,8 +298,8 @@ decodeMembership =
   decode Membership
     |> required "id" Dec.int
     |> required "member" Dec.string
-    |> required "start_date" Dec.string
-    |> required "end_date" Dec.string
+    |> required "start_date" DecX.date
+    |> required "end_date" DecX.date
     |> required "sale" Dec.int
     |> required "sale_price" Dec.string
     |> required "ctrlid" Dec.string

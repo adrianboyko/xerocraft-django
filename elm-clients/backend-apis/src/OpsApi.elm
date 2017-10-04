@@ -1,11 +1,12 @@
 module OpsApi exposing
   ( getTimeBlocks
   , getTimeBlockTypes
+  , blocksTypes
+  , defaultType
   , TimeBlock
   , TimeBlockType
   , PageOfTimeBlocks
   , PageOfTimeBlockTypes
-  , getIdFromUrl
   )
 
 -- Standard
@@ -13,7 +14,6 @@ import Json.Decode as Dec
 import Json.Encode as Enc
 import Regex exposing (regex)
 import Http
-import Char
 
 -- Third-Party
 import Json.Decode.Pipeline exposing (decode, required, optional, hardcoded)
@@ -29,20 +29,6 @@ import DjangoRestFramework exposing (..)
 replaceAll : String -> String -> String -> String
 replaceAll oldSub newSub theString =
   Regex.replace Regex.All (regex oldSub) (\_ -> newSub) theString
-
-getIdFromUrl : String -> Result String Int
-getIdFromUrl url =
-  -- Example "https://localhost:8000/ops/api/time_block_types/4/" -> 4
-  let
-    parts = String.split "/" url
-    numberStrs = parts |> List.filter (not << String.isEmpty) |> List.filter (String.all Char.isDigit)
-    numberStr = Maybe.withDefault "FOO" (List.head numberStrs) |> Debug.log "numberStr"
-  in
-    if List.length numberStrs /= 1
-      then
-        Err "Unhandled URL format."
-      else
-        String.toInt numberStr
 
 
 -----------------------------------------------------------------------------
@@ -101,6 +87,18 @@ getTimeBlockTypes : OpsApiModel a -> (Result Http.Error PageOfTimeBlockTypes -> 
 getTimeBlockTypes model resultToMsg =
   let request = Http.get model.timeBlockTypesUrl (decodePageOf decodeTimeBlockType)
   in Http.send resultToMsg request
+
+blocksTypes : TimeBlock -> List TimeBlockType -> List TimeBlockType
+blocksTypes specificBlock allBlockTypes =
+  let
+    relatedBlockTypeIds = List.map getIdFromUrl specificBlock.types
+    isRelatedBlockType x = List.member (Ok x.id) relatedBlockTypeIds
+  in
+    List.filter isRelatedBlockType allBlockTypes
+
+defaultType : List TimeBlockType -> Maybe TimeBlockType
+defaultType allBlockTypes =
+  List.filter .isDefault allBlockTypes |> List.head
 
 
 -----------------------------------------------------------------------------
