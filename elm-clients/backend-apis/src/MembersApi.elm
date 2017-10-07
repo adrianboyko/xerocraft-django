@@ -17,15 +17,19 @@ module MembersApi exposing
   , VisitEventType (..)
   , ReasonForVisit (..)
   , PageOfMemberships
+  , mostRecentMembership
+  , coverNow
   )
 
 -- Standard
 import Date as Date
+import Date.Extra as DateX
 import Json.Decode as Dec
 import Json.Encode as Enc
 import Json.Decode.Extra as DecX
 import Regex exposing (regex)
 import Http
+import Time exposing (Time)
 
 -- Third-Party
 import Json.Decode.Pipeline exposing (decode, required, hardcoded)
@@ -47,6 +51,9 @@ replaceAll : {oldSub : String, newSub : String} -> String -> String
 replaceAll {oldSub, newSub} whole =
   Regex.replace Regex.All (regex oldSub) (\_ -> newSub) whole
 
+compareMembershipByEndDate : Membership -> Membership -> Order
+compareMembershipByEndDate m1 m2 =
+  DateX.compare m1.endDate m2.endDate
 
 -----------------------------------------------------------------------------
 -- API TYPES
@@ -255,6 +262,26 @@ getMemberships flags memberNum resultToMsg =
       }
   in
     Http.send resultToMsg request
+
+
+mostRecentMembership : List Membership -> Maybe Membership
+mostRecentMembership memberships =
+  -- Note: The back-end is supposed to return memberships in reverse order by end-date
+  -- REVIEW: This implementation does not assume ordered list from server, just to be safe.
+  memberships |> List.sortWith compareMembershipByEndDate |> List.reverse |> List.head
+
+
+{-| Determine whether the list of memberships covers the current time.
+-}
+coverNow : List Membership -> Time -> Bool
+coverNow memberships now =
+  case mostRecentMembership memberships of
+    Nothing ->
+      False
+    Just membership ->
+      let endTime = Date.toTime membership.endDate
+      in endTime >= now
+
 
 -----------------------------------------------------------------------------
 -- JSON

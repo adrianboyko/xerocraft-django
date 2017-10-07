@@ -10,6 +10,7 @@ port module Wizard.SceneUtils exposing
   , scenePasswordField
   , sceneTextField
   , sceneTextStyle
+  , sceneTextBlockStyle
   , userIdStyle
   , vspace
   , hspace
@@ -240,6 +241,11 @@ sceneTitleStyle = style
 sceneTextStyle = style
   [ "font-size" => "22pt"
   , "line-height" => "1em"
+  ]
+
+sceneTextBlockStyle = style
+  [ "padding-left" => px 100
+  , "padding-right" => px 100
   ]
 
 sceneSubtitleStyle = style
