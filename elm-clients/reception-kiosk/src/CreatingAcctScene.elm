@@ -224,8 +224,10 @@ view kioskModel =
 tick : Time -> KioskModel a -> (CreatingAcctModel, Cmd Msg)
 tick time kioskModel =
   let
+    visible = sceneIsVisible kioskModel CreatingAcct
     sceneModel = kioskModel.creatingAcctModel
-    inc = if List.isEmpty sceneModel.badNews then 1 else 0
-    newWaitCount = sceneModel.waitCount + 1
+    inc = if visible && List.isEmpty sceneModel.badNews then 1 else 0
+    newWaitCount = sceneModel.waitCount + inc
   in
-    ({sceneModel | waitCount=newWaitCount}, Cmd.none)
+    if visible then ({sceneModel | waitCount=newWaitCount}, Cmd.none)
+    else (sceneModel, Cmd.none)

@@ -192,7 +192,9 @@ tick time kioskModel =
     okToFocus = visible && noBadNews && not sceneModel.doneWithFocus
     cmd = if okToFocus then idxFirstName |> toString |> setFocusIfNoFocus else Cmd.none
   in
-    (sceneModel, cmd)
+    if visible then (sceneModel, cmd)
+    else (sceneModel, Cmd.none)
+
 
 
 -----------------------------------------------------------------------------

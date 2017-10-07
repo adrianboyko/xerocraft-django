@@ -52,7 +52,7 @@ view kioskModel =
     "Have a Nice Day!"
     ( div []
       [ vspace 40
-      , sceneButton kioskModel <| ButtonSpec "Ok" (WizardVector <| Push <| Welcome)
+      , sceneButton kioskModel <| ButtonSpec "Ok" (WizardVector <| Reset)
       , vspace 70
       , (text (String.repeat sceneModel.displayTimeRemaining "●"))
       ]
@@ -72,6 +72,7 @@ tick time kioskModel =
     visible = sceneIsVisible kioskModel CheckOutDone
     dec = if visible then 1 else 0
     newTimeRemaining = sceneModel.displayTimeRemaining - dec
-    cmd = if newTimeRemaining <= 0 then segueTo Welcome else Cmd.none
+    cmd = if visible && newTimeRemaining <= 0 then send (WizardVector <| Reset) else Cmd.none
   in
-    ({sceneModel | displayTimeRemaining=newTimeRemaining}, cmd)
+    if visible then ({sceneModel | displayTimeRemaining=newTimeRemaining}, cmd)
+    else (sceneModel, Cmd.none)

@@ -22,6 +22,11 @@ import Keyboard
 -- Local
 import Wizard.SceneUtils exposing (..)
 import Types exposing (..)
+import Fetchable exposing (..)
+
+-- ScreenSaver piggybacks on the time block checking of MembersOnly.
+-- REVIEW: Maybe the time block tracking functionality should be moved somewhere neutral.
+import MembersOnlyScene exposing (MembersOnlyModel)
 
 
 -----------------------------------------------------------------------------
@@ -31,7 +36,12 @@ import Types exposing (..)
 msgDivWidth = 317  -- Measured in browser
 msgDivHeight = 242  -- Measured in browser
 redrawPeriod = 3  -- Move msg every redrawPeriod seconds
-tooLong = 900  -- Screen saver will activate after tooLong seconds
+tooLong = 600  -- Screen saver will activate after tooLong seconds
+
+
+-----------------------------------------------------------------------------
+-- CONSTANTS
+-----------------------------------------------------------------------------
 
 
 -----------------------------------------------------------------------------
@@ -45,7 +55,13 @@ type alias ScreenSaverModel =
   }
 
 -- This type alias describes the type of kiosk model that this scene requires.
-type alias KioskModel a = (SceneUtilModel {a | screenSaverModel : ScreenSaverModel})
+type alias KioskModel a = SceneUtilModel
+  { a
+  | screenSaverModel : ScreenSaverModel
+  , membersOnlyModel : MembersOnlyModel
+  , flags : Flags
+  }
+
 
 init : Flags -> (ScreenSaverModel, Cmd Msg)
 init flags =
@@ -94,25 +110,38 @@ tick time kioskModel =
   let
     sceneModel = kioskModel.screenSaverModel
     visible = sceneIsVisible kioskModel ScreenSaver
+    isBusyTime = case kioskModel.membersOnlyModel.nowBlock of
+      Received (Just _) -> True
+      _ -> False
+    getTimeBlocksCmd = MembersOnlyScene.getTimeBlocks kioskModel.flags
+    timeInSeconds = time |> Time.inSeconds |> floor
+    isTopOfMinute = timeInSeconds % 60 == 0
+    cmd1 = if isTopOfMinute then getTimeBlocksCmd else Cmd.none
   in
-    if visible  -- screen saver IS visible
-      then
-        if (time |> Time.inSeconds |> floor) % redrawPeriod == 0
-          then
-            let
-              xRandGen = Random.int 0 (sceneWidth - msgDivWidth)
-              yRandGen = Random.int 0 (sceneHeight - msgDivHeight)
-              pairRandGen = Random.pair xRandGen yRandGen
-            in
-              (sceneModel, Random.generate (ScreenSaverVector << NewMsgPosition) pairRandGen)
-          else
-            (sceneModel, Cmd.none)
-      else  -- screen saver is NOT visible
-        let
-          newCount = sceneModel.secondsSinceSceneChange + 1
-          cmd = if newCount > tooLong then segueTo ScreenSaver else Cmd.none
-        in
-          ({sceneModel | secondsSinceSceneChange = newCount}, cmd)
+
+    if visible then
+      let
+        isRedrawTime = timeInSeconds % redrawPeriod == 0
+
+        xRandGen = Random.int 0 (sceneWidth - msgDivWidth)
+        yRandGen = Random.int 0 (sceneHeight - msgDivHeight)
+        pairRandGen = Random.pair xRandGen yRandGen
+
+        generatePairCmd = Random.generate (ScreenSaverVector << NewMsgPosition) pairRandGen
+        popCmd = send (WizardVector <| Pop)
+
+        cmd2 = if isBusyTime then popCmd else Cmd.none
+        cmd3 = if isRedrawTime then generatePairCmd else Cmd.none
+      in
+        (sceneModel, Cmd.batch [cmd1, cmd2, cmd3])
+
+    else  -- NOT visible
+      let
+        newCount = sceneModel.secondsSinceSceneChange + 1
+        cmd2 = if newCount > tooLong && not isBusyTime then segueTo ScreenSaver else Cmd.none
+      in
+        ({sceneModel | secondsSinceSceneChange = newCount}, Cmd.batch [cmd1, cmd2])
+
 
 
 -----------------------------------------------------------------------------

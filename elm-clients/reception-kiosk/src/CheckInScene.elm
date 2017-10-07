@@ -162,12 +162,11 @@ tick time kioskModel =
     setFocusCmd = if sceneModel.doneWithFocus then Cmd.none else idxFlexId |> toString |> setFocusIfNoFocus
     cmd =
        if newSecondsIdle > maxIdleSeconds
-         then segueTo Welcome
+         then send (WizardVector <| Reset)
          else setFocusCmd
   in
-    if visible
-      then (newSceneModel, cmd)
-      else (newSceneModel, Cmd.none)
+    if visible then (newSceneModel, cmd)
+    else (newSceneModel, Cmd.none)
 
 -----------------------------------------------------------------------------
 -- SUBSCRIPTIONS

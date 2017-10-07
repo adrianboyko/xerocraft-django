@@ -5,7 +5,7 @@ module MembersOnlyScene exposing
   , update
   , view
   , MembersOnlyModel
-  , getTimeBlocks
+  , getTimeBlocks  -- For ScreenSaver
   )
 
 -- Standard
@@ -47,6 +47,7 @@ type alias KioskModel a =
     | membersOnlyModel : MembersOnlyModel
     , checkInModel : CheckInModel
     , currTime : Time
+    , flags : Flags
     }
   )
 
@@ -75,7 +76,7 @@ sceneWillAppear kioskModel appearingScene =
       -- appears, so start the fetch when ReasonForVisit appears.
       let
         memberNum = kioskModel.checkInModel.memberNum
-        cmd1 = getTimeBlocks kioskModel
+        cmd1 = getTimeBlocks kioskModel.flags
         cmd2 = getMemberships kioskModel memberNum
         cmd3 = getTimeBlockTypes kioskModel
         cmds = Cmd.batch [cmd1, cmd2, cmd3]
@@ -242,11 +243,9 @@ view kioskModel =
 -- COMMANDS
 -----------------------------------------------------------------------------
 
-getTimeBlocks : KioskModel a -> Cmd Msg
-getTimeBlocks kioskModel =
-  OpsApi.getTimeBlocks
-    kioskModel.flags
-    (MembersOnlyVector << UpdateTimeBlocks)
+getTimeBlocks : Flags -> Cmd Msg
+getTimeBlocks flags =
+  OpsApi.getTimeBlocks flags (MembersOnlyVector << UpdateTimeBlocks)
 
 getTimeBlockTypes : KioskModel a  -> Cmd Msg
 getTimeBlockTypes kioskModel =

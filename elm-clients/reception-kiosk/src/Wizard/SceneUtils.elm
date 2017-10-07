@@ -105,7 +105,7 @@ frameNavButtons model =
           [text "Back"]
       , hspace 600
       , Button.render MdlVector [10001] model.mdl
-          ([Button.flat, Options.onClick (WizardVector <| Push <| Welcome)]++navButtonCss)
+          ([Button.flat, Options.onClick (WizardVector <| Reset)]++navButtonCss)
           [text "Quit"]
       ]
 

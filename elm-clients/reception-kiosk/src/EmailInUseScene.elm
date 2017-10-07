@@ -68,7 +68,7 @@ view kioskModel =
         , br [] []
         , text "please speak to a staff member."
         , vspace 20
-        , sceneButton kioskModel <| ButtonSpec "Ok" (WizardVector <| Push <| Welcome)
+        , sceneButton kioskModel <| ButtonSpec "Ok" (WizardVector <| Reset)
         ]
       )
     )

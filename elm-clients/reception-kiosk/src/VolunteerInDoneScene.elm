@@ -62,7 +62,7 @@ view kioskModel =
         , vspace 20
         ]
       )
-      [ButtonSpec "Got It!" (WizardVector <| Push <| Welcome)]
+      [ButtonSpec "Got It!" (WizardVector <| Reset)]
       []  -- Never any bad news for this scene.
 
 

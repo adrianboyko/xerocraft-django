@@ -33,12 +33,7 @@ sceneWillAppear : KioskModel a -> Scene -> (WelcomeModel, Cmd Msg)
 sceneWillAppear kioskModel appearingScene =
   if appearingScene == Welcome
     then
-      let
-        sceneModel = kioskModel.welcomeModel
-        cmd1 = hideKeyboard ()
-        cmd2 = send (WizardVector <| Reset)
-        cmds = Cmd.batch [cmd1, cmd2]
-      in (sceneModel, cmds)
+      (kioskModel.welcomeModel, hideKeyboard ())
     else
       (kioskModel.welcomeModel, Cmd.none)
 
