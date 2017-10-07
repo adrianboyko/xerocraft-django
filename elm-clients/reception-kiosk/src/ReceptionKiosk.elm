@@ -50,6 +50,7 @@ main =
 
 type alias Model =
   { flags : Flags
+  , currTime : Time
   , sceneStack : Nonempty Scene -- 1st element is the top of the stack
   -- elm-mdl model:
   , mdl : Material.Model
@@ -95,6 +96,7 @@ init f =
     (welcomeModel,         welcomeCmd        ) = WelcomeScene.init         f
     model =
       { flags = f
+      , currTime = 0
       , sceneStack = List.Nonempty.fromElement Welcome
       , mdl = Material.model
       -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
@@ -213,7 +215,8 @@ update msg model =
             (m7, c7) = ScreenSaverScene.tick time model
             newModel =
               { model
-              | creatingAcctModel = m1
+              | currTime = time
+              , creatingAcctModel = m1
               , checkInModel = m2
               , checkInDoneModel = m3
               , checkOutDoneModel = m4
