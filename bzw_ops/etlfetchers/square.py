@@ -2,6 +2,7 @@
 # Standard
 from decimal import Decimal
 from datetime import date
+from time import sleep
 
 # Third Party
 import requests
@@ -126,6 +127,7 @@ class Fetcher(AbstractFetcher):
     # PROCESS OTHER ITEM
     # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
+    # TODO: Move this map to the database.
     OTHER_ITEM_TYPE_MAP = {
         "Workshop Fee": "Workshop Fee",
 
@@ -152,6 +154,17 @@ class Fetcher(AbstractFetcher):
         "Assortment": "Materials, Electronics",
 
         "Magnet": "Materials, Miscellaneous",
+
+        "Inventioneering, Afternoons": "X-ELL Sessions and Extras",
+        "Robots, Afternoons": "X-ELL Sessions and Extras",
+        "Printmaking, Afternoons": "X-ELL Sessions and Extras",
+        "Metalworking, Mornings": "X-ELL Sessions and Extras",
+        "Woodworking, Mornings": "X-ELL Sessions and Extras",
+        "Projectile Fun, Mornings": "X-ELL Sessions and Extras",
+        "Kinetic Machines, Mornings": "X-ELL Sessions and Extras",
+
+        "In-depth technical mentoring hours": "Contracted Class, Workshop, or Mentoring",
+        "Two-hour hands-on workshops": "Contracted Class, Workshop, or Mentoring",
     }
 
     def _process_other_item(self, sale, item, item_num):
@@ -439,6 +452,10 @@ class Fetcher(AbstractFetcher):
             while response is None:
                 try:
                     response = self.squaresession.get(payments_url, params=get_data, headers=get_headers)
+                    if response.text.startswith("{'type': 'too_many_requests'"):
+                        sleep(10)
+                        print("Z", end='')
+                        response = None
                 except requests.exceptions.ConnectionError:
                     print("!", end='')
 
