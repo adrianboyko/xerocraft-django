@@ -6,6 +6,7 @@ module MembersApi exposing
   , getDiscoveryMethods
   , getMatchingAccts
   , getCheckedInAccts
+  , getRecentRfidEntries
   , getMemberships
   , logArrivalEvent
   , logDepartureEvent
@@ -68,6 +69,7 @@ type alias MembersApiModel a =
   , discoveryMethodsUrl : String
   , logVisitEventUrl : String
   , matchingAcctsUrl : String
+  , recentRfidEntriesUrl : String
   , setIsAdultUrl : String
   , uniqueKioskId : String
   , xcOrgActionUrl : String
@@ -137,21 +139,30 @@ getDiscoveryMethods model resultToMsg =
   in Http.send resultToMsg request
 
 getCheckedInAccts: MembersApiModel a -> (Result Http.Error MatchingAcctInfo -> msg) -> Cmd msg
-getCheckedInAccts flags thing =
+getCheckedInAccts flags resultToMsg =
   let
     url = flags.checkedInAcctsUrl++"?format=json"  -- Easier than an "Accept" header.
     request = Http.get url decodeMatchingAcctInfo
   in
-    Http.send thing request
+    Http.send resultToMsg request
+
+getRecentRfidEntries: MembersApiModel a -> (Result Http.Error MatchingAcctInfo -> msg) -> Cmd msg
+getRecentRfidEntries flags resultToMsg =
+  let
+    url = flags.recentRfidEntriesUrl++"?format=json"  -- Easier than an "Accept" header.
+    request = Http.get url decodeMatchingAcctInfo
+  in
+    Http.send resultToMsg request
+
 
 getMatchingAccts: MembersApiModel a -> String -> (Result Http.Error MatchingAcctInfo -> msg) -> Cmd msg
-getMatchingAccts flags flexId thing =
+getMatchingAccts flags flexId resultToMsg =
   let
     url = flags.matchingAcctsUrl++"?format=json"  -- Easier than an "Accept" header.
       |> replaceAll {oldSub="FLEXID", newSub=flexId}
     request = Http.get url decodeMatchingAcctInfo
   in
-    Http.send thing request
+    Http.send resultToMsg request
 
 -- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

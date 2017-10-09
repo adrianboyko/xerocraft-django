@@ -30,6 +30,7 @@ type alias Flags =
   , logVisitEventUrl : String
   , matchingAcctsUrl : String
   , orgName : String
+  , recentRfidEntriesUrl : String
   , scrapeLoginsUrl : String
   , setIsAdultUrl : String
   , xcOrgActionUrl : String

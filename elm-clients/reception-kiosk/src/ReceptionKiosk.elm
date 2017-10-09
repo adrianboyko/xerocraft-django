@@ -184,6 +184,7 @@ update msg model =
 
         SceneWillAppear appearingScene ->
           let
+            (m0, c0) = CheckInScene.sceneWillAppear model appearingScene
             (m1, c1) = CheckOutScene.sceneWillAppear model appearingScene
             (m2, c2) = CreatingAcctScene.sceneWillAppear model appearingScene
             (m3, c3) = MembersOnlyScene.sceneWillAppear model appearingScene
@@ -193,7 +194,8 @@ update msg model =
             (m7, c7) = WelcomeScene.sceneWillAppear model appearingScene
             newModel =
               { model
-              | checkOutModel = m1
+              | checkInModel = m0
+              , checkOutModel = m1
               , creatingAcctModel = m2
               , membersOnlyModel = m3
               , screenSaverModel = m4
@@ -202,7 +204,7 @@ update msg model =
               , welcomeModel = m7
               }
           in
-            (newModel, Cmd.batch [c1, c2, c3, c4, c5, c6, c7])
+            (newModel, Cmd.batch [c0, c1, c2, c3, c4, c5, c6, c7])
 
         Tick time ->
           let

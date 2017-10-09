@@ -24,6 +24,10 @@ urlpatterns = [
         views.reception_kiosk_matching_accts,
         name="reception-kiosk-matching-accts"),
 
+    url(r'^reception/recent-rfid-entries/$',
+        views.reception_kiosk_recent_rfid_entries,
+        name="reception-kiosk-recent-rfid-entries"),
+
     url(r'^reception/checked-in-accts/$',
         views.reception_kiosk_checked_in_accts,
         name="reception-kiosk-checked-in-accts"),

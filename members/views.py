@@ -1,6 +1,6 @@
 
 # Standard
-from datetime import date
+from datetime import date, timedelta
 from collections import Counter
 from time import mktime
 import csv
@@ -20,6 +20,7 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.conf import settings
 from django.db.models import Q
+from django.utils import timezone
 from reportlab.pdfgen import canvas
 from reportlab.graphics.shapes import Drawing
 from reportlab.graphics.barcode.qr import QrCodeWidget
@@ -525,6 +526,23 @@ def reception_kiosk_checked_in_accts(request) -> JsonResponse:
 
     accts = []
     for visitor in visitors:  # type: Member
+        acct = {
+            "userName": visitor.username,
+            "memberNum": visitor.id,
+        }
+        if acct not in accts:
+            accts.append(acct)
+
+    return JsonResponse({"target": "", "matches": accts})
+
+
+def reception_kiosk_recent_rfid_entries(request) -> JsonResponse:
+    half_hour_ago = timezone.now() - timedelta(minutes=30)
+    visits = VisitEvent.objects.filter(when__gte=half_hour_ago, event_type=VisitEvent.EVT_ARRIVAL, method=VisitEvent.METHOD_RFID)
+
+    accts = []
+    for visit in visits:  # type: VisitEvent
+        visitor = visit.who  # type: Member
         acct = {
             "userName": visitor.username,
             "memberNum": visitor.id,

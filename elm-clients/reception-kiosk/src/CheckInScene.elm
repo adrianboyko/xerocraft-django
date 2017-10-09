@@ -1,6 +1,7 @@
 
 module CheckInScene exposing
   ( init
+  , sceneWillAppear
   , view
   , update
   , tick
@@ -62,6 +63,22 @@ init flags =
     , badNews = []
     }
   in (model, Cmd.none)
+
+
+-----------------------------------------------------------------------------
+-- SCENE WILL APPEAR
+-----------------------------------------------------------------------------
+
+sceneWillAppear : KioskModel a -> Scene -> (CheckInModel, Cmd Msg)
+sceneWillAppear kioskModel appearingScene =
+  if appearingScene == CheckIn
+    then
+      let
+        getRecentRfidEntriesFn = MembersApi.getRecentRfidEntries kioskModel.flags
+        request = getRecentRfidEntriesFn (CheckInVector << UpdateMatchingAccts)
+      in (kioskModel.checkInModel, request)
+    else
+      (kioskModel.checkInModel, Cmd.none)
 
 
 -----------------------------------------------------------------------------
@@ -131,7 +148,7 @@ view kioskModel =
         (List.concat
           [ [sceneTextField kioskModel idxFlexId "Enter your Userid or Last Name" sceneModel.flexId (CheckInVector << UpdateFlexId), vspace 0]
           , if List.length sceneModel.matches > 0
-             then [vspace 30, text "Tap your userid, below:", vspace 20]
+             then [vspace 50, text "Tap your userid if you see it below:", vspace 20]
              else [vspace 0]
           , List.map acctToChip sceneModel.matches
           , [ vspace (if List.length sceneModel.badNews > 0 then 40 else 0) ]
