@@ -63,10 +63,10 @@ update msg kioskModel =
           ({sceneModel | badNews = ["You must choose an activity type."]}, Cmd.none)
         Just reasonForVisit ->
           let
-            logVisitEvent = MembersApi.logVisitEvent  kioskModel.flags
+            logArrivalEventFn = MembersApi.logArrivalEvent kioskModel.flags
             msg = ReasonForVisitVector << LogCheckInResult
             visitingMemberPk = checkInModel.memberNum
-            cmd = logVisitEvent visitingMemberPk MembersApi.Arrival reasonForVisit msg
+            cmd = logArrivalEventFn visitingMemberPk reasonForVisit msg
           in (sceneModel, cmd)
 
     LogCheckInResult (Ok {result}) ->

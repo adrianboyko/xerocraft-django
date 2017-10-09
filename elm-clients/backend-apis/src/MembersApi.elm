@@ -7,7 +7,8 @@ module MembersApi exposing
   , getMatchingAccts
   , getCheckedInAccts
   , getMemberships
-  , logVisitEvent
+  , logArrivalEvent
+  , logDepartureEvent
   , setIsAdult
   , addDiscoveryMethods
   , MatchingAcct
@@ -152,31 +153,42 @@ getMatchingAccts flags flexId thing =
   in
     Http.send thing request
 
+-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
 logVisitEvent : MembersApiModel a
   -> Int
   -> VisitEventType
-  -> ReasonForVisit
+  -> Maybe ReasonForVisit  -- Only for Arrivals
   -> (Result Http.Error GenericResult -> msg)
   -> Cmd msg
-logVisitEvent flags memberPK eventType reason thing =
+logVisitEvent flags memberPK eventType reason resultToMsg =
   let
     eventVal = case eventType of
       Arrival -> "A"
       Present -> "P"
       Departure -> "D"
     reasonVal = case reason of
-      Curiousity -> "CUR"
-      ClassParticipant -> "CLS"
-      MemberPrivileges -> "MEM"
-      GuestOfMember -> "GST"
-      Volunteer -> "VOL"
-      Other -> "OTH"
+      Just Curiousity -> "CUR"
+      Just ClassParticipant -> "CLS"
+      Just MemberPrivileges -> "MEM"
+      Just GuestOfMember -> "GST"
+      Just Volunteer -> "VOL"
+      Just Other -> "OTH"
+      Nothing -> "NUN"
     params = String.concat ["/", (toString memberPK), "_", eventVal, "_", reasonVal, "/"]
     url = flags.logVisitEventUrl++"?format=json"  -- Easier than an "Accept" header.
       |> replaceAll {oldSub="/12345_A_OTH/", newSub=params}
     request = Http.get url decodeGenericResult
   in
-    Http.send thing request
+    Http.send resultToMsg request
+
+logArrivalEvent flags memberPK reason resultToMsg =
+  logVisitEvent flags memberPK Arrival (Just reason) resultToMsg
+
+logDepartureEvent flags memberPK resultToMsg =
+  logVisitEvent flags memberPK Departure Nothing resultToMsg
+
+-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 createNewAcct : MembersApiModel a -> String -> String -> String -> String -> String -> (Result Http.Error String -> msg) -> Cmd msg
 createNewAcct flags fullName userName email password signature thing =

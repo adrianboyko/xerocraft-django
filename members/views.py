@@ -53,7 +53,12 @@ def _log_visit_event(who_in: Union[str, Member, int], event_type, reason=None) -
     is_valid_evt = event_type in [x for (x, _) in VisitEvent.VISIT_EVENT_CHOICES]
     if not is_valid_evt:
         return False, "Invalid event type value."
-    is_valid_reason = reason in [x for (x, _) in VisitEvent.VISIT_REASON_CHOICES]
+
+    if reason == "NUN":
+        reason = None
+        is_valid_reason = True
+    else:
+        is_valid_reason = reason in [x for (x, _) in VisitEvent.VISIT_REASON_CHOICES]
     if not is_valid_reason:
         return False, "Invalid reason value."
 

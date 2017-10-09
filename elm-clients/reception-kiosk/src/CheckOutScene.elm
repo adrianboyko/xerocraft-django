@@ -64,8 +64,14 @@ update msg kioskModel =
       ({sceneModel | badNews = [toString error]}, Cmd.none)
 
     LogCheckOut memberNum ->
-      -- TODO: L. Might be last feature to be implemented to avoid collecting bogus visits during alpha testing.
-      (sceneModel, segueTo CheckOutDone)
+      let
+        logDepartureEventFn = MembersApi.logDepartureEvent kioskModel.flags
+        msg = ReasonForVisitVector << LogCheckInResult
+        visitingMemberPk = memberNum
+        cmd1 = logDepartureEventFn visitingMemberPk msg
+        cmd2 = segueTo CheckOutDone
+      in
+        (sceneModel, Cmd.batch [cmd1, cmd2])
 
 -----------------------------------------------------------------------------
 -- VIEW
