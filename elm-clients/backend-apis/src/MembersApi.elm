@@ -189,7 +189,15 @@ logVisitEvent flags memberPK eventType reason resultToMsg =
     params = String.concat ["/", (toString memberPK), "_", eventVal, "_", reasonVal, "/"]
     url = flags.logVisitEventUrl++"?format=json"  -- Easier than an "Accept" header.
       |> replaceAll {oldSub="/12345_A_OTH/", newSub=params}
-    request = Http.get url decodeGenericResult
+    request = Http.request
+      { method = "GET"
+      , headers = [authenticationHeader flags.uniqueKioskId]
+      , url = url
+      , body = Http.emptyBody
+      , expect = Http.expectJson decodeGenericResult
+      , timeout = Nothing
+      , withCredentials = False
+      }
   in
     Http.send resultToMsg request
 

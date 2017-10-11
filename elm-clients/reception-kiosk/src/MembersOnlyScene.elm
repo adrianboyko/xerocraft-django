@@ -33,10 +33,16 @@ import Fetchable exposing (..)
 -- INIT
 -----------------------------------------------------------------------------
 
+type PaymentInfoState
+  = AskingIfMshipCurrent
+  | ConfirmingPaymentInfoSent
+  | ExplainingHowToPayNow
+
 type alias MembersOnlyModel =
   { nowBlock : Fetchable (Maybe TimeBlock)
   , allTypes : Fetchable (List TimeBlockType)
   , memberships : Fetchable (List Membership)
+  , paymentInfoState : PaymentInfoState
   , badNews : List String
   }
 
@@ -57,6 +63,7 @@ init flags =
     { nowBlock = Pending
     , allTypes = Pending
     , memberships = Pending
+    , paymentInfoState = AskingIfMshipCurrent
     , badNews = []
     }
   in (sceneModel, Cmd.none)
@@ -174,10 +181,13 @@ update msg kioskModel =
       let msg = toString error |> Debug.log "Error getting memberships: "
       in ({sceneModel | memberships = Failed msg}, Cmd.none)
 
-    -- INVOICING ACTIONS --
+    -- PAYMENT ACTIONS --
 
-    InvoiceVisitor months dollars ->
-      (sceneModel, Cmd.none)
+    SendPaymentInfo ->
+      ({sceneModel | paymentInfoState = ConfirmingPaymentInfoSent}, Cmd.none)
+
+    PayNowAtFrontDesk ->
+      ({sceneModel | paymentInfoState = ExplainingHowToPayNow}, Cmd.none)
 
 
 -----------------------------------------------------------------------------
@@ -193,50 +203,96 @@ view kioskModel =
       "Supporting Members Only"
       "Is your supporting membership up to date?"
       (
-      case sceneModel.memberships of
-
-        Received memberships ->
-          let
-            however = "However, you may have made a more recent payment that we haven't yet processed."
-            mostRecent = MembersApi.mostRecentMembership memberships
-            paymentMsg = case mostRecent of
-              Just mship ->
-                "Our records show that your most recent membership has an expiration date of "
-                ++ DateX.toFormattedString "dd-MMM-yyyy" mship.endDate
-                ++ ". "
-              Nothing ->
-                "We have no record of previous payments by you. "
-          in
-            div [sceneTextStyle, sceneTextBlockStyle]
-                [ vspace 60
-                , text (paymentMsg ++ however)
-                , vspace 40
-                , text "If it's time to renew your membership, you can click one of the following to be invoiced through email."
-                , vspace 40
-                  -- TODO: Should display other options for Work Traders.
-                  -- TODO: Payment options should come from a single source on the backend.
-                , sceneButton kioskModel (ButtonSpec "1mo/$50" (MembersOnlyVector <| InvoiceVisitor 1 50))
-                , sceneButton kioskModel (ButtonSpec "3mo/$132" (MembersOnlyVector <| InvoiceVisitor 3 132))
-                , sceneButton kioskModel (ButtonSpec "6mo/$225" (MembersOnlyVector <| InvoiceVisitor 6 225))
-                  -- TODO: If visitor is a keyholder, offer them 1day for $10
-                , vspace 40
-                , text "If your membership is current, thanks!"
-                , vspace 0
-                , text "Just click below."
-                , vspace 40
-                , sceneButton kioskModel (ButtonSpec "I'm Current!" (WizardVector <| Push <| CheckInDone))
-
-                ]
-
-        _ ->
-          let
-            errMsg = "ERROR: We shouldn't get to view func if memberships haven't been received"
-          in
-            text errMsg
-
+      case sceneModel.paymentInfoState of
+        AskingIfMshipCurrent -> areYouCurrentContent kioskModel
+        ConfirmingPaymentInfoSent -> paymentInfoSentContent kioskModel
+        ExplainingHowToPayNow -> howToPayNowContent kioskModel
       )
-      []  -- No buttons. Scene will automatically transition.
+      []  -- No buttons here. They will be woven into content.
       []  -- No bad news. Scene will fail silently, but should log somewhere.
+
+areYouCurrentContent : KioskModel a -> Html Msg
+areYouCurrentContent kioskModel =
+  let
+    sceneModel = kioskModel.membersOnlyModel
+  in
+    case sceneModel.memberships of
+
+      Received memberships ->
+        let
+          however = "However, you may have made a more recent payment that we haven't yet processed."
+          mostRecent = MembersApi.mostRecentMembership memberships
+          paymentMsg = case mostRecent of
+            Just mship ->
+              "Our records show that your most recent membership has an expiration date of "
+              ++ DateX.toFormattedString "dd-MMM-yyyy" mship.endDate
+              ++ ". "
+            Nothing ->
+              "We have no record of previous payments by you. "
+        in
+          div [sceneTextStyle, sceneTextBlockStyle]
+              [ vspace 20
+              , text (paymentMsg ++ however)
+              , vspace 40
+              , text "If it's time to renew your membership,"
+              , vspace 0
+              , text "choose one of the following:"
+              , vspace 20
+                -- TODO: Should display other options for Work Traders.
+                -- TODO: Payment options should come from a single source on the backend.
+              , sceneButton kioskModel (ButtonSpec "Send Me Payment Info" (MembersOnlyVector <| SendPaymentInfo))
+              , vspace 20
+              , sceneButton kioskModel (ButtonSpec "Pay Now at Front Desk" (MembersOnlyVector <| PayNowAtFrontDesk))
+                -- TODO: If visitor is a keyholder, offer them 1day for $10
+              , vspace 40
+              , text "If your membership is current, thanks!"
+              , vspace 0
+              , text "Just click below."
+              , vspace 20
+              , sceneButton kioskModel (ButtonSpec "I'm Current!" (WizardVector <| Push <| CheckInDone))
+              ]
+
+      _ ->
+        let
+          errMsg = "ERROR: We shouldn't get to view func if memberships haven't been received"
+        in
+          text errMsg
+
+paymentInfoSentContent : KioskModel a -> Html Msg
+paymentInfoSentContent kioskModel =
+  let
+    sceneModel = kioskModel.membersOnlyModel
+  in
+    div [sceneTextStyle, sceneTextBlockStyle]
+      [ vspace 80
+      , img [src "/static/bzw_ops/EmailSent.png", emailSentImgStyle] []
+      , vspace 20
+      , text "We've sent payment information to you via email!"
+      , vspace 0
+      , text "Please be sure to renew before visiting another"
+      , vspace 0
+      , text "\"Supporting Members Only\" session."
+      , vspace 40
+      , sceneButton kioskModel (ButtonSpec "OK" (WizardVector <| Push <| CheckInDone))
+      ]
+
+howToPayNowContent : KioskModel a -> Html Msg
+howToPayNowContent kioskModel =
+  let
+    sceneModel = kioskModel.membersOnlyModel
+  in
+    div [sceneTextStyle, sceneTextBlockStyle]
+      [ vspace 60
+      , img [src "/static/bzw_ops/VisaMcDiscAmexCashCheck.png", payTypesImgStyle] []
+      , vspace 40
+      , text "We accept credit card, cash, and checks."
+      , vspace 0
+      , text "Please ask a Staffer for assistance."
+      , vspace 0
+      , text "Thanks!"
+      , vspace 60
+      , sceneButton kioskModel (ButtonSpec "OK" (WizardVector <| Push <| CheckInDone))
+      ]
 
 
 -----------------------------------------------------------------------------
@@ -259,3 +315,19 @@ getMemberships kioskModel memberNum =
     kioskModel.flags
     memberNum
     (MembersOnlyVector << UpdateMemberships)
+
+
+-----------------------------------------------------------------------------
+-- STYLES
+-----------------------------------------------------------------------------
+
+emailSentImgStyle = style
+  [ "text-align" => "center"
+  , "width" => px 200
+  , "margin-left" => px -80
+  ]
+
+payTypesImgStyle = style
+  [ "text-align" => "center"
+  , "width" => px 400
+  ]

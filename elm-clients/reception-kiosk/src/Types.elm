@@ -112,7 +112,8 @@ type MembersOnlyMsg
   = UpdateMemberships (Result Http.Error PageOfMemberships)
   | UpdateTimeBlocks (Result Http.Error PageOfTimeBlocks)
   | UpdateTimeBlockTypes (Result Http.Error PageOfTimeBlockTypes)
-  | InvoiceVisitor Int Int  -- months, dollars
+  | PayNowAtFrontDesk
+  | SendPaymentInfo
 
 type NewMemberMsg
   = UpdateFirstName String
