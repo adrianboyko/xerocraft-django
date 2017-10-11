@@ -44,6 +44,10 @@ urlpatterns = [
         views.reception_kiosk_set_is_adult,
         name="reception-kiosk-set-is-adult"),
 
+    url(r'^reception/email-mship-buy-options/$',
+        views.reception_kiosk_email_mship_buy_options,
+        name="reception-kiosk-email-mship-buy-options"),
+
     # For desktop:
     url(r'^create-card/$', views.create_card, name='create-card'),
     url(r'^create-card-download/$', views.create_card_download, name='create-card-download'),

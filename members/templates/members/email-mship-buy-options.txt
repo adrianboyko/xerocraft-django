@@ -1,0 +1,33 @@
+
+{% if member.first_name %}Hi {{member.first_name}}!{% endif %}
+
+During a recent visit to Xerocraft, you requested information about obtaining or renewing a "Supporting Membership" at Xerocraft. Your options are outlined below!
+
++------------------+
+| Paid Memberships |
++------------------+
+
+The simplest option is to pay full dues on a monthly basis, with discounts for 3 or 6 month purchases:
+
+   - One month membership for $50
+   - Three month membership for $132 (save $18!)
+   - Six month membership for $225 (save $75!)
+
+These three options can be purchased at Xerocraft or online at Xerocraft's Square Store:
+
+   https://squareup.com/store/xerocraft/
+
++------------------------+
+| Work-Trade Memberships |
++------------------------+
+
+If you have time to donate to the upkeep and operation of Xerocraft, you may be interested in
+one of the following Work-Trade options:
+
+   - Volunteer 6 hours and pay $25 for a 1 month membership
+   - Volunteer 9 hours and pay $10 for a 1 month membership
+   - Volunteer 1 hour and receive a 2 hour membership at no charge
+
+Volunteer work must be coordinated in advance with Xerocraft's staff. Contact volunteer@xerocraft.org if you have questions about Work-Trade or if you'd like to enroll.
+
+Thanks for supporting Xerocraft!

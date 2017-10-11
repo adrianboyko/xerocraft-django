@@ -21,6 +21,14 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from django.conf import settings
 from django.db.models import Q
 from django.utils import timezone
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import get_template
+from django.template import Context
+
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.authentication import TokenAuthentication
+
 from reportlab.pdfgen import canvas
 from reportlab.graphics.shapes import Drawing
 from reportlab.graphics.barcode.qr import QrCodeWidget
@@ -36,6 +44,11 @@ from abutils.utils import request_is_from_host
 
 logger = getLogger("members")
 
+__author__ = 'adrian'
+
+EMAIL_TREASURER = settings.BZWOPS_CONFIG['EMAIL_TREASURER']
+EMAIL_ARCHIVE = settings.BZWOPS_CONFIG['EMAIL_ARCHIVE']
+
 ORG_NAME = settings.BZWOPS_ORG_NAME
 ORG_NAME_POSSESSIVE = settings.BZWOPS_ORG_NAME_POSSESSIVE
 FACILITY_PUBLIC_IP = settings.BZWOPS_FACILITY_PUBLIC_IP
@@ -49,7 +62,7 @@ def _inform_other_systems_of_checkin(member, event_type):
 
 
 # TODO: Move following to Event class?
-def _log_visit_event(who_in: Union[str, Member, int], event_type, reason=None) -> Tuple[bool, Union[str, Member]]:
+def _log_visit_event(who_in: Union[str, Member, int], event_type, reason=None, method=None) -> Tuple[bool, Union[str, Member]]:
 
     is_valid_evt = event_type in [x for (x, _) in VisitEvent.VISIT_EVENT_CHOICES]
     if not is_valid_evt:
@@ -80,7 +93,7 @@ def _log_visit_event(who_in: Union[str, Member, int], event_type, reason=None) -
     if who is None:
         return False, "No matching member found."
 
-    VisitEvent.objects.create(who=who, event_type=event_type, reason=reason)
+    VisitEvent.objects.create(who=who, event_type=event_type, reason=reason, method=method)
     _inform_other_systems_of_checkin(who, event_type)
     return True, who
 
@@ -490,6 +503,7 @@ def reception_kiosk_spa(request) -> HttpResponse:
     return render(request, "members/reception-kiosk-spa.html", props)
 
 
+# TODO: Add token authentication requirement and staff permission.
 def reception_kiosk_matching_accts(request, flexid) -> JsonResponse:
 
     usernameq = Q(auth_user__username__istartswith=flexid, auth_user__is_active=True)
@@ -519,9 +533,10 @@ def reception_kiosk_matching_accts(request, flexid) -> JsonResponse:
     return JsonResponse({"target": flexid, "matches": accts})
 
 
+# TODO: Add token authentication requirement and staff permission.
 def reception_kiosk_checked_in_accts(request) -> JsonResponse:
-    today = date.today()
-    visits = VisitEvent.objects.filter(when__gte=today)  # TODO: Should check last X hours instead.
+    _24_hours_ago = timezone.now() - timedelta(hours=24)
+    visits = VisitEvent.objects.filter(when__gte=_24_hours_ago)
     visitors = [visit.who for visit in visits]
 
     accts = []
@@ -536,6 +551,7 @@ def reception_kiosk_checked_in_accts(request) -> JsonResponse:
     return JsonResponse({"target": "", "matches": accts})
 
 
+# TODO: Add token authentication requirement and staff permission.
 def reception_kiosk_recent_rfid_entries(request) -> JsonResponse:
     half_hour_ago = timezone.now() - timedelta(minutes=30)
     visits = VisitEvent.objects.filter(when__gte=half_hour_ago, event_type=VisitEvent.EVT_ARRIVAL, method=VisitEvent.METHOD_RFID)
@@ -553,9 +569,13 @@ def reception_kiosk_recent_rfid_entries(request) -> JsonResponse:
     return JsonResponse({"target": "", "matches": accts})
 
 
+# REVIEW: Change this to a POST with JSON body instead of a GET on a parameterized URL?
+@api_view(['GET'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAdminUser])
 def reception_kiosk_log_visit_event(request, member_pk, event_type, reason) -> JsonResponse:
 
-    success, info = _log_visit_event(int(member_pk), event_type, reason)
+    success, info = _log_visit_event(int(member_pk), event_type, reason, VisitEvent.METHOD_FRONT_DESK)
 
     if success:
         return JsonResponse({"result": "success"})
@@ -605,3 +625,34 @@ def reception_kiosk_set_is_adult(request) -> JsonResponse:
         else:
             return JsonResponse(status=401, data={"result": "failure"})
 
+
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAdminUser])
+def reception_kiosk_email_mship_buy_options(request) -> JsonResponse:
+    """ Send email with purchase options to user specified in POST body.
+        Email should include a link to online store."""
+
+    if request.method != 'POST':
+        return JsonResponse(status=405, data={"result": "failure"})
+
+    try:
+        data = json.loads(request.body.decode())
+        memberpk = int(data['memberpk'])  # type: int
+        member = Member.objects.get(pk=memberpk)  # type: Member
+    except Member.DoesNotExist:
+        return JsonResponse(status=404, data={"result": "failure"})
+
+    text_content_template = get_template('members/email-mship-buy-options.txt')
+    html_content_template = get_template('members/email-mship-buy-options.html')
+    d = Context({'member': member})
+    subject = "Membership Renewal Info, " + date.today().strftime('%a %b %d')
+    from_email = EMAIL_TREASURER
+    bcc_email = EMAIL_ARCHIVE
+    to = member.email
+    text_content = text_content_template.render(d)
+    html_content = html_content_template.render(d)
+    msg = EmailMultiAlternatives(subject, text_content, from_email, [to], [bcc_email])
+    msg.attach_alternative(html_content, "text/html")
+    msg.send()
+    return JsonResponse({"result": "success"})

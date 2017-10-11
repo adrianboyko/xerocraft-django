@@ -1,0 +1,42 @@
+{% extends "bzw_ops/email-base.html" %}
+
+{% block title %}Supporting Memberships{% endblock %}
+
+{% block body %}
+    {% if member.first_name %}<h3>Hi {{member.first_name}}!</h3>{% endif %}
+    <p style="line-height:normal">
+        During a recent visit to Xerocraft, you requested that we send you information about
+        obtaining or renewing a "Supporting Membership." Your options are outlined below!
+    </p>
+    <h3>Paid Memberships</h3>
+    <p style="line-height:normal">
+        The simplest option is to pay full dues on a monthly basis,
+        with discounts for 3 or 6 month purchases:<br/>
+        <br/>
+        <b>1 month for $50</b><br/>
+        <b>3 month for $132</b><br/>
+        <b>6 month for $225</b><br/>
+    </p>
+    <p style="line-height:normal">
+        You can
+        <a href="https://squareup.com/store/xerocraft/">purchase online</a>
+        or in person at Xerocraft.
+    </p>
+
+    <h3>Work-Trade Memberships</h3>
+
+    <p style="line-height:normal">
+        If you have time to donate to the upkeep and operation of Xerocraft,
+        you may be interested in one of the following Work-Trade options:<br/>
+        <br/>
+        <b>1 month for $25 + 6 volunteer hrs</b><br/>
+        <b>1 month for $10 + 9 volunteer hrs</b><br/>
+        <b>2 hours for $0 + 1 volunteer hr</b><br/>
+    </p>
+    <p style="line-height:normal">
+        Volunteer work must be coordinated in advance with Xerocraft's staff.
+        Contact <a href="mailto:volunteer@xerocraft.org">volunteer@xerocraft.org</a> if you have
+        questions about Work-Trade or if you'd like to enroll in the program.
+    </p>
+    <p>Thanks for your support!</p>
+{% endblock %}
