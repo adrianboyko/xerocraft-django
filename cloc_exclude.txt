@@ -1,7 +1,12 @@
-members/elm-clients/node_modules/
-members/elm-clients/elm-stuff/
-tasks/elm-clients/node_modules/
-tasks/elm-clients/elm-stuff/
+elm-clients/backend-apis/elm-stuff
+elm-clients/offer-task/elm-stuff
+elm-clients/ops-calendar/elm-stuff
+elm-clients/reception-kiosk/elm-stuff
+
+elm-clients/backend-apis/out
+elm-clients/offer-task/out
+elm-clients/ops-calendar/out
+elm-clients/reception-kiosk/out
 
 abutils/migrations/
 books/migrations/

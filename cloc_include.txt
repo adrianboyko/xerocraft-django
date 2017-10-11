@@ -1,6 +1,7 @@
 abutils
 books
 bzw_ops
+elm-clients
 flock
 inventory
 members
