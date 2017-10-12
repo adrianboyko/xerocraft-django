@@ -3,6 +3,7 @@ module Types exposing (..)
 -- Standard
 import Http
 import Time exposing (Time)
+import Keyboard exposing (KeyCode)
 
 -- Third Party
 import Material
@@ -152,6 +153,9 @@ type WaiverMsg
   | GetSignature
   | UpdateSignature String  -- String is a data URL representation of an image.
 
+type WelcomeMsg
+  = WelcomeKeystroke KeyCode
+
 type Msg
   = MdlVector (Material.Msg Msg)
   | WizardVector WizardMsg
@@ -166,6 +170,7 @@ type Msg
   | ScreenSaverVector ScreenSaverMsg
   | TaskListVector TaskListMsg
   | WaiverVector WaiverMsg
+  | WelcomeVector WelcomeMsg
 
 type WizardMsg
   = Push Scene

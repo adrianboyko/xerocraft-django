@@ -273,6 +273,10 @@ update msg model =
       let (sm, cmd) = WaiverScene.update x model
       in ({model | waiverModel = sm}, cmd)
 
+    WelcomeVector x ->
+      let (sm, cmd) = WelcomeScene.update x model
+      in ({model | welcomeModel = sm}, cmd)
+
     MdlVector x ->
       Material.update MdlVector x model
 
@@ -315,13 +319,14 @@ subscriptions model =
     newUserSubs = NewUserScene.subscriptions model
     screenSaverSubs = ScreenSaverScene.subscriptions model
     waiverSubs = WaiverScene.subscriptions model
-    subs =
+    welcomeSubs = WelcomeScene.subscriptions model
+  in
+    Sub.batch
       [ mySubs
       , checkInSubs
       , newMemberSubs
       , newUserSubs
       , screenSaverSubs
       , waiverSubs
+      , welcomeSubs
       ]
-  in
-    Sub.batch subs
