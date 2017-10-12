@@ -28,6 +28,7 @@ import MembersApi as MembersApi
 -- TODO: Before user types flexid, could show usernames of recent RFID swipers?
 -- TODO: If user is signing in after acct creation, show a username hint?
 
+
 -----------------------------------------------------------------------------
 -- CONSTANTS
 -----------------------------------------------------------------------------
@@ -73,10 +74,7 @@ sceneWillAppear : KioskModel a -> Scene -> (CheckInModel, Cmd Msg)
 sceneWillAppear kioskModel appearingScene =
   if appearingScene == CheckIn
     then
-      let
-        getRecentRfidEntriesFn = MembersApi.getRecentRfidEntries kioskModel.flags
-        request = getRecentRfidEntriesFn (CheckInVector << UpdateMatchingAccts)
-      in (kioskModel.checkInModel, request)
+      (kioskModel.checkInModel, getRecentRfidEntriesCmd kioskModel)
     else
       (kioskModel.checkInModel, Cmd.none)
 
@@ -164,6 +162,7 @@ view kioskModel =
     []  -- No buttons
     sceneModel.badNews
 
+
 -----------------------------------------------------------------------------
 -- TICK (called each second)
 -----------------------------------------------------------------------------
@@ -176,14 +175,22 @@ tick time kioskModel =
     inc = if visible then 1 else 0
     newSecondsIdle = sceneModel.secondsIdle + inc
     newSceneModel = {sceneModel | secondsIdle = newSecondsIdle}
-    setFocusCmd = if sceneModel.doneWithFocus then Cmd.none else idxFlexId |> toString |> setFocusIfNoFocus
-    cmd =
-       if newSecondsIdle > maxIdleSeconds
-         then send (WizardVector <| Reset)
-         else setFocusCmd
+    cmd0 =
+      if visible && not sceneModel.doneWithFocus
+        then idxFlexId |> toString |> setFocusIfNoFocus
+        else Cmd.none
+    cmd1 =
+      if visible && newSecondsIdle > maxIdleSeconds
+        then send (WizardVector <| Reset)
+        else Cmd.none
+    cmd2 =
+      if visible && String.isEmpty sceneModel.flexId
+        then getRecentRfidEntriesCmd kioskModel
+        else Cmd.none
   in
-    if visible then (newSceneModel, cmd)
+    if visible then (newSceneModel, Cmd.batch [cmd0, cmd1, cmd2])
     else (newSceneModel, Cmd.none)
+
 
 -----------------------------------------------------------------------------
 -- SUBSCRIPTIONS
@@ -195,6 +202,15 @@ subscriptions model =
     then focusWasSet (CheckInVector << FlexIdFocusSet)
     else Sub.none
 
+
+-----------------------------------------------------------------------------
+-- COMMANDS
+-----------------------------------------------------------------------------
+
+getRecentRfidEntriesCmd kioskModel =
+  MembersApi.getRecentRfidEntries
+    kioskModel.flags
+    (CheckInVector << UpdateMatchingAccts)
 
 -----------------------------------------------------------------------------
 -- STYLES
