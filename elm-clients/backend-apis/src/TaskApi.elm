@@ -11,7 +11,7 @@ module TaskApi
         , durationToString
         , getCalendarPage
         , getCurrCalendarPage
-        , getCurrCalendarPageForMember
+        , getTodayCalendarPageForMember
         , TimeWindow
         , RestUrls
         , OpsTask
@@ -48,6 +48,7 @@ type alias User =
 
 type alias OpsTask =
     { taskId : Int
+    , priority : String
     , isoDate : String
     , shortDesc : String
     , timeWindow : Maybe TimeWindow
@@ -79,10 +80,10 @@ type alias CalendarPage =
     , month : Int
     }
 
------------------------------------------------------------------------------
--- TIME WINDOW
------------------------------------------------------------------------------
 
+-----------------------------------------------------------------------------
+-- REST URLS REQUIRED
+-----------------------------------------------------------------------------
 
 type alias RestUrls =
     { memberList : String
@@ -91,17 +92,14 @@ type alias RestUrls =
     }
 
 
-
 -----------------------------------------------------------------------------
 -- TIME WINDOW
 -----------------------------------------------------------------------------
-
 
 type alias TimeWindow =
     { begin : ClockTime
     , duration : Duration
     }
-
 
 decodeTimeWindow : Dec.Decoder TimeWindow
 decodeTimeWindow =
@@ -110,11 +108,9 @@ decodeTimeWindow =
         (Dec.field "duration" Dec.float)
 
 
-
 -----------------------------------------------------------------------------
 -- CLOCK TIME
 -----------------------------------------------------------------------------
-
 
 type alias ClockTime =
     { hour :
@@ -125,13 +121,11 @@ type alias ClockTime =
         -- Value must be 0 to 59, inclusive
     }
 
-
 decodeClockTime : Dec.Decoder ClockTime
 decodeClockTime =
     Dec.map2 ClockTime
         (Dec.field "hour" Dec.int)
         (Dec.field "minute" Dec.int)
-
 
 clockTimeToStr : ClockTime -> String
 clockTimeToStr ct =
@@ -145,15 +139,12 @@ clockTimeToStr ct =
         hour ++ ":" ++ minute
 
 
-
 -----------------------------------------------------------------------------
 -- DURATION
 -----------------------------------------------------------------------------
 
-
 type alias Duration =
     Float -- A time duration in milliseconds, so we can use core Time's units.
-
 
 durationFromString : String -> Duration
 durationFromString s =
@@ -191,11 +182,8 @@ durationFromString s =
         List.foldr (+) 0 (List.map2 (*) weights partsAsFloats)
 
 
-
 -- Python form for API (friendly = False): "[<days> ]<hours>:<minutes>:<seconds>"
 -- User-friendly form (friendly = True): "3.5 hrs"
-
-
 durationToString : Target -> Duration -> String
 durationToString target dhms =
     let
@@ -232,11 +220,9 @@ durationToString target dhms =
                 (toString days) ++ " " ++ (pad hours) ++ ":" ++ (pad minutes) ++ ":" ++ (pad seconds)
 
 
-
 -----------------------------------------------------------------------------
 -- CLAIM
 -----------------------------------------------------------------------------
-
 
 type alias Claim =
     { taskId : Int
@@ -247,18 +233,15 @@ type alias Claim =
     , verifiedOn : Date
     }
 
-
 type Credentials
     = LoggedIn String  -- Use this if the user already has a logged in session. String is the csrfToken.
     | Token String
-
 
 encodeBody : List ( String, Enc.Value ) -> Http.Body
 encodeBody fields =
     fields
         |> Enc.object
         |> Http.jsonBody
-
 
 makeClaimBody : Claim -> RestUrls -> Http.Body
 makeClaimBody claim restUrls =
@@ -290,7 +273,6 @@ makeClaimBody claim restUrls =
     in
         nameValuePairs |> encodeBody
 
-
 makeHeaders : Credentials -> List Http.Header
 makeHeaders credentials =
     case credentials of
@@ -299,7 +281,6 @@ makeHeaders credentials =
 
         Token token ->
             [ Http.header "Authentication" ("Bearer " ++ token) ]
-
 
 createClaim : Credentials -> RestUrls -> Claim -> (Result Http.Error String -> msg) -> Cmd msg
 createClaim credentials restUrls claim result2Msg =
@@ -316,7 +297,6 @@ createClaim credentials restUrls claim result2Msg =
     in
         Http.send result2Msg request
 
-
 updateClaim : Credentials -> RestUrls -> Int -> List (String, Enc.Value) -> (Result Http.Error String -> msg) -> Cmd msg
 updateClaim credentials restUrls claimId nameValuePairs result2Msg =
     let
@@ -331,6 +311,7 @@ updateClaim credentials restUrls claimId nameValuePairs result2Msg =
             }
     in
         Http.send result2Msg request
+
 
 -----------------------------------------------------------------------------
 -- CALENDAR PAGE
@@ -358,12 +339,12 @@ getCurrCalendarPage resultToMsg =
     in
         Http.send resultToMsg request
 
-getCurrCalendarPageForMember : String -> Int -> (Result Http.Error CalendarPage -> msg) -> Cmd msg
-getCurrCalendarPageForMember csrfToken memberpk resultToMsg =
+getTodayCalendarPageForMember : String -> Int -> (Result Http.Error CalendarPage -> msg) -> Cmd msg
+getTodayCalendarPageForMember csrfToken memberpk resultToMsg =
     let
       request = Http.request
         { method = "POST"
-        , url = "/tasks/ops-calendar-4member-json/"  -- TODO: URL should be passed in from Django, not hard-coded here.
+        , url = "/tasks/ops-calendar-4memb-4today/"  -- TODO: URL should be passed in from Django, not hard-coded here.
         , headers = [ Http.header "X-CSRFToken" csrfToken ]
         , withCredentials = False
         , body = [("memberpk", Enc.int memberpk)] |> Enc.object |> Http.jsonBody
@@ -384,11 +365,11 @@ decodeUser =
         |> required "memberId" Dec.int
         |> required "name" Dec.string
 
-
 decodeOpsTask : Dec.Decoder OpsTask
 decodeOpsTask =
     decode OpsTask
         |> required "taskId" Dec.int
+        |> required "priority" Dec.string
         |> required "isoDate" Dec.string
         |> required "shortDesc" Dec.string
         |> required "timeWindow" (Dec.nullable decodeTimeWindow)
@@ -399,7 +380,6 @@ decodeOpsTask =
         |> required "taskStatus" Dec.string
         |> required "usersClaimId" (Dec.nullable Dec.int)
 
-
 decodeDayOfTasks : Dec.Decoder DayOfTasks
 decodeDayOfTasks =
     decode DayOfTasks
@@ -407,7 +387,6 @@ decodeDayOfTasks =
         |> required "isInTargetMonth" Dec.bool
         |> required "isToday" Dec.bool
         |> required "tasks" (Dec.list decodeOpsTask)
-
 
 decodeCalendarPage : Dec.Decoder CalendarPage
 decodeCalendarPage =
@@ -421,7 +400,6 @@ decodeCalendarPage =
 -----------------------------------------------------------------------------
 -- UTILITIES
 -----------------------------------------------------------------------------
-
 
 toStr v =
     let

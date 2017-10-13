@@ -18,12 +18,18 @@ import Material.Options as Options exposing (css)
 import Material.List as Lists
 
 -- Local
-import TaskApi exposing (..)
+import TaskApi exposing (OpsTask, getTodayCalendarPageForMember, CalendarPage)
 import Wizard.SceneUtils exposing (..)
 import Types exposing (..)
 import CheckInScene exposing (CheckInModel)
 
 
+-----------------------------------------------------------------------------
+-- CONSTANTS
+-----------------------------------------------------------------------------
+
+staffingStatus_STAFFED = "S"  -- As defined in Django backend.
+taskPriority_HIGH = "H"  -- As defined in Django backend.
 
 -----------------------------------------------------------------------------
 -- INIT
@@ -67,25 +73,11 @@ sceneWillAppear kioskModel appearingScene =
     ReasonForVisit ->
       -- Start fetching workable tasks b/c they *might* be on their way to this (TaskList) scene.
       let
-        cmd = getCurrCalendarPageForMember
+        cmd = getTodayCalendarPageForMember
           kioskModel.flags.csrfToken
           kioskModel.checkInModel.memberNum
           (TaskListVector << CalendarPageResult)
       in (kioskModel.taskListModel, cmd)
-
-    TaskList ->
-      let
-        sceneModel = kioskModel.taskListModel
-        calPageRcvd = sceneModel.calendarPageRcvd
-        noTasks = List.isEmpty sceneModel.workableTasks
-      in
-        if calPageRcvd && noTasks
-          then
-            -- No tasks are queued for the member checking in, so skip to task info.
-            -- Task info will display generic "talk to a staffer" info in this case.
-            (sceneModel, segueTo VolunteerInDone)
-          else
-            (sceneModel, Cmd.none)
 
     _ ->
       (kioskModel.taskListModel, Cmd.none)
@@ -102,8 +94,16 @@ update msg kioskModel =
   in case msg of
 
     CalendarPageResult (Ok page) ->
-      let workableTasks = page |> extractTodaysTasks |> extractWorkableTasks
-      in ({sceneModel | calendarPageRcvd=True, workableTasks=workableTasks }, Cmd.none)
+      let
+        workableTasks = page |> extractTodaysTasks |> extractWorkableTasks
+        selectedTask = workableTasks |> findStaffedTask
+        newSceneModel =
+          { sceneModel
+          | calendarPageRcvd=True
+          , workableTasks=workableTasks
+          , selectedTask=selectedTask
+          }
+      in (newSceneModel, Cmd.none)
 
     CalendarPageResult (Err error) ->
       ({sceneModel | badNews = [toString error]}, Cmd.none)
@@ -119,7 +119,6 @@ update msg kioskModel =
           ({sceneModel | badNews=["You must choose a task to work!"]}, Cmd.none)
 
 
-
 extractTodaysTasks : CalendarPage -> List OpsTask
 extractTodaysTasks page =
   let
@@ -132,6 +131,15 @@ extractTodaysTasks page =
 extractWorkableTasks : List OpsTask -> List OpsTask
 extractWorkableTasks tasks =
   List.filter (\t -> List.length t.possibleActions > 0) tasks
+
+findStaffedTask : List OpsTask -> Maybe OpsTask
+findStaffedTask tasks =
+  let
+    filter = \t -> t.staffingStatus == staffingStatus_STAFFED
+    staffedTasks = List.filter filter tasks
+  in
+    List.head staffedTasks
+
 
 
 -----------------------------------------------------------------------------
@@ -160,7 +168,7 @@ taskChoices kioskModel =
   in div [taskListStyle]
     ([vspace 30] ++ List.indexedMap
       (\index wt ->
-        div [taskDivStyle]
+        div [taskDivStyle (if wt.priority == taskPriority_HIGH then "#ccffcc" else "#dddddd")]
           [ Toggles.radio MdlVector [idxTaskListScene, index] kioskModel.mdl
             [ Toggles.value
               (case sceneModel.selectedTask of
@@ -187,8 +195,8 @@ taskListStyle = style
   , "text-align" => "left"
   ]
 
-taskDivStyle = style
-  [ "background-color" => "#eeeeee"
+taskDivStyle color = style
+  [ "background-color" => color
   , "padding" => "10px"
   , "margin" => "15px"
   , "border-radius" => "20px"

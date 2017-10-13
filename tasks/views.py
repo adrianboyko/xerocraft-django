@@ -584,17 +584,27 @@ def _ops_calendar_json(request, year, month):
     return _ops_calendar_4member_json(member, year, month)
 
 
-def _ops_calendar_4member_json(member: Optional[Member], year, month):
+def _ops_calendar_4member_json(member: Optional[Member], year, month, day=None):
 
     # Python standard libs include the ability to produce padded calendars for a month:
     cal = calendar.Calendar(firstweekday=6)  # Sunday
     calpage = cal.monthdatescalendar(year, month)
-    first_date = calpage[0][0]
-    last_date = calpage[-1][-1]
+
+    if day is None:
+        first_date = calpage[0][0]
+        last_date = calpage[-1][-1]
+    else:
+        date_of_interest = date(year, month, day)
+        first_date = date_of_interest
+        last_date = date_of_interest
+
     qset = Task.objects\
         .filter(scheduled_date__gte=first_date, scheduled_date__lte=last_date)\
         .prefetch_related("claim_set")
-    page_tasks = list(qset)
+
+    tasks_by_date = {}
+    for task in list(qset):
+        tasks_by_date.setdefault(task.scheduled_date, []).append(task)
 
     def task_json(task: Task) -> dict:
         window = None
@@ -620,11 +630,14 @@ def _ops_calendar_4member_json(member: Optional[Member], year, month):
 
         return {
             "taskId": task.pk,
+            "priority": task.priority,
             "isoDate": task.scheduled_date.isoformat(),
             "shortDesc": task.short_desc,
             "timeWindow": window,
             "instructions": task.instructions,
             "staffingStatus": task.staffing_status(),
+            # TODO: possibleActions, below, will need to be removed if it can't be sped up.for
+            # TODO: If it is removed, then the "day" parameter hack to this method can be removed.
             "possibleActions": actions,
             "staffedBy": staffed_by_names,
             "taskStatus": task.status,
@@ -632,12 +645,12 @@ def _ops_calendar_4member_json(member: Optional[Member], year, month):
         }
 
     def tasks_on_date(x: date):
-        task_list_for_date = [t for t in page_tasks if t.scheduled_date == x]
+        task_list_for_date = tasks_by_date.get(x, [])
         return {
             "dayOfMonth": x.day,
             "isInTargetMonth": x.month == month,
             "isToday": x == date.today(),
-            "tasks":[task_json(t) for t in task_list_for_date]
+            "tasks": [task_json(t) for t in task_list_for_date]
         }
 
     user_info = None
@@ -661,13 +674,14 @@ def ops_calendar_json(request, year=None, month=None) -> JsonResponse:
     return JsonResponse(_ops_calendar_json(request, year, month))
 
 
-def ops_calendar_4member_json(request) -> JsonResponse:
+def ops_calendar_4memb_4today(request) -> JsonResponse:
     if request.method == 'POST':
         data = json.loads(request.body.decode())
         member_pk = int(data['memberpk'])  # type: int
         member = Member.objects.get(pk=member_pk)  # type: Member
         today = date.today()
-        return JsonResponse(_ops_calendar_4member_json(member, today.year, today.month))
+        ops_cal = _ops_calendar_4member_json(member, today.year, today.month, today.day)
+        return JsonResponse(ops_cal)
 
 
 @ensure_csrf_cookie
