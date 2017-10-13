@@ -12,7 +12,6 @@ import Material.List as Lists
 
 -- Local
 import MembersApi as MembersApi exposing (ReasonForVisit(..))
-import TaskApi exposing (..)
 import Wizard.SceneUtils exposing (..)
 import Types exposing (..)
 import CheckInScene exposing (CheckInModel)
