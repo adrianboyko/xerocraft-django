@@ -73,7 +73,7 @@ update msg kioskModel =
         Just Volunteer ->
           (sceneModel, segueTo TaskList)
         Just MemberPrivileges ->
-          (sceneModel, segueTo MembersOnly)
+          (sceneModel, segueTo CheckInDone)  -- Temporary
         _ ->
           (sceneModel, segueTo CheckInDone)
 

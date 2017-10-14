@@ -117,9 +117,9 @@ haveSomethingToSay kioskModel =
         let
           nowBlockTypes = OpsApi.blocksTypes nowBlock allTypes
           isMembersOnly = List.member membersOnlyStr (List.map .name nowBlockTypes)
-          current = MembersApi.coverNow memberships kioskModel.currTime
+          membershipIsCurrent = MembersApi.coverNow memberships kioskModel.currTime
         in
-          isMembersOnly && not current
+          isMembersOnly && not membershipIsCurrent
 
       -- Following is the case where we're not in any explicit time block.
       -- So use default time block type, if one has been specified.
