@@ -3,13 +3,13 @@
 from datetime import datetime
 
 # Third Party
+from django.contrib.auth.models import User
 from rest_framework import permissions
 from rest_framework.request import Request
 
 # Local
 import members.models as mm
 import tasks.models as tm
-import tasks.restapi.serializers as ts
 
 
 def getpk(uri: str) -> int:
@@ -91,10 +91,21 @@ class ClaimPermission(permissions.BasePermission):
 class TaskPermission(permissions.BasePermission):
 
     def has_object_permission(self, request, view, obj):
-        memb = request.user.member  # type: mm.Member
+        user = request.user  # type: User
+        memb = user.member  # type: mm.Member
 
         if request.method in permissions.SAFE_METHODS:
             return True
+        # Might want to do this or aggregate DangoModelPermissions instead.
+        # elif user.is_staff:
+        #     if request.method is 'POST':
+        #         return user.has_perm("tasks.add_task")
+        #     elif request.method is 'PUT':
+        #         return user.has_perm("tasks.change_task")
+        #     elif request.method is 'DELETE':
+        #         return user.has_perm("tasks.delete_task")
+        #     else:
+        #         return False
         else:
             return memb == obj.owner
 
