@@ -16,12 +16,12 @@ import bzw_ops.restapi.serializers as serializers
 # ---------------------------------------------------------------------------
 
 class TimeBlockViewSet(viewsets.ModelViewSet):
-    queryset = models.TimeBlock.objects.all()
+    queryset = models.TimeBlock.objects.all().order_by('id')
     serializer_class = serializers.TimeBlockSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
 
 
 class TimeBlockTypeViewSet(viewsets.ModelViewSet):
-    queryset = models.TimeBlockType.objects.all()
+    queryset = models.TimeBlockType.objects.all().order_by('id')
     serializer_class = serializers.TimeBlockTypeSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
