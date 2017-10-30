@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# transpile.sh executes with working directory $ProjectFileDir$
+# Expects to be run with working directory $ProjectFileDir$
 
 set -x
 
