@@ -12,8 +12,8 @@ django-debug-toolbar==1.4
 django-extensions==1.7.9
 django-filter==1.1.0
 
-django-helpdesk==0.1.18
-#-e git+https://github.com/adrianboyko/django-helpdesk.git@maint_0.1.18#egg=django-helpdesk
+#django-helpdesk==0.1.18
+-e git+https://github.com/adrianboyko/django-helpdesk.git@maint_0.1.18#egg=django-helpdesk
 
 django-jenkins==0.110.0
 django-markdown-deux==1.0.5
