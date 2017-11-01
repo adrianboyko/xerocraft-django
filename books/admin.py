@@ -11,7 +11,7 @@ from django.db import models
 from django.utils.html import format_html
 from django import forms
 from django.utils.translation import ugettext_lazy as _
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from reversion.admin import VersionAdmin
 from django_object_actions import DjangoObjectActions
 

@@ -16,7 +16,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.utils.translation import ugettext_lazy as _
 from django.conf import settings
 from nameparser import HumanName
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from dateutil.relativedelta import relativedelta
 
 # Local

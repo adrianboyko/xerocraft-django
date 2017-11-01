@@ -12,7 +12,7 @@ from django.test import TestCase
 from django.contrib.auth.models import User
 from django.core import management, mail
 from django.utils import timezone
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from freezegun import freeze_time
 import members.notifications as notifications
 
