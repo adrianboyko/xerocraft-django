@@ -129,6 +129,7 @@ INSTALLED_APPS += (
     'modelmailer',
     'django_sabayon',
     'flock',
+    'django_filters',
 
     'markdown_deux',  # for helpdesk
     'bootstrapform',  # for helpdesk
@@ -315,11 +316,13 @@ REST_FRAMEWORK = {
     ],
 
     'DEFAULT_FILTER_BACKENDS': [
-        'rest_framework.filters.DjangoFilterBackend',
+        'django_filters.rest_framework.DjangoFilterBackend',
+        #'rest_framework.filters.DjangoFilterBackend',
         'rest_framework.filters.OrderingFilter',
     ],
 
-    'PAGE_SIZE': 100
+    'PAGE_SIZE': 100,
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
 }
 
 WEBPACK_LOADER = {
