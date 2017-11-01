@@ -45,7 +45,7 @@ urlpatterns = [
     url(r'^logout/$', views.logout),
     url(r'^admin/login/', views.login),  # This shadows admin's login. REVIEW: Any downside?
     url(r'^admin/logout/', views.logout),  # This shadows admin's logout. REVIEW: Any downside?
-    url(r'^admin/', include(admin.site.urls)),
+    url(r'^admin/', admin.site.urls),
     url(r'^members/', include('members.urls', namespace="memb")),
     url(r'^books/', include('books.urls', namespace="book")),
     url(r'^tasks/', include('tasks.urls', namespace="task")),
