@@ -5,11 +5,11 @@ boto==2.42.0
 
 coverage==4.2
 defusedxml==0.4.1
-Django==1.11.6
+Django==1.11.7
 django-bootstrap-form==3.2.1
 django-crispy-forms==1.7.0
-django-debug-toolbar==1.4
-django-extensions==1.7.9
+django-debug-toolbar==1.8
+django-extensions==1.9.7
 django-filter==1.1.0
 
 #django-helpdesk==0.1.18
@@ -21,7 +21,7 @@ django-object-actions==0.10.0
 
 # 2.0 or greater required for Django 1.8+
 # 2.0.9 supports up to Django 2.11
-django-reversion==2.0.9
+django-reversion==2.0.10
 
 django-sabayon==0.1.1
 django-storages==1.5.1
@@ -49,7 +49,7 @@ psycopg2==2.7.3.2
 pyflakes==1.3.0
 Pygments==2.2.0
 pyinter==0.1.8
-PyJWT==1.4.0
+PyJWT==1.5.3
 pylint==1.7.4
 pylint-django==0.7.2
 python-dateutil==2.4.2
@@ -59,11 +59,11 @@ python3-openid==3.0.9
 pytz==2016.10
 PyVirtualDisplay==0.2
 reportlab==3.4.0
-requests==2.13.0
+requests==2.18.4
 requests-oauthlib==0.6.0
 rq==0.6.0
 selenium==3.5.0
-six==1.10.0
+six==1.11.0
 sparkpost==1.3.2
 -e git+https://github.com/adrianboyko/2checkout-python.git@3.x#egg=twocheckout
 typing==3.5.0.1
