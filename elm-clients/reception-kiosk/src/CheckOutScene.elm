@@ -66,12 +66,18 @@ update msg kioskModel =
     LogCheckOut memberNum ->
       let
         logDepartureEventFn = MembersApi.logDepartureEvent kioskModel.flags
-        msg = ReasonForVisitVector << LogCheckInResult
+        msg = CheckOutVector << LogCheckOutResult
         visitingMemberPk = memberNum
         cmd1 = logDepartureEventFn visitingMemberPk msg
         cmd2 = segueTo CheckOutDone
       in
         (sceneModel, Cmd.batch [cmd1, cmd2])
+
+    LogCheckOutResult (Ok {result}) ->
+      (sceneModel, segueTo CheckOutDone)
+
+    LogCheckOutResult (Err error) ->
+      ({sceneModel | badNews = [toString error]}, Cmd.none)
 
 -----------------------------------------------------------------------------
 -- VIEW

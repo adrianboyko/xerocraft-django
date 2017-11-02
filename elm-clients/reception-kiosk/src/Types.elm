@@ -10,9 +10,11 @@ import Material
 import List.Nonempty exposing (Nonempty)
 
 -- Local
+import DjangoRestFramework exposing (PageOf)
 import MembersApi exposing (..)
 import TaskApi exposing (..)
 import OpsApi exposing (..)
+import XisRestApi as XisApi
 
 -----------------------------------------------------------------------------
 -- FLAGS
@@ -20,23 +22,27 @@ import OpsApi exposing (..)
 
 -- This type can move into ReceiptionKiosk.elm, but for the banner fields.
 type alias Flags =
-  { uniqueKioskId : String
-  , addDiscoveryMethodUrl : String
+  { addDiscoveryMethodUrl : String
   , bannerBottomUrl : String
   , bannerTopUrl : String
   , checkedInAcctsUrl : String
+  , claimListUrl : String
   , cloneAcctUrl : String
   , csrfToken : String
   , discoveryMethodsUrl : String
   , logVisitEventUrl : String
   , matchingAcctsUrl : String
+  , memberListUrl : String
   , orgName : String
   , recentRfidEntriesUrl : String
   , scrapeLoginsUrl : String
   , setIsAdultUrl : String
-  , xcOrgActionUrl : String
+  , taskListUrl : String
   , timeBlocksUrl : String
   , timeBlockTypesUrl : String
+  , uniqueKioskId : String
+  , workListUrl : String
+  , xcOrgActionUrl : String
   }
 
 -----------------------------------------------------------------------------
@@ -98,6 +104,7 @@ type CheckInMsg
 type CheckOutMsg
   = UpdateCheckedInAccts (Result Http.Error MatchingAcctInfo)
   | LogCheckOut Int
+  | LogCheckOutResult (Result Http.Error GenericResult)
 
 type CreatingAcctMsg
   = XcAcctCreationAttempted (Result Http.Error String)
@@ -143,8 +150,9 @@ type ScreenSaverMsg
   | UserActivityNoted
 
 type TaskListMsg
-  = CalendarPageResult (Result Http.Error CalendarPage)
-  | ToggleTask OpsTask
+  = TaskListResult (Result Http.Error (PageOf XisApi.Task))
+  | ClaimListResult (Result Http.Error (PageOf XisApi.Claim))
+  | ToggleTask XisApi.Task
   | ValidateTaskChoice
 
 type WaiverMsg

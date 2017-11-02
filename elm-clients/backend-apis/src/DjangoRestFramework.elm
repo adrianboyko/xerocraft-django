@@ -4,9 +4,14 @@ module DjangoRestFramework exposing (..)
 import Json.Decode as Dec
 import Http exposing (header)
 import Char
+import Regex exposing (Regex, regex, split, replace, HowMany(..))
+import Time exposing (Time, hour, minute, second)
+import Result.Extra as ResultX
+import Date exposing (Date)
 
 -- Third-Party
 import Json.Decode.Pipeline exposing (decode, required, optional, hardcoded)
+import Date.Extra.Format exposing (isoString)
 
 -- Local
 
@@ -49,9 +54,108 @@ getIdFromUrl url =
         String.toInt numberStr
 
 
+isoDateStrFromTime : Time -> String
+isoDateStrFromTime time =
+    String.left 10 (isoString (Date.fromTime time))
+
+isoDateStrFromDate : Date -> String
+isoDateStrFromDate d =
+    String.left 10 (isoString d)
+
 
 -----------------------------------------------------------------------------
--- JSON
+-- CLOCK TIME
+-----------------------------------------------------------------------------
+
+type alias ClockTime =
+  { hour : Int  -- Value must be 0 to 23, inclusive
+  , minute : Int  -- Value must be 0 to 59, inclusive
+  }
+
+
+clockTimeToPythonRepr : ClockTime -> String
+clockTimeToPythonRepr ct =
+    let
+        hour = String.padLeft 2 '0' (toString ct.hour)
+        minute = String.padLeft 2 '0' (toString ct.minute)
+    in
+        hour ++ ":" ++ minute
+
+
+clockTimeFromPythonRepr : String -> Result String ClockTime
+clockTimeFromPythonRepr s =
+    let
+        parts = split Regex.All (regex "[:]") s
+        hourResult = parts |> List.head |> Maybe.map String.toInt
+        minuteResult = parts |> List.reverse |> List.head |> Maybe.map String.toInt
+    in
+        case (hourResult, minuteResult) of
+           (Just (Ok hour), Just (Ok minute)) -> Ok (ClockTime hour minute)
+           _ -> Err (s ++ " is an invalid clock time")
+
+
+clockTimeDecoder : Dec.Decoder ClockTime
+clockTimeDecoder =
+  Dec.string |> Dec.andThen
+    ( \str ->
+      case (clockTimeFromPythonRepr str) of
+        Ok ct -> Dec.succeed ct
+        Err err -> Dec.fail err
+    )
+
+
+-----------------------------------------------------------------------------
+-- DURATION
+-----------------------------------------------------------------------------
+
+type alias Duration =
+    Float -- A time duration in milliseconds, so we can use core Time's units.
+
+durationFromPythonRepr : String -> Result String Duration
+durationFromPythonRepr s =
+  let
+    partsAsListString = split Regex.All (regex "[: ]") s
+    partCount = List.length partsAsListString
+    partsAsListResultFloat = List.map String.toFloat partsAsListString
+    partsAsResultListFloat = ResultX.combine partsAsListResultFloat
+    weights3 = [1*hour, 1*minute, 1*second]
+    weights4 = 24*hour :: weights3
+    weights = if partCount == 3 then weights3 else weights4
+  in
+    Result.map
+      List.sum
+      (Result.map2 (List.map2 (*)) (Ok weights) partsAsResultListFloat)
+
+
+-- Python form for API (friendly = False): "[<days> ]<hours>:<minutes>:<seconds>"
+-- User-friendly form (friendly = True): "3.5 hrs"
+durationToPythonRepr : Duration -> String
+durationToPythonRepr dhms =
+    let
+        day = 24.0 * hour
+        days = dhms / day |> floor |> toFloat
+        hms = dhms - (days * day)
+        hours = hms / hour |> floor |> toFloat
+        ms = hms - (hours * hour)
+        minutes = ms / minute |> floor |> toFloat
+        seconds = ms - (minutes * minute)
+        pad = toString >> (String.padLeft 2 '0')
+    in
+        (toString days) ++ " " ++ (pad hours) ++ ":" ++ (pad minutes) ++ ":" ++ (pad seconds)
+
+
+durationDecoder : Dec.Decoder Duration
+durationDecoder =
+  Dec.string |> Dec.andThen
+    ( \str ->
+      case (durationFromPythonRepr str) of
+        Ok dur -> Dec.succeed dur
+        Err err -> Dec.fail ("Incorrectly formatted duration: " ++ str)
+    )
+
+
+-----------------------------------------------------------------------------
+-- PAGES
 -----------------------------------------------------------------------------
 
 decodePageOf : Dec.Decoder a -> Dec.Decoder (PageOf a)
@@ -62,3 +166,23 @@ decodePageOf decoder =
     |> required "previous" (Dec.maybe Dec.string)
     |> required "results" (Dec.list decoder)
 
+-----------------------------------------------------------------------------
+-- URLS
+-----------------------------------------------------------------------------
+
+type alias ResourceUrl = String
+type alias ResourceListUrl = String
+
+
+extractRelativeUrl : ResourceUrl -> ResourceUrl
+extractRelativeUrl url =
+  let
+    urlBaseRegex = regex "^.+?[^\\/:](?=[?\\/]|$)"
+  in
+    replace (AtMost 1) urlBaseRegex (always "") url
+
+-- This decoder strips the URL base off of the resource url.
+resourceUrlDecoder : Dec.Decoder ResourceUrl
+resourceUrlDecoder =
+  Dec.string |> Dec.andThen
+    ( \str -> Dec.succeed (extractRelativeUrl str))

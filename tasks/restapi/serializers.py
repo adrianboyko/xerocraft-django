@@ -30,13 +30,13 @@ class ClaimSerializer(serializers.ModelSerializer):
     class Meta:
         model = tm.Claim
         fields = (
-            'id',
-            'status',
+            'claimed_duration',
+            'claimed_start_time',
             'claimed_task',
             'claiming_member',
-            'claimed_start_time',
-            'claimed_duration',
             'date_verified',
+            'id',
+            'status',
             'work_set',
         )
 
@@ -49,30 +49,30 @@ class TaskSerializer(serializers.ModelSerializer):
     eligible_claimants = serializers.HyperlinkedRelatedField(read_only=True, many=True, view_name='memb:member-detail')
     claimants = serializers.HyperlinkedRelatedField(read_only=True, many=True, view_name='memb:member-detail')
     claim_set = serializers.HyperlinkedRelatedField(read_only=True, many=True, view_name='task:claim-detail')
+    is_fully_claimed = serializers.ReadOnlyField()
 
     class Meta:
         model = tm.Task
         fields = (
-            'id',
-            'owner',
-            'instructions',
-            'short_desc',
-            'scheduled_date',
-            'max_workers',
-            'max_work',
-            'eligible_claimants',
-            # eligible_tags,
-            'reviewer',
-            'work_start_time',
-            'work_duration',
-            'priority',
-            'should_nag',
-            'creation_date',
-            'scheduled_date',
-            'deadline',
             'claimants',
-            'status',
             'claim_set',
+            'creation_date',
+            'deadline',
+            'eligible_claimants',
+            'id',
+            'instructions',
+            'is_fully_claimed',
+            'max_work',
+            'max_workers',
+            'owner',
+            'priority',
+            'reviewer',
+            'scheduled_date',
+            'short_desc',
+            'should_nag',
+            'status',
+            'work_duration',
+            'work_start_time',
         )
 
 

@@ -66,5 +66,6 @@ urlpatterns = [
 
     # DJANGO REST FRAMEWORK API
     url(r'^api/', include(router.urls)),
+    #url(r'^api/schema/', views.schema_view),
 
 ]

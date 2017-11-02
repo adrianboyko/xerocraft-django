@@ -5,7 +5,7 @@ import os
 
 # Third Party
 from django.core import management, mail
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.test import TestCase, TransactionTestCase, LiveServerTestCase, Client, RequestFactory
 from django.contrib.auth.models import User
 from django.contrib.admin import site
@@ -491,7 +491,7 @@ class TestViews(TestCase):
             302,  # POST to offer-task will respond with a redirect to offer-more-tasks
             200   # Because there ARE other tasks on same day, offer-more-tasks will not redirect.
         )
-        self.assertTrue(self.task.is_fully_claimed())
+        self.assertTrue(self.task.is_fully_claimed)
 
         response = client.post(
             reverse('task:offer-more-tasks', kwargs=kwargs),

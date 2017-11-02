@@ -11,17 +11,30 @@ module TaskListScene exposing
 import Html exposing (Html, text, div)
 import Html.Attributes exposing (style)
 import Http
+import Date
+import Time exposing (Time)
 
 -- Third Party
 import Material.Toggles as Toggles
 import Material.Options as Options exposing (css)
 import Material.List as Lists
+import Maybe.Extra as MaybeX exposing (isNothing)
+import List.Extra as ListX
 
 -- Local
-import TaskApi exposing (OpsTask, getTodayCalendarPageForMember, CalendarPage)
+import XisRestApi as XisApi exposing
+  ( getClaimList
+  , getTaskList
+  , TaskListFilter(..)
+  , TaskPriority(..)
+  , ClaimListFilter(..)
+  , ClaimStatus(..)
+  )
 import Wizard.SceneUtils exposing (..)
 import Types exposing (..)
 import CheckInScene exposing (CheckInModel)
+import Fetchable exposing (..)
+import DjangoRestFramework exposing (getIdFromUrl)
 
 
 -----------------------------------------------------------------------------
@@ -36,9 +49,9 @@ taskPriority_HIGH = "H"  -- As defined in Django backend.
 -----------------------------------------------------------------------------
 
 type alias TaskListModel =
-  { calendarPageRcvd : Bool  -- There's no guarantee that cal page will be recvd before we get to view func.
-  , workableTasks : List OpsTask
-  , selectedTask : Maybe OpsTask
+  { todaysTasks : Fetchable (List XisApi.Task)
+  , workableTasks : List XisApi.Task
+  , selectedTask : Maybe XisApi.Task
   , badNews : List String
   }
 
@@ -46,7 +59,8 @@ type alias TaskListModel =
 type alias KioskModel a =
   (SceneUtilModel
     { a
-    | taskListModel : TaskListModel
+    | currTime : Time
+    , taskListModel : TaskListModel
     , checkInModel : CheckInModel
     }
   )
@@ -54,7 +68,7 @@ type alias KioskModel a =
 init : Flags -> (TaskListModel, Cmd Msg)
 init flags =
   let sceneModel =
-    { calendarPageRcvd = False
+    { todaysTasks = Pending
     , workableTasks = []
     , selectedTask = Nothing
     , badNews = []
@@ -73,11 +87,13 @@ sceneWillAppear kioskModel appearingScene =
     ReasonForVisit ->
       -- Start fetching workable tasks b/c they *might* be on their way to this (TaskList) scene.
       let
-        cmd = getTodayCalendarPageForMember
-          kioskModel.flags.csrfToken
-          kioskModel.checkInModel.memberNum
-          (TaskListVector << CalendarPageResult)
-      in (kioskModel.taskListModel, cmd)
+        currDate = Date.fromTime kioskModel.currTime
+        cmd = getTaskList
+          kioskModel.flags
+          (Just [ScheduledDateEquals currDate])
+          (TaskListVector << TaskListResult)
+      in
+        (kioskModel.taskListModel, cmd)
 
     _ ->
       (kioskModel.taskListModel, Cmd.none)
@@ -89,27 +105,57 @@ sceneWillAppear kioskModel appearingScene =
 
 update : TaskListMsg -> KioskModel a -> (TaskListModel, Cmd Msg)
 update msg kioskModel =
-  let sceneModel = kioskModel.taskListModel
+  let
+    sceneModel = kioskModel.taskListModel
+    flags = kioskModel.flags
+    memberNum = kioskModel.checkInModel.memberNum
 
   in case msg of
 
-    CalendarPageResult (Ok page) ->
+    TaskListResult (Ok {results, next}) ->
+      -- TODO: Deal with the possibility of paged results (i.e. next is not Nothing)?
       let
-        workableTasks = page |> extractTodaysTasks |> extractWorkableTasks
-        selectedTask = workableTasks |> findStaffedTask
-        newSceneModel =
-          { sceneModel
-          | calendarPageRcvd=True
-          , workableTasks=workableTasks
-          , selectedTask=selectedTask
-          }
-      in (newSceneModel, Cmd.none)
+        -- "Other Work" is offered to everybody, whether or not they are explicitly eligible to work it:
+        otherWorkTaskTest task = task.shortDesc == "Other Work"
+        otherWorkTask = List.filter otherWorkTaskTest results
+        -- The more normal case is to offer up tasks that the user can claim:
+        memberCanClaim = XisApi.memberCanClaimTask flags memberNum
+        claimableTasks = List.filter memberCanClaim results
+        -- The offered/workable tasks are the union of claimable tasks and the "Other Work" task.
+        workableTasks = claimableTasks ++ otherWorkTask
 
-    CalendarPageResult (Err error) ->
-      ({sceneModel | badNews = [toString error]}, Cmd.none)
+        -- We also want to run through the claims associated with today's tasks, so kick that off here:
+        claimListFilters task =
+          Just
+            [ ClaimedTaskEquals task.id
+            , ClaimingMemberEquals memberNum
+            , ClaimStatusEquals CurrentClaimStatus
+            ]
+        taskToClaimListCmd task = getClaimList flags (claimListFilters task) (TaskListVector << ClaimListResult)
+        cmdList = List.map taskToClaimListCmd results
 
-    ToggleTask opsTask ->
-      ({sceneModel | selectedTask=Just opsTask, badNews=[]}, Cmd.none)
+      in
+        ({sceneModel | todaysTasks=Received results, workableTasks=workableTasks}, Cmd.batch cmdList)
+
+    ClaimListResult (Ok {results, next}) ->
+      -- TODO: Deal with the possibility of paged results (i.e. next is not Nothing)?
+      -- ASSERT: There will be 0 or 1 result because of the particular query and database uniqueness constraints.
+      case List.head results of
+         Just claim ->
+           let
+             taskNum = Result.withDefault -1 (getIdFromUrl claim.claimedTask)
+             hasTaskNum taskNum task = task.id == taskNum
+             todaysTaskList = Fetchable.withDefault [] sceneModel.todaysTasks
+             task = ListX.find (hasTaskNum taskNum) todaysTaskList
+           in
+             case task of
+               Nothing -> (sceneModel, Cmd.none)
+               Just t -> ({sceneModel | selectedTask=Just t, workableTasks=t::sceneModel.workableTasks}, Cmd.none)
+         Nothing ->
+           (sceneModel, Cmd.none)
+
+    ToggleTask toggledTask ->
+      ({sceneModel | selectedTask=Just toggledTask, badNews=[]}, Cmd.none)
 
     ValidateTaskChoice ->
       case sceneModel.selectedTask of
@@ -118,28 +164,13 @@ update msg kioskModel =
         Nothing ->
           ({sceneModel | badNews=["You must choose a task to work!"]}, Cmd.none)
 
+    -- -- -- -- ERROR HANDLERS -- -- -- --
 
-extractTodaysTasks : CalendarPage -> List OpsTask
-extractTodaysTasks page =
-  let
-    extractDayTasks dot = if dot.isToday then dot.tasks else []
-    extractWeekTasks wot = List.map extractDayTasks wot |> List.concat
-    extractMonthTasks mot = List.map extractWeekTasks mot |> List.concat
-  in
-    extractMonthTasks page.tasks
+    TaskListResult (Err error) ->
+      ({sceneModel | todaysTasks=Failed (toString error)}, Cmd.none)
 
-extractWorkableTasks : List OpsTask -> List OpsTask
-extractWorkableTasks tasks =
-  List.filter (\t -> List.length t.possibleActions > 0) tasks
-
-findStaffedTask : List OpsTask -> Maybe OpsTask
-findStaffedTask tasks =
-  let
-    filter = \t -> t.staffingStatus == staffingStatus_STAFFED
-    staffedTasks = List.filter filter tasks
-  in
-    List.head staffedTasks
-
+    ClaimListResult (Err error) ->
+      ({sceneModel | badNews=[toString error]}, Cmd.none)
 
 
 -----------------------------------------------------------------------------
@@ -148,40 +179,78 @@ findStaffedTask tasks =
 
 idxTaskListScene = mdlIdBase TaskList
 
+
 view : KioskModel a -> Html Msg
 view kioskModel =
   let sceneModel = kioskModel.taskListModel
-  in genericScene kioskModel
-    "Choose a Task"
-    ( if sceneModel.calendarPageRcvd then
-        "Here are some you can work"
-      else
-        "Looking for tasks. One moment, please!"
-    )
-    (taskChoices kioskModel)
-    [ButtonSpec "OK" (TaskListVector <| ValidateTaskChoice)]
-    sceneModel.badNews
+  in case sceneModel.todaysTasks of
 
-taskChoices : KioskModel a -> Html Msg
-taskChoices kioskModel =
-  let sceneModel = kioskModel.taskListModel
-  in div [taskListStyle]
-    ([vspace 30] ++ List.indexedMap
-      (\index wt ->
-        div [taskDivStyle (if wt.priority == taskPriority_HIGH then "#ccffcc" else "#dddddd")]
-          [ Toggles.radio MdlVector [idxTaskListScene, index] kioskModel.mdl
-            [ Toggles.value
-              (case sceneModel.selectedTask of
-                Nothing -> False
-                Just st -> st == wt
-              )
-            , Options.onToggle (TaskListVector <| ToggleTask <| wt)
+    Pending -> waitingView kioskModel
+    Received tasks -> chooseView kioskModel sceneModel.workableTasks
+    Failed err -> errorView kioskModel err
+
+
+waitingView : KioskModel a -> Html Msg
+waitingView kioskModel =
+  let
+    sceneModel = kioskModel.taskListModel
+  in
+    genericScene kioskModel
+      "One Moment Please!"
+      "I'm fetching a list of tasks for you"
+      (text "")  -- REVIEW: Probably won't be on-screen long enough to merit a spinny graphic.
+      [] -- no buttons
+      [] -- no errors
+
+
+errorView : KioskModel a -> String -> Html Msg
+errorView kioskModel err =
+  let
+    sceneModel = kioskModel.taskListModel
+  in
+    genericScene kioskModel
+      "Choose a Task"
+      "Please see a staff member"
+      (text "")
+      [ ButtonSpec "OK" (WizardVector <| Push <| CheckInDone) ]
+      [err]
+
+
+chooseView : KioskModel a -> List XisApi.Task -> Html Msg
+chooseView kioskModel tasks =
+  let
+    sceneModel = kioskModel.taskListModel
+  in
+    genericScene kioskModel
+      "Choose a Task"
+      "Here are some you can work"
+      ( taskChoices kioskModel tasks)
+      [ ButtonSpec "OK" (TaskListVector <| ValidateTaskChoice) ]
+      sceneModel.badNews
+
+
+taskChoices : KioskModel a -> List XisApi.Task -> Html Msg
+taskChoices kioskModel tasks =
+  let
+    sceneModel = kioskModel.taskListModel
+  in
+    div [taskListStyle]
+      ([vspace 30] ++ List.indexedMap
+        (\index wt ->
+          div [taskDivStyle (if wt.priority == HighPriority then "#ccffcc" else "#dddddd")]
+            [ Toggles.radio MdlVector [idxTaskListScene, index] kioskModel.mdl
+              [ Toggles.value
+                (case sceneModel.selectedTask of
+                  Nothing -> False
+                  Just st -> st == wt
+                )
+              , Options.onToggle (TaskListVector <| ToggleTask <| wt)
+              ]
+              [text wt.shortDesc]
             ]
-            [text wt.shortDesc]
-          ]
+        )
+        tasks
       )
-      sceneModel.workableTasks
-    )
 
 
 -----------------------------------------------------------------------------

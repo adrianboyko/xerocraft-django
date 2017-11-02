@@ -26,7 +26,7 @@ from django.template.loader import get_template
 from django.template import Context
 
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.permissions import IsAdminUser
 from rest_framework.authentication import TokenAuthentication
 
 from reportlab.pdfgen import canvas

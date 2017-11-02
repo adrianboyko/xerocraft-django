@@ -590,6 +590,7 @@ class Task(make_TaskMixin("Tasks"), TimeWindowedObject):
     def is_active(self):
         return self.status == self.STAT_ACTIVE
 
+    @property
     def is_fully_claimed(self) -> bool:
         """
         Determine whether all the hours estimated for a task have been claimed by one or more members.
@@ -607,7 +608,7 @@ class Task(make_TaskMixin("Tasks"), TimeWindowedObject):
 
     def staffing_status(self) -> str:
         currClaims = self.claim_set.filter(status=Claim.STAT_CURRENT)
-        if self.is_fully_claimed():
+        if self.is_fully_claimed:
             for claim in currClaims:  # type: Claim
                 if claim.date_verified is None:
                     return Task.STAFFING_STATUS_PROVISIONAL
@@ -632,7 +633,7 @@ class Task(make_TaskMixin("Tasks"), TimeWindowedObject):
                 else:
                     actions.add(Task.ACTION_STAFF)
             except Claim.DoesNotExist:
-                if member in self.all_eligible_claimants() and not self.is_fully_claimed():
+                if member in self.all_eligible_claimants() and not self.is_fully_claimed:
                     actions.add(Task.ACTION_STAFF)
         return list(actions)
 
@@ -727,7 +728,7 @@ class Task(make_TaskMixin("Tasks"), TimeWindowedObject):
         unverified = self.claim_set.filter(status=Claim.STAT_CURRENT, date_verified__isnull=True)
         unverified.delete()
         # Then add a default claim if there aren't any left.
-        if len(self.current_claimants()) == 0:
+        if len(self.claimant_set(Claim.STAT_CURRENT)) == 0:
             self.create_default_claim()
 
         self.save()

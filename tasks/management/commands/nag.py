@@ -77,7 +77,7 @@ class Command(BaseCommand):
         for task in Task.objects.filter(scheduled_date__gte=today, scheduled_date__lt=today+THREEDAYS, should_nag=True):
 
             # No need to nag if task is fully claimed or not workable.
-            if (not task.is_active()) or task.is_fully_claimed():
+            if (not task.is_active()) or task.is_fully_claimed:
                 continue
 
             # Skip tasks that repeat at intervals and can slide. Nags for these will be

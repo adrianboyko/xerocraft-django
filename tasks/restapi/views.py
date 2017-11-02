@@ -3,11 +3,14 @@
 from datetime import datetime
 
 # Third Party
+from django.http.request import HttpRequest
+from django.contrib.auth.models import User
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.settings import api_settings
 
 # Local
+from members.models import Member
 import tasks.models as tm
 import tasks.restapi.serializers as ts
 import tasks.restapi.permissions as tp
@@ -15,26 +18,40 @@ import tasks.restapi.authenticators as ta
 
 
 # ---------------------------------------------------------------------------
+# UTILITIES
+# ---------------------------------------------------------------------------
+
+def user_is_kiosk(request: HttpRequest) -> bool:
+    u = request.user  # type: User
+    return u.is_authenticated() and u.username in ("ReceptionKiosk1", "ReceptionKiosk2")
+
+
+# ---------------------------------------------------------------------------
 # CLAIMS
 # ---------------------------------------------------------------------------
 
 class ClaimViewSet(viewsets.ModelViewSet):
-    queryset = tm.Claim.objects.all()
+    queryset = tm.Claim.objects.all().order_by('id')
     serializer_class = ts.ClaimSerializer
     permission_classes = [IsAuthenticated, tp.ClaimPermission]
     authentication_classes = [
         ta.NagAuthentication,
     ] + api_settings.DEFAULT_AUTHENTICATION_CLASSES
+    filter_fields = {'claiming_member', 'claimed_task', 'status'}
 
     def get_queryset(self):
-        memb = self.request.user.member
+        user = self.request.user  # type: User
+        memb = user.member  # type: Member
 
-        if self.action is "list":
-            # Filter to show only memb's current/future claims.
-            today = datetime.today()
-            return tm.Claim.objects.filter(claiming_member=memb, claimed_task__scheduled_date__gte=today)
+        if user_is_kiosk(self.request):
+            return tm.Claim.objects.all().order_by('id')
         else:
-            return tm.Claim.objects.all()
+            if self.action is "list":
+                # Filter to show only memb's current/future claims.
+                today = datetime.today()
+                return tm.Claim.objects.filter(claiming_member=memb, claimed_task__scheduled_date__gte=today).order_by('id')
+            else:
+                return tm.Claim.objects.all().order_by('id')
 
 
 # ---------------------------------------------------------------------------
@@ -42,22 +59,28 @@ class ClaimViewSet(viewsets.ModelViewSet):
 # ---------------------------------------------------------------------------
 
 class TaskViewSet(viewsets.ModelViewSet):
-    queryset = tm.Task.objects.all()
+    queryset = tm.Task.objects.all().order_by('id')
     serializer_class = ts.TaskSerializer
     permission_classes = [IsAuthenticated, tp.TaskPermission]
     authentication_classes = [
         ta.NagAuthentication,
     ] + api_settings.DEFAULT_AUTHENTICATION_CLASSES
+    filter_fields = {'scheduled_date'}
 
     def get_queryset(self):
-        memb = self.request.user.member
+        user = self.request.user  # type: User
+        memb = user.member  # type: Member
 
-        if self.action is "list":
-            # Filter to show only memb's current/future tasks.
-            today = datetime.today()
-            return tm.Task.objects.filter(owner=memb, scheduled_date__gte=today)
+        if user_is_kiosk(self.request):
+            return tm.Task.objects.all().order_by('id')
         else:
-            return tm.Task.objects.all()
+            # Limit what other authenticated users can see.
+            if self.action is "list":
+                # Filter to show only memb's current/future tasks.
+                today = datetime.today()
+                return tm.Task.objects.filter(owner=memb, scheduled_date__gte=today)
+            else:
+                return tm.Task.objects.all().order_by('id')
 
 
 # ---------------------------------------------------------------------------
@@ -65,7 +88,7 @@ class TaskViewSet(viewsets.ModelViewSet):
 # ---------------------------------------------------------------------------
 
 class WorkViewSet(viewsets.ModelViewSet):
-    queryset = tm.Work.objects.all()
+    queryset = tm.Work.objects.all().order_by('id')
     serializer_class = ts.WorkSerializer
     permission_classes = [IsAuthenticated, tp.WorkPermission]
 
@@ -77,4 +100,4 @@ class WorkViewSet(viewsets.ModelViewSet):
             today = datetime.today()
             return tm.Work.objects.filter(claim__claiming_member=memb)
         else:
-            return tm.Work.objects.all()
+            return tm.Work.objects.all().order_by('id')

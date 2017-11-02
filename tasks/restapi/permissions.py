@@ -54,7 +54,7 @@ class ClaimPermission(permissions.BasePermission):
 
             # Not allowed to claim a task that's already fully claimed.
             if request.data["status"] == tm.Claim.STAT_CURRENT:
-                if claimed_task.is_fully_claimed():
+                if claimed_task.is_fully_claimed:
                     return False
 
             if claiming_member not in claimed_task.eligible_claimants.all():

@@ -16,6 +16,11 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
 from django.views.decorators.csrf import ensure_csrf_cookie
+
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework.permissions import IsAdminUser
+from rest_framework.authentication import TokenAuthentication
+
 from icalendar import Calendar, Event
 
 # Local
@@ -380,7 +385,7 @@ def will_work_now(request, task_pk, member_card_str):
 
     # If there are multiple kiosks/apps running, it's possible that somebody else took this task
     # while member was considering whether or not to claim it. Check to see.
-    if task.is_fully_claimed():
+    if task.is_fully_claimed:
         # This message doesn't need to be logged since it's an expected error.
         return JsonResponse({"error": "Looks like somebody else just claimed it, so you can't."})
 
@@ -553,7 +558,7 @@ def ops_calendar_staffed(request) -> HttpResponse:
     """A calendar containing tasks that have been verified as staffed."""
     cal = _new_calendar("{} Staffed Tasks".format(_ORG_NAME_POSSESSIVE))
     for task in _gen_all_tasks():  # type: Task
-        if task.is_fully_claimed() and task.all_claims_verified():
+        if task.is_fully_claimed and task.all_claims_verified():
             _add_event(cal, task, request)
             # Intentionally lacks ALARM
     return _ical_response(cal)
@@ -563,7 +568,7 @@ def ops_calendar_provisional(request) -> HttpResponse:
     """A calendar containing provisionally staffed (i.e. claims not yet verified) tasks."""
     cal = _new_calendar("{} Provisionally Staffed Tasks".format(_ORG_NAME_POSSESSIVE))
     for task in _gen_all_tasks():  # type: Task
-        if task.is_fully_claimed() and not task.all_claims_verified():
+        if task.is_fully_claimed and not task.all_claims_verified():
             _add_event(cal, task, request)
             # Intentionally lacks ALARM
     return _ical_response(cal)
@@ -573,7 +578,7 @@ def ops_calendar_unstaffed(request) -> HttpResponse:
     """A calendar containing tasks that are not even provisionally staffed."""
     cal = _new_calendar("{} Unstaffed Tasks".format(_ORG_NAME_POSSESSIVE))
     for task in _gen_all_tasks():  # type: Task
-        if not task.is_fully_claimed():
+        if not task.is_fully_claimed:
             _add_event(cal, task, request)
             # Intentionally lacks ALARM
     return _ical_response(cal)
@@ -788,4 +793,27 @@ def desktop_timesheet_verify(request):
 
     else:  # For GET and any other methods:
         return render(request, 'tasks/desktop_timesheet_verify.html', {})
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+# from rest_framework.schemas import get_schema_view
+# from rest_framework import renderers
+# from openapi_codec import OpenAPICodec
+#
+#
+# class SwaggerRenderer(renderers.BaseRenderer):
+#     media_type = 'application/openapi+json'
+#     format = 'swagger'
+#
+#     def render(self, data, media_type=None, renderer_context=None):
+#         codec = OpenAPICodec()
+#         return codec.dump(data)
+#
+#
+# schema_view = get_schema_view(
+#     title="Tasks API",
+#     urlconf="tasks.urls",
+#     renderer_classes=[SwaggerRenderer],
+# )
 
