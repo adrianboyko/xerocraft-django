@@ -7,24 +7,69 @@ from decimal import Decimal
 # Third Party
 from django.db import models
 from django.utils import timezone as dutz
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 # Local
 from members.models import Member
 
 
+class Map(models.Model):
+
+    name = models.CharField(max_length=40, blank=False,
+        help_text="Name of the map, e.g. 'Main Floor'")
+
+    url = models.URLField(blank=False,
+        help_text="The map as a raster or vector image.")
+
+
+class PointOnMap(models.Model):
+
+    short_desc = models.CharField(max_length=40, blank=False, default="Not yet defined.",
+        help_text="A short description/name for this map point.")
+
+    map = models.ForeignKey(Map, null=False, blank=False,
+        on_delete=models.PROTECT,  # Move PoMs to new map before deleting old map.
+        help_text="The map on which this location appears.")
+
+    x = models.FloatField(null=False, blank=False,
+        validators=[MinValueValidator(0.0), MaxValueValidator(1.0)],
+        help_text="X position on map. 0 is left side, 1 is right side.")
+
+    y = models.FloatField(null=False,
+        validators=[MinValueValidator(0.0), MaxValueValidator(1.0)],
+        help_text="Y position on map. 0 is bottom side, 1 is top side.")
+
+    def __str__(self):
+        return self.short_desc
+
+    class Meta:
+        ordering = ['pk']
+
+
 class Location(models.Model):
 
-    x = models.FloatField(null=True, blank=True,
-        help_text="An ordinate in some coordinate system to help locate the location.")
-
-    y = models.FloatField(null=True, blank=True,
-        help_text="An ordinate in some coordinate system to help locate the location.")
-
-    z = models.FloatField(null=True, blank=True,
-        help_text="An ordinate in some coordinate system to help locate the location.")
-
-    short_desc = models.CharField(max_length=40, blank=False,
+    short_desc = models.CharField(max_length=40, blank=False, default="Not yet defined.",
         help_text="A short description/name for the location.")
+
+    designated_use = models.CharField(max_length=40, blank=False, default="Not yet specified.",
+        help_text="What the space is and isn't supposed to be used for.")
+
+    owning_shop = models.ForeignKey('Shop', null=True, blank=True, default=None,
+        on_delete=models.PROTECT, # Move Location to new shop before deleting old shop.
+        help_text="The shop to which this location belongs.")
+
+    long_desc = models.TextField(max_length=1024, blank=True,
+        help_text="More info or some keywords like 'glue', 'keyboards', etc.")
+
+    volume = models.FloatField(null=True, blank=True,
+        help_text="The realistically useable volume of the location in cubic feet.")
+
+    point_on_map = models.ForeignKey(PointOnMap, null=True, blank=True, default=None,
+        on_delete=models.SET_NULL,
+        help_text="A point on a map that helps people find this location.")
+
+    def id_str(self):
+        return "L%04d" % (self.pk)
 
     def __str__(self):
         sd = self.short_desc if self.short_desc is not None else "For future use."
@@ -100,7 +145,8 @@ class Tool(TaggedItem):
     is_loaned = models.BooleanField(default=False,
         help_text="Checked if this tool is on loan to us. Unchecked if we own it.")
 
-    loaned_by = models.ForeignKey(Member, on_delete=models.PROTECT, null=True, default=None,
+    loaned_by = models.ForeignKey(Member, null=True, default=None,
+        on_delete=models.PROTECT,
         help_text="If tool is loaned, this is the member who loaned it to us.")
 
     loan_terms = models.TextField(max_length=1024, default="",
@@ -114,11 +160,13 @@ class Tool(TaggedItem):
 
 class ParkingPermit(TaggedItem):
 
-    owner = models.ForeignKey(Member, null=False, blank=False, on_delete=models.PROTECT,
+    owner = models.ForeignKey(Member, null=False, blank=False,
+        on_delete=models.PROTECT,
         related_name="permits_owned",
         help_text="The member who owns the parked item.")
 
-    approving_member = models.ForeignKey(Member, null=True, blank=True, on_delete=models.SET_NULL,
+    approving_member = models.ForeignKey(Member, null=True, blank=True,
+        on_delete=models.SET_NULL,
         related_name="permits_approved",
         help_text="The paying member who approved the parking of this item.")
 
@@ -176,16 +224,19 @@ class PermitScan(models.Model):
 
     # REVIEW: Is there a good balance between Admin presentation and making these fields editable=False?
 
-    permit = models.ForeignKey(ParkingPermit, null=False, blank=False, on_delete=models.CASCADE, related_name='scans',
+    permit = models.ForeignKey(ParkingPermit, null=False, blank=False,
+        on_delete=models.CASCADE, related_name='scans',
         help_text="The parking permit that was scanned")
 
-    who = models.ForeignKey(Member, null=True, blank=True, on_delete=models.SET_NULL,
+    who = models.ForeignKey(Member, null=True, blank=True,
+        on_delete=models.SET_NULL,
         help_text="The member who scanned the permit.")
 
     when = models.DateTimeField(null=False, blank=False,
         help_text="Date/time on which the permit was scanned.")
 
-    where = models.ForeignKey(Location, null=False, blank=False, on_delete=models.PROTECT,
+    where = models.ForeignKey(Location, null=False, blank=False,
+        on_delete=models.PROTECT,
         help_text="The location at which the parking permit was scanned.")
 
     def __str__(self):

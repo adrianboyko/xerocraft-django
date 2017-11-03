@@ -12,7 +12,7 @@ from reversion.admin import VersionAdmin
 # Local
 from inventory.models import (
     PermitScan, ParkingPermitPayment, ParkingPermit,
-    Location, Shop, Tool,
+    Location, Shop, Tool, PointOnMap, Map,
     ConsumableToStock
 )
 
@@ -78,7 +78,19 @@ class PermitScanAdmin(VersionAdmin):
 
 @admin.register(Location)
 class LocationAdmin(VersionAdmin):
-    search_fields = ['short_desc']
+    list_display = ['id_str', 'short_desc', 'point_on_map', 'designated_use', 'owning_shop']
+    search_fields = ['short_desc', 'designated_use', 'long_desc']
+    list_filter = ['owning_shop']
+
+
+@admin.register(Map)
+class MapAdmin(VersionAdmin):
+    pass
+
+
+@admin.register(PointOnMap)
+class PointOnMapAdmin(VersionAdmin):
+    pass
 
 
 @admin.register(ParkingPermitPayment)
