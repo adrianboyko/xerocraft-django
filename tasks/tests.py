@@ -468,7 +468,7 @@ class TestViews(TestCase):
         # The claim and work were required for previous tests, but delete them because following will recreate them.
         self.work.delete()
         self.claim.delete()
-        self.assertEqual(len(self.task.current_claimants()), 0)
+        self.assertEqual(len(self.task.claimant_set(Claim.STAT_CURRENT)), 0)
         response = client.post(url, {'hours':"01:30:00"})
         # On success, response will redirect to next in the nag handling process.
         kwargs = {'task_pk':str(self.task.pk), 'auth_token':self.arbitrary_token_b64}
@@ -478,7 +478,7 @@ class TestViews(TestCase):
             302,  # POST to offer-task will respond with a redirect to offer-more-tasks
             302   # Because there are no other tasks on same day, offer-more-tasks will redirect to next in chain.
         )
-        self.assertEqual(len(self.task.current_claimants()), 1)
+        self.assertEqual(len(self.task.claimant_set(Claim.STAT_CURRENT)), 1)
 
         # Add more tasks so there is one on the same day of week and retry the previous.
         # This time it shouldn't redirect.
