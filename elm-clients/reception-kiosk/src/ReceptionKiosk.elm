@@ -97,7 +97,7 @@ init f =
     model =
       { flags = f
       , currTime = 0
-      , sceneStack = List.Nonempty.fromElement Welcome
+      , sceneStack = List.Nonempty.fromElement ScreenSaver
       , mdl = Material.model
       -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
       , checkInModel         = checkInModel
@@ -191,7 +191,6 @@ update msg model =
             (m4, c4) = ScreenSaverScene.sceneWillAppear model appearingScene
             (m5, c5) = TaskListScene.sceneWillAppear model appearingScene
             (m6, c6) = WaiverScene.sceneWillAppear model appearingScene
-            (m7, c7) = WelcomeScene.sceneWillAppear model appearingScene
             newModel =
               { model
               | checkInModel = m0
@@ -201,10 +200,9 @@ update msg model =
               , screenSaverModel = m4
               , taskListModel = m5
               , waiverModel = m6
-              , welcomeModel = m7
               }
           in
-            (newModel, Cmd.batch [c0, c1, c2, c3, c4, c5, c6, c7])
+            (newModel, Cmd.batch [c0, c1, c2, c3, c4, c5, c6])
 
         Tick time ->
           let
@@ -214,7 +212,6 @@ update msg model =
             (m4, c4) = CheckOutDoneScene.tick time model
             (m5, c5) = NewMemberScene.tick time model
             (m6, c6) = NewUserScene.tick time model
-            (m7, c7) = ScreenSaverScene.tick time model
             newModel =
               { model
               | currTime = time
@@ -224,10 +221,9 @@ update msg model =
               , checkOutDoneModel = m4
               , newMemberModel = m5
               , newUserModel = m6
-              , screenSaverModel = m7
               }
           in
-            (newModel, Cmd.batch [c1, c2, c3, c4, c5, c6, c7])
+            (newModel, Cmd.batch [c1, c2, c3, c4, c5, c6])
 
     CheckInVector x ->
       let (sm, cmd) = CheckInScene.update x model
@@ -273,10 +269,6 @@ update msg model =
       let (sm, cmd) = WaiverScene.update x model
       in ({model | waiverModel = sm}, cmd)
 
-    WelcomeVector x ->
-      let (sm, cmd) = WelcomeScene.update x model
-      in ({model | welcomeModel = sm}, cmd)
-
     MdlVector x ->
       Material.update MdlVector x model
 
@@ -319,7 +311,6 @@ subscriptions model =
     newUserSubs = NewUserScene.subscriptions model
     screenSaverSubs = ScreenSaverScene.subscriptions model
     waiverSubs = WaiverScene.subscriptions model
-    welcomeSubs = WelcomeScene.subscriptions model
   in
     Sub.batch
       [ mySubs
@@ -328,5 +319,4 @@ subscriptions model =
       , newUserSubs
       , screenSaverSubs
       , waiverSubs
-      , welcomeSubs
       ]

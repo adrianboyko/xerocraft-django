@@ -3,7 +3,6 @@ module ScreenSaverScene exposing
   ( init
   , sceneWillAppear
   , update
-  , tick
   , view
   , subscriptions
   , ScreenSaverModel
@@ -16,6 +15,8 @@ import Time exposing (Time)
 import Random
 import Mouse
 import Keyboard
+import Char
+
 
 -- Third Party
 
@@ -33,15 +34,10 @@ import MembersOnlyScene exposing (MembersOnlyModel)
 -- CONSTANTS
 -----------------------------------------------------------------------------
 
-msgDivWidth = 317  -- Measured in browser
-msgDivHeight = 242  -- Measured in browser
-redrawPeriod = 3  -- Move msg every redrawPeriod seconds
-tooLong = 600  -- Screen saver will activate after tooLong seconds
-
-
------------------------------------------------------------------------------
--- CONSTANTS
------------------------------------------------------------------------------
+msgDivWidth = 619  -- Measured in browser
+msgDivHeight = 419  -- Measured in browser
+xPos = (sceneWidth - msgDivWidth) // 2
+yPos = -100 + (sceneHeight - msgDivHeight) // 2
 
 
 -----------------------------------------------------------------------------
@@ -49,28 +45,19 @@ tooLong = 600  -- Screen saver will activate after tooLong seconds
 -----------------------------------------------------------------------------
 
 type alias ScreenSaverModel =
-  { xPos : Int
-  , yPos : Int
-  , secondsSinceSceneChange : Int
+  { charsTyped : List Char
   }
 
 -- This type alias describes the type of kiosk model that this scene requires.
 type alias KioskModel a = SceneUtilModel
   { a
   | screenSaverModel : ScreenSaverModel
-  , membersOnlyModel : MembersOnlyModel
-  , flags : Flags
   }
-
 
 init : Flags -> (ScreenSaverModel, Cmd Msg)
 init flags =
-  let sceneModel =
-    { xPos = (sceneWidth - msgDivWidth) // 2
-    , yPos = (sceneHeight - msgDivHeight) // 2
-    , secondsSinceSceneChange = 0
-    }
-  in (sceneModel, Cmd.none)
+  ({charsTyped=[]}, Cmd.none)
+
 
 -----------------------------------------------------------------------------
 -- SCENE WILL APPEAR
@@ -81,7 +68,12 @@ sceneWillAppear kioskModel appearingScene =
   let
     sceneModel = kioskModel.screenSaverModel
   in
-    ({sceneModel | secondsSinceSceneChange = 0}, Cmd.none)
+    if appearingScene == Welcome
+      then
+        ({sceneModel | charsTyped = []}, hideKeyboard ())
+      else
+        (sceneModel, Cmd.none)
+
 
 -----------------------------------------------------------------------------
 -- UPDATE
@@ -89,59 +81,27 @@ sceneWillAppear kioskModel appearingScene =
 
 update : ScreenSaverMsg -> KioskModel a -> (ScreenSaverModel, Cmd Msg)
 update msg kioskModel =
-  let
-    sceneModel = kioskModel.screenSaverModel
-  in
-    case msg of
+  let sceneModel = kioskModel.screenSaverModel
+  in case msg of
 
-      NewMsgPosition (newX, newY) ->
-        ({sceneModel | xPos=newX, yPos=newY}, Cmd.none)
+    UserActivityNoted ->
+      (sceneModel, segueTo Welcome)
 
-      UserActivityNoted ->
-        (sceneModel, send (WizardVector <| Pop))
+    WakeOrRfidKeyStroke code ->
+      let
+        newChar = Char.fromCode code
+        prevChars = sceneModel.charsTyped
+        isWake = newChar == ' '
+      in
+        if isWake then
+          update UserActivityNoted kioskModel
+        else
+          ({sceneModel | charsTyped = newChar :: prevChars }, Cmd.none)
 
 
 -----------------------------------------------------------------------------
 -- TICK (called each second)
 -----------------------------------------------------------------------------
-
-tick : Time -> KioskModel a -> (ScreenSaverModel, Cmd Msg)
-tick time kioskModel =
-  let
-    sceneModel = kioskModel.screenSaverModel
-    visible = sceneIsVisible kioskModel ScreenSaver
-    isBusyTime = case kioskModel.membersOnlyModel.nowBlock of
-      Received (Just _) -> True
-      _ -> False
-    getTimeBlocksCmd = MembersOnlyScene.getTimeBlocks kioskModel.flags
-    timeInSeconds = time |> Time.inSeconds |> floor
-    isTopOfMinute = timeInSeconds % 60 == 0
-    cmd1 = if isTopOfMinute then getTimeBlocksCmd else Cmd.none
-  in
-
-    if visible then
-      let
-        isRedrawTime = timeInSeconds % redrawPeriod == 0
-
-        xRandGen = Random.int 0 (sceneWidth - msgDivWidth)
-        yRandGen = Random.int 0 (sceneHeight - msgDivHeight)
-        pairRandGen = Random.pair xRandGen yRandGen
-
-        generatePairCmd = Random.generate (ScreenSaverVector << NewMsgPosition) pairRandGen
-        popCmd = send (WizardVector <| Pop)
-
-        cmd2 = if isBusyTime then popCmd else Cmd.none
-        cmd3 = if isRedrawTime then generatePairCmd else Cmd.none
-      in
-        (sceneModel, Cmd.batch [cmd1, cmd2, cmd3])
-
-    else  -- NOT visible
-      let
-        newCount = sceneModel.secondsSinceSceneChange + 1
-        cmd2 = if newCount > tooLong && not isBusyTime then segueTo ScreenSaver else Cmd.none
-      in
-        ({sceneModel | secondsSinceSceneChange = newCount}, Cmd.batch [cmd1, cmd2])
-
 
 
 -----------------------------------------------------------------------------
@@ -152,13 +112,17 @@ view : KioskModel a -> Html Msg
 view kioskModel =
   let
     sceneModel = kioskModel.screenSaverModel
-    positionStyle = style ["top" => px sceneModel.yPos, "left" => px sceneModel.xPos ]
+    positionStyle = style ["top" => px yPos, "left" => px xPos ]
   in
     div [bgDivStyle]
       [ div [msgDivStyle, positionStyle]
         -- TODO: Do I want to pass all imgs in as flags, as was done with banners?
         [ img [src "/static/bzw_ops/Logo, Light, 100w.png", logoImgStyle] []
+        , vspace 35
         , h1 [h1Style] [text "Welcome!"]
+        , vspace 0
+        , h1 [h1Style] [text "All Visitors Must Sign In"]
+        , vspace 30
         , h2 [h2Style] [text "Tap Spacebar to Start"]
         ]
       ]
@@ -174,7 +138,7 @@ subscriptions model =
     then
       Sub.batch
         [ Mouse.clicks (\_ -> (ScreenSaverVector <| UserActivityNoted))
-        , Keyboard.presses (\_ -> (ScreenSaverVector <| UserActivityNoted))
+        , Keyboard.downs (ScreenSaverVector << WakeOrRfidKeyStroke)
         ]
     else
       Sub.none
@@ -201,16 +165,20 @@ msgDivStyle = style
   ]
 
 logoImgStyle = style
-  [ "width" => px 150
+  [ "width" => px 200
   ]
 
 h1Style = style
-  [ "margin" => px 0
+  [ "font-family" => "roboto condensed"
+  , "font-size" => "54pt"
+  , "word-spacing" => "-5px"
+  , "line-height" => "0.9"
+  , "margin" => "0"
   ]
 
 h2Style = style
-  [ "margin" => px 0
+  [ "line-height" => "1"
+  , "margin" => "0"
   , "font-size" => "24pt"
-  , "margin-top" => px -10
-  , "line-height" => "1"
+  , "color" => "white"
   ]

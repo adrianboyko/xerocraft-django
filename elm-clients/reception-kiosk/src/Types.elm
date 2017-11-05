@@ -146,7 +146,7 @@ type ReasonForVisitMsg
   | LogCheckInResult (Result Http.Error GenericResult)
 
 type ScreenSaverMsg
-  = NewMsgPosition (Int, Int)
+  = WakeOrRfidKeyStroke KeyCode
   | UserActivityNoted
 
 type TaskListMsg
@@ -160,9 +160,6 @@ type WaiverMsg
   | ClearSignaturePad String
   | GetSignature
   | UpdateSignature String  -- String is a data URL representation of an image.
-
-type WelcomeMsg
-  = WelcomeKeystroke KeyCode
 
 type Msg
   = MdlVector (Material.Msg Msg)
@@ -178,7 +175,6 @@ type Msg
   | ScreenSaverVector ScreenSaverMsg
   | TaskListVector TaskListMsg
   | WaiverVector WaiverMsg
-  | WelcomeVector WelcomeMsg
 
 type WizardMsg
   = Push Scene

@@ -1,11 +1,9 @@
 
-module WelcomeScene exposing (init, sceneWillAppear, update, view, subscriptions, WelcomeModel)
+module WelcomeScene exposing (init, view, WelcomeModel)
 
 -- Standard
 import Html exposing (Html, div, text, img, br)
 import Html.Attributes exposing (src, width, style)
-import Keyboard
-import Char
 
 -- Third Party
 
@@ -18,45 +16,23 @@ import Types exposing (..)
 -----------------------------------------------------------------------------
 
 type alias WelcomeModel =
-  { charsTyped : List Char
+  {
   }
 
 -- This type alias describes the type of kiosk model that this scene requires.
 type alias KioskModel a = (SceneUtilModel {a | welcomeModel : WelcomeModel})
 
 init : Flags -> (WelcomeModel, Cmd Msg)
-init flags = ({charsTyped=[]}, Cmd.none)
+init flags = ({}, Cmd.none)
 
 -----------------------------------------------------------------------------
 -- SCENE WILL APPEAR
 -----------------------------------------------------------------------------
 
-sceneWillAppear : KioskModel a -> Scene -> (WelcomeModel, Cmd Msg)
-sceneWillAppear kioskModel appearingScene =
-  let
-    sceneModel = kioskModel.welcomeModel
-  in
-    if appearingScene == Welcome
-      then
-        ({sceneModel | charsTyped = []}, hideKeyboard ())
-      else
-        (sceneModel, Cmd.none)
 
 -----------------------------------------------------------------------------
 -- UPDATE
 -----------------------------------------------------------------------------
-
-update : WelcomeMsg -> KioskModel a -> (WelcomeModel, Cmd Msg)
-update msg kioskModel =
-  let sceneModel = kioskModel.welcomeModel
-  in case msg of
-
-    WelcomeKeystroke code ->
-      let
-        newChar = Char.fromCode code
-        prevChars = sceneModel.charsTyped
-      in
-        ({sceneModel | charsTyped = newChar :: prevChars }, Cmd.none)
 
 
 -----------------------------------------------------------------------------
@@ -89,12 +65,6 @@ view kioskModel =
 -----------------------------------------------------------------------------
 -- SUBSCRIPTIONS
 -----------------------------------------------------------------------------
-
-subscriptions: KioskModel a -> Sub Msg
-subscriptions model =
-  if sceneIsVisible model Welcome
-    then Keyboard.downs (WelcomeVector << WelcomeKeystroke)
-    else Sub.none
 
 
 -----------------------------------------------------------------------------
