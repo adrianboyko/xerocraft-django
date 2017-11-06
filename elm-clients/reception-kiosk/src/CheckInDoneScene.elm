@@ -1,5 +1,5 @@
 
-module CheckInDoneScene exposing (init, view, tick, CheckInDoneModel)
+module CheckInDoneScene exposing (init, view, CheckInDoneModel)
 
 -- Standard
 import Html exposing (Html, text, div)
@@ -16,8 +16,6 @@ import Wizard.SceneUtils exposing (..)
 -- CONSTANTS
 -----------------------------------------------------------------------------
 
-displayTimeout = 5
-
 
 -----------------------------------------------------------------------------
 -- INIT
@@ -25,14 +23,13 @@ displayTimeout = 5
 
 type alias CheckInDoneModel =
   {
-    displayTimeRemaining : Int
   }
 
 -- This type alias describes the type of kiosk model that this scene requires.
 type alias KioskModel a = (SceneUtilModel {a | checkInDoneModel : CheckInDoneModel})
 
 init : Flags -> (CheckInDoneModel, Cmd Msg)
-init flags = ({displayTimeRemaining=displayTimeout}, Cmd.none)
+init flags = ({}, Cmd.none)
 
 
 -----------------------------------------------------------------------------
@@ -50,30 +47,13 @@ view kioskModel =
   in genericScene kioskModel
     "You're Checked In"
     "Have fun!"
-    ( div []
-      [ vspace 40
-      , sceneButton kioskModel <| ButtonSpec "Ok" (WizardVector <| Reset)
-      , vspace 70
-      , (text (String.repeat sceneModel.displayTimeRemaining "●"))
-      ]
-    )
-    []
-    []
+    (vspace 40)
+    [ButtonSpec "Ok" (WizardVector <| Reset)]
+    [] -- Never any bad news for this scene
 
 
 -----------------------------------------------------------------------------
 -- TICK (called each second)
 -----------------------------------------------------------------------------
 
-tick : Time -> KioskModel a -> (CheckInDoneModel, Cmd Msg)
-tick time kioskModel =
-  let
-    sceneModel = kioskModel.checkInDoneModel
-    visible = sceneIsVisible kioskModel CheckInDone
-    dec = if visible then 1 else 0
-    newTimeRemaining = sceneModel.displayTimeRemaining - dec
-    cmd = if newTimeRemaining <= 0 then send (WizardVector <| Reset) else Cmd.none
-  in
-    if visible then ({sceneModel | displayTimeRemaining=newTimeRemaining}, cmd)
-    else (sceneModel, Cmd.none)
 

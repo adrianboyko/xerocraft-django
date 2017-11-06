@@ -21,6 +21,7 @@ port module Wizard.SceneUtils exposing
   , hideKeyboard
   , focusWasSet
   , sceneIsVisible
+  , currentScene
   )
 
 -- Standard
@@ -79,7 +80,12 @@ segueTo : Scene -> Cmd Msg
 segueTo scene = send (WizardVector <| Push <| scene)
 
 sceneIsVisible : SceneUtilModel a -> Scene -> Bool
-sceneIsVisible model scene = List.Nonempty.head model.sceneStack == scene
+sceneIsVisible model scene = (currentScene model) == scene
+
+currentScene : SceneUtilModel a -> Scene
+currentScene model =
+  List.Nonempty.head model.sceneStack
+
 
 -----------------------------------------------------------------------------
 -- VIEW UTILITIES

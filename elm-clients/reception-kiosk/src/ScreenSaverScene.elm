@@ -3,6 +3,7 @@ module ScreenSaverScene exposing
   ( init
   , sceneWillAppear
   , update
+  , tick
   , view
   , subscriptions
   , ScreenSaverModel
@@ -39,13 +40,13 @@ msgDivHeight = 419  -- Measured in browser
 xPos = (sceneWidth - msgDivWidth) // 2
 yPos = -100 + (sceneHeight - msgDivHeight) // 2
 
-
 -----------------------------------------------------------------------------
 -- INIT
 -----------------------------------------------------------------------------
 
 type alias ScreenSaverModel =
   { charsTyped : List Char
+  , secondsSinceSceneChange : Int
   }
 
 -- This type alias describes the type of kiosk model that this scene requires.
@@ -56,7 +57,7 @@ type alias KioskModel a = SceneUtilModel
 
 init : Flags -> (ScreenSaverModel, Cmd Msg)
 init flags =
-  ({charsTyped=[]}, Cmd.none)
+  ({secondsSinceSceneChange=0, charsTyped=[]}, Cmd.none)
 
 
 -----------------------------------------------------------------------------
@@ -68,11 +69,10 @@ sceneWillAppear kioskModel appearingScene =
   let
     sceneModel = kioskModel.screenSaverModel
   in
-    if appearingScene == Welcome
-      then
-        ({sceneModel | charsTyped = []}, hideKeyboard ())
-      else
-        (sceneModel, Cmd.none)
+    if appearingScene == ScreenSaver then
+      ({sceneModel | charsTyped = []}, hideKeyboard ())
+    else
+      ({sceneModel | secondsSinceSceneChange=0}, Cmd.none)
 
 
 -----------------------------------------------------------------------------
@@ -102,6 +102,39 @@ update msg kioskModel =
 -----------------------------------------------------------------------------
 -- TICK (called each second)
 -----------------------------------------------------------------------------
+
+timeoutFor : Scene -> Int
+timeoutFor scene =
+  case scene of
+    CheckIn -> 60
+    CheckInDone -> 10
+    CheckOut -> 60
+    CheckOutDone -> 10
+    CreatingAcct -> 300
+    EmailInUse -> 300
+    HowDidYouHear -> 300
+    MembersOnly -> 300
+    NewMember -> 600
+    NewUser -> 600
+    ReasonForVisit -> 300
+    ScreenSaver -> 86400
+    SignUpDone -> 300
+    TaskList -> 300
+    VolunteerInDone -> 300
+    Waiver -> 600
+    Welcome -> 60
+
+
+tick : Time -> KioskModel a -> (ScreenSaverModel, Cmd Msg)
+tick time kioskModel =
+  let
+    sceneModel = kioskModel.screenSaverModel
+    newSeconds = sceneModel.secondsSinceSceneChange + 1
+    newSceneModel = {sceneModel | secondsSinceSceneChange = newSeconds}
+    tooLong = timeoutFor (currentScene kioskModel)
+    cmd = if newSeconds > tooLong then send (WizardVector <| Reset) else Cmd.none
+  in
+    (newSceneModel, cmd)
 
 
 -----------------------------------------------------------------------------

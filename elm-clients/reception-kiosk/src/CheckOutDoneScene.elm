@@ -1,5 +1,5 @@
 
-module CheckOutDoneScene exposing (init, view, tick, CheckOutDoneModel)
+module CheckOutDoneScene exposing (init, view, CheckOutDoneModel)
 
 -- Standard
 import Html exposing (Html, div, text)
@@ -24,7 +24,7 @@ displayTimeout = 5
 -----------------------------------------------------------------------------
 
 type alias CheckOutDoneModel =
-  { displayTimeRemaining : Int
+  {
   }
 
 -- This type alias describes the type of kiosk model that this scene requires.
@@ -32,7 +32,7 @@ type alias KioskModel a = (SceneUtilModel {a | checkOutDoneModel : CheckOutDoneM
 
 -- TODO: There should be a time out back to Welcome
 init : Flags -> (CheckOutDoneModel, Cmd Msg)
-init flags = ({displayTimeRemaining=displayTimeout}, Cmd.none)
+init flags = ({}, Cmd.none)
 
 
 -----------------------------------------------------------------------------
@@ -50,14 +50,8 @@ view kioskModel =
   in genericScene kioskModel
     "You're Checked Out"
     "Have a Nice Day!"
-    ( div []
-      [ vspace 40
-      , sceneButton kioskModel <| ButtonSpec "Ok" (WizardVector <| Reset)
-      , vspace 70
-      , (text (String.repeat sceneModel.displayTimeRemaining "●"))
-      ]
-    )
-    []
+    ( vspace 40)
+    [ButtonSpec "Ok" (WizardVector <| Reset)]
     [] -- Never any bad news for this scene
 
 
@@ -65,14 +59,3 @@ view kioskModel =
 -- TICK (called each second)
 -----------------------------------------------------------------------------
 
-tick : Time -> KioskModel a -> (CheckOutDoneModel, Cmd Msg)
-tick time kioskModel =
-  let
-    sceneModel = kioskModel.checkOutDoneModel
-    visible = sceneIsVisible kioskModel CheckOutDone
-    dec = if visible then 1 else 0
-    newTimeRemaining = sceneModel.displayTimeRemaining - dec
-    cmd = if visible && newTimeRemaining <= 0 then send (WizardVector <| Reset) else Cmd.none
-  in
-    if visible then ({sceneModel | displayTimeRemaining=newTimeRemaining}, cmd)
-    else (sceneModel, Cmd.none)
