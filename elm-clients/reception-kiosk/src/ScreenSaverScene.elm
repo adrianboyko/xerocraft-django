@@ -46,7 +46,7 @@ yPos = -100 + (sceneHeight - msgDivHeight) // 2
 
 type alias ScreenSaverModel =
   { charsTyped : List Char
-  , secondsSinceSceneChange : Int
+  , idleSeconds : Int
   }
 
 -- This type alias describes the type of kiosk model that this scene requires.
@@ -57,7 +57,7 @@ type alias KioskModel a = SceneUtilModel
 
 init : Flags -> (ScreenSaverModel, Cmd Msg)
 init flags =
-  ({secondsSinceSceneChange=0, charsTyped=[]}, Cmd.none)
+  ({idleSeconds=0, charsTyped=[]}, Cmd.none)
 
 
 -----------------------------------------------------------------------------
@@ -72,7 +72,7 @@ sceneWillAppear kioskModel appearingScene =
     if appearingScene == ScreenSaver then
       ({sceneModel | charsTyped = []}, hideKeyboard ())
     else
-      ({sceneModel | secondsSinceSceneChange=0}, Cmd.none)
+      ({sceneModel | idleSeconds=0}, Cmd.none)
 
 
 -----------------------------------------------------------------------------
@@ -81,22 +81,36 @@ sceneWillAppear kioskModel appearingScene =
 
 update : ScreenSaverMsg -> KioskModel a -> (ScreenSaverModel, Cmd Msg)
 update msg kioskModel =
-  let sceneModel = kioskModel.screenSaverModel
-  in case msg of
+  let
+    sceneModel = kioskModel.screenSaverModel
+    amVisible = currentScene kioskModel == ScreenSaver
 
-    UserActivityNoted ->
-      (sceneModel, segueTo Welcome)
+  in
+    case msg of
 
-    WakeOrRfidKeyStroke code ->
+    ScreenSaverMouseClick ->
+      if amVisible && sceneModel.idleSeconds > 0 then
+        -- Note: idleSeconds == 0 means the click was on the scene that segued to here.
+        (sceneModel, segueTo Welcome)
+      else
+        -- It's a mouse click on some other scene, so reset idle time.
+        ({sceneModel | idleSeconds=0}, Cmd.none)
+
+    ScreenSaverKeyDown code ->
       let
         newChar = Char.fromCode code
         prevChars = sceneModel.charsTyped
-        isWake = newChar == ' '
+        isWakeChar = newChar == ' '
       in
-        if isWake then
-          update UserActivityNoted kioskModel
+        if amVisible then
+          if isWakeChar then
+            (sceneModel, segueTo Welcome)
+          else
+            -- It's presumably an RFID character.
+            ({sceneModel | charsTyped = newChar :: prevChars }, Cmd.none)
         else
-          ({sceneModel | charsTyped = newChar :: prevChars }, Cmd.none)
+          -- It's a key down on some other scene, so reset idle time.
+          ({sceneModel | idleSeconds=0}, Cmd.none)
 
 
 -----------------------------------------------------------------------------
@@ -120,7 +134,7 @@ timeoutFor scene =
     ScreenSaver -> 86400
     SignUpDone -> 300
     TaskList -> 300
-    VolunteerInDone -> 300
+    VolunteerInDone -> 300  -- There may be a lot to read in the instructions.
     Waiver -> 600
     Welcome -> 60
 
@@ -129,8 +143,8 @@ tick : Time -> KioskModel a -> (ScreenSaverModel, Cmd Msg)
 tick time kioskModel =
   let
     sceneModel = kioskModel.screenSaverModel
-    newSeconds = sceneModel.secondsSinceSceneChange + 1
-    newSceneModel = {sceneModel | secondsSinceSceneChange = newSeconds}
+    newSeconds = sceneModel.idleSeconds + 1
+    newSceneModel = {sceneModel | idleSeconds = newSeconds}
     tooLong = timeoutFor (currentScene kioskModel)
     cmd = if newSeconds > tooLong then send (WizardVector <| Reset) else Cmd.none
   in
@@ -156,7 +170,7 @@ view kioskModel =
         , vspace 0
         , h1 [h1Style] [text "All Visitors Must Sign In"]
         , vspace 30
-        , h2 [h2Style] [text "Tap Spacebar to Start"]
+        , h2 [h2Style] [text "Tap Spacebar or Screen to Start"]
         ]
       ]
 
@@ -167,14 +181,10 @@ view kioskModel =
 
 subscriptions: KioskModel a -> Sub Msg
 subscriptions model =
-  if sceneIsVisible model ScreenSaver
-    then
-      Sub.batch
-        [ Mouse.clicks (\_ -> (ScreenSaverVector <| UserActivityNoted))
-        , Keyboard.downs (ScreenSaverVector << WakeOrRfidKeyStroke)
-        ]
-    else
-      Sub.none
+  Sub.batch
+    [ Mouse.clicks (\_ -> (ScreenSaverVector <| ScreenSaverMouseClick))
+    , Keyboard.downs (ScreenSaverVector << ScreenSaverKeyDown)
+    ]
 
 
 -----------------------------------------------------------------------------

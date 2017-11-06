@@ -146,8 +146,8 @@ type ReasonForVisitMsg
   | LogCheckInResult (Result Http.Error GenericResult)
 
 type ScreenSaverMsg
-  = WakeOrRfidKeyStroke KeyCode
-  | UserActivityNoted
+  = ScreenSaverKeyDown KeyCode
+  | ScreenSaverMouseClick
 
 type TaskListMsg
   = TaskListResult (Result Http.Error (PageOf XisApi.Task))
