@@ -36,9 +36,9 @@ import MembersOnlyScene exposing (MembersOnlyModel)
 -----------------------------------------------------------------------------
 
 msgDivWidth = 619  -- Measured in browser
-msgDivHeight = 419  -- Measured in browser
+msgDivHeight = 612  -- Measured in browser
 xPos = (sceneWidth - msgDivWidth) // 2
-yPos = -100 + (sceneHeight - msgDivHeight) // 2
+yPos = -50 + (sceneHeight - msgDivHeight) // 2
 
 -----------------------------------------------------------------------------
 -- INIT
@@ -164,8 +164,8 @@ view kioskModel =
     div [bgDivStyle]
       [ div [msgDivStyle, positionStyle]
         -- TODO: Do I want to pass all imgs in as flags, as was done with banners?
-        [ img [src "/static/bzw_ops/Logo, Light, 100w.png", logoImgStyle] []
-        , vspace 35
+        [ img [src "/static/bzw_ops/FiberOptic.gif", logoImgStyle] []
+        , vspace 20
         , h1 [h1Style] [text "Welcome!"]
         , vspace 0
         , h1 [h1Style] [text "All Visitors Must Sign In"]
@@ -202,13 +202,13 @@ bgDivStyle = style
 msgDivStyle = style
   [ "text-align" => "center"
   , "font-size" => "36pt"
-  , "color" => "red"
   , "position" => "relative"
   , "display" => "inline-block"
   ]
 
 logoImgStyle = style
-  [ "width" => px 200
+  [ "width" => px 600
+  , "margin" => "-100px"  -- For FiberOptic.gif only.
   ]
 
 h1Style = style
@@ -217,6 +217,7 @@ h1Style = style
   , "word-spacing" => "-5px"
   , "line-height" => "0.9"
   , "margin" => "0"
+  , "color" => "#ffff00"
   ]
 
 h2Style = style
