@@ -164,11 +164,11 @@ view kioskModel =
     div [bgDivStyle]
       [ div [msgDivStyle, positionStyle]
         -- TODO: Do I want to pass all imgs in as flags, as was done with banners?
-        [ img [src "/static/bzw_ops/FiberOptic.gif", logoImgStyle] []
+        [ img [src "/static/bzw_ops/SpikeySphere.gif", logoImgStyle] []
         , vspace 20
-        , h1 [h1Style] [text "Welcome!"]
+        , h1 [h1Style, style ["color"=>"white"]] [text "Welcome!"]
         , vspace 0
-        , h1 [h1Style] [text "All Visitors Must Sign In"]
+        , h1 [h1Style, style ["color"=>"red"]] [text "All Visitors Must Sign In"]
         , vspace 30
         , h2 [h2Style] [text "Tap Spacebar or Screen to Start"]
         ]
