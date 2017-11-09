@@ -10,8 +10,8 @@ module ScreenSaverScene exposing
   )
 
 -- Standard
-import Html exposing (Html, div, text, img, br, h1, h2)
-import Html.Attributes exposing (src, width, style)
+import Html exposing (Html, div, text, img, br, h1, h2, audio)
+import Html.Attributes exposing (src, width, style, autoplay)
 import Time exposing (Time)
 import Random
 import Mouse
@@ -35,17 +35,18 @@ import MembersOnlyScene exposing (MembersOnlyModel)
 -- CONSTANTS
 -----------------------------------------------------------------------------
 
-msgDivWidth = 619  -- Measured in browser
-msgDivHeight = 612  -- Measured in browser
-xPos = (sceneWidth - msgDivWidth) // 2
-yPos = -50 + (sceneHeight - msgDivHeight) // 2
-
 -----------------------------------------------------------------------------
 -- INIT
 -----------------------------------------------------------------------------
 
+type ScreenSaverState
+  = Normal
+  | CheckingRfid
+  | UnknownRfid
+
 type alias ScreenSaverModel =
-  { charsTyped : List Char
+  { state : ScreenSaverState
+  , charsTyped : List Char
   , idleSeconds : Int
   }
 
@@ -57,7 +58,13 @@ type alias KioskModel a = SceneUtilModel
 
 init : Flags -> (ScreenSaverModel, Cmd Msg)
 init flags =
-  ({idleSeconds=0, charsTyped=[]}, Cmd.none)
+  ( { state = Normal
+    , idleSeconds = 0
+    , charsTyped = []
+    }
+    ,
+    Cmd.none
+  )
 
 
 -----------------------------------------------------------------------------
@@ -98,19 +105,38 @@ update msg kioskModel =
 
     ScreenSaverKeyDown code ->
       let
-        newChar = Char.fromCode code
         prevChars = sceneModel.charsTyped
-        isWakeChar = newChar == ' '
       in
         if amVisible then
-          if isWakeChar then
-            (sceneModel, segueTo Welcome)
-          else
-            -- It's presumably an RFID character.
-            ({sceneModel | charsTyped = newChar :: prevChars }, Cmd.none)
+          case code of
+            219 ->
+              -- RFID reader is beginning to send a card number, so clear our buffer.
+              ({sceneModel | charsTyped=[]}, Cmd.none)
+            221 ->
+              -- RFID reader is done sending the card number, so process our buffer.
+              handleRfid kioskModel
+            32 ->
+              -- Spacebar
+              (sceneModel, segueTo Welcome)
+            c ->
+              if c>=48 && c<=57 then
+                -- A digit, presumably in the RFID's number. '0' = code 48, '9' = code 57.
+                ({sceneModel | charsTyped = Char.fromCode c :: prevChars }, Cmd.none)
+              else
+                -- Unexpected code.
+                (sceneModel, Cmd.none)
         else
           -- It's a key down on some other scene, so reset idle time.
           ({sceneModel | idleSeconds=0}, Cmd.none)
+
+
+handleRfid : KioskModel a -> (ScreenSaverModel, Cmd Msg)
+handleRfid kioskModel =
+  let
+    sceneModel = kioskModel.screenSaverModel
+    rfidNumber = String.fromList (List.reverse sceneModel.charsTyped) |> Debug.log "RFID: "
+  in
+    ({sceneModel | state=CheckingRfid}, Cmd.none)
 
 
 -----------------------------------------------------------------------------
@@ -159,19 +185,27 @@ view : KioskModel a -> Html Msg
 view kioskModel =
   let
     sceneModel = kioskModel.screenSaverModel
-    positionStyle = style ["top" => px yPos, "left" => px xPos ]
+    (msg1, msg2, msg3) = case sceneModel.state of
+      Normal -> ("Welcome!", "All Visitors Must Sign In", "Tap Spacebar or Screen to Start")
+      CheckingRfid -> ("RFID Detected!", "One Moment Please", "We're looking up your details")
+      UnknownRfid -> ("Uh Oh!", "RFID was not recognized", "Please let a staffer know")
+    beep =
+      if sceneModel.state == CheckingRfid then
+        audio [src "/static/members/beep-22.mp3", autoplay True] []
+      else
+        text ""
   in
     div [bgDivStyle]
-      [ div [msgDivStyle, positionStyle]
-        -- TODO: Do I want to pass all imgs in as flags, as was done with banners?
-        [ img [src "/static/bzw_ops/SpikeySphere.gif", logoImgStyle] []
-        , vspace 20
-        , h1 [h1Style, style ["color"=>"white"]] [text "Welcome!"]
-        , vspace 0
-        , h1 [h1Style, style ["color"=>"red"]] [text "All Visitors Must Sign In"]
-        , vspace 30
-        , h2 [h2Style] [text "Tap Spacebar or Screen to Start"]
-        ]
+      [ vspace 275
+      -- TODO: Do I want to pass all imgs in as flags, as was done with banners?
+      , img [src "/static/bzw_ops/SpikeySphere.gif", logoImgStyle] []
+      , vspace 20
+      , h1 [h1Style, style ["color"=>"white"]] [text msg1]
+      , vspace 0
+      , h1 [h1Style, style ["color"=>"red"]] [text msg2]
+      , vspace 30
+      , h2 [h2Style] [text msg3]
+      , beep
       ]
 
 
@@ -197,13 +231,8 @@ bgDivStyle = style
   , "width" => px sceneWidth
   , "margin-left" => "auto"
   , "margin-right" => "auto"
-  ]
-
-msgDivStyle = style
-  [ "text-align" => "center"
+  , "text-align" => "center"
   , "font-size" => "36pt"
-  , "position" => "relative"
-  , "display" => "inline-block"
   ]
 
 logoImgStyle = style
