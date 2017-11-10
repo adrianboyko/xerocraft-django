@@ -201,17 +201,25 @@ class Member(models.Model):
     def is_domain_staff(self):  # Different than website staff.
         return self.is_tagged_with("Staff")
 
-    def is_currently_paid(self, grace_period=timedelta(0)):
-        ''' Determine whether member is currently covered by a membership with a given grace period.'''
-        now = datetime.now().date()
+    def is_currently_paid(self, grace_period=timedelta(0)) -> bool:
+        """Determine whether member is currently covered by a membership with a given grace period."""
+        mship = self.latest_nonfuture_membership
+        if mship is None:
+            return False
+        else:
+            return mship.end_date + grace_period >= date.today()
 
-        m = Membership.objects.filter(
-            member=self,
-            start_date__lte=now, end_date__gte=now-grace_period)
-        if len(m) > 0:
-            return True
-
-        return False
+    @property
+    def latest_nonfuture_membership(self) -> Optional['Membership']:
+        """The latest membership from among those that are not entirely in the future."""
+        now = datetime.now().date()  # type: datetime
+        try:
+            params = {"member": self, "start_date__lte": now}
+            nonfuture_mships = Membership.objects.filter(**params)
+            latest_nonfuture_mship = nonfuture_mships.latest('end_date')  # type: Membership
+            return latest_nonfuture_mship
+        except Membership.DoesNotExist:
+            return None
 
     @property
     def first_name(self)->str:

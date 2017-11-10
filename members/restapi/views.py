@@ -36,7 +36,7 @@ class MemberViewSet(viewsets.ModelViewSet):
         if is_director or is_staff or is_self:
             with_privacy = False
 
-        slizer = ser.get_MemberSerializer(with_privacy)(memb)
+        slizer = ser.get_MemberSerializer(with_privacy)(memb, context={'request': request})
         return Response(slizer.data)
 
 

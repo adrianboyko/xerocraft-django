@@ -1,6 +1,7 @@
 
 # Standard
 from typing import Type
+from datetime import date
 
 # Third Party
 from rest_framework import serializers
@@ -25,10 +26,14 @@ def get_MemberSerializer(respect_privacy: bool) -> Type[serializers.ModelSeriali
         'username',
         'friendly_name',
         'is_active',
-        'is_currently_paid'
+        'is_currently_paid',
+        'latest_nonfuture_membership'
     )
 
     class MemberSerializer(serializers.ModelSerializer):
+
+        latest_nonfuture_membership = MembershipSerializer(many=False, read_only=True)
+
         class Meta:
             model = models.Member
             fields = private_fields + public_fields
