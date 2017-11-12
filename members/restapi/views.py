@@ -9,6 +9,7 @@ from rest_framework.response import Response
 
 # Local
 import members.restapi.serializers as ser
+import members.restapi.filters as filt
 from members.models import (
     Member,
     Membership,
@@ -25,6 +26,7 @@ class MemberViewSet(viewsets.ModelViewSet):
     queryset = Member.objects.all()
     serializer_class = ser.get_MemberSerializer(True)  # Default to privacy.
     permission_classes = [IsAuthenticated]
+    filter_backends = viewsets.ModelViewSet.filter_backends + [filt.HasRfidNumFilterBackend]
 
     def retrieve(self, request, pk=None):
         memb = get_object_or_404(self.queryset, pk=pk)
