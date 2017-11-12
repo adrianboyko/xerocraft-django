@@ -121,6 +121,9 @@ update msg kioskModel =
       in
         ({sceneModel | doneWithFocus = newDoneWithFocus}, Cmd.none)
 
+    CheckInShortcut userName memberNum ->
+      ({sceneModel | flexId=userName, memberNum=memberNum}, segueTo ReasonForVisit)
+
 
 -----------------------------------------------------------------------------
 -- VIEW

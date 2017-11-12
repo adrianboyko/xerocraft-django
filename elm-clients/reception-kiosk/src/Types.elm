@@ -100,6 +100,7 @@ type CheckInMsg
   | UpdateFlexId String
   | UpdateMemberNum Int
   | FlexIdFocusSet Bool
+  | CheckInShortcut String Int -- Allows RFID reading scene to short-cut through this scene
 
 type CheckOutMsg
   = UpdateCheckedInAccts (Result Http.Error MatchingAcctInfo)
@@ -146,8 +147,9 @@ type ReasonForVisitMsg
   | LogCheckInResult (Result Http.Error GenericResult)
 
 type ScreenSaverMsg
-  = ScreenSaverKeyDown KeyCode
-  | ScreenSaverMouseClick
+  = SS_KeyDown KeyCode
+  | SS_MouseClick
+  | SS_MemberListResult (Result Http.Error (PageOf XisApi.Member))
 
 type TaskListMsg
   = TaskListResult (Result Http.Error (PageOf XisApi.Task))

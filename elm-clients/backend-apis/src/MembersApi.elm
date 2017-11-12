@@ -2,6 +2,7 @@ module MembersApi exposing
   ( createNewAcct
   , DiscoveryMethod
   , DiscoveryMethodInfo
+  , decodeMembership
   , djangoizeId
   , getDiscoveryMethods
   , getMatchingAccts
@@ -92,6 +93,7 @@ type alias DiscoveryMethod =
   , visible : Bool
   }
 
+-- TODO: Move to XisRestApi and use PageOf
 type alias DiscoveryMethodInfo =
   { count : Int
   , next : Maybe String

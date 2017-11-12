@@ -3,11 +3,13 @@ module XisRestApi
     ( Claim
     , ClaimStatus (..)
     , ClaimListFilter (..)
+    , Member
+    , MemberListFilter (..)
     , Task
     , TaskListFilter (..)
     , TaskPriority (..)
     , getClaimList
-    , getMemberUrl
+    , getMemberList
     , getTaskList
     , memberCanClaimTask
     )
@@ -18,7 +20,7 @@ import Http
 import Json.Encode as Enc
 import Json.Decode as Dec exposing (maybe)
 import Json.Decode.Extra as DecX
-import Json.Decode.Pipeline exposing (decode, required)
+import Json.Decode.Pipeline exposing (decode, required, optional)
 import List
 import Regex exposing (regex)
 import String
@@ -39,7 +41,7 @@ import DjangoRestFramework as DRF exposing
   , isoDateStrFromDate
   , resourceUrlDecoder
   )
-
+import MembersApi as MembersApi  -- TODO: MembersApi will be replace with this REST api.
 
 -----------------------------------------------------------------------------
 -- CONSTANTS
@@ -64,15 +66,6 @@ type alias XisRestFlags a =
   , uniqueKioskId : String
   , workListUrl : ResourceListUrl
   }
-
-
------------------------------------------------------------------------------
--- MEMBERS
------------------------------------------------------------------------------
-
-getMemberUrl : XisRestFlags a -> Int -> ResourceUrl
-getMemberUrl flags memberNum =
-  flags.memberListUrl ++ (toString memberNum) ++ "/"
 
 
 -----------------------------------------------------------------------------
@@ -122,23 +115,13 @@ getTaskUrl flags taskNum =
   flags.taskListUrl ++ "/" ++ (toString taskNum) ++ "/"
 
 
-getTaskListUrl : XisRestFlags a -> Maybe (List TaskListFilter) -> ResourceListUrl
-getTaskListUrl flags filters =
-  let
-    filterStr = case filters of
-      Nothing -> ""
-      Just fs -> "?" ++ (String.join "&" (List.map taskListFilterToString fs))
-  in
-    flags.taskListUrl ++ filterStr
-
-
 getTaskList : XisRestFlags a -> Maybe (List TaskListFilter) -> (Result Http.Error (PageOf Task) -> msg) -> Cmd msg
 getTaskList flags filters resultToMsg =
   let
     request = Http.request
       { method = "GET"
       , headers = [authenticationHeader flags.uniqueKioskId]
-      , url = getTaskListUrl flags filters
+      , url = getFilteredListUrl flags.taskListUrl filters taskListFilterToString
       , body = Http.emptyBody
       , expect = Http.expectJson (decodePageOf decodeTask)
       , timeout = Nothing
@@ -252,23 +235,13 @@ getClaimUrl flags claimNum =
   flags.claimListUrl ++ "/" ++ (toString claimNum) ++ "/"
 
 
-getClaimListUrl : XisRestFlags a -> Maybe (List ClaimListFilter) -> ResourceListUrl
-getClaimListUrl flags filters =
-  let
-    filterStr = case filters of
-      Nothing -> ""
-      Just fs -> "?" ++ (String.join "&" (List.map claimListFilterToString fs))
-  in
-    flags.claimListUrl ++ filterStr
-
-
 getClaimList : XisRestFlags a -> Maybe (List ClaimListFilter) -> (Result Http.Error (PageOf Claim) -> msg) -> Cmd msg
 getClaimList flags filters resultToMsg =
   let
     request = Http.request
       { method = "GET"
       , headers = [authenticationHeader flags.uniqueKioskId]
-      , url = getClaimListUrl flags filters
+      , url = getFilteredListUrl flags.claimListUrl filters claimListFilterToString
       , body = Http.emptyBody
       , expect = Http.expectJson (decodePageOf decodeClaim)
       , timeout = Nothing
@@ -317,3 +290,78 @@ decodeClaimStatus =
 
 type alias Work = {}
 
+
+-----------------------------------------------------------------------------
+-- MEMBER
+-----------------------------------------------------------------------------
+
+type alias Member =
+  { email : Maybe String
+  , firstName : Maybe String
+  , friendlyName : Maybe String  -- Read only
+  , id : Int
+  , isActive : Bool
+  , isCurrentlyPaid : Bool  -- Read only
+  , lastName : Maybe String
+  , latestNonfutureMembership : Maybe MembersApi.Membership  -- Read only
+  , userName : String
+  }
+
+type MemberListFilter
+  = RfidNumberEquals Int
+
+
+memberListFilterToString : MemberListFilter -> String
+memberListFilterToString filter =
+  case filter of
+    RfidNumberEquals n -> "rfidnum=" ++ (toString n)
+
+
+getMemberUrl : XisRestFlags a -> Int -> ResourceUrl
+getMemberUrl flags memberNum =
+  flags.memberListUrl ++ "/" ++ (toString memberNum) ++ "/"
+
+
+getMemberList : XisRestFlags a -> Maybe (List MemberListFilter) -> (Result Http.Error (PageOf Member) -> msg) -> Cmd msg
+getMemberList flags filters resultToMsg =
+  let
+    request = Http.request
+      { method = "GET"
+      , headers = [authenticationHeader flags.uniqueKioskId]
+      , url = getFilteredListUrl flags.memberListUrl filters memberListFilterToString
+      , body = Http.emptyBody
+      , expect = Http.expectJson (decodePageOf decodeMember)
+      , timeout = Nothing
+      , withCredentials = False
+      }
+  in
+    Http.send resultToMsg request
+
+
+decodeMember : Dec.Decoder Member
+decodeMember =
+  -- Note: email, first_name, and last_name might not be included in JSON, depending on permissions.
+  decode Member
+    |> optional "email" (Dec.maybe Dec.string) Nothing
+    |> optional "first_name" (Dec.maybe Dec.string) Nothing
+    |> required "friendly_name" (Dec.maybe Dec.string)
+    |> required "id" Dec.int
+    |> required "is_active" Dec.bool
+    |> required "is_currently_paid" Dec.bool
+    |> optional "last_name"  (Dec.maybe Dec.string) Nothing
+    |> required "latest_nonfuture_membership" (Dec.maybe MembersApi.decodeMembership)
+    |> required "username" Dec.string
+
+
+-----------------------------------------------------------------------------
+-- UTILITIES
+-----------------------------------------------------------------------------
+
+getFilteredListUrl : String -> Maybe (List filter) -> (filter -> String) -> ResourceListUrl
+getFilteredListUrl listUrl filters filterToString =
+  let
+    filtersStr = case filters of
+      Nothing -> ""
+      Just fs -> "?" ++ (String.join "&" (List.map filterToString fs))
+  in
+    listUrl ++ filtersStr

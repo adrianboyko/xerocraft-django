@@ -24,16 +24,13 @@ import Char
 -- Local
 import Wizard.SceneUtils exposing (..)
 import Types exposing (..)
-import Fetchable exposing (..)
-
--- ScreenSaver piggybacks on the time block checking of MembersOnly.
--- REVIEW: Maybe the time block tracking functionality should be moved somewhere neutral.
-import MembersOnlyScene exposing (MembersOnlyModel)
-
+import XisRestApi exposing (..)
+import CheckInScene exposing (CheckInModel)
 
 -----------------------------------------------------------------------------
 -- CONSTANTS
 -----------------------------------------------------------------------------
+
 
 -----------------------------------------------------------------------------
 -- INIT
@@ -48,12 +45,14 @@ type alias ScreenSaverModel =
   { state : ScreenSaverState
   , charsTyped : List Char
   , idleSeconds : Int
+  , badNews : List String
   }
 
 -- This type alias describes the type of kiosk model that this scene requires.
 type alias KioskModel a = SceneUtilModel
   { a
   | screenSaverModel : ScreenSaverModel
+  , checkInModel : CheckInModel
   }
 
 init : Flags -> (ScreenSaverModel, Cmd Msg)
@@ -61,6 +60,7 @@ init flags =
   ( { state = Normal
     , idleSeconds = 0
     , charsTyped = []
+    , badNews = []
     }
     ,
     Cmd.none
@@ -95,7 +95,7 @@ update msg kioskModel =
   in
     case msg of
 
-    ScreenSaverMouseClick ->
+    SS_MouseClick ->
       if amVisible && sceneModel.idleSeconds > 0 then
         -- Note: idleSeconds == 0 means the click was on the scene that segued to here.
         (sceneModel, segueTo Welcome)
@@ -103,7 +103,7 @@ update msg kioskModel =
         -- It's a mouse click on some other scene, so reset idle time.
         ({sceneModel | idleSeconds=0}, Cmd.none)
 
-    ScreenSaverKeyDown code ->
+    SS_KeyDown code ->
       let
         prevChars = sceneModel.charsTyped
       in
@@ -129,14 +129,31 @@ update msg kioskModel =
           -- It's a key down on some other scene, so reset idle time.
           ({sceneModel | idleSeconds=0}, Cmd.none)
 
+    SS_MemberListResult (Ok {results}) ->
+      let
+        checkInModel = kioskModel.checkInModel
+        member = List.head results
+      in
+        case member of
+          Just m -> (sceneModel, CheckInShortcut m.userName m.id |> CheckInVector |> send)
+          Nothing -> (sceneModel, Cmd.none)
+
+    SS_MemberListResult (Err error) ->
+      ({sceneModel | state=UnknownRfid, badNews=[toString error]}, Cmd.none)
+
 
 handleRfid : KioskModel a -> (ScreenSaverModel, Cmd Msg)
 handleRfid kioskModel =
   let
     sceneModel = kioskModel.screenSaverModel
-    rfidNumber = String.fromList (List.reverse sceneModel.charsTyped) |> Debug.log "RFID: "
+    rfidNumber = List.reverse sceneModel.charsTyped |> String.fromList |> String.toInt
+    filter = Result.map RfidNumberEquals rfidNumber
+    resultHandler = ScreenSaverVector << SS_MemberListResult
+    cmd = case filter of
+      Ok f -> XisRestApi.getMemberList kioskModel.flags (Just [f]) resultHandler
+      Err err -> Cmd.none
   in
-    ({sceneModel | state=CheckingRfid}, Cmd.none)
+    ({sceneModel | state=CheckingRfid}, cmd)
 
 
 -----------------------------------------------------------------------------
@@ -194,19 +211,25 @@ view kioskModel =
         audio [src "/static/members/beep-22.mp3", autoplay True] []
       else
         text ""
-  in
-    div [bgDivStyle]
-      [ vspace 275
+  in  genericScene kioskModel
+    ""
+    ""
+
+    (div []
+      [ vspace 80
       -- TODO: Do I want to pass all imgs in as flags, as was done with banners?
-      , img [src "/static/bzw_ops/SpikeySphere.gif", logoImgStyle] []
+      , img [src "/static/bzw_ops/WavingHand.gif", logoImgStyle] []
       , vspace 20
-      , h1 [h1Style, style ["color"=>"white"]] [text msg1]
+      , h1 [h1Style] [text msg1]
       , vspace 0
-      , h1 [h1Style, style ["color"=>"red"]] [text msg2]
+      , h1 [h1Style] [text msg2]
       , vspace 30
       , h2 [h2Style] [text msg3]
       , beep
       ]
+    )
+    []
+    []
 
 
 -----------------------------------------------------------------------------
@@ -216,8 +239,8 @@ view kioskModel =
 subscriptions: KioskModel a -> Sub Msg
 subscriptions model =
   Sub.batch
-    [ Mouse.clicks (\_ -> (ScreenSaverVector <| ScreenSaverMouseClick))
-    , Keyboard.downs (ScreenSaverVector << ScreenSaverKeyDown)
+    [ Mouse.clicks (\_ -> (ScreenSaverVector <| SS_MouseClick))
+    , Keyboard.downs (ScreenSaverVector << SS_KeyDown)
     ]
 
 
@@ -237,7 +260,6 @@ bgDivStyle = style
 
 logoImgStyle = style
   [ "width" => px 600
-  , "margin" => "-100px"  -- For FiberOptic.gif only.
   ]
 
 h1Style = style
@@ -246,12 +268,12 @@ h1Style = style
   , "word-spacing" => "-5px"
   , "line-height" => "0.9"
   , "margin" => "0"
-  , "color" => "#ffff00"
+  , "color" => "black"
   ]
 
 h2Style = style
   [ "line-height" => "1"
   , "margin" => "0"
   , "font-size" => "24pt"
-  , "color" => "white"
+  , "color" => "black"
   ]
