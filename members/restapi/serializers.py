@@ -23,6 +23,7 @@ def get_MemberSerializer(respect_privacy: bool) -> Type[serializers.ModelSeriali
 
     public_fields = (
         'id',
+        'auth_user',
         'username',
         'friendly_name',
         'is_active',
