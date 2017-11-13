@@ -214,9 +214,8 @@ view kioskModel =
   in  genericScene kioskModel
     ""
     ""
-
     (div []
-      [ vspace 80
+      [ vspace 60
       -- TODO: Do I want to pass all imgs in as flags, as was done with banners?
       , img [src "/static/bzw_ops/WavingHand.gif", logoImgStyle] []
       , vspace 20
