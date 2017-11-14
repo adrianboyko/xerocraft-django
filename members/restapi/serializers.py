@@ -27,7 +27,7 @@ def get_MemberSerializer(respect_privacy: bool) -> Type[serializers.ModelSeriali
         'username',
         'friendly_name',
         'is_active',
-        'is_currently_paid',
+        'is_currently_paid',  # TODO: Remove this and add "is_current" to Membership serialization.
         'latest_nonfuture_membership'
     )
 
