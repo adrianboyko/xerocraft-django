@@ -46,7 +46,6 @@ type alias TaskListModel =
   , workableTasks : List XisApi.Task
   , selectedTask : Maybe XisApi.Task
   , badNews : List String
-  , xisSession : XisApi.Session Msg
   }
 
 -- This type alias describes the type of kiosk model that this scene requires.
@@ -56,6 +55,7 @@ type alias KioskModel a =
     | currTime : Time
     , taskListModel : TaskListModel
     , checkInModel : CheckInModel
+    , xisSession : XisApi.Session Msg
     }
   )
 
@@ -66,7 +66,6 @@ init flags =
     , workableTasks = []
     , selectedTask = Nothing
     , badNews = []
-    , xisSession = XisApi.createSession flags
     }
   in (sceneModel, Cmd.none)
 
@@ -82,9 +81,8 @@ sceneWillAppear kioskModel appearingScene =
     ReasonForVisit ->
       -- Start fetching workable tasks b/c they *might* be on their way to this (TaskList) scene.
       let
-        sceneModel = kioskModel.taskListModel
         currDate = Date.fromTime kioskModel.currTime
-        cmd = sceneModel.xisSession.getTaskList
+        cmd = kioskModel.xisSession.getTaskList
           (Just [ScheduledDateEquals currDate])
           (TaskListVector << TaskListResult)
       in
@@ -114,7 +112,7 @@ update msg kioskModel =
         otherWorkTaskTest task = task.shortDesc == "Other Work"
         otherWorkTask = List.filter otherWorkTaskTest results
         -- The more normal case is to offer up tasks that the user can claim:
-        memberCanClaim = sceneModel.xisSession.memberCanClaimTask memberNum
+        memberCanClaim = kioskModel.xisSession.memberCanClaimTask memberNum
         claimableTasks = List.filter memberCanClaim results
         -- The offered/workable tasks are the union of claimable tasks and the "Other Work" task.
         workableTasks = claimableTasks ++ otherWorkTask
@@ -126,7 +124,7 @@ update msg kioskModel =
             , ClaimingMemberEquals memberNum
             , ClaimStatusEquals CurrentClaimStatus
             ]
-        taskToClaimListCmd task = sceneModel.xisSession.getClaimList (claimListFilters task) (TaskListVector << ClaimListResult)
+        taskToClaimListCmd task = kioskModel.xisSession.getClaimList (claimListFilters task) (TaskListVector << ClaimListResult)
         cmdList = List.map taskToClaimListCmd results
 
       in

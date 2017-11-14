@@ -42,7 +42,6 @@ type alias MembersOnlyModel =
   , memberships : Fetchable (List Membership)
   , paymentInfoState : PaymentInfoState
   , badNews : List String
-  , xisSession : XisApi.Session Msg
   }
 
 -- This type alias describes the type of kiosk model that this scene requires.
@@ -53,6 +52,7 @@ type alias KioskModel a =
     , checkInModel : CheckInModel
     , currTime : Time
     , flags : Flags
+    , xisSession : XisApi.Session Msg
     }
   )
 
@@ -64,7 +64,6 @@ init flags =
     , memberships = Pending
     , paymentInfoState = AskingIfMshipCurrent
     , badNews = []
-    , xisSession = XisApi.createSession flags
     }
   in (sceneModel, Cmd.none)
 
@@ -83,7 +82,7 @@ sceneWillAppear kioskModel appearingScene =
       -- appears, so start the fetch when ReasonForVisit appears.
       let
         memberNum = kioskModel.checkInModel.memberNum
-        xis = sceneModel.xisSession
+        xis = kioskModel.xisSession
         cmd1 = xis.getTimeBlockList (MembersOnlyVector << UpdateTimeBlocks)
         filters = Just [MembershipsWithMemberIdEqualTo memberNum]
         cmd2 = xis.getMembershipList filters (MembersOnlyVector << UpdateMemberships)
@@ -110,14 +109,14 @@ haveSomethingToSay kioskModel =
   let
     sceneModel = kioskModel.membersOnlyModel
     membersOnlyStr = "Members Only"
-    xis = sceneModel.xisSession
+    xis = kioskModel.xisSession
   in
     case (sceneModel.nowBlock, sceneModel.allTypes, sceneModel.memberships) of
 
       -- Following is the case where somebody arrives during an explicit time block.
       (Received (Just nowBlock), Received allTypes, Received memberships) ->
         let
-          nowBlockTypes = sceneModel.xisSession.getBlocksTypes nowBlock allTypes
+          nowBlockTypes = kioskModel.xisSession.getBlocksTypes nowBlock allTypes
           isMembersOnly = List.member membersOnlyStr (List.map .name nowBlockTypes)
           membershipIsCurrent = xis.coverTime memberships kioskModel.currTime
         in
@@ -127,7 +126,7 @@ haveSomethingToSay kioskModel =
       -- So use default time block type, if one has been specified.
       (Received Nothing, Received allTypes, Received memberships) ->
         let
-          defaultBlockType = sceneModel.xisSession.defaultBlockType allTypes
+          defaultBlockType = kioskModel.xisSession.defaultBlockType allTypes
           isMembersOnly =
             case defaultBlockType of
               Just bt -> bt.name == membersOnlyStr
@@ -217,7 +216,7 @@ areYouCurrentContent : KioskModel a -> Html Msg
 areYouCurrentContent kioskModel =
   let
     sceneModel = kioskModel.membersOnlyModel
-    xis = sceneModel.xisSession
+    xis = kioskModel.xisSession
   in
     case sceneModel.memberships of
 

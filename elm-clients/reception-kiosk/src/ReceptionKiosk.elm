@@ -31,6 +31,7 @@ import TaskListScene as TaskListScene
 import VolunteerInDoneScene as VolunteerInDoneScene
 import WaiverScene as WaiverScene
 import WelcomeScene as WelcomeScene
+import XisRestApi as XisApi
 
 -----------------------------------------------------------------------------
 -- MAIN
@@ -54,6 +55,8 @@ type alias Model =
   , sceneStack : Nonempty Scene -- 1st element is the top of the stack
   -- elm-mdl model:
   , mdl : Material.Model
+  -- api models:
+  , xisSession : XisApi.Session Msg
   -- Scene models:
   , checkInModel         : CheckInScene.CheckInModel
   , checkInDoneModel     : CheckInDoneScene.CheckInDoneModel
@@ -99,6 +102,7 @@ init f =
       , currTime = 0
       , sceneStack = List.Nonempty.fromElement ScreenSaver
       , mdl = Material.model
+      , xisSession = XisApi.createSession f
       -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
       , checkInModel         = checkInModel
       , checkInDoneModel     = checkInDoneModel

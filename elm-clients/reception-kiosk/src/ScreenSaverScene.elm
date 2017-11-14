@@ -45,7 +45,6 @@ type alias ScreenSaverModel =
   , charsTyped : List Char
   , idleSeconds : Int
   , badNews : List String
-  , xisSession : XisApi.Session Msg
   }
 
 -- This type alias describes the type of kiosk model that this scene requires.
@@ -53,6 +52,7 @@ type alias KioskModel a = SceneUtilModel
   { a
   | screenSaverModel : ScreenSaverModel
   , checkInModel : CheckInModel
+  , xisSession : XisApi.Session Msg
   }
 
 init : Flags -> (ScreenSaverModel, Cmd Msg)
@@ -61,7 +61,6 @@ init flags =
     , idleSeconds = 0
     , charsTyped = []
     , badNews = []
-    , xisSession = XisApi.createSession flags
     }
     ,
     Cmd.none
@@ -151,7 +150,7 @@ handleRfid kioskModel =
     filter = Result.map RfidNumberEquals rfidNumber
     resultHandler = ScreenSaverVector << SS_MemberListResult
     cmd = case filter of
-      Ok f -> sceneModel.xisSession.getMemberList (Just [f]) resultHandler
+      Ok f -> kioskModel.xisSession.getMemberList (Just [f]) resultHandler
       Err err -> Cmd.none
   in
     ({sceneModel | state=CheckingRfid}, cmd)
