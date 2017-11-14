@@ -2,26 +2,20 @@ module MembersApi exposing
   ( createNewAcct
   , DiscoveryMethod
   , DiscoveryMethodInfo
-  , decodeMembership
   , djangoizeId
   , getDiscoveryMethods
   , getMatchingAccts
   , getCheckedInAccts
   , getRecentRfidEntries
-  , getMemberships
   , logArrivalEvent
   , logDepartureEvent
   , setIsAdult
   , addDiscoveryMethods
   , MatchingAcct
   , MatchingAcctInfo
-  , Membership
   , GenericResult
   , VisitEventType (..)
   , ReasonForVisit (..)
-  , PageOfMemberships
-  , mostRecentMembership
-  , coverNow
   )
 
 -- Standard
@@ -53,10 +47,6 @@ djangoizeId rawId =
 replaceAll : {oldSub : String, newSub : String} -> String -> String
 replaceAll {oldSub, newSub} whole =
   Regex.replace Regex.All (regex oldSub) (\_ -> newSub) whole
-
-compareMembershipByEndDate : Membership -> Membership -> Order
-compareMembershipByEndDate m1 m2 =
-  DateX.compare m1.endDate m2.endDate
 
 -----------------------------------------------------------------------------
 -- API TYPES
@@ -117,19 +107,6 @@ type ReasonForVisit
   | GuestOfMember
   | Volunteer
   | Other
-
-type alias Membership =
-  { id : Int
-  , member : String
-  , startDate : Date.Date
-  , endDate : Date.Date
-  , sale : Int
-  , sale_price : String
-  , ctrlid : String
-  , protected : Bool
-  }
-
-type alias PageOfMemberships = PageOf Membership
 
 -----------------------------------------------------------------------------
 -- API
@@ -279,42 +256,6 @@ addDiscoveryMethods flags username userpw methodPks resultToMsg =
     Cmd.batch (List.map (oneCmd << request << bodyObject) methodPks)
 
 
-getMemberships : MembersApiModel a -> Int -> (Result Http.Error PageOfMemberships -> msg) -> Cmd msg
-getMemberships flags memberNum resultToMsg =
-  let
-    placeHolder = "MEMBERNUM"
-    urlPattern = "/members/api/memberships/?format=json&member="++placeHolder++"&ordering=-start_date"
-    request = Http.request
-      { method = "GET"
-      , url = replaceAll {oldSub = placeHolder, newSub = toString memberNum} urlPattern
-      , headers = [ authenticationHeader flags.uniqueKioskId ]
-      , withCredentials = False
-      , body = Http.emptyBody
-      , timeout = Nothing
-      , expect = Http.expectJson (decodePageOf decodeMembership)
-      }
-  in
-    Http.send resultToMsg request
-
-
-mostRecentMembership : List Membership -> Maybe Membership
-mostRecentMembership memberships =
-  -- Note: The back-end is supposed to return memberships in reverse order by end-date
-  -- REVIEW: This implementation does not assume ordered list from server, just to be safe.
-  memberships |> List.sortWith compareMembershipByEndDate |> List.reverse |> List.head
-
-
-{-| Determine whether the list of memberships covers the current time.
--}
-coverNow : List Membership -> Time -> Bool
-coverNow memberships now =
-  case mostRecentMembership memberships of
-    Nothing ->
-      False
-    Just membership ->
-      let endTime = Date.toTime membership.endDate
-      in endTime >= now
-
 
 -----------------------------------------------------------------------------
 -- JSON
@@ -352,15 +293,3 @@ decodeGenericResult : Dec.Decoder GenericResult
 decodeGenericResult =
   Dec.map GenericResult
     (Dec.field "result" Dec.string)
-
-decodeMembership : Dec.Decoder Membership
-decodeMembership =
-  decode Membership
-    |> required "id" Dec.int
-    |> required "member" Dec.string
-    |> required "start_date" DecX.date
-    |> required "end_date" DecX.date
-    |> required "sale" Dec.int
-    |> required "sale_price" Dec.string
-    |> required "ctrlid" Dec.string
-    |> required "protected" Dec.bool

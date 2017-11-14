@@ -5,7 +5,6 @@ module MembersOnlyScene exposing
   , update
   , view
   , MembersOnlyModel
-  , getTimeBlocks  -- For ScreenSaver
   )
 
 -- Standard
@@ -20,9 +19,8 @@ import String.Extra exposing (..)
 import Date.Extra as DateX
 
 -- Local
-import MembersApi as MembersApi exposing (Membership)
 import XerocraftApi as XcApi
-import OpsApi as OpsApi exposing (TimeBlock, TimeBlockType)
+import XisRestApi as XisApi exposing (..)
 import Wizard.SceneUtils exposing (..)
 import CheckInScene exposing (CheckInModel)
 import Types exposing (..)
@@ -44,6 +42,7 @@ type alias MembersOnlyModel =
   , memberships : Fetchable (List Membership)
   , paymentInfoState : PaymentInfoState
   , badNews : List String
+  , xisSession : XisApi.Session Msg
   }
 
 -- This type alias describes the type of kiosk model that this scene requires.
@@ -65,6 +64,7 @@ init flags =
     , memberships = Pending
     , paymentInfoState = AskingIfMshipCurrent
     , badNews = []
+    , xisSession = XisApi.createSession flags
     }
   in (sceneModel, Cmd.none)
 
@@ -83,12 +83,13 @@ sceneWillAppear kioskModel appearingScene =
       -- appears, so start the fetch when ReasonForVisit appears.
       let
         memberNum = kioskModel.checkInModel.memberNum
-        cmd1 = getTimeBlocks kioskModel.flags
-        cmd2 = getMemberships kioskModel memberNum
-        cmd3 = getTimeBlockTypes kioskModel
-        cmds = Cmd.batch [cmd1, cmd2, cmd3]
+        xis = sceneModel.xisSession
+        cmd1 = xis.getTimeBlockList (MembersOnlyVector << UpdateTimeBlocks)
+        filters = Just [MembershipsWithMemberIdEqualTo memberNum]
+        cmd2 = xis.getMembershipList filters (MembersOnlyVector << UpdateMemberships)
+        cmd3 = xis.getTimeBlockTypeList (MembersOnlyVector << UpdateTimeBlockTypes)
       in
-        (sceneModel, cmds)
+        (sceneModel, Cmd.batch [cmd1, cmd2, cmd3])
 
     MembersOnly ->
       if haveSomethingToSay kioskModel
@@ -109,15 +110,16 @@ haveSomethingToSay kioskModel =
   let
     sceneModel = kioskModel.membersOnlyModel
     membersOnlyStr = "Members Only"
+    xis = sceneModel.xisSession
   in
     case (sceneModel.nowBlock, sceneModel.allTypes, sceneModel.memberships) of
 
       -- Following is the case where somebody arrives during an explicit time block.
       (Received (Just nowBlock), Received allTypes, Received memberships) ->
         let
-          nowBlockTypes = OpsApi.blocksTypes nowBlock allTypes
+          nowBlockTypes = sceneModel.xisSession.getBlocksTypes nowBlock allTypes
           isMembersOnly = List.member membersOnlyStr (List.map .name nowBlockTypes)
-          membershipIsCurrent = MembersApi.coverNow memberships kioskModel.currTime
+          membershipIsCurrent = xis.coverTime memberships kioskModel.currTime
         in
           isMembersOnly && not membershipIsCurrent
 
@@ -125,12 +127,12 @@ haveSomethingToSay kioskModel =
       -- So use default time block type, if one has been specified.
       (Received Nothing, Received allTypes, Received memberships) ->
         let
-          defaultBlockType = OpsApi.defaultType allTypes
+          defaultBlockType = sceneModel.xisSession.defaultBlockType allTypes
           isMembersOnly =
             case defaultBlockType of
               Just bt -> bt.name == membersOnlyStr
               Nothing -> False
-          current = MembersApi.coverNow memberships kioskModel.currTime
+          current = xis.coverTime memberships kioskModel.currTime
         in
           isMembersOnly && not current
 
@@ -215,13 +217,14 @@ areYouCurrentContent : KioskModel a -> Html Msg
 areYouCurrentContent kioskModel =
   let
     sceneModel = kioskModel.membersOnlyModel
+    xis = sceneModel.xisSession
   in
     case sceneModel.memberships of
 
       Received memberships ->
         let
           however = "However, you may have made a more recent payment that we haven't yet processed."
-          mostRecent = MembersApi.mostRecentMembership memberships
+          mostRecent = xis.mostRecentMembership memberships
           paymentMsg = case mostRecent of
             Just mship ->
               "Our records show that your most recent membership has an expiration date of "
@@ -293,28 +296,6 @@ howToPayNowContent kioskModel =
       , vspace 60
       , sceneButton kioskModel (ButtonSpec "OK" (WizardVector <| Push <| CheckInDone))
       ]
-
-
------------------------------------------------------------------------------
--- COMMANDS
------------------------------------------------------------------------------
-
-getTimeBlocks : Flags -> Cmd Msg
-getTimeBlocks flags =
-  OpsApi.getTimeBlocks flags (MembersOnlyVector << UpdateTimeBlocks)
-
-getTimeBlockTypes : KioskModel a  -> Cmd Msg
-getTimeBlockTypes kioskModel =
-  OpsApi.getTimeBlockTypes
-    kioskModel.flags
-    (MembersOnlyVector << UpdateTimeBlockTypes)
-
-getMemberships : KioskModel a -> Int -> Cmd Msg
-getMemberships kioskModel memberNum =
-  MembersApi.getMemberships
-    kioskModel.flags
-    memberNum
-    (MembersOnlyVector << UpdateMemberships)
 
 
 -----------------------------------------------------------------------------

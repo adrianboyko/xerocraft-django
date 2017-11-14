@@ -13,7 +13,6 @@ module ScreenSaverScene exposing
 import Html exposing (Html, div, text, img, br, h1, h2, audio)
 import Html.Attributes exposing (src, width, style, autoplay)
 import Time exposing (Time)
-import Random
 import Mouse
 import Keyboard
 import Char
@@ -24,7 +23,7 @@ import Char
 -- Local
 import Wizard.SceneUtils exposing (..)
 import Types exposing (..)
-import XisRestApi exposing (..)
+import XisRestApi as XisApi exposing (..)
 import CheckInScene exposing (CheckInModel)
 
 -----------------------------------------------------------------------------
@@ -46,6 +45,7 @@ type alias ScreenSaverModel =
   , charsTyped : List Char
   , idleSeconds : Int
   , badNews : List String
+  , xisSession : XisApi.Session Msg
   }
 
 -- This type alias describes the type of kiosk model that this scene requires.
@@ -61,6 +61,7 @@ init flags =
     , idleSeconds = 0
     , charsTyped = []
     , badNews = []
+    , xisSession = XisApi.createSession flags
     }
     ,
     Cmd.none
@@ -150,7 +151,7 @@ handleRfid kioskModel =
     filter = Result.map RfidNumberEquals rfidNumber
     resultHandler = ScreenSaverVector << SS_MemberListResult
     cmd = case filter of
-      Ok f -> XisRestApi.getMemberList kioskModel.flags (Just [f]) resultHandler
+      Ok f -> sceneModel.xisSession.getMemberList (Just [f]) resultHandler
       Err err -> Cmd.none
   in
     ({sceneModel | state=CheckingRfid}, cmd)

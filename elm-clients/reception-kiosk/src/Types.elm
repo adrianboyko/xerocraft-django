@@ -13,8 +13,7 @@ import List.Nonempty exposing (Nonempty)
 import DjangoRestFramework exposing (PageOf)
 import MembersApi exposing (..)
 import TaskApi exposing (..)
-import OpsApi exposing (..)
-import XisRestApi as XisApi
+import XisRestApi as XisApi exposing (..)
 
 -----------------------------------------------------------------------------
 -- FLAGS
@@ -33,6 +32,7 @@ type alias Flags =
   , logVisitEventUrl : String
   , matchingAcctsUrl : String
   , memberListUrl : String
+  , membershipListUrl : String
   , orgName : String
   , recentRfidEntriesUrl : String
   , scrapeLoginsUrl : String
@@ -118,9 +118,9 @@ type HowDidYouHearMsg
   | ToggleDiscoveryMethod DiscoveryMethod
 
 type MembersOnlyMsg
-  = UpdateMemberships (Result Http.Error PageOfMemberships)
-  | UpdateTimeBlocks (Result Http.Error PageOfTimeBlocks)
-  | UpdateTimeBlockTypes (Result Http.Error PageOfTimeBlockTypes)
+  = UpdateMemberships (Result Http.Error (PageOf Membership))
+  | UpdateTimeBlocks (Result Http.Error (PageOf TimeBlock))
+  | UpdateTimeBlockTypes (Result Http.Error (PageOf TimeBlockType))
   | PayNowAtFrontDesk
   | SendPaymentInfo
 

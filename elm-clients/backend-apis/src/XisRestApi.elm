@@ -1,21 +1,24 @@
 module XisRestApi
   exposing
-    ( Claim
+    ( createSession  -- Instantiate an API session
+    , Claim
     , ClaimStatus (..)
     , ClaimListFilter (..)
     , Member
+    , Membership
     , MemberListFilter (..)
+    , MembershipListFilter (..)
+    , Session
     , Task
     , TaskListFilter (..)
     , TaskPriority (..)
-    , getClaimList
-    , getMemberList
-    , getTaskList
-    , memberCanClaimTask
+    , TimeBlock
+    , TimeBlockType
     )
 
 -- Standard
 import Date exposing (Date)
+import Date.Extra as DateX
 import Http
 import Json.Encode as Enc
 import Json.Decode as Dec exposing (maybe)
@@ -38,6 +41,7 @@ import DjangoRestFramework as DRF exposing
   , ResourceListUrl
   , authenticationHeader
   , decodePageOf
+  , getIdFromUrl
   , isoDateStrFromDate
   , resourceUrlDecoder
   )
@@ -62,9 +66,59 @@ type alias XisRestFlags a =
   { a
   | claimListUrl : ResourceListUrl
   , memberListUrl : ResourceListUrl
+  , membershipListUrl : ResourceListUrl
   , taskListUrl : ResourceListUrl
+  , timeBlocksUrl : ResourceListUrl
+  , timeBlockTypesUrl : ResourceListUrl
   , uniqueKioskId : String
   , workListUrl : ResourceListUrl
+  }
+
+
+-----------------------------------------------------------------------------
+-- API INSTANCE
+-----------------------------------------------------------------------------
+
+type alias ResourceGetter item msg =
+  Int -> (Result Http.Error (PageOf item) -> msg) -> Cmd msg
+
+type alias ListGetter item msg =
+  (Result Http.Error (PageOf item) -> msg) -> Cmd msg
+
+type alias FilteredListGetter filter item msg =
+  Maybe (List filter) -> (Result Http.Error (PageOf item) -> msg) -> Cmd msg
+
+type alias Session msg =
+  { coverTime : List Membership -> Time -> Bool
+  , defaultBlockType : List TimeBlockType -> Maybe TimeBlockType
+  , getBlocksTypes : TimeBlock -> List TimeBlockType -> List TimeBlockType
+  , getClaimList : FilteredListGetter ClaimListFilter Claim msg
+  , getMemberList : FilteredListGetter MemberListFilter Member msg
+  , getMembership : ResourceGetter Membership msg
+  , getMembershipList : FilteredListGetter MembershipListFilter Membership msg
+  , getTaskList : FilteredListGetter TaskListFilter Task msg
+  , getTimeBlockList : ListGetter TimeBlock msg
+  , getTimeBlockTypeList : ListGetter TimeBlockType msg
+  , memberCanClaimTask : Int -> Task -> Bool
+  , memberUrl : Int -> ResourceUrl
+  , mostRecentMembership : List Membership -> Maybe Membership
+  }
+
+createSession : XisRestFlags a -> Session msg
+createSession flags =
+  { coverTime = coverTime
+  , defaultBlockType = defaultBlockType
+  , getBlocksTypes = getBlocksTypes
+  , getClaimList = getClaimList flags
+  , getMemberList = getMemberList flags
+  , getMembership = getMembership flags
+  , getMembershipList = getMembershipList flags
+  , getTaskList = getTaskList flags
+  , getTimeBlockList = getTimeBlockList flags
+  , getTimeBlockTypeList = getTimeBlockTypeList flags
+  , memberCanClaimTask = memberCanClaimTask flags
+  , memberUrl = resourceUrl flags.memberListUrl
+  , mostRecentMembership = mostRecentMembership
   }
 
 
@@ -115,13 +169,13 @@ getTaskUrl flags taskNum =
   flags.taskListUrl ++ "/" ++ (toString taskNum) ++ "/"
 
 
-getTaskList : XisRestFlags a -> Maybe (List TaskListFilter) -> (Result Http.Error (PageOf Task) -> msg) -> Cmd msg
+getTaskList : XisRestFlags a -> FilteredListGetter TaskListFilter Task msg
 getTaskList flags filters resultToMsg =
   let
     request = Http.request
       { method = "GET"
       , headers = [authenticationHeader flags.uniqueKioskId]
-      , url = getFilteredListUrl flags.taskListUrl filters taskListFilterToString
+      , url = filteredListUrl flags.taskListUrl filters taskListFilterToString
       , body = Http.emptyBody
       , expect = Http.expectJson (decodePageOf decodeTask)
       , timeout = Nothing
@@ -138,8 +192,8 @@ getTaskList flags filters resultToMsg =
 memberCanClaimTask : XisRestFlags a -> Int -> Task -> Bool
 memberCanClaimTask flags memberNum task =
   let
-    memberUrl = getMemberUrl flags memberNum
-    memberIsEligible = List.member memberUrl task.eligibleClaimants
+    url = resourceUrl flags.memberListUrl memberNum
+    memberIsEligible = List.member url task.eligibleClaimants
   in
     memberIsEligible && (not task.isFullyClaimed)
 
@@ -235,13 +289,13 @@ getClaimUrl flags claimNum =
   flags.claimListUrl ++ "/" ++ (toString claimNum) ++ "/"
 
 
-getClaimList : XisRestFlags a -> Maybe (List ClaimListFilter) -> (Result Http.Error (PageOf Claim) -> msg) -> Cmd msg
+getClaimList : XisRestFlags a -> FilteredListGetter ClaimListFilter Claim msg
 getClaimList flags filters resultToMsg =
   let
     request = Http.request
       { method = "GET"
       , headers = [authenticationHeader flags.uniqueKioskId]
-      , url = getFilteredListUrl flags.claimListUrl filters claimListFilterToString
+      , url = filteredListUrl flags.claimListUrl filters claimListFilterToString
       , body = Http.emptyBody
       , expect = Http.expectJson (decodePageOf decodeClaim)
       , timeout = Nothing
@@ -249,10 +303,6 @@ getClaimList flags filters resultToMsg =
       }
   in
     Http.send resultToMsg request
-
-
---getClaim : XisRestFlags -> Int -> Task
---getClaim flags taskId =
 
 
 decodeClaim : Dec.Decoder Claim
@@ -303,7 +353,7 @@ type alias Member =
   , isActive : Bool
   , isCurrentlyPaid : Bool  -- Read only
   , lastName : Maybe String
-  , latestNonfutureMembership : Maybe MembersApi.Membership  -- Read only
+  , latestNonfutureMembership : Maybe Membership  -- Read only
   , userName : String
   }
 
@@ -317,18 +367,13 @@ memberListFilterToString filter =
     RfidNumberEquals n -> "rfidnum=" ++ (toString n)
 
 
-getMemberUrl : XisRestFlags a -> Int -> ResourceUrl
-getMemberUrl flags memberNum =
-  flags.memberListUrl ++ "/" ++ (toString memberNum) ++ "/"
-
-
-getMemberList : XisRestFlags a -> Maybe (List MemberListFilter) -> (Result Http.Error (PageOf Member) -> msg) -> Cmd msg
+getMemberList : XisRestFlags a -> FilteredListGetter MemberListFilter Member msg
 getMemberList flags filters resultToMsg =
   let
     request = Http.request
       { method = "GET"
       , headers = [authenticationHeader flags.uniqueKioskId]
-      , url = getFilteredListUrl flags.memberListUrl filters memberListFilterToString
+      , url = filteredListUrl flags.memberListUrl filters memberListFilterToString
       , body = Http.emptyBody
       , expect = Http.expectJson (decodePageOf decodeMember)
       , timeout = Nothing
@@ -349,19 +394,211 @@ decodeMember =
     |> required "is_active" Dec.bool
     |> required "is_currently_paid" Dec.bool
     |> optional "last_name"  (Dec.maybe Dec.string) Nothing
-    |> required "latest_nonfuture_membership" (Dec.maybe MembersApi.decodeMembership)
+    |> required "latest_nonfuture_membership" (Dec.maybe decodeMembership)
     |> required "username" Dec.string
+
+
+-----------------------------------------------------------------------------
+-- TIME BLOCK TYPES
+-----------------------------------------------------------------------------
+
+type alias TimeBlockType =
+  { id : Int
+  , name : String
+  , description : String
+  , isDefault : Bool
+  }
+
+getTimeBlockTypeList : XisRestFlags a -> ListGetter TimeBlockType msg
+getTimeBlockTypeList model resultToMsg =
+  let request = Http.get model.timeBlockTypesUrl (decodePageOf decodeTimeBlockType)
+  in Http.send resultToMsg request
+
+decodeTimeBlockType : Dec.Decoder TimeBlockType
+decodeTimeBlockType =
+  Dec.map4 TimeBlockType
+    (Dec.field "id" Dec.int)
+    (Dec.field "name" Dec.string)
+    (Dec.field "description" Dec.string)
+    (Dec.field "is_default" Dec.bool)
+
+defaultBlockType : List TimeBlockType -> Maybe TimeBlockType
+defaultBlockType allBlockTypes =
+  List.filter .isDefault allBlockTypes |> List.head
+
+
+-----------------------------------------------------------------------------
+-- TIME BLOCKS
+-----------------------------------------------------------------------------
+
+type alias TimeBlock =
+  { id : Int
+  , isNow : Bool
+  , startTime : String
+  , duration : String
+  , first : Bool
+  , second : Bool
+  , third : Bool
+  , fourth : Bool
+  , last : Bool
+  , every : Bool
+  , monday : Bool
+  , tuesday : Bool
+  , wednesday : Bool
+  , thursday : Bool
+  , friday : Bool
+  , saturday : Bool
+  , sunday : Bool
+  , types : List String
+  }
+
+getTimeBlockList : XisRestFlags a -> ListGetter TimeBlock msg
+getTimeBlockList model resultToMsg =
+  let request = Http.get model.timeBlocksUrl (decodePageOf decodeTimeBlock)
+  in Http.send resultToMsg request
+
+
+decodeTimeBlock : Dec.Decoder TimeBlock
+decodeTimeBlock =
+  decode TimeBlock
+    |> required "id" Dec.int
+    |> required "is_now" Dec.bool
+    |> required "start_time" Dec.string
+    |> required "duration" Dec.string
+    |> required "first" Dec.bool
+    |> required "second" Dec.bool
+    |> required "third" Dec.bool
+    |> required "fourth" Dec.bool
+    |> required "last" Dec.bool
+    |> required "every" Dec.bool
+    |> required "monday" Dec.bool
+    |> required "tuesday" Dec.bool
+    |> required "wednesday" Dec.bool
+    |> required "thursday" Dec.bool
+    |> required "friday" Dec.bool
+    |> required "saturday" Dec.bool
+    |> required "sunday" Dec.bool
+    |> required "types" (Dec.list Dec.string)
+
+getBlocksTypes : TimeBlock -> List TimeBlockType -> List TimeBlockType
+getBlocksTypes specificBlock allBlockTypes =
+  let
+    relatedBlockTypeIds = List.map getIdFromUrl specificBlock.types
+    isRelatedBlockType x = List.member (Ok x.id) relatedBlockTypeIds
+  in
+    List.filter isRelatedBlockType allBlockTypes
+
+
+-----------------------------------------------------------------------------
+-- MEMBERSHIPS
+-----------------------------------------------------------------------------
+
+type alias Membership =
+  { id : Int
+  , member : String
+  , startDate : Date.Date
+  , endDate : Date.Date
+  , sale : Int
+  , sale_price : String
+  , ctrlid : String
+  , protected : Bool
+  }
+
+type MembershipListFilter
+  = MembershipsWithMemberIdEqualTo Int
+
+
+membershipListFilterToString : MembershipListFilter -> String
+membershipListFilterToString filter =
+  case filter of
+    MembershipsWithMemberIdEqualTo id -> "member=" ++ (toString id)
+
+
+getMembershipList : XisRestFlags a -> FilteredListGetter MembershipListFilter Membership msg
+getMembershipList flags filters resultToMsg =
+  let
+    request = Http.request
+      { method = "GET"
+      , headers = [authenticationHeader flags.uniqueKioskId]
+      , url = filteredListUrl flags.membershipListUrl filters membershipListFilterToString
+      , body = Http.emptyBody
+      , expect = Http.expectJson (decodePageOf decodeMembership)
+      , timeout = Nothing
+      , withCredentials = False
+      }
+  in
+    Http.send resultToMsg request
+
+
+getMembership : XisRestFlags a -> ResourceGetter Membership msg
+getMembership flags memberNum resultToMsg =
+  let
+    placeHolder = "MEMBERNUM"
+    urlPattern = "/members/api/memberships/?format=json&member="++placeHolder++"&ordering=-start_date"
+    request = Http.request
+      { method = "GET"
+      , url = replaceAll {oldSub = placeHolder, newSub = toString memberNum} urlPattern
+      , headers = [ authenticationHeader flags.uniqueKioskId ]
+      , withCredentials = False
+      , body = Http.emptyBody
+      , timeout = Nothing
+      , expect = Http.expectJson (decodePageOf decodeMembership)
+      }
+  in
+    Http.send resultToMsg request
+
+decodeMembership : Dec.Decoder Membership
+decodeMembership =
+  decode Membership
+    |> required "id" Dec.int
+    |> required "member" Dec.string
+    |> required "start_date" DecX.date
+    |> required "end_date" DecX.date
+    |> required "sale" Dec.int
+    |> required "sale_price" Dec.string
+    |> required "ctrlid" Dec.string
+    |> required "protected" Dec.bool
+
+compareMembershipByEndDate : Membership -> Membership -> Order
+compareMembershipByEndDate m1 m2 =
+  DateX.compare m1.endDate m2.endDate
+
+mostRecentMembership : List Membership -> Maybe Membership
+mostRecentMembership memberships =
+  -- Note: The back-end is supposed to return memberships in reverse order by end-date
+  -- REVIEW: This implementation does not assume ordered list from server, just to be safe.
+  memberships |> List.sortWith compareMembershipByEndDate |> List.reverse |> List.head
+
+
+{-| Determine whether the list of memberships covers the current time.
+-}
+coverTime : List Membership -> Time -> Bool
+coverTime memberships now =
+  case mostRecentMembership memberships of
+    Nothing ->
+      False
+    Just membership ->
+      let endTime = Date.toTime membership.endDate
+      in endTime >= now
 
 
 -----------------------------------------------------------------------------
 -- UTILITIES
 -----------------------------------------------------------------------------
 
-getFilteredListUrl : String -> Maybe (List filter) -> (filter -> String) -> ResourceListUrl
-getFilteredListUrl listUrl filters filterToString =
+filteredListUrl : String -> Maybe (List filter) -> (filter -> String) -> ResourceListUrl
+filteredListUrl listUrl filters filterToString =
   let
     filtersStr = case filters of
       Nothing -> ""
       Just fs -> "?" ++ (String.join "&" (List.map filterToString fs))
   in
     listUrl ++ filtersStr
+
+resourceUrl : String -> Int -> ResourceListUrl
+resourceUrl listUrl id =
+  listUrl ++ "/" ++ (toString id) ++ "/"
+
+replaceAll : {oldSub : String, newSub : String} -> String -> String
+replaceAll {oldSub, newSub} whole =
+  Regex.replace Regex.All (regex oldSub) (\_ -> newSub) whole
