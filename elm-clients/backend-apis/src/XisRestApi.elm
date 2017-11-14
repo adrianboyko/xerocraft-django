@@ -86,7 +86,7 @@ type alias ListGetter item msg =
   (Result Http.Error (PageOf item) -> msg) -> Cmd msg
 
 type alias FilteredListGetter filter item msg =
-  Maybe (List filter) -> (Result Http.Error (PageOf item) -> msg) -> Cmd msg
+  List filter -> (Result Http.Error (PageOf item) -> msg) -> Cmd msg
 
 type alias Session msg =
   { coverTime : List Membership -> Time -> Bool
@@ -586,12 +586,12 @@ coverTime memberships now =
 -- UTILITIES
 -----------------------------------------------------------------------------
 
-filteredListUrl : String -> Maybe (List filter) -> (filter -> String) -> ResourceListUrl
+filteredListUrl : String -> List filter -> (filter -> String) -> ResourceListUrl
 filteredListUrl listUrl filters filterToString =
   let
     filtersStr = case filters of
-      Nothing -> ""
-      Just fs -> "?" ++ (String.join "&" (List.map filterToString fs))
+      [] -> ""
+      _ -> "?" ++ (String.join "&" (List.map filterToString filters))
   in
     listUrl ++ filtersStr
 

@@ -150,7 +150,7 @@ handleRfid kioskModel =
     filter = Result.map RfidNumberEquals rfidNumber
     resultHandler = ScreenSaverVector << SS_MemberListResult
     cmd = case filter of
-      Ok f -> kioskModel.xisSession.getMemberList (Just [f]) resultHandler
+      Ok f -> kioskModel.xisSession.getMemberList [f] resultHandler
       Err err -> Cmd.none
   in
     ({sceneModel | state=CheckingRfid}, cmd)

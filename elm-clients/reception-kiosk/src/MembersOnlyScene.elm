@@ -84,7 +84,7 @@ sceneWillAppear kioskModel appearingScene =
         memberNum = kioskModel.checkInModel.memberNum
         xis = kioskModel.xisSession
         cmd1 = xis.getTimeBlockList (MembersOnlyVector << UpdateTimeBlocks)
-        filters = Just [MembershipsWithMemberIdEqualTo memberNum]
+        filters = [MembershipsWithMemberIdEqualTo memberNum]
         cmd2 = xis.getMembershipList filters (MembersOnlyVector << UpdateMemberships)
         cmd3 = xis.getTimeBlockTypeList (MembersOnlyVector << UpdateTimeBlockTypes)
       in

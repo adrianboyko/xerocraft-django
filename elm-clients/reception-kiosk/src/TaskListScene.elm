@@ -83,7 +83,7 @@ sceneWillAppear kioskModel appearingScene =
       let
         currDate = Date.fromTime kioskModel.currTime
         cmd = kioskModel.xisSession.getTaskList
-          (Just [ScheduledDateEquals currDate])
+          [ScheduledDateEquals currDate]
           (TaskListVector << TaskListResult)
       in
         (kioskModel.taskListModel, cmd)
@@ -119,11 +119,10 @@ update msg kioskModel =
 
         -- We also want to run through the claims associated with today's tasks, so kick that off here:
         claimListFilters task =
-          Just
-            [ ClaimedTaskEquals task.id
-            , ClaimingMemberEquals memberNum
-            , ClaimStatusEquals CurrentClaimStatus
-            ]
+          [ ClaimedTaskEquals task.id
+          , ClaimingMemberEquals memberNum
+          , ClaimStatusEquals CurrentClaimStatus
+          ]
         taskToClaimListCmd task = kioskModel.xisSession.getClaimList (claimListFilters task) (TaskListVector << ClaimListResult)
         cmdList = List.map taskToClaimListCmd results
 
