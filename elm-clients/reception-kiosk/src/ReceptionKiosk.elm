@@ -187,26 +187,29 @@ update msg model =
         Reset -> reset model
 
         SceneWillAppear appearingScene ->
+          -- REVIEW: It's too easy to forget to add these.
           let
             (m0, c0) = CheckInScene.sceneWillAppear model appearingScene
             (m1, c1) = CheckOutScene.sceneWillAppear model appearingScene
             (m2, c2) = CreatingAcctScene.sceneWillAppear model appearingScene
-            (m3, c3) = MembersOnlyScene.sceneWillAppear model appearingScene
-            (m4, c4) = ScreenSaverScene.sceneWillAppear model appearingScene
-            (m5, c5) = TaskListScene.sceneWillAppear model appearingScene
-            (m6, c6) = WaiverScene.sceneWillAppear model appearingScene
+            (m3, c3) = HowDidYouHearScene.sceneWillAppear model appearingScene
+            (m4, c4) = MembersOnlyScene.sceneWillAppear model appearingScene
+            (m5, c5) = ScreenSaverScene.sceneWillAppear model appearingScene
+            (m6, c6) = TaskListScene.sceneWillAppear model appearingScene
+            (m7, c7) = WaiverScene.sceneWillAppear model appearingScene
             newModel =
               { model
               | checkInModel = m0
               , checkOutModel = m1
               , creatingAcctModel = m2
-              , membersOnlyModel = m3
-              , screenSaverModel = m4
-              , taskListModel = m5
-              , waiverModel = m6
+              , howDidYouHearModel = m3
+              , membersOnlyModel = m4
+              , screenSaverModel = m5
+              , taskListModel = m6
+              , waiverModel = m7
               }
           in
-            (newModel, Cmd.batch [c0, c1, c2, c3, c4, c5, c6])
+            (newModel, Cmd.batch [c0, c1, c2, c3, c4, c5, c6, c7])
 
         Tick time ->
           let

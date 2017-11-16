@@ -115,7 +115,7 @@ type CreatingAcctMsg
   | DiscoveryMethodAdded (Result Http.Error String)
 
 type HowDidYouHearMsg
-  = AccDiscoveryMethods (Result Http.Error DiscoveryMethodInfo)  -- "Acc" means "accumulate"
+  = AccDiscoveryMethods (Result Http.Error (PageOf DiscoveryMethod))  -- "Acc" means "accumulate"
   | ToggleDiscoveryMethod DiscoveryMethod
 
 type MembersOnlyMsg

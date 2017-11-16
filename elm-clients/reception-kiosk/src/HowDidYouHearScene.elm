@@ -1,5 +1,5 @@
 
-module HowDidYouHearScene exposing (init, update, view, HowDidYouHearModel)
+module HowDidYouHearScene exposing (init, sceneWillAppear, update, view, HowDidYouHearModel)
 
 -- Standard
 import Html exposing (Html, text, div, span)
@@ -15,11 +15,12 @@ import Material.Options as Options exposing (css)
 import MembersApi as MembersApi
 import Wizard.SceneUtils exposing (..)
 import Types exposing (..)
+import XisRestApi as XisApi
+
 
 -----------------------------------------------------------------------------
 -- INIT
 -----------------------------------------------------------------------------
-
 
 type alias HowDidYouHearModel =
   { discoveryMethods : List MembersApi.DiscoveryMethod  -- Fetched from MembersApi
@@ -28,16 +29,40 @@ type alias HowDidYouHearModel =
   }
 
 -- This type alias describes the type of kiosk model that this scene requires.
-type alias KioskModel a = (SceneUtilModel {a | howDidYouHearModel : HowDidYouHearModel})
+type alias KioskModel a =
+  ( SceneUtilModel
+    { a
+    | howDidYouHearModel : HowDidYouHearModel
+    , xisSession : XisApi.Session Msg
+    }
+  )
+
 
 init : Flags -> (HowDidYouHearModel, Cmd Msg)
 init flags =
   let
     sceneModel = { discoveryMethods=[], selectedMethodPks=[], badNews=[] }
-    getDiscoveryMethods = MembersApi.getDiscoveryMethods flags
-    request = getDiscoveryMethods (HowDidYouHearVector << AccDiscoveryMethods)
   in
-    (sceneModel, request)
+    (sceneModel, Cmd.none)
+
+
+-----------------------------------------------------------------------------
+-- SCENE WILL APPEAR
+-----------------------------------------------------------------------------
+
+sceneWillAppear : KioskModel a -> Scene -> (HowDidYouHearModel, Cmd Msg)
+sceneWillAppear kioskModel appearingScene =
+  case appearingScene of
+
+    Welcome ->
+      let
+        getDMs = kioskModel.xisSession.getDiscoveryMethodList
+        request = getDMs (HowDidYouHearVector << AccDiscoveryMethods)
+      in
+        (kioskModel.howDidYouHearModel, request)
+
+    _ ->
+      (kioskModel.howDidYouHearModel, Cmd.none)
 
 
 -----------------------------------------------------------------------------

@@ -3,7 +3,6 @@ module MembersApi exposing
   , DiscoveryMethod
   , DiscoveryMethodInfo
   , djangoizeId
-  , getDiscoveryMethods
   , getMatchingAccts
   , getCheckedInAccts
   , getRecentRfidEntries
@@ -111,11 +110,6 @@ type ReasonForVisit
 -----------------------------------------------------------------------------
 -- API
 -----------------------------------------------------------------------------
-
-getDiscoveryMethods : MembersApiModel a -> (Result Http.Error DiscoveryMethodInfo -> msg) -> Cmd msg
-getDiscoveryMethods model resultToMsg =
-  let request = Http.get model.discoveryMethodsUrl decodeDiscoveryMethodInfo
-  in Http.send resultToMsg request
 
 getCheckedInAccts: MembersApiModel a -> (Result Http.Error MatchingAcctInfo -> msg) -> Cmd msg
 getCheckedInAccts flags resultToMsg =
@@ -272,22 +266,6 @@ decodeMatchingAcctInfo =
   Dec.map2 MatchingAcctInfo
     (Dec.field "target" Dec.string)
     (Dec.field "matches" (Dec.list decodeMatchingAcct))
-
-decodeDiscoveryMethod : Dec.Decoder DiscoveryMethod
-decodeDiscoveryMethod =
-  decode DiscoveryMethod
-    |> required "id" Dec.int
-    |> required "name" Dec.string
-    |> required "order" Dec.int
-    |> required "visible" Dec.bool
-
-decodeDiscoveryMethodInfo : Dec.Decoder DiscoveryMethodInfo
-decodeDiscoveryMethodInfo =
-  Dec.map4 DiscoveryMethodInfo
-    (Dec.field "count" Dec.int)
-    (Dec.field "next" (Dec.maybe Dec.string))
-    (Dec.field "previous" (Dec.maybe Dec.string))
-    (Dec.field "results" (Dec.list decodeDiscoveryMethod))
 
 decodeGenericResult : Dec.Decoder GenericResult
 decodeGenericResult =

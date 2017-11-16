@@ -66,6 +66,7 @@ taskLowPriorityValue = "L"  -- As defined in Django backend.
 type alias XisRestFlags a =
   { a
   | claimListUrl : ResourceListUrl
+  , discoveryMethodsUrl : ResourceListUrl
   , memberListUrl : ResourceListUrl
   , membershipListUrl : ResourceListUrl
   , taskListUrl : ResourceListUrl
@@ -94,6 +95,7 @@ type alias Session msg =
   , defaultBlockType : List TimeBlockType -> Maybe TimeBlockType
   , getBlocksTypes : TimeBlock -> List TimeBlockType -> List TimeBlockType
   , getClaimList : FilteredListGetter ClaimListFilter Claim msg
+  , getDiscoveryMethodList : ListGetter DiscoveryMethod msg
   , getMemberList : FilteredListGetter MemberListFilter Member msg
   , getMembership : ResourceGetter Membership msg
   , getMembershipList : FilteredListGetter MembershipListFilter Membership msg
@@ -113,6 +115,7 @@ createSession flags =
   , defaultBlockType = defaultBlockType
   , getBlocksTypes = getBlocksTypes
   , getClaimList = getClaimList flags
+  , getDiscoveryMethodList = getDiscoveryMethodList flags
   , getMemberList = getMemberList flags
   , getMembership = getMembership flags
   , getMembershipList = getMembershipList flags
@@ -602,6 +605,33 @@ coverTime memberships now =
     Just membership ->
       let endTime = Date.toTime membership.endDate
       in endTime >= now
+
+
+-----------------------------------------------------------------------------
+-- DISCOVERY METHODS
+-----------------------------------------------------------------------------
+
+type alias DiscoveryMethod =
+  { id : Int
+  , name : String
+  , order : Int
+  , visible : Bool
+  }
+
+
+getDiscoveryMethodList : XisRestFlags a -> ListGetter DiscoveryMethod msg
+getDiscoveryMethodList model resultToMsg =
+  let request = Http.get model.discoveryMethodsUrl (decodePageOf decodeDiscoveryMethod)
+  in Http.send resultToMsg request
+
+
+decodeDiscoveryMethod : Dec.Decoder DiscoveryMethod
+decodeDiscoveryMethod =
+  decode DiscoveryMethod
+    |> required "id" Dec.int
+    |> required "name" Dec.string
+    |> required "order" Dec.int
+    |> required "visible" Dec.bool
 
 
 -----------------------------------------------------------------------------
