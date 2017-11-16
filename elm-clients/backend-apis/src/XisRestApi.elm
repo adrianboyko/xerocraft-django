@@ -31,6 +31,7 @@ import Task exposing (Task)
 import Time exposing (Time, hour, minute, second)
 
 -- Third party
+import List.Extra as ListX
 
 -- Local
 import DjangoRestFramework as DRF exposing
@@ -100,6 +101,8 @@ type alias Session msg =
   , getTimeBlockList : ListGetter TimeBlock msg
   , getTimeBlockTypeList : ListGetter TimeBlockType msg
   , memberCanClaimTask : Int -> Task -> Bool
+  , memberHasStatusOnTask : Int -> ClaimStatus -> Task -> Bool
+  , membersStatusOnTask : Int -> Task -> Maybe ClaimStatus
   , memberUrl : Int -> ResourceUrl
   , mostRecentMembership : List Membership -> Maybe Membership
   }
@@ -117,6 +120,8 @@ createSession flags =
   , getTimeBlockList = getTimeBlockList flags
   , getTimeBlockTypeList = getTimeBlockTypeList flags
   , memberCanClaimTask = memberCanClaimTask flags
+  , memberHasStatusOnTask = memberHasStatusOnTask flags
+  , membersStatusOnTask = membersStatusOnTask flags
   , memberUrl = resourceUrl flags.memberListUrl
   , mostRecentMembership = mostRecentMembership
   }
@@ -130,8 +135,7 @@ type TaskPriority = HighPriority | MediumPriority | LowPriority
 
 
 type alias Task =
-  { claimants : List ResourceUrl
-  , claimSet : List ResourceUrl
+  { claimSet : List Claim
   , creationDate : Date
   , deadline : Maybe Date
   , eligibleClaimants : List ResourceUrl
@@ -185,23 +189,41 @@ getTaskList flags filters resultToMsg =
     Http.send resultToMsg request
 
 
---getTask : XisRestFlags -> Int -> Task
---getTask flags taskId =
-
--- NOTE: This will return False if member has ALREADY claimed the task.
 memberCanClaimTask : XisRestFlags a -> Int -> Task -> Bool
 memberCanClaimTask flags memberNum task =
   let
     url = resourceUrl flags.memberListUrl memberNum
     memberIsEligible = List.member url task.eligibleClaimants
+    canClaim = memberIsEligible && (not task.isFullyClaimed)
+    alreadyClaimed = memberHasStatusOnTask flags memberNum CurrentClaimStatus task
   in
-    memberIsEligible && (not task.isFullyClaimed)
+    canClaim || alreadyClaimed
+
+
+membersStatusOnTask : XisRestFlags a -> Int -> Task -> Maybe ClaimStatus
+membersStatusOnTask flags memberNum task =
+  let
+    memberUrl = resourceUrl flags.memberListUrl memberNum
+    isMembersClaim c = c.claimingMember == memberUrl
+    membersClaim = ListX.find isMembersClaim task.claimSet
+  in
+    Maybe.map .status membersClaim
+
+
+memberHasStatusOnTask : XisRestFlags a -> Int -> ClaimStatus -> Task -> Bool
+memberHasStatusOnTask flags memberNum questionedStatus task =
+  let
+    actualStatus = membersStatusOnTask flags memberNum task
+  in
+    case actualStatus of
+      Nothing -> False
+      Just s -> s == questionedStatus
+
 
 decodeTask : Dec.Decoder Task
 decodeTask =
   decode Task
-    |> required "claimants" (Dec.list resourceUrlDecoder)
-    |> required "claim_set" (Dec.list resourceUrlDecoder)
+    |> required "claim_set" (Dec.list decodeClaim)
     |> required "creation_date" DecX.date
     |> required "deadline" (Dec.maybe DecX.date)
     |> required "eligible_claimants" (Dec.list resourceUrlDecoder)
@@ -597,7 +619,7 @@ filteredListUrl listUrl filters filterToString =
 
 resourceUrl : String -> Int -> ResourceListUrl
 resourceUrl listUrl id =
-  listUrl ++ "/" ++ (toString id) ++ "/"
+  listUrl ++ (toString id) ++ "/"
 
 replaceAll : {oldSub : String, newSub : String} -> String -> String
 replaceAll {oldSub, newSub} whole =

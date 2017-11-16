@@ -154,7 +154,6 @@ type ScreenSaverMsg
 
 type TaskListMsg
   = TaskListResult (Result Http.Error (PageOf XisApi.Task))
-  | ClaimListResult (Result Http.Error (PageOf XisApi.Claim))
   | ToggleTask XisApi.Task
   | ValidateTaskChoice
 

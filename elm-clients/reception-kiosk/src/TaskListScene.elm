@@ -42,8 +42,7 @@ taskPriority_HIGH = "H"  -- As defined in Django backend.
 -----------------------------------------------------------------------------
 
 type alias TaskListModel =
-  { todaysTasks : Fetchable (List XisApi.Task)
-  , workableTasks : List XisApi.Task
+  { workableTasks : Fetchable (List XisApi.Task)
   , selectedTask : Maybe XisApi.Task
   , badNews : List String
   }
@@ -62,8 +61,7 @@ type alias KioskModel a =
 init : Flags -> (TaskListModel, Cmd Msg)
 init flags =
   let sceneModel =
-    { todaysTasks = Pending
-    , workableTasks = []
+    { workableTasks = Pending
     , selectedTask = Nothing
     , badNews = []
     }
@@ -108,43 +106,26 @@ update msg kioskModel =
     TaskListResult (Ok {results, next}) ->
       -- TODO: Deal with the possibility of paged results (i.e. next is not Nothing)?
       let
+        xis = kioskModel.xisSession
+
         -- "Other Work" is offered to everybody, whether or not they are explicitly eligible to work it:
         otherWorkTaskTest task = task.shortDesc == "Other Work"
         otherWorkTask = List.filter otherWorkTaskTest results
+
         -- The more normal case is to offer up tasks that the user can claim:
-        memberCanClaim = kioskModel.xisSession.memberCanClaimTask memberNum
-        claimableTasks = List.filter memberCanClaim results
+        memberCanClaimTest = xis.memberCanClaimTask memberNum
+        claimableTasks = List.filter memberCanClaimTest results
+
         -- The offered/workable tasks are the union of claimable tasks and the "Other Work" task.
         workableTasks = claimableTasks ++ otherWorkTask
 
-        -- We also want to run through the claims associated with today's tasks, so kick that off here:
-        claimListFilters task =
-          [ ClaimedTaskEquals task.id
-          , ClaimingMemberEquals memberNum
-          , ClaimStatusEquals CurrentClaimStatus
-          ]
-        taskToClaimListCmd task = kioskModel.xisSession.getClaimList (claimListFilters task) (TaskListVector << ClaimListResult)
-        cmdList = List.map taskToClaimListCmd results
+        -- We also want ot know which task(s) (if any) have already been claimed:
+        isCurrentClaimant = xis.memberHasStatusOnTask memberNum CurrentClaimStatus
+        claimedTask = ListX.find isCurrentClaimant results
 
       in
-        ({sceneModel | todaysTasks=Received results, workableTasks=workableTasks}, Cmd.batch cmdList)
+        ({sceneModel | workableTasks=Received workableTasks, selectedTask=claimedTask}, Cmd.none)
 
-    ClaimListResult (Ok {results, next}) ->
-      -- TODO: Deal with the possibility of paged results (i.e. next is not Nothing)?
-      -- ASSERT: There will be 0 or 1 result because of the particular query and database uniqueness constraints.
-      case List.head results of
-         Just claim ->
-           let
-             taskNum = Result.withDefault -1 (getIdFromUrl claim.claimedTask)
-             hasTaskNum taskNum task = task.id == taskNum
-             todaysTaskList = Fetchable.withDefault [] sceneModel.todaysTasks
-             task = ListX.find (hasTaskNum taskNum) todaysTaskList
-           in
-             case task of
-               Nothing -> (sceneModel, Cmd.none)
-               Just t -> ({sceneModel | selectedTask=Just t, workableTasks=t::sceneModel.workableTasks}, Cmd.none)
-         Nothing ->
-           (sceneModel, Cmd.none)
 
     ToggleTask toggledTask ->
       ({sceneModel | selectedTask=Just toggledTask, badNews=[]}, Cmd.none)
@@ -159,10 +140,7 @@ update msg kioskModel =
     -- -- -- -- ERROR HANDLERS -- -- -- --
 
     TaskListResult (Err error) ->
-      ({sceneModel | todaysTasks=Failed (toString error)}, Cmd.none)
-
-    ClaimListResult (Err error) ->
-      ({sceneModel | badNews=[toString error]}, Cmd.none)
+      ({sceneModel | workableTasks=Failed (toString error)}, Cmd.none)
 
 
 -----------------------------------------------------------------------------
@@ -175,10 +153,10 @@ idxTaskListScene = mdlIdBase TaskList
 view : KioskModel a -> Html Msg
 view kioskModel =
   let sceneModel = kioskModel.taskListModel
-  in case sceneModel.todaysTasks of
+  in case sceneModel.workableTasks of
 
     Pending -> waitingView kioskModel
-    Received tasks -> chooseView kioskModel sceneModel.workableTasks
+    Received tasks -> chooseView kioskModel tasks
     Failed err -> errorView kioskModel err
 
 
