@@ -217,7 +217,7 @@ view kioskModel =
     (div []
       [ vspace 60
       -- TODO: Do I want to pass all imgs in as flags, as was done with banners?
-      , img [src "/static/bzw_ops/WavingHand.gif", logoImgStyle] []
+      , img [src kioskModel.flags.wavingHandUrl, logoImgStyle] []
       , vspace 20
       , h1 [h1Style] [text msg1]
       , vspace 0

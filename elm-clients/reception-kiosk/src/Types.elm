@@ -41,6 +41,7 @@ type alias Flags =
   , timeBlocksUrl : String
   , timeBlockTypesUrl : String
   , uniqueKioskId : String
+  , wavingHandUrl : String
   , workListUrl : String
   , xcOrgActionUrl : String
   }
