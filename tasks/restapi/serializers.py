@@ -47,14 +47,14 @@ class TaskSerializer(serializers.ModelSerializer):
     owner = serializers.HyperlinkedRelatedField(read_only=True, view_name='memb:member-detail')
     reviewer = serializers.HyperlinkedRelatedField(read_only=True, view_name='memb:member-detail')
     eligible_claimants = serializers.HyperlinkedRelatedField(read_only=True, many=True, view_name='memb:member-detail')
-    claimants = serializers.HyperlinkedRelatedField(read_only=True, many=True, view_name='memb:member-detail')
-    claim_set = serializers.HyperlinkedRelatedField(read_only=True, many=True, view_name='task:claim-detail')
+    #claimants = serializers.HyperlinkedRelatedField(read_only=True, many=True, view_name='memb:member-detail')
+    #claim_set = serializers.HyperlinkedRelatedField(read_only=True, many=True, view_name='task:claim-detail')
+    claim_set = ClaimSerializer(many=True, read_only=True)
     is_fully_claimed = serializers.ReadOnlyField()
 
     class Meta:
         model = tm.Task
         fields = (
-            'claimants',
             'claim_set',
             'creation_date',
             'deadline',
