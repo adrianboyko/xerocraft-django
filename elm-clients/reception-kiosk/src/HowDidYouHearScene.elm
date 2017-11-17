@@ -5,11 +5,13 @@ module HowDidYouHearScene exposing (init, sceneWillAppear, update, view, HowDidY
 import Html exposing (Html, text, div, span)
 import Html.Attributes exposing (style)
 import Http
-import List.Extra
+import Random
+import List.Extra as ListX
 
 -- Third Party
 import Material.Toggles as Toggles
 import Material.Options as Options exposing (css)
+import Random.List
 
 -- Local
 import MembersApi as MembersApi
@@ -56,10 +58,11 @@ sceneWillAppear kioskModel appearingScene =
 
     Welcome ->
       let
+        sceneModel = kioskModel.howDidYouHearModel
         getDMs = kioskModel.xisSession.getDiscoveryMethodList
         request = getDMs (HowDidYouHearVector << AccDiscoveryMethods)
       in
-        (kioskModel.howDidYouHearModel, request)
+        ({sceneModel | discoveryMethods = []}, request)
 
     _ ->
       (kioskModel.howDidYouHearModel, Cmd.none)
@@ -75,12 +78,26 @@ update msg kioskModel =
   in case msg of
 
     AccDiscoveryMethods (Ok {count, next, previous, results}) ->
-      -- Data from MembersApi might be paged, so we need to accumulate the batches as they come.
       let
-        newMethods = sceneModel.discoveryMethods ++ results
+        accumulatedMethods = sceneModel.discoveryMethods ++ results
         -- TODO: Need to get next batch if next is not Nothing.
+        -- TODO: Shuffle accumulated methods, but ideally ONLY when next is Nothing.
+        shuffleGen = Random.List.shuffle accumulatedMethods
+        cmd = Random.generate (HowDidYouHearVector << ShuffledDiscoveryMethods) shuffleGen
       in
-        ({sceneModel | discoveryMethods = newMethods}, Cmd.none)
+        ({sceneModel | discoveryMethods = accumulatedMethods}, cmd)
+
+    ShuffledDiscoveryMethods shuffledMethods ->
+      -- Slightly rearrange shuffled list to keep "Other" at the end.
+      let
+        isOther dm = dm.name == "Other"
+        other = ListX.find isOther shuffledMethods
+        otherAtEnd =
+          case other of
+            Nothing -> shuffledMethods |> Debug.log "Couldn't find 'Other' in:"
+            Just o -> ListX.remove o shuffledMethods ++ [o]
+      in
+        ({sceneModel | discoveryMethods = otherAtEnd}, Cmd.none)
 
     AccDiscoveryMethods (Err error) ->
       ({sceneModel | badNews = [toString error]}, Cmd.none)
@@ -89,7 +106,7 @@ update msg kioskModel =
       let
         newSelectedMethodPks =
           if List.member dm.id sceneModel.selectedMethodPks then
-            List.Extra.remove dm.id sceneModel.selectedMethodPks
+            ListX.remove dm.id sceneModel.selectedMethodPks
           else
             dm.id :: sceneModel.selectedMethodPks
       in
