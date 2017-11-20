@@ -17,10 +17,6 @@ from django.contrib.auth.decorators import login_required
 from django.conf import settings
 from django.views.decorators.csrf import ensure_csrf_cookie
 
-from rest_framework.decorators import api_view, authentication_classes, permission_classes
-from rest_framework.permissions import IsAdminUser
-from rest_framework.authentication import TokenAuthentication
-
 from icalendar import Calendar, Event
 
 # Local
