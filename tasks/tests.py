@@ -830,7 +830,7 @@ class TestRestApi_Tasks(TestCase):
 
     def test_CANNOT_claim_task_if_NOT_eligible(self):
 
-        # Somebody creates a task that caller is eligible to work:
+        # Somebody creates a task that caller is NOT eligible to work:
         t = Task.objects.create(**self.task_data)
         t.clean()
 
