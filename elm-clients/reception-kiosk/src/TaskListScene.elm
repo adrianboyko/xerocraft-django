@@ -27,7 +27,7 @@ import Wizard.SceneUtils exposing (..)
 import Types exposing (..)
 import CheckInScene exposing (CheckInModel)
 import Fetchable exposing (..)
-import DjangoRestFramework exposing (getIdFromUrl)
+import DjangoRestFramework as DRF exposing (getIdFromUrl)
 
 
 -----------------------------------------------------------------------------
@@ -41,12 +41,6 @@ taskPriority_HIGH = "H"  -- As defined in Django backend.
 -- INIT
 -----------------------------------------------------------------------------
 
-type alias TaskListModel =
-  { workableTasks : Fetchable (List XisApi.Task)
-  , selectedTask : Maybe XisApi.Task
-  , badNews : List String
-  }
-
 -- This type alias describes the type of kiosk model that this scene requires.
 type alias KioskModel a =
   (SceneUtilModel
@@ -57,6 +51,12 @@ type alias KioskModel a =
     , xisSession : XisApi.Session Msg
     }
   )
+
+type alias TaskListModel =
+  { workableTasks : Fetchable (List XisApi.Task)
+  , selectedTask : Maybe XisApi.Task
+  , badNews : List String
+  }
 
 init : Flags -> (TaskListModel, Cmd Msg)
 init flags =
@@ -82,7 +82,7 @@ sceneWillAppear kioskModel appearingScene =
         currDate = Date.fromTime kioskModel.currTime
         cmd = kioskModel.xisSession.getTaskList
           [ScheduledDateEquals currDate]
-          (TaskListVector << TaskListResult)
+          (TaskListVector << TL_TaskListResult)
       in
         (kioskModel.taskListModel, cmd)
 
@@ -100,14 +100,13 @@ update msg kioskModel =
     sceneModel = kioskModel.taskListModel
     flags = kioskModel.flags
     memberNum = kioskModel.checkInModel.memberNum
+    xis = kioskModel.xisSession
 
   in case msg of
 
-    TaskListResult (Ok {results, next}) ->
+    TL_TaskListResult (Ok {results, next}) ->
       -- TODO: Deal with the possibility of paged results (i.e. next is not Nothing)?
       let
-        xis = kioskModel.xisSession
-
         -- "Other Work" is offered to everybody, whether or not they are explicitly eligible to work it:
         otherWorkTaskTest task = task.shortDesc == "Other Work"
         otherWorkTask = List.filter otherWorkTaskTest results
@@ -122,25 +121,67 @@ update msg kioskModel =
         -- We also want ot know which task(s) (if any) have already been claimed:
         isCurrentClaimant = xis.memberHasStatusOnTask memberNum CurrentClaimStatus
         claimedTask = ListX.find isCurrentClaimant results
-
       in
-        ({sceneModel | workableTasks=Received workableTasks, selectedTask=claimedTask}, Cmd.none)
+        ( { sceneModel
+          | workableTasks = Received workableTasks
+          , selectedTask = claimedTask
+          }
+          , Cmd.none
+        )
 
+    TL_ToggleTask toggledTask ->
+      let
+        claimOnTask = xis.membersClaimOnTask memberNum toggledTask
+      in
+        ( { sceneModel
+          | selectedTask = Just toggledTask
+          , badNews = []
+          }
+        , Cmd.none
+      )
 
-    ToggleTask toggledTask ->
-      ({sceneModel | selectedTask=Just toggledTask, badNews=[]}, Cmd.none)
-
-    ValidateTaskChoice ->
+    TL_ValidateTaskChoice ->
       case sceneModel.selectedTask of
         Just task ->
-          (sceneModel, segueTo VolunteerInDone)
+          let
+            result2Msg = TaskListVector << TL_ClaimUpsertResult
+            existingClaim = xis.membersClaimOnTask memberNum task
+            upsertCmd = case existingClaim of
+              Just c ->
+                xis.putClaim
+                  { c
+                  | status = WorkingClaimStatus
+                  , claimedStartTime = Just <| DRF.clockTimeFromTime kioskModel.currTime
+                  }
+                  result2Msg
+              Nothing ->
+                xis.postClaim
+                  ( Claim
+                      (Maybe.withDefault 0.0 task.workDuration)
+                      (Just <| DRF.clockTimeFromTime kioskModel.currTime)
+                      (xis.taskUrl task.id)
+                      (xis.memberUrl memberNum)
+                      (Just <| Date.fromTime kioskModel.currTime)
+                      -1  -- REVIEW: Arbitrary because encoder ignores.
+                      WorkingClaimStatus
+                      []  -- REVIEW: Arbitrary because encoder ignores.
+                  )
+                  result2Msg
+          in
+            (sceneModel, upsertCmd)
         Nothing ->
           ({sceneModel | badNews=["You must choose a task to work!"]}, Cmd.none)
 
+    TL_ClaimUpsertResult (Ok claim) ->
+      (sceneModel, segueTo VolunteerInDone)
+
     -- -- -- -- ERROR HANDLERS -- -- -- --
 
-    TaskListResult (Err error) ->
+    TL_TaskListResult (Err error) ->
       ({sceneModel | workableTasks=Failed (toString error)}, Cmd.none)
+
+    TL_ClaimUpsertResult (Err error) ->
+      ({sceneModel | badNews=[toString error]}, Cmd.none)
 
 
 -----------------------------------------------------------------------------
@@ -195,7 +236,7 @@ chooseView kioskModel tasks =
       "Choose a Task"
       "Here are some you can work"
       ( taskChoices kioskModel tasks)
-      [ ButtonSpec "OK" (TaskListVector <| ValidateTaskChoice) ]
+      [ ButtonSpec "OK" (TaskListVector <| TL_ValidateTaskChoice) ]
       sceneModel.badNews
 
 
@@ -214,7 +255,7 @@ taskChoices kioskModel tasks =
                   Nothing -> False
                   Just st -> st == wt
                 )
-              , Options.onToggle (TaskListVector <| ToggleTask <| wt)
+              , Options.onToggle (TaskListVector <| TL_ToggleTask <| wt)
               ]
               [text wt.shortDesc]
             ]

@@ -3,7 +3,6 @@
 from datetime import datetime
 
 # Third Party
-from django.http.request import HttpRequest
 from django.contrib.auth.models import User
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
@@ -15,16 +14,7 @@ import tasks.models as tm
 import tasks.restapi.serializers as ts
 import tasks.restapi.permissions as tp
 import tasks.restapi.authenticators as ta
-
-
-# ---------------------------------------------------------------------------
-# UTILITIES
-# ---------------------------------------------------------------------------
-
-def user_is_kiosk(request: HttpRequest) -> bool:
-    u = request.user  # type: User
-    return u.is_authenticated() and u.username in ("ReceptionKiosk1", "ReceptionKiosk2")
-
+from xis.utils import user_is_kiosk
 
 # ---------------------------------------------------------------------------
 # CLAIMS

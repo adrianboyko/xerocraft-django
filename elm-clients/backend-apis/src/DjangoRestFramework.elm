@@ -2,6 +2,7 @@ module DjangoRestFramework exposing (..)
 
 -- Standard
 import Json.Decode as Dec
+import Json.Encode as Enc
 import Http exposing (header)
 import Char
 import Regex exposing (Regex, regex, split, replace, HowMany(..))
@@ -27,6 +28,7 @@ type alias PageOf a =
   , previous: Maybe String
   , results: List a
   }
+
 
 -----------------------------------------------------------------------------
 -- UTILITIES
@@ -54,6 +56,10 @@ getIdFromUrl url =
         String.toInt numberStr
 
 
+-----------------------------------------------------------------------------
+-- DATES
+-----------------------------------------------------------------------------
+
 isoDateStrFromTime : Time -> String
 isoDateStrFromTime time =
     String.left 10 (isoString (Date.fromTime time))
@@ -61,6 +67,11 @@ isoDateStrFromTime time =
 isoDateStrFromDate : Date -> String
 isoDateStrFromDate d =
     String.left 10 (isoString d)
+
+-- Use Json.Decode.Extra for decoding dates.
+
+encodeDate : Date -> Enc.Value
+encodeDate = Enc.string << isoDateStrFromDate
 
 
 -----------------------------------------------------------------------------
@@ -102,6 +113,16 @@ clockTimeDecoder =
         Ok ct -> Dec.succeed ct
         Err err -> Dec.fail err
     )
+
+
+encodeClockTime : ClockTime -> Enc.Value
+encodeClockTime = Enc.string << clockTimeToPythonRepr
+
+clockTimeFromDate : Date -> ClockTime
+clockTimeFromDate d = ClockTime (Date.hour d) (Date.minute d)
+
+clockTimeFromTime : Time -> ClockTime
+clockTimeFromTime t = t |> Date.fromTime |> clockTimeFromDate
 
 
 -----------------------------------------------------------------------------
@@ -154,6 +175,10 @@ durationDecoder =
     )
 
 
+encodeDuration : Duration -> Enc.Value
+encodeDuration = Enc.string << durationToPythonRepr
+
+
 -----------------------------------------------------------------------------
 -- PAGES
 -----------------------------------------------------------------------------
@@ -165,6 +190,7 @@ decodePageOf decoder =
     |> required "next" (Dec.maybe Dec.string)
     |> required "previous" (Dec.maybe Dec.string)
     |> required "results" (Dec.list decoder)
+
 
 -----------------------------------------------------------------------------
 -- URLS

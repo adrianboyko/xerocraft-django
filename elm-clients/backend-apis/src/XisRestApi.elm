@@ -21,6 +21,7 @@ import Date exposing (Date)
 import Date.Extra as DateX
 import Http
 import Json.Encode as Enc
+import Json.Encode.Extra as EncX
 import Json.Decode as Dec exposing (maybe)
 import Json.Decode.Extra as DecX
 import Json.Decode.Pipeline exposing (decode, required, optional)
@@ -34,18 +35,7 @@ import Time exposing (Time, hour, minute, second)
 import List.Extra as ListX
 
 -- Local
-import DjangoRestFramework as DRF exposing
-  ( PageOf
-  , ClockTime
-  , Duration
-  , ResourceUrl
-  , ResourceListUrl
-  , authenticationHeader
-  , decodePageOf
-  , getIdFromUrl
-  , isoDateStrFromDate
-  , resourceUrlDecoder
-  )
+import DjangoRestFramework as DRF exposing (..)
 import MembersApi as MembersApi  -- TODO: MembersApi will be replace with this REST api.
 
 -----------------------------------------------------------------------------
@@ -84,6 +74,9 @@ type alias XisRestFlags a =
 type alias ResourceGetter item msg =
   Int -> (Result Http.Error (PageOf item) -> msg) -> Cmd msg
 
+type alias ResourcePutter item msg =
+  item -> (Result Http.Error item -> msg) -> Cmd msg
+
 type alias ListGetter item msg =
   (Result Http.Error (PageOf item) -> msg) -> Cmd msg
 
@@ -91,7 +84,8 @@ type alias FilteredListGetter filter item msg =
   List filter -> (Result Http.Error (PageOf item) -> msg) -> Cmd msg
 
 type alias Session msg =
-  { coverTime : List Membership -> Time -> Bool
+  { claimUrl : Int -> ResourceUrl
+  , coverTime : List Membership -> Time -> Bool
   , defaultBlockType : List TimeBlockType -> Maybe TimeBlockType
   , getBlocksTypes : TimeBlock -> List TimeBlockType -> List TimeBlockType
   , getClaimList : FilteredListGetter ClaimListFilter Claim msg
@@ -104,14 +98,20 @@ type alias Session msg =
   , getTimeBlockTypeList : ListGetter TimeBlockType msg
   , memberCanClaimTask : Int -> Task -> Bool
   , memberHasStatusOnTask : Int -> ClaimStatus -> Task -> Bool
+  , membersClaimOnTask : Int -> Task -> Maybe Claim
   , membersStatusOnTask : Int -> Task -> Maybe ClaimStatus
   , memberUrl : Int -> ResourceUrl
   , mostRecentMembership : List Membership -> Maybe Membership
+  , postClaim : ResourcePutter Claim msg
+  , putClaim : ResourcePutter Claim msg
+  , taskUrl : Int -> ResourceUrl
+  , workUrl : Int -> ResourceUrl
   }
 
 createSession : XisRestFlags a -> Session msg
 createSession flags =
-  { coverTime = coverTime
+  { claimUrl = resourceUrl flags.claimListUrl
+  , coverTime = coverTime
   , defaultBlockType = defaultBlockType
   , getBlocksTypes = getBlocksTypes
   , getClaimList = getClaimList flags
@@ -124,9 +124,14 @@ createSession flags =
   , getTimeBlockTypeList = getTimeBlockTypeList flags
   , memberCanClaimTask = memberCanClaimTask flags
   , memberHasStatusOnTask = memberHasStatusOnTask flags
+  , membersClaimOnTask = membersClaimOnTask flags
   , membersStatusOnTask = membersStatusOnTask flags
   , memberUrl = resourceUrl flags.memberListUrl
   , mostRecentMembership = mostRecentMembership
+  , postClaim = postClaim flags
+  , putClaim = putClaim flags
+  , taskUrl = resourceUrl flags.taskListUrl
+  , workUrl = resourceUrl flags.workListUrl
   }
 
 
@@ -203,12 +208,19 @@ memberCanClaimTask flags memberNum task =
     canClaim || alreadyClaimed
 
 
-membersStatusOnTask : XisRestFlags a -> Int -> Task -> Maybe ClaimStatus
-membersStatusOnTask flags memberNum task =
+membersClaimOnTask : XisRestFlags a -> Int -> Task -> Maybe Claim
+membersClaimOnTask flags memberNum task =
   let
     memberUrl = resourceUrl flags.memberListUrl memberNum
     isMembersClaim c = c.claimingMember == memberUrl
-    membersClaim = ListX.find isMembersClaim task.claimSet
+  in
+    ListX.find isMembersClaim task.claimSet
+
+
+membersStatusOnTask : XisRestFlags a -> Int -> Task -> Maybe ClaimStatus
+membersStatusOnTask flags memberNum task =
+  let
+    membersClaim = membersClaimOnTask flags memberNum task
   in
     Maybe.map .status membersClaim
 
@@ -357,6 +369,62 @@ decodeClaimStatus =
         "W" -> Dec.succeed WorkingClaimStatus
         other -> Dec.fail <| "Unknown claim status: " ++ other
     )
+
+
+encodeClaimStatus : ClaimStatus -> Enc.Value
+encodeClaimStatus status =
+  case status of
+    AbandonedClaimStatus -> Enc.string "A"
+    CurrentClaimStatus -> Enc.string "C"
+    DoneClaimStatus -> Enc.string "D"
+    ExpiredClaimStatus -> Enc.string "X"
+    QueuedClaimStatus -> Enc.string "Q"
+    UninterestedClaimStatus -> Enc.string "U"
+    WorkingClaimStatus -> Enc.string "W"
+
+
+encodeClaim : Claim -> Enc.Value
+encodeClaim claim =
+  Enc.object
+    [ ( "claiming_member", claim.claimingMember |> Enc.string )
+    , ( "claimed_task", claim.claimedTask |> Enc.string )
+    , ( "claimed_start_time", claim.claimedStartTime |> (EncX.maybe encodeClockTime))
+    , ( "claimed_duration", claim.claimedDuration |> encodeDuration)
+    , ( "status", claim.status |> encodeClaimStatus )
+    , ( "date_verified", claim.dateVerified |> (EncX.maybe encodeDate))
+    ]
+
+putClaim : XisRestFlags a -> ResourcePutter Claim msg
+putClaim flags claim resultToMsg =
+  let
+    request = Http.request
+      { method = "PUT"
+      , headers = [authenticationHeader flags.uniqueKioskId]
+      , url = resourceUrl flags.claimListUrl claim.id
+      , body = claim |> encodeClaim |> Http.jsonBody
+      , expect = Http.expectJson decodeClaim
+      , timeout = Nothing
+      , withCredentials = False
+      }
+  in
+    Http.send resultToMsg request
+
+
+postClaim : XisRestFlags a -> ResourcePutter Claim msg
+postClaim flags claim resultToMsg =
+  let
+    request = Http.request
+      { method = "POST"
+      , headers = [authenticationHeader flags.uniqueKioskId]
+      , url = flags.claimListUrl
+      , body = claim |> encodeClaim |> Http.jsonBody
+      , expect = Http.expectJson decodeClaim
+      , timeout = Nothing
+      , withCredentials = False
+      }
+  in
+    Http.send resultToMsg request
+
 
 
 -----------------------------------------------------------------------------
@@ -647,9 +715,11 @@ filteredListUrl listUrl filters filterToString =
   in
     listUrl ++ filtersStr
 
+
 resourceUrl : String -> Int -> ResourceListUrl
 resourceUrl listUrl id =
   listUrl ++ (toString id) ++ "/"
+
 
 replaceAll : {oldSub : String, newSub : String} -> String -> String
 replaceAll {oldSub, newSub} whole =

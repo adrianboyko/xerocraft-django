@@ -1,6 +1,5 @@
 
 # Standard
-from datetime import datetime
 
 # Third Party
 from django.contrib.auth.models import User
@@ -10,6 +9,7 @@ from rest_framework.request import Request
 # Local
 import members.models as mm
 import tasks.models as tm
+from xis.utils import user_is_kiosk
 
 
 def getpk(uri: str) -> int:
@@ -28,11 +28,14 @@ class ClaimPermission(permissions.BasePermission):
         if request.method in permissions.SAFE_METHODS:
             return True
 
-        if request.method == "PATCH":
+        if request.method in ["PATCH", "PUT"]:
             # I believe this is safe because Django subsequently goes to has_object_permissions
             return True
 
         if request.method == "POST":
+
+            if user_is_kiosk(request):
+                return True
 
             # Web interface to REST API sends POST with no body to determine if
             # a read/write or read-only interface should be presented. In general,
@@ -66,22 +69,19 @@ class ClaimPermission(permissions.BasePermission):
         else:
             return False
 
-    def has_object_permission(self, request, view, obj):
+    def has_object_permission(self, request: Request, view, obj):
         memb = request.user.member  # type: mm.Member
 
         if request.method in permissions.SAFE_METHODS:
             return True
 
-        if request.method is "PUT":
-            pass
+        if request.method in ["PUT", "PATCH"]:
+            if user_is_kiosk(request):
+                return True
 
         if memb == obj.claiming_member:
             # The claiming_member is the owner of a Claim.
             return True
-        else:
-            # Otherwise, permission is the same as the permission on the claimed_task.
-            # Note that this means that owners of task T will be owners of Claims on T.
-            return self.has_object_permission(request, view, obj.claimed_task)
 
 
 # ---------------------------------------------------------------------------
@@ -90,7 +90,7 @@ class ClaimPermission(permissions.BasePermission):
 
 class TaskPermission(permissions.BasePermission):
 
-    def has_object_permission(self, request, view, obj):
+    def has_object_permission(self, request: Request, view, obj):
         user = request.user  # type: User
         memb = user.member  # type: mm.Member
 
@@ -116,7 +116,7 @@ class TaskPermission(permissions.BasePermission):
 
 class WorkPermission(permissions.BasePermission):
 
-    def has_object_permission(self, request, view, obj):
+    def has_object_permission(self, request: Request, view, obj):
         memb = request.user.member  # type: mm.Member
 
         if request.method in permissions.SAFE_METHODS:

@@ -154,9 +154,10 @@ type ScreenSaverMsg
   | SS_MemberListResult (Result Http.Error (PageOf XisApi.Member))
 
 type TaskListMsg
-  = TaskListResult (Result Http.Error (PageOf XisApi.Task))
-  | ToggleTask XisApi.Task
-  | ValidateTaskChoice
+  = TL_TaskListResult (Result Http.Error (PageOf XisApi.Task))
+  | TL_ToggleTask XisApi.Task
+  | TL_ValidateTaskChoice
+  | TL_ClaimUpsertResult (Result Http.Error XisApi.Claim)
 
 type WaiverMsg
   = ShowSignaturePad String
