@@ -19,7 +19,6 @@ module MembersApi exposing
 
 -- Standard
 import Date as Date
-import Date.Extra as DateX
 import Json.Decode as Dec
 import Json.Encode as Enc
 import Json.Decode.Extra as DecX
@@ -103,6 +102,7 @@ type ReasonForVisit
   = Curiousity
   | ClassParticipant
   | MemberPrivileges
+  | ClubPrivileges
   | GuestOfMember
   | Volunteer
   | Other
@@ -155,6 +155,7 @@ logVisitEvent flags memberPK eventType reason resultToMsg =
       Just Curiousity -> "CUR"
       Just ClassParticipant -> "CLS"
       Just MemberPrivileges -> "MEM"
+      Just ClubPrivileges -> "CLB"
       Just GuestOfMember -> "GST"
       Just Volunteer -> "VOL"
       Just Other -> "OTH"

@@ -16,7 +16,6 @@ import Date exposing (Date)
 
 -- Third Party
 import String.Extra exposing (..)
-import Date.Extra as DateX
 
 -- Local
 import XerocraftApi as XcApi
@@ -25,6 +24,7 @@ import Wizard.SceneUtils exposing (..)
 import CheckInScene exposing (CheckInModel)
 import Types exposing (..)
 import Fetchable exposing (..)
+import CalendarDate
 
 
 -----------------------------------------------------------------------------
@@ -91,7 +91,7 @@ sceneWillAppear kioskModel appearingScene =
         (sceneModel, Cmd.batch [cmd1, cmd2, cmd3])
 
     MembersOnly ->
-      if haveSomethingToSay kioskModel
+      if (haveSomethingToSay kioskModel |> Debug.log "Something To Say: ")
         then (sceneModel, Cmd.none)  -- NO-OP. We will show this scene.
         else (sceneModel, segueTo CheckInDone)  -- Will skip this scene.
 
@@ -227,7 +227,7 @@ areYouCurrentContent kioskModel =
           paymentMsg = case mostRecent of
             Just mship ->
               "Our records show that your most recent membership has an expiration date of "
-              ++ DateX.toFormattedString "dd-MMM-yyyy" mship.endDate
+              ++ CalendarDate.format "%d-%b-%Y" mship.endDate
               ++ ". "
             Nothing ->
               "We have no record of previous payments by you. "

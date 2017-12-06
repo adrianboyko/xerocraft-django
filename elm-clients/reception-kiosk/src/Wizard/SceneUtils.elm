@@ -3,12 +3,14 @@ port module Wizard.SceneUtils exposing
   , sceneWidth
   , sceneHeight
   , px
+  , pt
   , genericScene
   , sceneButton
   , ButtonSpec
   , sceneEmailField
   , scenePasswordField
   , sceneTextField
+  , sceneTextArea
   , sceneTextStyle
   , sceneTextBlockStyle
   , userIdStyle
@@ -17,11 +19,14 @@ port module Wizard.SceneUtils exposing
   , (=>)
   , send
   , segueTo
+  , pop
   , setFocusIfNoFocus
   , hideKeyboard
   , focusWasSet
   , sceneIsVisible
   , currentScene
+  , redSpan
+  , textAreaColor
   )
 
 -- Standard
@@ -76,8 +81,12 @@ type alias SceneUtilModel a = {a | mdl : Material.Model, flags : Flags, sceneSta
 
 type alias Index = List Int  -- elm-mdl doesn't expose this type.
 
+-- REVIEW: Rename segueTo to push, to match pop?
 segueTo : Scene -> Cmd Msg
 segueTo scene = send (WizardVector <| Push <| scene)
+
+pop : Cmd Msg
+pop = send (WizardVector <| Pop)
 
 sceneIsVisible : SceneUtilModel a -> Scene -> Bool
 sceneIsVisible model scene = (currentScene model) == scene
@@ -85,6 +94,14 @@ sceneIsVisible model scene = (currentScene model) == scene
 currentScene : SceneUtilModel a -> Scene
 currentScene model =
   List.Nonempty.head model.sceneStack
+
+{-| For values that can be automatically generated or manually entered. Such
+    values will begin as Auto and may be automatically regenerated as long as
+    they remain Auto. Once the user provides a value, they become Manual and
+    should no longer be automatically manipulated. -}
+type AutoMan a
+  = Auto a
+  | Manual a
 
 
 -----------------------------------------------------------------------------
@@ -164,6 +181,10 @@ sceneEmailField : SceneUtilModel a -> Index -> String -> String -> (String -> Ms
 sceneEmailField model index hint value msger =
   sceneGenericTextField model index hint value msger [Textfield.email]
 
+sceneTextArea : SceneUtilModel a -> Index -> String -> String -> Int -> (String -> Msg) -> Html Msg
+sceneTextArea model index hint value numRows msger =
+  sceneGenericTextField model index hint value msger [Textfield.textarea, Textfield.rows numRows]
+
 sceneCheckbox : SceneUtilModel a -> Index -> String -> Bool -> Msg -> Html Msg
 sceneCheckbox model index label value msger =
   -- Toggle.checkbox doesn't seem to handle centering very well. The following div compensates for that.
@@ -197,6 +218,10 @@ hspace : Int -> Html Msg
 hspace amount =
   div [style ["display" => "inline-block", "width" => (toString amount ++ "px")]] []
 
+redSpan : List (Html Msg) -> Html Msg
+redSpan inner =
+  span [style ["color"=>"red"]] inner
+
 
 -----------------------------------------------------------------------------
 -- STYLES
@@ -206,6 +231,9 @@ hspace amount =
 
 px : Int -> String
 px num = (toString num) ++ "px"
+
+pt : Int -> String
+pt num = (toString num) ++ "pt"
 
 sceneWidth = 800
 sceneHeight = 1280
@@ -309,3 +337,5 @@ sceneButtonCss =
   , css "padding-right" "30px"
   , css "font-size" "18pt"
   ]
+
+textAreaColor = "rgba(176,224,230,.2)"

@@ -390,6 +390,7 @@ class TaskNoteInline(admin.StackedInline):
 
 
 class WorkInline(admin.TabularInline):
+    raw_id_fields = ['witness']
     model = Work
     extra = 0
 
@@ -597,8 +598,8 @@ class WorkNoteInline(NoteInline):
 
 @admin.register(Work)
 class WorkAdmin(VersionAdmin):
-    raw_id_fields = ['claim']
-    list_display = ['pk', 'claim', 'work_date', 'work_duration']
+    raw_id_fields = ['claim', 'witness']
+    list_display = ['pk', 'claim', 'work_date', 'work_start_time', 'work_duration', 'witness']
     list_filter = [get_ScheduledDateListFilter_class('work_date')]
     date_hierarchy = 'work_date'
     search_fields = [

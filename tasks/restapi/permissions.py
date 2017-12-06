@@ -3,6 +3,7 @@
 
 # Third Party
 from django.contrib.auth.models import User
+from django.contrib.auth import authenticate
 from rest_framework import permissions
 from rest_framework.request import Request
 
@@ -114,13 +115,37 @@ class TaskPermission(permissions.BasePermission):
 # WORKS
 # ---------------------------------------------------------------------------
 
+# REVIEW: Is there a cleaner alternative?
+def get_resnum_from_url(resurl: str) -> int:
+    parts = resurl.split("/")
+    resnum = parts[-2]
+    return int(resnum)
+
+
 class WorkPermission(permissions.BasePermission):
 
-    def has_object_permission(self, request: Request, view, obj):
+    def has_object_permission(self, request: Request, view, obj: tm.Work) -> bool:
         memb = request.user.member  # type: mm.Member
+
+        # Only allow the witness to be set if
+        #  1) the request has the witness PW in a header, and
+        #  2) the witness name & pw authenticate.
+        if request.method in ("PUT", "PATCH"):
+            witness_url = request.data.get("witness")
+            if witness_url is not None:
+                witness_pw = request.META.get("HTTP_X_WITNESS_PW")
+                if witness_pw is None:
+                    return False
+                witness_id = get_resnum_from_url(witness_url)
+                try:
+                    witness = mm.Member.objects.get(id=witness_id)
+                except mm.Member.DoesNotExist:
+                    return False
+                if not authenticate(request, username=witness.username, password=witness_pw):
+                    return False
 
         if request.method in permissions.SAFE_METHODS:
             return True
 
         if type(obj) is tm.Work:
-            return memb == obj.claim.claiming_member
+            return memb == obj.claim.claiming_member or user_is_kiosk(request)

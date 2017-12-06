@@ -2,8 +2,7 @@
 # Standard
 import logging
 import abc
-from decimal import Decimal
-from datetime import date, timedelta, datetime  # TODO: Replace datetime with django.utils.timezone
+from datetime import date, timedelta, datetime, time  # TODO: Replace datetime with django.utils.timezone
 import re
 from typing import Optional
 
@@ -17,35 +16,36 @@ from django.utils.translation import ugettext_lazy as _
 from members import models as mm
 from abutils.deprecation import deprecated
 from abutils.time import days_of_week_str, matches_weekday_of_month_pattern
+from abutils.validators import positive_duration
 
 
 class TimeWindowedObject(object):
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
-    def window_start_time(self):
+    def window_start_time(self) -> Optional[time]:
         """The time at which the window opens. E.g. the start time of a meeting. Can be None."""
-        return
+        raise NotImplemented
 
     @abc.abstractmethod
-    def window_duration(self):
+    def window_duration(self) -> Optional[timedelta]:
         """How long the window stays open. E.g. the duration of a meeting. Can be None."""
-        return
+        raise NotImplemented
 
     @abc.abstractmethod
-    def window_sched_date(self):
+    def window_sched_date(self) -> Optional[date]:
         """The date (if any) on which the window exists. Can be None."""
-        return
+        raise NotImplemented
 
     @abc.abstractmethod
-    def window_short_desc(self):
+    def window_short_desc(self) -> str:
         """A short description of the activity that takes place during the time window. E.g name of meeting."""
-        return
+        raise NotImplemented
 
     @abc.abstractmethod
-    def window_deadline(self):
+    def window_deadline(self) -> Optional[date]:
         """If there'The last date onto which the window can extend"""
-        return
+        raise NotImplemented
 
     def window_start_datetime(self):
         windate = self.window_sched_date()
@@ -83,70 +83,63 @@ class TimeWindowedObject(object):
         return self.in_daterange_now()
 
 
-def make_TaskMixin(dest_class_alias):
-    """This function tunes the mix-in to avoid reverse accessor clashes.
--   The rest of the mix-in is identical for both Task and RecurringTaskTemplate.
--   """
+class TaskMixin(models.Model):
+    """Defines fields that are common between RecurringTaskTemplate and Task.
+    When a task is created from the template, these fields are copied from the template to the task.
+    Help text describes the fields in terms of their role in Task.
+    """
 
-    class TaskMixin(models.Model):
-        """Defines fields that are common between RecurringTaskTemplate and Task.
-        When a task is created from the template, these fields are copied from the template to the task.
-        Help text describes the fields in terms of their role in Task.
-        """
+    owner = models.ForeignKey(mm.Member, null=True, blank=True, related_name="owned_%(class)s",
+        on_delete=models.SET_NULL,
+        help_text="The member that asked for this task to be created or has taken responsibility for its content.<br/>This is almost certainly not the person who will claim the task and do the work.")
 
-        owner = models.ForeignKey(mm.Member, null=True, blank=True, related_name="owned_"+dest_class_alias,
-            on_delete=models.SET_NULL,
-            help_text="The member that asked for this task to be created or has taken responsibility for its content.<br/>This is almost certainly not the person who will claim the task and do the work.")
+    instructions = models.TextField(max_length=2048, blank=True,
+        help_text="Instructions for completing the task.")
 
-        instructions = models.TextField(max_length=2048, blank=True,
-            help_text="Instructions for completing the task.")
+    short_desc = models.CharField(max_length=40,
+        help_text="A short description/name for the task.")
 
-        short_desc = models.CharField(max_length=40,
-            help_text="A short description/name for the task.")
+    max_workers = models.IntegerField(default=1, null=False, blank=False,
+        help_text="The maximum number of members that can claim/work the task, often 1.")
 
-        max_workers = models.IntegerField(default=1, null=False, blank=False,
-            help_text="The maximum number of members that can claim/work the task, often 1.")
+    max_work = models.DurationField(null=False, blank=False,
+        help_text="The max total amount of hours that can be claimed/worked for this task.")
 
-        max_work = models.DurationField(null=False, blank=False,
-            help_text="The max total amount of hours that can be claimed/worked for this task.")
+    eligible_claimants = models.ManyToManyField(mm.Member, blank=True, related_name="claimable_%(class)s",
+        help_text="Anybody chosen is eligible to claim the task.<br/>")
 
-        eligible_claimants = models.ManyToManyField(mm.Member, blank=True, related_name="claimable_"+dest_class_alias,
-            help_text="Anybody chosen is eligible to claim the task.<br/>")
+    eligible_tags = models.ManyToManyField(mm.Tag, blank=True, related_name="claimable_%(class)s",
+        help_text="Anybody that has one of the chosen tags is eligible to claim the task.<br/>")
 
-        eligible_tags = models.ManyToManyField(mm.Tag, blank=True, related_name="claimable_"+dest_class_alias,
-            help_text="Anybody that has one of the chosen tags is eligible to claim the task.<br/>")
+    reviewer = models.ForeignKey(mm.Member, null=True, blank=True, related_name="reviewable_%(class)s",
+        on_delete=models.SET_NULL,
+        help_text="If required, a member who will review the work once its completed.")
 
-        reviewer = models.ForeignKey(mm.Member, null=True, blank=True, related_name="reviewable"+dest_class_alias,
-            on_delete=models.SET_NULL,
-            help_text="If required, a member who will review the work once its completed.")
+    work_start_time = models.TimeField(null=True, blank=True,
+        help_text="The time at which work on the task must begin. If time doesn't matter, leave blank.")
+    work_duration = models.DurationField(null=True, blank=True,
+        validators=[positive_duration],
+        help_text="Used with work_start_time to specify the time span over which work must occur. <br/>If work_start_time is blank then this should also be blank.")
 
-        # TODO: Maybe rename work_start_time -> window_start and work_duration -> window_size?
-        work_start_time = models.TimeField(null=True, blank=True,
-            help_text="The time at which work on the task must begin. If time doesn't matter, leave blank.")
-        work_duration = models.DurationField(null=True, blank=True,
-            help_text="Used with work_start_time to specify the time span over which work must occur. <br/>If work_start_time is blank then this should also be blank.")
+    PRIO_HIGH = "H"
+    PRIO_MED = "M"
+    PRIO_LOW = "L"
+    PRIORITY_CHOICES = [
+        (PRIO_HIGH, "High"),
+        (PRIO_MED, "Medium"),
+        (PRIO_LOW, "Low")
+    ]
+    priority = models.CharField(max_length=1, default=PRIO_MED, choices=PRIORITY_CHOICES,
+        help_text="The priority of the task, compared to other tasks.")
 
-        PRIO_HIGH = "H"
-        PRIO_MED = "M"
-        PRIO_LOW = "L"
-        PRIORITY_CHOICES = [
-            (PRIO_HIGH, "High"),
-            (PRIO_MED, "Medium"),
-            (PRIO_LOW, "Low")
-        ]
-        priority = models.CharField(max_length=1, default=PRIO_MED, choices=PRIORITY_CHOICES,
-            help_text="The priority of the task, compared to other tasks.")
+    should_nag = models.BooleanField(default=False,
+        help_text="If true, people will be encouraged to work the task via email messages.")
 
-        should_nag = models.BooleanField(default=False,
-            help_text="If true, people will be encouraged to work the task via email messages.")
-
-        class Meta:
-            abstract = True
-
-    return TaskMixin
+    class Meta:
+        abstract = True
 
 
-class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
+class RecurringTaskTemplate(TaskMixin):
     """Uses two mutually exclusive methods to define a schedule for recurring tasks.
     (1) A 'day-of-week vs nth-of-month' matrix for schedules like "every first and third Thursday"
     (2) A 'repeat delay' value for schedules like "every 30 days"
@@ -215,8 +208,6 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
             raise ValidationError(_("Choose either fourth week or last week, not both."))
         if self.every and (self.first or self.second or self.third or self.fourth or self.last):
             raise ValidationError(_("If you choose 'every week' don't choose any other weeks."))
-        if self.work_duration is not None and self.work_duration <= timedelta(0):
-            raise ValidationError(_("Duration must be greater than zero."))
 
     # TODO: greatest_orig_sched_date(self):
 
@@ -321,8 +312,8 @@ class RecurringTaskTemplate(make_TaskMixin("TaskTemplates")):
             if self.date_matches_template(curr):
 
                 # If task creation fails, log it and carry on.
+                t = None
                 try:
-                    t = None
                     t = Task.objects.create(
                         recurring_task_template =self,
                         creation_date           =date.today(),
@@ -483,8 +474,6 @@ class Claim(models.Model, TimeWindowedObject):
 class Work(models.Model):
     """Records work against a certain claim."""
 
-    # Note: Worker field removed since it's already available in claim.
-
     # Note: Time that work was done isn't very important at this point.  The member
     # is asserting that they worked inside whatever time constraints the task had.
 
@@ -493,16 +482,24 @@ class Work(models.Model):
         help_text="The claim against which the work is being reported.")
 
     work_date = models.DateField(null=False, blank=False,
-        help_text="The date on which the work was done.")
+        help_text="The date on which the work was started.")
 
-    work_duration = models.DurationField(null=False, blank=False,
-        help_text="The amount of time the member spent working.")
+    work_start_time = models.TimeField(
+        null=True, blank=True,  # This is not available for all historical data.
+        help_text="The time at which work began on the task.")
+
+    work_duration = models.DurationField(null=True, blank=True,
+        validators=[positive_duration],
+        help_text="Time spent working the task. Only blank if work is in progress or worker forgot to check out.")
+
+    witness = models.ForeignKey(mm.Member,
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        help_text="A director or officer that witnessed the work.")
 
     def clean(self):
         work = self; claim = work.claim; task = claim.claimed_task  # Makes it easier to read logic, below:
-        if work.work_duration <= timedelta(0):
-            raise ValidationError(_("Duration must be greater than zero."))
-        if work.work_duration > claim.claimed_duration:
+        if work.work_duration is not None and work.work_duration > claim.claimed_duration:
             raise ValidationError(_("Can't report more work than was claimed."))
 
     def __str__(self):
@@ -512,7 +509,7 @@ class Work(models.Model):
         verbose_name_plural = "Work"
 
 
-class Task(make_TaskMixin("Tasks"), TimeWindowedObject):
+class Task(TaskMixin, TimeWindowedObject):
 
     creation_date = models.DateField(null=False, default=date.today,
         help_text="The date on which this task was created in the database.")
@@ -663,7 +660,7 @@ class Task(make_TaskMixin("Tasks"), TimeWindowedObject):
         """
         result = set()
         for claim in self.claim_set.filter(status=status).all():
-            result |= set([claim.claiming_member])
+            result |= {claim.claiming_member}
         return result
 
     def create_default_claim(self):

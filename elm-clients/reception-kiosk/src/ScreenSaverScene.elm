@@ -177,7 +177,10 @@ timeoutFor scene =
     ScreenSaver -> 86400
     SignUpDone -> 300
     TaskList -> 300
-    VolunteerInDone -> 300  -- There may be a lot to read in the instructions.
+    TimeSheetPt1 -> 300
+    TimeSheetPt2 -> 300
+    TimeSheetPt3 -> 600  -- Give them some time to find a staffer.
+    VolunteerInDone -> 600  -- There may be a lot to read in the instructions.
     Waiver -> 600
     Welcome -> 60
 

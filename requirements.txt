@@ -21,7 +21,7 @@ django-object-actions==0.10.0
 
 # 2.0 or greater required for Django 1.8+
 # 2.0.9 supports up to Django 2.11
-django-reversion==2.0.10
+django-reversion==2.0.11
 
 django-sabayon==0.1.1
 django-storages==1.5.1

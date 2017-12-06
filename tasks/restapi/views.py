@@ -14,6 +14,7 @@ import tasks.models as tm
 import tasks.restapi.serializers as ts
 import tasks.restapi.permissions as tp
 import tasks.restapi.authenticators as ta
+import tasks.restapi.filter as filt
 from xis.utils import user_is_kiosk
 
 # ---------------------------------------------------------------------------
@@ -81,9 +82,13 @@ class WorkViewSet(viewsets.ModelViewSet):
     queryset = tm.Work.objects.all().order_by('id')
     serializer_class = ts.WorkSerializer
     permission_classes = [IsAuthenticated, tp.WorkPermission]
+    filter_class = filt.WorkFilter
 
     def get_queryset(self):
         memb = self.request.user.member
+
+        if user_is_kiosk(self.request):
+            return tm.Work.objects.all().order_by('id')
 
         if self.action is "list":
             # Filter to show only memb's work.

@@ -13,18 +13,21 @@ class ClaimSerializer(serializers.ModelSerializer):
 
     claimed_task = serializers.HyperlinkedRelatedField(
         view_name='task:task-detail',
-        queryset = tm.Task.objects.all()
+        queryset = tm.Task.objects.all(),
+        style={'base_template': 'input.html'},
     )
 
     claiming_member = serializers.HyperlinkedRelatedField(
         view_name='memb:member-detail',
-        queryset = mm.Member.objects.all()
+        queryset = mm.Member.objects.all(),
+        style={'base_template': 'input.html'},
     )
 
     work_set = serializers.HyperlinkedRelatedField(
         view_name='task:work-detail',
         read_only=True,
         many=True,
+        style={'base_template': 'input.html'},
     )
 
     class Meta:
@@ -78,7 +81,15 @@ class TaskSerializer(serializers.ModelSerializer):
 
 class WorkSerializer(serializers.ModelSerializer):
 
-    claim = serializers.HyperlinkedRelatedField(read_only=True, view_name='task:claim-detail')
+    claim = serializers.HyperlinkedRelatedField(
+        view_name='task:claim-detail',
+        queryset=tm.Claim.objects.all(),
+    )
+    witness = serializers.HyperlinkedRelatedField(
+        view_name='memb:member-detail',
+        queryset=mm.Member.objects.all(),
+        allow_null=True
+    )
 
     class Meta:
         model = tm.Work
@@ -86,6 +97,8 @@ class WorkSerializer(serializers.ModelSerializer):
             'id',
             'claim',
             'work_date',
+            'work_start_time',
             'work_duration',
+            'witness'
         )
 

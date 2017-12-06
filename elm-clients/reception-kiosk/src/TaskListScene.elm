@@ -27,7 +27,8 @@ import Wizard.SceneUtils exposing (..)
 import Types exposing (..)
 import CheckInScene exposing (CheckInModel)
 import Fetchable exposing (..)
-import DjangoRestFramework as DRF exposing (getIdFromUrl)
+import DjangoRestFramework as DRF
+import PointInTime exposing (PointInTime)
 
 
 -----------------------------------------------------------------------------
@@ -79,7 +80,7 @@ sceneWillAppear kioskModel appearingScene =
     ReasonForVisit ->
       -- Start fetching workable tasks b/c they *might* be on their way to this (TaskList) scene.
       let
-        currDate = Date.fromTime kioskModel.currTime
+        currDate = PointInTime.toCalendarDate kioskModel.currTime
         cmd = kioskModel.xisSession.getTaskList
           [ScheduledDateEquals currDate]
           (TaskListVector << TL_TaskListResult)
@@ -151,17 +152,17 @@ update msg kioskModel =
                 xis.putClaim
                   { c
                   | status = WorkingClaimStatus
-                  , claimedStartTime = Just <| DRF.clockTimeFromTime kioskModel.currTime
+                  --, claimedStartTime = Just <| DRF.clockTimeFromTime kioskModel.currTime
                   }
                   result2Msg
               Nothing ->
                 xis.postClaim
                   ( Claim
                       (Maybe.withDefault 0.0 task.workDuration)
-                      (Just <| DRF.clockTimeFromTime kioskModel.currTime)
+                      (Just <| PointInTime.toClockTime kioskModel.currTime)
                       (xis.taskUrl task.id)
                       (xis.memberUrl memberNum)
-                      (Just <| Date.fromTime kioskModel.currTime)
+                      (Just <| PointInTime.toCalendarDate kioskModel.currTime)
                       -1  -- REVIEW: Arbitrary because encoder ignores.
                       WorkingClaimStatus
                       []  -- REVIEW: Arbitrary because encoder ignores.
@@ -173,7 +174,23 @@ update msg kioskModel =
           ({sceneModel | badNews=["You must choose a task to work!"]}, Cmd.none)
 
     TL_ClaimUpsertResult (Ok claim) ->
-      (sceneModel, segueTo VolunteerInDone)
+      let
+        postWorkCmd =
+          xis.postWork
+            ( Work
+                (xis.claimUrl claim.id)  -- claim
+                -99  -- REVIEW: ID is arbitrary b/c it's not used by encodeClaim
+                Nothing  -- witness
+                (PointInTime.toCalendarDate kioskModel.currTime)  -- workDate
+                Nothing  -- WorkDuration
+                (Just <| PointInTime.toClockTime kioskModel.currTime)  -- WorkStartTime
+            )
+            (TaskListVector << TL_WorkInsertResult)
+      in
+        (sceneModel, postWorkCmd)
+
+    TL_WorkInsertResult (Ok claim) ->
+        (sceneModel, segueTo VolunteerInDone)
 
     -- -- -- -- ERROR HANDLERS -- -- -- --
 
@@ -181,6 +198,9 @@ update msg kioskModel =
       ({sceneModel | workableTasks=Failed (toString error)}, Cmd.none)
 
     TL_ClaimUpsertResult (Err error) ->
+      ({sceneModel | badNews=[toString error]}, Cmd.none)
+
+    TL_WorkInsertResult (Err error) ->
       ({sceneModel | badNews=[toString error]}, Cmd.none)
 
 

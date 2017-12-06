@@ -90,6 +90,7 @@ reasonString kioskModel reason =
     Curiousity -> "Checking out " ++ kioskModel.flags.orgName
     ClassParticipant -> "Attending a class or workshop"
     MemberPrivileges -> "Personal project"
+    ClubPrivileges -> "Club activity (FRC, VEX, PEC)"
     GuestOfMember -> "Guest of a paying member"
     Volunteer -> "Volunteering or staffing"
     Other -> "Other"
@@ -105,6 +106,7 @@ view kioskModel =
            [ ClassParticipant
            , Curiousity
            , MemberPrivileges
+           , ClubPrivileges
            , Volunteer
            , GuestOfMember
            , Other
