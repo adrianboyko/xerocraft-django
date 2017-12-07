@@ -79,17 +79,45 @@ class TaskSerializer(serializers.ModelSerializer):
         )
 
 
+class WorkNoteSerializer(serializers.ModelSerializer):
+
+    work = serializers.HyperlinkedRelatedField(
+        view_name='task:work-detail',
+        queryset=tm.Work.objects.all(),
+        style={'base_template': 'input.html'},
+    )
+
+    author = serializers.HyperlinkedRelatedField(
+        view_name='memb:member-detail',
+        queryset=mm.Member.objects.all(),
+        style={'base_template': 'input.html'},
+    )
+
+    class Meta:
+        model = tm.WorkNote
+        fields = (
+            'id',
+            'author',
+            'content',
+            'when_written',
+            'work',
+        )
+
+
 class WorkSerializer(serializers.ModelSerializer):
 
     claim = serializers.HyperlinkedRelatedField(
         view_name='task:claim-detail',
         queryset=tm.Claim.objects.all(),
+        style={'base_template': 'input.html'},
     )
     witness = serializers.HyperlinkedRelatedField(
         view_name='memb:member-detail',
         queryset=mm.Member.objects.all(),
-        allow_null=True
+        allow_null=True,
+        style = {'base_template': 'input.html'},
     )
+    notes = WorkNoteSerializer(many=True, read_only=True)
 
     class Meta:
         model = tm.Work
@@ -99,6 +127,8 @@ class WorkSerializer(serializers.ModelSerializer):
             'work_date',
             'work_start_time',
             'work_duration',
-            'witness'
+            'witness',
+            'notes',
         )
+
 

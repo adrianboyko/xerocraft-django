@@ -14,6 +14,7 @@ router = routers.DefaultRouter()
 router.register(r'tasks', restviews.TaskViewSet)
 router.register(r'claims', restviews.ClaimViewSet)
 router.register(r'works', restviews.WorkViewSet)
+router.register(r'worknotes', restviews.WorkNoteViewSet)
 
 urlpatterns = [
 
