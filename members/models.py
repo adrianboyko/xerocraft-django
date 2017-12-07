@@ -466,6 +466,7 @@ class VisitEvent(models.Model):
     REASON_CURIOUS = "CUR"
     REASON_CLASS = "CLS"
     REASON_MEMBER = "MEM"
+    REASON_CLUB = "CLB"
     REASON_GUEST = "GST"
     REASON_VOLUNTEER = "VOL"
     REASON_OTHER = "OTH"
@@ -473,6 +474,7 @@ class VisitEvent(models.Model):
         (REASON_CURIOUS, "Checking it out"),
         (REASON_CLASS, "Attending a class"),
         (REASON_MEMBER, "Membership privileges"),
+        (REASON_CLUB, "Club privileges"),
         (REASON_GUEST, "Guest of a member"),
         (REASON_VOLUNTEER, "Volunteering"),
         (REASON_OTHER, "Other"),
