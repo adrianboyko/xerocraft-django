@@ -102,16 +102,18 @@ type alias FilteringLister filter res msg =
 type alias Session msg =
   { claimUrl : Int -> ResourceUrl
   , coverTime : List Membership -> Time -> Bool
+  , createClaim : Creator Claim msg
+  , createWork : Creator Work msg
   , defaultBlockType : List TimeBlockType -> Maybe TimeBlockType
   , getBlocksTypes : TimeBlock -> List TimeBlockType -> List TimeBlockType
+  , getMembershipById : GetterById Membership msg
+  , getTaskById : GetterById Task msg
+  , getTaskFromUrl : GetterFromUrl Task msg
   , listClaims : FilteringLister ClaimListFilter Claim msg
   , listDiscoveryMethods : Lister DiscoveryMethod msg
   , listMembers : FilteringLister MemberListFilter Member msg
-  , getMembershipById : GetterById Membership msg
   , listMemberships : FilteringLister MembershipListFilter Membership msg
   , listTasks : FilteringLister TaskListFilter Task msg
-  , getTaskById : GetterById Task msg
-  , getTaskFromUrl : GetterFromUrl Task msg
   , listTimeBlocks : Lister TimeBlock msg
   , listTimeBlockTypes : Lister TimeBlockType msg
   , listWorks : FilteringLister WorkListFilter Work msg
@@ -121,8 +123,6 @@ type alias Session msg =
   , membersStatusOnTask : Int -> Task -> Maybe ClaimStatus
   , memberUrl : Int -> ResourceUrl
   , mostRecentMembership : List Membership -> Maybe Membership
-  , createClaim : Creator Claim msg
-  , createWork : Creator Work msg
   , replaceClaim : Replacer Claim msg
   , replaceWork : Replacer Work msg
   , replaceWorkWithHeaders : List Http.Header -> Replacer Work msg
@@ -134,16 +134,18 @@ createSession : XisRestFlags a -> Session msg
 createSession flags =
   { claimUrl = urlFromId flags.claimListUrl
   , coverTime = coverTime
+  , createClaim = createClaim flags
+  , createWork = createWork flags
   , defaultBlockType = defaultBlockType
   , getBlocksTypes = getBlocksTypes
+  , getMembershipById = getMembershipById flags
+  , getTaskById = getTaskById flags
+  , getTaskFromUrl = getTaskFromUrl flags
   , listClaims = listClaims flags
   , listDiscoveryMethods = listDiscoveryMethods flags
   , listMembers = listMembers flags
-  , getMembershipById = getMembershipById flags
   , listMemberships = listMemberships flags
   , listTasks = listTasks flags
-  , getTaskById = getTaskById flags
-  , getTaskFromUrl = getTaskFromUrl flags
   , listTimeBlocks = listTimeBlocks flags
   , listTimeBlockTypes = listTimeBlockTypes flags
   , listWorks = listWorks flags
@@ -153,8 +155,6 @@ createSession flags =
   , membersStatusOnTask = membersStatusOnTask flags
   , memberUrl = urlFromId flags.memberListUrl
   , mostRecentMembership = mostRecentMembership
-  , createClaim = createClaim flags
-  , createWork = createWork flags
   , replaceClaim = replaceClaim flags
   , replaceWork = replaceWorkWithHeaders flags []
   , replaceWorkWithHeaders = replaceWorkWithHeaders flags
