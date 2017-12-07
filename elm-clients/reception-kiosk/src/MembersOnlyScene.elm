@@ -83,10 +83,10 @@ sceneWillAppear kioskModel appearingScene =
       let
         memberNum = kioskModel.checkInModel.memberNum
         xis = kioskModel.xisSession
-        cmd1 = xis.getTimeBlockList (MembersOnlyVector << UpdateTimeBlocks)
+        cmd1 = xis.listTimeBlocks (MembersOnlyVector << UpdateTimeBlocks)
         filters = [MembershipsWithMemberIdEqualTo memberNum]
-        cmd2 = xis.getMembershipList filters (MembersOnlyVector << UpdateMemberships)
-        cmd3 = xis.getTimeBlockTypeList (MembersOnlyVector << UpdateTimeBlockTypes)
+        cmd2 = xis.listMemberships filters (MembersOnlyVector << UpdateMemberships)
+        cmd3 = xis.listTimeBlockTypes (MembersOnlyVector << UpdateTimeBlockTypes)
       in
         (sceneModel, Cmd.batch [cmd1, cmd2, cmd3])
 

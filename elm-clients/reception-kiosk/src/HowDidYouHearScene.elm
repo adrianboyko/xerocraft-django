@@ -59,7 +59,7 @@ sceneWillAppear kioskModel appearingScene =
     Welcome ->
       let
         sceneModel = kioskModel.howDidYouHearModel
-        getDMs = kioskModel.xisSession.getDiscoveryMethodList
+        getDMs = kioskModel.xisSession.listDiscoveryMethods
         request = getDMs (HowDidYouHearVector << AccDiscoveryMethods)
       in
         ({sceneModel | discoveryMethods = []}, request)

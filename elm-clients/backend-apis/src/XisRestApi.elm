@@ -72,22 +72,22 @@ type alias XisRestFlags a =
   , workListUrl : ResourceListUrl
   }
 
-type alias ResourceGetterById res msg =
+type alias GetterById res msg =
   Int -> (Result Http.Error res -> msg) -> Cmd msg
 
-type alias ResourceGetterFromUrl res msg =
+type alias GetterFromUrl res msg =
   ResourceUrl -> (Result Http.Error res -> msg) -> Cmd msg
 
-type alias ResourcePutter res msg =
+type alias Replacer res msg =
   res -> (Result Http.Error res -> msg) -> Cmd msg
 
-type alias ResourcePoster res msg =
+type alias Creator res msg =
   res -> (Result Http.Error res -> msg) -> Cmd msg
 
-type alias ListGetter res msg =
+type alias Lister res msg =
   (Result Http.Error (PageOf res) -> msg) -> Cmd msg
 
-type alias FilteredListGetter filter res msg =
+type alias FilteringLister filter res msg =
   List filter -> (Result Http.Error (PageOf res) -> msg) -> Cmd msg
 
 
@@ -104,28 +104,28 @@ type alias Session msg =
   , coverTime : List Membership -> Time -> Bool
   , defaultBlockType : List TimeBlockType -> Maybe TimeBlockType
   , getBlocksTypes : TimeBlock -> List TimeBlockType -> List TimeBlockType
-  , getClaimList : FilteredListGetter ClaimListFilter Claim msg
-  , getDiscoveryMethodList : ListGetter DiscoveryMethod msg
-  , getMemberList : FilteredListGetter MemberListFilter Member msg
-  , getMembershipById : ResourceGetterById Membership msg
-  , getMembershipList : FilteredListGetter MembershipListFilter Membership msg
-  , getTaskList : FilteredListGetter TaskListFilter Task msg
-  , getTaskById : ResourceGetterById Task msg
-  , getTaskFromUrl : ResourceGetterFromUrl Task msg
-  , getTimeBlockList : ListGetter TimeBlock msg
-  , getTimeBlockTypeList : ListGetter TimeBlockType msg
-  , getWorkList : FilteredListGetter WorkListFilter Work msg
+  , listClaims : FilteringLister ClaimListFilter Claim msg
+  , listDiscoveryMethods : Lister DiscoveryMethod msg
+  , listMembers : FilteringLister MemberListFilter Member msg
+  , getMembershipById : GetterById Membership msg
+  , listMemberships : FilteringLister MembershipListFilter Membership msg
+  , listTasks : FilteringLister TaskListFilter Task msg
+  , getTaskById : GetterById Task msg
+  , getTaskFromUrl : GetterFromUrl Task msg
+  , listTimeBlocks : Lister TimeBlock msg
+  , listTimeBlockTypes : Lister TimeBlockType msg
+  , listWorks : FilteringLister WorkListFilter Work msg
   , memberCanClaimTask : Int -> Task -> Bool
   , memberHasStatusOnTask : Int -> ClaimStatus -> Task -> Bool
   , membersClaimOnTask : Int -> Task -> Maybe Claim
   , membersStatusOnTask : Int -> Task -> Maybe ClaimStatus
   , memberUrl : Int -> ResourceUrl
   , mostRecentMembership : List Membership -> Maybe Membership
-  , postClaim : ResourcePoster Claim msg
-  , postWork : ResourcePoster Work msg
-  , putClaim : ResourcePutter Claim msg
-  , putWork : ResourcePutter Work msg
-  , putWorkWithHeaders : List Http.Header -> ResourcePutter Work msg
+  , createClaim : Creator Claim msg
+  , createWork : Creator Work msg
+  , replaceClaim : Replacer Claim msg
+  , replaceWork : Replacer Work msg
+  , replaceWorkWithHeaders : List Http.Header -> Replacer Work msg
   , taskUrl : Int -> ResourceUrl
   , workUrl : Int -> ResourceUrl
   }
@@ -136,28 +136,28 @@ createSession flags =
   , coverTime = coverTime
   , defaultBlockType = defaultBlockType
   , getBlocksTypes = getBlocksTypes
-  , getClaimList = getClaimList flags
-  , getDiscoveryMethodList = getDiscoveryMethodList flags
-  , getMemberList = getMemberList flags
+  , listClaims = listClaims flags
+  , listDiscoveryMethods = listDiscoveryMethods flags
+  , listMembers = listMembers flags
   , getMembershipById = getMembershipById flags
-  , getMembershipList = getMembershipList flags
-  , getTaskList = getTaskList flags
+  , listMemberships = listMemberships flags
+  , listTasks = listTasks flags
   , getTaskById = getTaskById flags
   , getTaskFromUrl = getTaskFromUrl flags
-  , getTimeBlockList = getTimeBlockList flags
-  , getTimeBlockTypeList = getTimeBlockTypeList flags
-  , getWorkList = getWorkList flags
+  , listTimeBlocks = listTimeBlocks flags
+  , listTimeBlockTypes = listTimeBlockTypes flags
+  , listWorks = listWorks flags
   , memberCanClaimTask = memberCanClaimTask flags
   , memberHasStatusOnTask = memberHasStatusOnTask flags
   , membersClaimOnTask = membersClaimOnTask flags
   , membersStatusOnTask = membersStatusOnTask flags
   , memberUrl = urlFromId flags.memberListUrl
   , mostRecentMembership = mostRecentMembership
-  , postClaim = postClaim flags
-  , postWork = postWork flags
-  , putClaim = putClaim flags
-  , putWork = putWorkWithHeaders flags []
-  , putWorkWithHeaders = putWorkWithHeaders flags
+  , createClaim = createClaim flags
+  , createWork = createWork flags
+  , replaceClaim = replaceClaim flags
+  , replaceWork = replaceWorkWithHeaders flags []
+  , replaceWorkWithHeaders = replaceWorkWithHeaders flags
   , taskUrl = urlFromId flags.taskListUrl
   , workUrl = urlFromId flags.workListUrl
   }
@@ -204,8 +204,8 @@ taskListFilterToString filter =
     ScheduledDateEquals d -> "scheduled_date=" ++ (CalendarDate.toString d)
 
 
-getTaskList : XisRestFlags a -> FilteredListGetter TaskListFilter Task msg
-getTaskList flags filters resultToMsg =
+listTasks : XisRestFlags a -> FilteringLister TaskListFilter Task msg
+listTasks flags filters resultToMsg =
   let
     request = httpGetRequest
       flags.uniqueKioskId
@@ -215,13 +215,13 @@ getTaskList flags filters resultToMsg =
     Http.send resultToMsg request
 
 
-getTaskById : XisRestFlags a -> ResourceGetterById Task msg
+getTaskById : XisRestFlags a -> GetterById Task msg
 getTaskById flags taskNum resultToMsg =
   let url = urlFromId flags.taskListUrl taskNum
   in getTaskFromUrl flags url resultToMsg
 
 
-getTaskFromUrl : XisRestFlags a -> ResourceGetterFromUrl Task msg
+getTaskFromUrl : XisRestFlags a -> GetterFromUrl Task msg
 getTaskFromUrl flags url resultToMsg =
   let
     request = httpGetRequest flags.uniqueKioskId url decodeTask
@@ -229,7 +229,7 @@ getTaskFromUrl flags url resultToMsg =
     Http.send resultToMsg request
 
 
---putTask : XisRestFlags a -> ResourcePutter Task msg
+--putTask : XisRestFlags a -> Replacer Task msg
 --putTask flags task resultToMsg =
 --  let
 --    request = Http.request
@@ -369,8 +369,8 @@ claimListFilterToString filter =
     ClaimedTaskEquals taskNum -> "claimed_task=" ++ (toString taskNum)
 
 
-getClaimList : XisRestFlags a -> FilteredListGetter ClaimListFilter Claim msg
-getClaimList flags filters resultToMsg =
+listClaims : XisRestFlags a -> FilteringLister ClaimListFilter Claim msg
+listClaims flags filters resultToMsg =
   let
     request = httpGetRequest
       flags.uniqueKioskId
@@ -433,8 +433,8 @@ encodeClaim claim =
     ]
 
 
-putClaim : XisRestFlags a -> ResourcePutter Claim msg
-putClaim flags claim resultToMsg =
+replaceClaim : XisRestFlags a -> Replacer Claim msg
+replaceClaim flags claim resultToMsg =
   let
     request = Http.request
       { method = "PUT"
@@ -449,8 +449,8 @@ putClaim flags claim resultToMsg =
     Http.send resultToMsg request
 
 
-postClaim : XisRestFlags a -> ResourcePutter Claim msg
-postClaim flags claim resultToMsg =
+createClaim : XisRestFlags a -> Replacer Claim msg
+createClaim flags claim resultToMsg =
   let
     request = Http.request
       { method = "POST"
@@ -502,8 +502,8 @@ workListFilterToString filter =
     WorkDurationIsNull setting -> "work_duration__isnull=" ++ (setting |> toString |> String.toLower)
 
 
-getWorkList : XisRestFlags a -> FilteredListGetter WorkListFilter Work msg
-getWorkList flags filters resultToMsg =
+listWorks : XisRestFlags a -> FilteringLister WorkListFilter Work msg
+listWorks flags filters resultToMsg =
   let
     request = httpGetRequest
       flags.uniqueKioskId
@@ -513,8 +513,8 @@ getWorkList flags filters resultToMsg =
     Http.send resultToMsg request
 
 
-postWork : XisRestFlags a -> ResourcePutter Work msg
-postWork flags work resultToMsg =
+createWork : XisRestFlags a -> Replacer Work msg
+createWork flags work resultToMsg =
   let
     request = Http.request
       { method = "POST"
@@ -530,8 +530,8 @@ postWork flags work resultToMsg =
 
 
 -- If "witness" is provided, the witness's password needs to be in an X-Witness-PW header.
-putWorkWithHeaders : XisRestFlags a -> List Http.Header -> ResourcePutter Work msg
-putWorkWithHeaders flags headers work resultToMsg =
+replaceWorkWithHeaders : XisRestFlags a -> List Http.Header -> Replacer Work msg
+replaceWorkWithHeaders flags headers work resultToMsg =
   let
     request = Http.request
       { method = "PUT"
@@ -597,8 +597,8 @@ memberListFilterToString filter =
     UsernameEquals s -> "auth_user__username=" ++ s
 
 
-getMemberList : XisRestFlags a -> FilteredListGetter MemberListFilter Member msg
-getMemberList flags filters resultToMsg =
+listMembers : XisRestFlags a -> FilteringLister MemberListFilter Member msg
+listMembers flags filters resultToMsg =
   let
     request = httpGetRequest
       flags.uniqueKioskId
@@ -635,8 +635,8 @@ type alias TimeBlockType =
   }
 
 
-getTimeBlockTypeList : XisRestFlags a -> ListGetter TimeBlockType msg
-getTimeBlockTypeList model resultToMsg =
+listTimeBlockTypes : XisRestFlags a -> Lister TimeBlockType msg
+listTimeBlockTypes model resultToMsg =
   let request = Http.get model.timeBlockTypesUrl (decodePageOf decodeTimeBlockType)
   in Http.send resultToMsg request
 
@@ -681,8 +681,8 @@ type alias TimeBlock =
   }
 
 
-getTimeBlockList : XisRestFlags a -> ListGetter TimeBlock msg
-getTimeBlockList model resultToMsg =
+listTimeBlocks : XisRestFlags a -> Lister TimeBlock msg
+listTimeBlocks model resultToMsg =
   let request = Http.get model.timeBlocksUrl (decodePageOf decodeTimeBlock)
   in Http.send resultToMsg request
 
@@ -745,8 +745,8 @@ membershipListFilterToString filter =
     MembershipsWithMemberIdEqualTo id -> "member=" ++ (toString id)
 
 
-getMembershipList : XisRestFlags a -> FilteredListGetter MembershipListFilter Membership msg
-getMembershipList flags filters resultToMsg =
+listMemberships : XisRestFlags a -> FilteringLister MembershipListFilter Membership msg
+listMemberships flags filters resultToMsg =
   let
     request = httpGetRequest
       flags.uniqueKioskId
@@ -756,13 +756,13 @@ getMembershipList flags filters resultToMsg =
     Http.send resultToMsg request
 
 
-getMembershipById : XisRestFlags a -> ResourceGetterById Membership msg
+getMembershipById : XisRestFlags a -> GetterById Membership msg
 getMembershipById flags memberNum resultToMsg =
   let url = urlFromId flags.memberListUrl memberNum
   in getMembershipFromUrl flags url resultToMsg
 
 
-getMembershipFromUrl : XisRestFlags a -> ResourceGetterFromUrl Membership msg
+getMembershipFromUrl : XisRestFlags a -> GetterFromUrl Membership msg
 getMembershipFromUrl flags url resultToMsg =
   let
     request = httpGetRequest
@@ -823,8 +823,8 @@ type alias DiscoveryMethod =
   }
 
 
-getDiscoveryMethodList : XisRestFlags a -> ListGetter DiscoveryMethod msg
-getDiscoveryMethodList model resultToMsg =
+listDiscoveryMethods : XisRestFlags a -> Lister DiscoveryMethod msg
+listDiscoveryMethods model resultToMsg =
   let request = Http.get model.discoveryMethodsUrl (decodePageOf decodeDiscoveryMethod)
   in Http.send resultToMsg request
 

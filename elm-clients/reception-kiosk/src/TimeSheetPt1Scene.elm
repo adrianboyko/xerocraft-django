@@ -97,7 +97,7 @@ sceneWillAppear kioskModel appearingScene =
       else
         let
           memberNum = kioskModel.checkOutModel.checkedOutMemberNum
-          cmd = kioskModel.xisSession.getClaimList
+          cmd = kioskModel.xisSession.listClaims
             [ ClaimingMemberEquals memberNum
             , ClaimStatusEquals WorkingClaimStatus
             ]
@@ -133,7 +133,7 @@ update msg kioskModel =
               [ xis.getTaskFromUrl
                   c.claimedTask
                   (TimeSheetPt1Vector << TS1_WorkingTaskResult)
-              , xis.getWorkList
+              , xis.listWorks
                   [WorkedClaimEquals c.id, WorkDurationIsNull True]
                   (TimeSheetPt1Vector << TS1_WipResult)
               ]

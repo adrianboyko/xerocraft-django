@@ -127,7 +127,7 @@ update msg kioskModel =
           ({sceneModel | badNews = ["Witness name and password must be provided."]}, Cmd.none)
         else
           let
-            cmd = xis.getMemberList [UsernameEquals wName] (TimeSheetPt3Vector << TS3_WitnessSearchResult)
+            cmd = xis.listMembers [UsernameEquals wName] (TimeSheetPt3Vector << TS3_WitnessSearchResult)
           in
             (sceneModel, cmd)
 
@@ -147,7 +147,7 @@ update msg kioskModel =
                 workDur = Maybe.map ((*) Duration.hour) w.workDuration
                 workMod = {w | witness=witnessUrl, workDuration=workDur}
                 witnessHeader = Http.header "X-Witness-PW" sceneModel.witnessPassword
-                cmd = xis.putWorkWithHeaders [witnessHeader] workMod
+                cmd = xis.replaceWorkWithHeaders [witnessHeader] workMod
                   (TimeSheetPt3Vector << TS3_WorkUpdated)
               in
                 ({sceneModel | badNews=[]}, cmd)
@@ -163,7 +163,7 @@ update msg kioskModel =
           let
             -- TODO: Task might not be done. Work might be stopping for now.
             claimMod = {c | status=DoneClaimStatus}
-            cmd = xis.putClaim claimMod (TimeSheetPt3Vector << TS3_ClaimUpdated)
+            cmd = xis.replaceClaim claimMod (TimeSheetPt3Vector << TS3_ClaimUpdated)
           in
             ({sceneModel | badNews=[]}, cmd)
 

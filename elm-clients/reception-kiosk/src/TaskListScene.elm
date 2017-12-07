@@ -81,7 +81,7 @@ sceneWillAppear kioskModel appearingScene =
       -- Start fetching workable tasks b/c they *might* be on their way to this (TaskList) scene.
       let
         currDate = PointInTime.toCalendarDate kioskModel.currTime
-        cmd = kioskModel.xisSession.getTaskList
+        cmd = kioskModel.xisSession.listTasks
           [ScheduledDateEquals currDate]
           (TaskListVector << TL_TaskListResult)
       in
@@ -149,14 +149,14 @@ update msg kioskModel =
             existingClaim = xis.membersClaimOnTask memberNum task
             upsertCmd = case existingClaim of
               Just c ->
-                xis.putClaim
+                xis.replaceClaim
                   { c
                   | status = WorkingClaimStatus
                   --, claimedStartTime = Just <| DRF.clockTimeFromTime kioskModel.currTime
                   }
                   result2Msg
               Nothing ->
-                xis.postClaim
+                xis.createClaim
                   ( Claim
                       (Maybe.withDefault 0.0 task.workDuration)
                       (Just <| PointInTime.toClockTime kioskModel.currTime)
@@ -175,8 +175,8 @@ update msg kioskModel =
 
     TL_ClaimUpsertResult (Ok claim) ->
       let
-        postWorkCmd =
-          xis.postWork
+        createWorkCmd =
+          xis.createWork
             ( Work
                 (xis.claimUrl claim.id)  -- claim
                 -99  -- REVIEW: ID is arbitrary b/c it's not used by encodeClaim
@@ -187,7 +187,7 @@ update msg kioskModel =
             )
             (TaskListVector << TL_WorkInsertResult)
       in
-        (sceneModel, postWorkCmd)
+        (sceneModel, createWorkCmd)
 
     TL_WorkInsertResult (Ok claim) ->
         (sceneModel, segueTo VolunteerInDone)
