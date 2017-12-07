@@ -30,6 +30,8 @@ import ClockTime exposing (ClockTime)
 idxTimeSheetPt2 = mdlIdBase TimeSheetPt2
 idxOtherWorkDesc = [idxTimeSheetPt2, 1]
 
+moreInfoReqd = "Please provide more information about the work you did."
+
 
 -----------------------------------------------------------------------------
 -- INIT
@@ -114,7 +116,10 @@ update msg kioskModel =
       ({sceneModel | otherWorkDesc = s}, Cmd.none)
 
     TS2_Continue ->
-      (sceneModel, segueTo TimeSheetPt3)
+      if (sceneModel.otherWorkDesc |> String.trim |> String.length) < 10 then
+        ({sceneModel | badNews=[moreInfoReqd]}, Cmd.none)
+      else
+        (sceneModel, segueTo TimeSheetPt3)
 
 
 -----------------------------------------------------------------------------

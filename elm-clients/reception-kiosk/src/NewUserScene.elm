@@ -10,6 +10,7 @@ import Time exposing (Time)
 
 -- Local
 import MembersApi as MembersApi
+import XisRestApi as XisApi
 import Wizard.SceneUtils exposing (..)
 import Types exposing (..)
 import NewMemberScene exposing (NewMemberModel)
@@ -57,7 +58,7 @@ update msg kioskModel =
   in case msg of
 
     UpdateUserName newVal ->
-      let djangoizedVal = MembersApi.djangoizeId newVal
+      let djangoizedVal = XisApi.djangoizeId newVal
       in ({sceneModel | userName = djangoizedVal}, Cmd.none)
 
     UpdatePassword1 newVal ->

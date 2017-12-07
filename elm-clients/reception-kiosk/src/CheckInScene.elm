@@ -24,6 +24,7 @@ import Material.Options as Options exposing (css)
 import Types exposing (..)
 import Wizard.SceneUtils exposing (..)
 import MembersApi as MembersApi
+import XisRestApi as XisApi
 
 -- TODO: Before user types flexid, could show usernames of recent RFID swipers?
 -- TODO: If user is signing in after acct creation, show a username hint?
@@ -90,7 +91,7 @@ update msg kioskModel =
 
     UpdateFlexId rawId ->
       let
-        id = MembersApi.djangoizeId rawId
+        id = XisApi.djangoizeId rawId
         getMatchingAccts = MembersApi.getMatchingAccts kioskModel.flags
       in
         if (String.length id) > 1

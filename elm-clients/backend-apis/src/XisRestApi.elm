@@ -1,6 +1,7 @@
 module XisRestApi
   exposing
     ( createSession  -- Instantiate an API session
+    , djangoizeId
     , Claim
     , ClaimStatus (..)
     , ClaimListFilter (..)
@@ -850,3 +851,13 @@ filteredListUrl listUrl filters filterToString =
   in
     listUrl ++ filtersStr
 
+
+djangoizeId : String -> String
+djangoizeId rawId =
+  -- Django allows alphanumeric, _, @, +, . and -.
+  replaceAll {oldSub="[^-a-zA-Z0-9_@+.]", newSub="_"} rawId
+
+
+replaceAll : {oldSub : String, newSub : String} -> String -> String
+replaceAll {oldSub, newSub} whole =
+  Regex.replace Regex.All (regex oldSub) (\_ -> newSub) whole

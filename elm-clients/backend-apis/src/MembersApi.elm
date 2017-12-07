@@ -2,7 +2,6 @@ module MembersApi exposing
   ( createNewAcct
   , DiscoveryMethod
   , DiscoveryMethodInfo
-  , djangoizeId
   , getMatchingAccts
   , getCheckedInAccts
   , getRecentRfidEntries
@@ -36,11 +35,6 @@ import DjangoRestFramework exposing (PageOf, decodePageOf, authenticationHeader)
 -----------------------------------------------------------------------------
 -- UTILITIES
 -----------------------------------------------------------------------------
-
-djangoizeId : String -> String
-djangoizeId rawId =
-  -- Django allows alphanumeric, _, @, +, . and -.
-  replaceAll {oldSub="[^-a-zA-Z0-9_@+.]", newSub="_"} rawId
 
 replaceAll : {oldSub : String, newSub : String} -> String -> String
 replaceAll {oldSub, newSub} whole =

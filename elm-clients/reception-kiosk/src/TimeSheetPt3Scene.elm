@@ -113,7 +113,7 @@ update msg kioskModel =
   in case msg of
 
     TS3_UpdateWitnessUsername s ->
-      ({sceneModel | witnessUsername = s}, Cmd.none)
+      ({sceneModel | witnessUsername = XisApi.djangoizeId s}, Cmd.none)
 
     TS3_UpdateWitnessPassword s ->
       ({sceneModel | witnessPassword = s}, Cmd.none)
@@ -168,7 +168,8 @@ update msg kioskModel =
             ({sceneModel | badNews=[]}, cmd)
 
     TS3_ClaimUpdated (Ok claim) ->
-      (sceneModel, Cmd.none)
+      -- Everything worked. Scene is complete.
+      (sceneModel, segueTo CheckOutDone)
 
     -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
