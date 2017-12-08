@@ -157,6 +157,7 @@ durationToPythonRepr dhms =
 decodeDuration : Dec.Decoder Duration
 decodeDuration =
   Dec.string |> Dec.andThen
+    -- Could use Json.Decode.Extra.fromResult here, but that wouldn't allow friendlier error msg.
     ( \str ->
       case (durationFromPythonRepr str) of
         Ok dur -> Dec.succeed dur
