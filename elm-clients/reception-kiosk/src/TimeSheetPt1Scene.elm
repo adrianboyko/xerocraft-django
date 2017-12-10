@@ -131,7 +131,7 @@ update msg kioskModel =
           Just c ->
             Cmd.batch
               [ xis.getTaskFromUrl
-                  c.claimedTask
+                  c.data.claimedTask
                   (TimeSheetPt1Vector << TS1_WorkingTaskResult)
               , xis.listWorks
                   [WorkedClaimEquals c.id, WorkDurationIsNull True]
@@ -148,17 +148,17 @@ update msg kioskModel =
         Nothing -> ({sceneModel | workInProgress = Failed "Work record is missing!" }, Cmd.none)
         Just work ->
           let
-            workDur = Maybe.withDefault 0 work.workDuration
+            workDur = Maybe.withDefault 0 work.data.workDuration
             durScratch = workDur |> Time.inHours |> toString
-            revisedWork = {work | workDuration = Just workDur}
-            startCT = Maybe.withDefault (ClockTime 19 0) work.workStartTime
+            revisedWork = work |> setWorkDuration (Just workDur)
+            startCT = Maybe.withDefault (ClockTime 19 0) work.data.workStartTime
             startScratch = ClockTime.format "%I:%M %P" startCT
           in
-            ({ sceneModel
-             | workInProgress = Received (Just revisedWork)
-             , workDurationScratch = durScratch
-             , workStartScratch = startScratch
-             }
+            ( { sceneModel
+              | workInProgress = Received (Just revisedWork)
+              , workDurationScratch = durScratch
+              , workStartScratch = startScratch
+              }
             , Cmd.none
             )
 
@@ -171,7 +171,9 @@ update msg kioskModel =
 
           (Ok ct, Ok dur) ->
             let
-              revisedWIP = {work | workStartTime=Just ct, workDuration=Just dur}
+              wd = work.data
+              newData = {wd | workStartTime=Just ct, workDuration=Just dur}
+              revisedWIP = {work | data = newData}
               cmd = segueTo TimeSheetPt2
             in
               ({sceneModel | search=False, workInProgress=Received (Just revisedWIP), badNews=[]}, cmd)
@@ -238,7 +240,7 @@ receivedAll : KioskModel a -> XisApi.Task -> XisApi.Claim -> XisApi.Work -> Html
 receivedAll kioskModel task claim work =
   let
     sceneModel = kioskModel.timeSheetPt1Model
-    dateStr = CalendarDate.format "%a, %b %ddd" work.workDate
+    dateStr = CalendarDate.format "%a, %b %ddd" work.data.workDate
     today = PointInTime.toCalendarDate kioskModel.currTime
 
   in
@@ -250,10 +252,10 @@ receivedAll kioskModel task claim work =
 
       ( div []
         [ vspace 40
-        , text ("Task: \"" ++ task.shortDesc ++ "\"")
+        , text ("Task: \"" ++ task.data.shortDesc ++ "\"")
         , vspace 20
         , text ("Date: " ++ dateStr)
-        , if CalendarDate.equal today work.workDate then
+        , if CalendarDate.equal today work.data.workDate then
             vspace 0
           else
             span [pastWorkStyle] [vspace 5, text "(Note: This work was done in the past)"]

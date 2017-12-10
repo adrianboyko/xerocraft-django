@@ -109,7 +109,7 @@ update msg kioskModel =
       -- TODO: Deal with the possibility of paged results (i.e. next is not Nothing)?
       let
         -- "Other Work" is offered to everybody, whether or not they are explicitly eligible to work it:
-        otherWorkTaskTest task = task.shortDesc == "Other Work"
+        otherWorkTaskTest task = task.data.shortDesc == "Other Work"
         otherWorkTask = List.filter otherWorkTaskTest results
 
         -- The more normal case is to offer up tasks that the user can claim:
@@ -148,22 +148,21 @@ update msg kioskModel =
             result2Msg = TaskListVector << TL_ClaimUpsertResult
             existingClaim = xis.membersClaimOnTask memberNum task
             upsertCmd = case existingClaim of
+
               Just c ->
-                xis.replaceClaim
-                  { c
-                  | status = WorkingClaimStatus
-                  --, claimedStartTime = Just <| DRF.clockTimeFromTime kioskModel.currTime
-                  }
-                  result2Msg
+                let
+                  claimMod = c |> setStatus WorkingClaimStatus
+                in
+                  xis.replaceClaim claimMod result2Msg
+
               Nothing ->
                 xis.createClaim
-                  ( Claim
-                      (Maybe.withDefault 0.0 task.workDuration)
+                  ( ClaimData
+                      (Maybe.withDefault 0.0 task.data.workDuration)
                       (Just <| PointInTime.toClockTime kioskModel.currTime)
                       (xis.taskUrl task.id)
                       (xis.memberUrl memberNum)
                       (Just <| PointInTime.toCalendarDate kioskModel.currTime)
-                      -1  -- REVIEW: Arbitrary because encoder ignores.
                       WorkingClaimStatus
                       []  -- REVIEW: Arbitrary because encoder ignores.
                   )
@@ -177,9 +176,8 @@ update msg kioskModel =
       let
         createWorkCmd =
           xis.createWork
-            ( Work
+            ( WorkData
                 (xis.claimUrl claim.id)  -- claim
-                -99  -- REVIEW: ID is arbitrary b/c it's not used by encodeClaim
                 Nothing  -- witness
                 (PointInTime.toCalendarDate kioskModel.currTime)  -- workDate
                 Nothing  -- WorkDuration
@@ -268,7 +266,7 @@ taskChoices kioskModel tasks =
     div [taskListStyle]
       ([vspace 30] ++ List.indexedMap
         (\index wt ->
-          div [taskDivStyle (if wt.priority == HighPriority then "#ccffcc" else "#dddddd")]
+          div [taskDivStyle (if wt.data.priority == HighPriority then "#ccffcc" else "#dddddd")]
             [ Toggles.radio MdlVector [idxTaskListScene, index] kioskModel.mdl
               [ Toggles.value
                 (case sceneModel.selectedTask of
@@ -277,7 +275,7 @@ taskChoices kioskModel tasks =
                 )
               , Options.onToggle (TaskListVector <| TL_ToggleTask <| wt)
               ]
-              [text wt.shortDesc]
+              [text wt.data.shortDesc]
             ]
         )
         tasks

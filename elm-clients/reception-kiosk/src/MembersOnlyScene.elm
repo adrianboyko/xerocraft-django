@@ -31,19 +31,6 @@ import CalendarDate
 -- INIT
 -----------------------------------------------------------------------------
 
-type PaymentInfoState
-  = AskingIfMshipCurrent
-  | ConfirmingPaymentInfoSent
-  | ExplainingHowToPayNow
-
-type alias MembersOnlyModel =
-  { nowBlock : Fetchable (Maybe TimeBlock)
-  , allTypes : Fetchable (List TimeBlockType)
-  , memberships : Fetchable (List Membership)
-  , paymentInfoState : PaymentInfoState
-  , badNews : List String
-  }
-
 -- This type alias describes the type of kiosk model that this scene requires.
 type alias KioskModel a =
   (SceneUtilModel
@@ -55,6 +42,22 @@ type alias KioskModel a =
     , xisSession : XisApi.Session Msg
     }
   )
+
+
+type PaymentInfoState
+  = AskingIfMshipCurrent
+  | ConfirmingPaymentInfoSent
+  | ExplainingHowToPayNow
+
+
+type alias MembersOnlyModel =
+  { nowBlock : Fetchable (Maybe TimeBlock)
+  , allTypes : Fetchable (List TimeBlockType)
+  , memberships : Fetchable (List Membership)
+  , paymentInfoState : PaymentInfoState
+  , badNews : List String
+  }
+
 
 init : Flags -> (MembersOnlyModel, Cmd Msg)
 init flags =
@@ -117,7 +120,7 @@ haveSomethingToSay kioskModel =
       (Received (Just nowBlock), Received allTypes, Received memberships) ->
         let
           nowBlockTypes = kioskModel.xisSession.getBlocksTypes nowBlock allTypes
-          isMembersOnly = List.member membersOnlyStr (List.map .name nowBlockTypes)
+          isMembersOnly = List.member membersOnlyStr (List.map (.data >> .name) nowBlockTypes)
           membershipIsCurrent = xis.coverTime memberships kioskModel.currTime
         in
           isMembersOnly && not membershipIsCurrent
@@ -129,7 +132,7 @@ haveSomethingToSay kioskModel =
           defaultBlockType = kioskModel.xisSession.defaultBlockType allTypes
           isMembersOnly =
             case defaultBlockType of
-              Just bt -> bt.name == membersOnlyStr
+              Just bt -> bt.data.name == membersOnlyStr
               Nothing -> False
           current = xis.coverTime memberships kioskModel.currTime
         in
@@ -152,20 +155,18 @@ update msg kioskModel =
 
     -- SUCCESSFUL FETCHES --
 
-    UpdateTimeBlocks (Ok pageOfTimeBlocks) ->
+    UpdateTimeBlocks (Ok {results}) ->
       let
-        blocks = pageOfTimeBlocks.results
-        nowBlocks = List.filter .isNow blocks
+        nowBlocks = List.filter (.data >> .isNow) results
         nowBlock = List.head nowBlocks
       in
         ({sceneModel | nowBlock = Received nowBlock }, Cmd.none)
 
-    UpdateTimeBlockTypes (Ok pageOfTimeBlockTypes) ->
-      ({sceneModel | allTypes = Received pageOfTimeBlockTypes.results}, Cmd.none)
+    UpdateTimeBlockTypes (Ok {results}) ->
+      ({sceneModel | allTypes = Received results}, Cmd.none)
 
-    UpdateMemberships (Ok pageOfMemberships) ->
-      let memberships = pageOfMemberships.results
-      in ({sceneModel | memberships = Received memberships}, Cmd.none)
+    UpdateMemberships (Ok {results}) ->
+      ({sceneModel | memberships = Received results}, Cmd.none)
 
 
     -- FAILED FETCHES --
@@ -227,7 +228,7 @@ areYouCurrentContent kioskModel =
           paymentMsg = case mostRecent of
             Just mship ->
               "Our records show that your most recent membership has an expiration date of "
-              ++ CalendarDate.format "%d-%b-%Y" mship.endDate
+              ++ CalendarDate.format "%d-%b-%Y" mship.data.endDate
               ++ ". "
             Nothing ->
               "We have no record of previous payments by you. "

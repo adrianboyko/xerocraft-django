@@ -135,7 +135,7 @@ update msg kioskModel =
     TS3_WitnessSearchResult (Ok {results}) ->
       case sceneModel.records of
         Nothing -> ({sceneModel | badNews=[tcwMissingMsg]}, Cmd.none)
-        Just (t, c, w) ->
+        Just (_, _, w) ->
           case (List.length results) of
 
             0 ->
@@ -144,8 +144,8 @@ update msg kioskModel =
             1->
               let
                 witnessUrl = Maybe.map (\w -> xis.memberUrl w.id) (List.head results)
-                workDur = Maybe.map ((*) Duration.hour) w.workDuration
-                workMod = {w | witness=witnessUrl, workDuration=workDur}
+                workDur = Maybe.map ((*) Duration.hour) w.data.workDuration
+                workMod = w |> setWitness witnessUrl |> setWorkDuration workDur
                 witnessHeader = Http.header "X-Witness-PW" sceneModel.witnessPassword
                 cmd = xis.replaceWorkWithHeaders [witnessHeader] workMod
                   (TimeSheetPt3Vector << TS3_WorkUpdated)
@@ -159,15 +159,29 @@ update msg kioskModel =
     TS3_WorkUpdated (Ok work) ->
       case sceneModel.records of
         Nothing -> ({sceneModel | badNews=[tcwMissingMsg]}, Cmd.none)
-        Just (t, c, w) ->
+        Just (_, c, _) ->
           let
             -- TODO: Task might not be done. Work might be stopping for now.
-            claimMod = {c | status=DoneClaimStatus}
+            claimMod = c |> setStatus DoneClaimStatus
             cmd = xis.replaceClaim claimMod (TimeSheetPt3Vector << TS3_ClaimUpdated)
           in
             ({sceneModel | badNews=[]}, cmd)
 
     TS3_ClaimUpdated (Ok claim) ->
+      case sceneModel.records of
+        Nothing -> ({sceneModel | badNews=[tcwMissingMsg]}, Cmd.none)
+        Just (_, c, w) ->
+          let
+            noteData = XisApi.WorkNoteData
+              (Just c.data.claimingMember)
+              kioskModel.timeSheetPt2Model.otherWorkDesc
+              (xis.workUrl w.id)
+              kioskModel.currTime
+            cmd = xis.createWorkNote noteData (TimeSheetPt3Vector << TS3_WorkNoteCreated)
+          in
+            ({sceneModel | badNews=[]}, cmd)
+
+    TS3_WorkNoteCreated (Ok note) ->
       -- Everything worked. Scene is complete.
       (sceneModel, segueTo CheckOutDone)
 
@@ -191,6 +205,11 @@ update msg kioskModel =
         _ ->
           ({sceneModel | badNews=[toString e]}, Cmd.none)
 
+    TS3_WorkNoteCreated (Err e) ->
+      -- Failure to create the work description is non-critical so we'll carry on to next scene.
+      -- TODO: Create a backend logging facility so that failures like this can be noted via XisAPI
+      (sceneModel, segueTo CheckOutDone)
+
 
 -----------------------------------------------------------------------------
 -- VIEW
@@ -209,10 +228,10 @@ viewNormal kioskModel task claim work =
     pt2Model = kioskModel.timeSheetPt2Model
     sceneModel = kioskModel.timeSheetPt3Model
     today = PointInTime.toCalendarDate kioskModel.currTime
-    dateStr = CalendarDate.format "%a, %b %ddd" work.workDate
-    startTime = Maybe.withDefault (ClockTime 0 0) work.workStartTime  -- Should not be Nothing
+    dateStr = CalendarDate.format "%a, %b %ddd" work.data.workDate
+    startTime = Maybe.withDefault (ClockTime 0 0) work.data.workStartTime  -- Should not be Nothing
     startTimeStr = ClockTime.format "%I:%M %P" startTime
-    workDur = Maybe.withDefault 0 work.workDuration  -- Should not be Nothing
+    workDur = Maybe.withDefault 0 work.data.workDuration  -- Should not be Nothing
   in genericScene kioskModel
 
   "Volunteer Timesheet"
@@ -222,14 +241,14 @@ viewNormal kioskModel task claim work =
     ( div []
       [ vspace 50
       , div [infoToVerifyStyle]
-         [ text ("Task: \"" ++ task.shortDesc ++ "\"")
+         [ text ("Task: \"" ++ task.data.shortDesc ++ "\"")
          , vspace 20
          , text (dateStr ++ " @ " ++ startTimeStr ++ " for " ++ (toString workDur) ++ " hrs")
          , if String.length pt2Model.otherWorkDesc > 0
              then div [otherWorkDescStyle] [vspace 20, text pt2Model.otherWorkDesc]
              else text ""
          ]
-      , if CalendarDate.equal today work.workDate then
+      , if CalendarDate.equal today work.data.workDate then
           vspace 0
         else
           span [pastWorkStyle] [vspace 5, text "(Note: This work was done in the past)"]

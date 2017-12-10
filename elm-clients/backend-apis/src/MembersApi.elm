@@ -1,7 +1,5 @@
 module MembersApi exposing
   ( createNewAcct
-  , DiscoveryMethod
-  , DiscoveryMethodInfo
   , getMatchingAccts
   , getCheckedInAccts
   , getRecentRfidEntries
@@ -66,21 +64,6 @@ type alias MatchingAcct =
 type alias MatchingAcctInfo =
   { target : String
   , matches : List MatchingAcct
-  }
-
-type alias DiscoveryMethod =
-  { id : Int
-  , name : String
-  , order : Int
-  , visible : Bool
-  }
-
--- TODO: Move to XisRestApi and use PageOf
-type alias DiscoveryMethodInfo =
-  { count : Int
-  , next : Maybe String
-  , previous : Maybe String
-  , results : List DiscoveryMethod
   }
 
 type alias GenericResult =

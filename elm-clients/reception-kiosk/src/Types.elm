@@ -43,6 +43,7 @@ type alias Flags =
   , uniqueKioskId : String
   , wavingHandUrl : String
   , workListUrl : String
+  , workNoteListUrl : String
   , xcOrgActionUrl : String
   }
 
@@ -185,6 +186,7 @@ type TimeSheetPt3Msg
   | TS3_WitnessSearchResult (Result Http.Error (PageOf XisApi.Member))
   | TS3_ClaimUpdated (Result Http.Error XisApi.Claim)
   | TS3_WorkUpdated (Result Http.Error XisApi.Work)
+  | TS3_WorkNoteCreated (Result Http.Error XisApi.WorkNote)
 
 type WaiverMsg
   = ShowSignaturePad String

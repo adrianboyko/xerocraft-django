@@ -169,7 +169,6 @@ encodeDuration : Duration -> Enc.Value
 encodeDuration = Enc.string << durationToPythonRepr
 
 
-
 -----------------------------------------------------------------------------
 -- PAGES
 -----------------------------------------------------------------------------
@@ -181,6 +180,27 @@ decodePageOf decoder =
     |> required "next" (Dec.maybe Dec.string)
     |> required "previous" (Dec.maybe Dec.string)
     |> required "results" (Dec.list decoder)
+
+
+-----------------------------------------------------------------------------
+-- RESOURCES
+-----------------------------------------------------------------------------
+
+-- On the Elm side, resources have an id/data structure.
+
+type alias Resource a = { id : Int, data : a }
+
+-- On the Django side, resources have flat id+data structure.
+
+decodeResource : Dec.Decoder a -> Dec.Decoder (Resource a)
+decodeResource dataDecoder =
+  Dec.map2 Resource
+    (Dec.field "id" Dec.int)
+    dataDecoder
+
+encodeResource : (a -> List (String, Enc.Value)) -> Resource a -> Enc.Value
+encodeResource dataNVPer res =
+  Enc.object (("id", Enc.int res.id) :: (dataNVPer res.data))
 
 
 -----------------------------------------------------------------------------

@@ -84,7 +84,7 @@ sceneWillAppear kioskModel appearingScene vanishingScene =
           let
             records = Just (task, claim, work)
           in
-            if task.shortDesc == "Other Work" then
+            if task.data.shortDesc == "Other Work" then
               ({sceneModel | records=records}, Cmd.none)
             else
               -- User might be going forward OR BACKWARD in the wizard:
@@ -138,10 +138,10 @@ viewNormal kioskModel task claim work =
   let
     sceneModel = kioskModel.timeSheetPt2Model
     today = PointInTime.toCalendarDate kioskModel.currTime
-    dateStr = CalendarDate.format "%a, %b %ddd" work.workDate
-    startTime = Maybe.withDefault (ClockTime 0 0) work.workStartTime  -- Should not be Nothing
+    dateStr = CalendarDate.format "%a, %b %ddd" work.data.workDate
+    startTime = Maybe.withDefault (ClockTime 0 0) work.data.workStartTime  -- Should not be Nothing
     startTimeStr = ClockTime.format "%I:%M %P" startTime
-    workDur = Maybe.withDefault 0 work.workDuration  -- Should not be Nothing
+    workDur = Maybe.withDefault 0 work.data.workDuration  -- Should not be Nothing
   in genericScene kioskModel
 
   "Volunteer Timesheet"
@@ -151,7 +151,7 @@ viewNormal kioskModel task claim work =
     ( div []
       [ vspace 50
       , div [infoToVerifyStyle]
-         [ text ("Task: \"" ++ task.shortDesc ++ "\"")
+         [ text ("Task: \"" ++ task.data.shortDesc ++ "\"")
          , vspace 20
          , text (dateStr ++ " @ " ++ startTimeStr ++ " for " ++ (toString workDur) ++ " hrs")
          ]

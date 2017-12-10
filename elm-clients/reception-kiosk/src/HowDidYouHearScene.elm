@@ -14,7 +14,6 @@ import Material.Options as Options exposing (css)
 import Random.List
 
 -- Local
-import MembersApi as MembersApi
 import Wizard.SceneUtils exposing (..)
 import Types exposing (..)
 import XisRestApi as XisApi
@@ -23,12 +22,6 @@ import XisRestApi as XisApi
 -----------------------------------------------------------------------------
 -- INIT
 -----------------------------------------------------------------------------
-
-type alias HowDidYouHearModel =
-  { discoveryMethods : List MembersApi.DiscoveryMethod  -- Fetched from MembersApi
-  , selectedMethodPks : List Int
-  , badNews : List String
-  }
 
 -- This type alias describes the type of kiosk model that this scene requires.
 type alias KioskModel a =
@@ -40,10 +33,21 @@ type alias KioskModel a =
   )
 
 
+type alias HowDidYouHearModel =
+  { discoveryMethods : List XisApi.DiscoveryMethod
+  , selectedMethodPks : List Int
+  , badNews : List String
+  }
+
+
 init : Flags -> (HowDidYouHearModel, Cmd Msg)
 init flags =
   let
-    sceneModel = { discoveryMethods=[], selectedMethodPks=[], badNews=[] }
+    sceneModel =
+      { discoveryMethods = []
+      , selectedMethodPks = []
+      , badNews = []
+      }
   in
     (sceneModel, Cmd.none)
 
@@ -58,8 +62,9 @@ sceneWillAppear kioskModel appearingScene =
 
     Welcome ->
       let
+        xis = kioskModel.xisSession
         sceneModel = kioskModel.howDidYouHearModel
-        getDMs = kioskModel.xisSession.listDiscoveryMethods
+        getDMs = xis.listDiscoveryMethods
         request = getDMs (HowDidYouHearVector << AccDiscoveryMethods)
       in
         ({sceneModel | discoveryMethods = []}, request)
@@ -90,7 +95,7 @@ update msg kioskModel =
     ShuffledDiscoveryMethods shuffledMethods ->
       -- Slightly rearrange shuffled list to keep "Other" at the end.
       let
-        isOther dm = dm.name == "Other"
+        isOther dm = dm.data.name == "Other"
         other = ListX.find isOther shuffledMethods
         otherAtEnd =
           case other of
@@ -131,7 +136,7 @@ howDidYouHearChoices : KioskModel a -> Html Msg
 howDidYouHearChoices kioskModel =
   let
     sceneModel = kioskModel.howDidYouHearModel
-    visibleMethods = List.filter .visible sceneModel.discoveryMethods
+    visibleMethods = List.filter (.data >> .visible) sceneModel.discoveryMethods
     idBase = mdlIdBase HowDidYouHear
   in
     div [howDidYouHearStyle]
@@ -143,7 +148,7 @@ howDidYouHearChoices kioskModel =
                       [ Toggles.value (List.member dm.id sceneModel.selectedMethodPks)
                       , Options.onToggle (HowDidYouHearVector <| ToggleDiscoveryMethod <| dm)
                       ]
-                      [text dm.name]
+                      [text dm.data.name]
                 , vspace 30
                 ]
           )
