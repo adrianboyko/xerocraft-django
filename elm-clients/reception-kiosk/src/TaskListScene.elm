@@ -73,23 +73,31 @@ init flags =
 -- SCENE WILL APPEAR
 -----------------------------------------------------------------------------
 
-sceneWillAppear : KioskModel a -> Scene -> (TaskListModel, Cmd Msg)
-sceneWillAppear kioskModel appearingScene =
-  case appearingScene of
+sceneWillAppear : KioskModel a -> Scene -> Scene -> (TaskListModel, Cmd Msg)
+sceneWillAppear kioskModel appearingScene vanishingScene =
+  case (appearingScene, vanishingScene) of
 
-    ReasonForVisit ->
+    (ReasonForVisit, _) ->
       -- Start fetching workable tasks b/c they *might* be on their way to this (TaskList) scene.
-      let
-        currDate = PointInTime.toCalendarDate kioskModel.currTime
-        cmd = kioskModel.xisSession.listTasks
-          [ScheduledDateEquals currDate]
-          (TaskListVector << TL_TaskListResult)
-      in
-        (kioskModel.taskListModel, cmd)
+      getWorkableTasks kioskModel
+
+    (TaskList, VolunteerInDone) ->
+      -- User hit back button. Since workable task data was changed by prev visit to this scene, we need to reget it.
+      getWorkableTasks kioskModel
 
     _ ->
       (kioskModel.taskListModel, Cmd.none)
 
+getWorkableTasks : KioskModel a -> (TaskListModel, Cmd Msg)
+getWorkableTasks kioskModel =
+  let
+    sceneModel = kioskModel.taskListModel
+    currDate = PointInTime.toCalendarDate kioskModel.currTime
+    cmd = kioskModel.xisSession.listTasks
+      [ScheduledDateEquals currDate]
+      (TaskListVector << TL_TaskListResult)
+  in
+    ({sceneModel | workableTasks=Pending}, cmd)
 
 -----------------------------------------------------------------------------
 -- UPDATE
