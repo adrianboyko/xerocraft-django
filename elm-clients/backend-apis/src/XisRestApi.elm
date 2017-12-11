@@ -722,7 +722,7 @@ memberListFilterToString : MemberListFilter -> String
 memberListFilterToString filter =
   case filter of
     RfidNumberEquals n -> "rfidnum=" ++ (toString n)
-    UsernameEquals s -> "auth_user__username=" ++ s
+    UsernameEquals s -> "auth_user__username__iexact=" ++ s
 
 
 listMembers : XisRestFlags a -> FilteringLister MemberListFilter Member msg

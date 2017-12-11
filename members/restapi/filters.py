@@ -27,5 +27,5 @@ class MemberFilter(rf.FilterSet):
     class Meta:
         model = Member
         fields = {
-            'auth_user__username': ['exact'],
+            'auth_user__username': ['iexact'],
         }
