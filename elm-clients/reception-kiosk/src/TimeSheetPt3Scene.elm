@@ -172,12 +172,15 @@ update msg kioskModel =
         Nothing -> ({sceneModel | badNews=[tcwMissingMsg]}, Cmd.none)
         Just (_, c, w) ->
           let
+            pt2Model = kioskModel.timeSheetPt2Model
             noteData = XisApi.WorkNoteData
               (Just c.data.claimingMember)
-              kioskModel.timeSheetPt2Model.otherWorkDesc
+              pt2Model.otherWorkDesc
               (xis.workUrl w.id)
               kioskModel.currTime
-            cmd = xis.createWorkNote noteData (TimeSheetPt3Vector << TS3_WorkNoteCreated)
+            cmd = if String.length pt2Model.otherWorkDesc > 0
+              then xis.createWorkNote noteData (TimeSheetPt3Vector << TS3_WorkNoteCreated)
+              else segueTo CheckOutDone
           in
             ({sceneModel | badNews=[]}, cmd)
 
