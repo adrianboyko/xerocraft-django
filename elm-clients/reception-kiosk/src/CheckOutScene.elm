@@ -21,6 +21,7 @@ import MembersApi as MembersApi
 
 type alias CheckOutModel =
   { checkedInAccts : List MembersApi.MatchingAcct
+  , checkedOutMemberNum : Int
   , badNews : List String
   }
 
@@ -29,7 +30,11 @@ type alias KioskModel a = (SceneUtilModel {a | checkOutModel : CheckOutModel})
 
 init : Flags -> (CheckOutModel, Cmd Msg)
 init flags =
-  let model = { checkedInAccts=[], badNews=[] }
+  let model =
+    { checkedInAccts=[]
+    , checkedOutMemberNum = -99  -- A harmless initial value.
+    , badNews=[]
+    }
   in (model, Cmd.none)
 
 -----------------------------------------------------------------------------
@@ -68,13 +73,12 @@ update msg kioskModel =
         logDepartureEventFn = MembersApi.logDepartureEvent kioskModel.flags
         msg = CheckOutVector << LogCheckOutResult
         visitingMemberPk = memberNum
-        cmd1 = logDepartureEventFn visitingMemberPk msg
-        cmd2 = segueTo CheckOutDone
+        cmd = logDepartureEventFn visitingMemberPk msg
       in
-        (sceneModel, Cmd.batch [cmd1, cmd2])
+        ({sceneModel | checkedOutMemberNum = memberNum}, cmd)
 
     LogCheckOutResult (Ok {result}) ->
-      (sceneModel, segueTo CheckOutDone)
+      (sceneModel, segueTo TimeSheetPt1)
 
     LogCheckOutResult (Err error) ->
       ({sceneModel | badNews = [toString error]}, Cmd.none)

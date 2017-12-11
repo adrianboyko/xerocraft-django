@@ -7,6 +7,7 @@ import Date exposing (..)
 
 -- Third Party
 import Date.Extra.Create as DateXCreate
+import Date.Extra.Format as DateXFmt
 
 -- Local
 import ClockTime exposing (ClockTime)
@@ -46,6 +47,10 @@ toClockTime pt = ClockTime (hour pt) (minute pt)
 
 toCalendarDate: PointInTime -> CalendarDate
 toCalendarDate pt = CalendarDate (year pt) (month pt) (day pt)
+
+
+isoString: PointInTime -> String
+isoString = Date.fromTime >> DateXFmt.isoString
 
 
 ----------------------------------------------------------

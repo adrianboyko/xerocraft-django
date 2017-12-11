@@ -10,27 +10,29 @@ import Time exposing (Time, second)
 -- Third party
 import List.Nonempty exposing (Nonempty)
 import Material
-import Update.Extra.Infix exposing ((:>))
 
 -- Local
 import Types exposing (..)
-import CheckInScene as CheckInScene
-import CheckInDoneScene as CheckInDoneScene
-import CheckOutScene as CheckOutScene
-import CheckOutDoneScene as CheckOutDoneScene
-import CreatingAcctScene as CreatingAcctScene
-import EmailInUseScene as EmailInUseScene
-import HowDidYouHearScene as HowDidYouHearScene
-import SignUpDoneScene as SignUpDoneScene
-import MembersOnlyScene as MembersOnlyScene
-import NewMemberScene as NewMemberScene
-import NewUserScene as NewUserScene
-import ReasonForVisitScene as ReasonForVisitScene
-import ScreenSaverScene as ScreenSaverScene
-import TaskListScene as TaskListScene
-import VolunteerInDoneScene as VolunteerInDoneScene
-import WaiverScene as WaiverScene
-import WelcomeScene as WelcomeScene
+import CheckInScene
+import CheckInDoneScene
+import CheckOutScene
+import CheckOutDoneScene
+import CreatingAcctScene
+import EmailInUseScene
+import HowDidYouHearScene
+import SignUpDoneScene
+import MembersOnlyScene
+import NewMemberScene
+import NewUserScene
+import ReasonForVisitScene
+import ScreenSaverScene
+import TaskListScene
+import TimeSheetPt1Scene
+import TimeSheetPt2Scene
+import TimeSheetPt3Scene
+import VolunteerInDoneScene
+import WaiverScene
+import WelcomeScene
 import XisRestApi as XisApi
 
 -----------------------------------------------------------------------------
@@ -72,6 +74,9 @@ type alias Model =
   , newUserModel         : NewUserScene.NewUserModel
   , reasonForVisitModel  : ReasonForVisitScene.ReasonForVisitModel
   , taskListModel        : TaskListScene.TaskListModel
+  , timeSheetPt1Model    : TimeSheetPt1Scene.TimeSheetPt1Model
+  , timeSheetPt2Model    : TimeSheetPt2Scene.TimeSheetPt2Model
+  , timeSheetPt3Model    : TimeSheetPt3Scene.TimeSheetPt3Model
   , volunteerInDoneModel : VolunteerInDoneScene.VolunteerInDoneModel
   , waiverModel          : WaiverScene.WaiverModel
   , welcomeModel         : WelcomeScene.WelcomeModel
@@ -94,6 +99,9 @@ init f =
     (screenSaverModel,     screenSaverCmd    ) = ScreenSaverScene.init     f
     (signUpDoneModel,      signUpDoneCmd     ) = SignUpDoneScene.init      f
     (taskListModel,        taskListCmd       ) = TaskListScene.init        f
+    (timeSheetPt1Model,    timeSheetPt1Cmd   ) = TimeSheetPt1Scene.init    f
+    (timeSheetPt2Model,    timeSheetPt2Cmd   ) = TimeSheetPt2Scene.init    f
+    (timeSheetPt3Model,    timeSheetPt3Cmd   ) = TimeSheetPt3Scene.init    f
     (volunteerInDoneModel, volunteerInDoneCmd) = VolunteerInDoneScene.init f
     (waiverModel,          waiverCmd         ) = WaiverScene.init          f
     (welcomeModel,         welcomeCmd        ) = WelcomeScene.init         f
@@ -118,6 +126,9 @@ init f =
       , screenSaverModel     = screenSaverModel
       , signUpDoneModel      = signUpDoneModel
       , taskListModel        = taskListModel
+      , timeSheetPt1Model    = timeSheetPt1Model
+      , timeSheetPt2Model    = timeSheetPt2Model
+      , timeSheetPt3Model    = timeSheetPt3Model
       , volunteerInDoneModel = volunteerInDoneModel
       , waiverModel          = waiverModel
       , welcomeModel         = welcomeModel
@@ -136,6 +147,9 @@ init f =
       , reasonForVisitCmd
       , screenSaverCmd
       , taskListCmd
+      , timeSheetPt1Cmd
+      , timeSheetPt2Cmd
+      , timeSheetPt3Cmd
       , volunteerInDoneCmd
       , waiverCmd
       , welcomeCmd
@@ -161,13 +175,14 @@ update msg model =
   case msg of
 
     WizardVector wizMsg ->
-      case wizMsg of
+      let currScene = List.Nonempty.head model.sceneStack
+      in case wizMsg of
         Push nextScene ->
           -- Push the new scene onto the scene stack.
           let
             newModel = {model | sceneStack = List.Nonempty.cons nextScene model.sceneStack }
           in
-            (newModel, Cmd.none) :> update (WizardVector <| SceneWillAppear <| nextScene)
+            update (WizardVector <| (SceneWillAppear nextScene currScene)) newModel
 
         Pop ->
           -- Pop the top scene off the stack.
@@ -175,41 +190,48 @@ update msg model =
             newModel = {model | sceneStack = List.Nonempty.pop model.sceneStack }
             newScene = List.Nonempty.head newModel.sceneStack
           in
-            (newModel, Cmd.none) :> update (WizardVector <| SceneWillAppear <| newScene)
+            update (WizardVector <| (SceneWillAppear newScene currScene)) newModel
 
         RebaseTo newBaseScene ->
           -- Resets the stack with a new base scene.
           let
             newModel = {model | sceneStack = List.Nonempty.fromElement newBaseScene }
           in
-            (newModel, Cmd.none) :> update (WizardVector <| SceneWillAppear <| newBaseScene)
+            update (WizardVector <| (SceneWillAppear newBaseScene currScene)) newModel
 
         Reset -> reset model
 
-        SceneWillAppear appearingScene ->
+        SceneWillAppear appearing vanishing ->
           -- REVIEW: It's too easy to forget to add these.
+          -- REVIEW: Standardize so that every scene gets both appearing and vanishing?
           let
-            (m0, c0) = CheckInScene.sceneWillAppear model appearingScene
-            (m1, c1) = CheckOutScene.sceneWillAppear model appearingScene
-            (m2, c2) = CreatingAcctScene.sceneWillAppear model appearingScene
-            (m3, c3) = HowDidYouHearScene.sceneWillAppear model appearingScene
-            (m4, c4) = MembersOnlyScene.sceneWillAppear model appearingScene
-            (m5, c5) = ScreenSaverScene.sceneWillAppear model appearingScene
-            (m6, c6) = TaskListScene.sceneWillAppear model appearingScene
-            (m7, c7) = WaiverScene.sceneWillAppear model appearingScene
+            (mCI,  cCI)  = CheckInScene.sceneWillAppear model appearing
+            (mCO,  cCO)  = CheckOutScene.sceneWillAppear model appearing
+            (mCA,  cCA)  = CreatingAcctScene.sceneWillAppear model appearing
+            (mHD,  cHD)  = HowDidYouHearScene.sceneWillAppear model appearing
+            (mMO,  cMO)  = MembersOnlyScene.sceneWillAppear model appearing
+            (mSS,  cSS)  = ScreenSaverScene.sceneWillAppear model appearing
+            (mTL,  cTL)  = TaskListScene.sceneWillAppear model appearing vanishing
+            (mTS1, cTS1) = TimeSheetPt1Scene.sceneWillAppear model appearing
+            (mTS2, cTS2) = TimeSheetPt2Scene.sceneWillAppear model appearing vanishing
+            (mTS3, cTS3) = TimeSheetPt3Scene.sceneWillAppear model appearing
+            (mW,   cW)   = WaiverScene.sceneWillAppear model appearing
             newModel =
               { model
-              | checkInModel = m0
-              , checkOutModel = m1
-              , creatingAcctModel = m2
-              , howDidYouHearModel = m3
-              , membersOnlyModel = m4
-              , screenSaverModel = m5
-              , taskListModel = m6
-              , waiverModel = m7
+              | checkInModel = mCI
+              , checkOutModel = mCO
+              , creatingAcctModel = mCA
+              , howDidYouHearModel = mHD
+              , membersOnlyModel = mMO
+              , screenSaverModel = mSS
+              , taskListModel = mTL
+              , timeSheetPt1Model = mTS1
+              , timeSheetPt2Model = mTS2
+              , timeSheetPt3Model = mTS3
+              , waiverModel = mW
               }
           in
-            (newModel, Cmd.batch [c0, c1, c2, c3, c4, c5, c6, c7])
+            (newModel, Cmd.batch [cCI, cCO, cCA, cHD, cMO, cSS, cTL, cTS1, cTS2, cTS3, cW])
 
         Tick time ->
           let
@@ -270,6 +292,18 @@ update msg model =
       let (sm, cmd) = TaskListScene.update x model
       in ({model | taskListModel = sm}, cmd)
 
+    TimeSheetPt1Vector x ->
+      let (sm, cmd) = TimeSheetPt1Scene.update x model
+      in ({model | timeSheetPt1Model = sm}, cmd)
+
+    TimeSheetPt2Vector x ->
+      let (sm, cmd) = TimeSheetPt2Scene.update x model
+      in ({model | timeSheetPt2Model = sm}, cmd)
+
+    TimeSheetPt3Vector x ->
+      let (sm, cmd) = TimeSheetPt3Scene.update x model
+      in ({model | timeSheetPt3Model = sm}, cmd)
+
     WaiverVector x ->
       let (sm, cmd) = WaiverScene.update x model
       in ({model | waiverModel = sm}, cmd)
@@ -299,6 +333,9 @@ view model =
     ScreenSaver     -> ScreenSaverScene.view     model
     SignUpDone      -> SignUpDoneScene.view      model
     TaskList        -> TaskListScene.view        model
+    TimeSheetPt1    -> TimeSheetPt1Scene.view    model
+    TimeSheetPt2    -> TimeSheetPt2Scene.view    model
+    TimeSheetPt3    -> TimeSheetPt3Scene.view    model
     VolunteerInDone -> VolunteerInDoneScene.view model
     Waiver          -> WaiverScene.view          model
     Welcome         -> WelcomeScene.view         model

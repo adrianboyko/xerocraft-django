@@ -48,7 +48,7 @@ view kioskModel =
     taskListModel = kioskModel.taskListModel
     instructions =
       case taskListModel.selectedTask of
-        Just opsTask -> opsTask.instructions
+        Just opsTask -> opsTask.data.instructions
         Nothing -> "Please see a Staff Member for instructions."
   in
     genericScene kioskModel

@@ -27,7 +27,8 @@ import Wizard.SceneUtils exposing (..)
 import Types exposing (..)
 import CheckInScene exposing (CheckInModel)
 import Fetchable exposing (..)
-import DjangoRestFramework as DRF exposing (getIdFromUrl)
+import DjangoRestFramework as DRF
+import PointInTime exposing (PointInTime)
 
 
 -----------------------------------------------------------------------------
@@ -72,23 +73,31 @@ init flags =
 -- SCENE WILL APPEAR
 -----------------------------------------------------------------------------
 
-sceneWillAppear : KioskModel a -> Scene -> (TaskListModel, Cmd Msg)
-sceneWillAppear kioskModel appearingScene =
-  case appearingScene of
+sceneWillAppear : KioskModel a -> Scene -> Scene -> (TaskListModel, Cmd Msg)
+sceneWillAppear kioskModel appearingScene vanishingScene =
+  case (appearingScene, vanishingScene) of
 
-    ReasonForVisit ->
+    (ReasonForVisit, _) ->
       -- Start fetching workable tasks b/c they *might* be on their way to this (TaskList) scene.
-      let
-        currDate = Date.fromTime kioskModel.currTime
-        cmd = kioskModel.xisSession.getTaskList
-          [ScheduledDateEquals currDate]
-          (TaskListVector << TL_TaskListResult)
-      in
-        (kioskModel.taskListModel, cmd)
+      getWorkableTasks kioskModel
+
+    (TaskList, VolunteerInDone) ->
+      -- User hit back button. Since workable task data was changed by prev visit to this scene, we need to reget it.
+      getWorkableTasks kioskModel
 
     _ ->
       (kioskModel.taskListModel, Cmd.none)
 
+getWorkableTasks : KioskModel a -> (TaskListModel, Cmd Msg)
+getWorkableTasks kioskModel =
+  let
+    sceneModel = kioskModel.taskListModel
+    currDate = PointInTime.toCalendarDate kioskModel.currTime
+    cmd = kioskModel.xisSession.listTasks
+      [ScheduledDateEquals currDate]
+      (TaskListVector << TL_TaskListResult)
+  in
+    ({sceneModel | workableTasks=Pending}, cmd)
 
 -----------------------------------------------------------------------------
 -- UPDATE
@@ -108,7 +117,7 @@ update msg kioskModel =
       -- TODO: Deal with the possibility of paged results (i.e. next is not Nothing)?
       let
         -- "Other Work" is offered to everybody, whether or not they are explicitly eligible to work it:
-        otherWorkTaskTest task = task.shortDesc == "Other Work"
+        otherWorkTaskTest task = task.data.shortDesc == "Other Work"
         otherWorkTask = List.filter otherWorkTaskTest results
 
         -- The more normal case is to offer up tasks that the user can claim:
@@ -147,22 +156,21 @@ update msg kioskModel =
             result2Msg = TaskListVector << TL_ClaimUpsertResult
             existingClaim = xis.membersClaimOnTask memberNum task
             upsertCmd = case existingClaim of
+
               Just c ->
-                xis.putClaim
-                  { c
-                  | status = WorkingClaimStatus
-                  , claimedStartTime = Just <| DRF.clockTimeFromTime kioskModel.currTime
-                  }
-                  result2Msg
+                let
+                  claimMod = c |> setStatus WorkingClaimStatus
+                in
+                  xis.replaceClaim claimMod result2Msg
+
               Nothing ->
-                xis.postClaim
-                  ( Claim
-                      (Maybe.withDefault 0.0 task.workDuration)
-                      (Just <| DRF.clockTimeFromTime kioskModel.currTime)
+                xis.createClaim
+                  ( ClaimData
+                      (Maybe.withDefault 0.0 task.data.workDuration)
+                      (Just <| PointInTime.toClockTime kioskModel.currTime)
                       (xis.taskUrl task.id)
                       (xis.memberUrl memberNum)
-                      (Just <| Date.fromTime kioskModel.currTime)
-                      -1  -- REVIEW: Arbitrary because encoder ignores.
+                      (Just <| PointInTime.toCalendarDate kioskModel.currTime)
                       WorkingClaimStatus
                       []  -- REVIEW: Arbitrary because encoder ignores.
                   )
@@ -173,7 +181,22 @@ update msg kioskModel =
           ({sceneModel | badNews=["You must choose a task to work!"]}, Cmd.none)
 
     TL_ClaimUpsertResult (Ok claim) ->
-      (sceneModel, segueTo VolunteerInDone)
+      let
+        createWorkCmd =
+          xis.createWork
+            ( WorkData
+                (xis.claimUrl claim.id)  -- claim
+                Nothing  -- witness
+                (PointInTime.toCalendarDate kioskModel.currTime)  -- workDate
+                Nothing  -- WorkDuration
+                (Just <| PointInTime.toClockTime kioskModel.currTime)  -- WorkStartTime
+            )
+            (TaskListVector << TL_WorkInsertResult)
+      in
+        (sceneModel, createWorkCmd)
+
+    TL_WorkInsertResult (Ok claim) ->
+        (sceneModel, segueTo VolunteerInDone)
 
     -- -- -- -- ERROR HANDLERS -- -- -- --
 
@@ -181,6 +204,9 @@ update msg kioskModel =
       ({sceneModel | workableTasks=Failed (toString error)}, Cmd.none)
 
     TL_ClaimUpsertResult (Err error) ->
+      ({sceneModel | badNews=[toString error]}, Cmd.none)
+
+    TL_WorkInsertResult (Err error) ->
       ({sceneModel | badNews=[toString error]}, Cmd.none)
 
 
@@ -248,7 +274,7 @@ taskChoices kioskModel tasks =
     div [taskListStyle]
       ([vspace 30] ++ List.indexedMap
         (\index wt ->
-          div [taskDivStyle (if wt.priority == HighPriority then "#ccffcc" else "#dddddd")]
+          div [taskDivStyle (if wt.data.priority == HighPriority then "#ccffcc" else "#dddddd")]
             [ Toggles.radio MdlVector [idxTaskListScene, index] kioskModel.mdl
               [ Toggles.value
                 (case sceneModel.selectedTask of
@@ -257,7 +283,7 @@ taskChoices kioskModel tasks =
                 )
               , Options.onToggle (TaskListVector <| TL_ToggleTask <| wt)
               ]
-              [text wt.shortDesc]
+              [text wt.data.shortDesc]
             ]
         )
         tasks

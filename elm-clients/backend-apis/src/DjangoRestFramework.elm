@@ -9,12 +9,16 @@ import Regex exposing (Regex, regex, split, replace, HowMany(..))
 import Time exposing (Time, hour, minute, second)
 import Result.Extra as ResultX
 import Date exposing (Date)
+import List.Extra as ListX
 
 -- Third-Party
 import Json.Decode.Pipeline exposing (decode, required, optional, hardcoded)
-import Date.Extra.Format exposing (isoString)
 
 -- Local
+import ClockTime exposing (ClockTime)
+import PointInTime exposing (PointInTime)
+import Duration exposing (Duration)
+import CalendarDate exposing (CalendarDate)
 
 
 -----------------------------------------------------------------------------
@@ -41,47 +45,33 @@ authenticationHeader token =
   Http.header "Authorization" ("Token " ++ token)
 
 
--- Example "https://localhost:8000/ops/api/time_block_types/4/" -> 4
-getIdFromUrl : String -> Result String Int
-getIdFromUrl url =
-  let
-    parts = String.split "/" url
-    numberStrs = parts |> List.filter (not << String.isEmpty) |> List.filter (String.all Char.isDigit)
-    numberStr = Maybe.withDefault "FOO" (List.head numberStrs)
-  in
-    if List.length numberStrs /= 1
-      then
-        Err "Unhandled URL format."
-      else
-        String.toInt numberStr
-
-
 -----------------------------------------------------------------------------
--- DATES
+-- CALENDAR DATES
 -----------------------------------------------------------------------------
 
-isoDateStrFromTime : Time -> String
-isoDateStrFromTime time =
-    String.left 10 (isoString (Date.fromTime time))
+encodeCalendarDate : CalendarDate -> Enc.Value
+encodeCalendarDate = Enc.string << CalendarDate.toString
 
-isoDateStrFromDate : Date -> String
-isoDateStrFromDate d =
-    String.left 10 (isoString d)
 
--- Use Json.Decode.Extra for decoding dates.
-
-encodeDate : Date -> Enc.Value
-encodeDate = Enc.string << isoDateStrFromDate
-
+decodeCalendarDate : Dec.Decoder CalendarDate
+decodeCalendarDate =
+  Dec.string |> Dec.andThen
+    ( \str ->
+      case (CalendarDate.fromString str) of
+        Ok cd -> Dec.succeed cd
+        Err err -> Dec.fail err
+    )
 
 -----------------------------------------------------------------------------
 -- CLOCK TIME
 -----------------------------------------------------------------------------
 
-type alias ClockTime =
-  { hour : Int  -- Value must be 0 to 23, inclusive
-  , minute : Int  -- Value must be 0 to 59, inclusive
-  }
+
+clockTimeToString : Maybe ClockTime -> String
+clockTimeToString clockTime =
+  case clockTime of
+    Just ct -> clockTimeToPythonRepr ct
+    Nothing -> "--:--"
 
 
 clockTimeToPythonRepr : ClockTime -> String
@@ -97,16 +87,16 @@ clockTimeFromPythonRepr : String -> Result String ClockTime
 clockTimeFromPythonRepr s =
     let
         parts = split Regex.All (regex "[:]") s
-        hourResult = parts |> List.head |> Maybe.map String.toInt
-        minuteResult = parts |> List.reverse |> List.head |> Maybe.map String.toInt
+        hourResult = parts |> ListX.getAt 0 |> Maybe.map String.toInt
+        minuteResult = parts |> ListX.getAt 1 |> Maybe.map String.toInt
     in
         case (hourResult, minuteResult) of
            (Just (Ok hour), Just (Ok minute)) -> Ok (ClockTime hour minute)
            _ -> Err (s ++ " is an invalid clock time")
 
 
-clockTimeDecoder : Dec.Decoder ClockTime
-clockTimeDecoder =
+decodeClockTime : Dec.Decoder ClockTime
+decodeClockTime =
   Dec.string |> Dec.andThen
     ( \str ->
       case (clockTimeFromPythonRepr str) of
@@ -118,8 +108,10 @@ clockTimeDecoder =
 encodeClockTime : ClockTime -> Enc.Value
 encodeClockTime = Enc.string << clockTimeToPythonRepr
 
+
 clockTimeFromDate : Date -> ClockTime
 clockTimeFromDate d = ClockTime (Date.hour d) (Date.minute d)
+
 
 clockTimeFromTime : Time -> ClockTime
 clockTimeFromTime t = t |> Date.fromTime |> clockTimeFromDate
@@ -128,9 +120,6 @@ clockTimeFromTime t = t |> Date.fromTime |> clockTimeFromDate
 -----------------------------------------------------------------------------
 -- DURATION
 -----------------------------------------------------------------------------
-
-type alias Duration =
-    Float -- A time duration in milliseconds, so we can use core Time's units.
 
 durationFromPythonRepr : String -> Result String Duration
 durationFromPythonRepr s =
@@ -165,9 +154,10 @@ durationToPythonRepr dhms =
         (toString days) ++ " " ++ (pad hours) ++ ":" ++ (pad minutes) ++ ":" ++ (pad seconds)
 
 
-durationDecoder : Dec.Decoder Duration
-durationDecoder =
+decodeDuration : Dec.Decoder Duration
+decodeDuration =
   Dec.string |> Dec.andThen
+    -- Could use Json.Decode.Extra.fromResult here, but that wouldn't allow friendlier error msg.
     ( \str ->
       case (durationFromPythonRepr str) of
         Ok dur -> Dec.succeed dur
@@ -193,6 +183,27 @@ decodePageOf decoder =
 
 
 -----------------------------------------------------------------------------
+-- RESOURCES
+-----------------------------------------------------------------------------
+
+-- On the Elm side, resources have an id/data structure.
+
+type alias Resource a = { id : Int, data : a }
+
+-- On the Django side, resources have flat id+data structure.
+
+decodeResource : Dec.Decoder a -> Dec.Decoder (Resource a)
+decodeResource dataDecoder =
+  Dec.map2 Resource
+    (Dec.field "id" Dec.int)
+    dataDecoder
+
+encodeResource : (a -> List (String, Enc.Value)) -> Resource a -> Enc.Value
+encodeResource dataNVPer res =
+  Enc.object (("id", Enc.int res.id) :: (dataNVPer res.data))
+
+
+-----------------------------------------------------------------------------
 -- URLS
 -----------------------------------------------------------------------------
 
@@ -207,8 +218,42 @@ extractRelativeUrl url =
   in
     replace (AtMost 1) urlBaseRegex (always "") url
 
+
 -- This decoder strips the URL base off of the resource url.
-resourceUrlDecoder : Dec.Decoder ResourceUrl
-resourceUrlDecoder =
+decodeResourceUrl : Dec.Decoder ResourceUrl
+decodeResourceUrl =
   Dec.string |> Dec.andThen
     ( \str -> Dec.succeed (extractRelativeUrl str))
+
+
+urlFromId : ResourceListUrl -> Int -> ResourceUrl
+urlFromId listUrl resNum =
+  listUrl ++ (toString resNum) ++ "/"
+
+
+-- Example "https://localhost:8000/ops/api/time_block_types/4/" -> 4
+idFromUrl : String -> Result String Int
+idFromUrl url =
+  let
+    parts = String.split "/" url
+    numberStrs = parts |> List.filter (not << String.isEmpty) |> List.filter (String.all Char.isDigit)
+    numberStr = Maybe.withDefault "FOO" (List.head numberStrs)
+  in
+    if List.length numberStrs /= 1
+      then
+        Err "Unhandled URL format."
+      else
+        String.toInt numberStr
+
+
+httpGetRequest : String -> ResourceUrl -> Dec.Decoder a -> Http.Request a
+httpGetRequest token url decoder =
+  Http.request
+    { method = "GET"
+    , url = url
+    , headers = [ authenticationHeader token ]
+    , withCredentials = False
+    , body = Http.emptyBody
+    , timeout = Nothing
+    , expect = Http.expectJson decoder
+    }

@@ -1,8 +1,5 @@
 module MembersApi exposing
   ( createNewAcct
-  , DiscoveryMethod
-  , DiscoveryMethodInfo
-  , djangoizeId
   , getMatchingAccts
   , getCheckedInAccts
   , getRecentRfidEntries
@@ -19,7 +16,6 @@ module MembersApi exposing
 
 -- Standard
 import Date as Date
-import Date.Extra as DateX
 import Json.Decode as Dec
 import Json.Encode as Enc
 import Json.Decode.Extra as DecX
@@ -37,11 +33,6 @@ import DjangoRestFramework exposing (PageOf, decodePageOf, authenticationHeader)
 -----------------------------------------------------------------------------
 -- UTILITIES
 -----------------------------------------------------------------------------
-
-djangoizeId : String -> String
-djangoizeId rawId =
-  -- Django allows alphanumeric, _, @, +, . and -.
-  replaceAll {oldSub="[^-a-zA-Z0-9_@+.]", newSub="_"} rawId
 
 replaceAll : {oldSub : String, newSub : String} -> String -> String
 replaceAll {oldSub, newSub} whole =
@@ -75,21 +66,6 @@ type alias MatchingAcctInfo =
   , matches : List MatchingAcct
   }
 
-type alias DiscoveryMethod =
-  { id : Int
-  , name : String
-  , order : Int
-  , visible : Bool
-  }
-
--- TODO: Move to XisRestApi and use PageOf
-type alias DiscoveryMethodInfo =
-  { count : Int
-  , next : Maybe String
-  , previous : Maybe String
-  , results : List DiscoveryMethod
-  }
-
 type alias GenericResult =
   { result : String
   }
@@ -103,6 +79,7 @@ type ReasonForVisit
   = Curiousity
   | ClassParticipant
   | MemberPrivileges
+  | ClubPrivileges
   | GuestOfMember
   | Volunteer
   | Other
@@ -155,6 +132,7 @@ logVisitEvent flags memberPK eventType reason resultToMsg =
       Just Curiousity -> "CUR"
       Just ClassParticipant -> "CLS"
       Just MemberPrivileges -> "MEM"
+      Just ClubPrivileges -> "CLB"
       Just GuestOfMember -> "GST"
       Just Volunteer -> "VOL"
       Just Other -> "OTH"

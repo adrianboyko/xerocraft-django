@@ -45,10 +45,22 @@
         .mdl-textfield--floating-label.is-dirty .mdl-textfield__label,
         .mdl-textfield--floating-label.is-focused .mdl-textfield__label {
             text-align: center;
-            font-size:16pt;
+            font-size: 16pt;
         }
 
-        .mdl-chip { margin: 5px; padding: 20px; font-size:16pt; }
+    div.mdl-textfield textarea {
+        margin-top: 11px;
+        font-size: 20pt;
+        line-height: 1;
+        font-family: Roboto Condensed, Arial, Helvetica;
+        border-bottom: none;
+
+    }
+    div.mdl-textfield textarea + label:after {
+        display: none;
+    }
+
+        .mdl-chip { margin: 5px; padding: 20px; font-size:16pt; background-color: rgba(0,0,0,.12);}
 
         /* Tweeks to radio button list */
         .mdl-radio {font-size: smaller;}
@@ -111,6 +123,7 @@
             "uniqueKioskId":         uniqueKioskId,
             "wavingHandUrl":         "{% static 'bzw_ops/WavingHand.gif' %}",
             "workListUrl":           "{% url 'task:work-list' %}",
+            "workNoteListUrl":       "{% url 'task:worknote-list' %}",
             "xcOrgActionUrl":        "{{ action_url }}"
         };
 

@@ -14,7 +14,9 @@ import tasks.models as tm
 import tasks.restapi.serializers as ts
 import tasks.restapi.permissions as tp
 import tasks.restapi.authenticators as ta
+import tasks.restapi.filter as filt
 from xis.utils import user_is_kiosk
+
 
 # ---------------------------------------------------------------------------
 # CLAIMS
@@ -81,13 +83,36 @@ class WorkViewSet(viewsets.ModelViewSet):
     queryset = tm.Work.objects.all().order_by('id')
     serializer_class = ts.WorkSerializer
     permission_classes = [IsAuthenticated, tp.WorkPermission]
+    filter_class = filt.WorkFilter
 
     def get_queryset(self):
         memb = self.request.user.member
 
-        if self.action is "list":
-            # Filter to show only memb's work.
-            today = datetime.today()
-            return tm.Work.objects.filter(claim__claiming_member=memb)
-        else:
+        if user_is_kiosk(self.request):
             return tm.Work.objects.all().order_by('id')
+        else:
+            if self.action is "list":
+                # Filter to show only memb's work.
+                today = datetime.today()
+                return tm.Work.objects.filter(claim__claiming_member=memb)
+            else:
+                return tm.Work.objects.all().order_by('id')
+
+
+class WorkNoteViewSet(viewsets.ModelViewSet):
+    queryset = tm.WorkNote.objects.all().order_by('id')
+    serializer_class = ts.WorkNoteSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        memb = self.request.user.member
+
+        if user_is_kiosk(self.request):
+            return tm.WorkNote.objects.all().order_by('id')
+        else:
+            if self.action is "list":
+                # Filter to show only notes on member's works.
+                today = datetime.today()
+                return tm.WorkNote.objects.filter(work__claim__claiming_member=memb)
+            else:
+                return tm.WorkNote.objects.all().order_by('id')

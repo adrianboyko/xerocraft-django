@@ -43,6 +43,7 @@ type alias Flags =
   , uniqueKioskId : String
   , wavingHandUrl : String
   , workListUrl : String
+  , workNoteListUrl : String
   , xcOrgActionUrl : String
   }
 
@@ -65,6 +66,9 @@ type Scene
   | ReasonForVisit
   | ScreenSaver
   | TaskList
+  | TimeSheetPt1
+  | TimeSheetPt2
+  | TimeSheetPt3
   | VolunteerInDone
   | Waiver
   | Welcome
@@ -87,9 +91,12 @@ mdlIdBase scene =
     ScreenSaver -> 1200
     SignUpDone -> 1300
     TaskList -> 1400
-    VolunteerInDone -> 1500
-    Waiver -> 1600
-    Welcome -> 1700
+    TimeSheetPt1 -> 1500
+    TimeSheetPt2 -> 1600
+    TimeSheetPt3 -> 1700
+    VolunteerInDone -> 1800
+    Waiver -> 1900
+    Welcome -> 2000
 
 
 -----------------------------------------------------------------------------
@@ -158,6 +165,28 @@ type TaskListMsg
   | TL_ToggleTask XisApi.Task
   | TL_ValidateTaskChoice
   | TL_ClaimUpsertResult (Result Http.Error XisApi.Claim)
+  | TL_WorkInsertResult (Result Http.Error XisApi.Work)
+
+type TimeSheetPt1Msg
+  = TS1_WorkingClaimsResult (Result Http.Error (PageOf XisApi.Claim))
+  | TS1_WorkingTaskResult (Result Http.Error XisApi.Task)
+  | TS1_WipResult (Result Http.Error (PageOf XisApi.Work))
+  | TS1_Submit XisApi.Claim XisApi.Work
+  | TS1_UpdateDuration String
+  | TS1_UpdateTimeStarted String
+
+type TimeSheetPt2Msg
+  = TS2_UpdateDescription String
+  | TS2_Continue
+
+type TimeSheetPt3Msg
+  = TS3_UpdateWitnessUsername String
+  | TS3_UpdateWitnessPassword String
+  | TS3_Witnessed
+  | TS3_WitnessSearchResult (Result Http.Error (PageOf XisApi.Member))
+  | TS3_ClaimUpdated (Result Http.Error XisApi.Claim)
+  | TS3_WorkUpdated (Result Http.Error XisApi.Work)
+  | TS3_WorkNoteCreated (Result Http.Error XisApi.WorkNote)
 
 type WaiverMsg
   = ShowSignaturePad String
@@ -178,6 +207,9 @@ type Msg
   | ReasonForVisitVector ReasonForVisitMsg
   | ScreenSaverVector ScreenSaverMsg
   | TaskListVector TaskListMsg
+  | TimeSheetPt1Vector TimeSheetPt1Msg
+  | TimeSheetPt2Vector TimeSheetPt2Msg
+  | TimeSheetPt3Vector TimeSheetPt3Msg
   | WaiverVector WaiverMsg
 
 type WizardMsg
@@ -185,5 +217,5 @@ type WizardMsg
   | RebaseTo Scene
   | Pop
   | Reset
-  | SceneWillAppear Scene
+  | SceneWillAppear Scene Scene  -- Appearing scene, Vanishing scene
   | Tick Time

@@ -1,24 +1,31 @@
 module XisRestApi
   exposing
     ( createSession  -- Instantiate an API session
-    , Claim
+    , djangoizeId
+    , setStatus  -- on Claim
+    , setWitness  -- on Work
+    , setWorkDuration  -- on Work
+    --------------------
+    , Claim, ClaimData
     , ClaimStatus (..)
     , ClaimListFilter (..)
-    , Member
-    , Membership
+    , DiscoveryMethod, DiscoveryMethodData
+    , Member, MemberData
+    , Membership, MembershipData
     , MemberListFilter (..)
     , MembershipListFilter (..)
     , Session
-    , Task
+    , Task, TaskData
     , TaskListFilter (..)
     , TaskPriority (..)
-    , TimeBlock
-    , TimeBlockType
+    , TimeBlock, TimeBlockData
+    , TimeBlockType, TimeBlockTypeData
+    , Work, WorkData
+    , WorkNote, WorkNoteData
+    , WorkListFilter (..)
     )
 
 -- Standard
-import Date exposing (Date)
-import Date.Extra as DateX
 import Http
 import Json.Encode as Enc
 import Json.Encode.Extra as EncX
@@ -30,6 +37,7 @@ import Regex exposing (regex)
 import String
 import Task exposing (Task)
 import Time exposing (Time, hour, minute, second)
+import Date
 
 -- Third party
 import List.Extra as ListX
@@ -37,6 +45,11 @@ import List.Extra as ListX
 -- Local
 import DjangoRestFramework as DRF exposing (..)
 import MembersApi as MembersApi  -- TODO: MembersApi will be replace with this REST api.
+import ClockTime exposing (ClockTime)
+import Duration exposing (Duration)
+import CalendarDate exposing (CalendarDate)
+import PointInTime exposing (PointInTime)
+import RangeOfTime exposing (RangeOfTime)
 
 -----------------------------------------------------------------------------
 -- CONSTANTS
@@ -64,74 +77,103 @@ type alias XisRestFlags a =
   , timeBlockTypesUrl : ResourceListUrl
   , uniqueKioskId : String
   , workListUrl : ResourceListUrl
+  , workNoteListUrl : ResourceListUrl
   }
+
+type alias ResultMessager rsrc msg = Result Http.Error rsrc -> msg
+
+type alias GetterById rsrc msg =
+  Int -> ResultMessager rsrc msg -> Cmd msg
+
+type alias GetterFromUrl rsrc msg =
+  ResourceUrl -> ResultMessager rsrc msg -> Cmd msg
+
+type alias Replacer rsrc msg =
+  rsrc -> ResultMessager rsrc msg -> Cmd msg
+
+type alias Creator data rsrc msg =
+  data -> ResultMessager rsrc msg -> Cmd msg
+
+type alias Lister rsrc msg =
+  ResultMessager (PageOf rsrc) msg -> Cmd msg
+
+type alias FilteringLister filter rsrc msg =
+  List filter -> ResultMessager (PageOf rsrc) msg -> Cmd msg
 
 
 -----------------------------------------------------------------------------
 -- API INSTANCE
 -----------------------------------------------------------------------------
 
-type alias ResourceGetter item msg =
-  Int -> (Result Http.Error (PageOf item) -> msg) -> Cmd msg
-
-type alias ResourcePutter item msg =
-  item -> (Result Http.Error item -> msg) -> Cmd msg
-
-type alias ListGetter item msg =
-  (Result Http.Error (PageOf item) -> msg) -> Cmd msg
-
-type alias FilteredListGetter filter item msg =
-  List filter -> (Result Http.Error (PageOf item) -> msg) -> Cmd msg
+-- REVIEW: Instead of get, post, etc, how about Using DRF's "action" names?
+-- They are: list, create, retrieve, update, partial_update, destroy.
+-- How about: list, create, retrieve, replace, patch, destroy?
 
 type alias Session msg =
   { claimUrl : Int -> ResourceUrl
   , coverTime : List Membership -> Time -> Bool
+  , createClaim : Creator ClaimData Claim msg
+  , createWork : Creator WorkData Work msg
+  , createWorkNote : Creator WorkNoteData WorkNote msg
   , defaultBlockType : List TimeBlockType -> Maybe TimeBlockType
   , getBlocksTypes : TimeBlock -> List TimeBlockType -> List TimeBlockType
-  , getClaimList : FilteredListGetter ClaimListFilter Claim msg
-  , getDiscoveryMethodList : ListGetter DiscoveryMethod msg
-  , getMemberList : FilteredListGetter MemberListFilter Member msg
-  , getMembership : ResourceGetter Membership msg
-  , getMembershipList : FilteredListGetter MembershipListFilter Membership msg
-  , getTaskList : FilteredListGetter TaskListFilter Task msg
-  , getTimeBlockList : ListGetter TimeBlock msg
-  , getTimeBlockTypeList : ListGetter TimeBlockType msg
+  , getMembershipById : GetterById Membership msg
+  , getTaskById : GetterById Task msg
+  , getTaskFromUrl : GetterFromUrl Task msg
+  , listClaims : FilteringLister ClaimListFilter Claim msg
+  , listDiscoveryMethods : Lister DiscoveryMethod msg
+  , listMembers : FilteringLister MemberListFilter Member msg
+  , listMemberships : FilteringLister MembershipListFilter Membership msg
+  , listTasks : FilteringLister TaskListFilter Task msg
+  , listTimeBlocks : Lister TimeBlock msg
+  , listTimeBlockTypes : Lister TimeBlockType msg
+  , listWorks : FilteringLister WorkListFilter Work msg
   , memberCanClaimTask : Int -> Task -> Bool
   , memberHasStatusOnTask : Int -> ClaimStatus -> Task -> Bool
   , membersClaimOnTask : Int -> Task -> Maybe Claim
   , membersStatusOnTask : Int -> Task -> Maybe ClaimStatus
   , memberUrl : Int -> ResourceUrl
   , mostRecentMembership : List Membership -> Maybe Membership
-  , postClaim : ResourcePutter Claim msg
-  , putClaim : ResourcePutter Claim msg
+  , replaceClaim : Replacer Claim msg
+  , replaceWork : Replacer Work msg
+  , replaceWorkWithHeaders : List Http.Header -> Replacer Work msg
   , taskUrl : Int -> ResourceUrl
   , workUrl : Int -> ResourceUrl
+  , workNoteUrl : Int -> ResourceUrl
   }
 
 createSession : XisRestFlags a -> Session msg
 createSession flags =
-  { claimUrl = resourceUrl flags.claimListUrl
+  { claimUrl = urlFromId flags.claimListUrl
   , coverTime = coverTime
+  , createClaim = createClaim flags
+  , createWork = createWork flags
+  , createWorkNote = createWorkNote flags
   , defaultBlockType = defaultBlockType
   , getBlocksTypes = getBlocksTypes
-  , getClaimList = getClaimList flags
-  , getDiscoveryMethodList = getDiscoveryMethodList flags
-  , getMemberList = getMemberList flags
-  , getMembership = getMembership flags
-  , getMembershipList = getMembershipList flags
-  , getTaskList = getTaskList flags
-  , getTimeBlockList = getTimeBlockList flags
-  , getTimeBlockTypeList = getTimeBlockTypeList flags
+  , getMembershipById = getMembershipById flags
+  , getTaskById = getTaskById flags
+  , getTaskFromUrl = getTaskFromUrl flags
+  , listClaims = listClaims flags
+  , listDiscoveryMethods = listDiscoveryMethods flags
+  , listMembers = listMembers flags
+  , listMemberships = listMemberships flags
+  , listTasks = listTasks flags
+  , listTimeBlocks = listTimeBlocks flags
+  , listTimeBlockTypes = listTimeBlockTypes flags
+  , listWorks = listWorks flags
   , memberCanClaimTask = memberCanClaimTask flags
   , memberHasStatusOnTask = memberHasStatusOnTask flags
   , membersClaimOnTask = membersClaimOnTask flags
   , membersStatusOnTask = membersStatusOnTask flags
-  , memberUrl = resourceUrl flags.memberListUrl
+  , memberUrl = urlFromId flags.memberListUrl
   , mostRecentMembership = mostRecentMembership
-  , postClaim = postClaim flags
-  , putClaim = putClaim flags
-  , taskUrl = resourceUrl flags.taskListUrl
-  , workUrl = resourceUrl flags.workListUrl
+  , replaceClaim = replaceClaim flags
+  , replaceWork = replaceWorkWithHeaders flags []
+  , replaceWorkWithHeaders = replaceWorkWithHeaders flags
+  , taskUrl = urlFromId flags.taskListUrl
+  , workUrl = urlFromId flags.workListUrl
+  , workNoteUrl = urlFromId flags.workNoteListUrl
   }
 
 
@@ -142,12 +184,11 @@ createSession flags =
 type TaskPriority = HighPriority | MediumPriority | LowPriority
 
 
-type alias Task =
+type alias TaskData =
   { claimSet : List Claim
-  , creationDate : Date
-  , deadline : Maybe Date
+  , creationDate : CalendarDate
+  , deadline : Maybe CalendarDate
   , eligibleClaimants : List ResourceUrl
-  , id : Int
   , instructions : String
   , isFullyClaimed : Bool
   , maxWork : Duration
@@ -155,7 +196,7 @@ type alias Task =
   , owner : Maybe ResourceUrl
   , priority : TaskPriority
   , reviewer : Maybe ResourceUrl
-  , scheduledDate : Date
+  , scheduledDate : CalendarDate
   , shortDesc : String
   , shouldNag : Bool
   , status : String
@@ -163,9 +204,10 @@ type alias Task =
   , workStartTime : Maybe ClockTime
   }
 
+type alias Task = Resource TaskData
 
 type TaskListFilter
-  = ScheduledDateEquals Date
+  = ScheduledDateEquals CalendarDate
   -- | ScheduledDateInRange Date Date
   -- | WorkStartTimeRange ClockTime ClockTime
 
@@ -173,36 +215,56 @@ type TaskListFilter
 taskListFilterToString : TaskListFilter -> String
 taskListFilterToString filter =
   case filter of
-    ScheduledDateEquals d -> "scheduled_date=" ++ (isoDateStrFromDate d)
+    ScheduledDateEquals d -> "scheduled_date=" ++ (CalendarDate.toString d)
 
 
-getTaskUrl : XisRestFlags a -> Int -> ResourceUrl
-getTaskUrl flags taskNum =
-  flags.taskListUrl ++ "/" ++ (toString taskNum) ++ "/"
-
-
-getTaskList : XisRestFlags a -> FilteredListGetter TaskListFilter Task msg
-getTaskList flags filters resultToMsg =
+listTasks : XisRestFlags a -> FilteringLister TaskListFilter Task msg
+listTasks flags filters resultToMsg =
   let
-    request = Http.request
-      { method = "GET"
-      , headers = [authenticationHeader flags.uniqueKioskId]
-      , url = filteredListUrl flags.taskListUrl filters taskListFilterToString
-      , body = Http.emptyBody
-      , expect = Http.expectJson (decodePageOf decodeTask)
-      , timeout = Nothing
-      , withCredentials = False
-      }
+    request = httpGetRequest
+      flags.uniqueKioskId
+      (filteredListUrl flags.taskListUrl filters taskListFilterToString)
+      (decodePageOf decodeTask)
   in
     Http.send resultToMsg request
+
+
+getTaskById : XisRestFlags a -> GetterById Task msg
+getTaskById flags taskNum resultToMsg =
+  let url = urlFromId flags.taskListUrl taskNum
+  in getTaskFromUrl flags url resultToMsg
+
+
+getTaskFromUrl : XisRestFlags a -> GetterFromUrl Task msg
+getTaskFromUrl flags url resultToMsg =
+  let
+    request = httpGetRequest flags.uniqueKioskId url decodeTask
+  in
+    Http.send resultToMsg request
+
+
+--putTask : XisRestFlags a -> Replacer Task msg
+--putTask flags task resultToMsg =
+--  let
+--    request = Http.request
+--      { method = "PUT"
+--      , headers = [authenticationHeader flags.uniqueKioskId]
+--      , url = urlFromId flags.taskListUrl task.id
+--      , body = task |> encodeTask |> Http.jsonBody
+--      , expect = Http.expectJson decodeTask
+--      , timeout = Nothing
+--      , withCredentials = False
+--      }
+--  in
+--    Http.send resultToMsg request
 
 
 memberCanClaimTask : XisRestFlags a -> Int -> Task -> Bool
 memberCanClaimTask flags memberNum task =
   let
-    url = resourceUrl flags.memberListUrl memberNum
-    memberIsEligible = List.member url task.eligibleClaimants
-    canClaim = memberIsEligible && (not task.isFullyClaimed)
+    url = urlFromId flags.memberListUrl memberNum
+    memberIsEligible = List.member url task.data.eligibleClaimants
+    canClaim = memberIsEligible && (not task.data.isFullyClaimed)
     alreadyClaimed = memberHasStatusOnTask flags memberNum CurrentClaimStatus task
   in
     canClaim || alreadyClaimed
@@ -211,10 +273,10 @@ memberCanClaimTask flags memberNum task =
 membersClaimOnTask : XisRestFlags a -> Int -> Task -> Maybe Claim
 membersClaimOnTask flags memberNum task =
   let
-    memberUrl = resourceUrl flags.memberListUrl memberNum
-    isMembersClaim c = c.claimingMember == memberUrl
+    memberUrl = urlFromId flags.memberListUrl memberNum
+    isMembersClaim c = c.data.claimingMember == memberUrl
   in
-    ListX.find isMembersClaim task.claimSet
+    ListX.find isMembersClaim task.data.claimSet
 
 
 membersStatusOnTask : XisRestFlags a -> Int -> Task -> Maybe ClaimStatus
@@ -222,7 +284,7 @@ membersStatusOnTask flags memberNum task =
   let
     membersClaim = membersClaimOnTask flags memberNum task
   in
-    Maybe.map .status membersClaim
+    Maybe.map (.data >> .status) membersClaim
 
 
 memberHasStatusOnTask : XisRestFlags a -> Int -> ClaimStatus -> Task -> Bool
@@ -236,26 +298,28 @@ memberHasStatusOnTask flags memberNum questionedStatus task =
 
 
 decodeTask : Dec.Decoder Task
-decodeTask =
-  decode Task
+decodeTask = decodeResource decodeTaskData
+
+decodeTaskData : Dec.Decoder TaskData
+decodeTaskData =
+  decode TaskData
     |> required "claim_set" (Dec.list decodeClaim)
-    |> required "creation_date" DecX.date
-    |> required "deadline" (Dec.maybe DecX.date)
-    |> required "eligible_claimants" (Dec.list resourceUrlDecoder)
-    |> required "id" Dec.int
+    |> required "creation_date" DRF.decodeCalendarDate
+    |> required "deadline" (Dec.maybe DRF.decodeCalendarDate)
+    |> required "eligible_claimants" (Dec.list decodeResourceUrl)
     |> required "instructions" Dec.string
     |> required "is_fully_claimed" Dec.bool
-    |> required "max_work" DRF.durationDecoder
+    |> required "max_work" DRF.decodeDuration
     |> required "max_workers" Dec.int
-    |> required "owner" (Dec.maybe resourceUrlDecoder)
+    |> required "owner" (Dec.maybe decodeResourceUrl)
     |> required "priority" taskPriorityDecoder
-    |> required "reviewer" (Dec.maybe resourceUrlDecoder)
-    |> required "scheduled_date" DecX.date
+    |> required "reviewer" (Dec.maybe decodeResourceUrl)
+    |> required "scheduled_date" DRF.decodeCalendarDate
     |> required "short_desc" Dec.string
     |> required "should_nag" Dec.bool
     |> required "status" Dec.string
-    |> required "work_duration" (Dec.maybe DRF.durationDecoder)
-    |> required "work_start_time" (Dec.maybe DRF.clockTimeDecoder)
+    |> required "work_duration" (Dec.maybe DRF.decodeDuration)
+    |> required "work_start_time" (Dec.maybe DRF.decodeClockTime)
 
 
 taskPriorityDecoder : Dec.Decoder TaskPriority
@@ -274,16 +338,18 @@ taskPriorityDecoder =
 -- CLAIMS
 -----------------------------------------------------------------------------
 
-type alias Claim =
+type alias ClaimData =
   { claimedDuration : Duration
   , claimedStartTime : Maybe ClockTime
   , claimedTask : ResourceUrl
   , claimingMember : ResourceUrl
-  , dateVerified : Maybe Date
-  , id : Int
+  , dateVerified : Maybe CalendarDate
   , status : ClaimStatus
   , workSet : List ResourceUrl
   }
+
+
+type alias Claim = Resource ClaimData
 
 
 type ClaimStatus -- Per tasks.models.Claim in Python backend.
@@ -313,6 +379,17 @@ type ClaimListFilter
   | ClaimedTaskEquals Int
 
 
+-- "Changing" nested records is awkward in Elm, so these "setters" are provided.
+
+setStatus : ClaimStatus -> Claim ->  Claim
+setStatus newSetting oldClaim =
+  let
+    data = oldClaim.data
+    newData = {data | status = newSetting}
+  in
+    {oldClaim | data = newData}
+
+
 claimListFilterToString : ClaimListFilter -> String
 claimListFilterToString filter =
   case filter of
@@ -321,38 +398,31 @@ claimListFilterToString filter =
     ClaimedTaskEquals taskNum -> "claimed_task=" ++ (toString taskNum)
 
 
-getClaimUrl : XisRestFlags a -> Int -> ResourceUrl
-getClaimUrl flags claimNum =
-  flags.claimListUrl ++ "/" ++ (toString claimNum) ++ "/"
-
-
-getClaimList : XisRestFlags a -> FilteredListGetter ClaimListFilter Claim msg
-getClaimList flags filters resultToMsg =
+listClaims : XisRestFlags a -> FilteringLister ClaimListFilter Claim msg
+listClaims flags filters resultToMsg =
   let
-    request = Http.request
-      { method = "GET"
-      , headers = [authenticationHeader flags.uniqueKioskId]
-      , url = filteredListUrl flags.claimListUrl filters claimListFilterToString
-      , body = Http.emptyBody
-      , expect = Http.expectJson (decodePageOf decodeClaim)
-      , timeout = Nothing
-      , withCredentials = False
-      }
+    request = httpGetRequest
+      flags.uniqueKioskId
+      (filteredListUrl flags.claimListUrl filters claimListFilterToString)
+      (decodePageOf decodeClaim)
   in
     Http.send resultToMsg request
 
 
 decodeClaim : Dec.Decoder Claim
-decodeClaim =
-  decode Claim
-    |> required "claimed_duration" DRF.durationDecoder
-    |> required "claimed_start_time" (Dec.maybe DRF.clockTimeDecoder)
-    |> required "claimed_task" resourceUrlDecoder
-    |> required "claiming_member" resourceUrlDecoder
-    |> required "date_verified" (Dec.maybe DecX.date)
-    |> required "id" Dec.int
+decodeClaim = decodeResource decodeClaimData
+
+
+decodeClaimData : Dec.Decoder ClaimData
+decodeClaimData =
+  decode ClaimData
+    |> required "claimed_duration" DRF.decodeDuration
+    |> required "claimed_start_time" (Dec.maybe DRF.decodeClockTime)
+    |> required "claimed_task" decodeResourceUrl
+    |> required "claiming_member" decodeResourceUrl
+    |> required "date_verified" (Dec.maybe DRF.decodeCalendarDate)
     |> required "status" decodeClaimStatus
-    |> required "work_set" (Dec.list resourceUrlDecoder)
+    |> required "work_set" (Dec.list decodeResourceUrl)
 
 
 decodeClaimStatus : Dec.Decoder ClaimStatus
@@ -384,24 +454,30 @@ encodeClaimStatus status =
 
 
 encodeClaim : Claim -> Enc.Value
-encodeClaim claim =
-  Enc.object
-    [ ( "claiming_member", claim.claimingMember |> Enc.string )
-    , ( "claimed_task", claim.claimedTask |> Enc.string )
-    , ( "claimed_start_time", claim.claimedStartTime |> (EncX.maybe encodeClockTime))
-    , ( "claimed_duration", claim.claimedDuration |> encodeDuration)
-    , ( "status", claim.status |> encodeClaimStatus )
-    , ( "date_verified", claim.dateVerified |> (EncX.maybe encodeDate))
-    ]
+encodeClaim = encodeResource claimDataNVPs
 
-putClaim : XisRestFlags a -> ResourcePutter Claim msg
-putClaim flags claim resultToMsg =
+encodeClaimData : ClaimData -> Enc.Value
+encodeClaimData = Enc.object << claimDataNVPs
+
+claimDataNVPs : ClaimData -> List (String, Enc.Value)
+claimDataNVPs cd =
+  [ ( "claiming_member", cd.claimingMember |> Enc.string )
+  , ( "claimed_task", cd.claimedTask |> Enc.string )
+  , ( "claimed_start_time", cd.claimedStartTime |> (EncX.maybe encodeClockTime))
+  , ( "claimed_duration", cd.claimedDuration |> encodeDuration)
+  , ( "status", cd.status |> encodeClaimStatus )
+  , ( "date_verified", cd.dateVerified |> (EncX.maybe encodeCalendarDate))
+  ]
+
+
+replaceClaim : XisRestFlags a -> Replacer Claim msg
+replaceClaim flags claim resultToMsg =
   let
     request = Http.request
       { method = "PUT"
       , headers = [authenticationHeader flags.uniqueKioskId]
-      , url = resourceUrl flags.claimListUrl claim.id
-      , body = claim |> encodeClaim |> Http.jsonBody
+      , url = urlFromId flags.claimListUrl claim.id
+      , body = claim.data |> encodeClaimData |> Http.jsonBody
       , expect = Http.expectJson decodeClaim
       , timeout = Nothing
       , withCredentials = False
@@ -410,39 +486,222 @@ putClaim flags claim resultToMsg =
     Http.send resultToMsg request
 
 
-postClaim : XisRestFlags a -> ResourcePutter Claim msg
-postClaim flags claim resultToMsg =
+createClaim : XisRestFlags a -> Creator ClaimData Claim msg
+createClaim flags claimData resultToMsg =
   let
     request = Http.request
       { method = "POST"
       , headers = [authenticationHeader flags.uniqueKioskId]
       , url = flags.claimListUrl
-      , body = claim |> encodeClaim |> Http.jsonBody
+      , body = claimData |> encodeClaimData |> Http.jsonBody
       , expect = Http.expectJson decodeClaim
       , timeout = Nothing
       , withCredentials = False
       }
   in
     Http.send resultToMsg request
-
 
 
 -----------------------------------------------------------------------------
 -- WORKS
 -----------------------------------------------------------------------------
 
-type alias Work = {}
+type alias WorkData =
+  { claim: ResourceUrl
+  , witness : Maybe ResourceUrl
+  , workDate : CalendarDate
+  , workDuration : Maybe Duration
+  , workStartTime : Maybe ClockTime
+  }
+
+
+type alias Work = Resource WorkData
+
+
+-- "Changing" nested records is awkward in Elm, so these "setters" are provided.
+
+setWitness : Maybe ResourceUrl -> Work ->  Work
+setWitness newSetting oldWork =
+  let
+    data = oldWork.data
+    newData = {data | witness = newSetting}
+  in
+    {oldWork | data = newData}
+
+
+setWorkDuration : Maybe Duration -> Work -> Work
+setWorkDuration newSetting oldWork =
+  let
+    data = oldWork.data
+    newData = {data | workDuration = newSetting}
+  in
+    {oldWork | data = newData}
+
+
+--{-| WorkPatch (used for partial updates) is the same as Work but all fields are optional -}
+--type alias WorkPatch =
+--  { claim: Maybe ResourceUrl
+--  , witness : Maybe ResourceUrl
+--  , workDate : Maybe CalendarDate
+--  , workDuration : Maybe Duration
+--  , workStartTime : Maybe ClockTime
+--  }
+
+
+type WorkListFilter
+  = WorkedClaimEquals Int
+  | WorkDurationIsNull Bool
+
+
+workListFilterToString : WorkListFilter -> String
+workListFilterToString filter =
+  case filter of
+    WorkedClaimEquals id -> "claim=" ++ (toString id)
+    WorkDurationIsNull setting -> "work_duration__isnull=" ++ (setting |> toString |> String.toLower)
+
+
+listWorks : XisRestFlags a -> FilteringLister WorkListFilter Work msg
+listWorks flags filters resultToMsg =
+  let
+    request = httpGetRequest
+      flags.uniqueKioskId
+      (filteredListUrl flags.workListUrl filters workListFilterToString)
+      (decodePageOf decodeWork)
+  in
+    Http.send resultToMsg request
+
+
+createWork : XisRestFlags a -> Creator WorkData Work msg
+createWork flags workData resultToMsg =
+  let
+    request = Http.request
+      { method = "POST"
+      , headers = [authenticationHeader flags.uniqueKioskId]
+      , url = flags.workListUrl
+      , body = workData |> encodeWorkData |> Http.jsonBody
+      , expect = Http.expectJson decodeWork
+      , timeout = Nothing
+      , withCredentials = False
+      }
+  in
+    Http.send resultToMsg request
+
+
+-- If "witness" is provided, the witness's password needs to be in an X-Witness-PW header.
+replaceWorkWithHeaders : XisRestFlags a -> List Http.Header -> Replacer Work msg
+replaceWorkWithHeaders flags headers work resultToMsg =
+  let
+    request = Http.request
+      { method = "PUT"
+      , headers = headers ++ [authenticationHeader flags.uniqueKioskId]
+      , url = urlFromId flags.workListUrl work.id
+      , body = work.data |> encodeWorkData |> Http.jsonBody
+      , expect = Http.expectJson decodeWork
+      , timeout = Nothing
+      , withCredentials = False
+      }
+  in
+    Http.send resultToMsg request
+
+
+encodeWork : Work -> Enc.Value
+encodeWork = encodeResource workDataNVPs
+
+encodeWorkData : WorkData -> Enc.Value
+encodeWorkData = Enc.object << workDataNVPs
+
+workDataNVPs : WorkData -> List (String, Enc.Value)
+workDataNVPs wd =
+  [ ( "claim", wd.claim |> Enc.string )
+  , ( "witness", wd.witness |> (EncX.maybe Enc.string))
+  , ( "work_date", wd.workDate |> DRF.encodeCalendarDate)
+  , ( "work_duration", wd.workDuration |> (EncX.maybe DRF.encodeDuration))
+  , ( "work_start_time", wd.workStartTime |> (EncX.maybe DRF.encodeClockTime))
+  ]
+
+
+decodeWork : Dec.Decoder Work
+decodeWork = decodeResource decodeWorkData
+
+
+decodeWorkData : Dec.Decoder WorkData
+decodeWorkData =
+  decode WorkData
+    |> required "claim" decodeResourceUrl
+    |> required "witness" (Dec.maybe DRF.decodeResourceUrl)
+    |> required "work_date" DRF.decodeCalendarDate
+    |> required "work_duration" (Dec.maybe DRF.decodeDuration)
+    |> required "work_start_time" (Dec.maybe DRF.decodeClockTime)
+
+
+-----------------------------------------------------------------------------
+-- WORK NOTES
+-----------------------------------------------------------------------------
+
+type alias WorkNoteData =
+  { author : Maybe ResourceUrl
+  , content : String
+  , work : ResourceUrl
+  , whenWritten : PointInTime
+  }
+
+
+type alias WorkNote = Resource WorkNoteData
+
+
+createWorkNote : XisRestFlags a -> Creator WorkNoteData WorkNote msg
+createWorkNote flags workNoteData resultToMsg =
+  let
+    request = Http.request
+      { method = "POST"
+      , headers = [authenticationHeader flags.uniqueKioskId]
+      , url = flags.workNoteListUrl
+      , body = workNoteData |> encodeWorkNoteData |> Http.jsonBody
+      , expect = Http.expectJson decodeWorkNote
+      , timeout = Nothing
+      , withCredentials = False
+      }
+  in
+    Http.send resultToMsg request
+
+
+encodeWorkNote: WorkNote -> Enc.Value
+encodeWorkNote = encodeResource workNoteDataNVPs
+
+encodeWorkNoteData : WorkNoteData -> Enc.Value
+encodeWorkNoteData = Enc.object << workNoteDataNVPs
+
+{-| Name Value Pairs for WorkNoteData -}
+workNoteDataNVPs : WorkNoteData -> List (String, Enc.Value)
+workNoteDataNVPs wnd =
+  [ ( "author", wnd.author |> (EncX.maybe Enc.string))
+  , ( "content", wnd.content |> Enc.string)
+  , ( "work", wnd.work |> Enc.string)
+  , ( "when_written", wnd.whenWritten |> PointInTime.isoString |> Enc.string)
+  ]
+
+
+decodeWorkNote : Dec.Decoder WorkNote
+decodeWorkNote = decodeResource decodeWorkNoteData
+
+
+decodeWorkNoteData : Dec.Decoder WorkNoteData
+decodeWorkNoteData =
+  decode WorkNoteData
+    |> required "author" (Dec.maybe DRF.decodeResourceUrl)
+    |> required "content" Dec.string
+    |> required "work" DRF.decodeResourceUrl
+    |> required "when_written" (Dec.string |> Dec.andThen (PointInTime.fromString >> DecX.fromResult))
 
 
 -----------------------------------------------------------------------------
 -- MEMBER
 -----------------------------------------------------------------------------
 
-type alias Member =
+type alias MemberData =
   { email : Maybe String
   , firstName : Maybe String
   , friendlyName : Maybe String  -- Read only
-  , id : Int
   , isActive : Bool
   , isCurrentlyPaid : Bool  -- Read only
   , lastName : Maybe String
@@ -450,40 +709,44 @@ type alias Member =
   , userName : String
   }
 
+
+type alias Member = Resource MemberData
+
+
 type MemberListFilter
   = RfidNumberEquals Int
+  | UsernameEquals String
 
 
 memberListFilterToString : MemberListFilter -> String
 memberListFilterToString filter =
   case filter of
     RfidNumberEquals n -> "rfidnum=" ++ (toString n)
+    UsernameEquals s -> "auth_user__username__iexact=" ++ s
 
 
-getMemberList : XisRestFlags a -> FilteredListGetter MemberListFilter Member msg
-getMemberList flags filters resultToMsg =
+listMembers : XisRestFlags a -> FilteringLister MemberListFilter Member msg
+listMembers flags filters resultToMsg =
   let
-    request = Http.request
-      { method = "GET"
-      , headers = [authenticationHeader flags.uniqueKioskId]
-      , url = filteredListUrl flags.memberListUrl filters memberListFilterToString
-      , body = Http.emptyBody
-      , expect = Http.expectJson (decodePageOf decodeMember)
-      , timeout = Nothing
-      , withCredentials = False
-      }
+    request = httpGetRequest
+      flags.uniqueKioskId
+      (filteredListUrl flags.memberListUrl filters memberListFilterToString)
+      (decodePageOf decodeMember)
   in
     Http.send resultToMsg request
 
 
 decodeMember : Dec.Decoder Member
-decodeMember =
+decodeMember = decodeResource decodeMemberData
+
+
+decodeMemberData : Dec.Decoder MemberData
+decodeMemberData =
   -- Note: email, first_name, and last_name might not be included in JSON, depending on permissions.
-  decode Member
+  decode MemberData
     |> optional "email" (Dec.maybe Dec.string) Nothing
     |> optional "first_name" (Dec.maybe Dec.string) Nothing
     |> required "friendly_name" (Dec.maybe Dec.string)
-    |> required "id" Dec.int
     |> required "is_active" Dec.bool
     |> required "is_currently_paid" Dec.bool
     |> optional "last_name"  (Dec.maybe Dec.string) Nothing
@@ -495,38 +758,45 @@ decodeMember =
 -- TIME BLOCK TYPES
 -----------------------------------------------------------------------------
 
-type alias TimeBlockType =
-  { id : Int
-  , name : String
+type alias TimeBlockTypeData =
+  { name : String
   , description : String
   , isDefault : Bool
   }
 
-getTimeBlockTypeList : XisRestFlags a -> ListGetter TimeBlockType msg
-getTimeBlockTypeList model resultToMsg =
+
+type alias TimeBlockType = Resource TimeBlockTypeData
+
+
+listTimeBlockTypes : XisRestFlags a -> Lister TimeBlockType msg
+listTimeBlockTypes model resultToMsg =
   let request = Http.get model.timeBlockTypesUrl (decodePageOf decodeTimeBlockType)
   in Http.send resultToMsg request
 
+
 decodeTimeBlockType : Dec.Decoder TimeBlockType
-decodeTimeBlockType =
-  Dec.map4 TimeBlockType
-    (Dec.field "id" Dec.int)
+decodeTimeBlockType = decodeResource decodeTimeBlockTypeData
+
+
+decodeTimeBlockTypeData : Dec.Decoder TimeBlockTypeData
+decodeTimeBlockTypeData =
+  Dec.map3 TimeBlockTypeData
     (Dec.field "name" Dec.string)
     (Dec.field "description" Dec.string)
     (Dec.field "is_default" Dec.bool)
 
+
 defaultBlockType : List TimeBlockType -> Maybe TimeBlockType
 defaultBlockType allBlockTypes =
-  List.filter .isDefault allBlockTypes |> List.head
+  List.filter (.data >> .isDefault) allBlockTypes |> List.head
 
 
 -----------------------------------------------------------------------------
 -- TIME BLOCKS
 -----------------------------------------------------------------------------
 
-type alias TimeBlock =
-  { id : Int
-  , isNow : Bool
+type alias TimeBlockData =
+  { isNow : Bool
   , startTime : String
   , duration : String
   , first : Bool
@@ -545,16 +815,23 @@ type alias TimeBlock =
   , types : List String
   }
 
-getTimeBlockList : XisRestFlags a -> ListGetter TimeBlock msg
-getTimeBlockList model resultToMsg =
-  let request = Http.get model.timeBlocksUrl (decodePageOf decodeTimeBlock)
+
+type alias TimeBlock = Resource TimeBlockData
+
+
+listTimeBlocks : XisRestFlags a -> Lister TimeBlock msg
+listTimeBlocks flags resultToMsg =
+  let request = Http.get flags.timeBlocksUrl (decodePageOf decodeTimeBlock)
   in Http.send resultToMsg request
 
 
 decodeTimeBlock : Dec.Decoder TimeBlock
-decodeTimeBlock =
-  decode TimeBlock
-    |> required "id" Dec.int
+decodeTimeBlock = decodeResource decodeTimeBlockData
+
+
+decodeTimeBlockData : Dec.Decoder TimeBlockData
+decodeTimeBlockData =
+  decode TimeBlockData
     |> required "is_now" Dec.bool
     |> required "start_time" Dec.string
     |> required "duration" Dec.string
@@ -573,10 +850,11 @@ decodeTimeBlock =
     |> required "sunday" Dec.bool
     |> required "types" (Dec.list Dec.string)
 
+
 getBlocksTypes : TimeBlock -> List TimeBlockType -> List TimeBlockType
 getBlocksTypes specificBlock allBlockTypes =
   let
-    relatedBlockTypeIds = List.map getIdFromUrl specificBlock.types
+    relatedBlockTypeIds = List.map idFromUrl specificBlock.data.types
     isRelatedBlockType x = List.member (Ok x.id) relatedBlockTypeIds
   in
     List.filter isRelatedBlockType allBlockTypes
@@ -586,16 +864,19 @@ getBlocksTypes specificBlock allBlockTypes =
 -- MEMBERSHIPS
 -----------------------------------------------------------------------------
 
-type alias Membership =
-  { id : Int
-  , member : String
-  , startDate : Date.Date
-  , endDate : Date.Date
-  , sale : Int
+type alias MembershipData =
+  { member : String
+  , startDate : CalendarDate
+  , endDate : CalendarDate
+  , sale : Maybe Int  -- Memberships linked to group memberships don't have a sale.
   , sale_price : String
   , ctrlid : String
   , protected : Bool
   }
+
+
+type alias Membership = Resource MembershipData
+
 
 type MembershipListFilter
   = MembershipsWithMemberIdEqualTo Int
@@ -607,54 +888,54 @@ membershipListFilterToString filter =
     MembershipsWithMemberIdEqualTo id -> "member=" ++ (toString id)
 
 
-getMembershipList : XisRestFlags a -> FilteredListGetter MembershipListFilter Membership msg
-getMembershipList flags filters resultToMsg =
+listMemberships : XisRestFlags a -> FilteringLister MembershipListFilter Membership msg
+listMemberships flags filters resultToMsg =
   let
-    request = Http.request
-      { method = "GET"
-      , headers = [authenticationHeader flags.uniqueKioskId]
-      , url = filteredListUrl flags.membershipListUrl filters membershipListFilterToString
-      , body = Http.emptyBody
-      , expect = Http.expectJson (decodePageOf decodeMembership)
-      , timeout = Nothing
-      , withCredentials = False
-      }
+    request = httpGetRequest
+      flags.uniqueKioskId
+      (filteredListUrl flags.membershipListUrl filters membershipListFilterToString)
+      (decodePageOf decodeMembership)
   in
     Http.send resultToMsg request
 
 
-getMembership : XisRestFlags a -> ResourceGetter Membership msg
-getMembership flags memberNum resultToMsg =
+getMembershipById : XisRestFlags a -> GetterById Membership msg
+getMembershipById flags memberNum resultToMsg =
+  let url = urlFromId flags.memberListUrl memberNum
+  in getMembershipFromUrl flags url resultToMsg
+
+
+getMembershipFromUrl : XisRestFlags a -> GetterFromUrl Membership msg
+getMembershipFromUrl flags url resultToMsg =
   let
-    placeHolder = "MEMBERNUM"
-    urlPattern = "/members/api/memberships/?format=json&member="++placeHolder++"&ordering=-start_date"
-    request = Http.request
-      { method = "GET"
-      , url = replaceAll {oldSub = placeHolder, newSub = toString memberNum} urlPattern
-      , headers = [ authenticationHeader flags.uniqueKioskId ]
-      , withCredentials = False
-      , body = Http.emptyBody
-      , timeout = Nothing
-      , expect = Http.expectJson (decodePageOf decodeMembership)
-      }
+    request = httpGetRequest
+      flags.uniqueKioskId
+      url
+      decodeMembership
   in
     Http.send resultToMsg request
+
 
 decodeMembership : Dec.Decoder Membership
-decodeMembership =
-  decode Membership
-    |> required "id" Dec.int
+decodeMembership = decodeResource decodeMembershipData
+
+
+decodeMembershipData : Dec.Decoder MembershipData
+decodeMembershipData =
+  decode MembershipData
     |> required "member" Dec.string
-    |> required "start_date" DecX.date
-    |> required "end_date" DecX.date
-    |> required "sale" Dec.int
+    |> required "start_date" DRF.decodeCalendarDate
+    |> required "end_date" DRF.decodeCalendarDate
+    |> required "sale" (Dec.maybe Dec.int)
     |> required "sale_price" Dec.string
     |> required "ctrlid" Dec.string
     |> required "protected" Dec.bool
 
+
 compareMembershipByEndDate : Membership -> Membership -> Order
 compareMembershipByEndDate m1 m2 =
-  DateX.compare m1.endDate m2.endDate
+  CalendarDate.compare m1.data.endDate m2.data.endDate
+
 
 mostRecentMembership : List Membership -> Maybe Membership
 mostRecentMembership memberships =
@@ -665,38 +946,45 @@ mostRecentMembership memberships =
 
 {-| Determine whether the list of memberships covers the current time.
 -}
-coverTime : List Membership -> Time -> Bool
+coverTime : List Membership -> PointInTime -> Bool
 coverTime memberships now =
   case mostRecentMembership memberships of
     Nothing ->
       False
     Just membership ->
-      let endTime = Date.toTime membership.endDate
-      in endTime >= now
+      let
+        membershipRange =
+          RangeOfTime.fromCalendarDates membership.data.startDate membership.data.endDate
+      in
+        RangeOfTime.containsPoint membershipRange now
 
 
 -----------------------------------------------------------------------------
 -- DISCOVERY METHODS
 -----------------------------------------------------------------------------
 
-type alias DiscoveryMethod =
-  { id : Int
-  , name : String
+type alias DiscoveryMethodData =
+  { name : String
   , order : Int
   , visible : Bool
   }
 
 
-getDiscoveryMethodList : XisRestFlags a -> ListGetter DiscoveryMethod msg
-getDiscoveryMethodList model resultToMsg =
-  let request = Http.get model.discoveryMethodsUrl (decodePageOf decodeDiscoveryMethod)
+type alias DiscoveryMethod = Resource DiscoveryMethodData
+
+
+listDiscoveryMethods : XisRestFlags a -> Lister DiscoveryMethod msg
+listDiscoveryMethods flags resultToMsg =
+  let request = Http.get flags.discoveryMethodsUrl (decodePageOf decodeDiscoveryMethod)
   in Http.send resultToMsg request
 
 
 decodeDiscoveryMethod : Dec.Decoder DiscoveryMethod
-decodeDiscoveryMethod =
-  decode DiscoveryMethod
-    |> required "id" Dec.int
+decodeDiscoveryMethod = decodeResource decodeDiscoveryMethodData
+
+decodeDiscoveryMethodData : Dec.Decoder DiscoveryMethodData
+decodeDiscoveryMethodData =
+  decode DiscoveryMethodData
     |> required "name" Dec.string
     |> required "order" Dec.int
     |> required "visible" Dec.bool
@@ -716,9 +1004,10 @@ filteredListUrl listUrl filters filterToString =
     listUrl ++ filtersStr
 
 
-resourceUrl : String -> Int -> ResourceListUrl
-resourceUrl listUrl id =
-  listUrl ++ (toString id) ++ "/"
+djangoizeId : String -> String
+djangoizeId rawId =
+  -- Django allows alphanumeric, _, @, +, . and -.
+  replaceAll {oldSub="[^-a-zA-Z0-9_@+.]", newSub="_"} rawId
 
 
 replaceAll : {oldSub : String, newSub : String} -> String -> String

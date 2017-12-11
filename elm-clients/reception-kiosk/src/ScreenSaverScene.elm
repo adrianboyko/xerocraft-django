@@ -135,7 +135,7 @@ update msg kioskModel =
         member = List.head results
       in
         case member of
-          Just m -> (sceneModel, CheckInShortcut m.userName m.id |> CheckInVector |> send)
+          Just m -> (sceneModel, CheckInShortcut m.data.userName m.id |> CheckInVector |> send)
           Nothing -> (sceneModel, Cmd.none)
 
     SS_MemberListResult (Err error) ->
@@ -150,7 +150,7 @@ handleRfid kioskModel =
     filter = Result.map RfidNumberEquals rfidNumber
     resultHandler = ScreenSaverVector << SS_MemberListResult
     cmd = case filter of
-      Ok f -> kioskModel.xisSession.getMemberList [f] resultHandler
+      Ok f -> kioskModel.xisSession.listMembers [f] resultHandler
       Err err -> Cmd.none
   in
     ({sceneModel | state=CheckingRfid}, cmd)
@@ -177,7 +177,10 @@ timeoutFor scene =
     ScreenSaver -> 86400
     SignUpDone -> 300
     TaskList -> 300
-    VolunteerInDone -> 300  -- There may be a lot to read in the instructions.
+    TimeSheetPt1 -> 300
+    TimeSheetPt2 -> 300
+    TimeSheetPt3 -> 600  -- Give them some time to find a staffer.
+    VolunteerInDone -> 600  -- There may be a lot to read in the instructions.
     Waiver -> 600
     Welcome -> 60
 
