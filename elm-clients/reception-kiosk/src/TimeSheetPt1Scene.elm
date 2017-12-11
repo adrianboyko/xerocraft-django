@@ -91,7 +91,7 @@ sceneWillAppear kioskModel appearingScene =
     TimeSheetPt1 ->
       -- This scene will only look up info if:
       --   1) The user is arriving at it for the first time.
-      --   2) Another scene has set findNewTask to True.
+      --   2) Another scene has set "search" to True.
       if not sceneModel.search then
         (sceneModel, Cmd.none)
       else
@@ -168,6 +168,9 @@ update msg kioskModel =
         workDur = Duration.fromString sceneModel.workDurationScratch
       in
         case (startCT, workDur) of
+
+          (_, Ok 0) ->
+            ({sceneModel | badNews=["Must specify non-zero work time."]}, Cmd.none)
 
           (Ok ct, Ok dur) ->
             let
