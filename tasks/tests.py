@@ -615,11 +615,47 @@ class RunSchedAndNagCmds(TestCase):
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-# TODO: Maybe merge this into RunSchedAndNagCmds and check that email is generated.
 class RunEmailWMTD(TestCase):
 
     def test_database_validity(self):
+
+        self.user = User.objects.create_superuser(username='JoeSmith', password='123', email='somebody@email.com')
+        self.member = self.user.member
+
+        self.task = Task.objects.create(  # type: Task
+            short_desc="Do Something",
+            max_work=timedelta(hours=1.5),
+            work_start_time=time(18, 00),
+            work_duration=timedelta(hours=1.5),
+            scheduled_date=date.today(),
+            orig_sched_date=date.today(),
+        )
+        self.task.full_clean()
+
+        self.claim = Claim.objects.create(
+            status=Claim.STAT_CURRENT,
+            claiming_member=self.member,
+            claimed_task=self.task,
+            claimed_duration=timedelta(hours=1.5),
+            claimed_start_time=self.task.work_start_time,
+        )
+        self.claim.full_clean()
+
+        self.work = Work.objects.create(
+            claim=self.claim,
+            work_date=datetime.today(),
+            work_duration=timedelta(hours=1.5))
+        self.work.full_clean()
+
+        self.member.worker.should_report_work_mtd = False
+        self.member.worker.save()
         management.call_command("emailwmtd")
+        self.assertEqual(len(mail.outbox), 0)
+
+        self.member.worker.should_report_work_mtd = True
+        self.member.worker.save()
+        management.call_command("emailwmtd")
+        self.assertEqual(len(mail.outbox), 1)
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =

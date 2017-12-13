@@ -1,7 +1,6 @@
 from django.core.management.base import BaseCommand, CommandError
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import get_template
-from django.template import Context
 from django.utils import timezone
 from members.models import Tagging
 import datetime
@@ -10,6 +9,7 @@ import logging
 __author__ = 'adrian'
 
 XIS_EMAIL = "Xerocraft Internal Systems <xis@xerocraft.org>"
+
 
 class Command(BaseCommand):
 
@@ -20,10 +20,10 @@ class Command(BaseCommand):
 
         text_content_template = get_template('members/email-taggings-report.txt')
         html_content_template = get_template('members/email-taggings-report.html')
-        d = Context({
+        d = {
             'member': member,
             'tagging_list': tagging_list,
-        })
+        }
         subject = "New Taggings Report, " + datetime.date.today().strftime('%a %b %d')
         from_email = XIS_EMAIL
         bcc_email = XIS_EMAIL

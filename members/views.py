@@ -23,7 +23,6 @@ from django.db.models import Q
 from django.utils import timezone
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import get_template
-from django.template import Context
 
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.permissions import IsAdminUser
@@ -645,7 +644,7 @@ def reception_kiosk_email_mship_buy_options(request) -> JsonResponse:
 
     text_content_template = get_template('members/email-mship-buy-options.txt')
     html_content_template = get_template('members/email-mship-buy-options.html')
-    d = Context({'member': member})
+    d = {'member': member}
     subject = "Membership Renewal Info, " + date.today().strftime('%a %b %d')
     from_email = EMAIL_TREASURER
     bcc_email = EMAIL_ARCHIVE

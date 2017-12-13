@@ -7,7 +7,6 @@ import logging
 from django.core.management.base import BaseCommand
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import get_template
-from django.template import Context
 from dateutil import relativedelta
 
 # Local
@@ -31,14 +30,14 @@ class Command(BaseCommand):
 
         text_content_template = get_template('tasks/email_wmtd_template.txt')
         html_content_template = get_template('tasks/email_wmtd_template.html')
-        d = Context({
+        d = {
             'member': member,
             'work_list': work_list,
             'total_dur': total_dur,
             'total_hrs': total_hrs,
             'next_month': next_month,
-        })
-        subject = 'Work Trade Report, ' + datetime.date.today().strftime('%a %b %d')
+        }
+        subject = 'Work Trade Report for '+member.username+ ', ' + datetime.date.today().strftime('%a %b %d')
         from_email = VC_EMAIL
         bcc_email = XIS_EMAIL
         to = member.email
@@ -64,7 +63,10 @@ class Command(BaseCommand):
         # Look for work lists with totals that have changed since last report:
         for member, work_list in work_lists.items():
 
-            if not member.worker.should_report_work_mtd: continue
+            if not member.worker.should_report_work_mtd:
+                logger.info("%s has reportable WMTD but is NOT set for updates.", member)
+                continue
+
             if member.email == "": continue
 
             total_wmtd = datetime.timedelta(0)
