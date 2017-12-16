@@ -13,7 +13,7 @@ from reversion.admin import VersionAdmin
 from books.admin import Sellable, Invoiceable, sale_link
 from members.models import (
     Tag, Pushover, Tagging, VisitEvent,
-    Member, Membership, GroupMembership, KeyFee,
+    Member, Membership, GroupMembership, KeyFee, HourlyMembershipEntry,
     MemberNote, MemberLogin, MembershipGiftCardRedemption,
     MembershipGiftCard, MembershipGiftCardReference, MembershipCampaign,
     DiscoveryMethod, WifiMacDetected
@@ -466,6 +466,28 @@ class DiscoveryMethodAdmin(VersionAdmin):
 
     ordering = ['order']
 
+
+@admin.register(HourlyMembershipEntry)
+class HourlyMembershipEntryAdmin(VersionAdmin):
+
+    list_display = ['pk', 'member', 'when', 'change', 'explanation']
+
+    fields = ['member', 'when', 'change', 'explanation', 'balance']
+
+    search_fields = ['member']
+
+    date_hierarchy = 'when'
+
+    raw_id_fields = ['member']
+
+    readonly_fields = [
+        'balance',  # Balances are automatically calculated.
+    ]
+
+    class Media:
+        css = {
+            "all": ("members/hourly-membership-admin.css",)  # This hides "denormalized object descs", to use Woj's term.
+        }
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # Line-Item Inlines for SaleAdmin in Books app.

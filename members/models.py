@@ -821,11 +821,15 @@ class Membership(MembershipJournalLiner):
 
     # Methods
 
-    def link_to_member(self):
+    def link_to_member(self) -> None:
 
-        if self.protected: return  # REVIEW: Should 'protected' checks only appear in ETL code?
-        if self.member is not None: return
-        if self.sale is None: return
+        if self.protected:
+            # REVIEW: Should 'protected' checks only appear in ETL code?
+            return
+        if self.member is not None:
+            return
+        if self.sale is None:
+            return
 
         self.sale.link_to_user()
         self.sale.save()
@@ -874,6 +878,39 @@ class Membership(MembershipJournalLiner):
 
     def create_journalentry_lineitems(self, je: JournalEntry):
         self.create_membership_jelis(je)
+
+
+class HourlyMembershipEntry(models.Model):
+
+    explanation = models.CharField(max_length=80,
+        null=False, blank=False,
+        help_text="Explanation of this change.")
+
+    member = models.ForeignKey(Member,
+        null=False, blank=False,
+        on_delete=models.CASCADE,  # If the member is deleted, any record of their free hours is uninteresting.
+        help_text="The member whose balance is changing.")
+
+    when = models.DateTimeField(null=False,
+        blank=False, default=timezone.now,
+        help_text="Date/time of the change.")
+
+    change = models.DecimalField(max_digits=4, decimal_places=2,
+        null=False, blank=False,
+        help_text="The amount added (positive) or deleted (negative).")
+
+    class Meta:
+        unique_together = ['member', 'when']
+        ordering = ['when']
+
+    def __str__(self) -> str:
+        return "{} hrs added to {}".format(self.change, self.member.friendly_name)
+
+    @property
+    def balance(self) -> Decimal:
+        log = HourlyMembershipEntry.objects.filter(member=self.member, when__lte=self.when)
+        balance = log.aggregate(models.Sum('change'))['change__sum']
+        return balance
 
 
 class KeyFee(MembershipJournalLiner):

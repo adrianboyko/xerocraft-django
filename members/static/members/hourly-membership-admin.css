@@ -1,0 +1,8 @@
+
+div.field-balance div div.readonly {
+    font-size: 24pt;
+}
+
+.vForeignKeyRawIdAdminField {
+    display: none;
+}
