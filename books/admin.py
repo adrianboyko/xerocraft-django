@@ -579,6 +579,15 @@ class OtherItemTypeAdmin(VersionAdmin):
 @admin.register(Sale)
 class SaleAdmin(JournalerAdmin, ModelMailerAdmin):
 
+    @staticmethod
+    def link_to_user(modeladmin, request, queryset) -> None:
+        # TODO: This should be an asynchronous task if we're going to allow its use on large sets.
+        for obj in queryset.filter(payer_acct__isnull=True):  # type: Sale
+            if obj.link_to_user():
+                obj.save()
+
+    actions = ['link_to_user']
+
     form = get_ChecksumAdminForm(Sale)
 
     # TODO: Move to Sale model?

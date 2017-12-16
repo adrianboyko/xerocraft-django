@@ -933,30 +933,42 @@ class Sale(Journaler):
     protected = models.BooleanField(default=False,
         help_text="Protect against further auto processing by ETL, etc. Prevents overwrites of manually enetered data.")
 
-    def link_to_user(self):
+    def link_to_user(self) -> bool:
 
         if self.protected:
-            return
+            return False
 
         # Attempt to match by EMAIL
-        try:
-            email_matches = User.objects.filter(email=self.payer_email)
-            if len(email_matches) == 1:
-                self.payer_acct = email_matches[0]
-        except User.DoesNotExist:
-            pass
+        if self.payer_email is not None and len(self.payer_email) > 0:
+            try:
+                email_matches = User.objects.filter(email=self.payer_email, is_active=True)
+                if len(email_matches) == 1:
+                    self.payer_acct = email_matches[0]
+                    return True
+                elif len(email_matches) > 1:
+                    logger.warning("Unable to link sale b/c multiple %s emails", self.payer_email)
+            except User.DoesNotExist:
+                pass
 
         # Attempt to match by NAME
         nameobj = HumanName(str(self.payer_name))
         fname = nameobj.first
         lname = nameobj.last
-        try:
-            name_matches = User.objects.filter(first_name__iexact=fname, last_name__iexact=lname)
-            if len(name_matches) == 1:
-                self.payer_acct = name_matches[0]
-            # TODO: Else log WARNING (or maybe just INFO)
-        except User.DoesNotExist:
-            pass
+        if fname is not None and lname is not None and len(fname+lname) > 0:
+            try:
+                name_matches = User.objects.filter(
+                    first_name__iexact=fname,
+                    last_name__iexact=lname,
+                    is_active=True,
+                )
+                if len(name_matches) == 1:
+                    self.payer_acct = name_matches[0]
+                    return True
+                elif len(name_matches) > 1:
+                    logger.warning("Unable to link sale b/c multiple %s %s accts", fname, lname)
+            except User.DoesNotExist:
+                pass
+        return False
 
     class Meta:
         unique_together = ('payment_method', 'ctrlid')
