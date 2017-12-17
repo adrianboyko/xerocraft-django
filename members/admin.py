@@ -474,7 +474,12 @@ class HourlyMembershipEntryAdmin(VersionAdmin):
 
     fields = ['member', 'when', 'change', 'explanation', 'balance']
 
-    search_fields = ['member']
+    search_fields = [
+        '^member__auth_user__first_name',
+        '^member__auth_user__last_name',
+        '^member__auth_user__username',
+        'member__auth_user__email',
+    ]
 
     date_hierarchy = 'when'
 
@@ -488,6 +493,7 @@ class HourlyMembershipEntryAdmin(VersionAdmin):
         css = {
             "all": ("members/hourly-membership-admin.css",)  # This hides "denormalized object descs", to use Woj's term.
         }
+
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # Line-Item Inlines for SaleAdmin in Books app.
