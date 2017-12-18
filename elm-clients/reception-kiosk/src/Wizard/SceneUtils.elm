@@ -20,13 +20,12 @@ port module Wizard.SceneUtils exposing
   , send
   , segueTo
   , pop
-  , setFocusIfNoFocus
   , hideKeyboard
-  , focusWasSet
   , sceneIsVisible
   , currentScene
   , redSpan
   , textAreaColor
+  , focusOnIndex
   )
 
 -- Standard
@@ -51,18 +50,6 @@ import Types exposing (..)
 -- PORTS
 -----------------------------------------------------------------------------
 
-{-| Sets focus on the element with the given id but ONLY IF there is NOT
-an element that already has focus. Since scenes appear with no default
-focus, use this to set one. This will also showKeyboard().
--}
-port setFocusIfNoFocus : String -> Cmd msg
-
-{-| This port is for asynchronous result information from setFocusIfNoFocus.
-If focus is successfully set, a True will be sent back via this port, else
-a False will be sent.
--}
-port focusWasSet : (Bool -> msg) -> Sub msg
-
 {-| This will hide the keyboard using the Kiosk App's API.
 -}
 port hideKeyboard : () -> Cmd msg  -- Note that () might go away, per https://github.com/evancz/guide.elm-lang.org/issues/34
@@ -84,6 +71,10 @@ type alias Index = List Int  -- elm-mdl doesn't expose this type.
 -- REVIEW: Rename segueTo to push, to match pop?
 segueTo : Scene -> Cmd Msg
 segueTo scene = send (WizardVector <| Push <| scene)
+
+focusOnIndex : List Int -> Cmd Msg
+focusOnIndex idx =
+  send <| WizardVector <| FocusOnIndex (Just idx)
 
 pop : Cmd Msg
 pop = send (WizardVector <| Pop)

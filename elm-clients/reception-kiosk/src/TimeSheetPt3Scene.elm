@@ -90,7 +90,7 @@ sceneWillAppear kioskModel appearingScene =
 
         (Received task, Received (Just claim), Received (Just work)) ->
           let records = Just (task, claim, work)
-          in ({sceneModel | records=records}, Cmd.none)
+          in ({sceneModel | records=records}, focusOnIndex idxWitnessUsername)
 
         _ ->
           ({sceneModel | badNews=[tcwMissingMsg]}, Cmd.none)

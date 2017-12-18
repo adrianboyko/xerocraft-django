@@ -1,4 +1,4 @@
-module ReceptionKiosk exposing (..)
+port module ReceptionKiosk exposing (..)
 
 -- Standard
 import Html exposing (Html, Attribute, a, div, text, span, button, br, p, img, h1, h2, ol, li, b, canvas)
@@ -35,6 +35,7 @@ import WaiverScene
 import WelcomeScene
 import XisRestApi as XisApi
 
+
 -----------------------------------------------------------------------------
 -- MAIN
 -----------------------------------------------------------------------------
@@ -47,6 +48,24 @@ main =
     , subscriptions = subscriptions
     }
 
+
+-----------------------------------------------------------------------------
+-- PORTS
+-----------------------------------------------------------------------------
+
+{-| Sets focus on the element with the given id but ONLY IF there is NOT
+an element that already has focus. Since scenes appear with no default
+focus, use this to set one. This will also showKeyboard().
+-}
+port setFocusIfNoFocus : String -> Cmd msg
+
+{-| This port is for asynchronous result information from setFocusIfNoFocus.
+If focus is successfully set, a True will be sent back via this port, else
+a False will be sent.
+-}
+port focusWasSet : (Bool -> msg) -> Sub msg
+
+
 -----------------------------------------------------------------------------
 -- MODEL
 -----------------------------------------------------------------------------
@@ -55,6 +74,8 @@ type alias Model =
   { flags : Flags
   , currTime : Time
   , sceneStack : Nonempty Scene -- 1st element is the top of the stack
+  , doneWithFocus : Bool  -- Only want to set default focus once (per scene transition)
+  , idxToFocus : Maybe (List Int)  -- Can't use Material.Component.Index (https://github.com/debois/elm-mdl/issues/342)
   -- elm-mdl model:
   , mdl : Material.Model
   -- api models:
@@ -109,6 +130,8 @@ init f =
       { flags = f
       , currTime = 0
       , sceneStack = List.Nonempty.fromElement ScreenSaver
+      , doneWithFocus = False
+      , idxToFocus = Nothing
       , mdl = Material.model
       , xisSession = XisApi.createSession f
       -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
@@ -157,6 +180,12 @@ init f =
   in
     (model, Cmd.batch cmds)
 
+
+setIndexToFocus : Maybe (List Int) -> Model -> Model
+setIndexToFocus index model =
+  {model | idxToFocus = index}
+
+
 -----------------------------------------------------------------------------
 -- RESET
 -----------------------------------------------------------------------------
@@ -165,6 +194,7 @@ init f =
 reset : Model -> (Model, Cmd Msg)
 reset m =
   init m.flags
+
 
 -----------------------------------------------------------------------------
 -- UPDATE
@@ -210,6 +240,8 @@ update msg model =
             (mCA,  cCA)  = CreatingAcctScene.sceneWillAppear model appearing
             (mHD,  cHD)  = HowDidYouHearScene.sceneWillAppear model appearing
             (mMO,  cMO)  = MembersOnlyScene.sceneWillAppear model appearing
+            (mNM,  cNM)  = NewMemberScene.sceneWillAppear model appearing
+            (mNU,  cNU)  = NewUserScene.sceneWillAppear model appearing
             (mSS,  cSS)  = ScreenSaverScene.sceneWillAppear model appearing
             (mTL,  cTL)  = TaskListScene.sceneWillAppear model appearing vanishing
             (mTS1, cTS1) = TimeSheetPt1Scene.sceneWillAppear model appearing
@@ -218,11 +250,15 @@ update msg model =
             (mW,   cW)   = WaiverScene.sceneWillAppear model appearing
             newModel =
               { model
-              | checkInModel = mCI
+              | idxToFocus = Nothing
+              , doneWithFocus = False
+              , checkInModel = mCI
               , checkOutModel = mCO
               , creatingAcctModel = mCA
               , howDidYouHearModel = mHD
               , membersOnlyModel = mMO
+              , newMemberModel = mNM
+              , newUserModel = mNU
               , screenSaverModel = mSS
               , taskListModel = mTL
               , timeSheetPt1Model = mTS1
@@ -231,26 +267,42 @@ update msg model =
               , waiverModel = mW
               }
           in
-            (newModel, Cmd.batch [cCI, cCO, cCA, cHD, cMO, cSS, cTL, cTS1, cTS2, cTS3, cW])
+            (newModel, Cmd.batch [cCI, cCO, cCA, cHD, cMO, cNM, cNU, cSS, cTL, cTS1, cTS2, cTS3, cW])
 
         Tick time ->
           let
-            (m1, c1) = CreatingAcctScene.tick time model
-            (m2, c2) = CheckInScene.tick time model
-            (m5, c5) = NewMemberScene.tick time model
-            (m6, c6) = NewUserScene.tick time model
-            (m7, c7) = ScreenSaverScene.tick time model
+            (mCA, cCA) = CreatingAcctScene.tick time model
+            (mCI, cCI) = CheckInScene.tick time model
+            (mSS, cSS) = ScreenSaverScene.tick time model
             newModel =
               { model
               | currTime = time
-              , creatingAcctModel = m1
-              , checkInModel = m2
-              , newMemberModel = m5
-              , newUserModel = m6
-              , screenSaverModel = m7
+              , creatingAcctModel = mCA
+              , checkInModel = mCI
+              , screenSaverModel = mSS
               }
+            cmdFocus =
+              case (model.doneWithFocus, model.idxToFocus) of
+                (False, Just idx) ->
+                  idx |> toString |> setFocusIfNoFocus
+                _ -> Cmd.none
           in
-            (newModel, Cmd.batch [c1, c2, c5, c6, c7])
+            (newModel, Cmd.batch [cmdFocus, cCA, cCI, cSS])
+
+        FocusOnIndex idx ->
+          let
+            -- REVIEW: Why did previous version always also check && List.isEmpty model.badNews
+            cmd = if not model.doneWithFocus
+              then model.idxToFocus |> toString |> setFocusIfNoFocus
+              else Cmd.none
+          in
+            ({model | idxToFocus=idx, doneWithFocus=False}, cmd)
+
+        FocusWasSet wasSet ->
+          if wasSet then
+            ({model | doneWithFocus=True, idxToFocus=Nothing}, Cmd.none)
+          else
+            (model, Cmd.none)
 
     CheckInVector x ->
       let (sm, cmd) = CheckInScene.update x model
@@ -311,6 +363,7 @@ update msg model =
     MdlVector x ->
       Material.update MdlVector x model
 
+
 -----------------------------------------------------------------------------
 -- VIEW
 -----------------------------------------------------------------------------
@@ -340,6 +393,7 @@ view model =
     Waiver          -> WaiverScene.view          model
     Welcome         -> WelcomeScene.view         model
 
+
 -----------------------------------------------------------------------------
 -- SUBSCRIPTIONS
 -----------------------------------------------------------------------------
@@ -347,18 +401,14 @@ view model =
 subscriptions: Model -> Sub Msg
 subscriptions model =
   let
-    mySubs = Time.every second (WizardVector << Tick)
-    checkInSubs = CheckInScene.subscriptions model
-    newMemberSubs = NewMemberScene.subscriptions model
-    newUserSubs = NewUserScene.subscriptions model
+    focusSetSub = focusWasSet (WizardVector << FocusWasSet)
+    timeTickSub = Time.every second (WizardVector << Tick)
     screenSaverSubs = ScreenSaverScene.subscriptions model
     waiverSubs = WaiverScene.subscriptions model
   in
     Sub.batch
-      [ mySubs
-      , checkInSubs
-      , newMemberSubs
-      , newUserSubs
+      [ focusSetSub
+      , timeTickSub
       , screenSaverSubs
       , waiverSubs
       ]

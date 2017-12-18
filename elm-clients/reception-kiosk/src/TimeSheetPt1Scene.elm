@@ -85,7 +85,9 @@ init flags =
 
 sceneWillAppear : KioskModel a -> Scene -> (TimeSheetPt1Model, Cmd Msg)
 sceneWillAppear kioskModel appearingScene =
-  let sceneModel = kioskModel.timeSheetPt1Model
+  let
+    sceneModel = kioskModel.timeSheetPt1Model
+    focusCmd = focusOnIndex idxWorkStart
   in case appearingScene of
 
     TimeSheetPt1 ->
@@ -93,7 +95,7 @@ sceneWillAppear kioskModel appearingScene =
       --   1) The user is arriving at it for the first time.
       --   2) Another scene has set "search" to True.
       if not sceneModel.search then
-        (sceneModel, Cmd.none)
+        (sceneModel, focusCmd)
       else
         let
           memberNum = kioskModel.checkOutModel.checkedOutMemberNum
@@ -103,7 +105,7 @@ sceneWillAppear kioskModel appearingScene =
             ]
             (TimeSheetPt1Vector << TS1_WorkingClaimsResult)
         in
-          ({sceneModel | taskInProgress = Pending}, cmd)
+          ({sceneModel | taskInProgress = Pending}, Cmd.batch [cmd, focusCmd])
 
     _ ->
       (sceneModel, Cmd.none)

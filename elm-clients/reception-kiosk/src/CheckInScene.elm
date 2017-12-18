@@ -5,7 +5,6 @@ module CheckInScene exposing
   , view
   , update
   , tick
-  , subscriptions
   , CheckInModel
   )
 
@@ -44,7 +43,6 @@ type alias CheckInModel =
   { flexId : String  -- UserName or surname.
   , matches : List MembersApi.MatchingAcct  -- Matches to username/surname
   , memberNum : Int -- The member number that the person chose to check in as.
-  , doneWithFocus : Bool  -- Only want to set default focus once.
   , badNews : List String
   }
 
@@ -57,7 +55,6 @@ init flags =
     { flexId = ""  -- A harmless initial value.
     , matches = []
     , memberNum = -99  -- A harmless initial value.
-    , doneWithFocus = False
     , badNews = []
     }
   in (model, Cmd.none)
@@ -71,7 +68,12 @@ sceneWillAppear : KioskModel a -> Scene -> (CheckInModel, Cmd Msg)
 sceneWillAppear kioskModel appearingScene =
   if appearingScene == CheckIn
     then
-      (kioskModel.checkInModel, getRecentRfidEntriesCmd kioskModel)
+      let
+        cmd1 = getRecentRfidEntriesCmd kioskModel
+        cmd2 = focusOnIndex idxFlexId
+        cmd = Cmd.batch [cmd1, cmd2]
+      in
+        (kioskModel.checkInModel, cmd)
     else
       (kioskModel.checkInModel, Cmd.none)
 
@@ -110,13 +112,6 @@ update msg kioskModel =
 
     UpdateMemberNum memberNum ->
       ({sceneModel | memberNum = memberNum}, segueTo ReasonForVisit)
-
-    FlexIdFocusSet wasSet ->
-      let
-        currDoneWithFocus = sceneModel.doneWithFocus
-        newDoneWithFocus = currDoneWithFocus || wasSet
-      in
-        ({sceneModel | doneWithFocus = newDoneWithFocus}, Cmd.none)
 
     CheckInShortcut userName memberNum ->
       ({sceneModel | flexId=userName, memberNum=memberNum}, segueTo ReasonForVisit)
@@ -173,15 +168,11 @@ tick time kioskModel =
     sceneModel = kioskModel.checkInModel
     visible = sceneIsVisible kioskModel CheckIn
     inc = if visible then 1 else 0
-    cmd0 =
-      if visible && not sceneModel.doneWithFocus
-        then idxFlexId |> toString |> setFocusIfNoFocus
-        else Cmd.none
     cmd1 =
       if visible && String.isEmpty sceneModel.flexId
         then getRecentRfidEntriesCmd kioskModel
         else Cmd.none
-    cmd = if visible then Cmd.batch [cmd0, cmd1] else Cmd.none
+    cmd = if visible then cmd1 else Cmd.none
   in
     (sceneModel, cmd)
 
@@ -189,12 +180,6 @@ tick time kioskModel =
 -----------------------------------------------------------------------------
 -- SUBSCRIPTIONS
 -----------------------------------------------------------------------------
-
-subscriptions: KioskModel a -> Sub Msg
-subscriptions model =
-  if sceneIsVisible model CheckIn
-    then focusWasSet (CheckInVector << FlexIdFocusSet)
-    else Sub.none
 
 
 -----------------------------------------------------------------------------

@@ -15,6 +15,7 @@ import MembersApi exposing (..)
 import TaskApi exposing (..)
 import XisRestApi as XisApi exposing (..)
 
+
 -----------------------------------------------------------------------------
 -- FLAGS
 -----------------------------------------------------------------------------
@@ -46,6 +47,7 @@ type alias Flags =
   , workNoteListUrl : String
   , xcOrgActionUrl : String
   }
+
 
 -----------------------------------------------------------------------------
 -- SCENES
@@ -107,7 +109,6 @@ type CheckInMsg
   = UpdateMatchingAccts (Result Http.Error MatchingAcctInfo)
   | UpdateFlexId String
   | UpdateMemberNum Int
-  | FlexIdFocusSet Bool
   | CheckInShortcut String Int -- Allows RFID reading scene to short-cut through this scene
 
 type CheckOutMsg
@@ -140,7 +141,6 @@ type NewMemberMsg
   | ToggleIsAdult Bool
   | Validate
   | ValidateEmailUnique (Result Http.Error MatchingAcctInfo)
-  | FirstNameFocusSet Bool
 
 type NewUserMsg
   = ValidateUserNameAndPw
@@ -148,7 +148,6 @@ type NewUserMsg
   | UpdateUserName String
   | UpdatePassword1 String
   | UpdatePassword2 String
-  | UserNameFocusSet Bool
 
 type ReasonForVisitMsg
   = UpdateReasonForVisit ReasonForVisit
@@ -219,3 +218,6 @@ type WizardMsg
   | Reset
   | SceneWillAppear Scene Scene  -- Appearing scene, Vanishing scene
   | Tick Time
+  | FocusWasSet Bool
+  | FocusOnIndex (Maybe (List Int))  -- Can't use Material.Component.Index (https://github.com/debois/elm-mdl/issues/342)
+

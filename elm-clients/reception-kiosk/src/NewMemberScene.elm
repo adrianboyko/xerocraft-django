@@ -1,5 +1,5 @@
 
-module NewMemberScene exposing (init, update, tick, view, subscriptions, NewMemberModel)
+module NewMemberScene exposing (init, sceneWillAppear, update, view, NewMemberModel)
 
 -- Standard
 import Html exposing (..)
@@ -18,6 +18,7 @@ import MembersApi as MembersApi
 import Wizard.SceneUtils exposing (..)
 import Types exposing (..)
 
+
 -----------------------------------------------------------------------------
 -- INIT
 -----------------------------------------------------------------------------
@@ -28,7 +29,6 @@ type alias NewMemberModel =
   , email : String
   , isAdult : Maybe Bool
   , userIds : List String
-  , doneWithFocus : Bool
   , badNews : List String
   }
 
@@ -43,10 +43,23 @@ init flags =
    , email = ""
    , isAdult = Nothing
    , userIds = []
-   , doneWithFocus = False
    , badNews = []
    }
   in (model, Cmd.none)
+
+
+-----------------------------------------------------------------------------
+-- SCENE WILL APPEAR
+-----------------------------------------------------------------------------
+
+sceneWillAppear : KioskModel a -> Scene -> (NewMemberModel, Cmd Msg)
+sceneWillAppear kioskModel appearingScene =
+  if appearingScene == NewMember
+    then
+      (kioskModel.newMemberModel, focusOnIndex idxFirstName)
+    else
+      (kioskModel.newMemberModel, Cmd.none)
+
 
 -----------------------------------------------------------------------------
 -- UPDATE
@@ -83,12 +96,6 @@ update msg kioskModel =
     ValidateEmailUnique (Err error) ->
       ({sceneModel | badNews = [toString error]}, Cmd.none)
 
-    FirstNameFocusSet wasSet ->
-      let
-        currDoneWithFocus = sceneModel.doneWithFocus
-        newDoneWithFocus = currDoneWithFocus || wasSet
-      in
-        ({sceneModel | doneWithFocus = newDoneWithFocus}, Cmd.none)
 
 -----------------------------------------------------------------------------
 -- VALIDATE
@@ -121,6 +128,7 @@ validate kioskModel =
 
   in
     ({sceneModel | badNews = msgs}, cmd)
+
 
 -----------------------------------------------------------------------------
 -- VIEW
@@ -183,29 +191,10 @@ ageChoice kioskModel =
 -- TICK (called each second)
 -----------------------------------------------------------------------------
 
-tick : Time -> KioskModel a -> (NewMemberModel, Cmd Msg)
-tick time kioskModel =
-  let
-    sceneModel = kioskModel.newMemberModel
-    visible = sceneIsVisible kioskModel NewMember
-    noBadNews = List.length sceneModel.badNews == 0
-    okToFocus = visible && noBadNews && not sceneModel.doneWithFocus
-    cmd = if okToFocus then idxFirstName |> toString |> setFocusIfNoFocus else Cmd.none
-  in
-    if visible then (sceneModel, cmd)
-    else (sceneModel, Cmd.none)
-
-
 
 -----------------------------------------------------------------------------
 -- SUBSCRIPTIONS
 -----------------------------------------------------------------------------
-
-subscriptions: KioskModel a -> Sub Msg
-subscriptions model =
-  if sceneIsVisible model NewMember
-    then focusWasSet (NewMemberVector << FirstNameFocusSet)
-    else Sub.none
 
 
 -----------------------------------------------------------------------------
