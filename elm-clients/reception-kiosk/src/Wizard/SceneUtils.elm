@@ -5,6 +5,7 @@ port module Wizard.SceneUtils exposing
   , px
   , pt
   , genericScene
+  , blankGenericScene
   , sceneButton
   , ButtonSpec
   , sceneEmailField
@@ -136,6 +137,12 @@ genericScene model title subtitle extraContent buttonSpecs badNews =
     , div [] (List.map (sceneButton model) buttonSpecs)
     ]
   in sceneFrame model sceneHtml
+
+
+blankGenericScene : SceneUtilModel a -> Html Msg
+blankGenericScene model =
+  genericScene model "" "" (text "") [] []
+
 
 type alias ButtonSpec msg = { title : String, msg: msg }
 sceneButton : SceneUtilModel a -> ButtonSpec Msg -> Html Msg
