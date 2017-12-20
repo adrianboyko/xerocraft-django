@@ -53,7 +53,7 @@ update msg kioskModel =
   in case msg of
 
     UpdateReasonForVisit reason ->
-      ({sceneModel | reasonForVisit = Just reason}, Cmd.none)
+      ({sceneModel | reasonForVisit=Just reason, badNews=[]}, Cmd.none)
 
     ValidateReason ->
 
