@@ -22,7 +22,12 @@ from members.models import (
 
 @admin.register(Tag)
 class TagAdmin(VersionAdmin):
-    fields = ['name','meaning']
+
+    list_display = ['pk', 'name', 'meaning']
+
+    fields = ['name', 'meaning']
+
+    search_fields = ['name', 'meaning']
 
 
 @admin.register(Tagging)
