@@ -8,7 +8,7 @@ import Http
 import Time exposing (Time, second)
 
 -- Third party
-import List.Nonempty exposing (Nonempty)
+import List.Nonempty as Nonempty exposing (Nonempty)
 import Material
 
 -- Local
@@ -20,12 +20,13 @@ import CheckOutDoneScene
 import CreatingAcctScene
 import EmailInUseScene
 import HowDidYouHearScene
-import SignUpDoneScene
 import MembersOnlyScene
 import NewMemberScene
 import NewUserScene
+import OldBusinessScene
 import ReasonForVisitScene
 import ScreenSaverScene
+import SignUpDoneScene
 import TaskListScene
 import TimeSheetPt1Scene
 import TimeSheetPt2Scene
@@ -93,6 +94,7 @@ type alias Model =
   , signUpDoneModel      : SignUpDoneScene.SignUpDoneModel
   , newMemberModel       : NewMemberScene.NewMemberModel
   , newUserModel         : NewUserScene.NewUserModel
+  , oldBusinessModel     : OldBusinessScene.OldBusinessModel
   , reasonForVisitModel  : ReasonForVisitScene.ReasonForVisitModel
   , taskListModel        : TaskListScene.TaskListModel
   , timeSheetPt1Model    : TimeSheetPt1Scene.TimeSheetPt1Model
@@ -116,6 +118,7 @@ init f =
     (membersOnlyModel,     membersOnlyCmd    ) = MembersOnlyScene.init     f
     (newMemberModel,       newMemberCmd      ) = NewMemberScene.init       f
     (newUserModel,         newUserCmd        ) = NewUserScene.init         f
+    (oldBusinessModel,     oldBusinessCmd    ) = OldBusinessScene.init     f
     (reasonForVisitModel,  reasonForVisitCmd ) = ReasonForVisitScene.init  f
     (screenSaverModel,     screenSaverCmd    ) = ScreenSaverScene.init     f
     (signUpDoneModel,      signUpDoneCmd     ) = SignUpDoneScene.init      f
@@ -129,7 +132,7 @@ init f =
     model =
       { flags = f
       , currTime = 0
-      , sceneStack = List.Nonempty.fromElement ScreenSaver
+      , sceneStack = Nonempty.fromElement ScreenSaver
       , doneWithFocus = False
       , idxToFocus = Nothing
       , mdl = Material.model
@@ -145,6 +148,7 @@ init f =
       , membersOnlyModel     = membersOnlyModel
       , newMemberModel       = newMemberModel
       , newUserModel         = newUserModel
+      , oldBusinessModel     = oldBusinessModel
       , reasonForVisitModel  = reasonForVisitModel
       , screenSaverModel     = screenSaverModel
       , signUpDoneModel      = signUpDoneModel
@@ -205,36 +209,53 @@ update msg model =
   case msg of
 
     WizardVector wizMsg ->
-      let currScene = List.Nonempty.head model.sceneStack
+      let currScene = Nonempty.head model.sceneStack
       in case wizMsg of
         Push nextScene ->
           -- Push the new scene onto the scene stack.
           let
-            newModel = {model | sceneStack = List.Nonempty.cons nextScene model.sceneStack }
+            newModel = {model | sceneStack = Nonempty.cons nextScene model.sceneStack }
           in
             update (WizardVector <| (SceneWillAppear nextScene currScene)) newModel
 
         Pop ->
           -- Pop the top scene off the stack.
           let
-            newModel = {model | sceneStack = List.Nonempty.pop model.sceneStack }
-            newScene = List.Nonempty.head newModel.sceneStack
+            newModel = {model | sceneStack = Nonempty.pop model.sceneStack }
+            newScene = Nonempty.head newModel.sceneStack
           in
             update (WizardVector <| (SceneWillAppear newScene currScene)) newModel
 
-        RebaseTo newBaseScene ->
-          -- Resets the stack with a new base scene.
+        Rebase ->
+          -- Resets the stack so that top item becomes ONLY item. Prevents BACK.
           let
-            newModel = {model | sceneStack = List.Nonempty.fromElement newBaseScene }
+            newModel = {model | sceneStack = Nonempty.dropTail model.sceneStack }
           in
-            update (WizardVector <| (SceneWillAppear newBaseScene currScene)) newModel
+            (newModel, Cmd.none)
+
+        RebaseTo scene ->  -- This code might seem strange b/c stack is type List.Nonempty, NOT List.
+          if Nonempty.get 1 model.sceneStack == scene then
+            -- We've reached the desired state.  ("get 1" gets the 2nd item)
+            (model, Cmd.none)
+          else if Nonempty.length model.sceneStack == 2 then
+            -- Indicates a programming error as we shouldn't have exhausted the tail looking for the scene.
+            let _ = Debug.log "RebaseTo couldn't find: " scene
+            in (model, Cmd.none)
+          else
+            -- Recursive step:
+            let
+              head = Nonempty.head model.sceneStack
+              newTail = model.sceneStack |> Nonempty.pop |> Nonempty.pop
+              newSceneStack = Nonempty.cons head newTail
+            in
+              update (WizardVector <| RebaseTo <| scene) {model | sceneStack=newSceneStack}
 
         Reset -> reset model
 
         SceneWillAppear appearing vanishing ->
-          -- REVIEW: It's too easy to forget to add these.
           -- REVIEW: Standardize so that every scene gets both appearing and vanishing?
           let
+            -- REVIEW: It's too easy to forget to add these.
             (mCI,  cCI)  = CheckInScene.sceneWillAppear model appearing
             (mCO,  cCO)  = CheckOutScene.sceneWillAppear model appearing
             (mCA,  cCA)  = CreatingAcctScene.sceneWillAppear model appearing
@@ -242,13 +263,17 @@ update msg model =
             (mMO,  cMO)  = MembersOnlyScene.sceneWillAppear model appearing
             (mNM,  cNM)  = NewMemberScene.sceneWillAppear model appearing
             (mNU,  cNU)  = NewUserScene.sceneWillAppear model appearing
+            (mOB,  cOB)  = OldBusinessScene.sceneWillAppear model appearing vanishing
             (mSS,  cSS)  = ScreenSaverScene.sceneWillAppear model appearing
+            (mSUD, cSUD) = SignUpDoneScene.sceneWillAppear model appearing vanishing
             (mTL,  cTL)  = TaskListScene.sceneWillAppear model appearing vanishing
-            (mTS1, cTS1) = TimeSheetPt1Scene.sceneWillAppear model appearing
+            (mTS1, cTS1) = TimeSheetPt1Scene.sceneWillAppear model appearing vanishing
             (mTS2, cTS2) = TimeSheetPt2Scene.sceneWillAppear model appearing vanishing
             (mTS3, cTS3) = TimeSheetPt3Scene.sceneWillAppear model appearing
+            (mVID, cVID) = VolunteerInDoneScene.sceneWillAppear model appearing vanishing
             (mW,   cW)   = WaiverScene.sceneWillAppear model appearing
             newModel =
+              -- REVIEW: It's too easy to forget to add these.
               { model
               | idxToFocus = Nothing
               , doneWithFocus = False
@@ -259,15 +284,23 @@ update msg model =
               , membersOnlyModel = mMO
               , newMemberModel = mNM
               , newUserModel = mNU
+              , oldBusinessModel = mOB
               , screenSaverModel = mSS
+              , signUpDoneModel = mSUD
               , taskListModel = mTL
               , timeSheetPt1Model = mTS1
               , timeSheetPt2Model = mTS2
               , timeSheetPt3Model = mTS3
+              , volunteerInDoneModel = mVID
               , waiverModel = mW
               }
           in
-            (newModel, Cmd.batch [cCI, cCO, cCA, cHD, cMO, cNM, cNU, cSS, cTL, cTS1, cTS2, cTS3, cW])
+            (newModel, Cmd.batch
+              -- REVIEW: It's too easy to forget to add these.
+              [ cCI, cCO, cCA, cHD, cMO, cNM, cNU, cOB
+              , cSS, cSUD, cTL, cTS1, cTS2, cTS3, cVID, cW
+              ]
+            )
 
         Tick time ->
           let
@@ -332,6 +365,10 @@ update msg model =
       let (sm, cmd) = NewUserScene.update x model
       in ({model | newUserModel = sm}, cmd)
 
+    OldBusinessVector x ->
+      let (sm, cmd) = OldBusinessScene.update x model
+      in ({model | oldBusinessModel = sm}, cmd)
+
     ReasonForVisitVector x ->
       let (sm, cmd) = ReasonForVisitScene.update x model
       in ({model | reasonForVisitModel = sm}, cmd)
@@ -370,7 +407,7 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
-  let currScene = List.Nonempty.head model.sceneStack
+  let currScene = Nonempty.head model.sceneStack
   in case currScene of
     CheckIn         -> CheckInScene.view         model
     CheckInDone     -> CheckInDoneScene.view     model
@@ -382,6 +419,7 @@ view model =
     MembersOnly     -> MembersOnlyScene.view     model
     NewMember       -> NewMemberScene.view       model
     NewUser         -> NewUserScene.view         model
+    OldBusiness     -> OldBusinessScene.view     model
     ReasonForVisit  -> ReasonForVisitScene.view  model
     ScreenSaver     -> ScreenSaverScene.view     model
     SignUpDone      -> SignUpDoneScene.view      model

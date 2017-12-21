@@ -1,5 +1,5 @@
 
-module SignUpDoneScene exposing (init, view, SignUpDoneModel)
+module SignUpDoneScene exposing (init, sceneWillAppear, view, SignUpDoneModel)
 
 -- Standard
 import Html exposing (Html, text, p, br, span)
@@ -33,9 +33,29 @@ type alias KioskModel a =
 init : Flags -> (SignUpDoneModel, Cmd Msg)
 init flags = ({}, Cmd.none)
 
+
+-----------------------------------------------------------------------------
+-- SCENE WILL APPEAR
+-----------------------------------------------------------------------------
+
+sceneWillAppear : KioskModel a -> Scene -> Scene -> (SignUpDoneModel, Cmd Msg)
+sceneWillAppear kioskModel appearing vanishing =
+  let
+    sceneModel = kioskModel.signUpDoneModel
+  in
+    case (appearing, vanishing) of
+
+      (SignUpDone, _) ->
+        (sceneModel, send (WizardVector <| Rebase))
+
+      _ ->
+        (sceneModel, Cmd.none)
+
+
 -----------------------------------------------------------------------------
 -- UPDATE
 -----------------------------------------------------------------------------
+
 
 -----------------------------------------------------------------------------
 -- VIEW

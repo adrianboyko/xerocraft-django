@@ -65,6 +65,7 @@ type Scene
   | MembersOnly
   | NewMember
   | NewUser
+  | OldBusiness
   | ReasonForVisit
   | ScreenSaver
   | TaskList
@@ -89,16 +90,17 @@ mdlIdBase scene =
     MembersOnly -> 800
     NewMember -> 900
     NewUser -> 1000
-    ReasonForVisit -> 1100
-    ScreenSaver -> 1200
-    SignUpDone -> 1300
-    TaskList -> 1400
-    TimeSheetPt1 -> 1500
-    TimeSheetPt2 -> 1600
-    TimeSheetPt3 -> 1700
-    VolunteerInDone -> 1800
-    Waiver -> 1900
-    Welcome -> 2000
+    OldBusiness -> 1100
+    ReasonForVisit -> 1200
+    ScreenSaver -> 1300
+    SignUpDone -> 1400
+    TaskList -> 1500
+    TimeSheetPt1 -> 1600
+    TimeSheetPt2 -> 1700
+    TimeSheetPt3 -> 1800
+    VolunteerInDone -> 1900
+    Waiver -> 2000
+    Welcome -> 2100
 
 
 -----------------------------------------------------------------------------
@@ -148,6 +150,9 @@ type NewUserMsg
   | UpdateUserName String
   | UpdatePassword1 String
   | UpdatePassword2 String
+
+type OldBusinessMsg
+  = OB_WorkingClaimsResult (Result Http.Error (PageOf XisApi.Claim))
 
 type ReasonForVisitMsg
   = UpdateReasonForVisit ReasonForVisit
@@ -203,6 +208,7 @@ type Msg
   | MembersOnlyVector MembersOnlyMsg
   | NewMemberVector NewMemberMsg
   | NewUserVector NewUserMsg
+  | OldBusinessVector OldBusinessMsg
   | ReasonForVisitVector ReasonForVisitMsg
   | ScreenSaverVector ScreenSaverMsg
   | TaskListVector TaskListMsg
@@ -213,8 +219,9 @@ type Msg
 
 type WizardMsg
   = Push Scene
-  | RebaseTo Scene
+  | Rebase  -- Removes everything on stack under top scene.
   | Pop
+  | RebaseTo Scene  -- Like Rebase but only removes scenes under top scene down to specified scene (exclusive).
   | Reset
   | SceneWillAppear Scene Scene  -- Appearing scene, Vanishing scene
   | Tick Time

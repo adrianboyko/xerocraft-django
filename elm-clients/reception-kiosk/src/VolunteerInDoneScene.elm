@@ -1,5 +1,5 @@
 
-module VolunteerInDoneScene exposing (init, view, VolunteerInDoneModel)
+module VolunteerInDoneScene exposing (init, sceneWillAppear, view, VolunteerInDoneModel)
 
 -- Standard
 import Html exposing (Html, text, div, p)
@@ -32,6 +32,25 @@ type alias KioskModel a =
 
 init : Flags -> (VolunteerInDoneModel, Cmd Msg)
 init flags = ({}, Cmd.none)
+
+
+-----------------------------------------------------------------------------
+-- SCENE WILL APPEAR
+-----------------------------------------------------------------------------
+
+sceneWillAppear : KioskModel a -> Scene -> Scene -> (VolunteerInDoneModel, Cmd Msg)
+sceneWillAppear kioskModel appearing vanishing =
+  let
+    sceneModel = kioskModel.volunteerInDoneModel
+  in
+    case (appearing, vanishing) of
+
+      (VolunteerInDone, _) ->
+        (sceneModel, send (WizardVector <| Rebase))
+
+      _ ->
+        (sceneModel, Cmd.none)
+
 
 -----------------------------------------------------------------------------
 -- UPDATE

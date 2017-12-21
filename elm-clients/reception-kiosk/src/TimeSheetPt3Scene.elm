@@ -180,13 +180,13 @@ update msg kioskModel =
               kioskModel.currTime
             cmd = if String.length pt2Model.otherWorkDesc > 0
               then xis.createWorkNote noteData (TimeSheetPt3Vector << TS3_WorkNoteCreated)
-              else segueTo CheckOutDone
+              else segueTo TimeSheetPt1
           in
             ({sceneModel | badNews=[]}, cmd)
 
     TS3_WorkNoteCreated (Ok note) ->
       -- Everything worked. Scene is complete.
-      (sceneModel, segueTo CheckOutDone)
+      (sceneModel, segueTo TimeSheetPt1)
 
     -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
@@ -211,7 +211,7 @@ update msg kioskModel =
     TS3_WorkNoteCreated (Err e) ->
       -- Failure to create the work description is non-critical so we'll carry on to next scene.
       -- TODO: Create a backend logging facility so that failures like this can be noted via XisAPI
-      (sceneModel, segueTo CheckOutDone)
+      (sceneModel, segueTo TimeSheetPt1)
 
 
 -----------------------------------------------------------------------------

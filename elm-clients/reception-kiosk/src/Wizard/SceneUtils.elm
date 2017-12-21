@@ -80,6 +80,9 @@ focusOnIndex idx =
 pop : Cmd Msg
 pop = send (WizardVector <| Pop)
 
+rebaseTo : Scene -> Cmd Msg
+rebaseTo = send << WizardVector << RebaseTo
+
 sceneIsVisible : SceneUtilModel a -> Scene -> Bool
 sceneIsVisible model scene = (currentScene model) == scene
 

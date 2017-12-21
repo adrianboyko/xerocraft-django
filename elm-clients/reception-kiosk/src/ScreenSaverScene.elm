@@ -173,6 +173,7 @@ timeoutFor scene =
     MembersOnly -> 300
     NewMember -> 600
     NewUser -> 600
+    OldBusiness -> 60
     ReasonForVisit -> 300
     ScreenSaver -> 86400
     SignUpDone -> 300

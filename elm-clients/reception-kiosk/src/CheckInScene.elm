@@ -111,10 +111,10 @@ update msg kioskModel =
       ({sceneModel | badNews = [toString error]}, Cmd.none)
 
     UpdateMemberNum memberNum ->
-      ({sceneModel | memberNum = memberNum}, segueTo ReasonForVisit)
+      ({sceneModel | memberNum = memberNum}, segueTo OldBusiness)
 
     CheckInShortcut userName memberNum ->
-      ({sceneModel | flexId=userName, memberNum=memberNum}, segueTo ReasonForVisit)
+      ({sceneModel | flexId=userName, memberNum=memberNum}, segueTo OldBusiness)
 
 
 -----------------------------------------------------------------------------
