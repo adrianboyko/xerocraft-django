@@ -78,25 +78,29 @@ init flags =
 -- SCENE WILL APPEAR
 -----------------------------------------------------------------------------
 
-sceneWillAppear : KioskModel a -> Scene -> (TimeSheetPt3Model, Cmd Msg)
-sceneWillAppear kioskModel appearingScene =
+sceneWillAppear : KioskModel a -> Scene -> Scene -> (TimeSheetPt3Model, Cmd Msg)
+sceneWillAppear kioskModel appearing vanishing =
   let
     sceneModel = kioskModel.timeSheetPt3Model
     pt1Model = kioskModel.timeSheetPt1Model
     pt2Model = kioskModel.timeSheetPt2Model
   in
-    if appearingScene == TimeSheetPt3 then
-      case (pt1Model.taskInProgress, pt1Model.claimInProgress, pt1Model.workInProgress) of
+    case (appearing, vanishing) of
 
-        (Received task, Received (Just claim), Received (Just work)) ->
-          let records = Just (task, claim, work)
-          in ({sceneModel | records=records}, focusOnIndex idxWitnessUsername)
+      (TimeSheetPt3, _) ->
+        case (pt1Model.taskInProgress, pt1Model.claimInProgress, pt1Model.workInProgress) of
+          (Received task, Received (Just claim), Received (Just work)) ->
+            let records = Just (task, claim, work)
+            in ({sceneModel | records=records}, focusOnIndex idxWitnessUsername)
+          _ ->
+            ({sceneModel | badNews=[tcwMissingMsg]}, Cmd.none)
 
-        _ ->
-          ({sceneModel | badNews=[tcwMissingMsg]}, Cmd.none)
+      (_, TimeSheetPt3) ->
+        -- Clear the password field when we leave this scene.
+        ({sceneModel | witnessPassword=""}, Cmd.none)
 
-    else
-      (sceneModel, Cmd.none)
+      (_, _) ->
+        (sceneModel, Cmd.none)
 
 
 -----------------------------------------------------------------------------
