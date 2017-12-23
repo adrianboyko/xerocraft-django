@@ -72,7 +72,7 @@ type Scene
   | TimeSheetPt1
   | TimeSheetPt2
   | TimeSheetPt3
-  | VolunteerInDone
+  | TaskInfo
   | Waiver
   | Welcome
 
@@ -94,11 +94,11 @@ mdlIdBase scene =
     ReasonForVisit -> 1200
     ScreenSaver -> 1300
     SignUpDone -> 1400
-    TaskList -> 1500
-    TimeSheetPt1 -> 1600
-    TimeSheetPt2 -> 1700
-    TimeSheetPt3 -> 1800
-    VolunteerInDone -> 1900
+    TaskInfo -> 1500
+    TaskList -> 1600
+    TimeSheetPt1 -> 1700
+    TimeSheetPt2 -> 1800
+    TimeSheetPt3 -> 1900
     Waiver -> 2000
     Welcome -> 2100
 

@@ -1,5 +1,5 @@
 
-module VolunteerInDoneScene exposing (init, sceneWillAppear, view, VolunteerInDoneModel)
+module TaskInfoScene exposing (init, sceneWillAppear, view, TaskInfoModel)
 
 -- Standard
 import Html exposing (Html, text, div, p)
@@ -18,7 +18,7 @@ import TaskListScene exposing (TaskListModel)
 
 -- TODO: There should be a time out back to Welcome
 
-type alias VolunteerInDoneModel =
+type alias TaskInfoModel =
   {
   }
 
@@ -26,11 +26,11 @@ type alias VolunteerInDoneModel =
 type alias KioskModel a =
   SceneUtilModel
     { a
-    | volunteerInDoneModel : VolunteerInDoneModel
+    | taskInfoModel : TaskInfoModel
     , taskListModel : TaskListModel
     }
 
-init : Flags -> (VolunteerInDoneModel, Cmd Msg)
+init : Flags -> (TaskInfoModel, Cmd Msg)
 init flags = ({}, Cmd.none)
 
 
@@ -38,14 +38,14 @@ init flags = ({}, Cmd.none)
 -- SCENE WILL APPEAR
 -----------------------------------------------------------------------------
 
-sceneWillAppear : KioskModel a -> Scene -> Scene -> (VolunteerInDoneModel, Cmd Msg)
+sceneWillAppear : KioskModel a -> Scene -> Scene -> (TaskInfoModel, Cmd Msg)
 sceneWillAppear kioskModel appearing vanishing =
   let
-    sceneModel = kioskModel.volunteerInDoneModel
+    sceneModel = kioskModel.taskInfoModel
   in
     case (appearing, vanishing) of
 
-      (VolunteerInDone, _) ->
+      (TaskInfo, _) ->
         (sceneModel, send (WizardVector <| Rebase))
 
       _ ->
@@ -63,7 +63,7 @@ sceneWillAppear kioskModel appearing vanishing =
 view : KioskModel a -> Html Msg
 view kioskModel =
   let
-    sceneModel = kioskModel.volunteerInDoneModel
+    sceneModel = kioskModel.taskInfoModel
     taskListModel = kioskModel.taskListModel
     instructions =
       case taskListModel.selectedTask of
@@ -71,7 +71,7 @@ view kioskModel =
         Nothing -> "Please see a Staff Member for instructions."
   in
     genericScene kioskModel
-      "You're Checked In!"
+      "Thanks for Helping!"
       "Instructions Follow:"
       (div [instructionDiv]
         [ vspace 20

@@ -31,7 +31,7 @@ import TaskListScene
 import TimeSheetPt1Scene
 import TimeSheetPt2Scene
 import TimeSheetPt3Scene
-import VolunteerInDoneScene
+import TaskInfoScene
 import WaiverScene
 import WelcomeScene
 import XisRestApi as XisApi
@@ -96,11 +96,11 @@ type alias Model =
   , newUserModel         : NewUserScene.NewUserModel
   , oldBusinessModel     : OldBusinessScene.OldBusinessModel
   , reasonForVisitModel  : ReasonForVisitScene.ReasonForVisitModel
+  , taskInfoModel        : TaskInfoScene.TaskInfoModel
   , taskListModel        : TaskListScene.TaskListModel
   , timeSheetPt1Model    : TimeSheetPt1Scene.TimeSheetPt1Model
   , timeSheetPt2Model    : TimeSheetPt2Scene.TimeSheetPt2Model
   , timeSheetPt3Model    : TimeSheetPt3Scene.TimeSheetPt3Model
-  , volunteerInDoneModel : VolunteerInDoneScene.VolunteerInDoneModel
   , waiverModel          : WaiverScene.WaiverModel
   , welcomeModel         : WelcomeScene.WelcomeModel
   }
@@ -122,11 +122,11 @@ init f =
     (reasonForVisitModel,  reasonForVisitCmd ) = ReasonForVisitScene.init  f
     (screenSaverModel,     screenSaverCmd    ) = ScreenSaverScene.init     f
     (signUpDoneModel,      signUpDoneCmd     ) = SignUpDoneScene.init      f
+    (taskInfoModel,        taskInfoCmd       ) = TaskInfoScene.init        f
     (taskListModel,        taskListCmd       ) = TaskListScene.init        f
     (timeSheetPt1Model,    timeSheetPt1Cmd   ) = TimeSheetPt1Scene.init    f
     (timeSheetPt2Model,    timeSheetPt2Cmd   ) = TimeSheetPt2Scene.init    f
     (timeSheetPt3Model,    timeSheetPt3Cmd   ) = TimeSheetPt3Scene.init    f
-    (volunteerInDoneModel, volunteerInDoneCmd) = VolunteerInDoneScene.init f
     (waiverModel,          waiverCmd         ) = WaiverScene.init          f
     (welcomeModel,         welcomeCmd        ) = WelcomeScene.init         f
     model =
@@ -152,11 +152,11 @@ init f =
       , reasonForVisitModel  = reasonForVisitModel
       , screenSaverModel     = screenSaverModel
       , signUpDoneModel      = signUpDoneModel
+      , taskInfoModel        = taskInfoModel
       , taskListModel        = taskListModel
       , timeSheetPt1Model    = timeSheetPt1Model
       , timeSheetPt2Model    = timeSheetPt2Model
       , timeSheetPt3Model    = timeSheetPt3Model
-      , volunteerInDoneModel = volunteerInDoneModel
       , waiverModel          = waiverModel
       , welcomeModel         = welcomeModel
       }
@@ -173,11 +173,11 @@ init f =
       , newUserCmd
       , reasonForVisitCmd
       , screenSaverCmd
+      , taskInfoCmd
       , taskListCmd
       , timeSheetPt1Cmd
       , timeSheetPt2Cmd
       , timeSheetPt3Cmd
-      , volunteerInDoneCmd
       , waiverCmd
       , welcomeCmd
       ]
@@ -266,11 +266,11 @@ update msg model =
             (mOB,  cOB)  = OldBusinessScene.sceneWillAppear model appearing vanishing
             (mSS,  cSS)  = ScreenSaverScene.sceneWillAppear model appearing
             (mSUD, cSUD) = SignUpDoneScene.sceneWillAppear model appearing vanishing
+            (mTI,  cTI)  = TaskInfoScene.sceneWillAppear model appearing vanishing
             (mTL,  cTL)  = TaskListScene.sceneWillAppear model appearing vanishing
             (mTS1, cTS1) = TimeSheetPt1Scene.sceneWillAppear model appearing vanishing
             (mTS2, cTS2) = TimeSheetPt2Scene.sceneWillAppear model appearing vanishing
             (mTS3, cTS3) = TimeSheetPt3Scene.sceneWillAppear model appearing vanishing
-            (mVID, cVID) = VolunteerInDoneScene.sceneWillAppear model appearing vanishing
             (mW,   cW)   = WaiverScene.sceneWillAppear model appearing
             newModel =
               -- REVIEW: It's too easy to forget to add these.
@@ -287,18 +287,18 @@ update msg model =
               , oldBusinessModel = mOB
               , screenSaverModel = mSS
               , signUpDoneModel = mSUD
+              , taskInfoModel = mTI
               , taskListModel = mTL
               , timeSheetPt1Model = mTS1
               , timeSheetPt2Model = mTS2
               , timeSheetPt3Model = mTS3
-              , volunteerInDoneModel = mVID
               , waiverModel = mW
               }
           in
             (newModel, Cmd.batch
               -- REVIEW: It's too easy to forget to add these.
               [ cCI, cCO, cCA, cHD, cMO, cNM, cNU, cOB
-              , cSS, cSUD, cTL, cTS1, cTS2, cTS3, cVID, cW
+              , cSS, cSUD, cTI, cTL, cTS1, cTS2, cTS3, cW
               ]
             )
 
@@ -423,11 +423,11 @@ view model =
     ReasonForVisit  -> ReasonForVisitScene.view  model
     ScreenSaver     -> ScreenSaverScene.view     model
     SignUpDone      -> SignUpDoneScene.view      model
+    TaskInfo        -> TaskInfoScene.view        model
     TaskList        -> TaskListScene.view        model
     TimeSheetPt1    -> TimeSheetPt1Scene.view    model
     TimeSheetPt2    -> TimeSheetPt2Scene.view    model
     TimeSheetPt3    -> TimeSheetPt3Scene.view    model
-    VolunteerInDone -> VolunteerInDoneScene.view model
     Waiver          -> WaiverScene.view          model
     Welcome         -> WelcomeScene.view         model
 

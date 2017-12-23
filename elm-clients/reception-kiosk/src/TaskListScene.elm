@@ -81,7 +81,7 @@ sceneWillAppear kioskModel appearingScene vanishingScene =
       -- Start fetching workable tasks b/c they *might* be on their way to this (TaskList) scene.
       getWorkableTasks kioskModel
 
-    (TaskList, VolunteerInDone) ->
+    (TaskList, TaskInfo) ->
       -- User hit back button. Since workable task data was changed by prev visit to this scene, we need to reget it.
       getWorkableTasks kioskModel
 
@@ -196,7 +196,7 @@ update msg kioskModel =
         (sceneModel, createWorkCmd)
 
     TL_WorkInsertResult (Ok claim) ->
-        (sceneModel, segueTo VolunteerInDone)
+        (sceneModel, segueTo TaskInfo)
 
     -- -- -- -- ERROR HANDLERS -- -- -- --
 
