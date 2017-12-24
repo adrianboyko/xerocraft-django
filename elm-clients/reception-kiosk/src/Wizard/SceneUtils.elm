@@ -18,15 +18,20 @@ port module Wizard.SceneUtils exposing
   , vspace
   , hspace
   , (=>)
-  , send
-  , segueTo
-  , pop
   , hideKeyboard
   , sceneIsVisible
   , currentScene
   , redSpan
   , textAreaColor
   , focusOnIndex
+  --------------------
+  , send
+  , segueTo
+  , msgForSegueTo
+  , rebase
+  , rebaseTo
+  , pop
+  , msgForReset
   )
 
 -- Standard
@@ -71,7 +76,10 @@ type alias Index = List Int  -- elm-mdl doesn't expose this type.
 
 -- REVIEW: Rename segueTo to push, to match pop?
 segueTo : Scene -> Cmd Msg
-segueTo scene = send (WizardVector <| Push <| scene)
+segueTo scene = send (msgForSegueTo scene)
+
+msgForSegueTo : Scene -> Msg
+msgForSegueTo = WizardVector << Push
 
 focusOnIndex : List Int -> Cmd Msg
 focusOnIndex idx =
@@ -82,6 +90,12 @@ pop = send (WizardVector <| Pop)
 
 rebaseTo : Scene -> Cmd Msg
 rebaseTo = send << WizardVector << RebaseTo
+
+rebase : Cmd Msg
+rebase = send <| WizardVector <| Rebase
+
+msgForReset : Msg
+msgForReset = WizardVector <| Reset
 
 sceneIsVisible : SceneUtilModel a -> Scene -> Bool
 sceneIsVisible model scene = (currentScene model) == scene
