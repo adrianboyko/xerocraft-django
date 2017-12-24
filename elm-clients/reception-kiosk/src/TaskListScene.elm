@@ -249,7 +249,7 @@ errorView kioskModel err =
       "Choose a Task"
       "Please see a staff member"
       (text "")
-      [ ButtonSpec "OK" (WizardVector <| Push <| CheckInDone) ]
+      [ ButtonSpec "OK" (msgForSegueTo OldBusiness) ]
       [err]
 
 

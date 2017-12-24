@@ -46,7 +46,8 @@ sceneWillAppear kioskModel appearing vanishing =
     case (appearing, vanishing) of
 
       (TaskInfo, _) ->
-        (sceneModel, send (WizardVector <| Rebase))
+        -- If user gets to Task Info, we rebase the scene stack to prevent going back.
+        (sceneModel, rebase)
 
       _ ->
         (sceneModel, Cmd.none)
@@ -81,7 +82,7 @@ view kioskModel =
         , vspace 20
         ]
       )
-      [ButtonSpec "Got It!" (WizardVector <| Reset)]
+      [ButtonSpec "Got It!" (msgForSegueTo OldBusiness)]
       []  -- Never any bad news for this scene.
 
 

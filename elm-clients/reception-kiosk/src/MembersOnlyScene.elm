@@ -95,8 +95,8 @@ sceneWillAppear kioskModel appearingScene =
 
     MembersOnly ->
       if (haveSomethingToSay kioskModel |> Debug.log "Something To Say: ")
-        then (sceneModel, Cmd.none)  -- NO-OP. We will show this scene.
-        else (sceneModel, segueTo CheckInDone)  -- Will skip this scene.
+        then (sceneModel, Cmd.none)  -- We need to talk, so show this scene.
+        else (sceneModel, segueTo OldBusiness)  -- Nothing to say, so skip this scene.
 
     _ ->
       (sceneModel, Cmd.none)  -- Ignore all other scene appearances.
@@ -252,7 +252,7 @@ areYouCurrentContent kioskModel =
               , vspace 0
               , text "Just click below."
               , vspace 20
-              , sceneButton kioskModel (ButtonSpec "I'm Current!" (WizardVector <| Push <| CheckInDone))
+              , sceneButton kioskModel <| ButtonSpec "I'm Current!" (msgForSegueTo OldBusiness)
               ]
 
       _ ->
@@ -276,7 +276,7 @@ paymentInfoSentContent kioskModel =
       , vspace 0
       , text "\"Supporting Members Only\" session."
       , vspace 40
-      , sceneButton kioskModel (ButtonSpec "OK" (WizardVector <| Push <| CheckInDone))
+      , sceneButton kioskModel <| ButtonSpec "OK" (msgForSegueTo OldBusiness)
       ]
 
 howToPayNowContent : KioskModel a -> Html Msg
@@ -294,7 +294,7 @@ howToPayNowContent kioskModel =
       , vspace 0
       , text "Thanks!"
       , vspace 60
-      , sceneButton kioskModel (ButtonSpec "OK" (WizardVector <| Push <| CheckInDone))
+      , sceneButton kioskModel <| ButtonSpec "OK" (msgForSegueTo OldBusiness)
       ]
 
 

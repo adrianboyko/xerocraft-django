@@ -1,5 +1,5 @@
 
-module CheckOutDoneScene exposing (init, view, CheckOutDoneModel)
+module CheckOutDoneScene exposing (init, sceneWillAppear, view, CheckOutDoneModel)
 
 -- Standard
 import Html exposing (Html, div, text)
@@ -36,6 +36,19 @@ init flags = ({}, Cmd.none)
 
 
 -----------------------------------------------------------------------------
+-- SCENE WILL APPEAR
+-----------------------------------------------------------------------------
+
+sceneWillAppear : KioskModel a -> Scene -> Scene -> (CheckOutDoneModel, Cmd Msg)
+sceneWillAppear kioskModel appearing vanishing =
+  if appearing == CheckOutDone
+    then
+      (kioskModel.checkOutDoneModel, rebase)
+    else
+      (kioskModel.checkOutDoneModel, Cmd.none)
+
+
+-----------------------------------------------------------------------------
 -- UPDATE
 -----------------------------------------------------------------------------
 
@@ -50,8 +63,8 @@ view kioskModel =
   in genericScene kioskModel
     "You're Checked Out"
     "Have a Nice Day!"
-    ( vspace 40)
-    [ButtonSpec "Ok" (WizardVector <| Reset)]
+    (vspace 40)
+    [ButtonSpec "Ok" msgForReset]
     [] -- Never any bad news for this scene
 
 

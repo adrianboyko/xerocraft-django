@@ -100,8 +100,8 @@ sceneWillAppear kioskModel appearing vanishing =
       let
         onStack x = Nonempty.member x kioskModel.sceneStack
         popCmd =
-          if onStack OldBusiness then send (WizardVector <| RebaseTo OldBusiness)
-          else if onStack CheckOut then send (WizardVector <| RebaseTo OldBusiness)
+          if onStack OldBusiness then rebaseTo OldBusiness
+          else if onStack CheckOut then rebaseTo CheckOut
           else Cmd.none
       in
         search kioskModel |> addCmd popCmd |> addCmd focusCmd

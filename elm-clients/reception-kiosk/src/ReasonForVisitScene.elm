@@ -75,7 +75,7 @@ update msg kioskModel =
         Just MemberPrivileges ->
           (sceneModel, segueTo MembersOnly)
         _ ->
-          (sceneModel, segueTo CheckInDone)
+          (sceneModel, segueTo OldBusiness)
 
     LogCheckInResult (Err error) ->
       ({sceneModel | badNews = [toString error]}, Cmd.none)

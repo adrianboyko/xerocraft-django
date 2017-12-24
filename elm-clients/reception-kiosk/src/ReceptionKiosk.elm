@@ -229,7 +229,8 @@ update msg model =
         Rebase ->
           -- Resets the stack so that top item becomes ONLY item. Prevents BACK.
           let
-            newModel = {model | sceneStack = Nonempty.dropTail model.sceneStack }
+            newStack = Nonempty.dropTail model.sceneStack
+            newModel = {model | sceneStack = newStack }
           in
             (newModel, Cmd.none)
 
@@ -258,6 +259,7 @@ update msg model =
             -- REVIEW: It's too easy to forget to add these.
             (mCI,  cCI)  = CheckInScene.sceneWillAppear model appearing
             (mCO,  cCO)  = CheckOutScene.sceneWillAppear model appearing
+            (mCOD, cCOD) = CheckOutDoneScene.sceneWillAppear model appearing vanishing
             (mCA,  cCA)  = CreatingAcctScene.sceneWillAppear model appearing
             (mHD,  cHD)  = HowDidYouHearScene.sceneWillAppear model appearing
             (mMO,  cMO)  = MembersOnlyScene.sceneWillAppear model appearing
@@ -279,6 +281,7 @@ update msg model =
               , doneWithFocus = False
               , checkInModel = mCI
               , checkOutModel = mCO
+              , checkOutDoneModel = mCOD
               , creatingAcctModel = mCA
               , howDidYouHearModel = mHD
               , membersOnlyModel = mMO
@@ -297,7 +300,7 @@ update msg model =
           in
             (newModel, Cmd.batch
               -- REVIEW: It's too easy to forget to add these.
-              [ cCI, cCO, cCA, cHD, cMO, cNM, cNU, cOB
+              [ cCI, cCO, cCOD, cCA, cHD, cMO, cNM, cNU, cOB
               , cSS, cSUD, cTI, cTL, cTS1, cTS2, cTS3, cW
               ]
             )

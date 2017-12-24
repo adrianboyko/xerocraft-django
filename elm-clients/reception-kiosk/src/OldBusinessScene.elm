@@ -6,14 +6,16 @@ import Html exposing (Html, div, text, img, br)
 import Html.Attributes exposing (src, width, style)
 
 -- Third Party
+import Maybe.Extra as MaybeX
 
 -- Local
 import Wizard.SceneUtils exposing (..)
 import Types exposing (..)
 import XisRestApi as XisApi exposing (..)
+import DjangoRestFramework exposing (idFromUrl)
 import Fetchable exposing (..)
 import CheckInScene exposing (CheckInModel)
-
+import TaskListScene exposing (TaskListModel)
 
 -----------------------------------------------------------------------------
 -- INIT
@@ -25,6 +27,7 @@ type alias KioskModel a =
     { a
     | oldBusinessModel : OldBusinessModel
     , checkInModel : CheckInModel
+    , taskListModel : TaskListModel
     , xisSession : XisApi.Session Msg
     }
   )
@@ -51,29 +54,32 @@ sceneWillAppear : KioskModel a -> Scene -> Scene -> (OldBusinessModel, Cmd Msg)
 sceneWillAppear kioskModel appearing vanishing =
   let
     sceneModel = kioskModel.oldBusinessModel
-    checkInModel = kioskModel.checkInModel
-    xis = kioskModel.xisSession
   in
+    -- This OldBusiness scene will only appear on flows from CheckIn.
     case (appearing, vanishing) of
 
-      (OldBusiness, CheckIn) ->
-        let
-          memberNum = checkInModel.memberNum
-          cmd = xis.listClaims
-            [ ClaimingMemberEquals memberNum
-            , ClaimStatusEquals WorkingClaimStatus
-            ]
-            (OldBusinessVector << OB_WorkingClaimsResult)
-        in
-          (sceneModel, cmd)
+      (OldBusiness, ReasonForVisit) -> checkForOldBusiness kioskModel
 
-      (OldBusiness, ReasonForVisit) ->
-        -- If we got to ReasonForVisit, there wasn't any old business or user skipped it.
-        -- So skip OldBusiness scene on the way back.
-        (sceneModel, segueTo CheckIn)
+      (OldBusiness, MembersOnly) -> checkForOldBusiness kioskModel
 
-      _ ->
-        (sceneModel, Cmd.none)
+      (OldBusiness, TaskInfo) -> checkForOldBusiness kioskModel
+
+      (_, _) -> (sceneModel, Cmd.none)
+
+
+checkForOldBusiness : KioskModel a -> (OldBusinessModel, Cmd Msg)
+checkForOldBusiness kioskModel =
+  let
+    sceneModel = kioskModel.oldBusinessModel
+    checkInModel = kioskModel.checkInModel
+    xis = kioskModel.xisSession
+    cmd = xis.listClaims
+      [ ClaimingMemberEquals checkInModel.memberNum
+      , ClaimStatusEquals WorkingClaimStatus
+      ]
+      (OldBusinessVector << OB_WorkingClaimsResult)
+  in
+    (sceneModel, cmd)
 
 
 -----------------------------------------------------------------------------
@@ -90,17 +96,31 @@ update msg kioskModel =
     case msg of
 
       OB_WorkingClaimsResult (Ok {results}) ->
-        if List.isEmpty results then
-          (sceneModel, segueTo ReasonForVisit)
-        else
-          ({sceneModel | oldOpenClaims = Received results}, Cmd.none)
+        let
+          filteredResults = filterSelectedTask kioskModel results
+        in
+          if List.isEmpty filteredResults then
+            (sceneModel, segueTo CheckInDone)
+          else
+            ({sceneModel | oldOpenClaims = Received filteredResults}, Cmd.none)
 
       OB_WorkingClaimsResult (Err error) ->
         -- It's not a show stopper if this fails. Just log and move on to next scene.
         let
           _ = Debug.log (toString error)
         in
-          (sceneModel, segueTo ReasonForVisit)
+          (sceneModel, segueTo CheckInDone)
+
+
+-- The user might have just selected a task to work.
+-- If so, we don't want it to appear as "Old Business", so filter it out.
+filterSelectedTask : KioskModel a -> List XisApi.Claim -> List XisApi.Claim
+filterSelectedTask kioskModel claims =
+  case kioskModel.taskListModel.selectedTask of
+    Just task ->
+      List.filter (\claim -> (idFromUrl claim.data.claimedTask) /= Ok task.id) claims
+    Nothing ->
+      claims
 
 
 -----------------------------------------------------------------------------
@@ -130,8 +150,8 @@ view kioskModel =
             , vspace 20
             ]
           )
-          [ ButtonSpec "OK!" (WizardVector <| Push <| TimeSheetPt1)
-          , ButtonSpec "Skip" (WizardVector <| Push <| ReasonForVisit)
+          [ ButtonSpec "OK!" (msgForSegueTo TimeSheetPt1)
+          , ButtonSpec "Skip" (msgForSegueTo CheckInDone)
           ]
           []  -- Never any bad news for this scene.
 
