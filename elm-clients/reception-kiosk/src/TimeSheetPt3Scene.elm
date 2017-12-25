@@ -4,6 +4,7 @@ module TimeSheetPt3Scene exposing
   , sceneWillAppear
   , update
   , view
+  , subscriptions
   , TimeSheetPt3Model
   )
 
@@ -11,6 +12,7 @@ module TimeSheetPt3Scene exposing
 import Html exposing (Html, text, div, span)
 import Html.Attributes exposing (style)
 import Http exposing (header, Error(..))
+import Keyboard
 
 -- Third Party
 
@@ -113,8 +115,16 @@ update msg kioskModel =
     sceneModel = kioskModel.timeSheetPt3Model
     xis = kioskModel.xisSession
     wName = sceneModel.witnessUsername
+    amVisible = currentScene kioskModel == TimeSheetPt3
 
   in case msg of
+
+    TS3_KeyDown code ->
+      if code == 13 && amVisible then
+        update TS3_Witnessed kioskModel
+      else
+        (sceneModel, Cmd.none)
+
 
     TS3_UpdateWitnessUsername s ->
       ({sceneModel | witnessUsername = XisApi.djangoizeId s}, Cmd.none)
@@ -275,6 +285,17 @@ viewNormal kioskModel task claim work =
 
     sceneModel.badNews
 
+
+-----------------------------------------------------------------------------
+-- SUBSCRIPTIONS
+-----------------------------------------------------------------------------
+
+subscriptions: KioskModel a -> Sub Msg
+subscriptions kioskModel =
+    if currentScene kioskModel == TimeSheetPt3 then
+      Keyboard.downs (TimeSheetPt3Vector << TS3_KeyDown)
+    else
+      Sub.none
 
 
 -----------------------------------------------------------------------------

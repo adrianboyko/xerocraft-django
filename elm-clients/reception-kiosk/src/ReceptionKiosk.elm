@@ -445,11 +445,13 @@ subscriptions model =
     focusSetSub = focusWasSet (WizardVector << FocusWasSet)
     timeTickSub = Time.every second (WizardVector << Tick)
     screenSaverSubs = ScreenSaverScene.subscriptions model
+    timeSheetPt3Subs = TimeSheetPt3Scene.subscriptions model
     waiverSubs = WaiverScene.subscriptions model
   in
     Sub.batch
       [ focusSetSub
       , timeTickSub
+      , timeSheetPt3Subs
       , screenSaverSubs
       , waiverSubs
       ]

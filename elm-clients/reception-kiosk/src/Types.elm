@@ -191,6 +191,7 @@ type TimeSheetPt3Msg
   | TS3_ClaimUpdated (Result Http.Error XisApi.Claim)
   | TS3_WorkUpdated (Result Http.Error XisApi.Work)
   | TS3_WorkNoteCreated (Result Http.Error XisApi.WorkNote)
+  | TS3_KeyDown KeyCode
 
 type WaiverMsg
   = ShowSignaturePad String
