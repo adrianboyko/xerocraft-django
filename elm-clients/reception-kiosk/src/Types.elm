@@ -192,6 +192,7 @@ type TimeSheetPt3Msg
   | TS3_WorkUpdated (Result Http.Error XisApi.Work)
   | TS3_WorkNoteCreated (Result Http.Error XisApi.WorkNote)
   | TS3_KeyDown KeyCode
+  | TS3_MemberListResult (Result Http.Error (PageOf XisApi.Member))
 
 type WaiverMsg
   = ShowSignaturePad String

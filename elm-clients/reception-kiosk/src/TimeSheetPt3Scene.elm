@@ -13,6 +13,7 @@ import Html exposing (Html, text, div, span)
 import Html.Attributes exposing (style)
 import Http exposing (header, Error(..))
 import Keyboard
+import Char
 
 -- Third Party
 
@@ -61,6 +62,7 @@ type alias TimeSheetPt3Model =
   { records : Maybe (XisApi.Task, XisApi.Claim, XisApi.Work)
   , witnessUsername : String
   , witnessPassword : String
+  , digitsTyped : List Char
   , badNews : List String
   }
 
@@ -71,6 +73,7 @@ init flags =
     { records = Nothing
     , witnessUsername = ""
     , witnessPassword = ""
+    , digitsTyped = []
     , badNews = []
     }
   in (sceneModel, Cmd.none)
@@ -119,12 +122,37 @@ update msg kioskModel =
 
   in case msg of
 
+    -- REVIEW: Factor this out into an RFID reader helper? It's also used in ScreenSaver.
     TS3_KeyDown code ->
-      if code == 13 && amVisible then
-        update TS3_Witnessed kioskModel
+      if amVisible then
+          case code of
+            13 ->
+              update TS3_Witnessed kioskModel
+            219 ->
+              -- RFID reader is beginning to send a card number, so clear our buffer.
+              ({sceneModel | digitsTyped=[]}, Cmd.none)
+            221 ->
+              -- RFID reader is done sending the card number, so process our buffer.
+              handleRfid kioskModel
+            c ->
+              if c>=48 && c<=57 then
+                -- A digit, presumably in the RFID's number. '0' = code 48, '9' = code 57.
+                let updatedDigits = Char.fromCode c :: sceneModel.digitsTyped
+                in ({sceneModel | digitsTyped = updatedDigits }, Cmd.none)
+              else
+                -- Unexpected code.
+                (sceneModel, Cmd.none)
       else
+        -- Scene is not visible.
         (sceneModel, Cmd.none)
 
+    TS3_MemberListResult (Ok {results}) ->
+      -- ASSERTION: There should be exactly one element in results.
+      case List.head results of
+        Just witness ->
+          ({sceneModel | witnessUsername=witness.data.userName}, Cmd.none)
+        Nothing ->
+          ({sceneModel | witnessUsername="", badNews=["RFID not registered."]}, Cmd.none)
 
     TS3_UpdateWitnessUsername s ->
       ({sceneModel | witnessUsername = XisApi.djangoizeId s}, Cmd.none)
@@ -204,6 +232,9 @@ update msg kioskModel =
 
     -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
+    TS3_MemberListResult (Err e) ->
+      ({sceneModel | badNews=[toString e]}, Cmd.none)
+
     TS3_WitnessSearchResult (Err e) ->
       ({sceneModel | badNews=[toString e]}, Cmd.none)
 
@@ -226,6 +257,20 @@ update msg kioskModel =
       -- Failure to create the work description is non-critical so we'll carry on to next scene.
       -- TODO: Create a backend logging facility so that failures like this can be noted via XisAPI
       (sceneModel, segueTo TimeSheetPt1)
+
+
+handleRfid : KioskModel a -> (TimeSheetPt3Model, Cmd Msg)
+handleRfid kioskModel =
+  let
+    sceneModel = kioskModel.timeSheetPt3Model
+    rfidNumber = List.reverse sceneModel.digitsTyped |> String.fromList |> String.toInt
+    filter = Result.map RfidNumberEquals rfidNumber
+    resultHandler = TimeSheetPt3Vector << TS3_MemberListResult
+    cmd = case filter of
+      Ok f -> kioskModel.xisSession.listMembers [f] resultHandler
+      Err err -> Cmd.none
+  in
+    (sceneModel, cmd)
 
 
 -----------------------------------------------------------------------------
