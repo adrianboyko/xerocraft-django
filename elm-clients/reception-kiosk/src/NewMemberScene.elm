@@ -171,6 +171,7 @@ ageChoice kioskModel =
       , Toggles.radio MdlVector idxOver18 kioskModel.mdl
           [ Toggles.value (Maybe.withDefault False sceneModel.isAdult)
           , Options.onToggle (NewMemberVector <| ToggleIsAdult <| False)
+          , option_NoTabIndex
           ]
           [text "I'm aged 18 or older"]
       , vspace 30
@@ -181,6 +182,7 @@ ageChoice kioskModel =
                   Just x -> not x
               )
             , Options.onToggle (NewMemberVector << ToggleIsAdult <| True)
+            , option_NoTabIndex
           ]
           [text "I'm younger than 18"]
       , vspace 10

@@ -24,6 +24,7 @@ port module Wizard.SceneUtils exposing
   , redSpan
   , textAreaColor
   , focusOnIndex
+  , option_NoTabIndex
   --------------------
   , send
   , segueTo
@@ -117,6 +118,8 @@ type AutoMan a
 -- VIEW UTILITIES
 -----------------------------------------------------------------------------
 
+option_NoTabIndex = Options.attribute <| tabindex <| -99
+
 sceneFrame : SceneUtilModel a -> List (Html Msg) -> Html Msg
 sceneFrame model sceneHtml =
   div [frameDivStyle]
@@ -133,11 +136,22 @@ frameNavButtons model =
   in
     div [navDivStyle]
       [ Button.render MdlVector [10000] model.mdl
-          ([Button.flat, Options.disabled isBaseScene, Options.onClick (WizardVector <| Pop)]++navButtonCss)
+          ( [ Button.flat
+            , Options.disabled isBaseScene
+            , Options.onClick (WizardVector <| Pop)
+            , option_NoTabIndex
+            ]
+            ++navButtonCss
+          )
           [text "Back"]
       , hspace 600
       , Button.render MdlVector [10001] model.mdl
-          ([Button.flat, Options.onClick (WizardVector <| Reset)]++navButtonCss)
+          ( [ Button.flat
+            , Options.onClick (WizardVector <| Reset)
+            , option_NoTabIndex
+            ]
+            ++navButtonCss
+          )
           [text "Quit"]
       ]
 
@@ -165,7 +179,13 @@ type alias ButtonSpec msg = { title : String, msg: msg }
 sceneButton : SceneUtilModel a -> ButtonSpec Msg -> Html Msg
 sceneButton model buttonSpec =
   Button.render MdlVector [0] model.mdl  -- REVIEW: Index 0 is ok because buttons don't have state?
-    ([ Button.raised, Button.colored, Options.onClick buttonSpec.msg]++sceneButtonCss)
+    ( [ Button.raised
+      , Button.colored
+      , Options.onClick buttonSpec.msg
+      , option_NoTabIndex
+      ]
+      ++sceneButtonCss
+    )
     [ text buttonSpec.title ]
 
 sceneGenericTextField : SceneUtilModel a -> Index -> String -> String -> (String -> Msg) -> List (Textfield.Property Msg) -> Html Msg
@@ -176,7 +196,8 @@ sceneGenericTextField model index hint value msger options =
       , Textfield.floatingLabel
       , Textfield.value value
       , Options.onInput msger
-      , Options.attribute <| Html.Attributes.id <| toString index
+      , Options.attribute <| tabindex <| List.sum index
+      , Options.attribute <| id <| toString index
       , css "width" "500px"
       ]
       ++
