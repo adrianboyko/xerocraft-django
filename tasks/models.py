@@ -602,9 +602,13 @@ class Task(TaskMixin, TimeWindowedObject):
     STAFFING_STATUS_STAFFED     = "S"  # There is a verified current claim.
     STAFFING_STATUS_UNSTAFFED   = "U"  # There is no current claim.
     STAFFING_STATUS_PROVISIONAL = "P"  # There is an unverified current claim.
+    STAFFING_STATUS_DONE        = "D"  # A claim is marked as done.
 
     def staffing_status(self) -> str:
-        currClaims = self.claim_set.filter(status=Claim.STAT_CURRENT)
+        currClaims = self.claim_set.filter(status__in=[Claim.STAT_CURRENT, Claim.STAT_DONE])
+        for claim in currClaims:  # type: Claim
+            if claim.status == Claim.STAT_DONE:
+                return Task.STAFFING_STATUS_DONE
         if self.is_fully_claimed:
             for claim in currClaims:  # type: Claim
                 if claim.date_verified is None:
