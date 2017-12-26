@@ -85,7 +85,7 @@ sceneWillAppear kioskModel appearingScene vanishingScene =
             records = Just (task, claim, work)
           in
             if task.data.shortDesc == "Other Work" then
-              ({sceneModel | records=records}, Cmd.none)
+              ({sceneModel | records=records}, focusOnIndex idxOtherWorkDesc)
             else
               -- User might be going forward OR BACKWARD in the wizard:
               if vanishingScene==TimeSheetPt1 then

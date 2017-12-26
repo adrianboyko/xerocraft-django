@@ -1,4 +1,4 @@
-module ReceptionKiosk exposing (..)
+port module ReceptionKiosk exposing (..)
 
 -- Standard
 import Html exposing (Html, Attribute, a, div, text, span, button, br, p, img, h1, h2, ol, li, b, canvas)
@@ -8,7 +8,7 @@ import Http
 import Time exposing (Time, second)
 
 -- Third party
-import List.Nonempty exposing (Nonempty)
+import List.Nonempty as Nonempty exposing (Nonempty)
 import Material
 
 -- Local
@@ -20,20 +20,22 @@ import CheckOutDoneScene
 import CreatingAcctScene
 import EmailInUseScene
 import HowDidYouHearScene
-import SignUpDoneScene
 import MembersOnlyScene
 import NewMemberScene
 import NewUserScene
+import OldBusinessScene
 import ReasonForVisitScene
 import ScreenSaverScene
+import SignUpDoneScene
 import TaskListScene
 import TimeSheetPt1Scene
 import TimeSheetPt2Scene
 import TimeSheetPt3Scene
-import VolunteerInDoneScene
+import TaskInfoScene
 import WaiverScene
 import WelcomeScene
 import XisRestApi as XisApi
+
 
 -----------------------------------------------------------------------------
 -- MAIN
@@ -47,6 +49,24 @@ main =
     , subscriptions = subscriptions
     }
 
+
+-----------------------------------------------------------------------------
+-- PORTS
+-----------------------------------------------------------------------------
+
+{-| Sets focus on the element with the given id but ONLY IF there is NOT
+an element that already has focus. Since scenes appear with no default
+focus, use this to set one. This will also showKeyboard().
+-}
+port setFocusIfNoFocus : String -> Cmd msg
+
+{-| This port is for asynchronous result information from setFocusIfNoFocus.
+If focus is successfully set, a True will be sent back via this port, else
+a False will be sent.
+-}
+port focusWasSet : (Bool -> msg) -> Sub msg
+
+
 -----------------------------------------------------------------------------
 -- MODEL
 -----------------------------------------------------------------------------
@@ -55,6 +75,8 @@ type alias Model =
   { flags : Flags
   , currTime : Time
   , sceneStack : Nonempty Scene -- 1st element is the top of the stack
+  , doneWithFocus : Bool  -- Only want to set default focus once (per scene transition)
+  , idxToFocus : Maybe (List Int)  -- Can't use Material.Component.Index (https://github.com/debois/elm-mdl/issues/342)
   -- elm-mdl model:
   , mdl : Material.Model
   -- api models:
@@ -72,12 +94,13 @@ type alias Model =
   , signUpDoneModel      : SignUpDoneScene.SignUpDoneModel
   , newMemberModel       : NewMemberScene.NewMemberModel
   , newUserModel         : NewUserScene.NewUserModel
+  , oldBusinessModel     : OldBusinessScene.OldBusinessModel
   , reasonForVisitModel  : ReasonForVisitScene.ReasonForVisitModel
+  , taskInfoModel        : TaskInfoScene.TaskInfoModel
   , taskListModel        : TaskListScene.TaskListModel
   , timeSheetPt1Model    : TimeSheetPt1Scene.TimeSheetPt1Model
   , timeSheetPt2Model    : TimeSheetPt2Scene.TimeSheetPt2Model
   , timeSheetPt3Model    : TimeSheetPt3Scene.TimeSheetPt3Model
-  , volunteerInDoneModel : VolunteerInDoneScene.VolunteerInDoneModel
   , waiverModel          : WaiverScene.WaiverModel
   , welcomeModel         : WelcomeScene.WelcomeModel
   }
@@ -95,20 +118,23 @@ init f =
     (membersOnlyModel,     membersOnlyCmd    ) = MembersOnlyScene.init     f
     (newMemberModel,       newMemberCmd      ) = NewMemberScene.init       f
     (newUserModel,         newUserCmd        ) = NewUserScene.init         f
+    (oldBusinessModel,     oldBusinessCmd    ) = OldBusinessScene.init     f
     (reasonForVisitModel,  reasonForVisitCmd ) = ReasonForVisitScene.init  f
     (screenSaverModel,     screenSaverCmd    ) = ScreenSaverScene.init     f
     (signUpDoneModel,      signUpDoneCmd     ) = SignUpDoneScene.init      f
+    (taskInfoModel,        taskInfoCmd       ) = TaskInfoScene.init        f
     (taskListModel,        taskListCmd       ) = TaskListScene.init        f
     (timeSheetPt1Model,    timeSheetPt1Cmd   ) = TimeSheetPt1Scene.init    f
     (timeSheetPt2Model,    timeSheetPt2Cmd   ) = TimeSheetPt2Scene.init    f
     (timeSheetPt3Model,    timeSheetPt3Cmd   ) = TimeSheetPt3Scene.init    f
-    (volunteerInDoneModel, volunteerInDoneCmd) = VolunteerInDoneScene.init f
     (waiverModel,          waiverCmd         ) = WaiverScene.init          f
     (welcomeModel,         welcomeCmd        ) = WelcomeScene.init         f
     model =
       { flags = f
       , currTime = 0
-      , sceneStack = List.Nonempty.fromElement ScreenSaver
+      , sceneStack = Nonempty.fromElement ScreenSaver
+      , doneWithFocus = False
+      , idxToFocus = Nothing
       , mdl = Material.model
       , xisSession = XisApi.createSession f
       -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
@@ -122,14 +148,15 @@ init f =
       , membersOnlyModel     = membersOnlyModel
       , newMemberModel       = newMemberModel
       , newUserModel         = newUserModel
+      , oldBusinessModel     = oldBusinessModel
       , reasonForVisitModel  = reasonForVisitModel
       , screenSaverModel     = screenSaverModel
       , signUpDoneModel      = signUpDoneModel
+      , taskInfoModel        = taskInfoModel
       , taskListModel        = taskListModel
       , timeSheetPt1Model    = timeSheetPt1Model
       , timeSheetPt2Model    = timeSheetPt2Model
       , timeSheetPt3Model    = timeSheetPt3Model
-      , volunteerInDoneModel = volunteerInDoneModel
       , waiverModel          = waiverModel
       , welcomeModel         = welcomeModel
       }
@@ -146,16 +173,22 @@ init f =
       , newUserCmd
       , reasonForVisitCmd
       , screenSaverCmd
+      , taskInfoCmd
       , taskListCmd
       , timeSheetPt1Cmd
       , timeSheetPt2Cmd
       , timeSheetPt3Cmd
-      , volunteerInDoneCmd
       , waiverCmd
       , welcomeCmd
       ]
   in
     (model, Cmd.batch cmds)
+
+
+setIndexToFocus : Maybe (List Int) -> Model -> Model
+setIndexToFocus index model =
+  {model | idxToFocus = index}
+
 
 -----------------------------------------------------------------------------
 -- RESET
@@ -166,6 +199,7 @@ reset : Model -> (Model, Cmd Msg)
 reset m =
   init m.flags
 
+
 -----------------------------------------------------------------------------
 -- UPDATE
 -----------------------------------------------------------------------------
@@ -175,55 +209,88 @@ update msg model =
   case msg of
 
     WizardVector wizMsg ->
-      let currScene = List.Nonempty.head model.sceneStack
+      let currScene = Nonempty.head model.sceneStack
       in case wizMsg of
         Push nextScene ->
           -- Push the new scene onto the scene stack.
           let
-            newModel = {model | sceneStack = List.Nonempty.cons nextScene model.sceneStack }
+            newModel = {model | sceneStack = Nonempty.cons nextScene model.sceneStack }
           in
             update (WizardVector <| (SceneWillAppear nextScene currScene)) newModel
 
         Pop ->
           -- Pop the top scene off the stack.
           let
-            newModel = {model | sceneStack = List.Nonempty.pop model.sceneStack }
-            newScene = List.Nonempty.head newModel.sceneStack
+            newModel = {model | sceneStack = Nonempty.pop model.sceneStack }
+            newScene = Nonempty.head newModel.sceneStack
           in
             update (WizardVector <| (SceneWillAppear newScene currScene)) newModel
 
-        RebaseTo newBaseScene ->
-          -- Resets the stack with a new base scene.
+        Rebase ->
+          -- Resets the stack so that top item becomes ONLY item. Prevents BACK.
           let
-            newModel = {model | sceneStack = List.Nonempty.fromElement newBaseScene }
+            newStack = Nonempty.dropTail model.sceneStack
+            newModel = {model | sceneStack = newStack }
           in
-            update (WizardVector <| (SceneWillAppear newBaseScene currScene)) newModel
+            (newModel, Cmd.none)
+
+        RebaseTo scene ->  -- This code might seem strange b/c stack is type List.Nonempty, NOT List.
+          if Nonempty.get 1 model.sceneStack == scene then
+            -- We've reached the desired state.  ("get 1" gets the 2nd item)
+            (model, Cmd.none)
+          else if Nonempty.length model.sceneStack == 2 then
+            -- Indicates a programming error as we shouldn't have exhausted the tail looking for the scene.
+            let _ = Debug.log "RebaseTo couldn't find: " scene
+            in (model, Cmd.none)
+          else
+            -- Recursive step:
+            let
+              head = Nonempty.head model.sceneStack
+              newTail = model.sceneStack |> Nonempty.pop |> Nonempty.pop
+              newSceneStack = Nonempty.cons head newTail
+            in
+              update (WizardVector <| RebaseTo <| scene) {model | sceneStack=newSceneStack}
 
         Reset -> reset model
 
         SceneWillAppear appearing vanishing ->
-          -- REVIEW: It's too easy to forget to add these.
           -- REVIEW: Standardize so that every scene gets both appearing and vanishing?
           let
+            -- REVIEW: It's too easy to forget to add these.
             (mCI,  cCI)  = CheckInScene.sceneWillAppear model appearing
             (mCO,  cCO)  = CheckOutScene.sceneWillAppear model appearing
+            (mCOD, cCOD) = CheckOutDoneScene.sceneWillAppear model appearing vanishing
             (mCA,  cCA)  = CreatingAcctScene.sceneWillAppear model appearing
             (mHD,  cHD)  = HowDidYouHearScene.sceneWillAppear model appearing
             (mMO,  cMO)  = MembersOnlyScene.sceneWillAppear model appearing
+            (mNM,  cNM)  = NewMemberScene.sceneWillAppear model appearing
+            (mNU,  cNU)  = NewUserScene.sceneWillAppear model appearing
+            (mOB,  cOB)  = OldBusinessScene.sceneWillAppear model appearing vanishing
             (mSS,  cSS)  = ScreenSaverScene.sceneWillAppear model appearing
+            (mSUD, cSUD) = SignUpDoneScene.sceneWillAppear model appearing vanishing
+            (mTI,  cTI)  = TaskInfoScene.sceneWillAppear model appearing vanishing
             (mTL,  cTL)  = TaskListScene.sceneWillAppear model appearing vanishing
-            (mTS1, cTS1) = TimeSheetPt1Scene.sceneWillAppear model appearing
+            (mTS1, cTS1) = TimeSheetPt1Scene.sceneWillAppear model appearing vanishing
             (mTS2, cTS2) = TimeSheetPt2Scene.sceneWillAppear model appearing vanishing
-            (mTS3, cTS3) = TimeSheetPt3Scene.sceneWillAppear model appearing
+            (mTS3, cTS3) = TimeSheetPt3Scene.sceneWillAppear model appearing vanishing
             (mW,   cW)   = WaiverScene.sceneWillAppear model appearing
             newModel =
+              -- REVIEW: It's too easy to forget to add these.
               { model
-              | checkInModel = mCI
+              | idxToFocus = Nothing
+              , doneWithFocus = False
+              , checkInModel = mCI
               , checkOutModel = mCO
+              , checkOutDoneModel = mCOD
               , creatingAcctModel = mCA
               , howDidYouHearModel = mHD
               , membersOnlyModel = mMO
+              , newMemberModel = mNM
+              , newUserModel = mNU
+              , oldBusinessModel = mOB
               , screenSaverModel = mSS
+              , signUpDoneModel = mSUD
+              , taskInfoModel = mTI
               , taskListModel = mTL
               , timeSheetPt1Model = mTS1
               , timeSheetPt2Model = mTS2
@@ -231,26 +298,47 @@ update msg model =
               , waiverModel = mW
               }
           in
-            (newModel, Cmd.batch [cCI, cCO, cCA, cHD, cMO, cSS, cTL, cTS1, cTS2, cTS3, cW])
+            (newModel, Cmd.batch
+              -- REVIEW: It's too easy to forget to add these.
+              [ cCI, cCO, cCOD, cCA, cHD, cMO, cNM, cNU, cOB
+              , cSS, cSUD, cTI, cTL, cTS1, cTS2, cTS3, cW
+              ]
+            )
 
         Tick time ->
           let
-            (m1, c1) = CreatingAcctScene.tick time model
-            (m2, c2) = CheckInScene.tick time model
-            (m5, c5) = NewMemberScene.tick time model
-            (m6, c6) = NewUserScene.tick time model
-            (m7, c7) = ScreenSaverScene.tick time model
+            (mCA, cCA) = CreatingAcctScene.tick time model
+            (mCI, cCI) = CheckInScene.tick time model
+            (mSS, cSS) = ScreenSaverScene.tick time model
             newModel =
               { model
               | currTime = time
-              , creatingAcctModel = m1
-              , checkInModel = m2
-              , newMemberModel = m5
-              , newUserModel = m6
-              , screenSaverModel = m7
+              , creatingAcctModel = mCA
+              , checkInModel = mCI
+              , screenSaverModel = mSS
               }
+            cmdFocus =
+              case (model.doneWithFocus, model.idxToFocus) of
+                (False, Just idx) ->
+                  idx |> toString |> setFocusIfNoFocus
+                _ -> Cmd.none
           in
-            (newModel, Cmd.batch [c1, c2, c5, c6, c7])
+            (newModel, Cmd.batch [cmdFocus, cCA, cCI, cSS])
+
+        FocusOnIndex idx ->
+          let
+            -- REVIEW: Why did previous version always also check && List.isEmpty model.badNews
+            cmd = if not model.doneWithFocus
+              then model.idxToFocus |> toString |> setFocusIfNoFocus
+              else Cmd.none
+          in
+            ({model | idxToFocus=idx, doneWithFocus=False}, cmd)
+
+        FocusWasSet wasSet ->
+          if wasSet then
+            ({model | doneWithFocus=True, idxToFocus=Nothing}, Cmd.none)
+          else
+            (model, Cmd.none)
 
     CheckInVector x ->
       let (sm, cmd) = CheckInScene.update x model
@@ -279,6 +367,10 @@ update msg model =
     NewUserVector x ->
       let (sm, cmd) = NewUserScene.update x model
       in ({model | newUserModel = sm}, cmd)
+
+    OldBusinessVector x ->
+      let (sm, cmd) = OldBusinessScene.update x model
+      in ({model | oldBusinessModel = sm}, cmd)
 
     ReasonForVisitVector x ->
       let (sm, cmd) = ReasonForVisitScene.update x model
@@ -311,13 +403,14 @@ update msg model =
     MdlVector x ->
       Material.update MdlVector x model
 
+
 -----------------------------------------------------------------------------
 -- VIEW
 -----------------------------------------------------------------------------
 
 view : Model -> Html Msg
 view model =
-  let currScene = List.Nonempty.head model.sceneStack
+  let currScene = Nonempty.head model.sceneStack
   in case currScene of
     CheckIn         -> CheckInScene.view         model
     CheckInDone     -> CheckInDoneScene.view     model
@@ -329,16 +422,18 @@ view model =
     MembersOnly     -> MembersOnlyScene.view     model
     NewMember       -> NewMemberScene.view       model
     NewUser         -> NewUserScene.view         model
+    OldBusiness     -> OldBusinessScene.view     model
     ReasonForVisit  -> ReasonForVisitScene.view  model
     ScreenSaver     -> ScreenSaverScene.view     model
     SignUpDone      -> SignUpDoneScene.view      model
+    TaskInfo        -> TaskInfoScene.view        model
     TaskList        -> TaskListScene.view        model
     TimeSheetPt1    -> TimeSheetPt1Scene.view    model
     TimeSheetPt2    -> TimeSheetPt2Scene.view    model
     TimeSheetPt3    -> TimeSheetPt3Scene.view    model
-    VolunteerInDone -> VolunteerInDoneScene.view model
     Waiver          -> WaiverScene.view          model
     Welcome         -> WelcomeScene.view         model
+
 
 -----------------------------------------------------------------------------
 -- SUBSCRIPTIONS
@@ -347,18 +442,16 @@ view model =
 subscriptions: Model -> Sub Msg
 subscriptions model =
   let
-    mySubs = Time.every second (WizardVector << Tick)
-    checkInSubs = CheckInScene.subscriptions model
-    newMemberSubs = NewMemberScene.subscriptions model
-    newUserSubs = NewUserScene.subscriptions model
+    focusSetSub = focusWasSet (WizardVector << FocusWasSet)
+    timeTickSub = Time.every second (WizardVector << Tick)
     screenSaverSubs = ScreenSaverScene.subscriptions model
+    timeSheetPt3Subs = TimeSheetPt3Scene.subscriptions model
     waiverSubs = WaiverScene.subscriptions model
   in
     Sub.batch
-      [ mySubs
-      , checkInSubs
-      , newMemberSubs
-      , newUserSubs
+      [ focusSetSub
+      , timeTickSub
+      , timeSheetPt3Subs
       , screenSaverSubs
       , waiverSubs
       ]

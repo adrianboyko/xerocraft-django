@@ -5,7 +5,6 @@ module CheckInScene exposing
   , view
   , update
   , tick
-  , subscriptions
   , CheckInModel
   )
 
@@ -34,8 +33,6 @@ import XisRestApi as XisApi
 -- CONSTANTS
 -----------------------------------------------------------------------------
 
-maxIdleSeconds = 30
-
 
 -----------------------------------------------------------------------------
 -- INIT
@@ -44,10 +41,8 @@ maxIdleSeconds = 30
 -- REVIEW: Strictly speaking, flexID and memberNum should be Maybes.
 type alias CheckInModel =
   { flexId : String  -- UserName or surname.
-  , secondsIdle : Int
   , matches : List MembersApi.MatchingAcct  -- Matches to username/surname
   , memberNum : Int -- The member number that the person chose to check in as.
-  , doneWithFocus : Bool  -- Only want to set default focus once.
   , badNews : List String
   }
 
@@ -58,10 +53,8 @@ init : Flags -> (CheckInModel, Cmd Msg)
 init flags =
   let model =
     { flexId = ""  -- A harmless initial value.
-    , secondsIdle = 0
     , matches = []
     , memberNum = -99  -- A harmless initial value.
-    , doneWithFocus = False
     , badNews = []
     }
   in (model, Cmd.none)
@@ -75,7 +68,12 @@ sceneWillAppear : KioskModel a -> Scene -> (CheckInModel, Cmd Msg)
 sceneWillAppear kioskModel appearingScene =
   if appearingScene == CheckIn
     then
-      (kioskModel.checkInModel, getRecentRfidEntriesCmd kioskModel)
+      let
+        cmd1 = getRecentRfidEntriesCmd kioskModel
+        cmd2 = focusOnIndex idxFlexId
+        cmd = Cmd.batch [cmd1, cmd2]
+      in
+        (kioskModel.checkInModel, cmd)
     else
       (kioskModel.checkInModel, Cmd.none)
 
@@ -96,11 +94,11 @@ update msg kioskModel =
       in
         if (String.length id) > 1
         then
-          ( {sceneModel | flexId = id, secondsIdle = 0}
+          ( {sceneModel | flexId=id}
           , getMatchingAccts id (CheckInVector << UpdateMatchingAccts)
           )
         else
-          ( {sceneModel | matches = [], flexId = id, secondsIdle = 0}
+          ( {sceneModel | matches=[], flexId=id}
           , Cmd.none
           )
 
@@ -114,13 +112,6 @@ update msg kioskModel =
 
     UpdateMemberNum memberNum ->
       ({sceneModel | memberNum = memberNum}, segueTo ReasonForVisit)
-
-    FlexIdFocusSet wasSet ->
-      let
-        currDoneWithFocus = sceneModel.doneWithFocus
-        newDoneWithFocus = currDoneWithFocus || wasSet
-      in
-        ({sceneModel | doneWithFocus = newDoneWithFocus}, Cmd.none)
 
     CheckInShortcut userName memberNum ->
       ({sceneModel | flexId=userName, memberNum=memberNum}, segueTo ReasonForVisit)
@@ -177,34 +168,18 @@ tick time kioskModel =
     sceneModel = kioskModel.checkInModel
     visible = sceneIsVisible kioskModel CheckIn
     inc = if visible then 1 else 0
-    newSecondsIdle = sceneModel.secondsIdle + inc
-    newSceneModel = {sceneModel | secondsIdle = newSecondsIdle}
-    cmd0 =
-      if visible && not sceneModel.doneWithFocus
-        then idxFlexId |> toString |> setFocusIfNoFocus
-        else Cmd.none
     cmd1 =
-      if visible && newSecondsIdle > maxIdleSeconds
-        then send (WizardVector <| Reset)
-        else Cmd.none
-    cmd2 =
       if visible && String.isEmpty sceneModel.flexId
         then getRecentRfidEntriesCmd kioskModel
         else Cmd.none
+    cmd = if visible then cmd1 else Cmd.none
   in
-    if visible then (newSceneModel, Cmd.batch [cmd0, cmd1, cmd2])
-    else (newSceneModel, Cmd.none)
+    (sceneModel, cmd)
 
 
 -----------------------------------------------------------------------------
 -- SUBSCRIPTIONS
 -----------------------------------------------------------------------------
-
-subscriptions: KioskModel a -> Sub Msg
-subscriptions model =
-  if sceneIsVisible model CheckIn
-    then focusWasSet (CheckInVector << FlexIdFocusSet)
-    else Sub.none
 
 
 -----------------------------------------------------------------------------

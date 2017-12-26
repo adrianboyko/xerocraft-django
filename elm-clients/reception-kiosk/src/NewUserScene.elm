@@ -1,5 +1,5 @@
 
-module NewUserScene exposing (init, view, update, tick, subscriptions, NewUserModel)
+module NewUserScene exposing (init, sceneWillAppear, update, view, NewUserModel)
 
 -- Standard
 import Html exposing (Html, div)
@@ -19,13 +19,6 @@ import NewMemberScene exposing (NewMemberModel)
 -- INIT
 -----------------------------------------------------------------------------
 
-type alias NewUserModel =
-  { userName : String
-  , password1 : String
-  , password2 : String
-  , doneWithFocus : Bool
-  , badNews : List String
-  }
 
 -- This type alias describes the type of kiosk model that this scene requires.
 type alias KioskModel a =
@@ -36,16 +29,36 @@ type alias KioskModel a =
     }
   )
 
+type alias NewUserModel =
+  { userName : String
+  , password1 : String
+  , password2 : String
+  , badNews : List String
+  }
+
+
 init : Flags -> (NewUserModel, Cmd Msg)
 init flags =
   let sceneModel =
     { userName = ""
     , password1 = ""
     , password2 = ""
-    , doneWithFocus = False
     , badNews = []
     }
   in (sceneModel, Cmd.none)
+
+
+-----------------------------------------------------------------------------
+-- SCENE WILL APPEAR
+-----------------------------------------------------------------------------
+
+sceneWillAppear : KioskModel a -> Scene -> (NewUserModel, Cmd Msg)
+sceneWillAppear kioskModel appearingScene =
+  if appearingScene == NewUser
+    then
+      (kioskModel.newUserModel, focusOnIndex idxUserName)
+    else
+      (kioskModel.newUserModel, Cmd.none)
 
 
 -----------------------------------------------------------------------------
@@ -73,12 +86,6 @@ update msg kioskModel =
     ValidateUserNameUnique result ->
       validateUserNameUnique kioskModel result
 
-    UserNameFocusSet wasSet ->
-      let
-        currDoneWithFocus = sceneModel.doneWithFocus
-        newDoneWithFocus = currDoneWithFocus || wasSet
-      in
-        ({sceneModel | doneWithFocus = newDoneWithFocus}, Cmd.none)
 
 validateUserIdAndPw : KioskModel a -> (NewUserModel, Cmd Msg)
 validateUserIdAndPw kioskModel =
@@ -134,27 +141,10 @@ validateUserNameUnique kioskModel result =
 -- TICK (called each second)
 -----------------------------------------------------------------------------
 
-tick : Time -> KioskModel a -> (NewUserModel, Cmd Msg)
-tick time kioskModel =
-  let
-    sceneModel = kioskModel.newUserModel
-    visible = sceneIsVisible kioskModel NewUser
-    noBadNews = List.length sceneModel.badNews == 0
-    okToFocus = visible && noBadNews && not sceneModel.doneWithFocus
-    cmd = if okToFocus then idxUserName |> toString |> setFocusIfNoFocus else Cmd.none
-  in
-    (sceneModel, cmd)
-
 
 -----------------------------------------------------------------------------
 -- SUBSCRIPTIONS
 -----------------------------------------------------------------------------
-
-subscriptions: KioskModel a -> Sub Msg
-subscriptions model =
-  if sceneIsVisible model NewUser
-    then focusWasSet (NewUserVector << UserNameFocusSet)
-    else Sub.none
 
 
 -----------------------------------------------------------------------------

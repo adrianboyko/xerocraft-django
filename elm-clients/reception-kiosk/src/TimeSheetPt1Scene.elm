@@ -12,14 +12,18 @@ import Html exposing (Html, text, div, span)
 import Html.Attributes exposing (style)
 import Http
 import Time exposing (Time, hour, minute)
+import Tuple
 
 -- Third Party
 import Maybe.Extra as MaybeX
+import Update.Extra as UpdateX exposing (addCmd)
+import List.Nonempty as Nonempty
 
 -- Local
 import XisRestApi as XisApi exposing (..)
 import Wizard.SceneUtils exposing (..)
 import Types exposing (..)
+import CheckInScene exposing (CheckInModel)
 import CheckOutScene exposing (CheckOutModel)
 import Fetchable exposing (..)
 import DjangoRestFramework as DRF
@@ -48,7 +52,8 @@ type alias KioskModel a =
     { a
     | currTime : PointInTime
     , timeSheetPt1Model : TimeSheetPt1Model
-    , checkOutModel : CheckOutModel
+    , checkInModel : CheckInModel -- Might come to this scene via Check IN
+    , checkOutModel : CheckOutModel  -- Might come to this scene via Check OUT
     , xisSession : XisApi.Session Msg
     }
   )
@@ -60,7 +65,6 @@ type alias TimeSheetPt1Model = -- This scene first searches for claims in progre
   , workInProgress : Fetchable (Maybe XisApi.Work)  -- But there might not be a w.i.p. pointing to the claim.
   , workStartScratch : String
   , workDurationScratch : String
-  , search : Bool  -- Prevents refetching/reset of task info when user navigates "BACK" button.
   , badNews : List String
   }
 
@@ -73,7 +77,6 @@ init flags =
     , workInProgress = Pending
     , workStartScratch = ""
     , workDurationScratch = ""
-    , search = True  -- Should find a new task the 1st time user arrives at this scene.
     , badNews = []
     }
   in (sceneModel, Cmd.none)
@@ -83,30 +86,56 @@ init flags =
 -- SCENE WILL APPEAR
 -----------------------------------------------------------------------------
 
-sceneWillAppear : KioskModel a -> Scene -> (TimeSheetPt1Model, Cmd Msg)
-sceneWillAppear kioskModel appearingScene =
-  let sceneModel = kioskModel.timeSheetPt1Model
-  in case appearingScene of
+sceneWillAppear : KioskModel a -> Scene -> Scene -> (TimeSheetPt1Model, Cmd Msg)
+sceneWillAppear kioskModel appearing vanishing =
+  let
+    sceneModel = kioskModel.timeSheetPt1Model
+    focusCmd = focusOnIndex idxWorkStart
 
-    TimeSheetPt1 ->
-      -- This scene will only look up info if:
-      --   1) The user is arriving at it for the first time.
-      --   2) Another scene has set "search" to True.
-      if not sceneModel.search then
-        (sceneModel, Cmd.none)
-      else
-        let
-          memberNum = kioskModel.checkOutModel.checkedOutMemberNum
-          cmd = kioskModel.xisSession.listClaims
-            [ ClaimingMemberEquals memberNum
-            , ClaimStatusEquals WorkingClaimStatus
-            ]
-            (TimeSheetPt1Vector << TS1_WorkingClaimsResult)
-        in
-          ({sceneModel | taskInProgress = Pending}, cmd)
+  in case (appearing, vanishing, sceneModel.claimInProgress) of
 
-    _ ->
+    (TimeSheetPt1, TimeSheetPt3, Received x) ->
+      -- We're circling back to see if there's another to work on, so do a new search.
+      -- We use RebaseTo to snip the previous loop out of the wizard's history.
+      let
+        onStack x = Nonempty.member x kioskModel.sceneStack
+        popCmd =
+          if onStack OldBusiness then rebaseTo OldBusiness
+          else if onStack CheckOut then rebaseTo CheckOut
+          else Cmd.none
+      in
+        search kioskModel |> addCmd popCmd |> addCmd focusCmd
+
+    (TimeSheetPt1, _, Received x) ->
+      -- We've already looked up and received a claim, so continue to work with it.
+      (sceneModel, focusCmd)
+
+    (TimeSheetPt1, _, Pending) ->
+      -- Hasn't yet done a lookup, so do it now.
+      search kioskModel |> addCmd focusCmd
+
+    (_, _, _) ->
       (sceneModel, Cmd.none)
+
+
+search : KioskModel a -> (TimeSheetPt1Model, Cmd Msg)
+search kioskModel =
+  let
+    sceneModel = kioskModel.timeSheetPt1Model
+    checkOutModel = kioskModel.checkOutModel
+    checkInModel = kioskModel.checkInModel
+    inMembNum = checkInModel.memberNum  -- Val < 0 means "not set"
+    outMembNum = checkOutModel.checkedOutMemberNum  -- Val < 0 means "not set"
+    memberNum = max inMembNum outMembNum
+    xis = kioskModel.xisSession
+    cmd = xis.listClaims
+      [ ClaimingMemberEquals memberNum
+      , ClaimStatusEquals WorkingClaimStatus
+      ]
+      (TimeSheetPt1Vector << TS1_WorkingClaimsResult)
+    reinitializedSceneModel = Tuple.first (init kioskModel.flags)
+  in
+    (reinitializedSceneModel, cmd)
 
 
 -----------------------------------------------------------------------------
@@ -179,7 +208,7 @@ update msg kioskModel =
               revisedWIP = {work | data = newData}
               cmd = segueTo TimeSheetPt2
             in
-              ({sceneModel | search=False, workInProgress=Received (Just revisedWIP), badNews=[]}, cmd)
+              ({sceneModel | workInProgress=Received (Just revisedWIP), badNews=[]}, cmd)
 
           (Err e1, Err e2) -> ({sceneModel | badNews=[e1, e2]}, Cmd.none)
           (Err e, _) -> ({sceneModel | badNews=[e]}, Cmd.none)

@@ -5,6 +5,7 @@ port module Wizard.SceneUtils exposing
   , px
   , pt
   , genericScene
+  , blankGenericScene
   , sceneButton
   , ButtonSpec
   , sceneEmailField
@@ -17,16 +18,21 @@ port module Wizard.SceneUtils exposing
   , vspace
   , hspace
   , (=>)
-  , send
-  , segueTo
-  , pop
-  , setFocusIfNoFocus
   , hideKeyboard
-  , focusWasSet
   , sceneIsVisible
   , currentScene
   , redSpan
   , textAreaColor
+  , focusOnIndex
+  , option_NoTabIndex
+  --------------------
+  , send
+  , segueTo
+  , msgForSegueTo
+  , rebase
+  , rebaseTo
+  , pop
+  , msgForReset
   )
 
 -- Standard
@@ -51,18 +57,6 @@ import Types exposing (..)
 -- PORTS
 -----------------------------------------------------------------------------
 
-{-| Sets focus on the element with the given id but ONLY IF there is NOT
-an element that already has focus. Since scenes appear with no default
-focus, use this to set one. This will also showKeyboard().
--}
-port setFocusIfNoFocus : String -> Cmd msg
-
-{-| This port is for asynchronous result information from setFocusIfNoFocus.
-If focus is successfully set, a True will be sent back via this port, else
-a False will be sent.
--}
-port focusWasSet : (Bool -> msg) -> Sub msg
-
 {-| This will hide the keyboard using the Kiosk App's API.
 -}
 port hideKeyboard : () -> Cmd msg  -- Note that () might go away, per https://github.com/evancz/guide.elm-lang.org/issues/34
@@ -83,10 +77,26 @@ type alias Index = List Int  -- elm-mdl doesn't expose this type.
 
 -- REVIEW: Rename segueTo to push, to match pop?
 segueTo : Scene -> Cmd Msg
-segueTo scene = send (WizardVector <| Push <| scene)
+segueTo scene = send (msgForSegueTo scene)
+
+msgForSegueTo : Scene -> Msg
+msgForSegueTo = WizardVector << Push
+
+focusOnIndex : List Int -> Cmd Msg
+focusOnIndex idx =
+  send <| WizardVector <| FocusOnIndex (Just idx)
 
 pop : Cmd Msg
 pop = send (WizardVector <| Pop)
+
+rebaseTo : Scene -> Cmd Msg
+rebaseTo = send << WizardVector << RebaseTo
+
+rebase : Cmd Msg
+rebase = send <| WizardVector <| Rebase
+
+msgForReset : Msg
+msgForReset = WizardVector <| Reset
 
 sceneIsVisible : SceneUtilModel a -> Scene -> Bool
 sceneIsVisible model scene = (currentScene model) == scene
@@ -108,6 +118,8 @@ type AutoMan a
 -- VIEW UTILITIES
 -----------------------------------------------------------------------------
 
+option_NoTabIndex = Options.attribute <| tabindex <| -99
+
 sceneFrame : SceneUtilModel a -> List (Html Msg) -> Html Msg
 sceneFrame model sceneHtml =
   div [frameDivStyle]
@@ -124,11 +136,22 @@ frameNavButtons model =
   in
     div [navDivStyle]
       [ Button.render MdlVector [10000] model.mdl
-          ([Button.flat, Options.disabled isBaseScene, Options.onClick (WizardVector <| Pop)]++navButtonCss)
+          ( [ Button.flat
+            , Options.disabled isBaseScene
+            , Options.onClick (WizardVector <| Pop)
+            , option_NoTabIndex
+            ]
+            ++navButtonCss
+          )
           [text "Back"]
       , hspace 600
       , Button.render MdlVector [10001] model.mdl
-          ([Button.flat, Options.onClick (WizardVector <| Reset)]++navButtonCss)
+          ( [ Button.flat
+            , Options.onClick (WizardVector <| Reset)
+            , option_NoTabIndex
+            ]
+            ++navButtonCss
+          )
           [text "Quit"]
       ]
 
@@ -146,11 +169,23 @@ genericScene model title subtitle extraContent buttonSpecs badNews =
     ]
   in sceneFrame model sceneHtml
 
+
+blankGenericScene : SceneUtilModel a -> Html Msg
+blankGenericScene model =
+  genericScene model "" "" (text "") [] []
+
+
 type alias ButtonSpec msg = { title : String, msg: msg }
 sceneButton : SceneUtilModel a -> ButtonSpec Msg -> Html Msg
 sceneButton model buttonSpec =
   Button.render MdlVector [0] model.mdl  -- REVIEW: Index 0 is ok because buttons don't have state?
-    ([ Button.raised, Button.colored, Options.onClick buttonSpec.msg]++sceneButtonCss)
+    ( [ Button.raised
+      , Button.colored
+      , Options.onClick buttonSpec.msg
+      , option_NoTabIndex
+      ]
+      ++sceneButtonCss
+    )
     [ text buttonSpec.title ]
 
 sceneGenericTextField : SceneUtilModel a -> Index -> String -> String -> (String -> Msg) -> List (Textfield.Property Msg) -> Html Msg
@@ -161,7 +196,8 @@ sceneGenericTextField model index hint value msger options =
       , Textfield.floatingLabel
       , Textfield.value value
       , Options.onInput msger
-      , Options.attribute <| Html.Attributes.id <| toString index
+      , Options.attribute <| tabindex <| List.sum index
+      , Options.attribute <| id <| toString index
       , css "width" "500px"
       ]
       ++

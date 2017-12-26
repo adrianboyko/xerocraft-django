@@ -1,5 +1,5 @@
 
-module VolunteerInDoneScene exposing (init, view, VolunteerInDoneModel)
+module TaskInfoScene exposing (init, sceneWillAppear, view, TaskInfoModel)
 
 -- Standard
 import Html exposing (Html, text, div, p)
@@ -18,7 +18,7 @@ import TaskListScene exposing (TaskListModel)
 
 -- TODO: There should be a time out back to Welcome
 
-type alias VolunteerInDoneModel =
+type alias TaskInfoModel =
   {
   }
 
@@ -26,12 +26,32 @@ type alias VolunteerInDoneModel =
 type alias KioskModel a =
   SceneUtilModel
     { a
-    | volunteerInDoneModel : VolunteerInDoneModel
+    | taskInfoModel : TaskInfoModel
     , taskListModel : TaskListModel
     }
 
-init : Flags -> (VolunteerInDoneModel, Cmd Msg)
+init : Flags -> (TaskInfoModel, Cmd Msg)
 init flags = ({}, Cmd.none)
+
+
+-----------------------------------------------------------------------------
+-- SCENE WILL APPEAR
+-----------------------------------------------------------------------------
+
+sceneWillAppear : KioskModel a -> Scene -> Scene -> (TaskInfoModel, Cmd Msg)
+sceneWillAppear kioskModel appearing vanishing =
+  let
+    sceneModel = kioskModel.taskInfoModel
+  in
+    case (appearing, vanishing) of
+
+      (TaskInfo, _) ->
+        -- If user gets to Task Info, we rebase the scene stack to prevent going back.
+        (sceneModel, rebase)
+
+      _ ->
+        (sceneModel, Cmd.none)
+
 
 -----------------------------------------------------------------------------
 -- UPDATE
@@ -44,7 +64,7 @@ init flags = ({}, Cmd.none)
 view : KioskModel a -> Html Msg
 view kioskModel =
   let
-    sceneModel = kioskModel.volunteerInDoneModel
+    sceneModel = kioskModel.taskInfoModel
     taskListModel = kioskModel.taskListModel
     instructions =
       case taskListModel.selectedTask of
@@ -52,7 +72,7 @@ view kioskModel =
         Nothing -> "Please see a Staff Member for instructions."
   in
     genericScene kioskModel
-      "You're Checked In!"
+      "Thanks for Helping!"
       "Instructions Follow:"
       (div [instructionDiv]
         [ vspace 20
@@ -62,7 +82,7 @@ view kioskModel =
         , vspace 20
         ]
       )
-      [ButtonSpec "Got It!" (WizardVector <| Reset)]
+      [ButtonSpec "Got It!" (msgForSegueTo OldBusiness)]
       []  -- Never any bad news for this scene.
 
 

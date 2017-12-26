@@ -4,6 +4,7 @@ module TimeSheetPt3Scene exposing
   , sceneWillAppear
   , update
   , view
+  , subscriptions
   , TimeSheetPt3Model
   )
 
@@ -11,6 +12,8 @@ module TimeSheetPt3Scene exposing
 import Html exposing (Html, text, div, span)
 import Html.Attributes exposing (style)
 import Http exposing (header, Error(..))
+import Keyboard
+import Char
 
 -- Third Party
 
@@ -59,6 +62,7 @@ type alias TimeSheetPt3Model =
   { records : Maybe (XisApi.Task, XisApi.Claim, XisApi.Work)
   , witnessUsername : String
   , witnessPassword : String
+  , digitsTyped : List Char
   , badNews : List String
   }
 
@@ -69,6 +73,7 @@ init flags =
     { records = Nothing
     , witnessUsername = ""
     , witnessPassword = ""
+    , digitsTyped = []
     , badNews = []
     }
   in (sceneModel, Cmd.none)
@@ -78,25 +83,29 @@ init flags =
 -- SCENE WILL APPEAR
 -----------------------------------------------------------------------------
 
-sceneWillAppear : KioskModel a -> Scene -> (TimeSheetPt3Model, Cmd Msg)
-sceneWillAppear kioskModel appearingScene =
+sceneWillAppear : KioskModel a -> Scene -> Scene -> (TimeSheetPt3Model, Cmd Msg)
+sceneWillAppear kioskModel appearing vanishing =
   let
     sceneModel = kioskModel.timeSheetPt3Model
     pt1Model = kioskModel.timeSheetPt1Model
     pt2Model = kioskModel.timeSheetPt2Model
   in
-    if appearingScene == TimeSheetPt3 then
-      case (pt1Model.taskInProgress, pt1Model.claimInProgress, pt1Model.workInProgress) of
+    case (appearing, vanishing) of
 
-        (Received task, Received (Just claim), Received (Just work)) ->
-          let records = Just (task, claim, work)
-          in ({sceneModel | records=records}, Cmd.none)
+      (TimeSheetPt3, _) ->
+        case (pt1Model.taskInProgress, pt1Model.claimInProgress, pt1Model.workInProgress) of
+          (Received task, Received (Just claim), Received (Just work)) ->
+            let records = Just (task, claim, work)
+            in ({sceneModel | records=records}, focusOnIndex idxWitnessUsername)
+          _ ->
+            ({sceneModel | badNews=[tcwMissingMsg]}, Cmd.none)
 
-        _ ->
-          ({sceneModel | badNews=[tcwMissingMsg]}, Cmd.none)
+      (_, TimeSheetPt3) ->
+        -- Clear the password field when we leave this scene.
+        ({sceneModel | witnessPassword=""}, Cmd.none)
 
-    else
-      (sceneModel, Cmd.none)
+      (_, _) ->
+        (sceneModel, Cmd.none)
 
 
 -----------------------------------------------------------------------------
@@ -109,8 +118,41 @@ update msg kioskModel =
     sceneModel = kioskModel.timeSheetPt3Model
     xis = kioskModel.xisSession
     wName = sceneModel.witnessUsername
+    amVisible = currentScene kioskModel == TimeSheetPt3
 
   in case msg of
+
+    -- REVIEW: Factor this out into an RFID reader helper? It's also used in ScreenSaver.
+    TS3_KeyDown code ->
+      if amVisible then
+          case code of
+            13 ->
+              update TS3_Witnessed kioskModel
+            219 ->
+              -- RFID reader is beginning to send a card number, so clear our buffer.
+              ({sceneModel | digitsTyped=[]}, Cmd.none)
+            221 ->
+              -- RFID reader is done sending the card number, so process our buffer.
+              handleRfid kioskModel
+            c ->
+              if c>=48 && c<=57 then
+                -- A digit, presumably in the RFID's number. '0' = code 48, '9' = code 57.
+                let updatedDigits = Char.fromCode c :: sceneModel.digitsTyped
+                in ({sceneModel | digitsTyped = updatedDigits }, Cmd.none)
+              else
+                -- Unexpected code.
+                (sceneModel, Cmd.none)
+      else
+        -- Scene is not visible.
+        (sceneModel, Cmd.none)
+
+    TS3_MemberListResult (Ok {results}) ->
+      -- ASSERTION: There should be exactly one element in results.
+      case List.head results of
+        Just witness ->
+          ({sceneModel | witnessUsername=witness.data.userName}, Cmd.none)
+        Nothing ->
+          ({sceneModel | witnessUsername="", badNews=["RFID not registered."]}, Cmd.none)
 
     TS3_UpdateWitnessUsername s ->
       ({sceneModel | witnessUsername = XisApi.djangoizeId s}, Cmd.none)
@@ -180,15 +222,18 @@ update msg kioskModel =
               kioskModel.currTime
             cmd = if String.length pt2Model.otherWorkDesc > 0
               then xis.createWorkNote noteData (TimeSheetPt3Vector << TS3_WorkNoteCreated)
-              else segueTo CheckOutDone
+              else segueTo TimeSheetPt1
           in
             ({sceneModel | badNews=[]}, cmd)
 
     TS3_WorkNoteCreated (Ok note) ->
       -- Everything worked. Scene is complete.
-      (sceneModel, segueTo CheckOutDone)
+      (sceneModel, segueTo TimeSheetPt1)
 
     -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+    TS3_MemberListResult (Err e) ->
+      ({sceneModel | badNews=[toString e]}, Cmd.none)
 
     TS3_WitnessSearchResult (Err e) ->
       ({sceneModel | badNews=[toString e]}, Cmd.none)
@@ -211,7 +256,21 @@ update msg kioskModel =
     TS3_WorkNoteCreated (Err e) ->
       -- Failure to create the work description is non-critical so we'll carry on to next scene.
       -- TODO: Create a backend logging facility so that failures like this can be noted via XisAPI
-      (sceneModel, segueTo CheckOutDone)
+      (sceneModel, segueTo TimeSheetPt1)
+
+
+handleRfid : KioskModel a -> (TimeSheetPt3Model, Cmd Msg)
+handleRfid kioskModel =
+  let
+    sceneModel = kioskModel.timeSheetPt3Model
+    rfidNumber = List.reverse sceneModel.digitsTyped |> String.fromList |> String.toInt
+    filter = Result.map RfidNumberEquals rfidNumber
+    resultHandler = TimeSheetPt3Vector << TS3_MemberListResult
+    cmd = case filter of
+      Ok f -> kioskModel.xisSession.listMembers [f] resultHandler
+      Err err -> Cmd.none
+  in
+    (sceneModel, cmd)
 
 
 -----------------------------------------------------------------------------
@@ -271,6 +330,17 @@ viewNormal kioskModel task claim work =
 
     sceneModel.badNews
 
+
+-----------------------------------------------------------------------------
+-- SUBSCRIPTIONS
+-----------------------------------------------------------------------------
+
+subscriptions: KioskModel a -> Sub Msg
+subscriptions kioskModel =
+    if currentScene kioskModel == TimeSheetPt3 then
+      Keyboard.downs (TimeSheetPt3Vector << TS3_KeyDown)
+    else
+      Sub.none
 
 
 -----------------------------------------------------------------------------

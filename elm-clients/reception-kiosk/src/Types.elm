@@ -15,6 +15,7 @@ import MembersApi exposing (..)
 import TaskApi exposing (..)
 import XisRestApi as XisApi exposing (..)
 
+
 -----------------------------------------------------------------------------
 -- FLAGS
 -----------------------------------------------------------------------------
@@ -47,6 +48,7 @@ type alias Flags =
   , xcOrgActionUrl : String
   }
 
+
 -----------------------------------------------------------------------------
 -- SCENES
 -----------------------------------------------------------------------------
@@ -63,13 +65,14 @@ type Scene
   | MembersOnly
   | NewMember
   | NewUser
+  | OldBusiness
   | ReasonForVisit
   | ScreenSaver
   | TaskList
   | TimeSheetPt1
   | TimeSheetPt2
   | TimeSheetPt3
-  | VolunteerInDone
+  | TaskInfo
   | Waiver
   | Welcome
 
@@ -87,16 +90,17 @@ mdlIdBase scene =
     MembersOnly -> 800
     NewMember -> 900
     NewUser -> 1000
-    ReasonForVisit -> 1100
-    ScreenSaver -> 1200
-    SignUpDone -> 1300
-    TaskList -> 1400
-    TimeSheetPt1 -> 1500
-    TimeSheetPt2 -> 1600
-    TimeSheetPt3 -> 1700
-    VolunteerInDone -> 1800
-    Waiver -> 1900
-    Welcome -> 2000
+    OldBusiness -> 1100
+    ReasonForVisit -> 1200
+    ScreenSaver -> 1300
+    SignUpDone -> 1400
+    TaskInfo -> 1500
+    TaskList -> 1600
+    TimeSheetPt1 -> 1700
+    TimeSheetPt2 -> 1800
+    TimeSheetPt3 -> 1900
+    Waiver -> 2000
+    Welcome -> 2100
 
 
 -----------------------------------------------------------------------------
@@ -107,7 +111,6 @@ type CheckInMsg
   = UpdateMatchingAccts (Result Http.Error MatchingAcctInfo)
   | UpdateFlexId String
   | UpdateMemberNum Int
-  | FlexIdFocusSet Bool
   | CheckInShortcut String Int -- Allows RFID reading scene to short-cut through this scene
 
 type CheckOutMsg
@@ -140,7 +143,6 @@ type NewMemberMsg
   | ToggleIsAdult Bool
   | Validate
   | ValidateEmailUnique (Result Http.Error MatchingAcctInfo)
-  | FirstNameFocusSet Bool
 
 type NewUserMsg
   = ValidateUserNameAndPw
@@ -148,7 +150,9 @@ type NewUserMsg
   | UpdateUserName String
   | UpdatePassword1 String
   | UpdatePassword2 String
-  | UserNameFocusSet Bool
+
+type OldBusinessMsg
+  = OB_WorkingClaimsResult (Result Http.Error (PageOf XisApi.Claim))
 
 type ReasonForVisitMsg
   = UpdateReasonForVisit ReasonForVisit
@@ -187,6 +191,8 @@ type TimeSheetPt3Msg
   | TS3_ClaimUpdated (Result Http.Error XisApi.Claim)
   | TS3_WorkUpdated (Result Http.Error XisApi.Work)
   | TS3_WorkNoteCreated (Result Http.Error XisApi.WorkNote)
+  | TS3_KeyDown KeyCode
+  | TS3_MemberListResult (Result Http.Error (PageOf XisApi.Member))
 
 type WaiverMsg
   = ShowSignaturePad String
@@ -204,6 +210,7 @@ type Msg
   | MembersOnlyVector MembersOnlyMsg
   | NewMemberVector NewMemberMsg
   | NewUserVector NewUserMsg
+  | OldBusinessVector OldBusinessMsg
   | ReasonForVisitVector ReasonForVisitMsg
   | ScreenSaverVector ScreenSaverMsg
   | TaskListVector TaskListMsg
@@ -214,8 +221,12 @@ type Msg
 
 type WizardMsg
   = Push Scene
-  | RebaseTo Scene
+  | Rebase  -- Removes everything on stack under top scene.
   | Pop
+  | RebaseTo Scene  -- Like Rebase but only removes scenes under top scene down to specified scene (exclusive).
   | Reset
   | SceneWillAppear Scene Scene  -- Appearing scene, Vanishing scene
   | Tick Time
+  | FocusWasSet Bool
+  | FocusOnIndex (Maybe (List Int))  -- Can't use Material.Component.Index (https://github.com/debois/elm-mdl/issues/342)
+

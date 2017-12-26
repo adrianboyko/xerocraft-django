@@ -183,7 +183,7 @@ infoToXisAcct kioskModel =
     addMethods = MembersApi.addDiscoveryMethods kioskModel.flags userModel.userName userModel.password1
   in
     Cmd.batch
-      [ send (WizardVector <| RebaseTo <| SignUpDone)
+      [ segueTo SignUpDone
       , setIsAdult isAdultVal (CreatingAcctVector << IsAdultWasSet)
       , addMethods howDidYouHearModel.selectedMethodPks (CreatingAcctVector << DiscoveryMethodAdded)
       ]
