@@ -23,6 +23,7 @@ module XisRestApi
     , Work, WorkData
     , WorkNote, WorkNoteData
     , WorkListFilter (..)
+    , XisRestFlags
     )
 
 -- Standard
@@ -44,7 +45,6 @@ import List.Extra as ListX
 
 -- Local
 import DjangoRestFramework as DRF exposing (..)
-import MembersApi as MembersApi  -- TODO: MembersApi will be replace with this REST api.
 import ClockTime exposing (ClockTime)
 import Duration exposing (Duration)
 import CalendarDate exposing (CalendarDate)
@@ -66,19 +66,22 @@ taskLowPriorityValue = "L"  -- As defined in Django backend.
 -- GENERAL TYPES
 -----------------------------------------------------------------------------
 
-type alias XisRestFlags a =
-  { a
-  | claimListUrl : ResourceListUrl
+type alias XisRestFlags =
+  ----- SECURITY -----
+  { authorization : Authorization
+  , csrfToken : String
+  ----- ENDPOINTS -----
+  , claimListUrl : ResourceListUrl
   , discoveryMethodsUrl : ResourceListUrl
   , memberListUrl : ResourceListUrl
   , membershipListUrl : ResourceListUrl
   , taskListUrl : ResourceListUrl
   , timeBlocksUrl : ResourceListUrl
   , timeBlockTypesUrl : ResourceListUrl
-  , uniqueKioskId : String
   , workListUrl : ResourceListUrl
   , workNoteListUrl : ResourceListUrl
   }
+
 
 type alias ResultMessager rsrc msg = Result Http.Error rsrc -> msg
 
@@ -110,7 +113,11 @@ type alias FilteringLister filter rsrc msg =
 -- How about: list, create, retrieve, replace, patch, destroy?
 
 type alias Session msg =
-  { claimUrl : Int -> ResourceUrl
+  ----- SECURITY -----
+  { authorization : Authorization
+  , csrfToken : String
+  ----- FUNCTIONALITY -----
+  , claimUrl : Int -> ResourceUrl
   , coverTime : List Membership -> Time -> Bool
   , createClaim : Creator ClaimData Claim msg
   , createWork : Creator WorkData Work msg
@@ -142,9 +149,13 @@ type alias Session msg =
   , workNoteUrl : Int -> ResourceUrl
   }
 
-createSession : XisRestFlags a -> Session msg
+createSession : XisRestFlags -> Session msg
 createSession flags =
-  { claimUrl = urlFromId flags.claimListUrl
+  ----- SECURITY -----
+  { authorization = flags.authorization
+  , csrfToken = flags.csrfToken
+  ----- FUNCTIONALITY -----
+  , claimUrl = urlFromId flags.claimListUrl
   , coverTime = coverTime
   , createClaim = createClaim flags
   , createWork = createWork flags
@@ -218,37 +229,37 @@ taskListFilterToString filter =
     ScheduledDateEquals d -> "scheduled_date=" ++ (CalendarDate.toString d)
 
 
-listTasks : XisRestFlags a -> FilteringLister TaskListFilter Task msg
+listTasks : XisRestFlags -> FilteringLister TaskListFilter Task msg
 listTasks flags filters resultToMsg =
   let
     request = httpGetRequest
-      flags.uniqueKioskId
+      flags.authorization
       (filteredListUrl flags.taskListUrl filters taskListFilterToString)
       (decodePageOf decodeTask)
   in
     Http.send resultToMsg request
 
 
-getTaskById : XisRestFlags a -> GetterById Task msg
+getTaskById : XisRestFlags -> GetterById Task msg
 getTaskById flags taskNum resultToMsg =
   let url = urlFromId flags.taskListUrl taskNum
   in getTaskFromUrl flags url resultToMsg
 
 
-getTaskFromUrl : XisRestFlags a -> GetterFromUrl Task msg
+getTaskFromUrl : XisRestFlags -> GetterFromUrl Task msg
 getTaskFromUrl flags url resultToMsg =
   let
-    request = httpGetRequest flags.uniqueKioskId url decodeTask
+    request = httpGetRequest flags.authorization url decodeTask
   in
     Http.send resultToMsg request
 
 
---putTask : XisRestFlags a -> Replacer Task msg
+--putTask : XisRestFlags -> Replacer Task msg
 --putTask flags task resultToMsg =
 --  let
 --    request = Http.request
 --      { method = "PUT"
---      , headers = [authenticationHeader flags.uniqueKioskId]
+--      , headers = [authenticationHeader flags.authorization]
 --      , url = urlFromId flags.taskListUrl task.id
 --      , body = task |> encodeTask |> Http.jsonBody
 --      , expect = Http.expectJson decodeTask
@@ -259,7 +270,7 @@ getTaskFromUrl flags url resultToMsg =
 --    Http.send resultToMsg request
 
 
-memberCanClaimTask : XisRestFlags a -> Int -> Task -> Bool
+memberCanClaimTask : XisRestFlags -> Int -> Task -> Bool
 memberCanClaimTask flags memberNum task =
   let
     url = urlFromId flags.memberListUrl memberNum
@@ -270,7 +281,7 @@ memberCanClaimTask flags memberNum task =
     canClaim || alreadyClaimed
 
 
-membersClaimOnTask : XisRestFlags a -> Int -> Task -> Maybe Claim
+membersClaimOnTask : XisRestFlags -> Int -> Task -> Maybe Claim
 membersClaimOnTask flags memberNum task =
   let
     memberUrl = urlFromId flags.memberListUrl memberNum
@@ -279,7 +290,7 @@ membersClaimOnTask flags memberNum task =
     ListX.find isMembersClaim task.data.claimSet
 
 
-membersStatusOnTask : XisRestFlags a -> Int -> Task -> Maybe ClaimStatus
+membersStatusOnTask : XisRestFlags -> Int -> Task -> Maybe ClaimStatus
 membersStatusOnTask flags memberNum task =
   let
     membersClaim = membersClaimOnTask flags memberNum task
@@ -287,7 +298,7 @@ membersStatusOnTask flags memberNum task =
     Maybe.map (.data >> .status) membersClaim
 
 
-memberHasStatusOnTask : XisRestFlags a -> Int -> ClaimStatus -> Task -> Bool
+memberHasStatusOnTask : XisRestFlags -> Int -> ClaimStatus -> Task -> Bool
 memberHasStatusOnTask flags memberNum questionedStatus task =
   let
     actualStatus = membersStatusOnTask flags memberNum task
@@ -398,11 +409,11 @@ claimListFilterToString filter =
     ClaimedTaskEquals taskNum -> "claimed_task=" ++ (toString taskNum)
 
 
-listClaims : XisRestFlags a -> FilteringLister ClaimListFilter Claim msg
+listClaims : XisRestFlags -> FilteringLister ClaimListFilter Claim msg
 listClaims flags filters resultToMsg =
   let
     request = httpGetRequest
-      flags.uniqueKioskId
+      flags.authorization
       (filteredListUrl flags.claimListUrl filters claimListFilterToString)
       (decodePageOf decodeClaim)
   in
@@ -470,12 +481,12 @@ claimDataNVPs cd =
   ]
 
 
-replaceClaim : XisRestFlags a -> Replacer Claim msg
+replaceClaim : XisRestFlags -> Replacer Claim msg
 replaceClaim flags claim resultToMsg =
   let
     request = Http.request
       { method = "PUT"
-      , headers = [authenticationHeader flags.uniqueKioskId]
+      , headers = [authenticationHeader flags.authorization]
       , url = urlFromId flags.claimListUrl claim.id
       , body = claim.data |> encodeClaimData |> Http.jsonBody
       , expect = Http.expectJson decodeClaim
@@ -486,12 +497,12 @@ replaceClaim flags claim resultToMsg =
     Http.send resultToMsg request
 
 
-createClaim : XisRestFlags a -> Creator ClaimData Claim msg
+createClaim : XisRestFlags -> Creator ClaimData Claim msg
 createClaim flags claimData resultToMsg =
   let
     request = Http.request
       { method = "POST"
-      , headers = [authenticationHeader flags.uniqueKioskId]
+      , headers = [authenticationHeader flags.authorization]
       , url = flags.claimListUrl
       , body = claimData |> encodeClaimData |> Http.jsonBody
       , expect = Http.expectJson decodeClaim
@@ -560,23 +571,23 @@ workListFilterToString filter =
     WorkDurationIsNull setting -> "work_duration__isnull=" ++ (setting |> toString |> String.toLower)
 
 
-listWorks : XisRestFlags a -> FilteringLister WorkListFilter Work msg
+listWorks : XisRestFlags -> FilteringLister WorkListFilter Work msg
 listWorks flags filters resultToMsg =
   let
     request = httpGetRequest
-      flags.uniqueKioskId
+      flags.authorization
       (filteredListUrl flags.workListUrl filters workListFilterToString)
       (decodePageOf decodeWork)
   in
     Http.send resultToMsg request
 
 
-createWork : XisRestFlags a -> Creator WorkData Work msg
+createWork : XisRestFlags -> Creator WorkData Work msg
 createWork flags workData resultToMsg =
   let
     request = Http.request
       { method = "POST"
-      , headers = [authenticationHeader flags.uniqueKioskId]
+      , headers = [authenticationHeader flags.authorization]
       , url = flags.workListUrl
       , body = workData |> encodeWorkData |> Http.jsonBody
       , expect = Http.expectJson decodeWork
@@ -588,12 +599,12 @@ createWork flags workData resultToMsg =
 
 
 -- If "witness" is provided, the witness's password needs to be in an X-Witness-PW header.
-replaceWorkWithHeaders : XisRestFlags a -> List Http.Header -> Replacer Work msg
+replaceWorkWithHeaders : XisRestFlags -> List Http.Header -> Replacer Work msg
 replaceWorkWithHeaders flags headers work resultToMsg =
   let
     request = Http.request
       { method = "PUT"
-      , headers = headers ++ [authenticationHeader flags.uniqueKioskId]
+      , headers = headers ++ [authenticationHeader flags.authorization]
       , url = urlFromId flags.workListUrl work.id
       , body = work.data |> encodeWorkData |> Http.jsonBody
       , expect = Http.expectJson decodeWork
@@ -649,12 +660,12 @@ type alias WorkNoteData =
 type alias WorkNote = Resource WorkNoteData
 
 
-createWorkNote : XisRestFlags a -> Creator WorkNoteData WorkNote msg
+createWorkNote : XisRestFlags -> Creator WorkNoteData WorkNote msg
 createWorkNote flags workNoteData resultToMsg =
   let
     request = Http.request
       { method = "POST"
-      , headers = [authenticationHeader flags.uniqueKioskId]
+      , headers = [authenticationHeader flags.authorization]
       , url = flags.workNoteListUrl
       , body = workNoteData |> encodeWorkNoteData |> Http.jsonBody
       , expect = Http.expectJson decodeWorkNote
@@ -725,11 +736,11 @@ memberListFilterToString filter =
     UsernameEquals s -> "auth_user__username__iexact=" ++ s
 
 
-listMembers : XisRestFlags a -> FilteringLister MemberListFilter Member msg
+listMembers : XisRestFlags -> FilteringLister MemberListFilter Member msg
 listMembers flags filters resultToMsg =
   let
     request = httpGetRequest
-      flags.uniqueKioskId
+      flags.authorization
       (filteredListUrl flags.memberListUrl filters memberListFilterToString)
       (decodePageOf decodeMember)
   in
@@ -768,7 +779,7 @@ type alias TimeBlockTypeData =
 type alias TimeBlockType = Resource TimeBlockTypeData
 
 
-listTimeBlockTypes : XisRestFlags a -> Lister TimeBlockType msg
+listTimeBlockTypes : XisRestFlags -> Lister TimeBlockType msg
 listTimeBlockTypes model resultToMsg =
   let request = Http.get model.timeBlockTypesUrl (decodePageOf decodeTimeBlockType)
   in Http.send resultToMsg request
@@ -819,7 +830,7 @@ type alias TimeBlockData =
 type alias TimeBlock = Resource TimeBlockData
 
 
-listTimeBlocks : XisRestFlags a -> Lister TimeBlock msg
+listTimeBlocks : XisRestFlags -> Lister TimeBlock msg
 listTimeBlocks flags resultToMsg =
   let request = Http.get flags.timeBlocksUrl (decodePageOf decodeTimeBlock)
   in Http.send resultToMsg request
@@ -888,28 +899,28 @@ membershipListFilterToString filter =
     MembershipsWithMemberIdEqualTo id -> "member=" ++ (toString id)
 
 
-listMemberships : XisRestFlags a -> FilteringLister MembershipListFilter Membership msg
+listMemberships : XisRestFlags -> FilteringLister MembershipListFilter Membership msg
 listMemberships flags filters resultToMsg =
   let
     request = httpGetRequest
-      flags.uniqueKioskId
+      flags.authorization
       (filteredListUrl flags.membershipListUrl filters membershipListFilterToString)
       (decodePageOf decodeMembership)
   in
     Http.send resultToMsg request
 
 
-getMembershipById : XisRestFlags a -> GetterById Membership msg
+getMembershipById : XisRestFlags -> GetterById Membership msg
 getMembershipById flags memberNum resultToMsg =
   let url = urlFromId flags.memberListUrl memberNum
   in getMembershipFromUrl flags url resultToMsg
 
 
-getMembershipFromUrl : XisRestFlags a -> GetterFromUrl Membership msg
+getMembershipFromUrl : XisRestFlags -> GetterFromUrl Membership msg
 getMembershipFromUrl flags url resultToMsg =
   let
     request = httpGetRequest
-      flags.uniqueKioskId
+      flags.authorization
       url
       decodeMembership
   in
@@ -973,7 +984,7 @@ type alias DiscoveryMethodData =
 type alias DiscoveryMethod = Resource DiscoveryMethodData
 
 
-listDiscoveryMethods : XisRestFlags a -> Lister DiscoveryMethod msg
+listDiscoveryMethods : XisRestFlags -> Lister DiscoveryMethod msg
 listDiscoveryMethods flags resultToMsg =
   let request = Http.get flags.discoveryMethodsUrl (decodePageOf decodeDiscoveryMethod)
   in Http.send resultToMsg request

@@ -1,11 +1,18 @@
 module CalendarDate exposing
   ( CalendarDate
+  , DayOfWeek(..)
+  ----------------
+  , addDays
   , compare
+  , dayOfWeek
+  , dayOfWeekToInt
   , equal
   , format
+  , fromDate
   , fromString
+  , lastOfMonth
   , toString
-
+  , toDate
   )
 
 
@@ -18,6 +25,7 @@ import Date.Extra.Format as DateXFormat
 import Date.Extra.Create as DateXCreate
 import Date.Extra.Core as DateXCore
 import Date.Extra.Config.Config_en_us exposing (config)
+import Date.Extra.Duration as DateXDur
 import String.Extra as StringX exposing (replace)
 
 -- Local
@@ -31,6 +39,14 @@ type alias CalendarDate =
   , day : Int
   }
 
+type DayOfWeek
+  = Sun
+  | Mon
+  | Tue
+  | Wed
+  | Thu
+  | Fri
+  | Sat
 
 ----------------------------------------------------------
 
@@ -79,13 +95,54 @@ format fmt cd =
   in
     ordinalize s
 
+----------------------------------------------------------
+
+dayOfWeek : CalendarDate -> DayOfWeek
+dayOfWeek d =
+  case d |> toDate |> Date.dayOfWeek of
+    Date.Sun -> Sun
+    Date.Mon -> Mon
+    Date.Tue -> Tue
+    Date.Wed -> Wed
+    Date.Thu -> Thu
+    Date.Fri -> Fri
+    Date.Sat -> Sat
+
+
+dayOfWeekToInt : DayOfWeek -> Int
+dayOfWeekToInt dow =
+  case dow of
+    Sun -> 0
+    Mon -> 1
+    Tue -> 2
+    Wed -> 3
+    Thu -> 4
+    Fri -> 5
+    Sat -> 6
 
 
 ----------------------------------------------------------
--- PRIVATE, NOT EXPOSED                                 --
-----------------------------------------------------------
+
 
 toDate : CalendarDate -> Date
 toDate cd =
   -- Hour/min/second are arbitrary.
   DateXCreate.dateFromFields cd.year cd.month cd.day 0 0 0 0
+
+
+fromDate : Date -> CalendarDate
+fromDate d =
+  CalendarDate (Date.year d) (Date.month d) (Date.day d)
+
+
+----------------------------------------------------------
+
+lastOfMonth : CalendarDate -> CalendarDate
+lastOfMonth cd =
+  cd |> toDate |> DateXCore.lastOfMonthDate |> fromDate
+
+
+addDays : Int -> CalendarDate -> CalendarDate
+addDays offset cd =
+  cd |> toDate |> DateXDur.add DateXDur.Day offset |> fromDate
+
