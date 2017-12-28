@@ -228,5 +228,5 @@ type WizardMsg
   | SceneWillAppear Scene Scene  -- Appearing scene, Vanishing scene
   | Tick Time
   | FocusWasSet Bool
-  | FocusOnIndex (Maybe (List Int))  -- Can't use Material.Component.Index (https://github.com/debois/elm-mdl/issues/342)
+  | FocusOnIndex (List Int) -- Can't use Material.Component.Index (https://github.com/debois/elm-mdl/issues/342)
 

@@ -84,7 +84,7 @@ msgForSegueTo = WizardVector << Push
 
 focusOnIndex : List Int -> Cmd Msg
 focusOnIndex idx =
-  send <| WizardVector <| FocusOnIndex (Just idx)
+  send <| WizardVector <| FocusOnIndex idx
 
 pop : Cmd Msg
 pop = send (WizardVector <| Pop)

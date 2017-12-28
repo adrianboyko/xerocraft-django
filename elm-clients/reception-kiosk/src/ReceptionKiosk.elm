@@ -75,7 +75,6 @@ type alias Model =
   { flags : Flags
   , currTime : Time
   , sceneStack : Nonempty Scene -- 1st element is the top of the stack
-  , doneWithFocus : Bool  -- Only want to set default focus once (per scene transition)
   , idxToFocus : Maybe (List Int)  -- Can't use Material.Component.Index (https://github.com/debois/elm-mdl/issues/342)
   -- elm-mdl model:
   , mdl : Material.Model
@@ -133,7 +132,6 @@ init f =
       { flags = f
       , currTime = 0
       , sceneStack = Nonempty.fromElement ScreenSaver
-      , doneWithFocus = False
       , idxToFocus = Nothing
       , mdl = Material.model
       , xisSession = XisApi.createSession f
@@ -183,11 +181,6 @@ init f =
       ]
   in
     (model, Cmd.batch cmds)
-
-
-setIndexToFocus : Maybe (List Int) -> Model -> Model
-setIndexToFocus index model =
-  {model | idxToFocus = index}
 
 
 -----------------------------------------------------------------------------
@@ -278,7 +271,6 @@ update msg model =
               -- REVIEW: It's too easy to forget to add these.
               { model
               | idxToFocus = Nothing
-              , doneWithFocus = False
               , checkInModel = mCI
               , checkOutModel = mCO
               , checkOutDoneModel = mCOD
@@ -317,26 +309,24 @@ update msg model =
               , checkInModel = mCI
               , screenSaverModel = mSS
               }
-            cmdFocus =
-              case (model.doneWithFocus, model.idxToFocus) of
-                (False, Just idx) ->
-                  idx |> toString |> setFocusIfNoFocus
-                _ -> Cmd.none
+            focusCmd =
+              case model.idxToFocus of
+                Just idx -> idx |> toString |> setFocusIfNoFocus  -- Send to port
+                Nothing -> Cmd.none
           in
-            (newModel, Cmd.batch [cmdFocus, cCA, cCI, cSS])
+            (newModel, Cmd.batch [focusCmd, cCA, cCI, cSS])
 
         FocusOnIndex idx ->
           let
             -- REVIEW: Why did previous version always also check && List.isEmpty model.badNews
-            cmd = if not model.doneWithFocus
-              then model.idxToFocus |> toString |> setFocusIfNoFocus
-              else Cmd.none
+            focusCmd = idx |> toString |> setFocusIfNoFocus  -- Send to port
+            newModel = {model | idxToFocus=Just idx}
           in
-            ({model | idxToFocus=idx, doneWithFocus=False}, cmd)
+            (newModel, focusCmd)
 
         FocusWasSet wasSet ->
           if wasSet then
-            ({model | doneWithFocus=True, idxToFocus=Nothing}, Cmd.none)
+            ({model | idxToFocus=Nothing}, Cmd.none)
           else
             (model, Cmd.none)
 
