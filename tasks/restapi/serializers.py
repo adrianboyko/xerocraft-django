@@ -50,10 +50,11 @@ class TaskSerializer(serializers.ModelSerializer):
     owner = serializers.HyperlinkedRelatedField(read_only=True, view_name='memb:member-detail')
     reviewer = serializers.HyperlinkedRelatedField(read_only=True, view_name='memb:member-detail')
     eligible_claimants = serializers.HyperlinkedRelatedField(read_only=True, many=True, view_name='memb:member-detail')
-    #claimants = serializers.HyperlinkedRelatedField(read_only=True, many=True, view_name='memb:member-detail')
-    #claim_set = serializers.HyperlinkedRelatedField(read_only=True, many=True, view_name='task:claim-detail')
     claim_set = ClaimSerializer(many=True, read_only=True)
+
+    # REVIEW: Having both of these seems redundant but both will remain, for now, for compatibility reasons.
     is_fully_claimed = serializers.ReadOnlyField()
+    staffing_status = serializers.ReadOnlyField()
 
     class Meta:
         model = tm.Task
@@ -73,6 +74,7 @@ class TaskSerializer(serializers.ModelSerializer):
             'scheduled_date',
             'short_desc',
             'should_nag',
+            'staffing_status',
             'status',
             'work_duration',
             'work_start_time',

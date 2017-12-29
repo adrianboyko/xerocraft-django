@@ -15,7 +15,7 @@ module XisRestApi
     , MemberListFilter (..)
     , MembershipListFilter (..)
     , Session
-    , Task, TaskData
+    , Task, StaffingStatus(..), TaskData
     , TaskListFilter (..)
     , TaskPriority (..)
     , TimeBlock, TimeBlockData
@@ -55,11 +55,16 @@ import RangeOfTime exposing (RangeOfTime)
 -- CONSTANTS
 -----------------------------------------------------------------------------
 
-staffingStatus_STAFFED = "S"  -- As defined in Django backend.
+-- As defined in Django backend:
+staffingStatus_STAFFED     = "S"  -- There is a verified current claim.
+staffingStatus_UNSTAFFED   = "U"  -- There is no current claim.
+staffingStatus_PROVISIONAL = "P"  -- There is an unverified current claim.
+staffingStatus_DONE        = "D"  -- A claim is marked as done.
 
-taskHighPriorityValue = "H"  -- As defined in Django backend.
-taskMediumPriorityValue = "M"  -- As defined in Django backend.
-taskLowPriorityValue = "L"  -- As defined in Django backend.
+-- As defined in Django backend:
+taskHighPriorityValue   = "H"
+taskMediumPriorityValue = "M"
+taskLowPriorityValue    = "L"
 
 
 -----------------------------------------------------------------------------
@@ -194,6 +199,7 @@ createSession flags =
 
 type TaskPriority = HighPriority | MediumPriority | LowPriority
 
+type StaffingStatus = SS_Staffed | SS_Unstaffed | SS_Provisional | SS_Done
 
 type alias TaskData =
   { claimSet : List Claim
@@ -210,7 +216,8 @@ type alias TaskData =
   , scheduledDate : CalendarDate
   , shortDesc : String
   , shouldNag : Bool
-  , status : String
+  , staffingStatus : StaffingStatus
+  , status : String  -- TODO: Change this to an enum type.
   , workDuration : Maybe Duration
   , workStartTime : Maybe ClockTime
   }
@@ -328,6 +335,7 @@ decodeTaskData =
     |> required "scheduled_date" DRF.decodeCalendarDate
     |> required "short_desc" Dec.string
     |> required "should_nag" Dec.bool
+    |> required "staffing_status" staffingStatusDecoder
     |> required "status" Dec.string
     |> required "work_duration" (Dec.maybe DRF.decodeDuration)
     |> required "work_start_time" (Dec.maybe DRF.decodeClockTime)
@@ -342,6 +350,18 @@ taskPriorityDecoder =
         "M" -> Dec.succeed MediumPriority
         "L" -> Dec.succeed LowPriority
         other -> Dec.fail <| "Unknown priority: " ++ other
+    )
+
+staffingStatusDecoder : Dec.Decoder StaffingStatus
+staffingStatusDecoder =
+  Dec.string |> Dec.andThen
+    ( \str ->
+      case str of
+        "S" -> Dec.succeed SS_Staffed
+        "U" -> Dec.succeed SS_Unstaffed
+        "P" -> Dec.succeed SS_Provisional
+        "D" -> Dec.succeed SS_Done
+        other -> Dec.fail <| "Unknown staffing status: " ++ other
     )
 
 
