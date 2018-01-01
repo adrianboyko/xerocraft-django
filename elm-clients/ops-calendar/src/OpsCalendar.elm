@@ -62,7 +62,6 @@ type alias Flags =
 
 type State
   = Normal
-  | SwitchingMonth
   | OperatingOnTask
 
 
@@ -223,16 +222,17 @@ update action model =
             (newModel, updateClaimCmd)
 
     ClaimOpResult (Ok claim) ->
-      ( { model | errorStr = Nothing, errorStr2 = Nothing }, getNewMonth model 0 )
+      -- TODO: Need to reload one square of the calendar.
+      ( { model | errorStr = Nothing, errorStr2 = Nothing }, Cmd.none)
 
     ClaimOpResult (Err err) ->
-      ( { model | errorStr = Just (httpErrToStr err) }, getNewMonth model 0 )
+      ( { model | errorStr = Just (httpErrToStr err) }, Cmd.none)
 
     PrevMonth ->
-      ( { model | state = SwitchingMonth, selectedTaskId = Nothing }, getNewMonth model -1 )
+      getNewMonth model -1
 
     NextMonth ->
-      ( { model | state = SwitchingMonth, selectedTaskId = Nothing }, getNewMonth model 1 )
+      getNewMonth model 1
 
     DayOfTasksResult date (Ok {results}) ->
       let
@@ -274,17 +274,17 @@ update action model =
           { model | time = newTime }
       in
         if rem seconds 900 == 0 then
-          ( newModel, getNewMonth newModel 0 )
+          getNewMonth newModel 0
         else
           ( newModel, Cmd.none )
 
 
-getNewMonth : Model -> Int -> Cmd Msg
+getNewMonth : Model -> Int -> (Model, Cmd Msg)
 getNewMonth model delta =
   let
     m = (CD.monthToInt model.calendarPage.month) + delta
 
-    newYear =
+    year =
       case m of
         13 -> model.calendarPage.year + 1
         0 -> model.calendarPage.year - 1
@@ -296,8 +296,15 @@ getNewMonth model delta =
         0 -> 12
         _ -> m
 
+    calPage = CP.calendarPage year (CD.intToMonth month)
+
+    cmdList =
+      CP.mapToList
+        (\sq -> model.xis.listTasks [XisApi.ScheduledDateEquals sq.calendarDate] (DayOfTasksResult sq.calendarDate))
+        calPage
+
   in
-    Cmd.none  -- Temp
+    ({model | calendarPage=calPage}, Cmd.batch cmdList)
 
 
 
@@ -437,28 +444,25 @@ monthView model =
 
 headerView : Model -> Html Msg
 headerView model =
-  if model.state == SwitchingMonth then
-    oneByThreeTable (text "") (text "Working") (text "")
-  else
-    oneByThreeTable
+  oneByThreeTable
 
-      (Button.render Mdl
-        [ 0 ]
-        model.mdl
-        ([ Button.fab, Options.onClick PrevMonth ] ++ navButtonCss)
-        [ Icon.i "navigate_before" ]
-      )
+    (Button.render Mdl
+      [ 0 ]
+      model.mdl
+      ([ Button.fab, Options.onClick PrevMonth ] ++ navButtonCss)
+      [ Icon.i "navigate_before" ]
+    )
 
-      ( let cp = model.calendarPage
-        in (text (String.concat [CD.monthName cp.month, " ", toStr cp.year]))
-      )
+    ( let cp = model.calendarPage
+      in (text (String.concat [CD.monthName cp.month, " ", toStr cp.year]))
+    )
 
-      (Button.render Mdl
-        [ 1 ]
-        model.mdl
-        ([ Button.fab, Options.onClick NextMonth ] ++ navButtonCss)
-        [ Icon.i "navigate_next" ]
-      )
+    (Button.render Mdl
+      [ 1 ]
+      model.mdl
+      ([ Button.fab, Options.onClick NextMonth ] ++ navButtonCss)
+      [ Icon.i "navigate_next" ]
+    )
 
 
 loginView : Model -> Html Msg
