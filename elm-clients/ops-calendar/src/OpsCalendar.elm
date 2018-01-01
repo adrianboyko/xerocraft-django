@@ -296,11 +296,17 @@ getNewMonth model delta =
         0 -> 12
         _ -> m
 
-    calPage = CP.calendarPage year (CD.intToMonth month)
+    calPage =
+      if delta == 0 then
+        model.calendarPage
+      else
+        CP.calendarPage year (CD.intToMonth month)
 
+    filters sq = [XisApi.ScheduledDateEquals sq.calendarDate]
+    msger sq = (DayOfTasksResult sq.calendarDate)
     cmdList =
       CP.mapToList
-        (\sq -> model.xis.listTasks [XisApi.ScheduledDateEquals sq.calendarDate] (DayOfTasksResult sq.calendarDate))
+        (\sq -> model.xis.listTasks (filters sq) (msger sq))
         calPage
 
   in
@@ -399,6 +405,7 @@ dayView : Model -> CalendarSquare (List XisApi.Task) -> Html Msg
 dayView model square =
   let
     squareCD = square.calendarDate
+    todayCD = CD.fromTime model.time
     year = model.calendarPage.year
     month = model.calendarPage.month
     monthStyle =
@@ -408,7 +415,7 @@ dayView model square =
         dayOtherMonthStyle
 
     colorStyle =
-      if True then monthStyle else monthStyle -- TODO: dayTodayStyle
+      if (CD.equal squareCD todayCD) then dayTodayStyle else monthStyle
 
   in
     td [ tdStyle, colorStyle ]
@@ -615,9 +622,10 @@ assertNeverHandler str =
 -----------------------------------------------------------------------------
 
 
-(=>) =
-  (,)
+(=>) = (,)
 
+squareHeight = 90
+squareWidth = 120
 
 navButtonCss =
   [ css "margin" "0 10px"
@@ -712,8 +720,8 @@ tdStyle =
     , "vertical-align" => "top"
     , "text-align" => "left"
     , "line-height" => "1.3"
-    , "height" => "90px"
-    , "width" => "120px"
+    , "height" => px squareHeight
+    , "width" => px squareWidth
     ]
 
 
@@ -742,7 +750,7 @@ taskNameCss task =
   , "overflow" => "hidden"
   , "white-space" => "nowrap"
   , "text-overflow" => "ellipsis"
-  , "width" => "120px"
+  , "width" => px squareWidth
   , "cursor" => "pointer"
   , "color" => case task.data.staffingStatus of
       XisApi.SS_Staffed     -> "green"
@@ -776,8 +784,7 @@ dayTargetMonthStyle =
 
 dayTodayStyle =
   style
-    [ "background-color" => "#f0ffff"
-      -- azure
+    [ "background-color" => "#00ff0011" -- light green
     ]
 
 
