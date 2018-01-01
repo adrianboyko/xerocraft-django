@@ -29,7 +29,10 @@ import Material.Options as Options exposing (css)
 
 -- Local
 --import TaskApi exposing (..)
+import DjangoRestFramework as DRF exposing (PageOf)
 import XisRestApi as XisApi
+import CalendarDate as CD exposing (CalendarDate)
+import CalendarPage as CP exposing (CalendarPage, CalendarRow, CalendarSquare)
 
 
 -----------------------------------------------------------------------------
@@ -52,8 +55,9 @@ main =
 -- These are params from the server. Elm docs tend to call them "flags".
 
 type alias Flags =
-  { restUrls : XisApi.XisRestFlags
-  , csrfToken : String
+  { xisRestFlags : XisApi.XisRestFlags
+  , year : Int
+  , month : Int
   }
 
 type State
@@ -63,66 +67,47 @@ type State
 
 
 type alias Model =
-  { xis : XisApi.Session Msg
-  , time : Time
-  , mdl : Material.Model
-  , member : Maybe XisApi.Member
-  , tasks : MonthOfTasks
-  , year : Int
-  , month : Int
-  , flags : Flags
-  , selectedTaskId : Maybe Int
-  , state : State
-  , mousePt : Position  -- The current mouse position.
+  { calendarPage : CalendarPage (List XisApi.Task)
   , detailPt : Position  -- Where the detail "popup" is positioned.
   , dragStartPt : Maybe Position  -- Where drag began, if user is dragging.
   , errorStr : Maybe String
   , errorStr2 : Maybe String
+  , mdl : Material.Model
+  , member : Maybe XisApi.Member
+  , mousePt : Position  -- The current mouse position.
+  , selectedTaskId : Maybe Int
+  , state : State
+  , time : Time
+  , xis : XisApi.Session Msg
   }
 
 
 init : Flags -> ( Model, Cmd Msg )
 init flags =
-  ( Model
-    (XisApi.createSession flags.restUrls)
-    0
-    Material.model
-    flags.initials.user
-    flags.initials.tasks
-    flags.initials.year
-    flags.initials.month
-    flags.csrfToken
-    flags.restUrls
-    Nothing
-    Normal
-    (Position 0 0)
-    (Position 0 0)
-    Nothing
-    Nothing
-    Nothing
-  , Cmd.none
-  )
+  let
+    calPage = CP.calendarPage flags.year (CD.intToMonth flags.month)
+    xis = (XisApi.createSession flags.xisRestFlags (DRF.Token "testkiosk"))
+    model =
+      { calendarPage = calPage
+      , detailPt = Position 0 0
+      , dragStartPt = Nothing
+      , errorStr = Nothing
+      , errorStr2 = Nothing
+      , mdl = Material.model
+      , member = Nothing
+      , mousePt = Position 0 0
+      , selectedTaskId = Nothing
+      , state = Normal
+      , time = 0
+      , xis = xis
+      }
+    cmds =
+      CP.mapToList
+        (\sq -> xis.listTasks [XisApi.ScheduledDateEquals sq.calendarDate] (DayOfTasksResult sq.calendarDate))
+        calPage
+  in
+    (model, Cmd.batch cmds)
 
-
-type alias DayOfTasks =
-  { dayOfMonth : Int
-  , isInTargetMonth : Bool
-  , isToday : Bool
-  , tasks : List XisApi.Task
-  }
-
-type alias WeekOfTasks =
-  List DayOfTasks
-
-type alias MonthOfTasks =
-  List WeekOfTasks
-
-type alias CalendarPage =
-  { user : Maybe XisApi.Member
-  , tasks : MonthOfTasks
-  , year : Int
-  , month : Int
-  }
 
 -----------------------------------------------------------------------------
 -- UPDATE
@@ -135,14 +120,14 @@ type
   = ToggleTaskDetail Int
   | PrevMonth
   | NextMonth
-  | NewMonthResult (Result Http.Error CalendarPage)
+  | DayOfTasksResult CalendarDate (Result Http.Error (PageOf XisApi.Task))
   | MouseMove Position
   | DragStart Position
   | DragFinish Position
   | ClaimTask Int XisApi.Task
   | VerifyTask Int XisApi.Task
   | UnstaffTask Int XisApi.Task
-  | ClaimOpResult (Result Http.Error String)
+  | ClaimOpResult (Result Http.Error XisApi.Claim)
   | Tick Time
   | Mdl (Material.Msg Msg)
 
@@ -173,65 +158,71 @@ update action model =
             else
               ( detailModel, Cmd.none )
 
-    ClaimTask memberId opsTask ->
-      case opsTask.usersClaimId of
-        Just claimId ->
-          update (VerifyTask memberId opsTask) model
+    ClaimTask memberId task ->
+      case xis.membersClaimOnTask memberId task of
+
+        Just claim ->
+          update (VerifyTask memberId task) model
 
         Nothing ->
-          case opsTask.timeWindow of
-            Nothing ->
-              ( model, Cmd.none )
+          case (task.data.workStartTime, task.data.workDuration) of
 
-            -- Should never get here.
-            Just { begin, duration } ->
+            (begin, Just duration) ->
               let
-                claim =
+                claimData =
                   XisApi.ClaimData
-                    opsTask.taskId
-                    memberId
-                    begin
                     duration
-                    (Date.fromTime model.time)
-                cmd = model.xis.createClaim claim ClaimOpResult
+                    begin
+                    (xis.taskUrl task.id)
+                    (xis.memberUrl memberId)
+                    (Just (CD.fromTime model.time))
+                    XisApi.CurrentClaimStatus
+                    []  -- workSet
+
+                createClaimCmd = xis.createClaim claimData ClaimOpResult
                 newModel = { model | state=OperatingOnTask }
               in
-                (newModel, cmd)
+                (newModel, createClaimCmd)
 
-    VerifyTask memberId opsTask ->
-      case opsTask.usersClaimId of
+            (_, _) ->
+              ( model, Cmd.none )
+
+    VerifyTask memberId task ->
+      case xis.membersClaimOnTask memberId task of
+
+        Nothing ->
+          ( model, Cmd.none )  -- Should never get here.
+
+        Just claim ->
+          let
+            newModel = { model | state=OperatingOnTask }
+            todayCD = model.time |> Date.fromTime |> CD.fromDate
+            updatedClaim = claim
+              |> XisApi.setClaimsStatus XisApi.CurrentClaimStatus
+              |> XisApi.setClaimsDateVerified (Just todayCD)
+            updateClaimCmd = xis.replaceClaim updatedClaim ClaimOpResult
+          in
+            (newModel, updateClaimCmd)
+
+    UnstaffTask memberId task ->
+      case xis.membersClaimOnTask memberId task of
+
         Nothing ->
           ( model, Cmd.none )
 
         -- Should never get here.
-        Just claimId ->
+        Just claim ->
           let
             newModel = { model | state = OperatingOnTask }
-            todayIso = isoDateStrFromTime model.time
-            statusField = ( "status", Enc.string "C" )
-            -- need this because ClaimTask uses VerifyTask
-            dateVerifiedField = ( "date_verified", Enc.string todayIso )
-            updateFields = [ statusField, dateVerifiedField ]
+            todayCD = model.time |> Date.fromTime |> CD.fromDate
+            updatedClaim = claim
+              |> XisApi.setClaimsStatus XisApi.AbandonedClaimStatus
+              |> XisApi.setClaimsDateVerified (Just todayCD)
+            updateClaimCmd = xis.replaceClaim claim ClaimOpResult
           in
-            ( newModel, xis.updateClaim claimId updateFields ClaimOpResult )
+            (newModel, updateClaimCmd)
 
-    UnstaffTask memberId opsTask ->
-      case opsTask.usersClaimId of
-        Nothing ->
-          ( model, Cmd.none )
-
-        -- Should never get here.
-        Just claimId ->
-          let
-            newModel = { model | state = OperatingOnTask }
-            statusField = ( "status", Enc.string "A" )
-            todayIso = isoDateStrFromTime model.time
-            dateVerifiedField = ( "date_verified", Enc.string todayIso )
-            updateFields = [ statusField, dateVerifiedField ]
-          in
-            ( newModel, xis.updateClaim claimId updateFields ClaimOpResult )
-
-    ClaimOpResult (Ok responsStr) ->
+    ClaimOpResult (Ok claim) ->
       ( { model | errorStr = Nothing, errorStr2 = Nothing }, getNewMonth model 0 )
 
     ClaimOpResult (Err err) ->
@@ -243,14 +234,13 @@ update action model =
     NextMonth ->
       ( { model | state = SwitchingMonth, selectedTaskId = Nothing }, getNewMonth model 1 )
 
-    NewMonthResult (Ok fetched) ->
+    DayOfTasksResult date (Ok {results}) ->
       let
-        newModel =
-          { model | state = Normal, user = fetched.user, tasks = fetched.tasks, year = fetched.year, month = fetched.month }
+        newCalPage = CP.update date (Just results) model.calendarPage
       in
-        ( newModel, Cmd.none )
+      ( {model | calendarPage = newCalPage}, Cmd.none )
 
-    NewMonthResult (Err err) ->
+    DayOfTasksResult _ (Err err) ->
       ( { model | state = Normal, errorStr = Just (httpErrToStr err) }, Cmd.none )
 
     MouseMove newPt ->
@@ -292,27 +282,22 @@ update action model =
 getNewMonth : Model -> Int -> Cmd Msg
 getNewMonth model delta =
   let
-    -- TODO: These should be passed in from Django, not hard-coded here.
-    url =
-      "/tasks/ops-calendar-json/" ++ toStr (year) ++ "-" ++ toStr (month) ++ "/"
+    m = (CD.monthToInt model.calendarPage.month) + delta
 
-    newMonth =
-      model.month + delta
-
-    year =
-      case newMonth of
-        13 -> model.year + 1
-        0 -> model.year - 1
-        _ -> model.year
+    newYear =
+      case m of
+        13 -> model.calendarPage.year + 1
+        0 -> model.calendarPage.year - 1
+        _ -> model.calendarPage.year
 
     month =
-      case newMonth of
+      case m of
         13 -> 1
         0 -> 12
-        _ -> newMonth
+        _ -> m
 
   in
-    getCalendarPage year month NewMonthResult
+    Cmd.none  -- Temp
 
 
 
@@ -323,148 +308,129 @@ getNewMonth model delta =
 
 actionButton : Model -> XisApi.Task -> String -> Html Msg
 actionButton model opsTask action =
-  case model.user of
+  case model.member of
     Nothing ->
       text ""
 
-    Just { memberId, name } ->
+    Just { id, data } ->
       let
         ( msg, buttonText ) =
           case action of
-            "U" ->
-              ( UnstaffTask, "Unstaff" )
-
-            "S" ->
-              ( ClaimTask, "Staff It" )
-
-            "V" ->
-              ( VerifyTask, "Verify" )
-
-            _ ->
-              assertNever "Action can only be S, U, or V"
+            "U" -> ( UnstaffTask, "Unstaff" )
+            "S" -> ( ClaimTask, "Staff It" )
+            "V" -> ( VerifyTask, "Verify" )
+            _   -> assertNever "Action can only be S, U, or V"
 
         clickMsg =
-          msg memberId opsTask
+          msg id opsTask
       in
         button [ detailButtonStyle, onClick clickMsg ] [ text buttonText ]
 
 
 detailView : Model -> XisApi.Task -> Html Msg
-detailView model ot =
+detailView model t =
   let
-    dragStartPt_ =
-      withDefault model.mousePt model.dragStartPt
+    dragStartPt_ = withDefault model.mousePt model.dragStartPt
+    left = px (model.detailPt.x + (model.mousePt.x - dragStartPt_.x))
+    top = px (model.detailPt.y + (model.mousePt.y - dragStartPt_.y))
+    onMouseDown = on "mousedown" (Dec.map DragStart Mouse.position)
 
-    left =
-      px (model.detailPt.x + (model.mousePt.x - dragStartPt_.x))
-
-    top =
-      px (model.detailPt.y + (model.mousePt.y - dragStartPt_.y))
-
-    onMouseDown =
-      on "mousedown" (Dec.map DragStart Mouse.position)
-
-    window =
-      case ot.timeWindow of
-        Nothing ->
-          Debug.crash "Must not be 'Nothing' at this point"
-
-        Just x ->
-          x
+    (start, duration) =
+      case (t.data.workStartTime, t.data.workDuration) of
+        (Just s, Just d) -> (s, d)
+        (_, _) -> Debug.crash "Start and duration not available"
   in
     div [ taskDetailStyle, onMouseDown, style [ "left" => left, "top" => top ] ]
       [ p [ taskDetailParaStyle ]
-        [ text (ot.shortDesc)
+        [ text (t.data.shortDesc)
         , br [] []
-        , text ((durationToString ForHuman window.duration) ++ " @ " ++ (clockTimeToStr window.begin))
+        , text ((toString duration) ++ " @ " ++ (toString start))
         , br [] []
-        , if List.length (ot.staffedBy) > 0 then
-          text ("Staffed by " ++ (String.join ", " ot.staffedBy))
-          else
-          text "Not yet staffed!"
+        , if 99 > 0 then text ("Staffed by " ++ "TODO!") else text "Not yet staffed!"
         ]
-      , p [ taskDetailParaStyle ] [ text ot.instructions ]
-      , button [ detailButtonStyle, onClick (ToggleTaskDetail ot.taskId) ] [ text "Close" ]
+      , p [ taskDetailParaStyle ] [ text t.data.instructions ]
+      , button [ detailButtonStyle, onClick (ToggleTaskDetail t.id) ] [ text "Close" ]
       , span []
-        (List.map (actionButton model ot) ot.possibleActions)
+        [text "TODO!"] -- (List.map (actionButton model t) t.data.possibleActions)
       ]
 
 
 taskView : Model -> XisApi.Task -> Html Msg
-taskView model ot =
-  case ot.timeWindow of
-    Nothing ->
-      text ""
+taskView model t =
+  case (t.data.workStartTime, t.data.workDuration) of
 
-    Just { begin, duration } ->
+    (Just begin, Just duration) ->
       let
         selectedTask =
           withDefault -1 model.selectedTaskId
 
         operatingOnTask =
-          model.state == OperatingOnTask && ot.taskId == selectedTask
+          model.state == OperatingOnTask && t.id == selectedTask
 
         taskStr =
           if operatingOnTask then
             "Working..."
           else
-            ot.shortDesc
+            t.data.shortDesc
       in
         div []
-          [ div (List.concat [ (taskNameStyle ot), [ onClick (ToggleTaskDetail ot.taskId) ] ]) [ text taskStr ]
-          , if (model.selectedTaskId == Just ot.taskId) then
-            detailView model ot
+
+          [ div ((taskNameStyle t) ++ [onClick (ToggleTaskDetail t.id)])
+            [ text taskStr ]
+
+          , if (model.selectedTaskId == Just t.id) then
+            detailView model t
             else
             text ""
           ]
 
+    (_, _) ->
+      text ""
 
-dayView : Model -> DayOfTasks -> Html Msg
-dayView model dayOfTasks =
+
+dayView : Model -> CalendarSquare (List XisApi.Task) -> Html Msg
+dayView model square =
   let
+    squareCD = square.calendarDate
+    year = model.calendarPage.year
+    month = model.calendarPage.month
     monthStyle =
-      case dayOfTasks.isInTargetMonth of
-        False ->
-          dayOtherMonthStyle
-
-        True ->
-          dayTargetMonthStyle
+      if squareCD.year == year && squareCD.month == month then
+        dayTargetMonthStyle
+      else
+        dayOtherMonthStyle
 
     colorStyle =
-      case dayOfTasks.isToday of
-        False ->
-          monthStyle
+      if True then monthStyle else monthStyle -- TODO: dayTodayStyle
 
-        True ->
-          dayTodayStyle
   in
     td [ tdStyle, colorStyle ]
       (List.concat
-        [ [ div [ dayNumStyle ] [ text (toString dayOfTasks.dayOfMonth) ] ]
-        , List.map (taskView model) dayOfTasks.tasks
+        [ [ div [ dayNumStyle ] [ text (toString squareCD.day) ] ]
+        , case square.data of
+            Just tasks -> List.map (taskView model) tasks
+            Nothing -> [text "Working..."]
         ]
       )
 
 
-weekView : Model -> WeekOfTasks -> Html Msg
-weekView model weekOfTasks =
+weekView : Model -> CalendarRow (List XisApi.Task) -> Html Msg
+weekView model row =
   tr []
-    (List.map (dayView model) weekOfTasks)
+    (List.map (dayView model) row)
 
 
 monthView : Model -> Html Msg
 monthView model =
   let
-    daysOfWeek =
-      [ "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" ]
-
-    headify =
-      \x -> (th [ thStyle ] [ text x ])
+    page = model.calendarPage
+    daysOfWeek = [ "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" ]
+    headify = \x -> (th [ thStyle ] [ text x ])
   in
     table [ tableStyle ]
       (List.concat
         [ [ tr [] (List.map headify daysOfWeek) ]
-        , (List.map (weekView model) model.tasks)
+        , (List.map (weekView model) model.calendarPage.rows)
         ]
       )
 
@@ -475,13 +441,18 @@ headerView model =
     oneByThreeTable (text "") (text "Working") (text "")
   else
     oneByThreeTable
+
       (Button.render Mdl
         [ 0 ]
         model.mdl
         ([ Button.fab, Options.onClick PrevMonth ] ++ navButtonCss)
         [ Icon.i "navigate_before" ]
       )
-      (text (monthName (model.month - 1) ++ " " ++ (toStr model.year)))
+
+      ( let cp = model.calendarPage
+        in (text (String.concat [CD.monthName cp.month, " ", toStr cp.year]))
+      )
+
       (Button.render Mdl
         [ 1 ]
         model.mdl
@@ -494,24 +465,18 @@ loginView : Model -> Html Msg
 loginView model =
   div []
     [ br [] []
-    , case model.user of
+    , case model.member of
       Nothing ->
         let
-          y =
-            toString (model.year)
-
-          m =
-            toString (model.month)
-
-          url =
-            "/login/?next=/tasks/ops-calendar-spa/" ++ y ++ "-" ++ m
-
+          y = toString (model.calendarPage.year)
+          m = toString (model.calendarPage.month)
+          url = "/login/?next=/tasks/ops-calendar-spa/" ++ y ++ "-" ++ m
           -- TODO: Django should provide url.
         in
           a [ href url ] [ text "Log In to Edit Schedule" ]
 
-      Just { memberId, name } ->
-        a [ href "/logout/" ] [ text ("Log Out " ++ name) ]
+      Just m ->
+        a [ href "/logout/" ] [ text ("Log Out " ++ m.data.friendlyName) ]
     ]
 
 
@@ -616,49 +581,6 @@ toStr v =
       String.dropRight 1 (String.dropLeft 1 str)
     else
       str
-
-
-monthName : Int -> String
-monthName x =
-  case x of
-    0 ->
-      "January"
-
-    1 ->
-      "February"
-
-    2 ->
-      "March"
-
-    3 ->
-      "April"
-
-    4 ->
-      "May"
-
-    5 ->
-      "June"
-
-    6 ->
-      "July"
-
-    7 ->
-      "August"
-
-    8 ->
-      "September"
-
-    9 ->
-      "October"
-
-    10 ->
-      "November"
-
-    11 ->
-      "December"
-
-    _ ->
-      Debug.crash "Provide a value from 0 to 11, inclusive"
 
 
 oneByThreeTable : Html Msg -> Html Msg -> Html Msg -> Html Msg
@@ -809,7 +731,7 @@ dayNumStyle =
     ]
 
 
-taskNameCss opsTask =
+taskNameCss task =
   [ "font-family" => "Roboto Condensed"
   , "font-size" => "1em"
   , "margin" => "0"
@@ -818,24 +740,12 @@ taskNameCss opsTask =
   , "text-overflow" => "ellipsis"
   , "width" => "120px"
   , "cursor" => "pointer"
-  , "color"
-    => case opsTask.staffingStatus of
-      "S" ->
-        "green"
-
-      "P" ->
-        "#c68e17"
-
-      "U" ->
-        "red"
-
-      _ ->
-        "#000000"
-  , "text-decoration"
-    => if opsTask.taskStatus == "C" then
-      "line-through"
-       else
-      "none"
+  , "color" => case task.data.staffingStatus of
+      XisApi.SS_Staffed     -> "green"
+      XisApi.SS_Provisional -> "#c68e17"
+      XisApi.SS_Unstaffed   -> "red"
+      _                     -> "#000000"
+  , "text-decoration" => if task.data.status == "C" then "line-through" else "none"
   ]
 
 
@@ -843,7 +753,6 @@ taskNameStyle opsTask =
   hover_
     (taskNameCss opsTask)
     [ ( "background-color", "transparent", "#b3ff99" ) ]
-
 
 
 -- rollover

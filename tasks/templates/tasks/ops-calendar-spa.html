@@ -21,10 +21,23 @@
     <div id="myContainer"></div>
     <script src="{% static 'tasks/OpsCalendar.min.js' %}"></script>
     <script>
-        var cal_data = {{cal_data|safe}};
-        var restUrls = {{urls|safe}};
         var csrfToken = Cookies.get('csrftoken');
-        var flags = {"restUrls":restUrls, "initials": cal_data, "csrfToken": csrfToken}
+        var restUrls = {
+            "claimListUrl":          "{% url 'task:claim-list' %}",
+            "discoveryMethodsUrl":   "{% url 'memb:discoverymethod-list' %}",
+            "memberListUrl":         "{% url 'memb:member-list' %}",
+            "membershipListUrl":     "{% url 'memb:membership-list' %}",
+            "taskListUrl":           "{% url 'task:task-list' %}",
+            "timeBlocksUrl":         "/ops/api/time_blocks/",
+            "timeBlockTypesUrl":     "/ops/api/time_block_types/",
+            "workListUrl":           "{% url 'task:work-list' %}",
+            "workNoteListUrl":       "{% url 'task:worknote-list' %}",
+        };
+        var flags = {
+            "xisRestFlags": restUrls,
+            "month": {{ month }},
+            "year": {{ year }}
+        };
         var myContainer = document.getElementById("myContainer");
         var app = Elm.OpsCalendar.embed(myContainer, flags);
     </script>

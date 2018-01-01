@@ -38,14 +38,6 @@ type alias PageOf a =
 -- UTILITIES
 -----------------------------------------------------------------------------
 
-{-| This is the specific authentication format required by DRF's TokenAuthentication
--}
-authenticationHeader : Authorization -> Http.Header
-authenticationHeader auth =
-  case auth of
-    Token t -> Http.header "Authorization" ("Token " ++ t)
-    Cookie c -> Http.header "Cookie" c
-
 
 -----------------------------------------------------------------------------
 -- CALENDAR DATES
@@ -249,12 +241,22 @@ idFromUrl url =
 
 
 -----------------------------------------------------------------------------
--- URLS
+--
 -----------------------------------------------------------------------------
 
 type Authorization
-  = Cookie String  -- Django 'sessionid' cookie for a logged-in user.
+  = NoAuthorization
+  | Cookie String  -- Django 'sessionid' cookie for a logged-in user.
   | Token String  -- A token registered with Django.
+
+
+authenticationHeader : Authorization -> Http.Header
+authenticationHeader auth =
+  case auth of
+    Token t -> Http.header "Authorization" ("Token " ++ t) -- Django auth token
+    Cookie c -> Http.header "Cookie" c
+    NoAuthorization -> Http.header "X-NoAuth" "NoAuth"
+
 
 httpGetRequest : Authorization -> ResourceUrl -> Dec.Decoder a -> Http.Request a
 httpGetRequest auth url decoder =

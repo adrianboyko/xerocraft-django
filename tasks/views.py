@@ -689,15 +689,10 @@ def ops_calendar_4memb_4today(request) -> JsonResponse:
 def ops_calendar_spa(request, year=date.today().year, month=date.today().month) -> HttpResponse:
     year = int(year)
     month = int(month)
-    urls = dict(
-        claimList=reverse("task:claim-list"),
-        taskList=reverse("task:task-list"),
-        memberList=reverse("memb:member-list"),
-    )
 
     props = {
-        "urls": json.dumps(urls),
-        "cal_data": json.dumps(_ops_calendar_json(request, year, month)),
+        "year": year,
+        "month": month
     }
     return render(request, "tasks/ops-calendar-spa.html", props)
 
