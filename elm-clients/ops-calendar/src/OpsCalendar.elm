@@ -33,6 +33,8 @@ import DjangoRestFramework as DRF exposing (PageOf)
 import XisRestApi as XisApi
 import CalendarDate as CD exposing (CalendarDate)
 import CalendarPage as CP exposing (CalendarPage, CalendarRow, CalendarSquare)
+import ClockTime as CT
+import Duration as Dur
 
 
 -----------------------------------------------------------------------------
@@ -347,17 +349,14 @@ detailView model t =
     left = px (model.detailPt.x + (model.mousePt.x - dragStartPt_.x))
     top = px (model.detailPt.y + (model.mousePt.y - dragStartPt_.y))
     onMouseDown = on "mousedown" (Dec.map DragStart Mouse.position)
-
-    (start, duration) =
-      case (t.data.workStartTime, t.data.workDuration) of
-        (Just s, Just d) -> (s, d)
-        (_, _) -> Debug.crash "Start and duration not available"
+    startStr = Maybe.map CT.toString t.data.workStartTime |> Maybe.withDefault "?"
+    durStr = Maybe.map Dur.toString t.data.workDuration |> Maybe.withDefault "?"
   in
     div [ taskDetailStyle, onMouseDown, style [ "left" => left, "top" => top ] ]
       [ p [ taskDetailParaStyle ]
         [ text (t.data.shortDesc)
         , br [] []
-        , text ((toString duration) ++ " @ " ++ (toString start))
+        , text (durStr ++ " @ " ++ startStr)
         , br [] []
         , if 99 > 0 then text ("Staffed by " ++ "TODO!") else text "Not yet staffed!"
         ]
