@@ -36,13 +36,13 @@ urlpatterns = [
     url(r'^$', views.index),
     url(r'^test/$', views.test),
     url(r'^login/$', views.login),
+    url(r'^logout/$', views.logout),
     url(r'^accounting-menu/$', views.accounting_menu),
     url(r'^membership-status/(?P<provider>[-_.a-zA-Z0-9]+)/(?P<id>[-@+._a-zA-Z0-9]+)/$', views.api_get_membership_info),
     url(r'^scrape-xerocraft-org-checkins/$', views.scrape_xerocraft_org_checkins, name="scrape-xerocraft-org-checkins"),
     url(r'^paypal-webhook', views.paypal_webhook, name="paypal-webhook"),
     url(r'^credits/', views.credits, name="credits"),
 
-    url(r'^logout/$', views.logout),
     url(r'^admin/login/', views.login),  # This shadows admin's login. REVIEW: Any downside?
     url(r'^admin/logout/', views.logout),  # This shadows admin's logout. REVIEW: Any downside?
     url(r'^admin/', admin.site.urls),
