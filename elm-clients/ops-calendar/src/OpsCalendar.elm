@@ -28,7 +28,6 @@ import Material.Icon as Icon
 import Material.Options as Options exposing (css)
 
 -- Local
---import TaskApi exposing (..)
 import DjangoRestFramework as DRF exposing (PageOf)
 import XisRestApi as XisApi
 import CalendarDate as CD exposing (CalendarDate)
@@ -153,8 +152,8 @@ update action model =
           Nothing ->
             ( detailModel, Cmd.none )
 
-          Just selectedTaskId_ ->
-            if selectedTaskId_ == clickedTaskId then
+          Just tid ->
+            if tid == clickedTaskId then
               ( { model | selectedTaskId = Nothing }, Cmd.none )
             else
               ( detailModel, Cmd.none )
@@ -351,6 +350,7 @@ detailView model t =
     onMouseDown = on "mousedown" (Dec.map DragStart Mouse.position)
     startStr = Maybe.map CT.toString t.data.workStartTime |> Maybe.withDefault "?"
     durStr = Maybe.map Dur.toString t.data.workDuration |> Maybe.withDefault "?"
+    name = Maybe.withDefault "nobody" t.data.nameOfLikelyWorker
   in
     div [ taskDetailStyle, onMouseDown, style [ "left" => left, "top" => top ] ]
       [ p [ taskDetailParaStyle ]
@@ -358,7 +358,7 @@ detailView model t =
         , br [] []
         , text (durStr ++ " @ " ++ startStr)
         , br [] []
-        , if 99 > 0 then text ("Staffed by " ++ "TODO!") else text "Not yet staffed!"
+        , text ("Staffed by " ++ name)
         ]
       , p [ taskDetailParaStyle ] [ text t.data.instructions ]
       , button [ detailButtonStyle, onClick (ToggleTaskDetail t.id) ] [ text "Close" ]

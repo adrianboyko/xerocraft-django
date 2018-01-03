@@ -157,6 +157,7 @@ type alias Session msg =
   , memberHasStatusOnTask : Int -> ClaimStatus -> Task -> Bool
   , membersClaimOnTask : Int -> Task -> Maybe Claim
   , membersStatusOnTask : Int -> Task -> Maybe ClaimStatus
+  , membersWithStatusOnTask : ClaimStatus -> Task -> List ResourceUrl
   , mostRecentMembership : List Membership -> Maybe Membership
   }
 
@@ -203,6 +204,7 @@ createSession flags auth =
   , memberHasStatusOnTask = memberHasStatusOnTask flags
   , membersClaimOnTask = membersClaimOnTask flags
   , membersStatusOnTask = membersStatusOnTask flags
+  , membersWithStatusOnTask = membersWithStatusOnTask
   , mostRecentMembership = mostRecentMembership
   }
 
@@ -224,6 +226,7 @@ type alias TaskData =
   , isFullyClaimed : Bool
   , maxWork : Duration
   , maxWorkers : Int
+  , nameOfLikelyWorker : Maybe String
   , owner : Maybe ResourceUrl
   , priority : TaskPriority
   , reviewer : Maybe ResourceUrl
@@ -333,8 +336,18 @@ memberHasStatusOnTask flags memberNum questionedStatus task =
       Just s -> s == questionedStatus
 
 
+membersWithStatusOnTask : ClaimStatus -> Task -> List ResourceUrl
+membersWithStatusOnTask status task =
+  let
+    hasStatus claim = claim.data.status == status
+    claimsWithStatus = List.filter hasStatus task.data.claimSet
+  in
+    List.map (.data >> .claimingMember) claimsWithStatus
+
+
 decodeTask : Dec.Decoder Task
 decodeTask = decodeResource decodeTaskData
+
 
 decodeTaskData : Dec.Decoder TaskData
 decodeTaskData =
@@ -347,6 +360,7 @@ decodeTaskData =
     |> required "is_fully_claimed" Dec.bool
     |> required "max_work" DRF.decodeDuration
     |> required "max_workers" Dec.int
+    |> required "name_of_likely_worker" (Dec.maybe Dec.string)
     |> required "owner" (Dec.maybe decodeResourceUrl)
     |> required "priority" taskPriorityDecoder
     |> required "reviewer" (Dec.maybe decodeResourceUrl)

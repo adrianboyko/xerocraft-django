@@ -51,6 +51,7 @@ class TaskSerializer(serializers.ModelSerializer):
     reviewer = serializers.HyperlinkedRelatedField(read_only=True, view_name='memb:member-detail')
     eligible_claimants = serializers.HyperlinkedRelatedField(read_only=True, many=True, view_name='memb:member-detail')
     claim_set = ClaimSerializer(many=True, read_only=True)
+    name_of_likely_worker = serializers.ReadOnlyField()  # This is a helpful "denormalization"
 
     # REVIEW: Having both of these seems redundant but both will remain, for now, for compatibility reasons.
     is_fully_claimed = serializers.ReadOnlyField()
@@ -68,6 +69,7 @@ class TaskSerializer(serializers.ModelSerializer):
             'is_fully_claimed',
             'max_work',
             'max_workers',
+            'name_of_likely_worker',
             'owner',
             'priority',
             'reviewer',
