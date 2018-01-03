@@ -59,6 +59,8 @@ type alias Flags =
   { xisRestFlags : XisApi.XisRestFlags
   , year : Int
   , month : Int
+  , userName : Maybe String
+  , memberId : Maybe Int
   }
 
 type State
@@ -73,11 +75,12 @@ type alias Model =
   , errorStr : Maybe String
   , errorStr2 : Maybe String
   , mdl : Material.Model
-  , member : Maybe XisApi.Member
+  , memberId : Maybe Int
   , mousePt : Position  -- The current mouse position.
   , selectedTaskId : Maybe Int
   , state : State
   , time : Time
+  , userName : Maybe String
   , xis : XisApi.Session Msg
   }
 
@@ -86,7 +89,7 @@ init : Flags -> ( Model, Cmd Msg )
 init flags =
   let
     calPage = CP.calendarPage flags.year (CD.intToMonth flags.month)
-    xis = (XisApi.createSession flags.xisRestFlags (DRF.Token "testkiosk"))
+    xis = (XisApi.createSession flags.xisRestFlags DRF.NoAuthorization)
     model =
       { calendarPage = calPage
       , detailPt = Position 0 0
@@ -94,11 +97,12 @@ init flags =
       , errorStr = Nothing
       , errorStr2 = Nothing
       , mdl = Material.model
-      , member = Nothing
+      , memberId = flags.memberId
       , mousePt = Position 0 0
       , selectedTaskId = Nothing
       , state = Normal
       , time = 0
+      , userName = flags.userName
       , xis = xis
       }
     cmds =
@@ -322,11 +326,11 @@ getNewMonth model delta =
 
 actionButton : Model -> XisApi.Task -> String -> Html Msg
 actionButton model opsTask action =
-  case model.member of
+  case model.memberId of
     Nothing ->
       text ""
 
-    Just { id, data } ->
+    Just id ->
       let
         ( msg, buttonText ) =
           case action of
@@ -473,20 +477,21 @@ headerView model =
 
 loginView : Model -> Html Msg
 loginView model =
-  div []
-    [ br [] []
-    , case model.member of
+  div [logInOutStyle]
+    [ case model.userName of
       Nothing ->
         let
-          y = toString (model.calendarPage.year)
-          m = toString (model.calendarPage.month)
+          y = model.calendarPage.year |> toString
+          m = model.calendarPage.month |> CD.monthToInt |> toString
           url = "/login/?next=/tasks/ops-calendar-spa/" ++ y ++ "-" ++ m
           -- TODO: Django should provide url.
         in
           a [ href url ] [ text "Log In to Edit Schedule" ]
 
-      Just m ->
-        a [ href "/logout/" ] [ text ("Log Out " ++ m.data.friendlyName) ]
+      Just userName ->
+        a
+          [ href "/logout/?next=/tasks/ops-calendar-spa/" ]
+          [ text ("Log Out " ++ (String.toUpper userName)) ]
     ]
 
 
@@ -741,6 +746,11 @@ dayNumStyle =
     , "margin-bottom" => "5px"
     ]
 
+logInOutStyle =
+  style
+    [ "font-size" => "18pt"
+    , "margin-top" => "30px"
+    ]
 
 taskNameCss task =
   [ "font-family" => "Roboto Condensed"

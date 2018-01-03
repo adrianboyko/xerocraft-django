@@ -31,12 +31,14 @@
             "timeBlocksUrl":         "/ops/api/time_blocks/",
             "timeBlockTypesUrl":     "/ops/api/time_block_types/",
             "workListUrl":           "{% url 'task:work-list' %}",
-            "workNoteListUrl":       "{% url 'task:worknote-list' %}",
+            "workNoteListUrl":       "{% url 'task:worknote-list' %}"
         };
         var flags = {
             "xisRestFlags": restUrls,
             "month": {{ month }},
-            "year": {{ year }}
+            "year": {{ year }},
+            "userName": {% if user.is_authenticated %}"{{ user.username }}"{% else %}null{% endif %},
+            "memberId": {% if user.is_authenticated and user.member != None %}{{ user.member.id }}{% else %}null{% endif %}
         };
         var myContainer = document.getElementById("myContainer");
         var app = Elm.OpsCalendar.embed(myContainer, flags);
