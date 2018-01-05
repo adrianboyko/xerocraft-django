@@ -301,8 +301,9 @@ memberCanClaimTask flags memberNum task =
     memberIsEligible = List.member url task.data.eligibleClaimants
     canClaim = memberIsEligible && (task.data.isFullyClaimed |> not)
     alreadyClaimed = memberHasStatusOnTask flags memberNum CurrentClaimStatus task
+    abandonedClaim = memberHasStatusOnTask flags memberNum AbandonedClaimStatus task
   in
-    canClaim || alreadyClaimed
+    canClaim || alreadyClaimed || abandonedClaim
 
 --isFullyClaimed : Task -> Bool
 --isFullyClaimed t = False  -- TODO: Implement
