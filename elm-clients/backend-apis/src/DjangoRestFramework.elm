@@ -246,7 +246,7 @@ idFromUrl url =
 
 type Authorization
   = NoAuthorization
-  | Cookie String  -- Django 'sessionid' cookie for a logged-in user.
+  | LoggedIn String -- Logged in with CSRF token
   | Token String  -- A token registered with Django.
 
 
@@ -254,7 +254,7 @@ authenticationHeader : Authorization -> Http.Header
 authenticationHeader auth =
   case auth of
     Token t -> Http.header "Authorization" ("Token " ++ t) -- Django auth token
-    Cookie c -> Http.header "Cookie" c
+    LoggedIn t -> Http.header "X-CSRFToken" t
     NoAuthorization -> Http.header "X-NoAuth" "NoAuth"
 
 
