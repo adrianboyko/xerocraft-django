@@ -56,7 +56,8 @@ main =
 -- These are params from the server. Elm docs tend to call them "flags".
 
 type alias Flags =
-  { xisRestFlags : XisApi.XisRestFlags
+  { csrfToken : Maybe String
+  , xisRestFlags : XisApi.XisRestFlags
   , year : Int
   , month : Int
   , userName : Maybe String
@@ -77,7 +78,7 @@ type alias Model =
   , mdl : Material.Model
   , memberId : Maybe Int
   , mousePt : Position  -- The current mouse position.
-  , selectedTaskId : Maybe Int
+  , selectedTask : Maybe XisApi.Task
   , state : State
   , time : Time
   , userName : Maybe String
@@ -89,7 +90,10 @@ init : Flags -> ( Model, Cmd Msg )
 init flags =
   let
     calPage = CP.calendarPage flags.year (CD.intToMonth flags.month)
-    xis = (XisApi.createSession flags.xisRestFlags DRF.NoAuthorization)
+    auth = case flags.csrfToken of
+      Just csrf -> DRF.LoggedIn csrf
+      Nothing -> DRF.NoAuthorization
+    xis = XisApi.createSession flags.xisRestFlags auth
     model =
       { calendarPage = calPage
       , detailPt = Position 0 0
@@ -99,7 +103,7 @@ init flags =
       , mdl = Material.model
       , memberId = flags.memberId
       , mousePt = Position 0 0
-      , selectedTaskId = Nothing
+      , selectedTask = Nothing
       , state = Normal
       , time = 0
       , userName = flags.userName
@@ -121,7 +125,7 @@ init flags =
 type
   Msg
   -- Calendar app messages
-  = ToggleTaskDetail Int
+  = ToggleTaskDetail XisApi.Task
   | PrevMonth
   | NextMonth
   | DayOfTasksResult CalendarDate (Result Http.Error (PageOf XisApi.Task))
@@ -144,21 +148,21 @@ update action model =
   let xis = model.xis
   in case action of
 
-    ToggleTaskDetail clickedTaskId ->
+    ToggleTaskDetail clickedTask ->
       let
         detailModel =
           { model
-            | selectedTaskId = Just clickedTaskId
+            | selectedTask = Just clickedTask
             , detailPt = Position (model.mousePt.x - 200) (model.mousePt.y + 12)
           }
       in
-        case model.selectedTaskId of
+        case model.selectedTask of
           Nothing ->
             ( detailModel, Cmd.none )
 
-          Just tid ->
-            if tid == clickedTaskId then
-              ( { model | selectedTaskId = Nothing }, Cmd.none )
+          Just task ->
+            if task.id == clickedTask.id then
+              ( { model | selectedTask = Nothing }, Cmd.none )
             else
               ( detailModel, Cmd.none )
 
@@ -222,16 +226,24 @@ update action model =
             updatedClaim = claim
               |> XisApi.setClaimsStatus XisApi.AbandonedClaimStatus
               |> XisApi.setClaimsDateVerified (Just todayCD)
-            updateClaimCmd = xis.replaceClaim claim ClaimOpResult
+            updateClaimCmd = xis.replaceClaim updatedClaim ClaimOpResult
           in
             (newModel, updateClaimCmd)
 
     ClaimOpResult (Ok claim) ->
-      -- TODO: Need to reload one square of the calendar.
-      ( { model | errorStr = Nothing, errorStr2 = Nothing }, Cmd.none)
+      let
+        newModel = { model | state=Normal, errorStr=Nothing, errorStr2=Nothing }
+        cmd = case model.selectedTask of
+          Just t -> getTasksForDay model t.data.scheduledDate
+          Nothing -> Cmd.none
+      in
+        (newModel, cmd)
 
     ClaimOpResult (Err err) ->
-      ( { model | errorStr = Just (httpErrToStr err) }, Cmd.none)
+      let
+        newModel = { model | state=Normal, errorStr=Just(httpErrToStr err) }
+      in
+        (newModel, Cmd.none)
 
     PrevMonth ->
       getNewMonth model -1
@@ -307,15 +319,20 @@ getNewMonth model delta =
       else
         CP.calendarPage year (CD.intToMonth month)
 
-    filters sq = [XisApi.ScheduledDateEquals sq.calendarDate]
-    msger sq = (DayOfTasksResult sq.calendarDate)
-    cmdList =
-      CP.mapToList
-        (\sq -> model.xis.listTasks (filters sq) (msger sq))
-        calPage
+    dates = CP.mapToList .calendarDate calPage
+    cmdList = List.map (getTasksForDay model) dates
 
   in
     ({model | calendarPage=calPage}, Cmd.batch cmdList)
+
+
+getTasksForDay : Model -> CalendarDate -> Cmd Msg
+getTasksForDay model date =
+  let
+    filters = [XisApi.ScheduledDateEquals date]
+    msger = (DayOfTasksResult date)
+  in
+    model.xis.listTasks filters msger
 
 
 
@@ -324,25 +341,54 @@ getNewMonth model delta =
 -----------------------------------------------------------------------------
 
 
-actionButton : Model -> XisApi.Task -> String -> Html Msg
-actionButton model opsTask action =
+actionButton : Model -> Msg -> String -> Bool -> Html Msg
+actionButton model clickMsg buttonText enabled =
+  if not enabled then
+    text ""
+  else
+    button [ detailButtonStyle, onClick clickMsg ] [ text buttonText ]
+
+
+actionButtons : Model -> XisApi.Task -> List (Html Msg)
+actionButtons model task =
   case model.memberId of
     Nothing ->
-      text ""
+      [text "Log In to Edit"]
+    Just m ->
+      [ actionButton model (ClaimTask m task) "Staff It" (memberCanClaimTask model m task)
+      , actionButton model (UnstaffTask m task) "Unstaff" (memberCanUnclaimTask model m task)
+      , actionButton model (VerifyTask m task) "Verify" (memberCanVerifyTask model m task)
+      ]
 
-    Just id ->
-      let
-        ( msg, buttonText ) =
-          case action of
-            "U" -> ( UnstaffTask, "Unstaff" )
-            "S" -> ( ClaimTask, "Staff It" )
-            "V" -> ( VerifyTask, "Verify" )
-            _   -> assertNever "Action can only be S, U, or V"
 
-        clickMsg =
-          msg id opsTask
-      in
-        button [ detailButtonStyle, onClick clickMsg ] [ text buttonText ]
+memberCanClaimTask : Model -> Int -> XisApi.Task -> Bool
+memberCanClaimTask model memberId task =
+  case (model.xis.membersClaimOnTask memberId task) of
+    Just c ->
+      c.data.status /= XisApi.CurrentClaimStatus
+      && model.xis.memberCanClaimTask memberId task
+    Nothing ->
+      False
+
+
+memberCanUnclaimTask : Model -> Int -> XisApi.Task -> Bool
+memberCanUnclaimTask model memberId task =
+  case (model.xis.membersClaimOnTask memberId task) of
+    Just c ->
+      c.data.status == XisApi.CurrentClaimStatus
+      && c.data.dateVerified /= Nothing
+    Nothing ->
+      False
+
+
+memberCanVerifyTask : Model -> Int -> XisApi.Task -> Bool
+memberCanVerifyTask model memberId task =
+  case (model.xis.membersClaimOnTask memberId task) of
+    Just c ->
+      c.data.status == XisApi.CurrentClaimStatus
+      && c.data.dateVerified == Nothing
+    Nothing ->
+      False
 
 
 detailView : Model -> XisApi.Task -> Html Msg
@@ -357,18 +403,21 @@ detailView model t =
     name = Maybe.withDefault "nobody" t.data.nameOfLikelyWorker
   in
     div [ taskDetailStyle, onMouseDown, style [ "left" => left, "top" => top ] ]
-      [ p [ taskDetailParaStyle ]
-        [ text (t.data.shortDesc)
-        , br [] []
-        , text (durStr ++ " @ " ++ startStr)
-        , br [] []
-        , text ("Staffed by " ++ name)
+      (
+        [ p [ taskDetailParaStyle ]
+          [ text (t.data.shortDesc)
+          , br [] []
+          , text (durStr ++ " @ " ++ startStr)
+          , br [] []
+          , text ("Staffed by " ++ name)
+          ]
+        , p [ taskDetailParaStyle ] [ text t.data.instructions ]
+        , button [ detailButtonStyle, onClick (ToggleTaskDetail t) ] [ text "Close" ]
+        , span [] []
         ]
-      , p [ taskDetailParaStyle ] [ text t.data.instructions ]
-      , button [ detailButtonStyle, onClick (ToggleTaskDetail t.id) ] [ text "Close" ]
-      , span []
-        [text "TODO!"] -- (List.map (actionButton model t) t.data.possibleActions)
-      ]
+        ++
+        actionButtons model t
+      )
 
 
 taskView : Model -> XisApi.Task -> Html Msg
@@ -377,11 +426,9 @@ taskView model t =
 
     (Just begin, Just duration) ->
       let
-        selectedTask =
-          withDefault -1 model.selectedTaskId
-
+        selTask = model.selectedTask
         operatingOnTask =
-          model.state == OperatingOnTask && t.id == selectedTask
+          model.state == OperatingOnTask && Just t.id == Maybe.map .id selTask
 
         taskStr =
           if operatingOnTask then
@@ -391,13 +438,13 @@ taskView model t =
       in
         div []
 
-          [ div ((taskNameStyle t) ++ [onClick (ToggleTaskDetail t.id)])
+          [ div ((taskNameStyle t) ++ [onClick (ToggleTaskDetail t)])
             [ text taskStr ]
 
-          , if (model.selectedTaskId == Just t.id) then
-            detailView model t
+          , if (Maybe.map .id selTask == Just t.id) then
+              detailView model t
             else
-            text ""
+              text ""
           ]
 
     (_, _) ->

@@ -21,7 +21,6 @@
     <div id="myContainer"></div>
     <script src="{% static 'tasks/OpsCalendar.min.js' %}"></script>
     <script>
-        var csrfToken = Cookies.get('csrftoken');
         var restUrls = {
             "claimListUrl":          "{% url 'task:claim-list' %}",
             "discoveryMethodsUrl":   "{% url 'memb:discoverymethod-list' %}",
@@ -34,11 +33,18 @@
             "workNoteListUrl":       "{% url 'task:worknote-list' %}"
         };
         var flags = {
-            "xisRestFlags": restUrls,
             "month": {{ month }},
+            "xisRestFlags": restUrls,
             "year": {{ year }},
-            "userName": {% if user.is_authenticated %}"{{ user.username }}"{% else %}null{% endif %},
-            "memberId": {% if user.is_authenticated and user.member != None %}{{ user.member.id }}{% else %}null{% endif %}
+            {% if user.is_authenticated and user.member != None %}
+            "csrfToken": Cookies.get('csrftoken'),
+            "memberId": {{ user.member.id }},
+            "userName": "{{ user.username }}"
+            {% else %}
+            "csrfToken": null,
+            "memberId": null,
+            "userName": null
+            {% endif %}
         };
         var myContainer = document.getElementById("myContainer");
         var app = Elm.OpsCalendar.embed(myContainer, flags);
