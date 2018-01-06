@@ -15,7 +15,6 @@ import List
 import Mouse exposing (Position)
 import Maybe exposing (withDefault)
 import Time exposing (Time, second)
-import Json.Decode exposing (maybe)
 import Json.Decode as Dec
 import Json.Encode as Enc
 
@@ -126,6 +125,7 @@ type
   Msg
   -- Calendar app messages
   = ToggleTaskDetail XisApi.Task
+  | CloseTaskDetail Bool
   | PrevMonth
   | NextMonth
   | DayOfTasksResult CalendarDate (Result Http.Error (PageOf XisApi.Task))
@@ -165,6 +165,12 @@ update action model =
               ( { model | selectedTask = Nothing }, Cmd.none )
             else
               ( detailModel, Cmd.none )
+
+    CloseTaskDetail isDirectEvent ->
+      if isDirectEvent then
+        ({model | selectedTask = Nothing}, Cmd.none)
+      else
+        (model, Cmd.none)
 
     ClaimTask memberId task ->
       case xis.membersClaimOnTask memberId task of
@@ -427,14 +433,8 @@ taskView model t =
     (Just begin, Just duration) ->
       let
         selTask = model.selectedTask
-        operatingOnTask =
-          model.state == OperatingOnTask && Just t.id == Maybe.map .id selTask
-
-        taskStr =
-          if operatingOnTask then
-            "Working..."
-          else
-            t.data.shortDesc
+        operatingOnTask = model.state == OperatingOnTask && Just t.id == Maybe.map .id selTask
+        taskStr = if operatingOnTask then "Working..." else t.data.shortDesc
       in
         div []
 
@@ -468,9 +468,9 @@ dayView model square =
       if (CD.equal squareCD todayCD) then dayTodayStyle else monthStyle
 
   in
-    td [ tdStyle, colorStyle ]
+    td [ tdStyle, colorStyle, onClick2 CloseTaskDetail]
       (List.concat
-        [ [ div [ dayNumStyle ] [ text (toString squareCD.day) ] ]
+        [ [ div [ dayNumStyle, onClick2 CloseTaskDetail ] [ text (toString squareCD.day) ] ]
         , case square.data of
             Just tasks -> List.map (taskView model) tasks
             Nothing -> [text "Working..."]
@@ -489,7 +489,7 @@ monthView model =
   let
     page = model.calendarPage
     daysOfWeek = [ "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" ]
-    headify = \x -> (th [ thStyle ] [ text x ])
+    headify = \x -> (th [ thStyle, onClick2 CloseTaskDetail ] [ text x ])
   in
     table [ tableStyle ]
       (List.concat
@@ -570,7 +570,7 @@ errorView model =
 
 view : Model -> Html Msg
 view model =
-  div [ containerStyle, unselectable ]
+  div [ containerStyle, unselectable, onClick2 CloseTaskDetail]
     [ headerView model
     , monthView model
     , loginView model
@@ -593,21 +593,27 @@ subscriptions model =
     ]
 
 
+-----------------------------------------------------------------------------
+-- CUSTOM EVENT HANDLERS
+-----------------------------------------------------------------------------
 
------------------------------------------------------------------------------
--- JSON Decoder
------------------------------------------------------------------------------
+isEventSource : Dec.Decoder Bool
+isEventSource =
+  let
+    target = Dec.at ["target"] Dec.value
+    currTarget = Dec.at ["currentTarget"] Dec.value
+  in
+    Dec.map2 (==) target currTarget
+
+
+onClick2 : (Bool -> msg) -> Html.Attribute msg
+onClick2 tagger =
+  on "click" (Dec.map tagger isEventSource)
 
 
 -----------------------------------------------------------------------------
 -- UTILITIES
 -----------------------------------------------------------------------------
-
-
-isoDateStrFromTime : Time -> String
-isoDateStrFromTime time =
-  String.left 10 (isoString (Date.fromTime time))
-
 
 httpErrToStr : Http.Error -> String
 httpErrToStr err =
@@ -699,8 +705,7 @@ navHeaderStyle =
 
 taskDetailStyle =
   let
-    r =
-      "5px"
+    r = "5px"
   in
     style
       [ "width" => "400px"
@@ -713,8 +718,17 @@ taskDetailStyle =
       , "moz-border-radius" => r
       , "-webkit-border-radius" => r
       , "margin-right" => "auto"
+      , "cursor" => "move"  -- fallback if grab cursor is unsupported
+      , "cursor" => "grab"
+      , "cursor" => "-moz-grab"
+      , "cursor" => "-webkit-grab"
       ]
 
+--taskDetailStyle:active {
+--    cursor: grabbing;
+--    cursor: -moz-grabbing;
+--    cursor: -webkit-grabbing;
+--}
 
 taskDetailParaStyle =
   style
