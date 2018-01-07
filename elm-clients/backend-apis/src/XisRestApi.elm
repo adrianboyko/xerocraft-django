@@ -74,7 +74,7 @@ taskLowPriorityValue    = "L"
 
 type alias XisRestFlags =
   { claimListUrl : ResourceListUrl
-  , discoveryMethodsUrl : ResourceListUrl
+  , discoveryMethodListUrl : ResourceListUrl
   , memberListUrl : ResourceListUrl
   , membershipListUrl : ResourceListUrl
   , taskListUrl : ResourceListUrl
@@ -1048,7 +1048,7 @@ type alias DiscoveryMethod = Resource DiscoveryMethodData
 
 listDiscoveryMethods : XisRestFlags -> Authorization -> Lister DiscoveryMethod msg
 listDiscoveryMethods flags auth resultToMsg =
-  let request = Http.get flags.discoveryMethodsUrl (decodePageOf decodeDiscoveryMethod)
+  let request = Http.get flags.discoveryMethodListUrl (decodePageOf decodeDiscoveryMethod)
   in Http.send resultToMsg request
 
 
