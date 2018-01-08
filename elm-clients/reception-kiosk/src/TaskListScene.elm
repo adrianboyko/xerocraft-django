@@ -159,7 +159,7 @@ update msg kioskModel =
 
               Just c ->
                 let
-                  claimMod = c |> setStatus WorkingClaimStatus
+                  claimMod = c |> setClaimsStatus WorkingClaimStatus
                 in
                   xis.replaceClaim claimMod result2Msg
 

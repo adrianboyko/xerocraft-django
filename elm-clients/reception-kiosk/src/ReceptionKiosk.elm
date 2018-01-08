@@ -34,7 +34,10 @@ import TimeSheetPt3Scene
 import TaskInfoScene
 import WaiverScene
 import WelcomeScene
+
+import DjangoRestFramework as DRF
 import XisRestApi as XisApi
+import MembersApi as MembersApi
 
 
 -----------------------------------------------------------------------------
@@ -81,6 +84,7 @@ type alias Model =
   , mdl : Material.Model
   -- api models:
   , xisSession : XisApi.Session Msg
+  , membersApi : MembersApi.Session Msg
   -- Scene models:
   , checkInModel         : CheckInScene.CheckInModel
   , checkInDoneModel     : CheckInDoneScene.CheckInDoneModel
@@ -136,7 +140,8 @@ init f =
       , doneWithFocus = False
       , idxToFocus = Nothing
       , mdl = Material.model
-      , xisSession = XisApi.createSession f
+      , xisSession = XisApi.createSession f.xisApiFlags (DRF.Token f.uniqueKioskId)
+      , membersApi = MembersApi.createSession f.membersApiFlags
       -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
       , checkInModel         = checkInModel
       , checkInDoneModel     = checkInDoneModel

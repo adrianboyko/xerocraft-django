@@ -187,7 +187,7 @@ update msg kioskModel =
               let
                 witnessUrl = Maybe.map (\w -> xis.memberUrl w.id) (List.head results)
                 workDur = Maybe.map ((*) Duration.hour) w.data.workDuration
-                workMod = w |> setWitness witnessUrl |> setWorkDuration workDur
+                workMod = w |> setWorksWitness witnessUrl |> setWorksDuration workDur
                 witnessHeader = Http.header "X-Witness-PW" sceneModel.witnessPassword
                 cmd = xis.replaceWorkWithHeaders [witnessHeader] workMod
                   (TimeSheetPt3Vector << TS3_WorkUpdated)
@@ -204,7 +204,7 @@ update msg kioskModel =
         Just (_, c, _) ->
           let
             -- TODO: Task might not be done. Work might be stopping for now.
-            claimMod = c |> setStatus DoneClaimStatus
+            claimMod = c |> setClaimsStatus DoneClaimStatus
             cmd = xis.replaceClaim claimMod (TimeSheetPt3Vector << TS3_ClaimUpdated)
           in
             ({sceneModel | badNews=[]}, cmd)
