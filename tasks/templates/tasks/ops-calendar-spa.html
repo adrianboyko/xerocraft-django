@@ -22,15 +22,15 @@
     <script src="{% static 'tasks/OpsCalendar.min.js' %}"></script>
     <script>
         var restUrls = {
-            "claimListUrl":          "{% url 'task:claim-list' %}",
-            "discoveryMethodsUrl":   "{% url 'memb:discoverymethod-list' %}",
-            "memberListUrl":         "{% url 'memb:member-list' %}",
-            "membershipListUrl":     "{% url 'memb:membership-list' %}",
-            "taskListUrl":           "{% url 'task:task-list' %}",
-            "timeBlocksUrl":         "/ops/api/time_blocks/",
-            "timeBlockTypesUrl":     "/ops/api/time_block_types/",
-            "workListUrl":           "{% url 'task:work-list' %}",
-            "workNoteListUrl":       "{% url 'task:worknote-list' %}"
+            "claimListUrl":           "{% url 'task:claim-list' %}",
+            "discoveryMethodListUrl": "{% url 'memb:discoverymethod-list' %}",
+            "memberListUrl":          "{% url 'memb:member-list' %}",
+            "membershipListUrl":      "{% url 'memb:membership-list' %}",
+            "taskListUrl":            "{% url 'task:task-list' %}",
+            "timeBlocksUrl":          "/ops/api/time_blocks/",
+            "timeBlockTypesUrl":      "/ops/api/time_block_types/",
+            "workListUrl":            "{% url 'task:work-list' %}",
+            "workNoteListUrl":        "{% url 'task:worknote-list' %}"
         };
         var flags = {
             "month": {{ month }},
