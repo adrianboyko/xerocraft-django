@@ -819,35 +819,36 @@ class TestRestApi_Tasks(TestCase):
         response = view(request, pk=pk)
         self.assertEqual(response.status_code, 200)
 
-    def test_list_only_my_tasks(self):
-
-        # Other person creates a task
-        self.task_data["owner"] = self.other
-        Task.objects.create(**self.task_data)
-
-        # "I" shouldn't see it on the API's list
-        request = self.factory.get(self.task_list_uri)
-        force_authenticate(request, self.caller.auth_user)
-        view = restapi.views.TaskViewSet.as_view({'get': 'list'})
-        response = view(request)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data["results"]), 0)
-
-        # "I" create a task
-        self.task_data["owner"] = self.caller
-        self.task_data["short_desc"] = "Another task"
-        Task.objects.create(**self.task_data)
-
-        # There are now two tasks in the system
-        self.assertEqual(Task.objects.count(), 2)
-
-        # "I" should now see ONE task on the API's list
-        request = self.factory.get(self.task_list_uri)
-        force_authenticate(request, self.caller.auth_user)
-        view = restapi.views.TaskViewSet.as_view({'get': 'list'})
-        response = view(request)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data["results"]), 1)
+    # Decided against this b/c of ops calendar use-case. User wants to see all tasks, not just theirs.
+    # def test_list_only_my_tasks(self):
+    #
+    #     # Other person creates a task
+    #     self.task_data["owner"] = self.other
+    #     Task.objects.create(**self.task_data)
+    #
+    #     # "I" shouldn't see it on the API's list
+    #     request = self.factory.get(self.task_list_uri)
+    #     force_authenticate(request, self.caller.auth_user)
+    #     view = restapi.views.TaskViewSet.as_view({'get': 'list'})
+    #     response = view(request)
+    #     self.assertEqual(response.status_code, 200)
+    #     self.assertEqual(len(response.data["results"]), 0)
+    #
+    #     # "I" create a task
+    #     self.task_data["owner"] = self.caller
+    #     self.task_data["short_desc"] = "Another task"
+    #     Task.objects.create(**self.task_data)
+    #
+    #     # There are now two tasks in the system
+    #     self.assertEqual(Task.objects.count(), 2)
+    #
+    #     # "I" should now see ONE task on the API's list
+    #     request = self.factory.get(self.task_list_uri)
+    #     force_authenticate(request, self.caller.auth_user)
+    #     view = restapi.views.TaskViewSet.as_view({'get': 'list'})
+    #     response = view(request)
+    #     self.assertEqual(response.status_code, 200)
+    #     self.assertEqual(len(response.data["results"]), 1)
 
     def test_can_claim_task_if_eligible(self):
 
