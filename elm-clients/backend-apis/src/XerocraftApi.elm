@@ -23,20 +23,19 @@ scrapeXcOrgLogins url result2Msg =
 cloneAcctToXis : String -> String -> String -> String -> (Result Http.Error String -> msg) -> Cmd msg
 cloneAcctToXis url csrfToken username userpw resultToMsg =
   let
-    bodyObject =
+    bodyObj =
       [ ("username", Enc.string username)
       , ("userpw", Enc.string userpw)
       ]
-    makeRequest = \bo -> Http.request
+    request = Http.request
       { method = "POST"
       , url = url
       , headers = [ Http.header "X-CSRFToken" csrfToken ]
       , withCredentials = False
-      , body = bo |> Enc.object |> Http.jsonBody
+      , body = bodyObj |> Enc.object |> Http.jsonBody
       , timeout = Nothing
       , expect = Http.expectString
       }
-    makeCmd = \req -> Http.send resultToMsg req
   in
-    bodyObject |> makeRequest |> makeCmd
+    Http.send resultToMsg request
 
