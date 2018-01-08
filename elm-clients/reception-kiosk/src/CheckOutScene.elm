@@ -26,7 +26,13 @@ type alias CheckOutModel =
   }
 
 -- This type alias describes the type of kiosk model that this scene requires.
-type alias KioskModel a = (SceneUtilModel {a | checkOutModel : CheckOutModel})
+type alias KioskModel a =
+  ( SceneUtilModel
+    { a
+    | checkOutModel : CheckOutModel
+    , membersApi : MembersApi.Session Msg
+    }
+  )
 
 init : Flags -> (CheckOutModel, Cmd Msg)
 init flags =
@@ -46,7 +52,7 @@ sceneWillAppear kioskModel appearingScene =
   if appearingScene == CheckOut
     then
       let
-        getCheckedInAccts = MembersApi.getCheckedInAccts kioskModel.flags
+        getCheckedInAccts = kioskModel.membersApi.getCheckedInAccts
         request = getCheckedInAccts (CheckOutVector << UpdateCheckedInAccts)
       in (kioskModel.checkOutModel, request)
     else
@@ -70,7 +76,7 @@ update msg kioskModel =
 
     LogCheckOut memberNum ->
       let
-        logDepartureEventFn = MembersApi.logDepartureEvent kioskModel.flags
+        logDepartureEventFn = kioskModel.membersApi.logDepartureEvent
         msg = CheckOutVector << LogCheckOutResult
         visitingMemberPk = memberNum
         cmd = logDepartureEventFn visitingMemberPk msg

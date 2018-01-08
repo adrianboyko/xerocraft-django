@@ -38,12 +38,6 @@ type alias PageOf a =
 -- UTILITIES
 -----------------------------------------------------------------------------
 
-{-| This is the specific authentication format required by DRF's TokenAuthentication
--}
-authenticationHeader : String -> Http.Header
-authenticationHeader token =
-  Http.header "Authorization" ("Token " ++ token)
-
 
 -----------------------------------------------------------------------------
 -- CALENDAR DATES
@@ -246,12 +240,30 @@ idFromUrl url =
         String.toInt numberStr
 
 
-httpGetRequest : String -> ResourceUrl -> Dec.Decoder a -> Http.Request a
-httpGetRequest token url decoder =
+-----------------------------------------------------------------------------
+--
+-----------------------------------------------------------------------------
+
+type Authorization
+  = NoAuthorization
+  | LoggedIn String -- Logged in with CSRF token
+  | Token String  -- A token registered with Django.
+
+
+authenticationHeader : Authorization -> Http.Header
+authenticationHeader auth =
+  case auth of
+    Token t -> Http.header "Authorization" ("Token " ++ t) -- Django auth token
+    LoggedIn t -> Http.header "X-CSRFToken" t
+    NoAuthorization -> Http.header "X-NoAuth" "NoAuth"
+
+
+httpGetRequest : Authorization -> ResourceUrl -> Dec.Decoder a -> Http.Request a
+httpGetRequest auth url decoder =
   Http.request
     { method = "GET"
     , url = url
-    , headers = [ authenticationHeader token ]
+    , headers = [ authenticationHeader auth ]
     , withCredentials = False
     , body = Http.emptyBody
     , timeout = Nothing

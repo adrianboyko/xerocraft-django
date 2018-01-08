@@ -1,17 +1,12 @@
 module MembersApi exposing
-  ( createNewAcct
-  , getMatchingAccts
-  , getCheckedInAccts
-  , getRecentRfidEntries
-  , logArrivalEvent
-  , logDepartureEvent
-  , setIsAdult
-  , addDiscoveryMethods
+  ( createSession
+  , Flags
   , MatchingAcct
   , MatchingAcctInfo
   , GenericResult
   , VisitEventType (..)
   , ReasonForVisit (..)
+  , Session
   )
 
 -- Standard
@@ -27,7 +22,35 @@ import Time exposing (Time)
 import Json.Decode.Pipeline exposing (decode, required, hardcoded)
 
 -- Local
-import DjangoRestFramework exposing (PageOf, decodePageOf, authenticationHeader)
+import DjangoRestFramework as DRF exposing (PageOf, decodePageOf, authenticationHeader)
+
+
+-----------------------------------------------------------------------------
+-- API SESSION
+-----------------------------------------------------------------------------
+
+type alias Session msg =
+  { addDiscoveryMethods : AddDiscoveryMethods msg
+  , createNewAcct : CreateNewAcct msg
+  , getMatchingAccts : GetMatchingAccts msg
+  , getCheckedInAccts : GetCheckedInAccts msg
+  , getRecentRfidEntries : GetRecentRfidEntries msg
+  , logArrivalEvent : LogArrivalEvent msg
+  , logDepartureEvent : LogDepartureEvent msg
+  , setIsAdult : SetIsAdult msg
+  }
+
+createSession : Flags -> Session msg
+createSession flags =
+  { addDiscoveryMethods = addDiscoveryMethods flags
+  , createNewAcct = createNewAcct flags
+  , getMatchingAccts = getMatchingAccts flags
+  , getCheckedInAccts = getCheckedInAccts flags
+  , getRecentRfidEntries = getRecentRfidEntries flags
+  , logArrivalEvent = logArrivalEvent flags
+  , logDepartureEvent = logDepartureEvent flags
+  , setIsAdult = setIsAdult flags
+  }
 
 
 -----------------------------------------------------------------------------
@@ -38,13 +61,13 @@ replaceAll : {oldSub : String, newSub : String} -> String -> String
 replaceAll {oldSub, newSub} whole =
   Regex.replace Regex.All (regex oldSub) (\_ -> newSub) whole
 
+
 -----------------------------------------------------------------------------
 -- API TYPES
 -----------------------------------------------------------------------------
 
-type alias MembersApiModel a =
-  { a
-  | addDiscoveryMethodUrl : String
+type alias Flags =
+  { addDiscoveryMethodUrl : String
   , checkedInAcctsUrl : String
   , csrfToken : String
   , discoveryMethodsUrl : String
@@ -88,7 +111,8 @@ type ReasonForVisit
 -- API
 -----------------------------------------------------------------------------
 
-getCheckedInAccts: MembersApiModel a -> (Result Http.Error MatchingAcctInfo -> msg) -> Cmd msg
+type alias GetCheckedInAccts msg = (Result Http.Error MatchingAcctInfo -> msg) -> Cmd msg
+getCheckedInAccts: Flags -> GetCheckedInAccts msg
 getCheckedInAccts flags resultToMsg =
   let
     url = flags.checkedInAcctsUrl++"?format=json"  -- Easier than an "Accept" header.
@@ -96,7 +120,8 @@ getCheckedInAccts flags resultToMsg =
   in
     Http.send resultToMsg request
 
-getRecentRfidEntries: MembersApiModel a -> (Result Http.Error MatchingAcctInfo -> msg) -> Cmd msg
+type alias GetRecentRfidEntries msg = (Result Http.Error MatchingAcctInfo -> msg) -> Cmd msg
+getRecentRfidEntries: Flags -> GetRecentRfidEntries msg
 getRecentRfidEntries flags resultToMsg =
   let
     url = flags.recentRfidEntriesUrl++"?format=json"  -- Easier than an "Accept" header.
@@ -104,8 +129,8 @@ getRecentRfidEntries flags resultToMsg =
   in
     Http.send resultToMsg request
 
-
-getMatchingAccts: MembersApiModel a -> String -> (Result Http.Error MatchingAcctInfo -> msg) -> Cmd msg
+type alias GetMatchingAccts msg = String -> (Result Http.Error MatchingAcctInfo -> msg) -> Cmd msg
+getMatchingAccts: Flags -> GetMatchingAccts msg
 getMatchingAccts flags flexId resultToMsg =
   let
     url = flags.matchingAcctsUrl++"?format=json"  -- Easier than an "Accept" header.
@@ -116,7 +141,7 @@ getMatchingAccts flags flexId resultToMsg =
 
 -- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-logVisitEvent : MembersApiModel a
+logVisitEvent : Flags
   -> Int
   -> VisitEventType
   -> Maybe ReasonForVisit  -- Only for Arrivals
@@ -142,7 +167,7 @@ logVisitEvent flags memberPK eventType reason resultToMsg =
       |> replaceAll {oldSub="/12345_A_OTH/", newSub=params}
     request = Http.request
       { method = "GET"
-      , headers = [authenticationHeader flags.uniqueKioskId]
+      , headers = [authenticationHeader (DRF.Token flags.uniqueKioskId)]
       , url = url
       , body = Http.emptyBody
       , expect = Http.expectJson decodeGenericResult
@@ -152,15 +177,20 @@ logVisitEvent flags memberPK eventType reason resultToMsg =
   in
     Http.send resultToMsg request
 
+type alias LogArrivalEvent msg = Int -> ReasonForVisit -> (Result Http.Error GenericResult -> msg) -> Cmd msg
+logArrivalEvent : Flags -> LogArrivalEvent msg
 logArrivalEvent flags memberPK reason resultToMsg =
   logVisitEvent flags memberPK Arrival (Just reason) resultToMsg
 
+type alias LogDepartureEvent msg = Int -> (Result Http.Error GenericResult -> msg) -> Cmd msg
+logDepartureEvent : Flags -> LogDepartureEvent msg
 logDepartureEvent flags memberPK resultToMsg =
   logVisitEvent flags memberPK Departure Nothing resultToMsg
 
 -- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-createNewAcct : MembersApiModel a -> String -> String -> String -> String -> String -> (Result Http.Error String -> msg) -> Cmd msg
+type alias CreateNewAcct msg = String -> String -> String -> String -> String -> (Result Http.Error String -> msg) -> Cmd msg
+createNewAcct : Flags -> CreateNewAcct msg
 createNewAcct flags fullName userName email password signature thing =
   let
     eq = \key value -> key++"="++value
@@ -186,7 +216,8 @@ createNewAcct flags fullName userName email password signature thing =
    in
      Http.send thing request
 
-setIsAdult : MembersApiModel a -> String -> String -> Bool -> (Result Http.Error String -> msg) -> Cmd msg
+type alias SetIsAdult msg = String -> String -> Bool -> (Result Http.Error String -> msg) -> Cmd msg
+setIsAdult : Flags -> SetIsAdult msg
 setIsAdult flags username userpw newValue resultToMsg =
   let
     bodyObject =
@@ -206,7 +237,8 @@ setIsAdult flags username userpw newValue resultToMsg =
   in
     Http.send resultToMsg request
 
-addDiscoveryMethods : MembersApiModel a -> String -> String -> List Int -> (Result Http.Error String -> msg) -> Cmd msg
+type alias AddDiscoveryMethods msg = String -> String -> List Int -> (Result Http.Error String -> msg) -> Cmd msg
+addDiscoveryMethods : Flags -> AddDiscoveryMethods msg
 addDiscoveryMethods flags username userpw methodPks resultToMsg =
   let
     bodyObject = \pk ->

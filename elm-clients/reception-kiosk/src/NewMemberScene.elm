@@ -33,7 +33,13 @@ type alias NewMemberModel =
   }
 
 -- This type alias describes the type of kiosk model that this scene requires.
-type alias KioskModel a = (SceneUtilModel {a | newMemberModel : NewMemberModel})
+type alias KioskModel a =
+  ( SceneUtilModel
+    { a
+    | newMemberModel : NewMemberModel
+    , membersApi : MembersApi.Session Msg
+    }
+  )
 
 init : Flags -> (NewMemberModel, Cmd Msg)
 init flags =
@@ -121,7 +127,7 @@ validate kioskModel =
       , if emailInvalid then ["Your email address is not valid."] else []
       , if noAge then ["Please specify if you are adult/minor."] else []
       ]
-    getMatchingAccts = MembersApi.getMatchingAccts kioskModel.flags
+    getMatchingAccts = kioskModel.membersApi.getMatchingAccts
     cmd = if List.length msgs > 0
       then Cmd.none
       else getMatchingAccts sceneModel.email (NewMemberVector << ValidateEmailUnique)

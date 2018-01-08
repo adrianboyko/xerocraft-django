@@ -47,6 +47,7 @@ type alias KioskModel a =
     , newUserModel: NewUserModel
     , howDidYouHearModel: HowDidYouHearModel
     , waiverModel : WaiverModel
+    , membersApi : MembersApi.Session Msg
     }
   )
 
@@ -71,8 +72,7 @@ sceneWillAppear kioskModel appearingScene =
         userModel = kioskModel.newUserModel
         waiverModel = kioskModel.waiverModel
         fullName = String.join " " [memberModel.firstName, memberModel.lastName]
-        cmd = MembersApi.createNewAcct
-          kioskModel.flags
+        cmd = kioskModel.membersApi.createNewAcct
           fullName
           userModel.userName
           memberModel.email
@@ -177,10 +177,11 @@ infoToXisAcct kioskModel =
     memberModel = kioskModel.newMemberModel
     userModel = kioskModel.newUserModel
     howDidYouHearModel = kioskModel.howDidYouHearModel
+    membersApi = kioskModel.membersApi
     -- TODO: Change setIsAdult to setMemberInfo and also pass fname, lname, and email.
-    setIsAdult = MembersApi.setIsAdult kioskModel.flags userModel.userName userModel.password1
+    setIsAdult = membersApi.setIsAdult userModel.userName userModel.password1
     isAdultVal = Maybe.withDefault False memberModel.isAdult  -- Can't be Nothing at this point in program. "False" is the safest default if this assertion fails.
-    addMethods = MembersApi.addDiscoveryMethods kioskModel.flags userModel.userName userModel.password1
+    addMethods = membersApi.addDiscoveryMethods userModel.userName userModel.password1
   in
     Cmd.batch
       [ segueTo SignUpDone

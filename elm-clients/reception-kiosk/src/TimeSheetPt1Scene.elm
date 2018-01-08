@@ -179,7 +179,7 @@ update msg kioskModel =
           let
             workDur = Maybe.withDefault 0 work.data.workDuration
             durScratch = workDur |> Time.inHours |> toString
-            revisedWork = work |> setWorkDuration (Just workDur)
+            revisedWork = work |> setWorksDuration (Just workDur)
             startCT = Maybe.withDefault (ClockTime 19 0) work.data.workStartTime
             startScratch = ClockTime.format "%I:%M %P" startCT
           in

@@ -26,6 +26,7 @@ type alias KioskModel a =
     { a
     | newUserModel : NewUserModel
     , newMemberModel : NewMemberModel
+    , membersApi : MembersApi.Session Msg
     }
   )
 
@@ -113,7 +114,7 @@ validateUserIdAndPw kioskModel =
       , if userNameIsFName then ["The login id cannot be just your first name."] else []
       , if userNameIsLName then ["The login id cannot be just your last name."] else []
       ]
-    getMatchingAccts = MembersApi.getMatchingAccts kioskModel.flags
+    getMatchingAccts = kioskModel.membersApi.getMatchingAccts
     cmd = if List.length msgs > 0
       then Cmd.none
       else getMatchingAccts sceneModel.userName (NewUserVector << ValidateUserNameUnique)

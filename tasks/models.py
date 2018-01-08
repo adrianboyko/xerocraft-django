@@ -312,7 +312,7 @@ class RecurringTaskTemplate(TaskMixin):
             if self.date_matches_template(curr):
 
                 # If task creation fails, log it and carry on.
-                t = None
+                t = None  # type: Task
                 try:
                     t = Task.objects.create(
                         recurring_task_template =self,
@@ -436,8 +436,8 @@ class Claim(models.Model, TimeWindowedObject):
     def sum_in_period(startDate, endDate):
         """ Sum up hours claimed per claimant during period startDate to endDate, inclusive. """
         claimants = {}
-        for task in Task.objects.filter(scheduled_date__gte=startDate).filter(scheduled_date__lte=endDate):
-            for claim in task.claim_set.all():
+        for task in Task.objects.filter(scheduled_date__gte=startDate).filter(scheduled_date__lte=endDate):  # type: Task
+            for claim in task.claim_set.all():  # type: Claim
                 if claim.status == claim.STAT_CURRENT:
                     if claim.claiming_member not in claimants:
                         claimants[claim.claiming_member] = timedelta(0)
@@ -569,10 +569,24 @@ class Task(TaskMixin, TimeWindowedObject):
         if self.scheduled_date is not None and self.orig_sched_date is None:
             raise ValidationError(_("orig_sched_date must be set when scheduled_date is FIRST set."))
 
+    @property
+    def likely_worker(self) -> Optional[mm.Member]:
+        """The member that is likely to work (or is already working) the task."""
+        for claim in self.claim_set.all():  # type: Claim
+            if claim.status in [claim.STAT_CURRENT, claim.STAT_WORKING]:
+                return claim.claiming_member
+        return None
+
+    @property
+    def name_of_likely_worker(self) -> Optional[str]:
+        """The friendly name of the member that is likely to work (or is already working) the task."""
+        worker = self.likely_worker  # type: Optional[mm.Member]
+        return worker.friendly_name if worker is not None else None
+
     def unclaimed_hours(self):
         """The grand total of hours still available to ALL WORKERS, considering other member's existing claims, if any."""
         unclaimed_hours = self.max_work
-        for claim in self.claim_set.all():
+        for claim in self.claim_set.all():  # type: Claim
             if claim.status in [claim.STAT_CURRENT, claim.STAT_WORKING]:
                 unclaimed_hours -= claim.claimed_duration
         return unclaimed_hours
@@ -645,7 +659,7 @@ class Task(TaskMixin, TimeWindowedObject):
         """
         result = set()
         result |= set(list(self.eligible_claimants.all()))
-        for tag in self.eligible_tags.all():
+        for tag in self.eligible_tags.all():  # type: mm.Tag
             result |= set(list(tag.members.all()))
         return result
 

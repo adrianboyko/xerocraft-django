@@ -1,11 +1,23 @@
 module CalendarDate exposing
   ( CalendarDate
+  ----------------
+  , addDays
   , compare
+  , dayOfWeek
+  , dayOfWeekToInt
   , equal
   , format
+  , fromDate
   , fromString
+  , fromTime
+  , intToMonth
+  , lastOfMonth
+  , monthName
+  , monthToInt
+  , nextMonth
+  , prevMonth
   , toString
-
+  , toDate
   )
 
 
@@ -18,6 +30,8 @@ import Date.Extra.Format as DateXFormat
 import Date.Extra.Create as DateXCreate
 import Date.Extra.Core as DateXCore
 import Date.Extra.Config.Config_en_us exposing (config)
+import Date.Extra.I18n.I_en_us as EnUs
+import Date.Extra.Duration as DateXDur
 import String.Extra as StringX exposing (replace)
 
 -- Local
@@ -33,6 +47,7 @@ type alias CalendarDate =
 
 
 ----------------------------------------------------------
+
 
 {-| Produces a YYYY-MM-DD string. -}
 toString : CalendarDate -> String
@@ -79,13 +94,67 @@ format fmt cd =
   in
     ordinalize s
 
+----------------------------------------------------------
+
+dayOfWeek : CalendarDate -> Date.Day
+dayOfWeek d =
+  d |> toDate |> Date.dayOfWeek
 
 
+dayOfWeekToInt : Date.Day -> Int
+dayOfWeekToInt dow =
+  case dow of
+    Date.Sun -> 0
+    Date.Mon -> 1
+    Date.Tue -> 2
+    Date.Wed -> 3
+    Date.Thu -> 4
+    Date.Fri -> 5
+    Date.Sat -> 6
+
 ----------------------------------------------------------
--- PRIVATE, NOT EXPOSED                                 --
+
+monthToInt : Date.Month -> Int
+monthToInt = DateXCore.monthToInt
+
+intToMonth : Int -> Date.Month
+intToMonth = DateXCore.intToMonth
+
+nextMonth : Date.Month -> Date.Month
+nextMonth = DateXCore.nextMonth
+
+prevMonth : Date.Month -> Date.Month
+prevMonth = DateXCore.prevMonth
+
+monthName : Date.Month -> String
+monthName m = EnUs.monthName m
+
 ----------------------------------------------------------
+
 
 toDate : CalendarDate -> Date
 toDate cd =
   -- Hour/min/second are arbitrary.
   DateXCreate.dateFromFields cd.year cd.month cd.day 0 0 0 0
+
+
+fromDate : Date -> CalendarDate
+fromDate d =
+  CalendarDate (Date.year d) (Date.month d) (Date.day d)
+
+
+fromTime : Time -> CalendarDate
+fromTime = Date.fromTime >> fromDate
+
+
+----------------------------------------------------------
+
+lastOfMonth : CalendarDate -> CalendarDate
+lastOfMonth cd =
+  cd |> toDate |> DateXCore.lastOfMonthDate |> fromDate
+
+
+addDays : Int -> CalendarDate -> CalendarDate
+addDays offset cd =
+  cd |> toDate |> DateXDur.add DateXDur.Day offset |> fromDate
+

@@ -26,6 +26,7 @@ type alias KioskModel a =
     { a
     | reasonForVisitModel : ReasonForVisitModel
     , checkInModel : CheckInModel
+    , membersApi : MembersApi.Session Msg
     , flags : Flags
     }
   )
@@ -62,7 +63,7 @@ update msg kioskModel =
           ({sceneModel | badNews = ["You must choose an activity type."]}, Cmd.none)
         Just reasonForVisit ->
           let
-            logArrivalEventFn = MembersApi.logArrivalEvent kioskModel.flags
+            logArrivalEventFn = kioskModel.membersApi.logArrivalEvent
             msg = ReasonForVisitVector << LogCheckInResult
             visitingMemberPk = checkInModel.memberNum
             cmd = logArrivalEventFn visitingMemberPk reasonForVisit msg

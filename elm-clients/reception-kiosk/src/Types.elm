@@ -11,8 +11,7 @@ import List.Nonempty exposing (Nonempty)
 
 -- Local
 import DjangoRestFramework exposing (PageOf)
-import MembersApi exposing (..)
-import TaskApi exposing (..)
+import MembersApi as MembersApi exposing (..)
 import XisRestApi as XisApi exposing (..)
 
 
@@ -26,26 +25,19 @@ type alias Flags =
   , bannerBottomUrl : String
   , bannerTopUrl : String
   , checkedInAcctsUrl : String
-  , claimListUrl : String
   , cloneAcctUrl : String
   , csrfToken : String
-  , discoveryMethodsUrl : String
   , logVisitEventUrl : String
   , matchingAcctsUrl : String
-  , memberListUrl : String
-  , membershipListUrl : String
+  , membersApiFlags : MembersApi.Flags
   , orgName : String
   , recentRfidEntriesUrl : String
   , scrapeLoginsUrl : String
   , setIsAdultUrl : String
-  , taskListUrl : String
-  , timeBlocksUrl : String
-  , timeBlockTypesUrl : String
   , uniqueKioskId : String
   , wavingHandUrl : String
-  , workListUrl : String
-  , workNoteListUrl : String
   , xcOrgActionUrl : String
+  , xisApiFlags : XisApi.XisRestFlags
   }
 
 

@@ -47,7 +47,13 @@ type alias CheckInModel =
   }
 
 -- This type alias describes the type of kiosk model that this scene requires.
-type alias KioskModel a = (SceneUtilModel {a | checkInModel : CheckInModel})
+type alias KioskModel a =
+  ( SceneUtilModel
+    { a
+    | checkInModel : CheckInModel
+    , membersApi : MembersApi.Session Msg
+    }
+  )
 
 init : Flags -> (CheckInModel, Cmd Msg)
 init flags =
@@ -84,13 +90,16 @@ sceneWillAppear kioskModel appearingScene =
 
 update : CheckInMsg -> KioskModel a -> (CheckInModel, Cmd Msg)
 update msg kioskModel =
-  let sceneModel = kioskModel.checkInModel
+  let
+    sceneModel = kioskModel.checkInModel
+    membersApi = kioskModel.membersApi
+
   in case msg of
 
     UpdateFlexId rawId ->
       let
         id = XisApi.djangoizeId rawId
-        getMatchingAccts = MembersApi.getMatchingAccts kioskModel.flags
+        getMatchingAccts = membersApi.getMatchingAccts
       in
         if (String.length id) > 1
         then
@@ -187,8 +196,7 @@ tick time kioskModel =
 -----------------------------------------------------------------------------
 
 getRecentRfidEntriesCmd kioskModel =
-  MembersApi.getRecentRfidEntries
-    kioskModel.flags
+  kioskModel.membersApi.getRecentRfidEntries
     (CheckInVector << UpdateMatchingAccts)
 
 -----------------------------------------------------------------------------

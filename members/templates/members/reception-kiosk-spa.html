@@ -99,32 +99,49 @@
             // The "test kiosk" is a regular browser (not the kiosk app) so we need to provide a fake ID.
             uniqueKioskId = "testkiosk"
         }
-        var csrfToken = Cookies.get('csrftoken');
+        var xisApiFlags = {
+            "claimListUrl":           "{% url 'task:claim-list' %}",
+            "discoveryMethodListUrl": "{% url 'memb:discoverymethod-list' %}",
+            "memberListUrl":          "{% url 'memb:member-list' %}",
+            "membershipListUrl":      "{% url 'memb:membership-list' %}",
+            "taskListUrl":            "{% url 'task:task-list' %}",
+            "timeBlocksUrl":          "/ops/api/time_blocks/",
+            "timeBlockTypesUrl":      "/ops/api/time_block_types/",
+            "workListUrl":            "{% url 'task:work-list' %}",
+            "workNoteListUrl":        "{% url 'task:worknote-list' %}"
+        };
+
+        var membersApiFlags = {
+            "addDiscoveryMethodUrl": "{% url 'memb:reception-kiosk-add-discovery-method' %}",
+            "checkedInAcctsUrl":     "{% url 'memb:reception-kiosk-checked-in-accts' %}",
+            "csrfToken":             Cookies.get('csrftoken'),
+            "discoveryMethodsUrl":   "{% url 'memb:discoverymethod-list' %}",
+            "logVisitEventUrl":      "{% url 'memb:reception-kiosk-log-visit-event' member_pk='12345' event_type='A' reason='OTH' %}",
+            "matchingAcctsUrl":      "{% url 'memb:reception-kiosk-matching-accts' flexid='FLEXID' %}",
+            "recentRfidEntriesUrl":  "{% url 'memb:reception-kiosk-recent-rfid-entries' %}",
+            "setIsAdultUrl":         "{% url 'memb:reception-kiosk-set-is-adult' %}",
+            "uniqueKioskId":         uniqueKioskId,
+            "xcOrgActionUrl":        "{{ action_url }}"
+        };
+
         var flags = {
             "addDiscoveryMethodUrl": "{% url 'memb:reception-kiosk-add-discovery-method' %}",
             "bannerBottomUrl":       "{% static 'bzw_ops/GenericBannerBottom_800x84.png' %}",
             "bannerTopUrl":          "{% static 'bzw_ops/GenericBannerTop_800x155.png' %}",
             "checkedInAcctsUrl":     "{% url 'memb:reception-kiosk-checked-in-accts' %}",
-            "claimListUrl":          "{% url 'task:claim-list' %}",
             "cloneAcctUrl":          "{% url 'xis:clone-acct' %}",
-            "csrfToken":             csrfToken,
-            "discoveryMethodsUrl":   "{% url 'memb:discoverymethod-list' %}",
+            "csrfToken":             Cookies.get('csrftoken'),
             "logVisitEventUrl":      "{% url 'memb:reception-kiosk-log-visit-event' member_pk='12345' event_type='A' reason='OTH' %}",
             "matchingAcctsUrl":      "{% url 'memb:reception-kiosk-matching-accts' flexid='FLEXID' %}",
-            "memberListUrl":         "{% url 'memb:member-list' %}",
-            "membershipListUrl":     "{% url 'memb:membership-list' %}",
+            "membersApiFlags":       membersApiFlags,
             "orgName":               "{{ org_name }}",
             "recentRfidEntriesUrl":  "{% url 'memb:reception-kiosk-recent-rfid-entries' %}",
             "scrapeLoginsUrl":       "{% url 'scrape-xerocraft-org-checkins' %}",
             "setIsAdultUrl":         "{% url 'memb:reception-kiosk-set-is-adult' %}",
-            "taskListUrl":           "{% url 'task:task-list' %}",
-            "timeBlocksUrl":         "/ops/api/time_blocks/",
-            "timeBlockTypesUrl":     "/ops/api/time_block_types/",
             "uniqueKioskId":         uniqueKioskId,
             "wavingHandUrl":         "{% static 'bzw_ops/WavingHand.gif' %}",
-            "workListUrl":           "{% url 'task:work-list' %}",
-            "workNoteListUrl":       "{% url 'task:worknote-list' %}",
-            "xcOrgActionUrl":        "{{ action_url }}"
+            "xcOrgActionUrl":        "{{ action_url }}",
+            "xisApiFlags":           xisApiFlags
         };
 
         var signaturePad = null;
