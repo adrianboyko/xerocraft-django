@@ -369,12 +369,14 @@ actionButtons model task =
 
 memberCanClaimTask : Model -> Int -> XisApi.Task -> Bool
 memberCanClaimTask model memberId task =
-  case (model.xis.membersClaimOnTask memberId task) of
-    Just c ->
-      c.data.status /= XisApi.CurrentClaimStatus
-      && model.xis.memberCanClaimTask memberId task
-    Nothing ->
-      False
+  if model.xis.memberCanClaimTask memberId task then
+    case (model.xis.membersClaimOnTask memberId task) of
+      Just c ->
+        c.data.status /= XisApi.CurrentClaimStatus
+      Nothing ->
+        True
+  else
+    False
 
 
 memberCanUnclaimTask : Model -> Int -> XisApi.Task -> Bool
