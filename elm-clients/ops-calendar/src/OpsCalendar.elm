@@ -856,7 +856,7 @@ dayTargetMonthStyle =
 
 dayTodayStyle =
   style
-    [ "background-color" => "#00ff0011" -- light green
+    [ "background-color" => "#ffffcc" -- light yellow
     ]
 
 
