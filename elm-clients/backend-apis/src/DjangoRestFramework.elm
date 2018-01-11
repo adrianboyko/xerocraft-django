@@ -112,6 +112,19 @@ clockTimeFromTime t = t |> Date.fromTime |> clockTimeFromDate
 
 
 -----------------------------------------------------------------------------
+-- POINT-IN-TIME
+-----------------------------------------------------------------------------
+
+decodePointInTime =
+  Dec.string |> Dec.andThen
+    ( \str ->
+      case (PointInTime.fromString str) of
+        Ok pit -> Dec.succeed pit
+        Err err -> Dec.fail err
+    )
+
+
+-----------------------------------------------------------------------------
 -- DURATION
 -----------------------------------------------------------------------------
 
