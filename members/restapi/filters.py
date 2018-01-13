@@ -46,6 +46,12 @@ class VisitEventFilter(rf.FilterSet):
             'when': [
                 'gte',
             ],
+            'event_type': [
+                'exact',
+            ],
+            'method': [
+                'exact',
+            ],
             'who__auth_user__username': [
                 'iexact',
             ],

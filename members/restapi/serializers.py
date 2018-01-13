@@ -112,4 +112,5 @@ class VisitEventSerializer(serializers.ModelSerializer):
             'when',
             'event_type',
             'reason',
+            'method'
         )
