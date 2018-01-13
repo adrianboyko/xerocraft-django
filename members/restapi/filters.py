@@ -6,7 +6,7 @@ import rest_framework.filters as filters
 from django_filters import rest_framework as rf
 
 # Local
-from members.models import Member
+from members.models import Member, VisitEvent
 
 
 class HasRfidNumFilterBackend(filters.BaseFilterBackend):
@@ -27,5 +27,26 @@ class MemberFilter(rf.FilterSet):
     class Meta:
         model = Member
         fields = {
-            'auth_user__username': ['iexact'],
+            'auth_user__username': [
+                'iexact',
+                'icontains',
+                'istartswith',
+            ],
+            'auth_user__last_name': [
+                'iexact',
+                'istartswith',
+            ],
+        }
+
+
+class VisitEventFilter(rf.FilterSet):
+    class Meta:
+        model = VisitEvent
+        fields = {
+            'when': [
+                'gte',
+            ],
+            'who__auth_user__username': [
+                'iexact',
+            ],
         }

@@ -98,3 +98,18 @@ class WifiMacDetectedSerializer(serializers.ModelSerializer):
             'when',
             'mac',
         )
+
+
+class VisitEventSerializer(serializers.ModelSerializer):
+
+    who = get_MemberSerializer(True)(many=False, read_only=True)
+
+    class Meta:
+        model = models.VisitEvent
+        fields = (
+            'id',
+            'who',
+            'when',
+            'event_type',
+            'reason',
+        )

@@ -11,6 +11,7 @@ router.register(r'memberships', restviews.MembershipViewSet)
 router.register(r'discovery-methods', restviews.DiscoveryMethodViewSet)
 router.register(r'gift-card-refs', restviews.MembershipGiftCardReferenceViewSet)
 router.register(r'wifi-mac-detected', restviews.WifiMacDetectedViewSet)
+router.register(r'visit-events', restviews.VisitEventViewSet)
 
 urlpatterns = [
 

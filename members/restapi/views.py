@@ -10,12 +10,14 @@ from rest_framework.response import Response
 # Local
 import members.restapi.serializers as ser
 import members.restapi.filters as filt
+import members.restapi.permissions as perm
 from members.models import (
     Member,
     Membership,
     DiscoveryMethod,
     MembershipGiftCardReference,
     WifiMacDetected,
+    VisitEvent,
 )
 
 
@@ -78,3 +80,12 @@ class WifiMacDetectedViewSet(viewsets.ModelViewSet):
     queryset = WifiMacDetected.objects.all()
     serializer_class = ser.WifiMacDetectedSerializer
 
+
+class VisitEventViewSet(viewsets.ModelViewSet):
+    """
+    REST API endpoint that allows visit events to be viewed or edited.
+    """
+    permission_classes = [IsAuthenticatedOrReadOnly, perm.VisitEventPermission]
+    filter_class = filt.VisitEventFilter
+    queryset = VisitEvent.objects.all()
+    serializer_class = ser.VisitEventSerializer
