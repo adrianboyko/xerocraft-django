@@ -21,6 +21,7 @@ module XisRestApi
     , TaskPriority (..)
     , TimeBlock, TimeBlockData
     , TimeBlockType, TimeBlockTypeData
+    , VisitEvent, VisitEventData, VisitEventType(..), VisitEventReason(..), VisitEventListFilter(..)
     , Work, WorkData
     , WorkNote, WorkNoteData
     , WorkListFilter (..)
@@ -78,8 +79,9 @@ type alias XisRestFlags =
   , memberListUrl : ResourceListUrl
   , membershipListUrl : ResourceListUrl
   , taskListUrl : ResourceListUrl
-  , timeBlocksUrl : ResourceListUrl
-  , timeBlockTypesUrl : ResourceListUrl
+  , timeBlocksUrl : ResourceListUrl  -- TODO: Should be timeBlockListUrl
+  , timeBlockTypesUrl : ResourceListUrl  -- TODO: Should be timeBlockTypeListUrl
+  , visitEventListUrl : ResourceListUrl
   , workListUrl : ResourceListUrl
   , workNoteListUrl : ResourceListUrl
   }
@@ -135,6 +137,7 @@ type alias Session msg =
   , listTasks : FilteringLister TaskListFilter Task msg
   , listTimeBlocks : Lister TimeBlock msg
   , listTimeBlockTypes : Lister TimeBlockType msg
+  , listVisitEvents : FilteringLister VisitEventListFilter VisitEvent msg
   , listWorks : FilteringLister WorkListFilter Work msg
 
   ----- RESOURCE REPLACERS
@@ -182,6 +185,7 @@ createSession flags auth =
   , listTasks = listTasks flags auth
   , listTimeBlocks = listTimeBlocks flags auth
   , listTimeBlockTypes = listTimeBlockTypes flags auth
+  , listVisitEvents = listVisitEvents flags auth
   , listWorks = listWorks flags auth
 
   ----- RESOURCE REPLACERS -----
@@ -789,6 +793,10 @@ type alias Member = Resource MemberData
 type MemberListFilter
   = RfidNumberEquals Int
   | UsernameEquals String
+  | UsernameContains String
+  | UsernameStartsWith String
+  | LastNameStartsWith String
+  | LastNameEquals String
 
 
 memberListFilterToString : MemberListFilter -> String
@@ -796,6 +804,10 @@ memberListFilterToString filter =
   case filter of
     RfidNumberEquals n -> "rfidnum=" ++ (toString n)
     UsernameEquals s -> "auth_user__username__iexact=" ++ s
+    UsernameContains s -> "auth_user__username__icontains=" ++ s
+    UsernameStartsWith s -> "auth_user__username__istartswith=" ++ s
+    LastNameStartsWith s -> "auth_user__last_name__istartswith=" ++ s
+    LastNameEquals s -> "auth_user__last_name__iexact=" ++ s
 
 
 listMembers : XisRestFlags -> Authorization -> FilteringLister MemberListFilter Member msg
@@ -1061,6 +1073,98 @@ decodeDiscoveryMethodData =
     |> required "name" Dec.string
     |> required "order" Dec.int
     |> required "visible" Dec.bool
+
+
+
+-----------------------------------------------------------------------------
+-- VISIT EVENTS
+-----------------------------------------------------------------------------
+
+type alias VisitEventData =
+  { who : Member
+  , when : PointInTime
+  , eventType : VisitEventType
+  , reason: Maybe VisitEventReason
+  }
+
+
+type alias VisitEvent = Resource VisitEventData
+
+
+type VisitEventReason
+  = VER_Class
+  | VER_Club
+  | VER_Curious
+  | VER_Guest
+  | VER_Member
+  | VER_Other
+  | VER_Volunteer
+
+
+type VisitEventType
+  = VET_Arrival  -- REVIEW: Should try to make "reason" an argument of this constructor?
+  | VET_Present
+  | VET_Departure
+
+
+type VisitEventListFilter
+  = VEF_WhenGreaterOrEqual PointInTime
+
+
+visitEventListFilterToString : VisitEventListFilter -> String
+visitEventListFilterToString filter =
+  case filter of
+    VEF_WhenGreaterOrEqual pit -> "when__gte=" ++ (PointInTime.isoString pit)
+
+
+listVisitEvents : XisRestFlags -> Authorization -> FilteringLister VisitEventListFilter VisitEvent msg
+listVisitEvents flags auth filters resultToMsg =
+  let
+    request = httpGetRequest
+      auth
+      (filteredListUrl flags.visitEventListUrl filters visitEventListFilterToString)
+      (decodePageOf decodeVisitEvent)
+  in
+    Http.send resultToMsg request
+
+
+decodeVisitEvent : Dec.Decoder VisitEvent
+decodeVisitEvent = decodeResource decodeVisitEventData
+
+
+decodeVisitEventData : Dec.Decoder VisitEventData
+decodeVisitEventData =
+  decode VisitEventData
+    |> required "who" decodeMember
+    |> required "when" DRF.decodePointInTime
+    |> required "event_type" decodeVisitEventType
+    |> required "reason" (Dec.maybe decodeVisitEventReason)
+
+
+decodeVisitEventType : Dec.Decoder VisitEventType
+decodeVisitEventType =
+  Dec.string |> Dec.andThen
+    ( \str -> case str of
+        "A" -> Dec.succeed VET_Arrival
+        "P" -> Dec.succeed VET_Present
+        "D" -> Dec.succeed VET_Departure
+        other -> Dec.fail <| "Unknown visit event type: " ++ other
+    )
+
+
+decodeVisitEventReason : Dec.Decoder VisitEventReason
+decodeVisitEventReason =
+  Dec.string |> Dec.andThen
+    ( \str -> case str of
+        "CLS" -> Dec.succeed VER_Class
+        "CLB" -> Dec.succeed VER_Club
+        "CUR" -> Dec.succeed VER_Curious
+        "GST" -> Dec.succeed VER_Guest
+        "MEM" -> Dec.succeed VER_Member
+        "OTH" -> Dec.succeed VER_Other
+        "VOL" -> Dec.succeed VER_Volunteer
+        other -> Dec.fail <| "Unknown visit event type: " ++ other
+    )
 
 
 -----------------------------------------------------------------------------
