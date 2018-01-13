@@ -18,14 +18,15 @@ import Time exposing (Time)
 import Material
 import Material.Chip as Chip
 import Material.Options as Options exposing (css)
+import List.Extra as ListX
 
 -- Local
 import Types exposing (..)
 import Wizard.SceneUtils exposing (..)
 import MembersApi as MembersApi
 import XisRestApi as XisApi
+import PointInTime as PIT exposing (PointInTime)
 
--- TODO: Before user types flexid, could show usernames of recent RFID swipers?
 -- TODO: If user is signing in after acct creation, show a username hint?
 
 
@@ -38,28 +39,40 @@ import XisRestApi as XisApi
 -- INIT
 -----------------------------------------------------------------------------
 
--- REVIEW: Strictly speaking, flexID and memberNum should be Maybes.
-type alias CheckInModel =
-  { flexId : String  -- UserName or surname.
-  , matches : List MembersApi.MatchingAcct  -- Matches to username/surname
-  , memberNum : Int -- The member number that the person chose to check in as.
-  , badNews : List String
-  }
-
 -- This type alias describes the type of kiosk model that this scene requires.
 type alias KioskModel a =
   ( SceneUtilModel
     { a
     | checkInModel : CheckInModel
     , membersApi : MembersApi.Session Msg
+    , xisSession : XisApi.Session Msg
+    , currTime : PointInTime
     }
   )
+
+
+-- REVIEW: Strictly speaking, flexID and memberNum should be Maybes.
+type alias CheckInModel =
+  { flexId : String  -- UserName or surname.
+  , userNameMatches_SW : List XisApi.Member  -- Matches to username
+  , userNameMatches_EQ : List XisApi.Member  -- Matches to username
+  , lastNameMatches_SW : List XisApi.Member  -- Matches to surname
+  , lastNameMatches_EQ : List XisApi.Member  -- Matches to surname
+  , recentRfidArrivals : List XisApi.Member  -- People who have recently swiped RFID.
+  , memberNum : Int -- The member number that the person chose to check in as.
+  , badNews : List String
+  }
+
 
 init : Flags -> (CheckInModel, Cmd Msg)
 init flags =
   let model =
     { flexId = ""  -- A harmless initial value.
-    , matches = []
+    , userNameMatches_SW = []
+    , userNameMatches_EQ = []
+    , lastNameMatches_SW = []
+    , lastNameMatches_EQ = []
+    , recentRfidArrivals = []
     , memberNum = -99  -- A harmless initial value.
     , badNews = []
     }
@@ -75,11 +88,10 @@ sceneWillAppear kioskModel appearingScene =
   if appearingScene == CheckIn
     then
       let
-        cmd1 = getRecentRfidEntriesCmd kioskModel
+        cmd1 = getRecentRfidArrivalsCmd kioskModel
         cmd2 = focusOnIndex idxFlexId
-        cmd = Cmd.batch [cmd1, cmd2]
       in
-        (kioskModel.checkInModel, cmd)
+        (kioskModel.checkInModel, Cmd.batch [cmd1, cmd2])
     else
       (kioskModel.checkInModel, Cmd.none)
 
@@ -92,38 +104,78 @@ update : CheckInMsg -> KioskModel a -> (CheckInModel, Cmd Msg)
 update msg kioskModel =
   let
     sceneModel = kioskModel.checkInModel
-    membersApi = kioskModel.membersApi
+    xis = kioskModel.xisSession
 
   in case msg of
 
     UpdateFlexId rawId ->
       let
         id = XisApi.djangoizeId rawId
-        getMatchingAccts = membersApi.getMatchingAccts
+        cmd1 = xis.listMembers
+          [XisApi.UsernameStartsWith id]
+          (CheckInVector << (UsernamesStartingWith id))
+        cmd2 = xis.listMembers
+          [XisApi.LastNameStartsWith id]
+          (CheckInVector << (LastNamesStartingWith id))
+        cmd3 = xis.listMembers
+          [XisApi.UsernameEquals id]
+          (CheckInVector << (UsernamesEqualTo id))
+        cmd4 = xis.listMembers
+          [XisApi.LastNameEquals id]
+          (CheckInVector << (LastNamesEqualTo id))
       in
-        if (String.length id) > 1
+        if (String.length id) > 2
         then
-          ( {sceneModel | flexId=id}
-          , getMatchingAccts id (CheckInVector << UpdateMatchingAccts)
-          )
+          ( {sceneModel | flexId=id}, Cmd.batch [cmd1, cmd2, cmd3, cmd4])
         else
-          ( {sceneModel | matches=[], flexId=id}
-          , Cmd.none
-          )
+          ( {sceneModel | userNameMatches_SW=[], lastNameMatches_SW=[], flexId=id}, Cmd.none)
 
-    UpdateMatchingAccts (Ok {target, matches}) ->
-      if target == sceneModel.flexId
-      then ({sceneModel | matches = matches, badNews = []}, Cmd.none)
+
+    UsernamesStartingWith searchedId (Ok {count, results}) ->
+      if searchedId == sceneModel.flexId && count < 20
+      then ({sceneModel | userNameMatches_SW = results, badNews = []}, Cmd.none)
       else (sceneModel, Cmd.none)
 
-    UpdateMatchingAccts (Err error) ->
-      ({sceneModel | badNews = [toString error]}, Cmd.none)
+    UsernamesEqualTo searchedId (Ok {count, results}) ->
+      if searchedId == sceneModel.flexId
+      then ({sceneModel | userNameMatches_EQ = results, badNews = []}, Cmd.none)
+      else (sceneModel, Cmd.none)
+
+    LastNamesStartingWith searchedId (Ok {count, results}) ->
+      if searchedId == sceneModel.flexId && count < 20
+      then ({sceneModel | lastNameMatches_SW = results, badNews = []}, Cmd.none)
+      else (sceneModel, Cmd.none)
+
+    LastNamesEqualTo searchedId (Ok {count, results}) ->
+      if searchedId == sceneModel.flexId
+      then ({sceneModel | lastNameMatches_EQ = results, badNews = []}, Cmd.none)
+      else (sceneModel, Cmd.none)
+
+    UpdateRecentRfidArrivals (Ok {results}) ->
+      ({sceneModel | recentRfidArrivals = List.map (.data >> .who) results}, Cmd.none)
 
     UpdateMemberNum memberNum ->
       ({sceneModel | memberNum = memberNum}, segueTo ReasonForVisit)
 
     CheckInShortcut userName memberNum ->
       ({sceneModel | flexId=userName, memberNum=memberNum}, segueTo ReasonForVisit)
+
+    ---------- ERRORS ----------
+
+    UsernamesStartingWith searchedId (Err error) ->
+      ({sceneModel | badNews = [toString error]}, Cmd.none)
+
+    UsernamesEqualTo searchedId (Err error) ->
+      ({sceneModel | badNews = [toString error]}, Cmd.none)
+
+    LastNamesStartingWith searchedId (Err error) ->
+      ({sceneModel | badNews = [toString error]}, Cmd.none)
+
+    LastNamesEqualTo searchedId (Err error) ->
+      ({sceneModel | badNews = [toString error]}, Cmd.none)
+
+    UpdateRecentRfidArrivals (Err error) ->
+      ({sceneModel | badNews = [toString error]}, Cmd.none)
 
 
 -----------------------------------------------------------------------------
@@ -133,28 +185,39 @@ update msg kioskModel =
 idxCheckInScene = mdlIdBase CheckIn
 idxFlexId = [idxCheckInScene, 1]
 
+
 view : KioskModel a -> Html Msg
 view kioskModel =
   let
     sceneModel = kioskModel.checkInModel
-    clickMsg = \acct -> CheckInVector <| UpdateMemberNum <| acct.memberNum
-    acctToChip = \acct ->
+    clickMsg = \memb -> CheckInVector <| UpdateMemberNum <| memb.id
+    acctToChip = \memb ->
       Chip.button
-        [Options.onClick (clickMsg acct)]
-        [Chip.content [] [text acct.userName]]
-
+        [Options.onClick (clickMsg memb)]
+        [Chip.content [] [text memb.data.userName]]
+    zeroIfTooLong l = if List.length l > 20 then [] else l
+    matches =
+      if String.isEmpty sceneModel.flexId then
+        sceneModel.recentRfidArrivals
+      else
+        (ListX.uniqueBy .id << List.concat)
+          [ zeroIfTooLong sceneModel.userNameMatches_SW
+          , zeroIfTooLong sceneModel.lastNameMatches_SW
+          , sceneModel.userNameMatches_EQ
+          , sceneModel.lastNameMatches_EQ
+          ]
   in genericScene kioskModel
     "Let's Get You Checked-In!"
     "Who are you?"
     ( div []
         (List.concat
           [ [sceneTextField kioskModel idxFlexId "Enter your Userid or Last Name" sceneModel.flexId (CheckInVector << UpdateFlexId), vspace 0]
-          , if List.length sceneModel.matches > 0
+          , if List.length matches > 0
              then [vspace 50, text "Tap your userid if you see it below:", vspace 20]
              else [vspace 0]
-          , List.map acctToChip sceneModel.matches
+          , List.map acctToChip matches
           , [ vspace (if List.length sceneModel.badNews > 0 then 40 else 0) ]
-          , if not (List.isEmpty sceneModel.matches)
+          , if not (List.isEmpty matches)
              then
                -- TODO: Audio tag lag can be very bad. See https://lowlag.alienbill.com/
                [audio [src "/static/members/beep-22.mp3", autoplay True] []]
@@ -179,7 +242,7 @@ tick time kioskModel =
     inc = if visible then 1 else 0
     cmd1 =
       if visible && String.isEmpty sceneModel.flexId
-        then getRecentRfidEntriesCmd kioskModel
+        then getRecentRfidArrivalsCmd kioskModel
         else Cmd.none
     cmd = if visible then cmd1 else Cmd.none
   in
@@ -195,9 +258,20 @@ tick time kioskModel =
 -- COMMANDS
 -----------------------------------------------------------------------------
 
-getRecentRfidEntriesCmd kioskModel =
-  kioskModel.membersApi.getRecentRfidEntries
-    (CheckInVector << UpdateMatchingAccts)
+getRecentRfidArrivalsCmd : KioskModel a -> Cmd Msg
+getRecentRfidArrivalsCmd kioskModel =
+  let
+    delta = 34
+    lowerBound = kioskModel.currTime - (15 * Time.minute)
+    filters =
+      [ XisApi.VEF_WhenGreaterOrEquals lowerBound
+      , XisApi.VEF_EventTypeEquals XisApi.VET_Arrival
+      , XisApi.VEF_EventMethodEquals XisApi.VEM_Rfid
+      ]
+    tagger = (CheckInVector << UpdateRecentRfidArrivals)
+  in
+    kioskModel.xisSession.listVisitEvents filters tagger
+
 
 -----------------------------------------------------------------------------
 -- STYLES
