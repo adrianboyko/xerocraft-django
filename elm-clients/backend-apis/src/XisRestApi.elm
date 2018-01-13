@@ -21,7 +21,8 @@ module XisRestApi
     , TaskPriority (..)
     , TimeBlock, TimeBlockData
     , TimeBlockType, TimeBlockTypeData
-    , VisitEvent, VisitEventData, VisitEventType(..), VisitEventReason(..), VisitEventListFilter(..)
+    , VisitEvent, VisitEventData
+    , VisitEventType(..), VisitEventReason(..), VisitEventListFilter(..), VisitEventMethod(..)
     , Work, WorkData
     , WorkNote, WorkNoteData
     , WorkListFilter (..)
@@ -1085,10 +1086,17 @@ type alias VisitEventData =
   , when : PointInTime
   , eventType : VisitEventType
   , reason: Maybe VisitEventReason
+  , method: VisitEventMethod
   }
 
 
 type alias VisitEvent = Resource VisitEventData
+
+type VisitEventMethod
+  = VEM_Rfid
+  | VEM_FrontDesk
+  | VEM_MobileApp
+  | VEM_Unknown
 
 
 type VisitEventReason
@@ -1107,14 +1115,35 @@ type VisitEventType
   | VET_Departure
 
 
+eventTypeString : VisitEventType -> String
+eventTypeString vet =
+  case vet of
+    VET_Arrival -> "A"
+    VET_Departure -> "D"
+    VET_Present -> "P"
+
+
+eventMethodString : VisitEventMethod -> String
+eventMethodString vet =
+  case vet of
+    VEM_Rfid -> "R"
+    VEM_FrontDesk -> "F"
+    VEM_MobileApp -> "M"
+    VEM_Unknown -> "U"
+
+
 type VisitEventListFilter
-  = VEF_WhenGreaterOrEqual PointInTime
+  = VEF_WhenGreaterOrEquals PointInTime
+  | VEF_EventTypeEquals VisitEventType
+  | VEF_EventMethodEquals VisitEventMethod
 
 
 visitEventListFilterToString : VisitEventListFilter -> String
 visitEventListFilterToString filter =
   case filter of
-    VEF_WhenGreaterOrEqual pit -> "when__gte=" ++ (PointInTime.isoString pit)
+    VEF_WhenGreaterOrEquals pit -> "when__gte=" ++ (PointInTime.isoString pit)
+    VEF_EventTypeEquals vet -> "event_type=" ++ eventTypeString(vet)
+    VEF_EventMethodEquals meth -> "method=" ++ eventMethodString(meth)
 
 
 listVisitEvents : XisRestFlags -> Authorization -> FilteringLister VisitEventListFilter VisitEvent msg
@@ -1139,6 +1168,7 @@ decodeVisitEventData =
     |> required "when" DRF.decodePointInTime
     |> required "event_type" decodeVisitEventType
     |> required "reason" (Dec.maybe decodeVisitEventReason)
+    |> required "method" decodeVisitEventMethod
 
 
 decodeVisitEventType : Dec.Decoder VisitEventType
@@ -1151,6 +1181,17 @@ decodeVisitEventType =
         other -> Dec.fail <| "Unknown visit event type: " ++ other
     )
 
+
+decodeVisitEventMethod : Dec.Decoder VisitEventMethod
+decodeVisitEventMethod =
+  Dec.string |> Dec.andThen
+    ( \str -> case str of
+        "F" -> Dec.succeed VEM_FrontDesk
+        "R" -> Dec.succeed VEM_Rfid
+        "M" -> Dec.succeed VEM_MobileApp
+        "U" -> Dec.succeed VEM_Unknown
+        other -> Dec.fail <| "Unknown visit event type: " ++ other
+    )
 
 decodeVisitEventReason : Dec.Decoder VisitEventReason
 decodeVisitEventReason =
