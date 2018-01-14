@@ -106,8 +106,8 @@ type CheckInMsg
   | LastNamesEqualTo String (Result Http.Error (PageOf Member))
   | UpdateRecentRfidArrivals (Result Http.Error (PageOf VisitEvent))
   | UpdateFlexId String
-  | UpdateMemberNum Int
-  | CheckInShortcut String Int -- Allows RFID reading scene to short-cut through this scene
+  | UpdateMember XisApi.Member
+  | CheckInShortcut XisApi.Member -- Allows RFID reading scene to short-cut through this scene
 
 type CheckOutMsg
   = UpdateCheckedInAccts (Result Http.Error MatchingAcctInfo)
@@ -126,8 +126,7 @@ type HowDidYouHearMsg
   | ShuffledDiscoveryMethods (List DiscoveryMethod)
 
 type MembersOnlyMsg
-  = UpdateMemberships (Result Http.Error (PageOf Membership))
-  | UpdateTimeBlocks (Result Http.Error (PageOf TimeBlock))
+  = UpdateTimeBlocks (Result Http.Error (PageOf TimeBlock))
   | UpdateTimeBlockTypes (Result Http.Error (PageOf TimeBlockType))
   | PayNowAtFrontDesk
   | SendPaymentInfo

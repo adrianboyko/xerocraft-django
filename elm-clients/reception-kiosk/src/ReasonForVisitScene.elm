@@ -11,10 +11,11 @@ import Material.Options as Options exposing (css)
 import Material.List as Lists
 
 -- Local
-import MembersApi as MembersApi exposing (ReasonForVisit(..))
+import MembersApi as MembersApi exposing (ReasonForVisit(..), GenericResult)
 import Wizard.SceneUtils exposing (..)
 import Types exposing (..)
 import CheckInScene exposing (CheckInModel)
+import DjangoRestFramework exposing (PageOf)
 
 -----------------------------------------------------------------------------
 -- INIT
@@ -64,12 +65,17 @@ update msg kioskModel =
         Just reasonForVisit ->
           let
             logArrivalEventFn = kioskModel.membersApi.logArrivalEvent
-            msg = ReasonForVisitVector << LogCheckInResult
-            visitingMemberPk = checkInModel.memberNum
-            cmd = logArrivalEventFn visitingMemberPk reasonForVisit msg
+            tagger = ReasonForVisitVector << LogCheckInResult
+            cmd = case checkInModel.checkedInMember of
+              Just m -> logArrivalEventFn m.id reasonForVisit tagger
+              Nothing ->
+                -- We shouldn't get to this scene without there being a checkedInMember.
+                -- If it actually happens, log a message and fake success to get us to next scene.
+                let _ = Debug.log "checkedInMember" Nothing
+                in GenericResult "ARBITRARY" |> Ok |> tagger |> send
           in (sceneModel, cmd)
 
-    LogCheckInResult (Ok {result}) ->
+    LogCheckInResult (Ok _) ->
       case sceneModel.reasonForVisit of
         Just Volunteer ->
           (sceneModel, segueTo TaskList)

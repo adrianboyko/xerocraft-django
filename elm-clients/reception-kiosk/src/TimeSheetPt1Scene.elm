@@ -122,10 +122,15 @@ search : KioskModel a -> (TimeSheetPt1Model, Cmd Msg)
 search kioskModel =
   let
     sceneModel = kioskModel.timeSheetPt1Model
-    checkOutModel = kioskModel.checkOutModel
-    checkInModel = kioskModel.checkInModel
-    inMembNum = checkInModel.memberNum  -- Val < 0 means "not set"
-    outMembNum = checkOutModel.checkedOutMemberNum  -- Val < 0 means "not set"
+    inMembNum =
+      case kioskModel.checkInModel.checkedInMember of
+        Just m -> m.id
+        Nothing ->
+          -- We shouldn't be able to get to this scene without a defined checkedInMember.
+          -- If it happens, we'll log a message and get through this scene by specifying a bogus id.
+          let _ = Debug.log "checkedInMember" Nothing
+          in -99  -- bogus id
+    outMembNum = kioskModel.checkOutModel.checkedOutMemberNum  -- Val < 0 means "not set"
     memberNum = max inMembNum outMembNum
     xis = kioskModel.xisSession
     cmd = xis.listClaims

@@ -135,7 +135,7 @@ update msg kioskModel =
         member = List.head results
       in
         case member of
-          Just m -> (sceneModel, CheckInShortcut m.data.userName m.id |> CheckInVector |> send)
+          Just m -> (sceneModel, CheckInShortcut m |> CheckInVector |> send)
           Nothing -> (sceneModel, Cmd.none)
 
     SS_MemberListResult (Err error) ->

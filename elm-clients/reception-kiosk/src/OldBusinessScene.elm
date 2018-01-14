@@ -70,16 +70,21 @@ sceneWillAppear kioskModel appearing vanishing =
 checkForOldBusiness : KioskModel a -> (OldBusinessModel, Cmd Msg)
 checkForOldBusiness kioskModel =
   let
-    sceneModel = kioskModel.oldBusinessModel
-    checkInModel = kioskModel.checkInModel
-    xis = kioskModel.xisSession
-    cmd = xis.listClaims
-      [ ClaimingMemberEquals checkInModel.memberNum
-      , ClaimStatusEquals WorkingClaimStatus
-      ]
-      (OldBusinessVector << OB_WorkingClaimsResult)
+    tagging = (OldBusinessVector << OB_WorkingClaimsResult)
+    cmd = case kioskModel.checkInModel.checkedInMember of
+      Just m ->
+        kioskModel.xisSession.listClaims
+          [ ClaimingMemberEquals m.id
+          , ClaimStatusEquals WorkingClaimStatus
+          ]
+          tagging
+      Nothing ->
+        -- We shouldn't get to this scene without there being a checkedInMember.
+        -- If it happens, lets log a msg and segue past the old business & timesheet scenes.
+        let _ = Debug.log "checkInMember" Nothing
+        in segueTo CheckInDone
   in
-    (sceneModel, cmd)
+    (kioskModel.oldBusinessModel, cmd)
 
 
 -----------------------------------------------------------------------------

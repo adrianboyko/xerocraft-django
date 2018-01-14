@@ -53,7 +53,6 @@ type PaymentInfoState
 type alias MembersOnlyModel =
   { nowBlock : Fetchable (Maybe TimeBlock)
   , allTypes : Fetchable (List TimeBlockType)
-  , memberships : Fetchable (List Membership)
   , paymentInfoState : PaymentInfoState
   , badNews : List String
   }
@@ -64,7 +63,6 @@ init flags =
   let sceneModel =
     { nowBlock = Pending
     , allTypes = Pending
-    , memberships = Pending
     , paymentInfoState = AskingIfMshipCurrent
     , badNews = []
     }
@@ -84,14 +82,11 @@ sceneWillAppear kioskModel appearingScene =
       -- We want to have the current time block on hand by the time MembersOnly
       -- appears, so start the fetch when ReasonForVisit appears.
       let
-        memberNum = kioskModel.checkInModel.memberNum
         xis = kioskModel.xisSession
         cmd1 = xis.listTimeBlocks (MembersOnlyVector << UpdateTimeBlocks)
-        filters = [MembershipsWithMemberIdEqualTo memberNum]
-        cmd2 = xis.listMemberships filters (MembersOnlyVector << UpdateMemberships)
-        cmd3 = xis.listTimeBlockTypes (MembersOnlyVector << UpdateTimeBlockTypes)
+        cmd2 = xis.listTimeBlockTypes (MembersOnlyVector << UpdateTimeBlockTypes)
       in
-        (sceneModel, Cmd.batch [cmd1, cmd2, cmd3])
+        (sceneModel, Cmd.batch [cmd1, cmd2])
 
     MembersOnly ->
       if (haveSomethingToSay kioskModel |> Debug.log "Something To Say: ")
@@ -111,30 +106,32 @@ haveSomethingToSay : KioskModel a -> Bool
 haveSomethingToSay kioskModel =
   let
     sceneModel = kioskModel.membersOnlyModel
+    mship = kioskModel.checkInModel.checkedInMember
+      |> Maybe.andThen (.data >> .latestNonfutureMembership)
     membersOnlyStr = "Members Only"
     xis = kioskModel.xisSession
   in
-    case (sceneModel.nowBlock, sceneModel.allTypes, sceneModel.memberships) of
+    case (sceneModel.nowBlock, sceneModel.allTypes, mship) of
 
       -- Following is the case where somebody arrives during an explicit time block.
-      (Received (Just nowBlock), Received allTypes, Received memberships) ->
+      (Received (Just nowBlock), Received allTypes, Just mship) ->
         let
           nowBlockTypes = kioskModel.xisSession.getBlocksTypes nowBlock allTypes
           isMembersOnly = List.member membersOnlyStr (List.map (.data >> .name) nowBlockTypes)
-          membershipIsCurrent = xis.coverTime memberships kioskModel.currTime
+          membershipIsCurrent = xis.coverTime [mship] kioskModel.currTime
         in
           isMembersOnly && not membershipIsCurrent
 
       -- Following is the case where we're not in any explicit time block.
       -- So use default time block type, if one has been specified.
-      (Received Nothing, Received allTypes, Received memberships) ->
+      (Received Nothing, Received allTypes, Just mship) ->
         let
-          defaultBlockType = kioskModel.xisSession.defaultBlockType allTypes
+          defaultBlockType = xis.defaultBlockType allTypes
           isMembersOnly =
             case defaultBlockType of
               Just bt -> bt.data.name == membersOnlyStr
               Nothing -> False
-          current = xis.coverTime memberships kioskModel.currTime
+          current = xis.coverTime [mship] kioskModel.currTime
         in
           isMembersOnly && not current
 
@@ -165,9 +162,6 @@ update msg kioskModel =
     UpdateTimeBlockTypes (Ok {results}) ->
       ({sceneModel | allTypes = Received results}, Cmd.none)
 
-    UpdateMemberships (Ok {results}) ->
-      ({sceneModel | memberships = Received results}, Cmd.none)
-
 
     -- FAILED FETCHES --
 
@@ -179,9 +173,6 @@ update msg kioskModel =
       let msg = toString error |> Debug.log "Error getting time block types: "
       in ({sceneModel | allTypes = Failed msg}, Cmd.none)
 
-    UpdateMemberships (Err error) ->
-      let msg = toString error |> Debug.log "Error getting memberships: "
-      in ({sceneModel | memberships = Failed msg}, Cmd.none)
 
     -- PAYMENT ACTIONS --
 
@@ -213,19 +204,25 @@ view kioskModel =
       []  -- No buttons here. They will be woven into content.
       []  -- No bad news. Scene will fail silently, but should log somewhere.
 
+
 areYouCurrentContent : KioskModel a -> Html Msg
 areYouCurrentContent kioskModel =
   let
     sceneModel = kioskModel.membersOnlyModel
     xis = kioskModel.xisSession
   in
-    case sceneModel.memberships of
+    case kioskModel.checkInModel.checkedInMember of
 
-      Received memberships ->
+      Nothing ->
+        -- We shouldn't be able to get to this scene without a defined checkedInMember.
+        -- If it happens, we'll log a message and display an error message.
+        let _ = Debug.log "checkedInMember" Nothing
+        in text "ERROR: checkedInMember not specified"
+
+      Just checkedInMember ->
         let
           however = "However, you may have made a more recent payment that we haven't yet processed."
-          mostRecent = xis.mostRecentMembership memberships
-          paymentMsg = case mostRecent of
+          paymentMsg = case checkedInMember.data.latestNonfutureMembership of
             Just mship ->
               "Our records show that your most recent membership has an expiration date of "
               ++ CalendarDate.format "%d-%b-%Y" mship.data.endDate
@@ -255,11 +252,6 @@ areYouCurrentContent kioskModel =
               , sceneButton kioskModel <| ButtonSpec "I'm Current!" (msgForSegueTo OldBusiness)
               ]
 
-      _ ->
-        let
-          errMsg = "ERROR: We shouldn't get to view func if memberships haven't been received"
-        in
-          text errMsg
 
 paymentInfoSentContent : KioskModel a -> Html Msg
 paymentInfoSentContent kioskModel =

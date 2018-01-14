@@ -108,7 +108,14 @@ update msg kioskModel =
   let
     sceneModel = kioskModel.taskListModel
     flags = kioskModel.flags
-    memberNum = kioskModel.checkInModel.memberNum
+    memberId = case kioskModel.checkInModel.checkedInMember of
+      Just m -> m.id
+      Nothing ->
+        -- We shouldn't be able to get to this scene without a defined checkedInMember.
+        -- If it happens, we'll log a message and get through this scene by specifying a bogus id.
+        -- This scene will not find any work for the bogus id and wizard will move on to the next.
+        let _ = Debug.log "checkedInMember" Nothing
+        in -99  -- bogus id
     xis = kioskModel.xisSession
 
   in case msg of
@@ -121,14 +128,14 @@ update msg kioskModel =
         otherWorkTask = List.filter otherWorkTaskTest results
 
         -- The more normal case is to offer up tasks that the user can claim:
-        memberCanClaimTest = xis.memberCanClaimTask memberNum
+        memberCanClaimTest = xis.memberCanClaimTask memberId
         claimableTasks = List.filter memberCanClaimTest results
 
         -- The offered/workable tasks are the union of claimable tasks and the "Other Work" task.
         workableTasks = claimableTasks ++ otherWorkTask
 
         -- We also want ot know which task(s) (if any) have already been claimed:
-        isCurrentClaimant = xis.memberHasStatusOnTask memberNum CurrentClaimStatus
+        isCurrentClaimant = xis.memberHasStatusOnTask memberId CurrentClaimStatus
         claimedTask = ListX.find isCurrentClaimant results
       in
         ( { sceneModel
@@ -140,7 +147,7 @@ update msg kioskModel =
 
     TL_ToggleTask toggledTask ->
       let
-        claimOnTask = xis.membersClaimOnTask memberNum toggledTask
+        claimOnTask = xis.membersClaimOnTask memberId toggledTask
       in
         ( { sceneModel
           | selectedTask = Just toggledTask
@@ -154,7 +161,7 @@ update msg kioskModel =
         Just task ->
           let
             result2Msg = TaskListVector << TL_ClaimUpsertResult
-            existingClaim = xis.membersClaimOnTask memberNum task
+            existingClaim = xis.membersClaimOnTask memberId task
             upsertCmd = case existingClaim of
 
               Just c ->
@@ -169,7 +176,7 @@ update msg kioskModel =
                       (Maybe.withDefault 0.0 task.data.workDuration)
                       (Just <| PointInTime.toClockTime kioskModel.currTime)
                       (xis.taskUrl task.id)
-                      (xis.memberUrl memberNum)
+                      (xis.memberUrl memberId)
                       (Just <| PointInTime.toCalendarDate kioskModel.currTime)
                       WorkingClaimStatus
                       []  -- REVIEW: Arbitrary because encoder ignores.

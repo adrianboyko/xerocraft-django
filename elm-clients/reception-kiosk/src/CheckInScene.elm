@@ -51,7 +51,7 @@ type alias KioskModel a =
   )
 
 
--- REVIEW: Strictly speaking, flexID and memberNum should be Maybes.
+-- REVIEW: flexID should be a Maybe?
 type alias CheckInModel =
   { flexId : String  -- UserName or surname.
   , userNameMatches_SW : List XisApi.Member  -- Matches to username
@@ -59,7 +59,7 @@ type alias CheckInModel =
   , lastNameMatches_SW : List XisApi.Member  -- Matches to surname
   , lastNameMatches_EQ : List XisApi.Member  -- Matches to surname
   , recentRfidArrivals : List XisApi.Member  -- People who have recently swiped RFID.
-  , memberNum : Int -- The member number that the person chose to check in as.
+  , checkedInMember : Maybe XisApi.Member -- The member that the person checked in as.
   , badNews : List String
   }
 
@@ -73,7 +73,7 @@ init flags =
     , lastNameMatches_SW = []
     , lastNameMatches_EQ = []
     , recentRfidArrivals = []
-    , memberNum = -99  -- A harmless initial value.
+    , checkedInMember = Nothing
     , badNews = []
     }
   in (model, Cmd.none)
@@ -154,11 +154,11 @@ update msg kioskModel =
     UpdateRecentRfidArrivals (Ok {results}) ->
       ({sceneModel | recentRfidArrivals = List.map (.data >> .who) results}, Cmd.none)
 
-    UpdateMemberNum memberNum ->
-      ({sceneModel | memberNum = memberNum}, segueTo ReasonForVisit)
+    UpdateMember member ->
+      ({sceneModel | checkedInMember=Just member}, segueTo ReasonForVisit)
 
-    CheckInShortcut userName memberNum ->
-      ({sceneModel | flexId=userName, memberNum=memberNum}, segueTo ReasonForVisit)
+    CheckInShortcut member ->
+      ({sceneModel | checkedInMember=Just member}, segueTo ReasonForVisit)
 
     ---------- ERRORS ----------
 
@@ -190,7 +190,7 @@ view : KioskModel a -> Html Msg
 view kioskModel =
   let
     sceneModel = kioskModel.checkInModel
-    clickMsg = \memb -> CheckInVector <| UpdateMemberNum <| memb.id
+    clickMsg = \memb -> CheckInVector <| UpdateMember <| memb
     acctToChip = \memb ->
       Chip.button
         [Options.onClick (clickMsg memb)]
