@@ -88,25 +88,25 @@ type alias XisRestFlags =
   }
 
 
-type alias ResultMessager rsrc msg = Result Http.Error rsrc -> msg
+type alias ResultTagger rsrc msg = Result Http.Error rsrc -> msg
 
 type alias GetterById rsrc msg =
-  Int -> ResultMessager rsrc msg -> Cmd msg
+  Int -> ResultTagger rsrc msg -> Cmd msg
 
 type alias GetterFromUrl rsrc msg =
-  ResourceUrl -> ResultMessager rsrc msg -> Cmd msg
+  ResourceUrl -> ResultTagger rsrc msg -> Cmd msg
 
 type alias Replacer rsrc msg =
-  rsrc -> ResultMessager rsrc msg -> Cmd msg
+  rsrc -> ResultTagger rsrc msg -> Cmd msg
 
 type alias Creator data rsrc msg =
-  data -> ResultMessager rsrc msg -> Cmd msg
+  data -> ResultTagger rsrc msg -> Cmd msg
 
 type alias Lister rsrc msg =
-  ResultMessager (PageOf rsrc) msg -> Cmd msg
+  ResultTagger (PageOf rsrc) msg -> Cmd msg
 
 type alias FilteringLister filter rsrc msg =
-  List filter -> ResultMessager (PageOf rsrc) msg -> Cmd msg
+  List filter -> ResultTagger (PageOf rsrc) msg -> Cmd msg
 
 
 -----------------------------------------------------------------------------
