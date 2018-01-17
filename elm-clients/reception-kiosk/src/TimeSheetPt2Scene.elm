@@ -167,7 +167,7 @@ viewNormal kioskModel task claim work =
       ]
     )
 
-    [ ButtonSpec "Continue" (TimeSheetPt2Vector <| TS2_Continue) ]
+    [ ButtonSpec "Continue" (TimeSheetPt2Vector <| TS2_Continue) True]
 
     sceneModel.badNews
 

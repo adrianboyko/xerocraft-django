@@ -79,6 +79,6 @@ view kioskModel =
       , text "Click the button below to check in now!"
       ]
     )
-    [ButtonSpec "Check In" (WizardVector <| Push <| CheckIn)]
+    [ButtonSpec "Check In" (WizardVector <| Push <| CheckIn) True]
     []  -- Never any bad news for this scene
 

@@ -163,7 +163,7 @@ view kioskModel =
         , ageChoice kioskModel
         ]
     )
-    [ButtonSpec "OK" (NewMemberVector <| Validate)]
+    [ButtonSpec "OK" (NewMemberVector <| Validate) True]
     sceneModel.badNews
 
 

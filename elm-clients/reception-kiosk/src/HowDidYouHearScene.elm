@@ -129,7 +129,7 @@ view kioskModel =
     "Just Wondering"
     "How did you hear about us?"
     (howDidYouHearChoices kioskModel)
-    [ButtonSpec "OK" (WizardVector <| Push <| NewMember)]
+    [ButtonSpec "OK" (WizardVector <| Push <| NewMember) True]
     sceneModel.badNews
 
 howDidYouHearChoices : KioskModel a -> Html Msg

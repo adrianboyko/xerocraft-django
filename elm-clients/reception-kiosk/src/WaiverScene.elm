@@ -111,11 +111,11 @@ view kioskModel =
       ]
     )
     ( if sceneModel.isSigning then
-        [ ButtonSpec "Accept" (WaiverVector <| GetSignature)
-        , ButtonSpec "Clear" (WaiverVector <| ClearSignaturePad <| "signature-pad")
+        [ ButtonSpec "Accept" (WaiverVector <| GetSignature) True
+        , ButtonSpec "Clear" (WaiverVector <| ClearSignaturePad <| "signature-pad") True
         ]
       else
-        [ ButtonSpec "Sign" (WaiverVector <| ShowSignaturePad <| "signature-pad")
+        [ ButtonSpec "Sign" (WaiverVector <| ShowSignaturePad <| "signature-pad") True
         ]
     )
     sceneModel.badNews

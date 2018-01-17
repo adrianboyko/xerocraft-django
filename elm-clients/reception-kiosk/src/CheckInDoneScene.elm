@@ -48,7 +48,7 @@ view kioskModel =
     "You're Checked In"
     "Have fun!"
     (vspace 40)
-    [ButtonSpec "Ok" (WizardVector <| Reset)]
+    [ButtonSpec "Ok" (WizardVector <| Reset) True]
     [] -- Never any bad news for this scene
 
 

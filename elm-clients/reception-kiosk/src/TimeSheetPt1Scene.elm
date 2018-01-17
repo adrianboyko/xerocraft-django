@@ -308,7 +308,7 @@ receivedAll kioskModel task claim work =
         ]
       )
 
-      [ ButtonSpec "Submit" (TimeSheetPt1Vector <| TS1_Submit claim work) ]
+      [ ButtonSpec "Submit" (TimeSheetPt1Vector <| TS1_Submit claim work) True]
 
       sceneModel.badNews
 

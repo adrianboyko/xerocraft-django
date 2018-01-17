@@ -326,7 +326,7 @@ viewNormal kioskModel task claim work =
       ]
     )
 
-    [ ButtonSpec "Verify" (TimeSheetPt3Vector <| TS3_Witnessed) ]
+    [ ButtonSpec "Verify" (TimeSheetPt3Vector <| TS3_Witnessed) True]
 
     sceneModel.badNews
 

@@ -64,7 +64,7 @@ view kioskModel =
     "You're Checked Out"
     "Have a Nice Day!"
     (vspace 40)
-    [ButtonSpec "Ok" msgForReset]
+    [ButtonSpec "Ok" msgForReset True]
     [] -- Never any bad news for this scene
 
 

@@ -82,7 +82,7 @@ view kioskModel =
         , vspace 20
         ]
       )
-      [ButtonSpec "Got It!" (msgForSegueTo OldBusiness)]
+      [ButtonSpec "Got It!" (msgForSegueTo OldBusiness) True]
       []  -- Never any bad news for this scene.
 
 
