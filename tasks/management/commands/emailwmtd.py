@@ -35,7 +35,9 @@ class Command(BaseCommand):
         html_content_template = get_template('tasks/email_wmtd_template.html')
         d = {
             'member': member,
-            'work_list': work_list,
+            'work_list': [x for x in work_list if x.work_duration is not None],
+            # TODO: Add an unfinished work section to the templates.
+            'unfinished_work_list': [x for x in work_list if x.work_duration is None],
             'total_dur': total_dur,
             'total_hrs': total_hrs,
             'next_month': next_month,
@@ -72,7 +74,7 @@ class Command(BaseCommand):
 
             if member.email == "": continue
 
-            total_wmtd = datetime.timedelta(0)
+            total_wmtd = datetime.timedelta(0)  # type: datetime.timedelta
             for work in work_list:  # type: Work
                 if work.work_duration is not None:
                     total_wmtd += work.work_duration
