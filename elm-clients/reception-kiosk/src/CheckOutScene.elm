@@ -84,7 +84,7 @@ update msg kioskModel =
         ({sceneModel | checkedOutMemberNum = memberNum}, cmd)
 
     LogCheckOutResult (Ok {result}) ->
-      (sceneModel, segueTo TimeSheetPt1)
+      (sceneModel, segueTo OldBusiness)
 
     LogCheckOutResult (Err error) ->
       ({sceneModel | badNews = [toString error]}, Cmd.none)

@@ -10,6 +10,7 @@ import Maybe.Extra as MaybeX
 import Material.Toggles as Toggles
 import Material.Options as Options
 import List.Extra as ListX
+import List.Nonempty as NonEmpty
 
 -- Local
 import Wizard.SceneUtils exposing (..)
@@ -18,6 +19,7 @@ import XisRestApi as XisApi exposing (..)
 import DjangoRestFramework exposing (idFromUrl)
 import Fetchable exposing (..)
 import CheckInScene exposing (CheckInModel)
+import CheckOutScene exposing (CheckOutModel)
 import TaskListScene exposing (TaskListModel)
 import CalendarDate as CD
 
@@ -39,6 +41,7 @@ type alias KioskModel a =
     { a
     | oldBusinessModel : OldBusinessModel
     , checkInModel : CheckInModel
+    , checkOutModel : CheckOutModel
     , taskListModel : TaskListModel
     , xisSession : XisApi.Session Msg
     }
@@ -75,7 +78,6 @@ sceneWillAppear kioskModel appearing vanishing =
   let
     sceneModel = kioskModel.oldBusinessModel
   in
-    -- This OldBusiness scene will only appear on flows from CheckIn.
     case (appearing, vanishing) of
 
       (OldBusiness, ReasonForVisit) -> checkForOldBusiness kioskModel
@@ -84,7 +86,24 @@ sceneWillAppear kioskModel appearing vanishing =
 
       (OldBusiness, TaskInfo) -> checkForOldBusiness kioskModel
 
+      (OldBusiness, CheckOut) -> checkForOldBusiness kioskModel
+
       (_, _) -> (sceneModel, Cmd.none)
+
+
+memberId : KioskModel a -> Int
+memberId kioskModel =
+  if NonEmpty.member CheckIn kioskModel.sceneStack then
+    case kioskModel.checkInModel.checkedInMember of
+      Just memb -> memb.id
+      Nothing ->
+        -- We shouldn't get to this scene without there being a checkedInMember.
+        -- If it happens, lets log a msg and return a bogus member num.
+        -- Providing a bogus member num will cause this scene to be a no-op.
+        let _ = Debug.log "checkInMember" Nothing
+        in -99
+  else
+    kioskModel.checkOutModel.checkedOutMemberNum
 
 
 checkForOldBusiness : KioskModel a -> (OldBusinessModel, Cmd Msg)
@@ -92,18 +111,11 @@ checkForOldBusiness kioskModel =
   let
     sceneModel = kioskModel.oldBusinessModel
     tagging = (OldBusinessVector << OB_WorkingClaimsResult)
-    cmd = case kioskModel.checkInModel.checkedInMember of
-      Just m ->
-        kioskModel.xisSession.listClaims
-          [ ClaimingMemberEquals m.id
-          , ClaimStatusEquals WorkingClaimStatus
-          ]
-          tagging
-      Nothing ->
-        -- We shouldn't get to this scene without there being a checkedInMember.
-        -- If it happens, lets log a msg and segue past the old business & timesheet scenes.
-        let _ = Debug.log "checkInMember" Nothing
-        in segueTo CheckInDone
+    cmd = kioskModel.xisSession.listClaims
+      [ ClaimingMemberEquals <| memberId kioskModel
+      , ClaimStatusEquals WorkingClaimStatus
+      ]
+      tagging
   in
     ({sceneModel | oldBusiness=[]}, cmd)
 
@@ -208,7 +220,13 @@ view kioskModel =
         )
         [ ButtonSpec "Finish" (msgForSegueTo TimeSheetPt1) isSelection
         , ButtonSpec "Delete" (OldBusinessVector <| OB_DeleteSelectedClaim) isSelection
-        , ButtonSpec "Skip" (msgForSegueTo CheckInDone) True
+        , let
+            nextScene =
+              -- User can only get here via CheckIn or CheckOut.
+              if NonEmpty.member CheckIn kioskModel.sceneStack
+                then CheckInDone else CheckOutDone
+          in
+            ButtonSpec "Skip" (msgForSegueTo nextScene) True
         ]
         []  -- Never any bad news for this scene.
 
