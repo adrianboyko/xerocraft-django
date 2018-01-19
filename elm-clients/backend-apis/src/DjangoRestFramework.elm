@@ -155,7 +155,7 @@ durationToPythonRepr dhms =
         hours = hms / hour |> floor |> toFloat
         ms = hms - (hours * hour)
         minutes = ms / minute |> floor |> toFloat
-        seconds = ms - (minutes * minute)
+        seconds = floor (ms - (minutes * minute))
         pad = toString >> (String.padLeft 2 '0')
     in
         (toString days) ++ " " ++ (pad hours) ++ ":" ++ (pad minutes) ++ ":" ++ (pad seconds)
