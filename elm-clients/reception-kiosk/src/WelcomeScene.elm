@@ -48,12 +48,12 @@ view kioskModel =
       [ vspace 50
       , text "If you've never signed up here or on our website:"
       , vspace 20
-      , sceneButton kioskModel <| ButtonSpec "I'm new!" (WizardVector <| Push <| HowDidYouHear)
+      , sceneButton kioskModel <| ButtonSpec "I'm new!" (WizardVector <| Push <| HowDidYouHear) True
       , vspace 70
       , text "If you've already signed up here or on our website:"
       , vspace 20
-      , sceneButton kioskModel <| ButtonSpec "Check In" (WizardVector <| Push <| CheckIn)
-      , sceneButton kioskModel <| ButtonSpec "Check Out" (WizardVector <| Push <| CheckOut)
+      , sceneButton kioskModel <| ButtonSpec "Check In" (WizardVector <| Push <| CheckIn) True
+      , sceneButton kioskModel <| ButtonSpec "Check Out" (WizardVector <| Push <| CheckOut) True
       , vspace 150
       , img [src "/static/members/cactuses.png", bottomImgStyle] []
       ]

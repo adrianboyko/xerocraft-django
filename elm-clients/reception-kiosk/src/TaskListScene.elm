@@ -37,6 +37,8 @@ import PointInTime exposing (PointInTime)
 
 staffingStatus_STAFFED = "S"  -- As defined in Django backend.
 taskPriority_HIGH = "H"  -- As defined in Django backend.
+idxTaskListScene = mdlIdBase TaskList
+
 
 -----------------------------------------------------------------------------
 -- INIT
@@ -221,9 +223,6 @@ update msg kioskModel =
 -- VIEW
 -----------------------------------------------------------------------------
 
-idxTaskListScene = mdlIdBase TaskList
-
-
 view : KioskModel a -> Html Msg
 view kioskModel =
   let sceneModel = kioskModel.taskListModel
@@ -256,7 +255,7 @@ errorView kioskModel err =
       "Choose a Task"
       "Please see a staff member"
       (text "")
-      [ ButtonSpec "OK" (msgForSegueTo OldBusiness) ]
+      [ ButtonSpec "OK" (msgForSegueTo OldBusiness) True]
       [err]
 
 
@@ -269,7 +268,7 @@ chooseView kioskModel tasks =
       "Choose a Task"
       "Here are some you can work"
       ( taskChoices kioskModel tasks)
-      [ ButtonSpec "OK" (TaskListVector <| TL_ValidateTaskChoice) ]
+      [ ButtonSpec "OK" (TaskListVector <| TL_ValidateTaskChoice) True]
       sceneModel.badNews
 
 

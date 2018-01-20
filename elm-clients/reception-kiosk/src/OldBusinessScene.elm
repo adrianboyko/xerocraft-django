@@ -1,12 +1,24 @@
 
-module OldBusinessScene exposing (init, sceneWillAppear, update, view, OldBusinessModel)
+module OldBusinessScene exposing
+  ( init
+  , sceneWillAppear
+  , update
+  , view
+  , OldBusinessModel
+  , OldBusinessItem
+  )
 
 -- Standard
-import Html exposing (Html, div, text, img, br)
+import Html exposing (Html, div, text, span)
 import Html.Attributes exposing (src, width, style)
 
 -- Third Party
 import Maybe.Extra as MaybeX
+import Material.Toggles as Toggles
+import Material.Options as Options
+import List.Extra as ListX
+import List.Nonempty as NonEmpty
+import Update.Extra as UpdateX exposing (addCmd)
 
 -- Local
 import Wizard.SceneUtils exposing (..)
@@ -15,7 +27,17 @@ import XisRestApi as XisApi exposing (..)
 import DjangoRestFramework exposing (idFromUrl)
 import Fetchable exposing (..)
 import CheckInScene exposing (CheckInModel)
+import CheckOutScene exposing (CheckOutModel)
 import TaskListScene exposing (TaskListModel)
+import CalendarDate as CD
+
+
+-----------------------------------------------------------------------------
+-- CONSTANTS
+-----------------------------------------------------------------------------
+
+idxOldBusinessScene = mdlIdBase OldBusiness
+
 
 -----------------------------------------------------------------------------
 -- INIT
@@ -27,20 +49,30 @@ type alias KioskModel a =
     { a
     | oldBusinessModel : OldBusinessModel
     , checkInModel : CheckInModel
+    , checkOutModel : CheckOutModel
     , taskListModel : TaskListModel
     , xisSession : XisApi.Session Msg
     }
   )
 
 
+type alias OldBusinessItem =
+  { task: XisApi.Task
+  , claim: XisApi.Claim
+  , work: XisApi.Work  -- If they're not working it, it's not old/unfinished business.
+  }
+
+
 type alias OldBusinessModel =
-  { oldOpenClaims : Fetchable (List XisApi.Claim)
+  { oldBusiness : List OldBusinessItem
+  , selectedItem : Maybe OldBusinessItem
   }
 
 
 init : Flags -> (OldBusinessModel, Cmd Msg)
 init flags =
-  ( { oldOpenClaims = Pending
+  ( { oldBusiness = []
+    , selectedItem = Nothing
     }
   , Cmd.none
   )
@@ -55,36 +87,53 @@ sceneWillAppear kioskModel appearing vanishing =
   let
     sceneModel = kioskModel.oldBusinessModel
   in
-    -- This OldBusiness scene will only appear on flows from CheckIn.
     case (appearing, vanishing) of
 
-      (OldBusiness, ReasonForVisit) -> checkForOldBusiness kioskModel
+      -- Arriving at scene after looping back from a COMPLETED Timesheet sequence.
+      -- Trim out the loop since we don't want user to be able to go forward through it again.
+      (OldBusiness, TimeSheetPt3) ->
+        let
+          onStack x = NonEmpty.member x kioskModel.sceneStack
+          popCmd = rebaseTo OldBusiness
+        in
+          checkForOldBusiness kioskModel |> addCmd popCmd
 
-      (OldBusiness, MembersOnly) -> checkForOldBusiness kioskModel
+      -- Arriving at scene in forward direction or reverse direction WITHOUT a completed Timesheet.
+      (OldBusiness, _) ->
+        checkForOldBusiness kioskModel
 
-      (OldBusiness, TaskInfo) -> checkForOldBusiness kioskModel
+      -- Ignore all others.
+      (_, _) ->
+        (sceneModel, Cmd.none)
 
-      (_, _) -> (sceneModel, Cmd.none)
+
+memberId : KioskModel a -> Int
+memberId kioskModel =
+  if NonEmpty.member CheckIn kioskModel.sceneStack then
+    case kioskModel.checkInModel.checkedInMember of
+      Just memb -> memb.id
+      Nothing ->
+        -- We shouldn't get to this scene without there being a checkedInMember.
+        -- If it happens, lets log a msg and return a bogus member num.
+        -- Providing a bogus member num will cause this scene to be a no-op.
+        let _ = Debug.log "checkInMember" Nothing
+        in -99
+  else
+    kioskModel.checkOutModel.checkedOutMemberNum
 
 
 checkForOldBusiness : KioskModel a -> (OldBusinessModel, Cmd Msg)
 checkForOldBusiness kioskModel =
   let
+    sceneModel = kioskModel.oldBusinessModel
     tagging = (OldBusinessVector << OB_WorkingClaimsResult)
-    cmd = case kioskModel.checkInModel.checkedInMember of
-      Just m ->
-        kioskModel.xisSession.listClaims
-          [ ClaimingMemberEquals m.id
-          , ClaimStatusEquals WorkingClaimStatus
-          ]
-          tagging
-      Nothing ->
-        -- We shouldn't get to this scene without there being a checkedInMember.
-        -- If it happens, lets log a msg and segue past the old business & timesheet scenes.
-        let _ = Debug.log "checkInMember" Nothing
-        in segueTo CheckInDone
+    cmd = kioskModel.xisSession.listClaims
+      [ ClaimingMemberEquals <| memberId kioskModel
+      , ClaimStatusEquals WorkingClaimStatus
+      ]
+      tagging
   in
-    (kioskModel.oldBusinessModel, cmd)
+    ({sceneModel | oldBusiness=[]}, cmd)
 
 
 -----------------------------------------------------------------------------
@@ -100,21 +149,72 @@ update msg kioskModel =
   in
     case msg of
 
+      -- This case starts the lookup of tasks corresponding to the open claims.
       OB_WorkingClaimsResult (Ok {results}) ->
         let
-          filteredResults = filterSelectedTask kioskModel results
+          claims = filterSelectedTask kioskModel results
+          tagger c = OldBusinessVector << (OB_NoteRelatedTask c)
+          getTaskCmd c = xis.getTaskFromUrl c.data.claimedTask (tagger c)
+          getTaskCmds = List.map getTaskCmd claims
         in
-          if List.isEmpty filteredResults then
-            (sceneModel, segueTo CheckInDone)
+          if List.isEmpty claims then
+            (sceneModel, segueTo (nextScene kioskModel))
           else
-            ({sceneModel | oldOpenClaims = Received filteredResults}, Cmd.none)
+            (sceneModel, Cmd.batch getTaskCmds)
+
+      -- This case starts the lookup of works corresponding to the open claims.
+      OB_NoteRelatedTask claim (Ok task) ->
+        let
+          tagger = OldBusinessVector << OB_NoteRelatedWork task claim
+          getWorkCmd resUrl = xis.getWorkFromUrl resUrl tagger
+          getWorkCmds = List.map getWorkCmd claim.data.workSet
+        in
+          if List.isEmpty getWorkCmds then
+            (sceneModel, segueTo (nextScene kioskModel))
+          else
+            (sceneModel, Cmd.batch getWorkCmds)
+
+      -- We're only interested in claims that have an associated work record.
+      -- And that work record should have blank duration.
+      OB_NoteRelatedWork task claim (Ok work) ->
+        let
+          newOldBusiness = (OldBusinessItem task claim work) :: sceneModel.oldBusiness
+          newSceneModel = case work.data.workDuration of
+            Nothing -> {sceneModel | oldBusiness=newOldBusiness}
+            Just _ -> sceneModel
+        in
+          (newSceneModel, Cmd.none)
+
+      OB_DeleteSelectedClaim ->
+        (sceneModel, Cmd.none)
+
+      OB_ToggleItem claimId ->
+        let
+          finder item = item.claim.id == claimId
+          item = ListX.find finder sceneModel.oldBusiness
+        in
+          case item of
+            Nothing ->
+              (sceneModel, Cmd.none)
+            Just i ->
+              ({sceneModel | selectedItem = Just i}, Cmd.none)
+
+      ----------------------------------
 
       OB_WorkingClaimsResult (Err error) ->
         -- It's not a show stopper if this fails. Just log and move on to next scene.
-        let
-          _ = Debug.log (toString error)
-        in
-          (sceneModel, segueTo CheckInDone)
+        let _ = Debug.log (toString error)
+        in (sceneModel, segueTo (nextScene kioskModel))
+
+      OB_NoteRelatedTask claim (Err error) ->
+        -- It's not a show stopper if this fails. Just log and move on to next scene.
+        let _ = Debug.log (toString error)
+        in (sceneModel, segueTo (nextScene kioskModel))
+
+      OB_NoteRelatedWork task claim (Err error) ->
+        -- It's not a show stopper if this fails. Just log and move on to next scene.
+        let _ = Debug.log (toString error)
+        in (sceneModel, segueTo (nextScene kioskModel))
 
 
 -- The user might have just selected a task to work.
@@ -136,56 +236,103 @@ view : KioskModel a -> Html Msg
 view kioskModel =
   let
     sceneModel = kioskModel.oldBusinessModel
+    isSelection = MaybeX.isJust sceneModel.selectedItem
   in
-    case sceneModel.oldOpenClaims of
-
-      Received results ->
-        let (taskPhrase, sheetPhrase) = phrases results
-        in
-          genericScene kioskModel
-          "Unfinished Business"
-          ""
-          (div [sceneTextStyle]
-            [ vspace 50
-            , text ("You previously started " ++ taskPhrase ++ " but")
-            , vspace 0
-            , text ("didn't complete " ++ sheetPhrase)
-            , vspace 0
-            , text "Let's do that now so you receive credit!"
-            , vspace 20
-            ]
-          )
-          [ ButtonSpec "OK!" (msgForSegueTo TimeSheetPt1)
-          , ButtonSpec "Skip" (msgForSegueTo CheckInDone)
+    if List.isEmpty sceneModel.oldBusiness then
+      blankGenericScene kioskModel
+    else
+      let tPhrase = taskPhrase sceneModel.oldBusiness
+      in
+        genericScene kioskModel
+        ("You Have " ++ tPhrase ++ " In Progress!")
+        "Let's Review Them"
+        (div [sceneTextStyle] 
+          [ vspace 25
+          , text ("Select any that is already completed")
+          , vspace 0
+          , text "and then click 'FINISH' to fill in a timesheet"
+          , vspace 0
+          , text "or 'DELETE' if it was not actually worked."
+          , vspace 20
+          , oldBusinessChoices kioskModel sceneModel.oldBusiness
           ]
-          []  -- Never any bad news for this scene.
+        )
+        [ ButtonSpec "Finish" (msgForSegueTo TimeSheetPt1) isSelection
+        , ButtonSpec "Delete" (OldBusinessVector <| OB_DeleteSelectedClaim) isSelection
+        , ButtonSpec "Skip" (msgForSegueTo (nextScene kioskModel)) True
+        ]
+        []  -- Never any bad news for this scene.
 
-      _ ->
-        blankGenericScene kioskModel
 
-phrases : List XisApi.Claim -> (String, String)
-phrases claims =
+oldBusinessChoices : KioskModel a -> List OldBusinessItem -> Html Msg
+oldBusinessChoices kioskModel business =
   let
-    n = List.length claims
+    sceneModel = kioskModel.oldBusinessModel
+  in
+    div [businessListStyle]
+      (List.indexedMap
+        (\index item ->
+          div [businessDivStyle "#dddddd"]
+            [ Toggles.radio MdlVector [idxOldBusinessScene, index] kioskModel.mdl
+              [ Toggles.value
+                (case sceneModel.selectedItem of
+                  Nothing -> False
+                  Just i -> i == item
+                )
+              , Options.onToggle (OldBusinessVector <| OB_ToggleItem <| item.claim.id)
+              ]
+              [viewOldBusinessItem item]
+            ]
+        )
+        business
+      )
+
+viewOldBusinessItem : OldBusinessItem -> Html Msg
+viewOldBusinessItem {task, claim} =
+  let
+    tDesc = task.data.shortDesc
+    tDate = CD.format "%a %b %ddd" task.data.scheduledDate |> CD.superOrdinals
+  in
+    span [] [text <| tDesc ++ ", ", tDate]
+
+
+taskPhrase : List a -> String
+taskPhrase l =
+  let
+    n = List.length l
     nStr = toString n
   in
-    if n > 1 then
-      (nStr ++ " tasks", "timesheets for them.")
-    else
-      (nStr ++ " task", "a timesheet for it.")
+    nStr ++ if n>1 then " Tasks" else " Task"
 
 
 -----------------------------------------------------------------------------
 -- SUBSCRIPTIONS
 -----------------------------------------------------------------------------
 
+-----------------------------------------------------------------------------
+-- UTILITIEs
+-----------------------------------------------------------------------------
+
+nextScene : KioskModel a -> Scene
+nextScene kioskModel =
+  -- User can only get here via CheckIn or CheckOut.
+  if NonEmpty.member CheckIn kioskModel.sceneStack
+    then CheckInDone else CheckOutDone
 
 -----------------------------------------------------------------------------
 -- STYLES
 -----------------------------------------------------------------------------
 
-bottomImgStyle = style
-  [ "text-align" => "center"
-  , "padding-left" => "30px"
-  , "padding-right" => "0"
+businessListStyle = style
+  [ "width" => "500px"
+  , "margin-left" => "auto"
+  , "margin-right" => "auto"
+  , "text-align" => "left"
+  ]
+
+businessDivStyle color = style
+  [ "background-color" => color
+  , "padding" => "10px"
+  , "margin" => "15px"
+  , "border-radius" => "20px"
   ]

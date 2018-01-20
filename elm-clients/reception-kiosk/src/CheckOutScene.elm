@@ -84,7 +84,7 @@ update msg kioskModel =
         ({sceneModel | checkedOutMemberNum = memberNum}, cmd)
 
     LogCheckOutResult (Ok {result}) ->
-      (sceneModel, segueTo TimeSheetPt1)
+      (sceneModel, segueTo OldBusiness)
 
     LogCheckOutResult (Err error) ->
       ({sceneModel | badNews = [toString error]}, Cmd.none)
@@ -104,8 +104,8 @@ view kioskModel =
 
   in
     genericScene kioskModel
-      "Hope You Had Fun!"
-      "Tap your userid, below:"
+      "Checking Out"
+      "Tap Your Userid, Below"
       ( div []
           ( List.concat
               [ List.map acct2chip sceneModel.checkedInAccts

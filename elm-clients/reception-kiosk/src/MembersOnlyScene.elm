@@ -240,16 +240,16 @@ areYouCurrentContent kioskModel =
               , vspace 20
                 -- TODO: Should display other options for Work Traders.
                 -- TODO: Payment options should come from a single source on the backend.
-              , sceneButton kioskModel (ButtonSpec "Send Me Payment Info" (MembersOnlyVector <| SendPaymentInfo))
+              , sceneButton kioskModel (ButtonSpec "Send Me Payment Info" (MembersOnlyVector <| SendPaymentInfo) True)
               , vspace 20
-              , sceneButton kioskModel (ButtonSpec "Pay Now at Front Desk" (MembersOnlyVector <| PayNowAtFrontDesk))
+              , sceneButton kioskModel (ButtonSpec "Pay Now at Front Desk" (MembersOnlyVector <| PayNowAtFrontDesk) True)
                 -- TODO: If visitor is a keyholder, offer them 1day for $10
               , vspace 40
               , text "If your membership is current, thanks!"
               , vspace 0
               , text "Just click below."
               , vspace 20
-              , sceneButton kioskModel <| ButtonSpec "I'm Current!" (msgForSegueTo OldBusiness)
+              , sceneButton kioskModel <| ButtonSpec "I'm Current!" (msgForSegueTo OldBusiness) True
               ]
 
 
@@ -268,7 +268,7 @@ paymentInfoSentContent kioskModel =
       , vspace 0
       , text "\"Supporting Members Only\" session."
       , vspace 40
-      , sceneButton kioskModel <| ButtonSpec "OK" (msgForSegueTo OldBusiness)
+      , sceneButton kioskModel <| ButtonSpec "OK" (msgForSegueTo OldBusiness) True
       ]
 
 howToPayNowContent : KioskModel a -> Html Msg
@@ -286,7 +286,7 @@ howToPayNowContent kioskModel =
       , vspace 0
       , text "Thanks!"
       , vspace 60
-      , sceneButton kioskModel <| ButtonSpec "OK" (msgForSegueTo OldBusiness)
+      , sceneButton kioskModel <| ButtonSpec "OK" (msgForSegueTo OldBusiness) True
       ]
 
 

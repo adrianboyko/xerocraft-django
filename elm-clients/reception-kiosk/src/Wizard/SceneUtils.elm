@@ -1,38 +1,39 @@
 port module Wizard.SceneUtils exposing
-  ( SceneUtilModel
-  , sceneWidth
-  , sceneHeight
-  , px
-  , pt
-  , genericScene
+  ( ButtonSpec
+  , SceneUtilModel
+  -------------------
   , blankGenericScene
-  , sceneButton
-  , ButtonSpec
-  , sceneEmailField
-  , scenePasswordField
-  , sceneTextField
-  , sceneTextArea
-  , sceneTextStyle
-  , sceneTextBlockStyle
-  , userIdStyle
-  , vspace
-  , hspace
-  , (=>)
-  , hideKeyboard
-  , sceneIsVisible
   , currentScene
-  , redSpan
-  , textAreaColor
   , focusOnIndex
-  , option_NoTabIndex
-  --------------------
-  , send
-  , segueTo
+  , genericScene
+  , hideKeyboard
+  , hspace
+  , msgForReset
   , msgForSegueTo
+  , option_NoTabIndex
   , rebase
   , rebaseTo
+  , px
   , pop
-  , msgForReset
+  , popTo
+  , pt
+  , replaceWith
+  , sceneHeight
+  , sceneWidth
+  , sceneButton
+  , sceneEmailField
+  , sceneIsVisible
+  , scenePasswordField
+  , sceneTextArea
+  , sceneTextBlockStyle
+  , sceneTextField
+  , sceneTextStyle
+  , segueTo
+  , send
+  , textAreaColor
+  , userIdStyle
+  , vspace
+  , (=>)
   )
 
 -- Standard
@@ -88,6 +89,12 @@ focusOnIndex idx =
 
 pop : Cmd Msg
 pop = send (WizardVector <| Pop)
+
+popTo : Scene -> Cmd Msg
+popTo = send << WizardVector << PopTo
+
+replaceWith : Scene -> Cmd Msg
+replaceWith = send << WizardVector << ReplaceWith
 
 rebaseTo : Scene -> Cmd Msg
 rebaseTo = send << WizardVector << RebaseTo
@@ -175,13 +182,14 @@ blankGenericScene model =
   genericScene model "" "" (text "") [] []
 
 
-type alias ButtonSpec msg = { title : String, msg: msg }
+type alias ButtonSpec msg = { title : String, msg: msg, enabled: Bool }
 sceneButton : SceneUtilModel a -> ButtonSpec Msg -> Html Msg
 sceneButton model buttonSpec =
   Button.render MdlVector [0] model.mdl  -- REVIEW: Index 0 is ok because buttons don't have state?
     ( [ Button.raised
       , Button.colored
       , Options.onClick buttonSpec.msg
+      , Options.disabled (not buttonSpec.enabled)
       , option_NoTabIndex
       ]
       ++sceneButtonCss

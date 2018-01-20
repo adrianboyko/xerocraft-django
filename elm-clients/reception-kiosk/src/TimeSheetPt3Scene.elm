@@ -93,8 +93,8 @@ sceneWillAppear kioskModel appearing vanishing =
     case (appearing, vanishing) of
 
       (TimeSheetPt3, _) ->
-        case (pt1Model.taskInProgress, pt1Model.claimInProgress, pt1Model.workInProgress) of
-          (Received task, Received (Just claim), Received (Just work)) ->
+        case (pt1Model.oldBusinessItem) of
+          Just {task, claim, work} ->
             let records = Just (task, claim, work)
             in ({sceneModel | records=records}, focusOnIndex idxWitnessUsername)
           _ ->
@@ -222,13 +222,13 @@ update msg kioskModel =
               kioskModel.currTime
             cmd = if String.length pt2Model.otherWorkDesc > 0
               then xis.createWorkNote noteData (TimeSheetPt3Vector << TS3_WorkNoteCreated)
-              else segueTo TimeSheetPt1
+              else (popTo OldBusiness)
           in
             ({sceneModel | badNews=[]}, cmd)
 
     TS3_WorkNoteCreated (Ok note) ->
       -- Everything worked. Scene is complete.
-      (sceneModel, segueTo TimeSheetPt1)
+      (sceneModel, popTo OldBusiness)
 
     -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
@@ -326,7 +326,7 @@ viewNormal kioskModel task claim work =
       ]
     )
 
-    [ ButtonSpec "Verify" (TimeSheetPt3Vector <| TS3_Witnessed) ]
+    [ ButtonSpec "Verify" (TimeSheetPt3Vector <| TS3_Witnessed) True]
 
     sceneModel.badNews
 

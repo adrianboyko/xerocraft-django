@@ -62,13 +62,13 @@ view kioskModel =
         , br [] []
         , text "please remember it and use it to:"
         , vspace 20
-        , sceneButton kioskModel <| ButtonSpec "Check In" (WizardVector <| Push <| CheckIn)
+        , sceneButton kioskModel <| ButtonSpec "Check In" (WizardVector <| Push <| CheckIn) True
         , vspace 50
         , text "If you don't recognize any of them"
         , br [] []
         , text "please speak to a staff member."
         , vspace 20
-        , sceneButton kioskModel <| ButtonSpec "Ok" (WizardVector <| Reset)
+        , sceneButton kioskModel <| ButtonSpec "Ok" (WizardVector <| Reset) True
         ]
       )
     )

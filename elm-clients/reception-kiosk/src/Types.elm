@@ -148,6 +148,10 @@ type NewUserMsg
 
 type OldBusinessMsg
   = OB_WorkingClaimsResult (Result Http.Error (PageOf XisApi.Claim))
+  | OB_DeleteSelectedClaim
+  | OB_NoteRelatedTask XisApi.Claim (Result Http.Error XisApi.Task)
+  | OB_NoteRelatedWork XisApi.Task XisApi.Claim (Result Http.Error XisApi.Work)
+  | OB_ToggleItem Int
 
 type ReasonForVisitMsg
   = UpdateReasonForVisit ReasonForVisit
@@ -167,10 +171,7 @@ type TaskListMsg
   | TL_WorkInsertResult (Result Http.Error XisApi.Work)
 
 type TimeSheetPt1Msg
-  = TS1_WorkingClaimsResult (Result Http.Error (PageOf XisApi.Claim))
-  | TS1_WorkingTaskResult (Result Http.Error XisApi.Task)
-  | TS1_WipResult (Result Http.Error (PageOf XisApi.Work))
-  | TS1_Submit XisApi.Claim XisApi.Work
+  = TS1_Submit XisApi.Task XisApi.Claim XisApi.Work
   | TS1_UpdateDuration String
   | TS1_UpdateTimeStarted String
 
@@ -217,8 +218,10 @@ type Msg
 type WizardMsg
   = Push Scene
   | Rebase  -- Removes everything on stack under top scene.
-  | Pop
   | RebaseTo Scene  -- Like Rebase but only removes scenes under top scene down to specified scene (exclusive).
+  | Pop
+  | PopTo Scene -- Removes everything on the stack above the specified scene.
+  | ReplaceWith Scene  -- REPLACES the current top.
   | Reset
   | SceneWillAppear Scene Scene  -- Appearing scene, Vanishing scene
   | Tick Time

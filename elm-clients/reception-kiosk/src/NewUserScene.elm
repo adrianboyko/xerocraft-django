@@ -172,5 +172,5 @@ view kioskModel =
         , vspace 30
         ]
     )
-    [ButtonSpec "OK" (NewUserVector ValidateUserNameAndPw)]
+    [ButtonSpec "OK" (NewUserVector ValidateUserNameAndPw) True]
     sceneModel.badNews

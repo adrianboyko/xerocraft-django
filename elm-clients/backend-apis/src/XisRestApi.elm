@@ -88,25 +88,25 @@ type alias XisRestFlags =
   }
 
 
-type alias ResultMessager rsrc msg = Result Http.Error rsrc -> msg
+type alias ResultTagger rsrc msg = Result Http.Error rsrc -> msg
 
 type alias GetterById rsrc msg =
-  Int -> ResultMessager rsrc msg -> Cmd msg
+  Int -> ResultTagger rsrc msg -> Cmd msg
 
 type alias GetterFromUrl rsrc msg =
-  ResourceUrl -> ResultMessager rsrc msg -> Cmd msg
+  ResourceUrl -> ResultTagger rsrc msg -> Cmd msg
 
 type alias Replacer rsrc msg =
-  rsrc -> ResultMessager rsrc msg -> Cmd msg
+  rsrc -> ResultTagger rsrc msg -> Cmd msg
 
 type alias Creator data rsrc msg =
-  data -> ResultMessager rsrc msg -> Cmd msg
+  data -> ResultTagger rsrc msg -> Cmd msg
 
 type alias Lister rsrc msg =
-  ResultMessager (PageOf rsrc) msg -> Cmd msg
+  ResultTagger (PageOf rsrc) msg -> Cmd msg
 
 type alias FilteringLister filter rsrc msg =
-  List filter -> ResultMessager (PageOf rsrc) msg -> Cmd msg
+  List filter -> ResultTagger (PageOf rsrc) msg -> Cmd msg
 
 
 -----------------------------------------------------------------------------
@@ -124,6 +124,7 @@ type alias Session msg =
   { getMembershipById : GetterById Membership msg
   , getTaskById : GetterById Task msg
   , getTaskFromUrl : GetterFromUrl Task msg
+  , getWorkFromUrl : GetterFromUrl Work msg
 
   ----- RESOURCE CREATORS -----
   , createClaim : Creator ClaimData Claim msg
@@ -172,6 +173,7 @@ createSession flags auth =
   { getMembershipById = getMembershipById flags auth
   , getTaskById = getTaskById flags auth
   , getTaskFromUrl = getTaskFromUrl flags auth
+  , getWorkFromUrl = getWorkFromUrl flags auth
 
   ----- RESOURCE CREATORS -----
   , createClaim = createClaim flags auth
@@ -648,6 +650,12 @@ listWorks flags auth  filters resultToMsg =
   in
     Http.send resultToMsg request
 
+getWorkFromUrl : XisRestFlags -> Authorization -> GetterFromUrl Work msg
+getWorkFromUrl flags auth url resultToMsg =
+  let
+    request = httpGetRequest auth url decodeWork
+  in
+    Http.send resultToMsg request
 
 createWork : XisRestFlags -> Authorization -> Creator WorkData Work msg
 createWork flags auth workData resultToMsg =
@@ -994,10 +1002,7 @@ getMembershipById flags auth memberNum resultToMsg =
 getMembershipFromUrl : XisRestFlags -> Authorization -> GetterFromUrl Membership msg
 getMembershipFromUrl flags auth url resultToMsg =
   let
-    request = httpGetRequest
-      auth
-      url
-      decodeMembership
+    request = httpGetRequest auth url decodeMembership
   in
     Http.send resultToMsg request
 

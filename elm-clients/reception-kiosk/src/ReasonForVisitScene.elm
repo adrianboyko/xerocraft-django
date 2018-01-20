@@ -120,7 +120,7 @@ view kioskModel =
            ]
         ]
     )
-    [ButtonSpec "OK" (ReasonForVisitVector <| ValidateReason)]
+    [ButtonSpec "OK" (ReasonForVisitVector <| ValidateReason) True]
     sceneModel.badNews
 
 makeActivityList : KioskModel a -> List ReasonForVisit -> Html Msg
