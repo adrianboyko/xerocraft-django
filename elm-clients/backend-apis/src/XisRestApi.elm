@@ -124,6 +124,7 @@ type alias Session msg =
   { getMembershipById : GetterById Membership msg
   , getTaskById : GetterById Task msg
   , getTaskFromUrl : GetterFromUrl Task msg
+  , getWorkFromUrl : GetterFromUrl Work msg
 
   ----- RESOURCE CREATORS -----
   , createClaim : Creator ClaimData Claim msg
@@ -172,6 +173,7 @@ createSession flags auth =
   { getMembershipById = getMembershipById flags auth
   , getTaskById = getTaskById flags auth
   , getTaskFromUrl = getTaskFromUrl flags auth
+  , getWorkFromUrl = getWorkFromUrl flags auth
 
   ----- RESOURCE CREATORS -----
   , createClaim = createClaim flags auth
@@ -648,6 +650,12 @@ listWorks flags auth  filters resultToMsg =
   in
     Http.send resultToMsg request
 
+getWorkFromUrl : XisRestFlags -> Authorization -> GetterFromUrl Work msg
+getWorkFromUrl flags auth url resultToMsg =
+  let
+    request = httpGetRequest auth url decodeWork
+  in
+    Http.send resultToMsg request
 
 createWork : XisRestFlags -> Authorization -> Creator WorkData Work msg
 createWork flags auth workData resultToMsg =
@@ -994,10 +1002,7 @@ getMembershipById flags auth memberNum resultToMsg =
 getMembershipFromUrl : XisRestFlags -> Authorization -> GetterFromUrl Membership msg
 getMembershipFromUrl flags auth url resultToMsg =
   let
-    request = httpGetRequest
-      auth
-      url
-      decodeMembership
+    request = httpGetRequest auth url decodeMembership
   in
     Http.send resultToMsg request
 
