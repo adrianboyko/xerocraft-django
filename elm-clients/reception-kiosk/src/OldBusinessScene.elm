@@ -1,5 +1,12 @@
 
-module OldBusinessScene exposing (init, sceneWillAppear, update, view, OldBusinessModel)
+module OldBusinessScene exposing
+  ( init
+  , sceneWillAppear
+  , update
+  , view
+  , OldBusinessModel
+  , OldBusinessItem
+  )
 
 -- Standard
 import Html exposing (Html, div, text, span)
@@ -11,6 +18,7 @@ import Material.Toggles as Toggles
 import Material.Options as Options
 import List.Extra as ListX
 import List.Nonempty as NonEmpty
+import Update.Extra as UpdateX exposing (addCmd)
 
 -- Local
 import Wizard.SceneUtils exposing (..)
@@ -51,6 +59,7 @@ type alias KioskModel a =
 type alias OldBusinessItem =
   { task: XisApi.Task
   , claim: XisApi.Claim
+  , work: XisApi.Work  -- If they're not working it, it's not old/unfinished business.
   }
 
 
@@ -80,15 +89,22 @@ sceneWillAppear kioskModel appearing vanishing =
   in
     case (appearing, vanishing) of
 
-      (OldBusiness, ReasonForVisit) -> checkForOldBusiness kioskModel
+      -- Arriving at scene after looping back from a COMPLETED Timesheet sequence.
+      -- Trim out the loop since we don't want user to be able to go forward through it again.
+      (OldBusiness, TimeSheetPt3) ->
+        let
+          onStack x = NonEmpty.member x kioskModel.sceneStack
+          popCmd = rebaseTo OldBusiness
+        in
+          checkForOldBusiness kioskModel |> addCmd popCmd
 
-      (OldBusiness, MembersOnly) -> checkForOldBusiness kioskModel
+      -- Arriving at scene in forward direction or reverse direction WITHOUT a completed Timesheet.
+      (OldBusiness, _) ->
+        checkForOldBusiness kioskModel
 
-      (OldBusiness, TaskInfo) -> checkForOldBusiness kioskModel
-
-      (OldBusiness, CheckOut) -> checkForOldBusiness kioskModel
-
-      (_, _) -> (sceneModel, Cmd.none)
+      -- Ignore all others.
+      (_, _) ->
+        (sceneModel, Cmd.none)
 
 
 memberId : KioskModel a -> Int
@@ -142,30 +158,35 @@ update msg kioskModel =
           getTaskCmds = List.map getTaskCmd claims
         in
           if List.isEmpty claims then
-            (sceneModel, segueTo CheckInDone)
+            (sceneModel, segueTo (nextScene kioskModel))
           else
             (sceneModel, Cmd.batch getTaskCmds)
 
+      -- This case starts the lookup of works corresponding to the open claims.
       OB_NoteRelatedTask claim (Ok task) ->
         let
-          newOldBusiness = (OldBusinessItem task claim) :: sceneModel.oldBusiness
+          tagger = OldBusinessVector << OB_NoteRelatedWork task claim
+          getWorkCmd resUrl = xis.getWorkFromUrl resUrl tagger
+          getWorkCmds = List.map getWorkCmd claim.data.workSet
         in
-          ({sceneModel | oldBusiness=newOldBusiness}, Cmd.none)
+          if List.isEmpty getWorkCmds then
+            (sceneModel, segueTo (nextScene kioskModel))
+          else
+            (sceneModel, Cmd.batch getWorkCmds)
+
+      -- We're only interested in claims that have an associated work record.
+      -- And that work record should have blank duration.
+      OB_NoteRelatedWork task claim (Ok work) ->
+        let
+          newOldBusiness = (OldBusinessItem task claim work) :: sceneModel.oldBusiness
+          newSceneModel = case work.data.workDuration of
+            Nothing -> {sceneModel | oldBusiness=newOldBusiness}
+            Just _ -> sceneModel
+        in
+          (newSceneModel, Cmd.none)
 
       OB_DeleteSelectedClaim ->
         (sceneModel, Cmd.none)
-
-      ----------------------------------
-
-      OB_WorkingClaimsResult (Err error) ->
-        -- It's not a show stopper if this fails. Just log and move on to next scene.
-        let _ = Debug.log (toString error)
-        in (sceneModel, segueTo CheckInDone)
-
-      OB_NoteRelatedTask claim (Err error) ->
-        -- It's not a show stopper if this fails. Just log and move on to next scene.
-        let _ = Debug.log (toString error)
-        in (sceneModel, segueTo CheckInDone)
 
       OB_ToggleItem claimId ->
         let
@@ -177,6 +198,24 @@ update msg kioskModel =
               (sceneModel, Cmd.none)
             Just i ->
               ({sceneModel | selectedItem = Just i}, Cmd.none)
+
+      ----------------------------------
+
+      OB_WorkingClaimsResult (Err error) ->
+        -- It's not a show stopper if this fails. Just log and move on to next scene.
+        let _ = Debug.log (toString error)
+        in (sceneModel, segueTo (nextScene kioskModel))
+
+      OB_NoteRelatedTask claim (Err error) ->
+        -- It's not a show stopper if this fails. Just log and move on to next scene.
+        let _ = Debug.log (toString error)
+        in (sceneModel, segueTo (nextScene kioskModel))
+
+      OB_NoteRelatedWork task claim (Err error) ->
+        -- It's not a show stopper if this fails. Just log and move on to next scene.
+        let _ = Debug.log (toString error)
+        in (sceneModel, segueTo (nextScene kioskModel))
+
 
 -- The user might have just selected a task to work.
 -- If so, we don't want it to appear as "Old Business", so filter it out.
@@ -205,7 +244,7 @@ view kioskModel =
       let tPhrase = taskPhrase sceneModel.oldBusiness
       in
         genericScene kioskModel
-        ("You have " ++ tPhrase ++ " in progress!")
+        ("You Have " ++ tPhrase ++ " In Progress!")
         "Let's Review Them"
         (div [sceneTextStyle] 
           [ vspace 25
@@ -220,13 +259,7 @@ view kioskModel =
         )
         [ ButtonSpec "Finish" (msgForSegueTo TimeSheetPt1) isSelection
         , ButtonSpec "Delete" (OldBusinessVector <| OB_DeleteSelectedClaim) isSelection
-        , let
-            nextScene =
-              -- User can only get here via CheckIn or CheckOut.
-              if NonEmpty.member CheckIn kioskModel.sceneStack
-                then CheckInDone else CheckOutDone
-          in
-            ButtonSpec "Skip" (msgForSegueTo nextScene) True
+        , ButtonSpec "Skip" (msgForSegueTo (nextScene kioskModel)) True
         ]
         []  -- Never any bad news for this scene.
 
@@ -269,13 +302,22 @@ taskPhrase l =
     n = List.length l
     nStr = toString n
   in
-    nStr ++ if n>1 then " tasks" else " task"
+    nStr ++ if n>1 then " Tasks" else " Task"
 
 
 -----------------------------------------------------------------------------
 -- SUBSCRIPTIONS
 -----------------------------------------------------------------------------
 
+-----------------------------------------------------------------------------
+-- UTILITIEs
+-----------------------------------------------------------------------------
+
+nextScene : KioskModel a -> Scene
+nextScene kioskModel =
+  -- User can only get here via CheckIn or CheckOut.
+  if NonEmpty.member CheckIn kioskModel.sceneStack
+    then CheckInDone else CheckOutDone
 
 -----------------------------------------------------------------------------
 -- STYLES

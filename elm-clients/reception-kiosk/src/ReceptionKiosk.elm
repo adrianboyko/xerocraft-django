@@ -6,9 +6,11 @@ import Html.Attributes exposing (style, src, id, tabindex, width, height)
 import Regex exposing (regex)
 import Http
 import Time exposing (Time, second)
+import Task
 
 -- Third party
 import List.Nonempty as Nonempty exposing (Nonempty)
+import List.Extra as ListX
 import Material
 
 -- Local
@@ -224,6 +226,13 @@ update msg model =
           in
             update (WizardVector <| (SceneWillAppear newScene currScene)) newModel
 
+        PopTo scene ->
+          let
+            toBePopped = ListX.takeWhile ((/=) scene) (Nonempty.toList model.sceneStack)
+            popCmds = List.repeat (List.length toBePopped) (send <| WizardVector <| Pop)
+          in
+            (model, Cmd.batch popCmds)
+
         Rebase ->
           -- Resets the stack so that top item becomes ONLY item. Prevents BACK.
           let
@@ -248,6 +257,12 @@ update msg model =
               newSceneStack = Nonempty.cons head newTail
             in
               update (WizardVector <| RebaseTo <| scene) {model | sceneStack=newSceneStack}
+
+        ReplaceWith scene ->
+          let
+            newSceneStack = model.sceneStack |> Nonempty.pop
+          in
+            update (WizardVector <| Push <| scene) {model | sceneStack=newSceneStack}
 
         Reset -> reset model
 
@@ -450,3 +465,12 @@ subscriptions model =
       , screenSaverSubs
       , waiverSubs
       ]
+
+-----------------------------------------------------------------------------
+-- UTILITIES
+-----------------------------------------------------------------------------
+
+send : msg -> Cmd msg
+send msg =
+  Task.succeed msg
+  |> Task.perform identity

@@ -78,18 +78,19 @@ sceneWillAppear kioskModel appearingScene vanishingScene =
   in
     if appearingScene == TimeSheetPt2 then
 
-      case (prevModel.taskInProgress, prevModel.claimInProgress, prevModel.workInProgress) of
+      case (prevModel.oldBusinessItem) of
 
-        (Received task, Received (Just claim), Received (Just work)) ->
+        Just {task, claim, work} ->
           let
             records = Just (task, claim, work)
           in
             if task.data.shortDesc == "Other Work" then
               ({sceneModel | records=records}, Cmd.none)  -- focusOnIndex idxOtherWorkDesc)
             else
-              -- User might be going forward OR BACKWARD in the wizard:
+              -- User might be going forward OR BACKWARD in the wizard.
+              -- Either way, don't leave this scene on the stack.
               if vanishingScene==TimeSheetPt1 then
-                (sceneModel, segueTo TimeSheetPt3)
+                (sceneModel, replaceWith TimeSheetPt3)
               else
                 (sceneModel, pop)
 

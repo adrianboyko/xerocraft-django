@@ -15,7 +15,9 @@ port module Wizard.SceneUtils exposing
   , rebaseTo
   , px
   , pop
+  , popTo
   , pt
+  , replaceWith
   , sceneHeight
   , sceneWidth
   , sceneButton
@@ -87,6 +89,12 @@ focusOnIndex idx =
 
 pop : Cmd Msg
 pop = send (WizardVector <| Pop)
+
+popTo : Scene -> Cmd Msg
+popTo = send << WizardVector << PopTo
+
+replaceWith : Scene -> Cmd Msg
+replaceWith = send << WizardVector << ReplaceWith
 
 rebaseTo : Scene -> Cmd Msg
 rebaseTo = send << WizardVector << RebaseTo
