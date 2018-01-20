@@ -147,18 +147,24 @@ durationFromPythonRepr s =
 -- Python form for API (friendly = False): "[<days> ]<hours>:<minutes>:<seconds>"
 -- User-friendly form (friendly = True): "3.5 hrs"
 durationToPythonRepr : Duration -> String
-durationToPythonRepr dhms =
+durationToPythonRepr dur1 =
     let
         day = 24.0 * hour
-        days = dhms / day |> floor |> toFloat
-        hms = dhms - (days * day)
-        hours = hms / hour |> floor |> toFloat
-        ms = hms - (hours * hour)
-        minutes = ms / minute |> floor |> toFloat
-        seconds = floor (ms - (minutes * minute))
+
+        daysInt = dur1 / day |> floor
+        dur2 = dur1 - (toFloat daysInt)*day
+
+        hoursInt = dur2 / hour |> floor
+        dur3 = dur2 - (toFloat hoursInt)*hour
+
+        minsInt = dur3 / minute |> floor
+        dur4 = dur3 - (toFloat minsInt)*minute
+
+        secsInt = dur4 / second |> floor
+
         pad = toString >> (String.padLeft 2 '0')
     in
-        (toString days) ++ " " ++ (pad hours) ++ ":" ++ (pad minutes) ++ ":" ++ (pad seconds)
+        (toString daysInt) ++ " " ++ (pad hoursInt) ++ ":" ++ (pad minsInt) ++ ":" ++ (pad secsInt)
 
 
 decodeDuration : Dec.Decoder Duration
