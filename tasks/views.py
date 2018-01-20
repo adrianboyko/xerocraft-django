@@ -580,11 +580,25 @@ def ops_calendar_unstaffed(request) -> HttpResponse:
     return _ical_response(cal)
 
 
+def resource_calendar(request):
+    cal = _new_calendar("Xerocraft Resource Usage")
+    #for task in Task.objects.all():
+    #    if task.scheduled_date is None or task.work_start_time is None or task.work_duration is None:
+    #        continue
+    #    _add_event(cal,task,request)
+    #    # Intentionally lacks ALARM
+    return _ical_response(cal)
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+# REVIEW: This is no longer required because TaskApi.elm was deleted in favor of XisRestApi?
 def _ops_calendar_json(request, year, month):
     member = request.user.member if request.user.is_authenticated() else None  # type: Member
     return _ops_calendar_4member_json(member, year, month)
 
 
+# REVIEW: This is no longer required because TaskApi.elm was deleted in favor of XisRestApi?
 def _ops_calendar_4member_json(member: Optional[Member], year, month, day=None):
 
     # Python standard libs include the ability to produce padded calendars for a month:
@@ -665,6 +679,7 @@ def _ops_calendar_4member_json(member: Optional[Member], year, month, day=None):
     }
 
 
+# REVIEW: This is no longer required because TaskApi.elm was deleted in favor of XisRestApi?
 def ops_calendar_json(request, year=None, month=None) -> JsonResponse:
     if year is None:
         year = date.today().year
@@ -675,6 +690,7 @@ def ops_calendar_json(request, year=None, month=None) -> JsonResponse:
     return JsonResponse(_ops_calendar_json(request, year, month))
 
 
+# REVIEW: This is no longer required because TaskApi.elm was deleted in favor of XisRestApi?
 def ops_calendar_4memb_4today(request) -> JsonResponse:
     if request.method == 'POST':
         data = json.loads(request.body.decode())
@@ -684,7 +700,7 @@ def ops_calendar_4memb_4today(request) -> JsonResponse:
         ops_cal = _ops_calendar_4member_json(member, today.year, today.month, today.day)
         return JsonResponse(ops_cal)
 
-
+# This is still required because it launches the Elm client.
 @ensure_csrf_cookie
 def ops_calendar_spa(request, year=date.today().year, month=date.today().month) -> HttpResponse:
     year = int(year)
@@ -697,18 +713,9 @@ def ops_calendar_spa(request, year=date.today().year, month=date.today().month) 
     return render(request, "tasks/ops-calendar-spa.html", props)
 
 
-def resource_calendar(request):
-    cal = _new_calendar("Xerocraft Resource Usage")
-    #for task in Task.objects.all():
-    #    if task.scheduled_date is None or task.work_start_time is None or task.work_duration is None:
-    #        continue
-    #    _add_event(cal,task,request)
-    #    # Intentionally lacks ALARM
-    return _ical_response(cal)
-
-
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
+# REVIEW: This is no longer required because desktop_timesheet is obsoleted by Elm kiosk?
 def _form_to_session(request, form, witness_username):
     request.session['work_desc'] = form.cleaned_data["work_desc"]
     request.session['work_date'] = form.cleaned_data["work_date"].strftime("%m/%d/%Y")
@@ -718,6 +725,7 @@ def _form_to_session(request, form, witness_username):
     request.session.modified = True
 
 
+# REVIEW: This is no longer required because desktop_timesheet is obsoleted by Elm kiosk?
 def _session_to_form(request, form):
     form.fields['work_desc'].initial = request.session.get('work_desc', "")
     form.fields['work_date'].initial = request.session.get("work_date", "")
@@ -726,6 +734,7 @@ def _session_to_form(request, form):
     form.fields['witness_id'].initial = request.session.get('witness_username', "")
 
 
+# REVIEW: This is no longer required because desktop_timesheet is obsoleted by Elm kiosk?
 def _clear_session(request):
     del request.session['work_desc']
     del request.session['work_date']
@@ -734,6 +743,8 @@ def _clear_session(request):
     del request.session['witness_username']
     request.session.modified = True
 
+
+# REVIEW: This is no longer required because desktop_timesheet is obsoleted by Elm kiosk?
 @login_required
 def desktop_timesheet(request):
 
@@ -754,6 +765,7 @@ def desktop_timesheet(request):
     return render(request, 'tasks/desktop_timesheet.html', {'form': form})
 
 
+# REVIEW: This is no longer required because desktop_timesheet is obsoleted by Elm kiosk?
 @login_required
 def desktop_timesheet_verify(request):
 
