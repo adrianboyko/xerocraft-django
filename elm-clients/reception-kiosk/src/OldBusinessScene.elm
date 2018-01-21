@@ -66,6 +66,8 @@ type alias OldBusinessItem =
 type alias OldBusinessModel =
   { oldBusiness : List OldBusinessItem
   , selectedItem : Maybe OldBusinessItem
+  , workResponsesExpected : Maybe Int
+  , workResponsesReceived : Int
   }
 
 
@@ -73,6 +75,8 @@ init : Flags -> (OldBusinessModel, Cmd Msg)
 init flags =
   ( { oldBusiness = []
     , selectedItem = Nothing
+    , workResponsesExpected = Nothing
+    , workResponsesReceived = 0
     }
   , Cmd.none
   )
@@ -133,7 +137,14 @@ checkForOldBusiness kioskModel =
       ]
       tagging
   in
-    ({sceneModel | oldBusiness=[]}, cmd)
+    ( { sceneModel
+      | oldBusiness=[]
+      , selectedItem=Nothing
+      , workResponsesExpected=Nothing -- We'll know when we get the claims.
+      , workResponsesReceived=0
+      }
+    , cmd
+    )
 
 
 -----------------------------------------------------------------------------
@@ -145,7 +156,7 @@ update msg kioskModel =
   let
     sceneModel = kioskModel.oldBusinessModel
     xis = kioskModel.xisSession
-
+    theNextScene = nextScene kioskModel
   in
     case msg of
 
@@ -156,11 +167,12 @@ update msg kioskModel =
           tagger c = OldBusinessVector << (OB_NoteRelatedTask c)
           getTaskCmd c = xis.getTaskFromUrl c.data.claimedTask (tagger c)
           getTaskCmds = List.map getTaskCmd claims
+          expected = List.sum <| List.map (List.length << .workSet << .data) claims
         in
           if List.isEmpty claims then
-            (sceneModel, segueTo (nextScene kioskModel))
+            (sceneModel, segueTo theNextScene)
           else
-            (sceneModel, Cmd.batch getTaskCmds)
+            ({sceneModel | workResponsesExpected=Just expected}, Cmd.batch getTaskCmds)
 
       -- This case starts the lookup of works corresponding to the open claims.
       OB_NoteRelatedTask claim (Ok task) ->
@@ -170,7 +182,7 @@ update msg kioskModel =
           getWorkCmds = List.map getWorkCmd claim.data.workSet
         in
           if List.isEmpty getWorkCmds then
-            (sceneModel, segueTo (nextScene kioskModel))
+            (sceneModel, Cmd.none)
           else
             (sceneModel, Cmd.batch getWorkCmds)
 
@@ -179,14 +191,29 @@ update msg kioskModel =
       OB_NoteRelatedWork task claim (Ok work) ->
         let
           newOldBusiness = (OldBusinessItem task claim work) :: sceneModel.oldBusiness
+          newCount = sceneModel.workResponsesReceived + 1
           newSceneModel = case work.data.workDuration of
-            Nothing -> {sceneModel | oldBusiness=newOldBusiness}
-            Just _ -> sceneModel
+            Nothing -> {sceneModel | oldBusiness=newOldBusiness, workResponsesReceived=newCount}
+            Just _ -> {sceneModel | workResponsesReceived=newCount}
         in
-          (newSceneModel, Cmd.none)
+          considerSkip newSceneModel theNextScene
 
-      OB_DeleteSelectedClaim ->
-        (sceneModel, Cmd.none)
+      OB_DeleteSelection ->
+        case sceneModel.selectedItem of
+
+          Just {task, claim, work} ->
+            let
+              cmd = xis.deleteWorkById work.id (OldBusinessVector << OB_NoteWorkDeleted)
+              newModel = {sceneModel | selectedItem=Nothing }
+            in
+              (newModel, cmd)
+
+          Nothing ->
+            -- Shouldn't get here since there must be a selction in order to click "DELETE"
+            (sceneModel, Cmd.none)
+
+      OB_NoteWorkDeleted _ ->
+        checkForOldBusiness kioskModel
 
       OB_ToggleItem claimId ->
         let
@@ -204,17 +231,41 @@ update msg kioskModel =
       OB_WorkingClaimsResult (Err error) ->
         -- It's not a show stopper if this fails. Just log and move on to next scene.
         let _ = Debug.log (toString error)
-        in (sceneModel, segueTo (nextScene kioskModel))
+        in (sceneModel, segueTo theNextScene)
 
       OB_NoteRelatedTask claim (Err error) ->
-        -- It's not a show stopper if this fails. Just log and move on to next scene.
-        let _ = Debug.log (toString error)
-        in (sceneModel, segueTo (nextScene kioskModel))
+        let
+          count = List.length <| claim.data.workSet
+          newReceived = sceneModel.workResponsesReceived + count
+          newSceneModel = {sceneModel | workResponsesReceived=newReceived}
+        in
+          considerSkip newSceneModel theNextScene
 
       OB_NoteRelatedWork task claim (Err error) ->
-        -- It's not a show stopper if this fails. Just log and move on to next scene.
-        let _ = Debug.log (toString error)
-        in (sceneModel, segueTo (nextScene kioskModel))
+        let
+          newReceived = sceneModel.workResponsesReceived + 1
+          newSceneModel = {sceneModel | workResponsesReceived=newReceived}
+        in
+          considerSkip newSceneModel theNextScene
+
+
+considerSkip : OldBusinessModel -> Scene -> (OldBusinessModel, Cmd Msg)
+considerSkip sceneModel theNextScene =
+  case sceneModel.workResponsesExpected of
+
+    Nothing ->
+      (sceneModel, Cmd.none)
+
+    Just expected ->
+      if sceneModel.workResponsesReceived == expected then
+        -- We have received all the expected responses, so decide whether or not to skip.
+        if List.length sceneModel.oldBusiness > 0 then
+          (sceneModel, Cmd.none)
+        else
+          (sceneModel, segueTo theNextScene)
+      else
+        -- We have not yet received all the expected responses, so don't do anything...
+        (sceneModel, Cmd.none)
 
 
 -- The user might have just selected a task to work.
@@ -258,7 +309,7 @@ view kioskModel =
           ]
         )
         [ ButtonSpec "Finish" (msgForSegueTo TimeSheetPt1) isSelection
-        , ButtonSpec "Delete" (OldBusinessVector <| OB_DeleteSelectedClaim) isSelection
+        , ButtonSpec "Delete" (OldBusinessVector <| OB_DeleteSelection) isSelection
         , ButtonSpec "Skip" (msgForSegueTo (nextScene kioskModel)) True
         ]
         []  -- Never any bad news for this scene.

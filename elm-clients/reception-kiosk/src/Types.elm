@@ -148,10 +148,11 @@ type NewUserMsg
 
 type OldBusinessMsg
   = OB_WorkingClaimsResult (Result Http.Error (PageOf XisApi.Claim))
-  | OB_DeleteSelectedClaim
+  | OB_DeleteSelection
   | OB_NoteRelatedTask XisApi.Claim (Result Http.Error XisApi.Task)
   | OB_NoteRelatedWork XisApi.Task XisApi.Claim (Result Http.Error XisApi.Work)
   | OB_ToggleItem Int
+  | OB_NoteWorkDeleted (Result Http.Error String)
 
 type ReasonForVisitMsg
   = UpdateReasonForVisit ReasonForVisit
