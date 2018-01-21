@@ -88,7 +88,17 @@ type alias XisRestFlags =
   }
 
 
-type alias ResultTagger rsrc msg = Result Http.Error rsrc -> msg
+type alias Creator data rsrc msg =
+  data -> ResultTagger rsrc msg -> Cmd msg
+
+type alias DeleterByUrl msg =
+  ResourceUrl -> StringTagger msg -> Cmd msg
+
+type alias DeleterById msg =
+  Int -> StringTagger msg -> Cmd msg
+
+type alias FilteringLister filter rsrc msg =
+  List filter -> ResultTagger (PageOf rsrc) msg -> Cmd msg
 
 type alias GetterById rsrc msg =
   Int -> ResultTagger rsrc msg -> Cmd msg
@@ -96,17 +106,17 @@ type alias GetterById rsrc msg =
 type alias GetterFromUrl rsrc msg =
   ResourceUrl -> ResultTagger rsrc msg -> Cmd msg
 
-type alias Replacer rsrc msg =
-  rsrc -> ResultTagger rsrc msg -> Cmd msg
-
-type alias Creator data rsrc msg =
-  data -> ResultTagger rsrc msg -> Cmd msg
-
 type alias Lister rsrc msg =
   ResultTagger (PageOf rsrc) msg -> Cmd msg
 
-type alias FilteringLister filter rsrc msg =
-  List filter -> ResultTagger (PageOf rsrc) msg -> Cmd msg
+type alias Replacer rsrc msg =
+  rsrc -> ResultTagger rsrc msg -> Cmd msg
+
+type alias ResultTagger rsrc msg =
+  Result Http.Error rsrc -> msg
+
+type alias StringTagger msg =
+  Result Http.Error String -> msg
 
 
 -----------------------------------------------------------------------------
@@ -130,6 +140,10 @@ type alias Session msg =
   , createClaim : Creator ClaimData Claim msg
   , createWork : Creator WorkData Work msg
   , createWorkNote : Creator WorkNoteData WorkNote msg
+
+  ----- RESOURCE DELETERS -----
+  , deleteWorkById : DeleterById msg
+  , deleteWorkByUrl : DeleterByUrl msg
 
   ----- RESOURCE LISTERS -----
   , listClaims : FilteringLister ClaimListFilter Claim msg
@@ -179,6 +193,10 @@ createSession flags auth =
   , createClaim = createClaim flags auth
   , createWork = createWork flags auth
   , createWorkNote = createWorkNote flags auth
+
+  ----- RESOURCE DELETERS -----
+  , deleteWorkById = deleteWorkById flags auth
+  , deleteWorkByUrl = deleteWorkByUrl flags auth
 
   ----- RESOURCE LISTERS -----
   , listClaims = listClaims flags auth
@@ -688,6 +706,18 @@ replaceWorkWithHeaders flags auth headers work resultToMsg =
       }
   in
     Http.send resultToMsg request
+
+
+deleteWorkById : XisRestFlags -> Authorization -> DeleterById msg
+deleteWorkById flags auth id tagger =
+  let url = urlFromId flags.workListUrl id
+  in deleteWorkByUrl flags auth url tagger
+
+
+deleteWorkByUrl : XisRestFlags -> Authorization -> DeleterByUrl msg
+deleteWorkByUrl flags auth url tagger =
+  let request = httpDeleteRequest auth url
+  in Http.send tagger request
 
 
 encodeWork : Work -> Enc.Value

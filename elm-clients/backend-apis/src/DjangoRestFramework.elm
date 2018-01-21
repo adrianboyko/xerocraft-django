@@ -288,3 +288,15 @@ httpGetRequest auth url decoder =
     , timeout = Nothing
     , expect = Http.expectJson decoder
     }
+
+httpDeleteRequest : Authorization -> ResourceUrl -> Http.Request String
+httpDeleteRequest auth url =
+  Http.request
+    { method = "DELETE"
+    , url = url
+    , headers = [ authenticationHeader auth ]
+    , withCredentials = False
+    , body = Http.emptyBody
+    , timeout = Nothing
+    , expect = Http.expectString
+    }
