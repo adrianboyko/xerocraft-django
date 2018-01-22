@@ -1,5 +1,6 @@
 port module Wizard.SceneUtils exposing
   ( ButtonSpec
+  , PadButtonSpec
   , SceneUtilModel
   -------------------
   , blankGenericScene
@@ -13,6 +14,7 @@ port module Wizard.SceneUtils exposing
   , option_NoTabIndex
   , rebase
   , rebaseTo
+  , padButton
   , px
   , pop
   , popTo
@@ -181,20 +183,34 @@ blankGenericScene : SceneUtilModel a -> Html Msg
 blankGenericScene model =
   genericScene model "" "" (text "") [] []
 
+type alias PadButtonSpec msg = { title : String, msg: msg, colored: Bool }
+
+padButton : SceneUtilModel a -> PadButtonSpec Msg -> Html Msg
+padButton model spec =  -- REVIEW: Index 0 is ok because buttons don't have state?
+  Button.render MdlVector [0] model.mdl
+    (
+      [ Button.fab
+      , Options.onClick spec.msg
+      ]
+      ++
+      if spec.colored then [Button.colored] else []
+    )
+    [ text spec.title ]
 
 type alias ButtonSpec msg = { title : String, msg: msg, enabled: Bool }
+
 sceneButton : SceneUtilModel a -> ButtonSpec Msg -> Html Msg
-sceneButton model buttonSpec =
+sceneButton model spec =
   Button.render MdlVector [0] model.mdl  -- REVIEW: Index 0 is ok because buttons don't have state?
     ( [ Button.raised
       , Button.colored
-      , Options.onClick buttonSpec.msg
-      , Options.disabled (not buttonSpec.enabled)
+      , Options.onClick spec.msg
+      , Options.disabled (not spec.enabled)
       , option_NoTabIndex
       ]
       ++sceneButtonCss
     )
-    [ text buttonSpec.title ]
+    [ text spec.title ]
 
 sceneGenericTextField : SceneUtilModel a -> Index -> String -> String -> (String -> Msg) -> List (Textfield.Property Msg) -> Html Msg
 sceneGenericTextField model index hint value msger options =

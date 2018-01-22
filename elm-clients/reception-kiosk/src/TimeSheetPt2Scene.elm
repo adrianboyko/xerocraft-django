@@ -22,6 +22,8 @@ import Fetchable exposing (..)
 import PointInTime exposing (PointInTime)
 import CalendarDate exposing (CalendarDate)
 import ClockTime exposing (ClockTime)
+import Duration as Dur
+
 
 -----------------------------------------------------------------------------
 -- CONSTANTS
@@ -76,29 +78,35 @@ sceneWillAppear kioskModel appearingScene vanishingScene =
     sceneModel = kioskModel.timeSheetPt2Model
     prevModel = kioskModel.timeSheetPt1Model
   in
-    if appearingScene == TimeSheetPt2 then
+    case (appearingScene, vanishingScene) of
 
-      case (prevModel.oldBusinessItem) of
+      (OldBusiness, _) ->
+        -- This scene assumes that a visit to OldBusiness means that we'll likely be
+        -- dealing with a different T/C/W item when we get here. So reset this scene's state.
+        ({sceneModel | records=Nothing, otherWorkDesc="", badNews=[]}, Cmd.none)
 
-        Just {task, claim, work} ->
-          let
-            records = Just (task, claim, work)
-          in
-            if task.data.shortDesc == "Other Work" then
-              ({sceneModel | records=records}, Cmd.none)  -- focusOnIndex idxOtherWorkDesc)
-            else
-              -- User might be going forward OR BACKWARD in the wizard.
-              -- Either way, don't leave this scene on the stack.
-              if vanishingScene==TimeSheetPt1 then
-                (sceneModel, replaceWith TimeSheetPt3)
+      (TimeSheetPt2, _) ->
+        case (prevModel.oldBusinessItem) of
+
+          Just {task, claim, work} ->
+            let
+              records = Just (task, claim, work)
+            in
+              if task.data.shortDesc == "Other Work" then
+                ({sceneModel | records=records}, Cmd.none)  -- focusOnIndex idxOtherWorkDesc)
               else
-                (sceneModel, pop)
+                -- User might be going forward OR BACKWARD in the wizard.
+                -- Either way, don't leave this scene on the stack.
+                if vanishingScene==TimeSheetPt1 then
+                  (sceneModel, replaceWith TimeSheetPt3)
+                else
+                  (sceneModel, pop)
 
-        _ ->
-          ({sceneModel | badNews=["Couldn't get task, claim, and work records!"]}, Cmd.none)
+          _ ->
+            ({sceneModel | badNews=["Couldn't get task, claim, and work records!"]}, Cmd.none)
 
-    else
-      (sceneModel, Cmd.none)
+      (_, _) ->
+        (sceneModel, Cmd.none)
 
 
 -----------------------------------------------------------------------------
@@ -140,8 +148,6 @@ viewNormal kioskModel task claim work =
     sceneModel = kioskModel.timeSheetPt2Model
     today = PointInTime.toCalendarDate kioskModel.currTime
     dateStr = CalendarDate.format "%a, %b %ddd" work.data.workDate
-    startTime = Maybe.withDefault (ClockTime 0 0) work.data.workStartTime  -- Should not be Nothing
-    startTimeStr = ClockTime.format "%I:%M %P" startTime
     workDur = Maybe.withDefault 0 work.data.workDuration  -- Should not be Nothing
   in genericScene kioskModel
 
@@ -154,7 +160,7 @@ viewNormal kioskModel task claim work =
       , div [infoToVerifyStyle]
          [ text ("Task: \"" ++ task.data.shortDesc ++ "\"")
          , vspace 20
-         , text (dateStr ++ " @ " ++ startTimeStr ++ " for " ++ (toString workDur) ++ " hrs")
+         , text ((Dur.toString workDur) ++ " on " ++ dateStr)
          ]
       , vspace 70
       , div [textAreaContainerStyle]

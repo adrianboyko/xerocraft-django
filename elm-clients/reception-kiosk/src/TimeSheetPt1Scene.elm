@@ -8,8 +8,8 @@ module TimeSheetPt1Scene exposing
   )
 
 -- Standard
-import Html exposing (Html, text, div, span)
-import Html.Attributes exposing (style)
+import Html exposing (Html, text, div, span, table, tr, td)
+import Html.Attributes exposing (style, colspan)
 import Http
 import Time exposing (Time, hour, minute)
 import Tuple
@@ -37,8 +37,6 @@ import OldBusinessScene exposing (OldBusinessModel, OldBusinessItem)
 -----------------------------------------------------------------------------
 
 idxTimeSheetPt1 = mdlIdBase TimeSheetPt1
-idxWorkStart = [idxTimeSheetPt1, 1]
-idxWorkDuration = [idxTimeSheetPt1, 2]
 
 -----------------------------------------------------------------------------
 -- INIT
@@ -58,8 +56,8 @@ type alias KioskModel a =
 
 type alias TimeSheetPt1Model =
   { oldBusinessItem : Maybe OldBusinessItem
-  , workStartScratch : String
-  , workDurationScratch : String
+  , hrsWorked : Maybe Int
+  , minsWorked : Maybe Int
   , badNews : List String
   }
 
@@ -68,8 +66,8 @@ init : Flags -> (TimeSheetPt1Model, Cmd Msg)
 init flags =
   let sceneModel =
     { oldBusinessItem = Nothing
-    , workStartScratch = ""
-    , workDurationScratch = ""
+    , hrsWorked = Nothing
+    , minsWorked = Nothing
     , badNews = []
     }
   in (sceneModel, Cmd.none)
@@ -83,25 +81,27 @@ sceneWillAppear : KioskModel a -> Scene -> Scene -> (TimeSheetPt1Model, Cmd Msg)
 sceneWillAppear kioskModel appearing vanishing =
   let
     sceneModel = kioskModel.timeSheetPt1Model
-    oldBusinessItem = kioskModel.oldBusinessModel.selectedItem
+    selectedItem = kioskModel.oldBusinessModel.selectedItem
 
-  in case (appearing, vanishing, oldBusinessItem) of
+  in case (appearing, vanishing, selectedItem) of
 
-    (TimeSheetPt1, _, Just {task, claim, work}) ->
-      let
-        workDur = Maybe.withDefault 0 work.data.workDuration  -- I expect workDuration to be Nothing, here.
-        durScratch = workDur |> Time.inHours |> toString
-        startCT = Maybe.withDefault (ClockTime 19 0) work.data.workStartTime  -- TODO: Bad default.
-        startScratch = ClockTime.format "%I:%M %P" startCT
-      in
-        ( { sceneModel
-          | oldBusinessItem = oldBusinessItem
-          , workDurationScratch = durScratch
-          , workStartScratch = startScratch
-          }
-        , focusOnIndex idxWorkStart
-        )
+    -- This scene assumes that a visit to OldBusiness means that we'll likely be
+    -- dealing with a different T/C/W item when we get here. So reset this scene's state.
+    (OldBusiness, _, _) ->
+      ( { sceneModel
+        | oldBusinessItem = Nothing
+        , hrsWorked = Nothing
+        , minsWorked = Nothing
+        }
+      , Cmd.none
+      )
 
+    (TimeSheetPt1, OldBusiness, Just _) ->
+      ( { sceneModel
+        | oldBusinessItem = selectedItem
+        }
+      , Cmd.none
+      )
 
     (TimeSheetPt1, _, Nothing) ->
       -- TODO: This is a bad error. Segue to Check[In|Out]Done? Segue to error page?
@@ -125,18 +125,25 @@ update msg kioskModel =
 
     TS1_Submit task claim work ->
       let
-        startCT = ClockTime.fromString sceneModel.workStartScratch
-        workDur = Duration.fromString sceneModel.workDurationScratch
+        chooseHr = "Must choose an hour value."
+        chooseMin = "Must choose a minute value."
       in
-        case (startCT, workDur) of
+        case (sceneModel.hrsWorked, sceneModel.minsWorked) of
 
-          (_, Ok 0) ->
-            ({sceneModel | badNews=["Must specify non-zero work time."]}, Cmd.none)
+          (Nothing, Nothing) ->
+            ({sceneModel | badNews=[chooseHr, chooseMin]}, Cmd.none)
 
-          (Ok ct, Ok dur) ->
+          (Nothing, _) ->
+            ({sceneModel | badNews=[chooseHr]}, Cmd.none)
+
+          (_, Nothing) ->
+            ({sceneModel | badNews=[chooseMin]}, Cmd.none)
+
+          (Just hrs, Just mins) ->
             let
               wd = work.data
-              newData = {wd | workStartTime=Just ct, workDuration=Just dur}
+              dur = Time.hour * (toFloat hrs) + Time.minute * (toFloat mins)
+              newData = {wd | workDuration=Just dur}
               revisedWork = {work | data = newData}
               cmd = segueTo TimeSheetPt2
             in
@@ -147,16 +154,11 @@ update msg kioskModel =
               , cmd
               )
 
-          (Err e1, Err e2) -> ({sceneModel | badNews=[e1, e2]}, Cmd.none)
-          (Err e, _) -> ({sceneModel | badNews=[e]}, Cmd.none)
-          (_, Err e) -> ({sceneModel | badNews=[e]}, Cmd.none)
+    TS1_HrPad hr ->
+      ({sceneModel | hrsWorked=Just hr}, Cmd.none)
 
-    TS1_UpdateTimeStarted s ->
-      ({sceneModel | workStartScratch = String.toUpper s}, Cmd.none)
-
-    TS1_UpdateDuration s ->
-      ({sceneModel | workDurationScratch = s}, Cmd.none)
-
+    TS1_MinPad mins ->
+      ({sceneModel | minsWorked=Just mins}, Cmd.none)
 
 
 -----------------------------------------------------------------------------
@@ -183,7 +185,22 @@ normalView kioskModel task claim work =
     sceneModel = kioskModel.timeSheetPt1Model
     dateStr = CalendarDate.format "%a, %b %ddd" work.data.workDate
     today = PointInTime.toCalendarDate kioskModel.currTime
-
+    hrButton h =
+      td []
+        [ padButton kioskModel
+           <| PadButtonSpec (h |> toString) (TimeSheetPt1Vector <| TS1_HrPad h)
+           <| case sceneModel.hrsWorked of
+               Just x -> h==x
+               Nothing -> False
+        ]
+    minButton m =
+      td []
+        [ padButton kioskModel
+           <| PadButtonSpec (m |> toString |> String.padLeft 2 '0') (TimeSheetPt1Vector <| TS1_MinPad m)
+           <| case sceneModel.minsWorked of
+                Just x -> m==x
+                Nothing -> False
+        ]
   in
     genericScene kioskModel
 
@@ -200,14 +217,12 @@ normalView kioskModel task claim work =
             vspace 0
           else
             span [pastWorkStyle] [vspace 5, text "(Note: This work was done in the past)"]
-        , vspace 70
-        , (sceneTextField kioskModel idxWorkStart
-            "Work Started At" sceneModel.workStartScratch
-            (TimeSheetPt1Vector << TS1_UpdateTimeStarted))
-        , vspace 40
-        , (sceneTextField kioskModel idxWorkDuration
-            "Hours Worked" sceneModel.workDurationScratch
-            (TimeSheetPt1Vector << TS1_UpdateDuration))
+        , vspace 60
+        , table [padStyle]
+          [ tr [padHeaderStyle] [ td [colspan 3] [text "Hours"], td [] [text "&"], td [colspan 3] [text "Minutes"] ]
+          , tr [] [ hrButton 0, hrButton 1, hrButton 2, td [] [], minButton 00, minButton 10, minButton 20 ]
+          , tr [] [ hrButton 3, hrButton 4, hrButton 5, td [] [], minButton 30, minButton 40, minButton 50 ]
+          ]
         , vspace 20
         ]
       )
@@ -235,4 +250,13 @@ failedView kioskModel error =
 pastWorkStyle = style
   [ "color" => "red"
   , "font-size" => pt 16
+  ]
+
+padStyle = style
+  [ "border-spacing" => px 10
+  , "display" => "inline"
+  ]
+
+padHeaderStyle = style
+  [ "height" => px 60
   ]

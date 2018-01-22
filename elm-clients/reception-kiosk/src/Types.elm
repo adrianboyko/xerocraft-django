@@ -173,8 +173,8 @@ type TaskListMsg
 
 type TimeSheetPt1Msg
   = TS1_Submit XisApi.Task XisApi.Claim XisApi.Work
-  | TS1_UpdateDuration String
-  | TS1_UpdateTimeStarted String
+  | TS1_HrPad Int
+  | TS1_MinPad Int
 
 type TimeSheetPt2Msg
   = TS2_UpdateDescription String

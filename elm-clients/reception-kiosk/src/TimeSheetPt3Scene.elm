@@ -27,7 +27,7 @@ import Fetchable exposing (..)
 import PointInTime exposing (PointInTime)
 import CalendarDate exposing (CalendarDate)
 import ClockTime exposing (ClockTime)
-import Duration
+import Duration as Dur
 
 
 -----------------------------------------------------------------------------
@@ -88,7 +88,6 @@ sceneWillAppear kioskModel appearing vanishing =
   let
     sceneModel = kioskModel.timeSheetPt3Model
     pt1Model = kioskModel.timeSheetPt1Model
-    pt2Model = kioskModel.timeSheetPt2Model
   in
     case (appearing, vanishing) of
 
@@ -186,7 +185,7 @@ update msg kioskModel =
             1->
               let
                 witnessUrl = Maybe.map (\w -> xis.memberUrl w.id) (List.head results)
-                workDur = Maybe.map ((*) Duration.hour) w.data.workDuration
+                workDur = w.data.workDuration
                 workMod = w |> setWorksWitness witnessUrl |> setWorksDuration workDur
                 witnessHeader = Http.header "X-Witness-PW" sceneModel.witnessPassword
                 cmd = xis.replaceWorkWithHeaders [witnessHeader] workMod
@@ -291,8 +290,6 @@ viewNormal kioskModel task claim work =
     sceneModel = kioskModel.timeSheetPt3Model
     today = PointInTime.toCalendarDate kioskModel.currTime
     dateStr = CalendarDate.format "%a, %b %ddd" work.data.workDate
-    startTime = Maybe.withDefault (ClockTime 0 0) work.data.workStartTime  -- Should not be Nothing
-    startTimeStr = ClockTime.format "%I:%M %P" startTime
     workDur = Maybe.withDefault 0 work.data.workDuration  -- Should not be Nothing
   in genericScene kioskModel
 
@@ -305,7 +302,7 @@ viewNormal kioskModel task claim work =
       , div [infoToVerifyStyle]
          [ text ("Task: \"" ++ task.data.shortDesc ++ "\"")
          , vspace 20
-         , text (dateStr ++ " @ " ++ startTimeStr ++ " for " ++ (toString workDur) ++ " hrs")
+         , text ((Dur.toString workDur) ++ " on " ++ dateStr)
          , if String.length pt2Model.otherWorkDesc > 0
              then div [otherWorkDescStyle] [vspace 20, text pt2Model.otherWorkDesc]
              else text ""
