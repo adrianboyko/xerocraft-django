@@ -8,7 +8,7 @@ module TimeSheetPt2Scene exposing
   )
 
 -- Standard
-import Html exposing (Html, text, div, p)
+import Html exposing (Html, text, div, span)
 import Html.Attributes exposing (style)
 
 -- Third Party
@@ -17,7 +17,7 @@ import Html.Attributes exposing (style)
 import XisRestApi as XisApi exposing (..)
 import Wizard.SceneUtils exposing (..)
 import Types exposing (..)
-import TimeSheetPt1Scene exposing (TimeSheetPt1Model)
+import TimeSheetPt1Scene exposing (TimeSheetPt1Model, infoToVerifyStyle, pastWorkStyle)
 import Fetchable exposing (..)
 import PointInTime exposing (PointInTime)
 import CalendarDate exposing (CalendarDate)
@@ -162,6 +162,10 @@ viewNormal kioskModel task claim work =
          , vspace 20
          , text ((Dur.toString workDur) ++ " on " ++ dateStr)
          ]
+      , if CalendarDate.equal today work.data.workDate then
+          vspace 0
+        else
+          span [pastWorkStyle] [vspace 5, text "(Note: This work was done in the past)"]
       , vspace 70
       , div [textAreaContainerStyle]
           [ sceneTextArea kioskModel idxOtherWorkDesc
@@ -183,16 +187,6 @@ viewNormal kioskModel task claim work =
 -----------------------------------------------------------------------------
 -- STYLES
 -----------------------------------------------------------------------------
-
-infoToVerifyStyle = style
-  [ "display" => "inline-block"
-  , "padding" => px 20
-  , "background" => textAreaColor
-  , "border-width" => px 1
-  , "border-color" => "black"
-  , "border-style" => "solid"
-  , "border-radius" => px 10
-  ]
 
 textAreaContainerStyle = style
   [ "display" => "inline-block"

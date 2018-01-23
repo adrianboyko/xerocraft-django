@@ -398,4 +398,4 @@ sceneButtonCss =
   , css "font-size" "18pt"
   ]
 
-textAreaColor = "rgba(176,224,230,.2)"
+textAreaColor = "rgb(102,153,204,.2)"  -- This is a websafe color, with alpha.

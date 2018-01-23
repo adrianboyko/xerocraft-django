@@ -21,7 +21,7 @@ import Char
 import XisRestApi as XisApi exposing (..)
 import Wizard.SceneUtils exposing (..)
 import Types exposing (..)
-import TimeSheetPt1Scene exposing (TimeSheetPt1Model)
+import TimeSheetPt1Scene exposing (TimeSheetPt1Model, infoToVerifyStyle, pastWorkStyle)
 import TimeSheetPt2Scene exposing (TimeSheetPt2Model)
 import Fetchable exposing (..)
 import PointInTime exposing (PointInTime)
@@ -344,19 +344,8 @@ subscriptions kioskModel =
 -- STYLES
 -----------------------------------------------------------------------------
 
-infoToVerifyStyle = style
-  [ "display" => "inline-block"
-  , "padding" => px 20
-  , "background" => textAreaColor
-  , "border-width" => px 1
-  , "border-color" => "black"
-  , "border-style" => "solid"
-  , "border-radius" => px 10
-  ]
-
 otherWorkDescStyle = style
-  [ "width" => px 550
-  , "line-height" => "1"
+  [ "line-height" => "1"
   , "font-size" => pt 20
   ]
 

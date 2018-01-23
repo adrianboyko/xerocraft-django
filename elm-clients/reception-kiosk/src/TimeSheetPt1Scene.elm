@@ -5,6 +5,8 @@ module TimeSheetPt1Scene exposing
   , update
   , view
   , TimeSheetPt1Model
+  , infoToVerifyStyle -- Used by Pt2 and Pt3
+  , pastWorkStyle -- Used by Pt2 and Pt3
   )
 
 -- Standard
@@ -209,10 +211,12 @@ normalView kioskModel task claim work =
       "Let us know how long you worked!"
 
       ( div []
-        [ vspace 40
-        , text ("Task: \"" ++ task.data.shortDesc ++ "\"")
-        , vspace 20
-        , text ("Date: " ++ dateStr)
+        [ vspace 50
+        , div [infoToVerifyStyle]
+            [ text ("Task: \"" ++ task.data.shortDesc ++ "\"")
+            , vspace 20
+            , text ("Date: " ++ dateStr)
+            ]
         , if CalendarDate.equal today work.data.workDate then
             vspace 0
           else
@@ -247,10 +251,6 @@ failedView kioskModel error =
 -- STYLES
 -----------------------------------------------------------------------------
 
-pastWorkStyle = style
-  [ "color" => "red"
-  , "font-size" => pt 16
-  ]
 
 padStyle = style
   [ "border-spacing" => px 10
@@ -259,4 +259,19 @@ padStyle = style
 
 padHeaderStyle = style
   [ "height" => px 60
+  ]
+
+pastWorkStyle = style
+  [ "color" => "red"
+  , "font-size" => pt 16
+  ]
+
+infoToVerifyStyle = style
+  [ "display" => "inline-block"
+  , "padding" => px 20
+  , "background" => textAreaColor
+  , "border-width" => px 1
+  , "border-color" => "black"
+  --Cou, "border-style" => "solid"
+  , "border-radius" => px 10
   ]
