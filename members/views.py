@@ -550,24 +550,6 @@ def reception_kiosk_checked_in_accts(request) -> JsonResponse:
     return JsonResponse({"target": "", "matches": accts})
 
 
-# TODO: Add token authentication requirement and staff permission.
-def reception_kiosk_recent_rfid_entries(request) -> JsonResponse:
-    half_hour_ago = timezone.now() - timedelta(minutes=30)
-    visits = VisitEvent.objects.filter(when__gte=half_hour_ago, event_type=VisitEvent.EVT_ARRIVAL, method=VisitEvent.METHOD_RFID)
-
-    accts = []
-    for visit in visits:  # type: VisitEvent
-        visitor = visit.who  # type: Member
-        acct = {
-            "userName": visitor.username,
-            "memberNum": visitor.id,
-        }
-        if acct not in accts:
-            accts.append(acct)
-
-    return JsonResponse({"target": "", "matches": accts})
-
-
 # REVIEW: Change this to a POST with JSON body instead of a GET on a parameterized URL?
 @api_view(['GET'])
 @authentication_classes([TokenAuthentication])

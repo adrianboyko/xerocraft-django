@@ -34,7 +34,6 @@ type alias Session msg =
   , createNewAcct : CreateNewAcct msg
   , getMatchingAccts : GetMatchingAccts msg
   , getCheckedInAccts : GetCheckedInAccts msg
-  , getRecentRfidEntries : GetRecentRfidEntries msg
   , logArrivalEvent : LogArrivalEvent msg
   , logDepartureEvent : LogDepartureEvent msg
   , setIsAdult : SetIsAdult msg
@@ -46,7 +45,6 @@ createSession flags =
   , createNewAcct = createNewAcct flags
   , getMatchingAccts = getMatchingAccts flags
   , getCheckedInAccts = getCheckedInAccts flags
-  , getRecentRfidEntries = getRecentRfidEntries flags
   , logArrivalEvent = logArrivalEvent flags
   , logDepartureEvent = logDepartureEvent flags
   , setIsAdult = setIsAdult flags
@@ -73,7 +71,6 @@ type alias Flags =
   , discoveryMethodsUrl : String
   , logVisitEventUrl : String
   , matchingAcctsUrl : String
-  , recentRfidEntriesUrl : String
   , setIsAdultUrl : String
   , uniqueKioskId : String
   , xcOrgActionUrl : String
@@ -120,14 +117,6 @@ getCheckedInAccts flags resultToMsg =
   in
     Http.send resultToMsg request
 
-type alias GetRecentRfidEntries msg = (Result Http.Error MatchingAcctInfo -> msg) -> Cmd msg
-getRecentRfidEntries: Flags -> GetRecentRfidEntries msg
-getRecentRfidEntries flags resultToMsg =
-  let
-    url = flags.recentRfidEntriesUrl++"?format=json"  -- Easier than an "Accept" header.
-    request = Http.get url decodeMatchingAcctInfo
-  in
-    Http.send resultToMsg request
 
 type alias GetMatchingAccts msg = String -> (Result Http.Error MatchingAcctInfo -> msg) -> Cmd msg
 getMatchingAccts: Flags -> GetMatchingAccts msg

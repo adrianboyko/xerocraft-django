@@ -44,7 +44,6 @@ type alias KioskModel a =
   ( SceneUtilModel
     { a
     | checkInModel : CheckInModel
-    , membersApi : MembersApi.Session Msg
     , xisSession : XisApi.Session Msg
     , currTime : PointInTime
     }

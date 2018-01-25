@@ -21,18 +21,16 @@ urlpatterns = [
         views.reception_kiosk_spa,
         name="reception-kiosk"),
 
+    # TODO: Verify that this URL is no longer used and delete it. Reception now uses REST API.
     url(r'^reception/matching-accts/(?P<flexid>[-a-zA-Z0-9_@+.]{1,32})/$',
         views.reception_kiosk_matching_accts,
         name="reception-kiosk-matching-accts"),
-
-    url(r'^reception/recent-rfid-entries/$',
-        views.reception_kiosk_recent_rfid_entries,
-        name="reception-kiosk-recent-rfid-entries"),
 
     url(r'^reception/checked-in-accts/$',
         views.reception_kiosk_checked_in_accts,
         name="reception-kiosk-checked-in-accts"),
 
+    # TODO: Verify that this URL is no longer used and delete it. Reception now uses REST API.
     url(r'^reception/log-visit-event/(?P<member_pk>[0-9]*)_(?P<event_type>[APD])_(?P<reason>[A-Z]{3})/$',
         views.reception_kiosk_log_visit_event,
         name="reception-kiosk-log-visit-event"),
@@ -50,6 +48,8 @@ urlpatterns = [
         name="reception-kiosk-email-mship-buy-options"),
 
     # For desktop:
+    # TODO: QR coded membership cards are no longer used.
+    # TODO: Delete create-card and create-card-download.
     url(r'^create-card/$', views.create_card, name='create-card'),
     url(r'^create-card-download/$', views.create_card_download, name='create-card-download'),
     url(r'^desktop/member-tags/$', views.member_tags, name='desktop-member-tags'),
@@ -58,6 +58,9 @@ urlpatterns = [
     url(r'^desktop/earned-membership-revenue/$', views.desktop_earned_membership_revenue, name='earned-membership-revenue'),
 
     # For mobile apps:
+    # TODO: Mobile app is not currently used.
+    # TODO: Verify that these URLs are not used elsewhere, then delete them.
+    # TODO: Revise mobile app to use the REST API instead.
     url(r'^api/member-details/(?P<member_card_str>[-_a-zA-Z0-9]{32})_(?P<staff_card_str>[-_a-zA-Z0-9]{32})/$', views.api_member_details, name="api-member-details"),
     url(r'^api/member-details-pub/(?P<member_card_str>[-_a-zA-Z0-9]{32})/$', views.api_member_details_pub, name="api-member-details-pub"),
     url(r'^api/visit-event/(?P<member_card_str>[-_a-zA-Z0-9]{32})_(?P<event_type>[APD])/$', views.api_log_visit_event, name="api-visit-event"),
