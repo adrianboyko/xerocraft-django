@@ -62,7 +62,8 @@ type alias TimeSheetPt3Model =
   { records : Maybe (XisApi.Task, XisApi.Claim, XisApi.Work)
   , witnessUsername : String
   , witnessPassword : String
-  , digitsTyped : List Char
+  , digitsTyped : List Char  -- Digits that make up the RFID code
+  , rfidCode : Maybe Int  -- Set immediately after all digits have been sent.
   , badNews : List String
   }
 
@@ -74,6 +75,7 @@ init flags =
     , witnessUsername = ""
     , witnessPassword = ""
     , digitsTyped = []
+    , rfidCode = Nothing
     , badNews = []
     }
   in (sceneModel, Cmd.none)
@@ -94,8 +96,10 @@ sceneWillAppear kioskModel appearing vanishing =
       (TimeSheetPt3, _) ->
         case (pt1Model.oldBusinessItem) of
           Just {task, claim, work} ->
-            let records = Just (task, claim, work)
-            in ({sceneModel | records=records}, focusOnIndex idxWitnessUsername)
+            let
+              records = Just (task, claim, work)
+              newModel = {sceneModel | records=records, digitsTyped=[], rfidCode=Nothing }
+            in (newModel, focusOnIndex idxWitnessUsername)
           _ ->
             ({sceneModel | badNews=[tcwMissingMsg]}, Cmd.none)
 
@@ -145,11 +149,16 @@ update msg kioskModel =
         -- Scene is not visible.
         (sceneModel, Cmd.none)
 
-    TS3_MemberListResult (Ok {results}) ->
-      -- ASSERTION: There should be exactly one element in results.
+    TS3_WitnessListResult (Ok {results}) ->
+      -- ASSERTION: There should be exactly one witness in results.
       case List.head results of
-        Just witness ->
-          ({sceneModel | witnessUsername=witness.data.userName}, Cmd.none)
+        Just w ->
+          -- Reading an RFID will be considered equivalent to providing credentials, for purpose of witnessing work.
+          let
+            sModel = {sceneModel | witnessUsername=w.data.userName}
+            kModel = {kioskModel | timeSheetPt3Model = sModel }
+            synthMsg = TS3_WitnessAuthResult <| Ok <| AuthenticationResult True (Just w)
+          in update synthMsg kModel
         Nothing ->
           ({sceneModel | witnessUsername="", badNews=["RFID not registered."]}, Cmd.none)
 
@@ -168,33 +177,39 @@ update msg kioskModel =
           ({sceneModel | badNews = ["Witness name and password must be provided."]}, Cmd.none)
         else
           let
-            cmd = xis.listMembers [UsernameEquals wName] (TimeSheetPt3Vector << TS3_WitnessSearchResult)
+            cmd = xis.authenticate
+              sceneModel.witnessUsername
+              sceneModel.witnessPassword
+              (TimeSheetPt3Vector << TS3_WitnessAuthResult)
           in
             (sceneModel, cmd)
 
     -- Order of updates is important. Update Work here, update Claim later.
-    TS3_WitnessSearchResult (Ok {results}) ->
+    TS3_WitnessAuthResult (Ok {isAuthentic, authenticatedMember}) ->
       case sceneModel.records of
-        Nothing -> ({sceneModel | badNews=[tcwMissingMsg]}, Cmd.none)
-        Just (_, _, w) ->
-          case (List.length results) of
 
-            0 ->
-              ({sceneModel | badNews=["Could not find "++wName]}, Cmd.none)
+        Nothing ->
+          ({sceneModel | badNews=[tcwMissingMsg]}, Cmd.none)
 
-            1->
+        Just (_, _, work) ->
+          case (isAuthentic, authenticatedMember) of
+
+            (True, Just witness) ->
               let
-                witnessUrl = Maybe.map (\w -> xis.memberUrl w.id) (List.head results)
-                workDur = w.data.workDuration
-                workMod = w |> setWorksWitness witnessUrl |> setWorksDuration workDur
-                witnessHeader = Http.header "X-Witness-PW" sceneModel.witnessPassword
-                cmd = xis.replaceWorkWithHeaders [witnessHeader] workMod
-                  (TimeSheetPt3Vector << TS3_WorkUpdated)
+                witnessUrl = xis.memberUrl witness.id
+                workMod = setWorksWitness (Just witnessUrl) work
+                cmd = xis.replaceWork workMod (TimeSheetPt3Vector << TS3_WorkUpdated)
               in
                 ({sceneModel | badNews=[]}, cmd)
 
-            _ ->
-              ({sceneModel | badNews=["No unique result for "++wName]}, Cmd.none)
+            (True, Nothing) ->
+              -- XIS shouldn't produce this so I won't trust it.
+              let _ = Debug.log "ERROR" "TS3_WitnessAuthResult received (True, Nothing)."
+              in ({sceneModel | badNews=["Could not authenticate "++wName]}, Cmd.none)
+
+            (False, _) ->
+              ({sceneModel | badNews=["Could not authenticate "++wName]}, Cmd.none)
+
 
     -- Order of updates is important. Update Claim here, now that Work update is done.
     TS3_WorkUpdated (Ok work) ->
@@ -231,10 +246,16 @@ update msg kioskModel =
 
     -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-    TS3_MemberListResult (Err e) ->
-      ({sceneModel | badNews=[toString e]}, Cmd.none)
+    TS3_WitnessListResult (Err e) ->
+      ( { sceneModel
+        | badNews=[toString e]
+        , rfidCode=Nothing
+        , digitsTyped=[]
+        }
+      , Cmd.none
+      )
 
-    TS3_WitnessSearchResult (Err e) ->
+    TS3_WitnessAuthResult (Err e) ->
       ({sceneModel | badNews=[toString e]}, Cmd.none)
 
     TS3_ClaimUpdated (Err e) ->
@@ -262,14 +283,38 @@ handleRfid : KioskModel a -> (TimeSheetPt3Model, Cmd Msg)
 handleRfid kioskModel =
   let
     sceneModel = kioskModel.timeSheetPt3Model
-    rfidNumber = List.reverse sceneModel.digitsTyped |> String.fromList |> String.toInt
-    filter = Result.map RfidNumberEquals rfidNumber
-    resultHandler = TimeSheetPt3Vector << TS3_MemberListResult
-    cmd = case filter of
-      Ok f -> kioskModel.xisSession.listMembers [f] resultHandler
-      Err err -> Cmd.none
+    xis = kioskModel.xisSession
   in
-    (sceneModel, cmd)
+    case sceneModel.rfidCode of
+
+      Just _ ->
+        -- We're already in the process of checking a code, so ignore this one.
+        -- It's presumably the same code anyway, since the reader reads multiple times.
+        ( {sceneModel | witnessUsername="WORKING"}
+        , Cmd.none
+        )
+
+      Nothing ->
+        let
+          rfidNumber = List.reverse sceneModel.digitsTyped |> String.fromList |> String.toInt
+          filter = Result.map RfidNumberEquals rfidNumber
+        in
+          case (rfidNumber, filter) of
+
+            (Ok n, Ok f) ->
+              ( {sceneModel | rfidCode=Just n, witnessUsername="WORKING"}
+              , xis.listMembers [f] (TimeSheetPt3Vector << TS3_WitnessListResult)
+              )
+
+            (Err e, _) ->
+              ( {sceneModel | rfidCode=Nothing, witnessUsername="", badNews=[toString e]}
+              , Cmd.none
+              )
+
+            (_, Err e) ->
+              ( {sceneModel | rfidCode=Nothing, witnessUsername="", badNews=[toString e]}
+              , Cmd.none
+              )
 
 
 -----------------------------------------------------------------------------

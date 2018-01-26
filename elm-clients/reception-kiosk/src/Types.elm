@@ -21,19 +21,13 @@ import XisRestApi as XisApi exposing (..)
 
 -- This type can move into ReceiptionKiosk.elm, but for the banner fields.
 type alias Flags =
-  { addDiscoveryMethodUrl : String
-  , bannerBottomUrl : String
+  { bannerBottomUrl : String
   , bannerTopUrl : String
-  , checkedInAcctsUrl : String
   , cloneAcctUrl : String
   , csrfToken : String
-  , logVisitEventUrl : String
-  , matchingAcctsUrl : String
   , membersApiFlags : MembersApi.Flags
   , orgName : String
-  , recentRfidEntriesUrl : String
   , scrapeLoginsUrl : String
-  , setIsAdultUrl : String
   , uniqueKioskId : String
   , wavingHandUrl : String
   , xcOrgActionUrl : String
@@ -184,12 +178,12 @@ type TimeSheetPt3Msg
   = TS3_UpdateWitnessUsername String
   | TS3_UpdateWitnessPassword String
   | TS3_Witnessed
-  | TS3_WitnessSearchResult (Result Http.Error (PageOf XisApi.Member))
   | TS3_ClaimUpdated (Result Http.Error XisApi.Claim)
   | TS3_WorkUpdated (Result Http.Error XisApi.Work)
   | TS3_WorkNoteCreated (Result Http.Error XisApi.WorkNote)
   | TS3_KeyDown KeyCode
-  | TS3_MemberListResult (Result Http.Error (PageOf XisApi.Member))
+  | TS3_WitnessListResult (Result Http.Error (PageOf XisApi.Member))
+  | TS3_WitnessAuthResult (Result Http.Error AuthenticationResult)
 
 type WaiverMsg
   = ShowSignaturePad String

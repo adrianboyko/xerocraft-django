@@ -220,6 +220,7 @@ encodeResource dataNVPer res =
 -- URLS
 -----------------------------------------------------------------------------
 
+type alias ServiceUrl = String
 type alias ResourceUrl = String
 type alias ResourceListUrl = String
 
@@ -277,8 +278,8 @@ authenticationHeader auth =
     NoAuthorization -> Http.header "X-NoAuth" "NoAuth"
 
 
-httpGetRequest : Authorization -> ResourceUrl -> Dec.Decoder a -> Http.Request a
-httpGetRequest auth url decoder =
+getRequest : Authorization -> ResourceUrl -> Dec.Decoder a -> Http.Request a
+getRequest auth url decoder =
   Http.request
     { method = "GET"
     , url = url
@@ -289,8 +290,8 @@ httpGetRequest auth url decoder =
     , expect = Http.expectJson decoder
     }
 
-httpDeleteRequest : Authorization -> ResourceUrl -> Http.Request String
-httpDeleteRequest auth url =
+deleteRequest : Authorization -> ResourceUrl -> Http.Request String
+deleteRequest auth url =
   Http.request
     { method = "DELETE"
     , url = url
@@ -299,4 +300,16 @@ httpDeleteRequest auth url =
     , body = Http.emptyBody
     , timeout = Nothing
     , expect = Http.expectString
+    }
+
+postRequest : Authorization -> String -> Dec.Decoder a -> Enc.Value -> Http.Request a
+postRequest auth url responseDecoder encodedData =
+  Http.request
+    { method = "POST"
+    , headers = [authenticationHeader auth]
+    , url = url
+    , body = encodedData |> Http.jsonBody
+    , expect = Http.expectJson responseDecoder
+    , timeout = Nothing
+    , withCredentials = False
     }

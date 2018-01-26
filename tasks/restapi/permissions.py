@@ -125,27 +125,18 @@ def get_resnum_from_url(resurl: str) -> int:
 class WorkPermission(permissions.BasePermission):
 
     def has_object_permission(self, request: Request, view, obj: tm.Work) -> bool:
-        memb = request.user.member  # type: mm.Member
 
-        # Only allow the witness to be set if
-        #  1) the request has the witness PW in a header, and
-        #  2) the witness name & pw authenticate.
-        if request.method in ("PUT", "PATCH"):
-            witness_url = request.data.get("witness")
-            if witness_url is not None:
-                witness_pw = request.META.get("HTTP_X_WITNESS_PW")
-                if witness_pw is None:
-                    return False
-                witness_id = get_resnum_from_url(witness_url)
-                try:
-                    witness = mm.Member.objects.get(id=witness_id)
-                except mm.Member.DoesNotExist:
-                    return False
-                if not authenticate(request, username=witness.username, password=witness_pw):
-                    return False
+        memb = request.user.member  # type: mm.Member
 
         if request.method in permissions.SAFE_METHODS:
             return True
 
+        if request.method in ("PUT", "PATCH"):
+            return user_is_kiosk(request)
+
+        # REVIEW: Why is this needed?
         if type(obj) is tm.Work:
-            return memb == obj.claim.claiming_member or user_is_kiosk(request)
+            return user_is_kiosk(request)
+
+        return False
+

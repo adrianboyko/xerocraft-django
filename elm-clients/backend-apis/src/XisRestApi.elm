@@ -7,6 +7,7 @@ module XisRestApi
     , setWorksDuration
     , setWorksWitness
     --------------------
+    , AuthenticationResult
     , Claim, ClaimData
     , ClaimStatus (..)
     , ClaimListFilter (..)
@@ -75,7 +76,8 @@ taskLowPriorityValue    = "L"
 -----------------------------------------------------------------------------
 
 type alias XisRestFlags =
-  { claimListUrl : ResourceListUrl
+  { authenticateUrl : ServiceUrl
+  , claimListUrl : ResourceListUrl
   , discoveryMethodListUrl : ResourceListUrl
   , memberListUrl : ResourceListUrl
   , membershipListUrl : ResourceListUrl
@@ -159,7 +161,6 @@ type alias Session msg =
   ----- RESOURCE REPLACERS
   , replaceClaim : Replacer Claim msg
   , replaceWork : Replacer Work msg
-  , replaceWorkWithHeaders : List Http.Header -> Replacer Work msg
 
   ----- RESOURCE URLS -----
   , claimUrl : Int -> ResourceUrl
@@ -169,6 +170,7 @@ type alias Session msg =
   , workNoteUrl : Int -> ResourceUrl
 
   ----- OTHER -----
+  , authenticate: String -> String -> (Result Http.Error AuthenticationResult -> msg) -> Cmd msg
   , coverTime : List Membership -> Time -> Bool
   , defaultBlockType : List TimeBlockType -> Maybe TimeBlockType
   , getBlocksTypes : TimeBlock -> List TimeBlockType -> List TimeBlockType
@@ -211,8 +213,7 @@ createSession flags auth =
 
   ----- RESOURCE REPLACERS -----
   , replaceClaim = replaceClaim flags auth
-  , replaceWork = replaceWorkWithHeaders flags auth []
-  , replaceWorkWithHeaders = replaceWorkWithHeaders flags auth
+  , replaceWork = replaceWork flags auth
 
   ----- RESOURCE URLS -----
   , claimUrl = urlFromId flags.claimListUrl
@@ -222,6 +223,7 @@ createSession flags auth =
   , workNoteUrl = urlFromId flags.workNoteListUrl
 
   ----- OTHER -----
+  , authenticate = authenticate flags auth
   , coverTime = coverTime
   , defaultBlockType = defaultBlockType
   , getBlocksTypes = getBlocksTypes
@@ -281,7 +283,7 @@ taskListFilterToString filter =
 listTasks : XisRestFlags -> Authorization -> FilteringLister TaskListFilter Task msg
 listTasks flags auth filters resultToMsg =
   let
-    request = httpGetRequest
+    request = getRequest
       auth
       (filteredListUrl flags.taskListUrl filters taskListFilterToString)
       (decodePageOf decodeTask)
@@ -298,7 +300,7 @@ getTaskById flags auth taskNum resultToMsg =
 getTaskFromUrl : XisRestFlags -> Authorization -> GetterFromUrl Task msg
 getTaskFromUrl flags auth url resultToMsg =
   let
-    request = httpGetRequest auth url decodeTask
+    request = getRequest auth url decodeTask
   in
     Http.send resultToMsg request
 
@@ -499,7 +501,7 @@ claimListFilterToString filter =
 listClaims : XisRestFlags -> Authorization -> FilteringLister ClaimListFilter Claim msg
 listClaims flags auth filters resultToMsg =
   let
-    request = httpGetRequest
+    request = getRequest
       auth
       (filteredListUrl flags.claimListUrl filters claimListFilterToString)
       (decodePageOf decodeClaim)
@@ -661,7 +663,7 @@ workListFilterToString filter =
 listWorks : XisRestFlags -> Authorization -> FilteringLister WorkListFilter Work msg
 listWorks flags auth  filters resultToMsg =
   let
-    request = httpGetRequest
+    request = getRequest
       auth
       (filteredListUrl flags.workListUrl filters workListFilterToString)
       (decodePageOf decodeWork)
@@ -671,7 +673,7 @@ listWorks flags auth  filters resultToMsg =
 getWorkFromUrl : XisRestFlags -> Authorization -> GetterFromUrl Work msg
 getWorkFromUrl flags auth url resultToMsg =
   let
-    request = httpGetRequest auth url decodeWork
+    request = getRequest auth url decodeWork
   in
     Http.send resultToMsg request
 
@@ -692,12 +694,12 @@ createWork flags auth workData resultToMsg =
 
 
 -- If "witness" is provided, the witness's password needs to be in an X-Witness-PW header.
-replaceWorkWithHeaders : XisRestFlags -> Authorization -> List Http.Header -> Replacer Work msg
-replaceWorkWithHeaders flags auth headers work resultToMsg =
+replaceWork : XisRestFlags -> Authorization -> Replacer Work msg
+replaceWork flags auth work resultToMsg =
   let
     request = Http.request
       { method = "PUT"
-      , headers = headers ++ [authenticationHeader auth]
+      , headers = [authenticationHeader auth]
       , url = urlFromId flags.workListUrl work.id
       , body = work.data |> encodeWorkData |> Http.jsonBody
       , expect = Http.expectJson decodeWork
@@ -716,7 +718,7 @@ deleteWorkById flags auth id tagger =
 
 deleteWorkByUrl : XisRestFlags -> Authorization -> DeleterByUrl msg
 deleteWorkByUrl flags auth url tagger =
-  let request = httpDeleteRequest auth url
+  let request = deleteRequest auth url
   in Http.send tagger request
 
 
@@ -852,7 +854,7 @@ memberListFilterToString filter =
 listMembers : XisRestFlags -> Authorization -> FilteringLister MemberListFilter Member msg
 listMembers flags auth filters resultToMsg =
   let
-    request = httpGetRequest
+    request = getRequest
       auth
       (filteredListUrl flags.memberListUrl filters memberListFilterToString)
       (decodePageOf decodeMember)
@@ -876,6 +878,48 @@ decodeMemberData =
     |> optional "last_name"  (Dec.maybe Dec.string) Nothing
     |> required "latest_nonfuture_membership" (Dec.maybe decodeMembership)
     |> required "username" Dec.string
+
+
+-----------------------------------------------------------------------------
+-- AUTHENTICATE
+-----------------------------------------------------------------------------
+
+type alias AuthenticationResult =
+  { isAuthentic : Bool
+  , authenticatedMember : Maybe Member
+  }
+
+
+authenticate: XisRestFlags -> Authorization
+  -> String -> String -> (Result Http.Error AuthenticationResult -> msg)
+  -> Cmd msg
+
+
+authenticate flags auth userName password tagger =
+  let
+    request = postRequest
+      auth
+      flags.authenticateUrl
+      decodeAuthenticationResult
+      (encodeAuthenticateRequestData userName password)
+  in
+    Http.send tagger request
+
+
+encodeAuthenticateRequestData : String -> String -> Enc.Value
+encodeAuthenticateRequestData userName password =
+  Enc.object
+    [ ( "username", userName |> Enc.string )
+    , ( "userpw", password |> Enc.string )
+    ]
+
+
+decodeAuthenticationResult : Dec.Decoder AuthenticationResult
+decodeAuthenticationResult =
+  decode AuthenticationResult
+    |> required "is_authentic" Dec.bool
+    |> optional "authenticated_member" (Dec.maybe decodeMember) Nothing
+
 
 
 -----------------------------------------------------------------------------
@@ -1015,7 +1059,7 @@ membershipListFilterToString filter =
 listMemberships : XisRestFlags -> Authorization -> FilteringLister MembershipListFilter Membership msg
 listMemberships flags auth filters resultToMsg =
   let
-    request = httpGetRequest
+    request = getRequest
       auth
       (filteredListUrl flags.membershipListUrl filters membershipListFilterToString)
       (decodePageOf decodeMembership)
@@ -1032,7 +1076,7 @@ getMembershipById flags auth memberNum resultToMsg =
 getMembershipFromUrl : XisRestFlags -> Authorization -> GetterFromUrl Membership msg
 getMembershipFromUrl flags auth url resultToMsg =
   let
-    request = httpGetRequest auth url decodeMembership
+    request = getRequest auth url decodeMembership
   in
     Http.send resultToMsg request
 
@@ -1184,7 +1228,7 @@ visitEventListFilterToString filter =
 listVisitEvents : XisRestFlags -> Authorization -> FilteringLister VisitEventListFilter VisitEvent msg
 listVisitEvents flags auth filters resultToMsg =
   let
-    request = httpGetRequest
+    request = getRequest
       auth
       (filteredListUrl flags.visitEventListUrl filters visitEventListFilterToString)
       (decodePageOf decodeVisitEvent)

@@ -143,17 +143,14 @@ update msg kioskModel =
 
           (Just hrs, Just mins) ->
             let
-              wd = work.data
               dur = Time.hour * (toFloat hrs) + Time.minute * (toFloat mins)
-              newData = {wd | workDuration=Just dur}
-              revisedWork = {work | data = newData}
-              cmd = segueTo TimeSheetPt2
+              revisedWork = XisApi.setWorksDuration (Just dur) work
             in
               ( { sceneModel
                 | oldBusinessItem=Just (OldBusinessItem task claim revisedWork)
                 , badNews=[]
                 }
-              , cmd
+              , segueTo TimeSheetPt2
               )
 
     TS1_HrPad hr ->

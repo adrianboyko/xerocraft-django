@@ -111,6 +111,7 @@
         }
 
         var xisApiFlags = {
+            "authenticateUrl":        "{% url 'memb:api-authenticate' %}",
             "claimListUrl":           "{% url 'task:claim-list' %}",
             "discoveryMethodListUrl": "{% url 'memb:discoverymethod-list' %}",
             "memberListUrl":          "{% url 'memb:member-list' %}",
@@ -136,19 +137,13 @@
         };
 
         var flags = {
-            "addDiscoveryMethodUrl": "{% url 'memb:reception-kiosk-add-discovery-method' %}",
             "bannerBottomUrl":       "{% static 'bzw_ops/GenericBannerBottom_800x84.png' %}",
             "bannerTopUrl":          "{% static 'bzw_ops/GenericBannerTop_800x155.png' %}",
-            "checkedInAcctsUrl":     "{% url 'memb:reception-kiosk-checked-in-accts' %}",
             "cloneAcctUrl":          "{% url 'xis:clone-acct' %}",
             "csrfToken":             csrfToken,
-            "logVisitEventUrl":      "{% url 'memb:reception-kiosk-log-visit-event' member_pk='12345' event_type='A' reason='OTH' %}",
-            "matchingAcctsUrl":      "{% url 'memb:reception-kiosk-matching-accts' flexid='FLEXID' %}",
             "membersApiFlags":       membersApiFlags,
             "orgName":               "{{ org_name }}",
-            "recentRfidEntriesUrl":  "{% url 'memb:reception-kiosk-recent-rfid-entries' %}",
             "scrapeLoginsUrl":       "{% url 'scrape-xerocraft-org-checkins' %}",
-            "setIsAdultUrl":         "{% url 'memb:reception-kiosk-set-is-adult' %}",
             "uniqueKioskId":         uniqueKioskId,
             "wavingHandUrl":         "{% static 'bzw_ops/WavingHand.gif' %}",
             "xcOrgActionUrl":        "{{ action_url }}",
