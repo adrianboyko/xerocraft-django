@@ -65,8 +65,9 @@ urlpatterns = [
     url(r'^api/member-details-pub/(?P<member_card_str>[-_a-zA-Z0-9]{32})/$', views.api_member_details_pub, name="api-member-details-pub"),
     url(r'^api/visit-event/(?P<member_card_str>[-_a-zA-Z0-9]{32})_(?P<event_type>[APD])/$', views.api_log_visit_event, name="api-visit-event"),
 
-    # DJANGO REST FRAMEWORK API
+    # DJANGO REST FRAMEWORK API (AKA "XisApi")
     url(r'^api/', include(router.urls)),
+    url(r'^api-authenticate/', views.api_authenticate, name='api-authenticate'),
 
     # OTHER
     url(r'^csv/monthly-accrued-membership/$', views.csv_monthly_accrued_membership, name='csv-monthly-accrued-membership'),

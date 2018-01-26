@@ -39,6 +39,7 @@ from reportlab.lib.pagesizes import letter
 from members.models import Member, Tag, Tagging, VisitEvent, Membership, DiscoveryMethod
 from members.forms import Desktop_ChooseUserForm
 from members.models import GroupMembership
+from members.restapi.serializers import get_MemberSerializer
 from abutils.utils import request_is_from_host
 
 logger = getLogger("members")
@@ -637,3 +638,22 @@ def reception_kiosk_email_mship_buy_options(request) -> JsonResponse:
     msg.attach_alternative(html_content, "text/html")
     msg.send()
     return JsonResponse({"result": "success"})
+
+
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+def api_authenticate(request) -> JsonResponse:
+
+    data = json.loads(request.body.decode())
+    username = data['username']  # type: str
+    userpw = data['userpw']  # type: str
+
+    user = authenticate(username=username, password=userpw)
+    if user is not None:
+        member = user.member
+        slizer = get_MemberSerializer(False)(member, context={'request': request})
+        result = {"is_authentic": True, "authenticated_member": slizer.data}
+    else:
+        result = {"is_authentic": False, "authenticated_member": None}
+
+    return JsonResponse(result)
