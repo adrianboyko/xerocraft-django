@@ -164,16 +164,16 @@ timeoutFor : Scene -> Int
 timeoutFor scene =
   case scene of
     CheckIn -> 60
-    CheckInDone -> 10
+    CheckInDone -> 5
     CheckOut -> 60
-    CheckOutDone -> 10
+    CheckOutDone -> 5
     CreatingAcct -> 300
     EmailInUse -> 300
     HowDidYouHear -> 300
     MembersOnly -> 300
     NewMember -> 600
     NewUser -> 600
-    OldBusiness -> 600 -- TEMP FOR DEVELOPMENT
+    OldBusiness -> 300
     ReasonForVisit -> 300
     ScreenSaver -> 86400
     SignUpDone -> 300
@@ -219,7 +219,7 @@ view kioskModel =
     ""
     ""
     (div []
-      [ vspace 60
+      [ vspace 20
       -- TODO: Do I want to pass all imgs in as flags, as was done with banners?
       , img [src kioskModel.flags.wavingHandUrl, logoImgStyle] []
       , vspace 20
@@ -263,6 +263,7 @@ bgDivStyle = style
 
 logoImgStyle = style
   [ "width" => px 600
+  , "height" => px 579
   ]
 
 h1Style = style
