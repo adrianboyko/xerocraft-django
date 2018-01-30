@@ -21,10 +21,10 @@ class VisitEventPermission(permissions.BasePermission):
         if request.method in permissions.SAFE_METHODS:
             return True
         else:
-            user_is_kiosk(request)
+            return user_is_kiosk(request)
 
     def has_object_permission(self, request: Request, view, obj):
         if request.method in permissions.SAFE_METHODS:
             return True
         else:
-            user_is_kiosk(request)
+            return user_is_kiosk(request)
