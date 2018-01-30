@@ -115,7 +115,8 @@ class Member(models.Model):
     MEMB_CARD_STR_LEN = 32
 
     auth_user = models.OneToOneField('auth.User', null=False, unique=True, related_name="member",
-        help_text="This must point to the corresponding auth.User object.")
+        help_text="This must point to the corresponding auth.User object.",
+        on_delete=models.CASCADE)
 
     nag_re_membership = models.BooleanField(default=False,
         help_text="If true, person will be nudged (via email) to renew membership.")
@@ -571,7 +572,8 @@ class MembershipCampaign(models.Model):
 class MembershipGiftCard(models.Model):
 
     campaign = models.ForeignKey(MembershipCampaign, null=True, blank=True,
-        help_text="The membership campaign that this card/code belongs to, if any.")
+        help_text="The membership campaign that this card/code belongs to, if any.",
+        on_delete=models.SET_NULL)
 
     redemption_code = models.CharField(max_length=20, unique=True, null=False, blank=False,
         help_text="A random string printed on the card, used during card redemption / membership activation.")

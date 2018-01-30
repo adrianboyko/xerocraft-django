@@ -856,7 +856,8 @@ class Worker(models.Model):
     """ Settings per worker. """
 
     member = models.OneToOneField(mm.Member, null=False, unique=True, related_name="worker",
-        help_text="This must point to the corresponding member.")
+        help_text="This must point to the corresponding member.",
+        on_delete=models.CASCADE)
 
     calendar_token = models.CharField(max_length=32, null=True, blank=True,
         help_text="Random hex string used to access calendar.")
