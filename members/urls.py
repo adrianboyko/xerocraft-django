@@ -26,10 +26,6 @@ urlpatterns = [
         views.reception_kiosk_matching_accts,
         name="reception-kiosk-matching-accts"),
 
-    url(r'^reception/checked-in-accts/$',
-        views.reception_kiosk_checked_in_accts,
-        name="reception-kiosk-checked-in-accts"),
-
     # TODO: Verify that this URL is no longer used and delete it. Reception now uses REST API.
     url(r'^reception/log-visit-event/(?P<member_pk>[0-9]*)_(?P<event_type>[APD])_(?P<reason>[A-Z]{3})/$',
         views.reception_kiosk_log_visit_event,
