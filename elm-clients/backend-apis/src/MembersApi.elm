@@ -33,7 +33,6 @@ type alias Session msg =
   { addDiscoveryMethods : AddDiscoveryMethods msg
   , createNewAcct : CreateNewAcct msg
   , getMatchingAccts : GetMatchingAccts msg
-  , getCheckedInAccts : GetCheckedInAccts msg
   , logArrivalEvent : LogArrivalEvent msg
   , logDepartureEvent : LogDepartureEvent msg
   , setIsAdult : SetIsAdult msg
@@ -44,7 +43,6 @@ createSession flags =
   { addDiscoveryMethods = addDiscoveryMethods flags
   , createNewAcct = createNewAcct flags
   , getMatchingAccts = getMatchingAccts flags
-  , getCheckedInAccts = getCheckedInAccts flags
   , logArrivalEvent = logArrivalEvent flags
   , logDepartureEvent = logDepartureEvent flags
   , setIsAdult = setIsAdult flags
@@ -66,7 +64,6 @@ replaceAll {oldSub, newSub} whole =
 
 type alias Flags =
   { addDiscoveryMethodUrl : String
-  , checkedInAcctsUrl : String
   , csrfToken : String
   , discoveryMethodsUrl : String
   , logVisitEventUrl : String
@@ -107,16 +104,6 @@ type ReasonForVisit
 -----------------------------------------------------------------------------
 -- API
 -----------------------------------------------------------------------------
-
-type alias GetCheckedInAccts msg = (Result Http.Error MatchingAcctInfo -> msg) -> Cmd msg
-getCheckedInAccts: Flags -> GetCheckedInAccts msg
-getCheckedInAccts flags resultToMsg =
-  let
-    url = flags.checkedInAcctsUrl++"?format=json"  -- Easier than an "Accept" header.
-    request = Http.get url decodeMatchingAcctInfo
-  in
-    Http.send resultToMsg request
-
 
 type alias GetMatchingAccts msg = String -> (Result Http.Error MatchingAcctInfo -> msg) -> Cmd msg
 getMatchingAccts: Flags -> GetMatchingAccts msg
