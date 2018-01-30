@@ -123,6 +123,8 @@ decodePointInTime =
         Err err -> Dec.fail err
     )
 
+encodePointInTime =
+  PointInTime.isoString >> Enc.string
 
 -----------------------------------------------------------------------------
 -- DURATION
@@ -223,7 +225,7 @@ encodeResource dataNVPer res =
 type alias ServiceUrl = String
 type alias ResourceUrl = String
 type alias ResourceListUrl = String
-
+type alias PageUrl = String
 
 extractRelativeUrl : ResourceUrl -> ResourceUrl
 extractRelativeUrl url =
