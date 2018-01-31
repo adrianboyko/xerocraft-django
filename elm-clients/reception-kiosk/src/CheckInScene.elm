@@ -23,7 +23,6 @@ import List.Extra as ListX
 -- Local
 import Types exposing (..)
 import Wizard.SceneUtils exposing (..)
-import MembersApi as MembersApi
 import XisRestApi as XisApi
 import PointInTime as PIT exposing (PointInTime)
 
@@ -260,7 +259,6 @@ tick time kioskModel =
 getRecentRfidArrivalsCmd : KioskModel a -> Cmd Msg
 getRecentRfidArrivalsCmd kioskModel =
   let
-    delta = 34
     lowerBound = kioskModel.currTime - (15 * Time.minute)
     filters =
       [ XisApi.VEF_WhenGreaterOrEquals lowerBound
