@@ -251,7 +251,9 @@ failedView kioskModel error =
 
 padStyle = style
   [ "border-spacing" => px 10
-  , "display" => "inline"
+  , "display" => "inline-block"
+  , "margin-left" => "auto"
+  , "margin-right" => "auto"
   ]
 
 padHeaderStyle = style
