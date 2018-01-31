@@ -198,9 +198,17 @@ update msg kioskModel =
               let
                 witnessUrl = xis.memberUrl witness.id
                 workMod = setWorksWitness (Just witnessUrl) work
-                cmd = xis.replaceWork workMod (TimeSheetPt3Vector << TS3_WorkUpdated)
+                cmd1 = xis.replaceWork workMod (TimeSheetPt3Vector << TS3_WorkUpdated)
+                cmd2 = xis.createVisitEvent
+                         { who=witnessUrl
+                         , when=kioskModel.currTime
+                         , eventType=VET_Present
+                         , method=VEM_FrontDesk
+                         , reason=Nothing
+                         }
+                         (TimeSheetPt3Vector << TS3_WitnessPresentResult)
               in
-                ({sceneModel | badNews=[]}, cmd)
+                ({sceneModel | badNews=[]}, Cmd.batch [cmd1, cmd2])
 
             (True, Nothing) ->
               -- XIS shouldn't produce this so I won't trust it.
@@ -244,6 +252,10 @@ update msg kioskModel =
       -- Everything worked. Scene is complete.
       (sceneModel, popTo OldBusiness)
 
+    TS3_WitnessPresentResult (Ok _) ->
+      -- Don't need to do anything when this succeeds.
+      (sceneModel, Cmd.none)
+
     -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
     TS3_WitnessListResult (Err e) ->
@@ -260,6 +272,12 @@ update msg kioskModel =
 
     TS3_ClaimUpdated (Err e) ->
       ({sceneModel | badNews=[toString e]}, Cmd.none)
+
+    TS3_WitnessPresentResult (Err e) ->
+      let
+        _ = Debug.log "TS3 ERR" (toString e)
+      in
+        (sceneModel, Cmd.none)
 
     TS3_WorkUpdated (Err e) ->
       case e of

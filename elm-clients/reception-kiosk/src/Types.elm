@@ -184,6 +184,7 @@ type TimeSheetPt3Msg
   | TS3_KeyDown KeyCode
   | TS3_WitnessListResult (Result Http.Error (PageOf XisApi.Member))
   | TS3_WitnessAuthResult (Result Http.Error AuthenticationResult)
+  | TS3_WitnessPresentResult (Result Http.Error XisApi.VisitEvent)
 
 type WaiverMsg
   = ShowSignaturePad String
