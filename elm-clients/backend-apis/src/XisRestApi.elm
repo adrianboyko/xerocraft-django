@@ -22,7 +22,7 @@ module XisRestApi
     , TaskPriority (..)
     , TimeBlock, TimeBlockData
     , TimeBlockType, TimeBlockTypeData
-    , VisitEvent, VisitEventData
+    , VisitEvent, VisitEventDataOut
     , VisitEventType(..), VisitEventReason(..), VisitEventListFilter(..), VisitEventMethod(..)
     , Work, WorkData
     , WorkNote, WorkNoteData
@@ -111,6 +111,9 @@ type alias GetterFromUrl rsrc msg =
 type alias Lister rsrc msg =
   ResultTagger (PageOf rsrc) msg -> Cmd msg
 
+type alias ListPager rsrc msg =
+  PageUrl -> ResultTagger (PageOf rsrc) msg -> Cmd msg
+
 type alias Replacer rsrc msg =
   rsrc -> ResultTagger rsrc msg -> Cmd msg
 
@@ -140,6 +143,7 @@ type alias Session msg =
 
   ----- RESOURCE CREATORS -----
   , createClaim : Creator ClaimData Claim msg
+  , createVisitEvent : Creator VisitEventDataOut VisitEvent msg
   , createWork : Creator WorkData Work msg
   , createWorkNote : Creator WorkNoteData WorkNote msg
 
@@ -157,6 +161,7 @@ type alias Session msg =
   , listTimeBlockTypes : Lister TimeBlockType msg
   , listVisitEvents : FilteringLister VisitEventListFilter VisitEvent msg
   , listWorks : FilteringLister WorkListFilter Work msg
+  , moreVisitEvents : ListPager VisitEvent msg
 
   ----- RESOURCE REPLACERS
   , replaceClaim : Replacer Claim msg
@@ -166,6 +171,7 @@ type alias Session msg =
   , claimUrl : Int -> ResourceUrl
   , memberUrl : Int -> ResourceUrl
   , taskUrl : Int -> ResourceUrl
+  , visitEventUrl : Int -> ResourceUrl
   , workUrl : Int -> ResourceUrl
   , workNoteUrl : Int -> ResourceUrl
 
@@ -193,6 +199,7 @@ createSession flags auth =
 
   ----- RESOURCE CREATORS -----
   , createClaim = createClaim flags auth
+  , createVisitEvent = createVisitEvent flags auth
   , createWork = createWork flags auth
   , createWorkNote = createWorkNote flags auth
 
@@ -210,6 +217,7 @@ createSession flags auth =
   , listTimeBlockTypes = listTimeBlockTypes flags auth
   , listVisitEvents = listVisitEvents flags auth
   , listWorks = listWorks flags auth
+  , moreVisitEvents = moreVisitEvents flags auth
 
   ----- RESOURCE REPLACERS -----
   , replaceClaim = replaceClaim flags auth
@@ -220,6 +228,7 @@ createSession flags auth =
   , memberUrl = urlFromId flags.memberListUrl
   , taskUrl = urlFromId flags.taskListUrl
   , workUrl = urlFromId flags.workListUrl
+  , visitEventUrl = urlFromId flags.visitEventListUrl
   , workNoteUrl = urlFromId flags.workNoteListUrl
 
   ----- OTHER -----
@@ -774,7 +783,7 @@ createWorkNote flags auth workNoteData resultToMsg =
       { method = "POST"
       , headers = [authenticationHeader auth]
       , url = flags.workNoteListUrl
-      , body = workNoteData |> encodeWorkNoteData |> Http.jsonBody
+      , body = workNoteData |> workNoteDataNVPs |> Enc.object |> Http.jsonBody
       , expect = Http.expectJson decodeWorkNote
       , timeout = Nothing
       , withCredentials = False
@@ -782,12 +791,6 @@ createWorkNote flags auth workNoteData resultToMsg =
   in
     Http.send resultToMsg request
 
-
-encodeWorkNote: WorkNote -> Enc.Value
-encodeWorkNote = encodeResource workNoteDataNVPs
-
-encodeWorkNoteData : WorkNoteData -> Enc.Value
-encodeWorkNoteData = Enc.object << workNoteDataNVPs
 
 {-| Name Value Pairs for WorkNoteData -}
 workNoteDataNVPs : WorkNoteData -> List (String, Enc.Value)
@@ -1155,21 +1158,38 @@ decodeDiscoveryMethodData =
     |> required "visible" Dec.bool
 
 
-
 -----------------------------------------------------------------------------
 -- VISIT EVENTS
 -----------------------------------------------------------------------------
 
-type alias VisitEventData =
+type alias VisitEventDataIn =
   { who : Member
   , when : PointInTime
   , eventType : VisitEventType
-  , reason: Maybe VisitEventReason
-  , method: VisitEventMethod
+  , reason : Maybe VisitEventReason
+  , method : VisitEventMethod
   }
 
+type alias VisitEventDataOut =
+  { who : ResourceUrl
+  , when : PointInTime
+  , eventType : VisitEventType
+  , reason : Maybe VisitEventReason
+  , method : VisitEventMethod
+  }
 
-type alias VisitEvent = Resource VisitEventData
+type alias VisitEvent = Resource VisitEventDataIn
+
+
+visitEventDataNVPs : XisRestFlags -> VisitEventDataOut -> List (String, Enc.Value)
+visitEventDataNVPs flags ved =
+  [ ( "who", ved.who |> Enc.string)
+  , ( "when", ved.when |> DRF.encodePointInTime )
+  , ( "event_type", ved.eventType |> eventTypeString |> Enc.string )
+  , ( "reason", ved.reason |> Maybe.map eventReasonString |> EncX.maybe Enc.string )
+  , ( "method", ved.method |> eventMethodString |> Enc.string )
+  ]
+
 
 type VisitEventMethod
   = VEM_Rfid
@@ -1195,20 +1215,32 @@ type VisitEventType
 
 
 eventTypeString : VisitEventType -> String
-eventTypeString vet =
-  case vet of
+eventTypeString x =
+  case x of
     VET_Arrival -> "A"
     VET_Departure -> "D"
     VET_Present -> "P"
 
 
 eventMethodString : VisitEventMethod -> String
-eventMethodString vet =
-  case vet of
+eventMethodString x =
+  case x of
     VEM_Rfid -> "R"
     VEM_FrontDesk -> "F"
     VEM_MobileApp -> "M"
     VEM_Unknown -> "U"
+
+
+eventReasonString : VisitEventReason -> String
+eventReasonString x =
+  case x of
+    VER_Class -> "CLS"
+    VER_Club -> "CLB"
+    VER_Curious -> "CUR"
+    VER_Guest -> "GST"
+    VER_Member -> "MEM"
+    VER_Other -> "OTH"
+    VER_Volunteer -> "VOL"
 
 
 type VisitEventListFilter
@@ -1236,14 +1268,38 @@ listVisitEvents flags auth filters resultToMsg =
     Http.send resultToMsg request
 
 
+moreVisitEvents : XisRestFlags -> Authorization -> ListPager VisitEvent msg
+moreVisitEvents flags auth pageUrl resultToMsg =
+  let
+    request = getRequest auth pageUrl (decodePageOf decodeVisitEvent)
+  in
+    Http.send resultToMsg request
+
+
+createVisitEvent : XisRestFlags -> Authorization -> Creator VisitEventDataOut VisitEvent msg
+createVisitEvent flags auth visitEventData resultToMsg =
+  let
+    request = Http.request
+      { method = "POST"
+      , headers = [authenticationHeader auth]
+      , url = flags.visitEventListUrl
+      , body = visitEventData |> (visitEventDataNVPs flags) |> Enc.object |> Http.jsonBody
+      , expect = Http.expectJson decodeVisitEvent
+      , timeout = Nothing
+      , withCredentials = False
+      }
+  in
+    Http.send resultToMsg request
+
+
 decodeVisitEvent : Dec.Decoder VisitEvent
-decodeVisitEvent = decodeResource decodeVisitEventData
+decodeVisitEvent = decodeResource decodeVisitEventDataIn
 
 
-decodeVisitEventData : Dec.Decoder VisitEventData
-decodeVisitEventData =
-  decode VisitEventData
-    |> required "who" decodeMember
+decodeVisitEventDataIn : Dec.Decoder VisitEventDataIn
+decodeVisitEventDataIn =
+  decode VisitEventDataIn
+    |> required "who_embed" decodeMember
     |> required "when" DRF.decodePointInTime
     |> required "event_type" decodeVisitEventType
     |> required "reason" (Dec.maybe decodeVisitEventReason)
