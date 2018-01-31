@@ -102,13 +102,20 @@ class WifiMacDetectedSerializer(serializers.ModelSerializer):
 
 class VisitEventSerializer(serializers.ModelSerializer):
 
-    who = get_MemberSerializer(True)(many=False, read_only=True)
+    who_embed = get_MemberSerializer(True)(many=False, read_only=True, source='who')
+
+    who = serializers.HyperlinkedRelatedField(
+        read_only=False,
+        view_name='memb:member-detail',
+        queryset=models.Member.objects.all()
+    )
 
     class Meta:
         model = models.VisitEvent
         fields = (
             'id',
             'who',
+            'who_embed',
             'when',
             'event_type',
             'reason',
