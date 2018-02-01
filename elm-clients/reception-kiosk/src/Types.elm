@@ -149,9 +149,9 @@ type OldBusinessMsg
   | OB_NoteWorkDeleted (Result Http.Error String)
 
 type ReasonForVisitMsg
-  = UpdateReasonForVisit ReasonForVisit
+  = UpdateReasonForVisit VisitEventReason
   | ValidateReason
-  | LogCheckInResult (Result Http.Error GenericResult)
+  | LogCheckInResult (Result Http.Error XisApi.VisitEvent)
 
 type ScreenSaverMsg
   = SS_KeyDown KeyCode

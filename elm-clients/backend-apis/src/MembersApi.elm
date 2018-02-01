@@ -4,8 +4,6 @@ module MembersApi exposing
   , MatchingAcct
   , MatchingAcctInfo
   , GenericResult
-  , VisitEventType (..)
-  , ReasonForVisit (..)
   , Session
   )
 
@@ -33,8 +31,6 @@ type alias Session msg =
   { addDiscoveryMethods : AddDiscoveryMethods msg
   , createNewAcct : CreateNewAcct msg
   , getMatchingAccts : GetMatchingAccts msg
-  , logArrivalEvent : LogArrivalEvent msg
-  , logDepartureEvent : LogDepartureEvent msg
   , setIsAdult : SetIsAdult msg
   }
 
@@ -43,8 +39,6 @@ createSession flags =
   { addDiscoveryMethods = addDiscoveryMethods flags
   , createNewAcct = createNewAcct flags
   , getMatchingAccts = getMatchingAccts flags
-  , logArrivalEvent = logArrivalEvent flags
-  , logDepartureEvent = logDepartureEvent flags
   , setIsAdult = setIsAdult flags
   }
 
@@ -66,7 +60,6 @@ type alias Flags =
   { addDiscoveryMethodUrl : String
   , csrfToken : String
   , discoveryMethodsUrl : String
-  , logVisitEventUrl : String
   , matchingAcctsUrl : String
   , setIsAdultUrl : String
   , uniqueKioskId : String
@@ -87,19 +80,6 @@ type alias GenericResult =
   { result : String
   }
 
-type VisitEventType
-  = Arrival
-  | Present
-  | Departure
-
-type ReasonForVisit
-  = Curiousity
-  | ClassParticipant
-  | MemberPrivileges
-  | ClubPrivileges
-  | GuestOfMember
-  | Volunteer
-  | Other
 
 -----------------------------------------------------------------------------
 -- API
@@ -115,53 +95,6 @@ getMatchingAccts flags flexId resultToMsg =
   in
     Http.send resultToMsg request
 
--- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-logVisitEvent : Flags
-  -> Int
-  -> VisitEventType
-  -> Maybe ReasonForVisit  -- Only for Arrivals
-  -> (Result Http.Error GenericResult -> msg)
-  -> Cmd msg
-logVisitEvent flags memberPK eventType reason resultToMsg =
-  let
-    eventVal = case eventType of
-      Arrival -> "A"
-      Present -> "P"
-      Departure -> "D"
-    reasonVal = case reason of
-      Just Curiousity -> "CUR"
-      Just ClassParticipant -> "CLS"
-      Just MemberPrivileges -> "MEM"
-      Just ClubPrivileges -> "CLB"
-      Just GuestOfMember -> "GST"
-      Just Volunteer -> "VOL"
-      Just Other -> "OTH"
-      Nothing -> "NUN"
-    params = String.concat ["/", (toString memberPK), "_", eventVal, "_", reasonVal, "/"]
-    url = flags.logVisitEventUrl++"?format=json"  -- Easier than an "Accept" header.
-      |> replaceAll {oldSub="/12345_A_OTH/", newSub=params}
-    request = Http.request
-      { method = "GET"
-      , headers = [authenticationHeader (DRF.Token flags.uniqueKioskId)]
-      , url = url
-      , body = Http.emptyBody
-      , expect = Http.expectJson decodeGenericResult
-      , timeout = Nothing
-      , withCredentials = False
-      }
-  in
-    Http.send resultToMsg request
-
-type alias LogArrivalEvent msg = Int -> ReasonForVisit -> (Result Http.Error GenericResult -> msg) -> Cmd msg
-logArrivalEvent : Flags -> LogArrivalEvent msg
-logArrivalEvent flags memberPK reason resultToMsg =
-  logVisitEvent flags memberPK Arrival (Just reason) resultToMsg
-
-type alias LogDepartureEvent msg = Int -> (Result Http.Error GenericResult -> msg) -> Cmd msg
-logDepartureEvent : Flags -> LogDepartureEvent msg
-logDepartureEvent flags memberPK resultToMsg =
-  logVisitEvent flags memberPK Departure Nothing resultToMsg
 
 -- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

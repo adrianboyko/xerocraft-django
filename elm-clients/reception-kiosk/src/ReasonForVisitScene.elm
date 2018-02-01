@@ -11,11 +11,17 @@ import Material.Options as Options exposing (css)
 import Material.List as Lists
 
 -- Local
-import MembersApi as MembersApi exposing (ReasonForVisit(..), GenericResult)
 import Wizard.SceneUtils exposing (..)
 import Types exposing (..)
 import CheckInScene exposing (CheckInModel)
 import DjangoRestFramework exposing (PageOf)
+import XisRestApi as XisApi exposing
+  ( VisitEventReason(..)
+  , VisitEventMethod(..)
+  , VisitEventType(..)
+  )
+import PointInTime exposing (PointInTime)
+
 
 -----------------------------------------------------------------------------
 -- INIT
@@ -27,13 +33,14 @@ type alias KioskModel a =
     { a
     | reasonForVisitModel : ReasonForVisitModel
     , checkInModel : CheckInModel
-    , membersApi : MembersApi.Session Msg
+    , xisSession : XisApi.Session Msg
+    , currTime : PointInTime
     , flags : Flags
     }
   )
 
 type alias ReasonForVisitModel =
-  { reasonForVisit: Maybe ReasonForVisit
+  { reasonForVisit: Maybe VisitEventReason
   , badNews: List String
   }
 
@@ -51,6 +58,7 @@ update msg kioskModel =
   let
     sceneModel = kioskModel.reasonForVisitModel
     checkInModel = kioskModel.checkInModel
+    xis = kioskModel.xisSession
 
   in case msg of
 
@@ -64,22 +72,28 @@ update msg kioskModel =
           ({sceneModel | badNews = ["You must choose an activity type."]}, Cmd.none)
         Just reasonForVisit ->
           let
-            logArrivalEventFn = kioskModel.membersApi.logArrivalEvent
-            tagger = ReasonForVisitVector << LogCheckInResult
             cmd = case checkInModel.checkedInMember of
-              Just m -> logArrivalEventFn m.id reasonForVisit tagger
+              Just m ->
+                xis.createVisitEvent
+                  { who = xis.memberUrl m.id
+                  , when = kioskModel.currTime
+                  , eventType = VET_Arrival
+                  , reason = Just reasonForVisit
+                  , method = VEM_FrontDesk
+                  }
+                  (ReasonForVisitVector << LogCheckInResult)
               Nothing ->
                 -- We shouldn't get to this scene without there being a checkedInMember.
                 -- If it actually happens, log a message and fake success to get us to next scene.
-                let _ = Debug.log "checkedInMember" Nothing
-                in GenericResult "ARBITRARY" |> Ok |> tagger |> send
+                let _ = Debug.log "RFV ERROR" "No checked in member"
+                in segueTo CheckInDone  -- REVIEW: Is this the best choice?
           in (sceneModel, cmd)
 
     LogCheckInResult (Ok _) ->
       case sceneModel.reasonForVisit of
-        Just Volunteer ->
+        Just VER_Volunteer ->
           (sceneModel, segueTo TaskList)
-        Just MemberPrivileges ->
+        Just VER_Member ->
           (sceneModel, segueTo MembersOnly)
         _ ->
           (sceneModel, segueTo OldBusiness)
@@ -87,20 +101,21 @@ update msg kioskModel =
     LogCheckInResult (Err error) ->
       ({sceneModel | badNews = [toString error]}, Cmd.none)
 
+
 -----------------------------------------------------------------------------
 -- VIEW
 -----------------------------------------------------------------------------
 
-reasonString : KioskModel a -> ReasonForVisit -> String
+reasonString : KioskModel a -> VisitEventReason -> String
 reasonString kioskModel reason =
   case reason of
-    Curiousity -> "Checking out " ++ kioskModel.flags.orgName
-    ClassParticipant -> "Attending a class or workshop"
-    MemberPrivileges -> "Personal project"
-    ClubPrivileges -> "Club activity (FRC, VEX, PEC)"
-    GuestOfMember -> "Guest of a paying member"
-    Volunteer -> "Volunteering or staffing"
-    Other -> "Other"
+    VER_Curious -> "Checking out " ++ kioskModel.flags.orgName
+    VER_Class -> "Attending a class or workshop"
+    VER_Member -> "Personal project"
+    VER_Club -> "Club activity (FRC, VEX, PEC)"
+    VER_Guest -> "Guest of a paying member"
+    VER_Volunteer -> "Volunteering or staffing"
+    VER_Other -> "Other"
 
 view : KioskModel a -> Html Msg
 view kioskModel =
@@ -110,20 +125,20 @@ view kioskModel =
     "Let us know what you'll be doing today"
     ( div []
         [ makeActivityList kioskModel
-           [ ClassParticipant
-           , Curiousity
-           , MemberPrivileges
-           , ClubPrivileges
-           , Volunteer
-           , GuestOfMember
-           , Other
+           [ VER_Class
+           , VER_Curious
+           , VER_Member
+           , VER_Club
+           , VER_Volunteer
+           , VER_Guest
+           , VER_Other
            ]
         ]
     )
     [ButtonSpec "OK" (ReasonForVisitVector <| ValidateReason) True]
     sceneModel.badNews
 
-makeActivityList : KioskModel a -> List ReasonForVisit -> Html Msg
+makeActivityList : KioskModel a -> List VisitEventReason -> Html Msg
 makeActivityList kioskModel reasons =
   let
     sceneModel = kioskModel.reasonForVisitModel

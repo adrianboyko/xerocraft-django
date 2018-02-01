@@ -533,21 +533,6 @@ def reception_kiosk_matching_accts(request, flexid) -> JsonResponse:
     return JsonResponse({"target": flexid, "matches": accts})
 
 
-# REVIEW: Change this to a POST with JSON body instead of a GET on a parameterized URL?
-@api_view(['GET'])
-@authentication_classes([TokenAuthentication])
-@permission_classes([IsAdminUser])
-def reception_kiosk_log_visit_event(request, member_pk, event_type, reason) -> JsonResponse:
-
-    success, info = _log_visit_event(int(member_pk), event_type, reason, VisitEvent.METHOD_FRONT_DESK)
-
-    if success:
-        return JsonResponse({"result": "success"})
-    else:
-        assert isinstance(info, str)
-        return JsonResponse({"result": info})
-
-
 def reception_kiosk_add_discovery_method(request) -> JsonResponse:
 
     # Does request.is_ajax() matter?
