@@ -96,21 +96,20 @@ format fmt cd =
 
 
 -- Credit to https://gist.github.com/joakimk/57b4495fe5a4fd84506b
-textHtml: String -> Html msg
-textHtml t = span [string t |> property "innerHTML"] []
+taggedStringToHtml: String -> Html msg
+taggedStringToHtml t = span [string t |> property "innerHTML"] []
 
 
 superOrdinals : String -> Html msg
 superOrdinals s =
   let
     -- I'm not getting the results I want from <sup> so I'm doing something else instead:
-    r dig suff = replace (dig++suff) (dig++"<font style='font-size:0.75em'>"++suff++"</font>")
+    r dig suff = replace (dig++suff) (dig++"<span style='font-size:0.75em'>"++suff++"</span>")
     supize =
       r "0" "th" >> r "1" "st" >> r "2" "nd" >> r "3" "rd" >> r "4" "th" >>
       r "5" "th" >> r "6" "th" >> r "7" "th" >> r "8" "th" >> r "9" "th"
-    htmlize t = span [string t |> property "innerHTML"] []
   in
-    s |> supize |> htmlize
+    s |> supize |> taggedStringToHtml
 
 
 ----------------------------------------------------------
