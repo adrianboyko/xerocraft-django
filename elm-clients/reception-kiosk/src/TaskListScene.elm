@@ -174,15 +174,14 @@ update msg kioskModel =
 
               Nothing ->
                 xis.createClaim
-                  ( ClaimData
-                      (Maybe.withDefault 0.0 task.data.workDuration)
-                      (Just <| PointInTime.toClockTime kioskModel.currTime)
-                      (xis.taskUrl task.id)
-                      (xis.memberUrl memberId)
-                      (Just <| PointInTime.toCalendarDate kioskModel.currTime)
-                      WorkingClaimStatus
-                      []  -- REVIEW: Arbitrary because encoder ignores.
-                  )
+                  { claimedDuration = Maybe.withDefault 0.0 task.data.workDuration
+                  , claimedStartTime = Just <| PointInTime.toClockTime kioskModel.currTime
+                  , dateVerified = Just <| PointInTime.toCalendarDate kioskModel.currTime
+                  , claimedTask = xis.taskUrl task.id
+                  , claimingMember = xis.memberUrl memberId
+                  , status = WorkingClaimStatus
+                  , workSet = []  -- REVIEW: This is an incoming field only. Not used in create.
+                  }
                   result2Msg
           in
             (sceneModel, upsertCmd)
@@ -191,15 +190,15 @@ update msg kioskModel =
 
     TL_ClaimUpsertResult (Ok claim) ->
       let
+        currClockTime = PointInTime.toClockTime kioskModel.currTime
         createWorkCmd =
           xis.createWork
-            ( WorkData
-                (xis.claimUrl claim.id)  -- claim
-                Nothing  -- witness
-                (PointInTime.toCalendarDate kioskModel.currTime)  -- workDate
-                Nothing  -- WorkDuration
-                (Just <| PointInTime.toClockTime kioskModel.currTime)  -- WorkStartTime
-            )
+            { claim = xis.claimUrl claim.id
+            , witness = Nothing
+            , workDate = PointInTime.toCalendarDate kioskModel.currTime
+            , workDuration = Nothing
+            , workStartTime = Just currClockTime
+            }
             (TaskListVector << TL_WorkInsertResult)
       in
         (sceneModel, createWorkCmd)
