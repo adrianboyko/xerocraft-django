@@ -54,16 +54,11 @@ urlpatterns = [
     url(r'^ops-calendar/unstaffed/$', views.ops_calendar_unstaffed, name='ops-calendar-unstaffed'),
     url(r'^ops-calendar-spa/$', views.ops_calendar_spa, name='ops-calendar-spa'),
     url(r'^ops-calendar-spa/(?P<year>[0-9]{4})-(?P<month>[01]?[0-9])/$', views.ops_calendar_spa, name='ops-calendar-spa-ymintiin'),
-    url(r'^ops-calendar-json/(?P<year>[0-9]{4})-(?P<month>[01]?[0-9])/$', views.ops_calendar_json, name='ops-calendar-json'),
-    url(r'^ops-calendar-json/$', views.ops_calendar_json, name='ops-calendar-json-now'),
-
-    url(r'^ops-calendar-4memb-4today/$', views.ops_calendar_4memb_4today, name='ops-calendar-4memb-4today'),
 
     url(r'^cal-task-details/(?P<task_pk>[0-9]+)/$', views.cal_task_details, name='cal-task-details'),
 
     # Temporary Work Trade Checkout
     url(r'^desktop-timesheet/$', views.desktop_timesheet, name='desktop-timesheet'),
-    url(r'^desktop-timesheet-verify/$', views.desktop_timesheet_verify, name='desktop-timesheet-verify'),
 
     # DJANGO REST FRAMEWORK API
     url(r'^api/', include(router.urls)),

@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 
 {% load staticfiles %}
-{% load crispy_forms_tags %}
 
 <html lang="en">
 <head>
@@ -10,8 +9,6 @@
     <link rel="stylesheet" type="text/css" href="{% static 'admin/css/base.css' %}" />
     <link rel="stylesheet" type="text/css" href="{% static 'admin/css/login.css' %}" />
 
-    <link rel="stylesheet" type="text/css" href="{% static 'bzw_ops/jquery.ptTimeSelect.css' %}"/>
-    <link rel="stylesheet" type="text/css" href="{% static 'bzw_ops/jquery.abDurSelect.css' %}"/>
     <link rel="stylesheet" type="text/css" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/themes/smoothness/jquery-ui.css">
     <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/2.3.2/css/bootstrap.min.css" media='screen'/>
 
@@ -51,44 +48,6 @@
 
 <body class="login">
 
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
-    <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/jquery-ui.min.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/2.3.2/js/bootstrap.min.js"></script>
-
-    <script src="{% static 'bzw_ops/jquery.ptTimeSelect.js' %}"></script>
-    <script src="{% static 'bzw_ops/jquery.abDurSelect.js' %}"></script>
-
-    <script type="text/javascript">
-      $(document).ready(function(){
-        // DATE PICKER
-        $(".datepicker").datepicker({
-          changeMonth: true,
-          changeYear: true,
-          yearRange: "2015:2020",
-          beforeShow: function (input, widget) {
-            widget.dpDiv.css("marginTop", -$(input).height() + 'px');
-            widget.dpDiv.css("marginLeft", $(input).width() + 'px');
-          }
-        });
-        // TIME PICKER
-        $(".timepicker").ptTimeSelect({
-          setButtonLabel: 'OK',
-          onBeforeShow: function(input, widget) {
-            widget.css("marginTop", -input.height() + 'px');
-            widget.css("marginLeft", input.width() + 'px');
-          }
-        });
-        // DURATION PICKER
-        $(".durpicker").abDurSelect({
-          setButtonLabel: 'OK',
-          onBeforeShow: function(input, widget) {
-            widget.css("marginTop", -input.height() + 'px');
-            widget.css("marginLeft", input.width() + 'px');
-          }
-        });
-      });
-    </script>
-
         <div id="container"> <!-- Container -->
             <div id="header"> <!-- Header -->
                 <div id="branding">
@@ -97,8 +56,12 @@
             </div> <!-- END Header -->
 
             <div id="content" class="colM"> <!-- Content -->
-                <a id="logout" href="/logout">logout<br>{{request.user}}</a>
-                {% crispy form %}
+                <h4>This form has been retired.</h4>
+                <h4>Please use the Reception Kiosk instead:<br/>
+                 - Choose a task when checking in.<br/>
+                 - Record hours when checking out.</h4>
+                <h4>Please see a staffer if you have any questions about this change.</h4>
+                <br/>
             </div>
         </div>
 

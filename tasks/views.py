@@ -20,7 +20,6 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from icalendar import Calendar, Event
 
 # Local
-from tasks.forms import Desktop_TimeSheetForm
 from tasks.models import Task, Nag, Claim, Work, WorkNote, Worker
 from members.models import Member
 
@@ -592,114 +591,6 @@ def resource_calendar(request):
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-# REVIEW: This is no longer required because TaskApi.elm was deleted in favor of XisRestApi?
-def _ops_calendar_json(request, year, month):
-    member = request.user.member if request.user.is_authenticated() else None  # type: Member
-    return _ops_calendar_4member_json(member, year, month)
-
-
-# REVIEW: This is no longer required because TaskApi.elm was deleted in favor of XisRestApi?
-def _ops_calendar_4member_json(member: Optional[Member], year, month, day=None):
-
-    # Python standard libs include the ability to produce padded calendars for a month:
-    cal = calendar.Calendar(firstweekday=6)  # Sunday
-    calpage = cal.monthdatescalendar(year, month)
-
-    if day is None:
-        first_date = calpage[0][0]
-        last_date = calpage[-1][-1]
-    else:
-        date_of_interest = date(year, month, day)
-        first_date = date_of_interest
-        last_date = date_of_interest
-
-    qset = Task.objects\
-        .filter(scheduled_date__gte=first_date, scheduled_date__lte=last_date)\
-        .prefetch_related("claim_set")
-
-    tasks_by_date = {}
-    for task in list(qset):
-        tasks_by_date.setdefault(task.scheduled_date, []).append(task)
-
-    def task_json(task: Task) -> dict:
-        window = None
-        if task.window_duration() is not None and task.window_start_time() is not None:
-            msec_dur = 1000.0 * task.window_duration().total_seconds()
-            start_time = task.window_start_time()
-            window ={
-                "begin": {"hour": start_time.hour, "minute": start_time.minute},
-                "duration": msec_dur
-            }
-        else:
-            window = None
-
-        actions = task.possible_actions_for(member) if member is not None else []
-
-        staffed_by_names = []
-        users_claim = None
-        for claim in task.claim_set.all():
-            if claim.status == Claim.STAT_CURRENT:
-                staffed_by_names.append(claim.claiming_member.friendly_name)
-            if member is not None and member == claim.claiming_member:
-                users_claim = claim.pk
-
-        return {
-            "taskId": task.pk,
-            "priority": task.priority,
-            "isoDate": task.scheduled_date.isoformat(),
-            "shortDesc": task.short_desc,
-            "timeWindow": window,
-            "instructions": task.instructions,
-            "staffingStatus": task.staffing_status(),
-            # TODO: possibleActions, below, will need to be removed if it can't be sped up.for
-            # TODO: If it is removed, then the "day" parameter hack to this method can be removed.
-            "possibleActions": actions,
-            "staffedBy": staffed_by_names,
-            "taskStatus": task.status,
-            "usersClaimId": users_claim,
-        }
-
-    def tasks_on_date(x: date):
-        task_list_for_date = tasks_by_date.get(x, [])
-        return {
-            "dayOfMonth": x.day,
-            "isInTargetMonth": x.month == month,
-            "isToday": x == date.today(),
-            "tasks": [task_json(t) for t in task_list_for_date]
-        }
-
-    user_info = None
-    if member is not None:
-        user_info = {"memberId": member.pk, "name": member.friendly_name}
-    return {
-        "user": user_info,
-        "tasks": [list(tasks_on_date(day) for day in week) for week in calpage],
-        "year": year,
-        "month": month,
-    }
-
-
-# REVIEW: This is no longer required because TaskApi.elm was deleted in favor of XisRestApi?
-def ops_calendar_json(request, year=None, month=None) -> JsonResponse:
-    if year is None:
-        year = date.today().year
-    if month is None:
-        month = date.today().month
-    year = int(year)
-    month = int(month)
-    return JsonResponse(_ops_calendar_json(request, year, month))
-
-
-# REVIEW: This is no longer required because TaskApi.elm was deleted in favor of XisRestApi?
-def ops_calendar_4memb_4today(request) -> JsonResponse:
-    if request.method == 'POST':
-        data = json.loads(request.body.decode())
-        member_pk = int(data['memberpk'])  # type: int
-        member = Member.objects.get(pk=member_pk)  # type: Member
-        today = date.today()
-        ops_cal = _ops_calendar_4member_json(member, today.year, today.month, today.day)
-        return JsonResponse(ops_cal)
-
 # This is still required because it launches the Elm client.
 @ensure_csrf_cookie
 def ops_calendar_spa(request, year=date.today().year, month=date.today().month) -> HttpResponse:
@@ -715,87 +606,10 @@ def ops_calendar_spa(request, year=date.today().year, month=date.today().month) 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-# REVIEW: This is no longer required because desktop_timesheet is obsoleted by Elm kiosk?
-def _form_to_session(request, form, witness_username):
-    request.session['work_desc'] = form.cleaned_data["work_desc"]
-    request.session['work_date'] = form.cleaned_data["work_date"].strftime("%m/%d/%Y")
-    request.session['work_time'] = form.cleaned_data["work_time"].strftime("%-I:%M %p")
-    request.session['work_dur'] = float(form.cleaned_data["work_dur"])
-    request.session['witness_username'] = witness_username
-    request.session.modified = True
-
-
-# REVIEW: This is no longer required because desktop_timesheet is obsoleted by Elm kiosk?
-def _session_to_form(request, form):
-    form.fields['work_desc'].initial = request.session.get('work_desc', "")
-    form.fields['work_date'].initial = request.session.get("work_date", "")
-    form.fields['work_time'].initial = request.session.get("work_time", "")
-    form.fields['work_dur'].initial = request.session.get("work_dur", "")
-    form.fields['witness_id'].initial = request.session.get('witness_username', "")
-
-
-# REVIEW: This is no longer required because desktop_timesheet is obsoleted by Elm kiosk?
-def _clear_session(request):
-    del request.session['work_desc']
-    del request.session['work_date']
-    del request.session['work_time']
-    del request.session['work_dur']
-    del request.session['witness_username']
-    request.session.modified = True
-
-
-# REVIEW: This is no longer required because desktop_timesheet is obsoleted by Elm kiosk?
-@login_required
 def desktop_timesheet(request):
-
-    if request.method == 'POST':  # Process the form data.
-        form = Desktop_TimeSheetForm(request.POST, request=request)
-        if form.is_valid():
-            witness_id = form.cleaned_data["witness_id"]
-            witness_pw = form.cleaned_data["witness_pw"]
-            witness = authenticate(username=witness_id, password=witness_pw)
-            worker = request.user
-            _form_to_session(request, form, witness.username)
-            return redirect('task:desktop-timesheet-verify')
-
-    else:  # If a GET (or any other method) we'll create a blank form.
-        form = Desktop_TimeSheetForm(request=request)
-        _session_to_form(request, form)
-
-    return render(request, 'tasks/desktop_timesheet.html', {'form': form})
-
-
-# REVIEW: This is no longer required because desktop_timesheet is obsoleted by Elm kiosk?
-@login_required
-def desktop_timesheet_verify(request):
-
-    if request.method == 'POST':
-        user = request.user  # The worker
-        try:
-            uncat_claim = Claim.objects.get(
-                claiming_member=user.member,
-                claimed_task__short_desc="Uncategorized Work-Trade"
-            )
-            work_date = parse(request.session.get('work_date')).date()
-            work_dur = timedelta(hours=float(request.session.get('work_dur')))
-            # Decided to include witness in WorkNote instead of being an FK in Work
-            # because I couldn't think of a use-case for the latter.
-            note = "Started at %s and witnessed by %s. Description: %s" % (
-                request.session.get('work_time'),
-                request.session.get('witness_username'),
-                request.session.get('work_desc'),
-            )
-            work = Work.objects.create(claim=uncat_claim, work_date=work_date,work_duration=work_dur)
-            WorkNote.objects.create(author=user.member, content=note, work=work)
-            _clear_session(request)
-
-        except Exception as e:
-            return HttpResponse("ERROR "+str(e))
-
-        return HttpResponse("SUCCESS")
-
-    else:  # For GET and any other methods:
-        return render(request, 'tasks/desktop_timesheet_verify.html', {})
+    # This has been stubbed out with a notice that this form has been retired.
+    # REVIEW: Change was made on 1Feb2018. View be removed after some time.
+    return render(request, 'tasks/desktop_timesheet.html', {})
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
