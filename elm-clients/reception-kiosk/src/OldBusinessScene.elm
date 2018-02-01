@@ -342,7 +342,7 @@ viewOldBusinessItem : OldBusinessItem -> Html Msg
 viewOldBusinessItem {task, claim} =
   let
     tDesc = task.data.shortDesc
-    tDate = CD.format "%a %b %ddd" task.data.scheduledDate |> CD.superOrdinals
+    tDate = task.data.scheduledDate |> CD.format "%a %b %ddd" |> CD.superOrdinals
   in
     span [] [text <| tDesc ++ ", ", tDate]
 
