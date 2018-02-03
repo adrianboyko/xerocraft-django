@@ -92,7 +92,8 @@ update msg kioskModel =
 
           Nothing ->
             let
-              checkedIn = checkedInMembers newModel.visitEvents
+              sorter = List.sortBy (.data >> .userName >> String.toLower)
+              checkedIn = newModel.visitEvents |> checkedInMembers |> sorter
               newModel2 = {sceneModel | checkedIn=checkedIn, visitEvents=[] }
             in
               (newModel2, Cmd.none)
