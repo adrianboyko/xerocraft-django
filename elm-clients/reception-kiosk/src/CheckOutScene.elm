@@ -10,6 +10,7 @@ import Material
 import Material.Chip as Chip
 import Material.Options as Options exposing (css)
 import List.Extra as ListX
+import Maybe.Extra as MaybeX
 
 -- Local
 import Types exposing (..)
@@ -34,7 +35,8 @@ type alias KioskModel a =
   )
 
 type alias CheckOutModel =
-  { checkedInAccts : List XisApi.Member
+  { visitEvents : List XisApi.VisitEvent
+  , checkedIn : List XisApi.Member
   , checkedOutMemberNum : Int  -- TODO: This should be Member not ID.
   , badNews : List String
   }
@@ -42,7 +44,8 @@ type alias CheckOutModel =
 init : Flags -> (CheckOutModel, Cmd Msg)
 init flags =
   let model =
-    { checkedInAccts=[]
+    { visitEvents=[]
+    , checkedIn=[]
     , checkedOutMemberNum = -99  -- A harmless initial value.
     , badNews=[]
     }
@@ -58,7 +61,7 @@ sceneWillAppear kioskModel appearingScene =
     let
       lowerBound = kioskModel.currTime - (24 * ticksPerHour)
       filters = [ XisApi.VEF_WhenGreaterOrEquals lowerBound ]
-      tagger = (CheckOutVector << AccCheckedInAccts)
+      tagger = (CheckOutVector << AccVisitEvents)
       cmd = kioskModel.xisSession.listVisitEvents filters tagger
     in
       (kioskModel.checkOutModel, cmd)
@@ -77,20 +80,22 @@ update msg kioskModel =
     xis = kioskModel.xisSession
   in case msg of
 
-    AccCheckedInAccts (Ok {next, results}) ->
-      -- TODO: This should add member to accumulator when evt type is ARRIVAL
-      -- TODO: This should remove member from accumulator when evt type is DEPARTURE
+    AccVisitEvents (Ok {next, results}) ->
       let
-        currList = sceneModel.checkedInAccts
-        moreForList = List.map (.data >> .who) results
-        newList = (currList++moreForList)
-          |> ListX.uniqueBy .id
-          |> List.sortBy (.data >> .userName >> String.toLower)
-        newModel = {sceneModel | checkedInAccts=newList }
-        nextCmd = case next of
-          Nothing -> Cmd.none
-          Just url -> xis.moreVisitEvents url (CheckOutVector << AccCheckedInAccts)
-      in (newModel, nextCmd)
+        ves = sceneModel.visitEvents ++ results
+        newModel = {sceneModel | visitEvents=ves }
+      in
+        case next of
+
+          Just url ->
+            (newModel, xis.moreVisitEvents url (CheckOutVector << AccVisitEvents))
+
+          Nothing ->
+            let
+              checkedIn = checkedInMembers newModel.visitEvents
+              newModel2 = {sceneModel | checkedIn=checkedIn, visitEvents=[] }
+            in
+              (newModel2, Cmd.none)
 
     LogCheckOut memberNum ->
       let
@@ -111,11 +116,28 @@ update msg kioskModel =
 
     -- ERRORS -------------------------
 
-    AccCheckedInAccts (Err error) ->
+    AccVisitEvents (Err error) ->
       ({sceneModel | badNews = [toString error]}, Cmd.none)
 
     LogCheckOutResult (Err error) ->
       ({sceneModel | badNews = [toString error]}, Cmd.none)
+
+
+checkedInMembers : List XisApi.VisitEvent -> List XisApi.Member
+checkedInMembers events =
+  let
+    whoId = .data >> .who >> .id
+    visitGrouper x y = whoId x == whoId y
+    arrivalFilter x = x.data.eventType == XisApi.VET_Arrival
+  in
+    events                                          -- List VisitEvent
+    |> List.sortBy whoId                            -- List VisitEvent
+    |> ListX.groupWhile visitGrouper                -- List (List VisitEvent)
+    |> List.map (ListX.maximumBy (.data >> .when))  -- List (Maybe VisitEvent)
+    |> MaybeX.combine                               -- Maybe (List VisitEvent)
+    |> Maybe.withDefault []                         -- List VisitEvent
+    |> List.filter arrivalFilter
+    |> List.map (.data >> .who)
 
 
 -----------------------------------------------------------------------------
@@ -137,7 +159,7 @@ view kioskModel =
       "Tap Your Userid, Below"
       ( div []
           ( List.concat
-              [ List.map memb2chip sceneModel.checkedInAccts
+              [ List.map memb2chip sceneModel.checkedIn
               , [ vspace (if List.length sceneModel.badNews > 0 then 40 else 0) ]
               ]
           )

@@ -104,7 +104,7 @@ type CheckInMsg
   | CheckInShortcut XisApi.Member -- Allows RFID reading scene to short-cut through this scene
 
 type CheckOutMsg
-  = AccCheckedInAccts (Result Http.Error (PageOf VisitEvent))
+  = AccVisitEvents (Result Http.Error (PageOf VisitEvent))
   | LogCheckOut Int
   | LogCheckOutResult (Result Http.Error VisitEvent)
 
