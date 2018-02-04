@@ -139,6 +139,32 @@ class TaskMixin(models.Model):
         abstract = True
 
 
+class TemplateEligibleClaimants(models.Model):
+
+    template = models.ForeignKey('RecurringTaskTemplate', null=False,
+        on_delete=models.CASCADE,  # Relation means nothing if the template is gone.
+        help_text="The task in this relation.")
+
+    member = models.ForeignKey(mm.Member,
+        on_delete=models.CASCADE,  # Relation means nothing if the member is gone.
+        help_text="The member in this relation.")
+
+    TYPE_DEFAULT_CLAIMANT = "1ST"
+    TYPE_ELIGIBLE_2ND     = "2ND"
+    TYPE_ELIGIBLE_3RD     = "3RD"
+    # NOTE: TYPE_DECLINED doesn't make sense at template level.
+    TYPE_CHOICES = [
+        (TYPE_DEFAULT_CLAIMANT, "Default Claimant"),
+        (TYPE_ELIGIBLE_2ND,     "Eligible, 2nd String"),
+        (TYPE_ELIGIBLE_3RD,     "Eligible, 3rd String"),
+    ]
+    type = models.CharField(max_length=3, choices=TYPE_CHOICES, null=False, blank=False,
+        help_text="The type of this relationship.")
+
+    should_nag = models.BooleanField(default=False,
+        help_text="If true, member will be encouraged to work instances of the template.")
+
+
 class RecurringTaskTemplate(TaskMixin):
     """Uses two mutually exclusive methods to define a schedule for recurring tasks.
     (1) A 'day-of-week vs nth-of-month' matrix for schedules like "every first and third Thursday"
@@ -151,6 +177,11 @@ class RecurringTaskTemplate(TaskMixin):
     default_claimant = models.ForeignKey(mm.Member, null=True, blank=True,
         on_delete=models.SET_NULL,
         help_text="Some recurring tasks (e.g. classes) have a default a default claimant (e.g. the instructor).")
+
+    eligible_claimants = models.ManyToManyField(mm.Member, blank=True,
+        related_name="claimable_%(class)s",
+        # TODO: Add 'through'
+        help_text="Anybody chosen is eligible to claim the task.<br/>")
 
     # Weekday of month:
     first = models.BooleanField(default=False)  # , help_text="Task will recur on first weekday in the month.")
@@ -509,6 +540,33 @@ class Work(models.Model):
         verbose_name_plural = "Work"
 
 
+class EligibleClaimant(models.Model):
+
+    task = models.ForeignKey('Task', null=False,
+        on_delete=models.CASCADE,  # Relation means nothing if the task is gone.
+        help_text="The task in this relation.")
+
+    member = models.ForeignKey(mm.Member,
+        on_delete=models.CASCADE,  # Relation means nothing if the member is gone.
+        help_text="The member in this relation.")
+
+    TYPE_DEFAULT_CLAIMANT = "1ST"
+    TYPE_ELIGIBLE_2ND     = "2ND"
+    TYPE_ELIGIBLE_3RD     = "3RD"
+    TYPE_DECLINED         = "DEC"
+    TYPE_CHOICES = [
+        (TYPE_DEFAULT_CLAIMANT, "Default Claimant"),
+        (TYPE_ELIGIBLE_2ND,     "Eligible, 2nd String"),
+        (TYPE_ELIGIBLE_3RD,     "Eligible, 3rd String"),
+        (TYPE_DECLINED,         "Will No Claim"),
+    ]
+    type = models.CharField(max_length=3, choices=TYPE_CHOICES, null=False, blank=False,
+        help_text="The type of this relationship.")
+
+    should_nag = models.BooleanField(default=True,
+        help_text="If true, member may receive email concerning the related task.")
+
+
 class Task(TaskMixin, TimeWindowedObject):
 
     creation_date = models.DateField(null=False, default=date.today,
@@ -525,6 +583,11 @@ class Task(TaskMixin, TimeWindowedObject):
 
     depends_on = models.ManyToManyField('self', symmetrical=False, related_name="prerequisite_for",
         help_text="If appropriate, specify what tasks must be completed before this one can start.")
+
+    eligible_claimants = models.ManyToManyField(mm.Member, blank=True,
+        related_name="claimable_tasks",
+        # TODO:  Add 'through'
+        help_text="Anybody chosen is eligible to claim the task.<br/>")
 
     claimants = models.ManyToManyField(mm.Member, through=Claim, related_name="tasks_claimed",
         help_text="The people who say they are going to work on this task.")
@@ -666,10 +729,6 @@ class Task(TaskMixin, TimeWindowedObject):
     @deprecated   # Use claimant_set instead
     def current_claimants(self):
         return self.claimant_set(Claim.STAT_CURRENT)
-
-    @deprecated  # Use claimant_set instead
-    def uninterested_claimants(self):  # Use claimant_set instead
-        return self.claimant_set(Claim.STAT_UNINTERESTED)
 
     def claimant_set(self, status):
         """
