@@ -841,6 +841,7 @@ type MemberListFilter
   | UsernameStartsWith String
   | LastNameStartsWith String
   | LastNameEquals String
+  | IsActive Bool
 
 
 memberListFilterToString : MemberListFilter -> String
@@ -852,6 +853,7 @@ memberListFilterToString filter =
     UsernameStartsWith s -> "auth_user__username__istartswith=" ++ s
     LastNameStartsWith s -> "auth_user__last_name__istartswith=" ++ s
     LastNameEquals s -> "auth_user__last_name__iexact=" ++ s
+    IsActive b -> "auth_user__is_active=" ++ (if b then "1" else "0")
 
 
 listMembers : XisRestFlags -> Authorization -> FilteringLister MemberListFilter Member msg

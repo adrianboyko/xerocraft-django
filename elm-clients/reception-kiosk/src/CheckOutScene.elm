@@ -59,7 +59,7 @@ sceneWillAppear : KioskModel a -> Scene -> (CheckOutModel, Cmd Msg)
 sceneWillAppear kioskModel appearingScene =
   if appearingScene == CheckOut then
     let
-      lowerBound = kioskModel.currTime - (24 * ticksPerHour)
+      lowerBound = kioskModel.currTime - (12 * ticksPerHour)
       filters = [ XisApi.VEF_WhenGreaterOrEquals lowerBound ]
       tagger = (CheckOutVector << AccVisitEvents)
       cmd = kioskModel.xisSession.listVisitEvents filters tagger

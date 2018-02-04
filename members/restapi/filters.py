@@ -36,6 +36,9 @@ class MemberFilter(rf.FilterSet):
                 'iexact',
                 'istartswith',
             ],
+            'auth_user__is_active': [
+                'exact',
+            ],
         }
 
 

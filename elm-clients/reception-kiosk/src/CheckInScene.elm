@@ -110,16 +110,16 @@ update msg kioskModel =
       let
         id = XisApi.djangoizeId rawId
         cmd1 = xis.listMembers
-          [XisApi.UsernameStartsWith id]
+          [XisApi.UsernameStartsWith id, XisApi.IsActive True]
           (CheckInVector << (UsernamesStartingWith id))
         cmd2 = xis.listMembers
-          [XisApi.LastNameStartsWith id]
+          [XisApi.LastNameStartsWith id, XisApi.IsActive True]
           (CheckInVector << (LastNamesStartingWith id))
         cmd3 = xis.listMembers
-          [XisApi.UsernameEquals id]
+          [XisApi.UsernameEquals id, XisApi.IsActive True]
           (CheckInVector << (UsernamesEqualTo id))
         cmd4 = xis.listMembers
-          [XisApi.LastNameEquals id]
+          [XisApi.LastNameEquals id, XisApi.IsActive True]
           (CheckInVector << (LastNamesEqualTo id))
       in
         if (String.length id) > 2
@@ -150,7 +150,11 @@ update msg kioskModel =
       else (sceneModel, Cmd.none)
 
     UpdateRecentRfidArrivals (Ok {results}) ->
-      ({sceneModel | recentRfidArrivals = List.map (.data >> .who) results}, Cmd.none)
+      let
+        recent = List.map (.data >> .who) results
+        unique = ListX.uniqueBy .id recent
+      in
+        ({sceneModel | recentRfidArrivals = unique}, Cmd.none)
 
     UpdateMember member ->
       ({sceneModel | checkedInMember=Just member}, segueTo ReasonForVisit)
