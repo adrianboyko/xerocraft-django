@@ -484,9 +484,6 @@ class VisitEvent(models.Model):
         default=None, null=True, blank=True,
         help_text="The reason for a visit. Not used on Departures.")
 
-    sync1 = models.BooleanField(default=False,
-        help_text="True if this event has been sync'ed to 'other system #1'")
-
     def debounced(self) -> bool:
         """
         RFID checkin systems may fire multiple times. Skip checkin if "too close" to the prev checkin time.

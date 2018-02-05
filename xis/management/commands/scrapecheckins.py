@@ -70,7 +70,6 @@ class CheckinScraper(AccountScraper):
                 when=checkin_dt,
                 event_type=VisitEvent.EVT_ARRIVAL,
                 method=METHOD_CODES[dict[CHECKIN_TYPE_KEY]],
-                sync1=True,  # Because we're synching FROM xerocraft.org, it already has this event.
             )
 
     def start(self, days:int):

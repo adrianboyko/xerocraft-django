@@ -51,11 +51,14 @@ class VisitEventAdmin(admin.ModelAdmin):  # No need to version events.
 
     def has_add_permission(self, request):
         return False
-        # These are created by automated processes, not humans.
+        # Don't allow humans to add these. They are created by automated processes.
+
+    def who_username(self, object):
+        return object.who.username
 
     ordering = ['-when']
-    list_display = ['pk', 'when', 'who', 'event_type', 'reason', 'method', 'sync1']
-    #readonly_fields = ['when', 'who', 'event_type', 'method', 'sync1']
+    list_display = ['pk', 'when', 'who_username', 'who', 'event_type', 'reason', 'method']
+    #readonly_fields = ['when', 'who', 'event_type', 'method']
     search_fields = [
         '^who__auth_user__first_name',
         '^who__auth_user__last_name',

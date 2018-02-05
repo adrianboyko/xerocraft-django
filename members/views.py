@@ -56,11 +56,6 @@ FACILITY_PUBLIC_IP = settings.BZWOPS_FACILITY_PUBLIC_IP
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = PRIVATE
 
-def _inform_other_systems_of_checkin(member, event_type):
-    # TODO: Inform Kyle's system
-    pass
-
-
 # TODO: Move following to Event class?
 def _log_visit_event(who_in: Union[str, Member, int], event_type, reason=None, method=None) -> Tuple[bool, Union[str, Member]]:
 
@@ -94,7 +89,6 @@ def _log_visit_event(who_in: Union[str, Member, int], event_type, reason=None, m
         return False, "No matching member found."
 
     VisitEvent.objects.create(who=who, event_type=event_type, reason=reason, method=method)
-    _inform_other_systems_of_checkin(who, event_type)
     return True, who
 
 
@@ -339,13 +333,14 @@ def rfid_entry_requested(request, rfid_cardnum):
 def rfid_entry_granted(request, rfid_cardnum):
     member = Member.get_by_card_str(rfid_cardnum)
     if member is not None:
-        event_type = VisitEvent.EVT_ARRIVAL
         VisitEvent.objects.create(
             who=member,
-            event_type=event_type,
+            # RFID reads are not reliable indicators of arrival.
+            # Cards are sometimes read when people walk past the reader on the way OUT.
+            # Therefore, RFID reads will be considered as indicationg *presence*.
+            event_type=VisitEvent.EVT_PRESENT,
             method=VisitEvent.METHOD_RFID,
         )
-        _inform_other_systems_of_checkin(member, event_type)
     else:
         logger.warning("No member found with RFID card# %s", rfid_cardnum)
     return JsonResponse({'success': "Information noted."})
