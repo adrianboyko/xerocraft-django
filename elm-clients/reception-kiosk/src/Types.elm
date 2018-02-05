@@ -98,7 +98,7 @@ type CheckInMsg
   | UsernamesEqualTo String (Result Http.Error (PageOf Member))
   | LastNamesStartingWith String (Result Http.Error (PageOf Member))
   | LastNamesEqualTo String (Result Http.Error (PageOf Member))
-  | UpdateRecentRfidArrivals (Result Http.Error (PageOf VisitEvent))
+  | UpdateRecentRfidsRead (Result Http.Error (PageOf VisitEvent))
   | UpdateFlexId String
   | UpdateMember XisApi.Member
   | CheckInShortcut XisApi.Member -- Allows RFID reading scene to short-cut through this scene

@@ -86,7 +86,7 @@ sceneWillAppear kioskModel appearingScene =
   if appearingScene == CheckIn
     then
       let
-        cmd1 = getRecentRfidArrivalsCmd kioskModel
+        cmd1 = getRecentRfidsReadCmd kioskModel
         cmd2 = focusOnIndex idxFlexId
       in
         (kioskModel.checkInModel, Cmd.batch [cmd1, cmd2])
@@ -149,7 +149,7 @@ update msg kioskModel =
       then ({sceneModel | lastNameMatches_EQ = results, badNews = []}, Cmd.none)
       else (sceneModel, Cmd.none)
 
-    UpdateRecentRfidArrivals (Ok {results}) ->
+    UpdateRecentRfidsRead (Ok {results}) ->
       let
         recent = List.map (.data >> .who) results
         unique = ListX.uniqueBy .id recent
@@ -176,7 +176,7 @@ update msg kioskModel =
     LastNamesEqualTo searchedId (Err error) ->
       ({sceneModel | badNews = [toString error]}, Cmd.none)
 
-    UpdateRecentRfidArrivals (Err error) ->
+    UpdateRecentRfidsRead (Err error) ->
       ({sceneModel | badNews = [toString error]}, Cmd.none)
 
 
@@ -244,7 +244,7 @@ tick time kioskModel =
     inc = if visible then 1 else 0
     cmd1 =
       if visible && String.isEmpty sceneModel.flexId
-        then getRecentRfidArrivalsCmd kioskModel
+        then getRecentRfidsReadCmd kioskModel
         else Cmd.none
     cmd = if visible then cmd1 else Cmd.none
   in
@@ -260,16 +260,15 @@ tick time kioskModel =
 -- COMMANDS
 -----------------------------------------------------------------------------
 
-getRecentRfidArrivalsCmd : KioskModel a -> Cmd Msg
-getRecentRfidArrivalsCmd kioskModel =
+getRecentRfidsReadCmd : KioskModel a -> Cmd Msg
+getRecentRfidsReadCmd kioskModel =
   let
     lowerBound = kioskModel.currTime - (15 * Time.minute)
     filters =
       [ XisApi.VEF_WhenGreaterOrEquals lowerBound
-      , XisApi.VEF_EventTypeEquals XisApi.VET_Arrival
       , XisApi.VEF_EventMethodEquals XisApi.VEM_Rfid
       ]
-    tagger = (CheckInVector << UpdateRecentRfidArrivals)
+    tagger = (CheckInVector << UpdateRecentRfidsRead)
   in
     kioskModel.xisSession.listVisitEvents filters tagger
 
