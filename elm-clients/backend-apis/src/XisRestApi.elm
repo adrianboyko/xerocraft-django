@@ -34,15 +34,13 @@ module XisRestApi
 import Http
 import Json.Encode as Enc
 import Json.Encode.Extra as EncX
-import Json.Decode as Dec exposing (maybe)
+import Json.Decode as Dec
 import Json.Decode.Extra as DecX
 import Json.Decode.Pipeline exposing (decode, required, optional)
 import List
 import Regex exposing (regex)
 import String
 import Task exposing (Task)
-import Time exposing (Time, hour, minute, second)
-import Date
 
 -- Third party
 import List.Extra as ListX
@@ -53,22 +51,11 @@ import ClockTime exposing (ClockTime)
 import Duration exposing (Duration)
 import CalendarDate exposing (CalendarDate)
 import PointInTime exposing (PointInTime)
-import RangeOfTime exposing (RangeOfTime)
+import RangeOfTime
 
 -----------------------------------------------------------------------------
 -- CONSTANTS
 -----------------------------------------------------------------------------
-
--- As defined in Django backend:
-staffingStatus_STAFFED     = "S"  -- There is a verified current claim.
-staffingStatus_UNSTAFFED   = "U"  -- There is no current claim.
-staffingStatus_PROVISIONAL = "P"  -- There is an unverified current claim.
-staffingStatus_DONE        = "D"  -- A claim is marked as done.
-
--- As defined in Django backend:
-taskHighPriorityValue   = "H"
-taskMediumPriorityValue = "M"
-taskLowPriorityValue    = "L"
 
 
 -----------------------------------------------------------------------------
@@ -177,7 +164,7 @@ type alias Session msg =
 
   ----- OTHER -----
   , authenticate: String -> String -> (Result Http.Error AuthenticationResult -> msg) -> Cmd msg
-  , coverTime : List Membership -> Time -> Bool
+  , coverTime : List Membership -> PointInTime -> Bool
   , defaultBlockType : List TimeBlockType -> Maybe TimeBlockType
   , getBlocksTypes : TimeBlock -> List TimeBlockType -> List TimeBlockType
   , memberCanClaimTask : Int -> Task -> Bool
@@ -286,7 +273,7 @@ type TaskListFilter
 taskListFilterToString : TaskListFilter -> String
 taskListFilterToString filter =
   case filter of
-    ScheduledDateEquals d -> "scheduled_date=" ++ (CalendarDate.toString d)
+    ScheduledDateEquals d -> "scheduled_date=" ++ CalendarDate.toString d
 
 
 listTasks : XisRestFlags -> Authorization -> FilteringLister TaskListFilter Task msg
@@ -502,9 +489,9 @@ setClaimsStatus newSetting oldClaim =
 claimListFilterToString : ClaimListFilter -> String
 claimListFilterToString filter =
   case filter of
-    ClaimStatusEquals stat -> "status=" ++ (claimStatusValue stat)
-    ClaimingMemberEquals membNum -> "claiming_member=" ++ (toString membNum)
-    ClaimedTaskEquals taskNum -> "claimed_task=" ++ (toString taskNum)
+    ClaimStatusEquals stat -> "status=" ++ claimStatusValue stat
+    ClaimingMemberEquals membNum -> "claiming_member=" ++ toString membNum
+    ClaimedTaskEquals taskNum -> "claimed_task=" ++ toString taskNum
 
 
 listClaims : XisRestFlags -> Authorization -> FilteringLister ClaimListFilter Claim msg
@@ -572,10 +559,10 @@ claimDataNVPs : ClaimData -> List (String, Enc.Value)
 claimDataNVPs cd =
   [ ( "claiming_member", cd.claimingMember |> Enc.string )
   , ( "claimed_task", cd.claimedTask |> Enc.string )
-  , ( "claimed_start_time", cd.claimedStartTime |> (EncX.maybe encodeClockTime))
+  , ( "claimed_start_time", cd.claimedStartTime |> EncX.maybe encodeClockTime)
   , ( "claimed_duration", cd.claimedDuration |> encodeDuration)
   , ( "status", cd.status |> encodeClaimStatus )
-  , ( "date_verified", cd.dateVerified |> (EncX.maybe encodeCalendarDate))
+  , ( "date_verified", cd.dateVerified |> EncX.maybe encodeCalendarDate)
   ]
 
 
@@ -665,7 +652,7 @@ type WorkListFilter
 workListFilterToString : WorkListFilter -> String
 workListFilterToString filter =
   case filter of
-    WorkedClaimEquals id -> "claim=" ++ (toString id)
+    WorkedClaimEquals id -> "claim=" ++ toString id
     WorkDurationIsNull setting -> "work_duration__isnull=" ++ (setting |> toString |> String.toLower)
 
 
@@ -731,19 +718,16 @@ deleteWorkByUrl flags auth url tagger =
   in Http.send tagger request
 
 
-encodeWork : Work -> Enc.Value
-encodeWork = encodeResource workDataNVPs
-
 encodeWorkData : WorkData -> Enc.Value
 encodeWorkData = Enc.object << workDataNVPs
 
 workDataNVPs : WorkData -> List (String, Enc.Value)
 workDataNVPs wd =
   [ ( "claim", wd.claim |> Enc.string )
-  , ( "witness", wd.witness |> (EncX.maybe Enc.string))
+  , ( "witness", wd.witness |> EncX.maybe Enc.string)
   , ( "work_date", wd.workDate |> DRF.encodeCalendarDate)
-  , ( "work_duration", wd.workDuration |> (EncX.maybe DRF.encodeDuration))
-  , ( "work_start_time", wd.workStartTime |> (EncX.maybe DRF.encodeClockTime))
+  , ( "work_duration", wd.workDuration |> EncX.maybe DRF.encodeDuration)
+  , ( "work_start_time", wd.workStartTime |> EncX.maybe DRF.encodeClockTime)
   ]
 
 
@@ -795,7 +779,7 @@ createWorkNote flags auth workNoteData resultToMsg =
 {-| Name Value Pairs for WorkNoteData -}
 workNoteDataNVPs : WorkNoteData -> List (String, Enc.Value)
 workNoteDataNVPs wnd =
-  [ ( "author", wnd.author |> (EncX.maybe Enc.string))
+  [ ( "author", wnd.author |> EncX.maybe Enc.string)
   , ( "content", wnd.content |> Enc.string)
   , ( "work", wnd.work |> Enc.string)
   , ( "when_written", wnd.whenWritten |> PointInTime.isoString |> Enc.string)
@@ -847,7 +831,7 @@ type MemberListFilter
 memberListFilterToString : MemberListFilter -> String
 memberListFilterToString filter =
   case filter of
-    RfidNumberEquals n -> "rfidnum=" ++ (toString n)
+    RfidNumberEquals n -> "rfidnum=" ++ toString n
     UsernameEquals s -> "auth_user__username__iexact=" ++ s
     UsernameContains s -> "auth_user__username__icontains=" ++ s
     UsernameStartsWith s -> "auth_user__username__istartswith=" ++ s
@@ -1058,7 +1042,7 @@ type MembershipListFilter
 membershipListFilterToString : MembershipListFilter -> String
 membershipListFilterToString filter =
   case filter of
-    MembershipsWithMemberIdEqualTo id -> "member=" ++ (toString id)
+    MembershipsWithMemberIdEqualTo id -> "member=" ++ toString id
 
 
 listMemberships : XisRestFlags -> Authorization -> FilteringLister MembershipListFilter Membership msg
@@ -1285,7 +1269,7 @@ createVisitEvent flags auth visitEventData resultToMsg =
       { method = "POST"
       , headers = [authenticationHeader auth]
       , url = flags.visitEventListUrl
-      , body = visitEventData |> (visitEventDataNVPs flags) |> Enc.object |> Http.jsonBody
+      , body = visitEventData |> visitEventDataNVPs flags |> Enc.object |> Http.jsonBody
       , expect = Http.expectJson decodeVisitEvent
       , timeout = Nothing
       , withCredentials = False

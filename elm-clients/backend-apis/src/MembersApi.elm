@@ -3,24 +3,18 @@ module MembersApi exposing
   , Flags
   , MatchingAcct
   , MatchingAcctInfo
-  , GenericResult
   , Session
   )
 
 -- Standard
-import Date as Date
 import Json.Decode as Dec
 import Json.Encode as Enc
-import Json.Decode.Extra as DecX
 import Regex exposing (regex)
 import Http
-import Time exposing (Time)
 
 -- Third-Party
-import Json.Decode.Pipeline exposing (decode, required, hardcoded)
 
 -- Local
-import DjangoRestFramework as DRF exposing (PageOf, decodePageOf, authenticationHeader)
 
 
 -----------------------------------------------------------------------------
@@ -74,10 +68,6 @@ type alias MatchingAcct =
 type alias MatchingAcctInfo =
   { target : String
   , matches : List MatchingAcct
-  }
-
-type alias GenericResult =
-  { result : String
   }
 
 
@@ -185,8 +175,3 @@ decodeMatchingAcctInfo =
   Dec.map2 MatchingAcctInfo
     (Dec.field "target" Dec.string)
     (Dec.field "matches" (Dec.list decodeMatchingAcct))
-
-decodeGenericResult : Dec.Decoder GenericResult
-decodeGenericResult =
-  Dec.map GenericResult
-    (Dec.field "result" Dec.string)
