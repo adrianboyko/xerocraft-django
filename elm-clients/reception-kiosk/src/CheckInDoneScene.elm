@@ -6,6 +6,8 @@ import Html exposing (Html, text, div)
 import Time exposing (Time)
 
 -- Third Party
+import Material
+import List.Nonempty exposing (Nonempty)
 
 -- Local
 import Types exposing (..)
@@ -26,7 +28,16 @@ type alias CheckInDoneModel =
   }
 
 -- This type alias describes the type of kiosk model that this scene requires.
-type alias KioskModel a = (SceneUtilModel {a | checkInDoneModel : CheckInDoneModel})
+type alias KioskModel a =
+  { a
+  ------------------------------------
+  | mdl : Material.Model
+  , flags : Flags
+  , sceneStack : Nonempty Scene
+  ------------------------------------
+  , checkInDoneModel : CheckInDoneModel
+  }
+
 
 init : Flags -> (CheckInDoneModel, Cmd Msg)
 init flags = ({}, Cmd.none)

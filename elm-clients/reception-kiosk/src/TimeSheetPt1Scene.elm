@@ -17,9 +17,10 @@ import Time exposing (Time, hour, minute)
 import Tuple
 
 -- Third Party
+import Material
 import Maybe.Extra as MaybeX
 import Update.Extra as UpdateX exposing (addCmd)
-import List.Nonempty as Nonempty
+import List.Nonempty exposing (Nonempty)
 
 -- Local
 import XisRestApi as XisApi exposing (..)
@@ -46,14 +47,17 @@ idxTimeSheetPt1 = mdlIdBase TimeSheetPt1
 
 -- This type alias describes the type of kiosk model that this scene requires.
 type alias KioskModel a =
-  (SceneUtilModel
-    { a
-    | currTime : PointInTime
-    , timeSheetPt1Model : TimeSheetPt1Model
-    , oldBusinessModel : OldBusinessModel
-    , xisSession : XisApi.Session Msg
-    }
-  )
+  { a
+  ------------------------------------
+  | mdl : Material.Model
+  , flags : Flags
+  , sceneStack : Nonempty Scene
+  ------------------------------------
+  , currTime : PointInTime
+  , timeSheetPt1Model : TimeSheetPt1Model
+  , oldBusinessModel : OldBusinessModel
+  , xisSession : XisApi.Session Msg
+  }
 
 
 type alias TimeSheetPt1Model =

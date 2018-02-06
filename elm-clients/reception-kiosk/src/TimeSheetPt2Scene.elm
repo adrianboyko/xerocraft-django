@@ -12,6 +12,8 @@ import Html exposing (Html, text, div, span)
 import Html.Attributes exposing (style)
 
 -- Third Party
+import Material
+import List.Nonempty exposing (Nonempty)
 
 -- Local
 import XisRestApi as XisApi exposing (..)
@@ -41,14 +43,17 @@ moreInfoReqd = "Please provide more information about the work you did."
 
 -- This type alias describes the type of kiosk model that this scene requires.
 type alias KioskModel a =
-  (SceneUtilModel
-    { a
-    | currTime : PointInTime
-    , timeSheetPt1Model : TimeSheetPt1Model
-    , timeSheetPt2Model : TimeSheetPt2Model
-    , xisSession : XisApi.Session Msg
-    }
-  )
+  { a
+  ------------------------------------
+  | mdl : Material.Model
+  , flags : Flags
+  , sceneStack : Nonempty Scene
+  ------------------------------------
+  , currTime : PointInTime
+  , timeSheetPt1Model : TimeSheetPt1Model
+  , timeSheetPt2Model : TimeSheetPt2Model
+  , xisSession : XisApi.Session Msg
+  }
 
 
 type alias TimeSheetPt2Model =

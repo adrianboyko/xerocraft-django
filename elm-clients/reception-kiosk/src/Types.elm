@@ -14,7 +14,6 @@ import DjangoRestFramework exposing (PageOf)
 import MembersApi as MembersApi exposing (..)
 import XisRestApi as XisApi exposing (..)
 
-
 -----------------------------------------------------------------------------
 -- FLAGS
 -----------------------------------------------------------------------------
@@ -33,7 +32,6 @@ type alias Flags =
   , xcOrgActionUrl : String
   , xisApiFlags : XisApi.XisRestFlags
   }
-
 
 -----------------------------------------------------------------------------
 -- SCENES

@@ -15,11 +15,13 @@ import Date
 import Time exposing (Time)
 
 -- Third Party
+import Material
 import Material.Toggles as Toggles
 import Material.Options as Options exposing (css)
 import Material.List as Lists
 import Maybe.Extra as MaybeX exposing (isNothing)
 import List.Extra as ListX
+import List.Nonempty exposing (Nonempty)
 
 -- Local
 import XisRestApi as XisApi exposing (..)
@@ -46,14 +48,18 @@ idxTaskListScene = mdlIdBase TaskList
 
 -- This type alias describes the type of kiosk model that this scene requires.
 type alias KioskModel a =
-  (SceneUtilModel
-    { a
-    | currTime : Time
-    , taskListModel : TaskListModel
-    , checkInModel : CheckInModel
-    , xisSession : XisApi.Session Msg
-    }
-  )
+  { a
+  ------------------------------------
+  | mdl : Material.Model
+  , flags : Flags
+  , sceneStack : Nonempty Scene
+  ------------------------------------
+  , currTime : Time
+  , taskListModel : TaskListModel
+  , checkInModel : CheckInModel
+  , xisSession : XisApi.Session Msg
+  }
+
 
 type alias TaskListModel =
   { workableTasks : Fetchable (List XisApi.Task)

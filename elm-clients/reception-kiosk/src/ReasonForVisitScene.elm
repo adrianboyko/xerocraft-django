@@ -6,9 +6,11 @@ import Html exposing (Html, text, div, span)
 import Html.Attributes exposing (style)
 
 -- Third Party
+import Material
 import Material.Toggles as Toggles
 import Material.Options as Options exposing (css)
 import Material.List as Lists
+import List.Nonempty exposing (Nonempty)
 
 -- Local
 import Wizard.SceneUtils exposing (..)
@@ -29,15 +31,18 @@ import PointInTime exposing (PointInTime)
 
 -- This type alias describes the type of kiosk model that this scene requires.
 type alias KioskModel a =
-  (SceneUtilModel
-    { a
-    | reasonForVisitModel : ReasonForVisitModel
-    , checkInModel : CheckInModel
-    , xisSession : XisApi.Session Msg
-    , currTime : PointInTime
-    , flags : Flags
-    }
-  )
+  { a
+  ------------------------------------
+  | mdl : Material.Model
+  , flags : Flags
+  , sceneStack : Nonempty Scene
+  ------------------------------------
+  , reasonForVisitModel : ReasonForVisitModel
+  , checkInModel : CheckInModel
+  , xisSession : XisApi.Session Msg
+  , currTime : PointInTime
+  }
+
 
 type alias ReasonForVisitModel =
   { reasonForVisit: Maybe VisitEventReason

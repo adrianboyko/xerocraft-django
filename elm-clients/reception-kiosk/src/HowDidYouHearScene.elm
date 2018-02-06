@@ -9,9 +9,11 @@ import Random
 import List.Extra as ListX
 
 -- Third Party
+import Material
 import Material.Toggles as Toggles
 import Material.Options as Options exposing (css)
 import Random.List
+import List.Nonempty exposing (Nonempty)
 
 -- Local
 import Wizard.SceneUtils exposing (..)
@@ -25,12 +27,15 @@ import XisRestApi as XisApi
 
 -- This type alias describes the type of kiosk model that this scene requires.
 type alias KioskModel a =
-  ( SceneUtilModel
-    { a
-    | howDidYouHearModel : HowDidYouHearModel
-    , xisSession : XisApi.Session Msg
-    }
-  )
+  { a
+  ------------------------------------
+  | mdl : Material.Model
+  , flags : Flags
+  , sceneStack : Nonempty Scene
+  ------------------------------------
+  , howDidYouHearModel : HowDidYouHearModel
+  , xisSession : XisApi.Session Msg
+  }
 
 
 type alias HowDidYouHearModel =

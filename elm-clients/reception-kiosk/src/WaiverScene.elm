@@ -15,6 +15,8 @@ import Regex exposing (regex)
 
 -- Third Party
 import String.Extra exposing (..)
+import Material
+import List.Nonempty exposing (Nonempty)
 
 -- Local
 import Wizard.SceneUtils exposing (..)
@@ -32,11 +34,14 @@ type alias WaiverModel =
 
 -- These type aliases describes the type of kiosk model that this scene requires.
 type alias KioskModel a =
-  (SceneUtilModel
-    { a
-    | waiverModel : WaiverModel
-    }
-  )
+  { a
+  ------------------------------------
+  | mdl : Material.Model
+  , flags : Flags
+  , sceneStack : Nonempty Scene
+  ------------------------------------
+  , waiverModel : WaiverModel
+  }
 
 init : Flags -> (WaiverModel, Cmd Msg)
 init flags =

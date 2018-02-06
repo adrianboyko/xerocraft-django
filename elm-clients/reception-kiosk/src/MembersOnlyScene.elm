@@ -16,6 +16,8 @@ import Date exposing (Date)
 
 -- Third Party
 import String.Extra exposing (..)
+import Material
+import List.Nonempty exposing (Nonempty)
 
 -- Local
 import XerocraftApi as XcApi
@@ -33,15 +35,18 @@ import CalendarDate
 
 -- This type alias describes the type of kiosk model that this scene requires.
 type alias KioskModel a =
-  (SceneUtilModel
-    { a
-    | membersOnlyModel : MembersOnlyModel
-    , checkInModel : CheckInModel
-    , currTime : Time
-    , flags : Flags
-    , xisSession : XisApi.Session Msg
-    }
-  )
+  { a
+  ------------------------------------
+  | mdl : Material.Model
+  , flags : Flags
+  , sceneStack : Nonempty Scene
+  ------------------------------------
+  , membersOnlyModel : MembersOnlyModel
+  , checkInModel : CheckInModel
+  , currTime : Time
+  , xisSession : XisApi.Session Msg
+  }
+
 
 
 type PaymentInfoState

@@ -6,6 +6,8 @@ import Html exposing (Html, div, text, img, br)
 import Html.Attributes exposing (src, width, style)
 
 -- Third Party
+import Material
+import List.Nonempty exposing (Nonempty)
 
 -- Local
 import Wizard.SceneUtils exposing (..)
@@ -20,7 +22,15 @@ type alias WelcomeModel =
   }
 
 -- This type alias describes the type of kiosk model that this scene requires.
-type alias KioskModel a = (SceneUtilModel {a | welcomeModel : WelcomeModel})
+type alias KioskModel a =
+  { a
+  ------------------------------------
+  | mdl : Material.Model
+  , flags : Flags
+  , sceneStack : Nonempty Scene
+  ------------------------------------
+  , welcomeModel : WelcomeModel
+  }
 
 init : Flags -> (WelcomeModel, Cmd Msg)
 init flags = ({}, Cmd.none)

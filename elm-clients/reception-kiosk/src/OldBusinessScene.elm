@@ -14,10 +14,11 @@ import Html.Attributes exposing (src, width, style)
 
 -- Third Party
 import Maybe.Extra as MaybeX
+import Material
 import Material.Toggles as Toggles
 import Material.Options as Options
 import List.Extra as ListX
-import List.Nonempty as NonEmpty
+import List.Nonempty as NonEmpty exposing (Nonempty)
 import Update.Extra as UpdateX exposing (addCmd)
 
 -- Local
@@ -45,15 +46,18 @@ idxOldBusinessScene = mdlIdBase OldBusiness
 
 -- This type alias describes the type of kiosk model that this scene requires.
 type alias KioskModel a =
-  ( SceneUtilModel
-    { a
-    | oldBusinessModel : OldBusinessModel
-    , checkInModel : CheckInModel
-    , checkOutModel : CheckOutModel
-    , taskListModel : TaskListModel
-    , xisSession : XisApi.Session Msg
-    }
-  )
+  { a
+  ------------------------------------
+  | mdl : Material.Model
+  , flags : Flags
+  , sceneStack : Nonempty Scene
+  ------------------------------------
+  , oldBusinessModel : OldBusinessModel
+  , checkInModel : CheckInModel
+  , checkOutModel : CheckOutModel
+  , taskListModel : TaskListModel
+  , xisSession : XisApi.Session Msg
+  }
 
 
 type alias OldBusinessItem =

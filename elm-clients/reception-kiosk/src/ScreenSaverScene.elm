@@ -19,6 +19,8 @@ import Char
 
 
 -- Third Party
+import Material
+import List.Nonempty exposing (Nonempty)
 
 -- Local
 import Wizard.SceneUtils exposing (..)
@@ -35,6 +37,20 @@ import CheckInScene exposing (CheckInModel)
 -- INIT
 -----------------------------------------------------------------------------
 
+-- This type alias describes the type of kiosk model that this scene requires.
+type alias KioskModel a =
+  { a
+  ------------------------------------
+  | mdl : Material.Model
+  , flags : Flags
+  , sceneStack : Nonempty Scene
+  ------------------------------------
+  , screenSaverModel : ScreenSaverModel
+  , checkInModel : CheckInModel
+  , xisSession : XisApi.Session Msg
+  }
+
+
 type ScreenSaverState
   = Normal
   | CheckingRfid
@@ -47,13 +63,6 @@ type alias ScreenSaverModel =
   , badNews : List String
   }
 
--- This type alias describes the type of kiosk model that this scene requires.
-type alias KioskModel a = SceneUtilModel
-  { a
-  | screenSaverModel : ScreenSaverModel
-  , checkInModel : CheckInModel
-  , xisSession : XisApi.Session Msg
-  }
 
 init : Flags -> (ScreenSaverModel, Cmd Msg)
 init flags =

@@ -5,7 +5,9 @@ module SignUpDoneScene exposing (init, sceneWillAppear, view, SignUpDoneModel)
 import Html exposing (Html, text, p, br, span)
 
 -- Third Party
+import Material
 import Material.Options as Options exposing (css)
+import List.Nonempty exposing (Nonempty)
 
 -- Local
 import Wizard.SceneUtils exposing (..)
@@ -24,11 +26,15 @@ type alias SignUpDoneModel =
 
 -- This type alias describes the type of kiosk model that this scene requires.
 type alias KioskModel a =
-  SceneUtilModel
-    { a
-    | signUpDoneModel : SignUpDoneModel
-    , newUserModel: NewUserModel
-    }
+  { a
+  ------------------------------------
+  | mdl : Material.Model
+  , flags : Flags
+  , sceneStack : Nonempty Scene
+  ------------------------------------
+  , signUpDoneModel : SignUpDoneModel
+  , newUserModel: NewUserModel
+  }
 
 init : Flags -> (SignUpDoneModel, Cmd Msg)
 init flags = ({}, Cmd.none)

@@ -7,33 +7,40 @@ import Html.Attributes exposing (style)
 import Color exposing (rgb)
 
 -- Third Party
+import Material
+import List.Nonempty exposing (Nonempty)
 
 -- Local
 import Wizard.SceneUtils exposing (..)
 import Types exposing (..)
 import NewMemberScene exposing (NewMemberModel)
 
+
 -----------------------------------------------------------------------------
 -- INIT
 -----------------------------------------------------------------------------
 
--- TODO: There should be a time out back to Welcome
+-- This type alias describes the type of kiosk model that this scene requires.
+type alias KioskModel a =
+  { a
+  ------------------------------------
+  | mdl : Material.Model
+  , flags : Flags
+  , sceneStack : Nonempty Scene
+  ------------------------------------
+  , newMemberModel : NewMemberModel
+  , emailInUseModel : EmailInUseModel
+  }
+
 
 type alias EmailInUseModel =
   {
   }
 
--- This type alias describes the type of kiosk model that this scene requires.
-type alias KioskModel a =
-  (SceneUtilModel
-    { a
-    | newMemberModel : NewMemberModel
-    , emailInUseModel : EmailInUseModel
-    }
-  )
 
 init : Flags -> (EmailInUseModel, Cmd Msg)
 init flags = ({}, Cmd.none)
+
 
 -----------------------------------------------------------------------------
 -- UPDATE

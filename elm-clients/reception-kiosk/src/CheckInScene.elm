@@ -19,6 +19,7 @@ import Material
 import Material.Chip as Chip
 import Material.Options as Options exposing (css)
 import List.Extra as ListX
+import List.Nonempty exposing (Nonempty)
 
 -- Local
 import Types exposing (..)
@@ -40,13 +41,16 @@ import PointInTime as PIT exposing (PointInTime)
 
 -- This type alias describes the type of kiosk model that this scene requires.
 type alias KioskModel a =
-  ( SceneUtilModel
-    { a
-    | checkInModel : CheckInModel
-    , xisSession : XisApi.Session Msg
-    , currTime : PointInTime
-    }
-  )
+  { a
+  ------------------------------------
+  | mdl : Material.Model
+  , flags : Flags
+  , sceneStack : Nonempty Scene
+  ------------------------------------
+  , checkInModel : CheckInModel
+  , xisSession : XisApi.Session Msg
+  , currTime : PointInTime
+  }
 
 
 -- REVIEW: flexID should be a Maybe?

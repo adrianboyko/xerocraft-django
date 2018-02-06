@@ -6,6 +6,8 @@ import Html exposing (Html, text, div, p)
 import Html.Attributes exposing (style)
 
 -- Third Party
+import Material
+import List.Nonempty exposing (Nonempty)
 
 -- Local
 import Wizard.SceneUtils exposing (..)
@@ -24,11 +26,15 @@ type alias TaskInfoModel =
 
 -- This type alias describes the type of kiosk model that this scene requires.
 type alias KioskModel a =
-  SceneUtilModel
-    { a
-    | taskInfoModel : TaskInfoModel
-    , taskListModel : TaskListModel
-    }
+  { a
+  ------------------------------------
+  | mdl : Material.Model
+  , flags : Flags
+  , sceneStack : Nonempty Scene
+  ------------------------------------
+  , taskInfoModel : TaskInfoModel
+  , taskListModel : TaskListModel
+  }
 
 init : Flags -> (TaskInfoModel, Cmd Msg)
 init flags = ({}, Cmd.none)

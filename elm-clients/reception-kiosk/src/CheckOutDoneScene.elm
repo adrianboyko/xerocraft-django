@@ -6,6 +6,8 @@ import Html exposing (Html, div, text)
 import Time exposing (Time)
 
 -- Third Party
+import Material
+import List.Nonempty exposing (Nonempty)
 
 -- Local
 import Types exposing (..)
@@ -23,12 +25,20 @@ displayTimeout = 5
 -- INIT
 -----------------------------------------------------------------------------
 
+-- This type alias describes the type of kiosk model that this scene requires.
+type alias KioskModel a =
+  { a
+  ------------------------------------
+  | mdl : Material.Model
+  , flags : Flags
+  , sceneStack : Nonempty Scene
+  ------------------------------------
+  , checkOutDoneModel : CheckOutDoneModel
+  }
+
 type alias CheckOutDoneModel =
   {
   }
-
--- This type alias describes the type of kiosk model that this scene requires.
-type alias KioskModel a = (SceneUtilModel {a | checkOutDoneModel : CheckOutDoneModel})
 
 -- TODO: There should be a time out back to Welcome
 init : Flags -> (CheckOutDoneModel, Cmd Msg)

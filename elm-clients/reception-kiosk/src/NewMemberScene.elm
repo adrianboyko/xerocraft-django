@@ -8,7 +8,9 @@ import Regex exposing (..)
 import Time exposing (Time)
 
 -- Third Party
-import String.Extra as SE
+import String.Extra as StringX
+import List.Nonempty exposing (Nonempty)
+import Material
 import Material.List as Lists
 import Material.Toggles as Toggles
 import Material.Options as Options exposing (css)
@@ -23,6 +25,18 @@ import Types exposing (..)
 -- INIT
 -----------------------------------------------------------------------------
 
+-- This type alias describes the type of kiosk model that this scene requires.
+type alias KioskModel a =
+  { a
+  ------------------------------------
+  | mdl : Material.Model
+  , flags : Flags
+  , sceneStack : Nonempty Scene
+  ------------------------------------
+  , newMemberModel : NewMemberModel
+  , membersApi : MembersApi.Session Msg
+  }
+
 type alias NewMemberModel =
   { firstName : String
   , lastName : String
@@ -32,14 +46,6 @@ type alias NewMemberModel =
   , badNews : List String
   }
 
--- This type alias describes the type of kiosk model that this scene requires.
-type alias KioskModel a =
-  ( SceneUtilModel
-    { a
-    | newMemberModel : NewMemberModel
-    , membersApi : MembersApi.Session Msg
-    }
-  )
 
 init : Flags -> (NewMemberModel, Cmd Msg)
 init flags =
@@ -216,8 +222,8 @@ emailRegex =
     alnum = "[a-z0-9]"  -- alpha numeric
     dchar = "[a-z0-9-]"  -- domain part
     emailRegexStr = "^E+(?:\\.E+)*@(?:A(?:D*A)?\\.)+A(?:D*A)?$"
-      |> SE.replace "E" echar
-      |> SE.replace "A" alnum
-      |> SE.replace "D" dchar
+      |> StringX.replace "E" echar
+      |> StringX.replace "A" alnum
+      |> StringX.replace "D" dchar
   in
     regex emailRegexStr

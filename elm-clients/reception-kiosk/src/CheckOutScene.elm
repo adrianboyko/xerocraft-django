@@ -11,6 +11,7 @@ import Material.Chip as Chip
 import Material.Options as Options exposing (css)
 import List.Extra as ListX
 import Maybe.Extra as MaybeX
+import List.Nonempty exposing (Nonempty)
 
 -- Local
 import Types exposing (..)
@@ -26,13 +27,16 @@ import PointInTime exposing (PointInTime)
 
 -- This type alias describes the type of kiosk model that this scene requires.
 type alias KioskModel a =
-  ( SceneUtilModel
-    { a
-    | checkOutModel : CheckOutModel
-    , currTime : PointInTime
-    , xisSession : XisApi.Session Msg
-    }
-  )
+  { a
+  ------------------------------------
+  | mdl : Material.Model
+  , flags : Flags
+  , sceneStack : Nonempty Scene
+  ------------------------------------
+  , checkOutModel : CheckOutModel
+  , currTime : PointInTime
+  , xisSession : XisApi.Session Msg
+  }
 
 type alias CheckOutModel =
   { visitEvents : List XisApi.VisitEvent

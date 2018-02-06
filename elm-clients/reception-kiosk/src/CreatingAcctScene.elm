@@ -16,6 +16,8 @@ import Time exposing (Time)
 
 -- Third Party
 import String.Extra exposing (..)
+import List.Nonempty exposing (Nonempty)
+import Material
 
 -- Local
 import MembersApi as MembersApi
@@ -32,24 +34,29 @@ import HowDidYouHearScene exposing (HowDidYouHearModel)
 -- INIT
 -----------------------------------------------------------------------------
 
+-- This type alias describes the type of kiosk model that this scene requires.
+type alias KioskModel a =
+  { a
+  ------------------------------------
+  | mdl : Material.Model
+  , flags : Flags
+  , sceneStack : Nonempty Scene
+  ------------------------------------
+  , creatingAcctModel : CreatingAcctModel
+  , howDidYouHearModel : HowDidYouHearModel
+  , newMemberModel : NewMemberModel
+  , newUserModel: NewUserModel
+  , howDidYouHearModel: HowDidYouHearModel
+  , waiverModel : WaiverModel
+  , membersApi : MembersApi.Session Msg
+  }
+
+
 type alias CreatingAcctModel =
   { waitCount: Int
   , badNews : List String
   }
 
--- This type alias describes the type of kiosk model that this scene requires.
-type alias KioskModel a =
-  (SceneUtilModel
-    { a
-    | creatingAcctModel : CreatingAcctModel
-    , howDidYouHearModel : HowDidYouHearModel
-    , newMemberModel : NewMemberModel
-    , newUserModel: NewUserModel
-    , howDidYouHearModel: HowDidYouHearModel
-    , waiverModel : WaiverModel
-    , membersApi : MembersApi.Session Msg
-    }
-  )
 
 init : Flags -> (CreatingAcctModel, Cmd Msg)
 init flags =
@@ -58,6 +65,7 @@ init flags =
     , badNews = []
     }
   in (sceneModel, Cmd.none)
+
 
 -----------------------------------------------------------------------------
 -- SCENE WILL APPEAR

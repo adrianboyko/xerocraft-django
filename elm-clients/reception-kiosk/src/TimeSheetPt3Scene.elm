@@ -16,6 +16,8 @@ import Keyboard
 import Char
 
 -- Third Party
+import Material
+import List.Nonempty exposing (Nonempty)
 
 -- Local
 import XisRestApi as XisApi exposing (..)
@@ -47,15 +49,18 @@ tcwMissingMsg = "Couldn't get task, claim, and work records!"
 
 -- This type alias describes the type of kiosk model that this scene requires.
 type alias KioskModel a =
-  (SceneUtilModel
-    { a
-    | currTime : PointInTime
-    , timeSheetPt1Model : TimeSheetPt1Model
-    , timeSheetPt2Model : TimeSheetPt2Model
-    , timeSheetPt3Model : TimeSheetPt3Model
-    , xisSession : XisApi.Session Msg
-    }
-  )
+  { a
+  ------------------------------------
+  | mdl : Material.Model
+  , flags : Flags
+  , sceneStack : Nonempty Scene
+  ------------------------------------
+  , currTime : PointInTime
+  , timeSheetPt1Model : TimeSheetPt1Model
+  , timeSheetPt2Model : TimeSheetPt2Model
+  , timeSheetPt3Model : TimeSheetPt3Model
+  , xisSession : XisApi.Session Msg
+  }
 
 
 type alias TimeSheetPt3Model =

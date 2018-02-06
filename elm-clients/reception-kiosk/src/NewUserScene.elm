@@ -7,6 +7,8 @@ import Http
 import Time exposing (Time)
 
 -- Third Party
+import Material
+import List.Nonempty exposing (Nonempty)
 
 -- Local
 import MembersApi as MembersApi
@@ -22,13 +24,16 @@ import NewMemberScene exposing (NewMemberModel)
 
 -- This type alias describes the type of kiosk model that this scene requires.
 type alias KioskModel a =
-  ( SceneUtilModel
-    { a
-    | newUserModel : NewUserModel
-    , newMemberModel : NewMemberModel
-    , membersApi : MembersApi.Session Msg
-    }
-  )
+  { a
+  ------------------------------------
+  | mdl : Material.Model
+  , flags : Flags
+  , sceneStack : Nonempty Scene
+  ------------------------------------
+  , newUserModel : NewUserModel
+  , newMemberModel : NewMemberModel
+  , membersApi : MembersApi.Session Msg
+  }
 
 type alias NewUserModel =
   { userName : String
