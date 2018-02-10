@@ -5,13 +5,11 @@ module TimeSheetPt1Scene exposing
   , update
   , view
   , TimeSheetPt1Model
-  , infoToVerifyStyle -- Used by Pt2 and Pt3
-  , pastWorkStyle -- Used by Pt2 and Pt3
   )
 
 -- Standard
 import Html exposing (Html, text, div, span, table, tr, td)
-import Html.Attributes exposing (style, colspan)
+import Html.Attributes exposing (attribute, style, colspan)
 import Http
 import Time exposing (Time, hour, minute)
 import Tuple
@@ -23,11 +21,11 @@ import Update.Extra as UpdateX exposing (addCmd)
 import List.Nonempty exposing (Nonempty)
 
 -- Local
+import TimeSheetCommon exposing (infoDiv)
 import XisRestApi as XisApi exposing (..)
 import Wizard.SceneUtils exposing (..)
 import Types exposing (..)
 import DjangoRestFramework as DRF
-
 import PointInTime exposing (PointInTime)
 import CalendarDate exposing (CalendarDate)
 import ClockTime exposing (ClockTime)
@@ -186,8 +184,8 @@ normalView : KioskModel a -> XisApi.Task -> XisApi.Claim -> XisApi.Work -> Html 
 normalView kioskModel task claim work =
   let
     sceneModel = kioskModel.timeSheetPt1Model
-    dateStr = CalendarDate.format "%a, %b %ddd" work.data.workDate
     today = PointInTime.toCalendarDate kioskModel.currTime
+    workedToday = CalendarDate.equal today work.data.workDate
     hrButton h =
       td []
         [ padButton kioskModel
@@ -213,15 +211,7 @@ normalView kioskModel task claim work =
 
       ( div []
         [ vspace 50
-        , div [infoToVerifyStyle]
-            [ text ("Task: \"" ++ task.data.shortDesc ++ "\"")
-            , vspace 20
-            , text ("Date: " ++ dateStr)
-            ]
-        , if CalendarDate.equal today work.data.workDate then
-            vspace 0
-          else
-            span [pastWorkStyle] [vspace 5, text "(Note: This work was done in the past)"]
+        , infoDiv kioskModel.currTime task claim work Nothing
         , vspace 60
         , table [padStyle]
           [ tr [padHeaderStyle] [ td [colspan 3] [text "Hours"], td [] [text "&"], td [colspan 3] [text "Minutes"] ]
@@ -248,10 +238,10 @@ failedView kioskModel error =
       [] -- no buttons
       [error]
 
+
 -----------------------------------------------------------------------------
 -- STYLES
 -----------------------------------------------------------------------------
-
 
 padStyle = style
   [ "border-spacing" => px 10
@@ -267,14 +257,4 @@ padHeaderStyle = style
 pastWorkStyle = style
   [ "color" => "red"
   , "font-size" => pt 16
-  ]
-
-infoToVerifyStyle = style
-  [ "display" => "inline-block"
-  , "padding" => px 20
-  , "background" => textAreaColor
-  , "border-width" => px 1
-  , "border-color" => "black"
-  --Cou, "border-style" => "solid"
-  , "border-radius" => px 10
   ]

@@ -176,6 +176,8 @@ type TimeSheetPt3Msg
   = TS3_UpdateWitnessUsername String
   | TS3_UpdateWitnessPassword String
   | TS3_Witnessed
+  | TS3_Skipped
+  | TS3_NeedWitness
   | TS3_ClaimUpdated (Result Http.Error XisApi.Claim)
   | TS3_WorkUpdated (Result Http.Error XisApi.Work)
   | TS3_WorkNoteCreated (Result Http.Error XisApi.WorkNote)

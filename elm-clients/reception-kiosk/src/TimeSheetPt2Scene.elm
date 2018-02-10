@@ -16,10 +16,11 @@ import Material
 import List.Nonempty exposing (Nonempty)
 
 -- Local
+import TimeSheetCommon exposing (infoDiv)
 import XisRestApi as XisApi exposing (..)
 import Wizard.SceneUtils exposing (..)
 import Types exposing (..)
-import TimeSheetPt1Scene exposing (TimeSheetPt1Model, infoToVerifyStyle, pastWorkStyle)
+import TimeSheetPt1Scene exposing (TimeSheetPt1Model)
 import Fetchable exposing (..)
 import PointInTime exposing (PointInTime)
 import CalendarDate exposing (CalendarDate)
@@ -151,26 +152,14 @@ viewNormal : KioskModel a -> XisApi.Task -> XisApi.Claim -> XisApi.Work -> Html 
 viewNormal kioskModel task claim work =
   let
     sceneModel = kioskModel.timeSheetPt2Model
-    today = PointInTime.toCalendarDate kioskModel.currTime
-    dateStr = CalendarDate.format "%a, %b %ddd" work.data.workDate
-    workDur = Maybe.withDefault 0 work.data.workDuration  -- Should not be Nothing
+
   in genericScene kioskModel
-
-  "Volunteer Timesheet"
-
-  "Please describe the work you did"
+    "Volunteer Timesheet"
+    "Please describe the work you did"
 
     ( div []
       [ vspace 50
-      , div [infoToVerifyStyle]
-         [ text ("Task: \"" ++ task.data.shortDesc ++ "\"")
-         , vspace 20
-         , text ((Dur.toString workDur) ++ " on " ++ dateStr)
-         ]
-      , if CalendarDate.equal today work.data.workDate then
-          vspace 0
-        else
-          span [pastWorkStyle] [vspace 5, text "(Note: This work was done in the past)"]
+      , infoDiv kioskModel.currTime task claim work Nothing
       , vspace 70
       , div [textAreaContainerStyle]
           [ sceneTextArea kioskModel idxOtherWorkDesc
