@@ -133,7 +133,7 @@ checkedInMembers events =
   let
     whoId = .data >> .who >> .id
     visitGrouper x y = whoId x == whoId y
-    arrivalFilter x = x.data.eventType == XisApi.VET_Arrival
+    stillHereFilter x = List.member x.data.eventType [XisApi.VET_Arrival, XisApi.VET_Present]
   in
     events                                          -- List VisitEvent
     |> List.sortBy whoId                            -- List VisitEvent
@@ -141,7 +141,7 @@ checkedInMembers events =
     |> List.map (ListX.maximumBy (.data >> .when))  -- List (Maybe VisitEvent)
     |> MaybeX.combine                               -- Maybe (List VisitEvent)
     |> Maybe.withDefault []                         -- List VisitEvent
-    |> List.filter arrivalFilter
+    |> List.filter stillHereFilter
     |> List.map (.data >> .who)
 
 
