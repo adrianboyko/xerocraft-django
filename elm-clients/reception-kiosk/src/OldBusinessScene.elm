@@ -167,13 +167,14 @@ update msg kioskModel =
       -- This case starts the lookup of tasks corresponding to the open claims.
       OB_WorkingClaimsResult (Ok {results}) ->
         let
+          -- We don't want the claim associated with the task the user just selected, if any.
           claims = filterSelectedTask kioskModel results
           tagger c = OldBusinessVector << (OB_NoteRelatedTask c)
           getTaskCmd c = xis.getTaskFromUrl c.data.claimedTask (tagger c)
           getTaskCmds = List.map getTaskCmd claims
           expected = List.sum <| List.map (List.length << .workSet << .data) claims
         in
-          if List.isEmpty claims then
+          if expected == 0 then
             (sceneModel, segueTo theNextScene)
           else
             ({sceneModel | workResponsesExpected=Just expected}, Cmd.batch getTaskCmds)
@@ -185,10 +186,7 @@ update msg kioskModel =
           getWorkCmd resUrl = xis.getWorkFromUrl resUrl tagger
           getWorkCmds = List.map getWorkCmd claim.data.workSet
         in
-          if List.isEmpty getWorkCmds then
-            (sceneModel, Cmd.none)
-          else
-            (sceneModel, Cmd.batch getWorkCmds)
+          (sceneModel, Cmd.batch getWorkCmds)
 
       -- We're only interested in claims that have an associated work record.
       -- And that work record should have blank duration.
@@ -207,14 +205,27 @@ update msg kioskModel =
 
           Just {task, claim, work} ->
             let
-              cmd = xis.deleteWorkById work.id (OldBusinessVector << OB_NoteWorkDeleted)
+              cmd1 = xis.deleteWorkById work.id (OldBusinessVector << OB_NoteWorkDeleted)
+              cmd2 =
+                if List.length claim.data.workSet == 1 then
+                  -- We're deleting the last work so the user is no longer working the claim.
+                  -- So, change the status from Working to Abandoned.
+                  xis.replaceClaim
+                    (setClaimsStatus AbandonedClaimStatus claim)
+                    (OldBusinessVector << OB_NoteClaimUpdated)
+                else
+                  Cmd.none
               newModel = {sceneModel | selectedItem=Nothing }
             in
-              (newModel, cmd)
+              (newModel, Cmd.batch [cmd1, cmd2])
 
           Nothing ->
             -- Shouldn't get here since there must be a selction in order to click "DELETE"
             (sceneModel, Cmd.none)
+
+      OB_NoteClaimUpdated (Ok _) ->
+        -- No action required.
+        (sceneModel, Cmd.none)
 
       OB_NoteWorkDeleted _ ->
         checkForOldBusiness kioskModel
@@ -234,7 +245,7 @@ update msg kioskModel =
 
       OB_WorkingClaimsResult (Err error) ->
         -- It's not a show stopper if this fails. Just log and move on to next scene.
-        let _ = Debug.log (toString error)
+        let _ = Debug.log "WARNING" (toString error)
         in (sceneModel, segueTo theNextScene)
 
       OB_NoteRelatedTask claim (Err error) ->
@@ -251,6 +262,11 @@ update msg kioskModel =
           newSceneModel = {sceneModel | workResponsesReceived=newReceived}
         in
           considerSkip newSceneModel theNextScene
+
+      OB_NoteClaimUpdated (Err error) ->
+        -- This is a non-critical error, so let's log it and do nothing.
+        let _ = Debug.log "WARNING" (toString error)
+        in (sceneModel, Cmd.none)
 
 
 considerSkip : OldBusinessModel -> Scene -> (OldBusinessModel, Cmd Msg)
