@@ -40,7 +40,6 @@ type alias CheckOutDoneModel =
   {
   }
 
--- TODO: There should be a time out back to Welcome
 init : Flags -> (CheckOutDoneModel, Cmd Msg)
 init flags = ({}, Cmd.none)
 

@@ -14,11 +14,10 @@ import Wizard.SceneUtils exposing (..)
 import Types exposing (..)
 import NewUserScene exposing (NewUserModel)
 
+
 -----------------------------------------------------------------------------
 -- INIT
 -----------------------------------------------------------------------------
-
--- TODO: There should be a time out back to Welcome
 
 type alias SignUpDoneModel =
   {

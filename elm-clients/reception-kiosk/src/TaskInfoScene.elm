@@ -14,11 +14,10 @@ import Wizard.SceneUtils exposing (..)
 import Types exposing (..)
 import TaskListScene exposing (TaskListModel)
 
+
 -----------------------------------------------------------------------------
 -- INIT
 -----------------------------------------------------------------------------
-
--- TODO: There should be a time out back to Welcome
 
 type alias TaskInfoModel =
   {
@@ -62,6 +61,7 @@ sceneWillAppear kioskModel appearing vanishing =
 -----------------------------------------------------------------------------
 -- UPDATE
 -----------------------------------------------------------------------------
+
 
 -----------------------------------------------------------------------------
 -- VIEW
