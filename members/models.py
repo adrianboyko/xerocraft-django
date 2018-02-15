@@ -507,7 +507,9 @@ class VisitEvent(models.Model):
 
     class Meta:
         ordering = ['when']
-        unique_together = ('who', 'when')
+        # Present & Arriving or Present & Departing may be created at same time.
+        # So I'm removing the uniqueness constraint:
+        # unique_together = ('who', 'when')
 
 
 class WifiMacDetected(models.Model):
