@@ -9,18 +9,17 @@ void setup() {
     Keyboard.begin();
 }
 
-void blinkLED() {
-    digitalWrite(LED_BUILTIN, HIGH);
-    delay(50);
-    digitalWrite(LED_BUILTIN, LOW); 
-}
+void typeDigits(byte *data, byte length) {
+    char message[20]={0};
+    sprintf(message, ">%02X%02X%02X%02X", data[1], data[2], data[3], data[4]);
 
-unsigned long calcCardNum(byte *data) {
-    return
-        ((unsigned long)data[1]<<24) + 
-        ((unsigned long)data[2]<<16) + 
-        ((unsigned long)data[3]<<8) + 
-        ((unsigned long)data[4]<<0);
+    // Write SLOWLY so as not to overrun the slow tablet.
+    char* c = message;
+    for (int i=0; i<9; i++) {
+        delay(150);
+        Keyboard.write(*c);
+        c += 1;
+    }
 }
 
 void loop() {
@@ -28,12 +27,25 @@ void loop() {
     byte length;
 
     if(rfid.available()) {
-        blinkLED();
+        digitalWrite(LED_BUILTIN, HIGH);
+
+        // Read the first blob of data.
         rfid.getData(data, length);
-        unsigned long result = calcCardNum(data);
-        Keyboard.write('[');
-        Keyboard.print(result);
-        Keyboard.write(']');
+
+        // Send it.
+        typeDigits(data, length);
+
+        // Ignore the rest in this cluster.
+        for (int i=0; i<20000; i++) {
+            if (rfid.available()) {
+                rfid.getData(data, length);
+            }
+        }
+
+        digitalWrite(LED_BUILTIN, LOW);
     }
 }
+
+
+
 

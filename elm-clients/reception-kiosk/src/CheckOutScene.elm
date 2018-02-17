@@ -1,5 +1,13 @@
 
-module CheckOutScene exposing (init, view, sceneWillAppear, update, CheckOutModel)
+module CheckOutScene exposing
+  ( init
+  , rfidWasSwiped
+  , sceneWillAppear
+  , update
+  , view
+  --------------
+  , CheckOutModel
+  )
 
 -- Standard
 import Html exposing (..)
@@ -16,7 +24,7 @@ import List.Nonempty exposing (Nonempty)
 -- Local
 import Types exposing (..)
 import Wizard.SceneUtils exposing (..)
-import XisRestApi as XisApi
+import XisRestApi as XisApi exposing (Member)
 import Duration exposing (ticksPerHour)
 import PointInTime exposing (PointInTime)
 
@@ -40,7 +48,7 @@ type alias KioskModel a =
 
 type alias CheckOutModel =
   { visitEvents : List XisApi.VisitEvent
-  , checkedIn : List XisApi.Member
+  , checkedIn : List Member
   , checkedOutMemberNum : Int  -- TODO: This should be Member not ID.
   , badNews : List String
   }
@@ -114,7 +122,7 @@ update msg kioskModel =
         tagger = CheckOutVector << LogCheckOutResult
         cmd = xis.createVisitEvent newVisitEvent tagger
       in
-        ({sceneModel | checkedOutMemberNum = memberNum}, cmd)
+        ({sceneModel | checkedOutMemberNum = memberNum}, cmd)  -- TODO: Change to Member, not num.
 
     LogCheckOutResult (Ok _) ->
       (sceneModel, segueTo OldBusiness)
@@ -128,7 +136,7 @@ update msg kioskModel =
       ({sceneModel | badNews = [toString error]}, Cmd.none)
 
 
-checkedInMembers : List XisApi.VisitEvent -> List XisApi.Member
+checkedInMembers : List XisApi.VisitEvent -> List Member
 checkedInMembers events =
   let
     whoId = .data >> .who >> .id
@@ -171,6 +179,21 @@ view kioskModel =
       )
       []  -- No buttons
       sceneModel.badNews
+
+
+-----------------------------------------------------------------------------
+-- RFID WAS SWIPED
+-----------------------------------------------------------------------------
+
+rfidWasSwiped : KioskModel a -> Result String Member -> (CheckOutModel, Cmd Msg)
+rfidWasSwiped kioskModel result =
+  case result of
+    Ok m ->
+      update (LogCheckOut m.id) kioskModel
+    Err e ->
+      let sceneModel = kioskModel.checkOutModel
+      in ({sceneModel | badNews = [toString e]}, Cmd.none)
+
 
 -----------------------------------------------------------------------------
 -- STYLES

@@ -12,7 +12,19 @@ import List.Nonempty exposing (Nonempty)
 -- Local
 import DjangoRestFramework exposing (PageOf)
 import MembersApi as MembersApi exposing (..)
-import XisRestApi as XisApi exposing (..)
+import XisRestApi as XisApi exposing
+  ( AuthenticationResult
+  , Claim
+  , DiscoveryMethod
+  , Member
+  , TimeBlock
+  , TimeBlockType
+  , VisitEvent
+  , VisitEventReason
+  , Work
+  , WorkNote
+  , XisRestFlags
+  )
 
 -----------------------------------------------------------------------------
 -- FLAGS
@@ -30,7 +42,7 @@ type alias Flags =
   , uniqueKioskId : String
   , wavingHandUrl : String
   , xcOrgActionUrl : String
-  , xisApiFlags : XisApi.XisRestFlags
+  , xisApiFlags : XisRestFlags
   }
 
 -----------------------------------------------------------------------------
@@ -59,6 +71,7 @@ type Scene
   | TaskInfo
   | Waiver
   | Welcome
+  | WelcomeForRfid
 
 -- Material id space needs to be chopped up for scenes:
 mdlIdBase : Scene -> Int
@@ -85,6 +98,7 @@ mdlIdBase scene =
     TimeSheetPt3 -> 1900
     Waiver -> 2000
     Welcome -> 2100
+    WelcomeForRfid -> 2200
 
 
 -----------------------------------------------------------------------------
@@ -97,9 +111,8 @@ type CheckInMsg
   | LastNamesStartingWith String (Result Http.Error (PageOf Member))
   | LastNamesEqualTo String (Result Http.Error (PageOf Member))
   | UpdateRecentRfidsRead (Result Http.Error (PageOf VisitEvent))
-  | UpdateFlexId String
-  | UpdateMember XisApi.Member
-  | CheckInShortcut XisApi.Member -- Allows RFID reading scene to short-cut through this scene
+  | CI_UpdateFlexId String
+  | CI_UpdateMember (Result String Member)
 
 type CheckOutMsg
   = AccVisitEvents (Result Http.Error (PageOf VisitEvent))
@@ -139,32 +152,37 @@ type NewUserMsg
   | UpdatePassword2 String
 
 type OldBusinessMsg
-  = OB_WorkingClaimsResult (Result Http.Error (PageOf XisApi.Claim))
+  = OB_WorkingClaimsResult (Result Http.Error (PageOf Claim))
   | OB_DeleteSelection
-  | OB_NoteRelatedTask XisApi.Claim (Result Http.Error XisApi.Task)
-  | OB_NoteRelatedWork XisApi.Task XisApi.Claim (Result Http.Error XisApi.Work)
+  | OB_NoteRelatedTask Claim (Result Http.Error XisApi.Task)
+  | OB_NoteRelatedWork XisApi.Task Claim (Result Http.Error Work)
   | OB_ToggleItem Int
   | OB_NoteWorkDeleted (Result Http.Error String)
+  | OB_NoteClaimUpdated (Result Http.Error Claim)
 
 type ReasonForVisitMsg
   = UpdateReasonForVisit VisitEventReason
   | ValidateReason
-  | LogCheckInResult (Result Http.Error XisApi.VisitEvent)
+  | LogCheckInResult (Result Http.Error VisitEvent)
+
+type RfidHelperMsg
+  = RH_KeyDown KeyCode
+  | RH_MemberListResult (Result Http.Error (PageOf Member))
+  | RH_MemberPresentResult (Result Http.Error VisitEvent)
 
 type ScreenSaverMsg
   = SS_KeyDown KeyCode
   | SS_MouseClick
-  | SS_MemberListResult (Result Http.Error (PageOf XisApi.Member))
 
 type TaskListMsg
   = TL_TaskListResult (Result Http.Error (PageOf XisApi.Task))
   | TL_ToggleTask XisApi.Task
   | TL_ValidateTaskChoice
-  | TL_ClaimUpsertResult (Result Http.Error XisApi.Claim)
-  | TL_WorkInsertResult (Result Http.Error XisApi.Work)
+  | TL_ClaimUpsertResult (Result Http.Error Claim)
+  | TL_WorkInsertResult (Result Http.Error Work)
 
 type TimeSheetPt1Msg
-  = TS1_Submit XisApi.Task XisApi.Claim XisApi.Work
+  = TS1_Submit XisApi.Task Claim Work
   | TS1_HrPad Int
   | TS1_MinPad Int
 
@@ -178,13 +196,10 @@ type TimeSheetPt3Msg
   | TS3_Witnessed
   | TS3_Skipped
   | TS3_NeedWitness
-  | TS3_ClaimUpdated (Result Http.Error XisApi.Claim)
-  | TS3_WorkUpdated (Result Http.Error XisApi.Work)
-  | TS3_WorkNoteCreated (Result Http.Error XisApi.WorkNote)
-  | TS3_KeyDown KeyCode
-  | TS3_WitnessListResult (Result Http.Error (PageOf XisApi.Member))
+  | TS3_ClaimUpdated (Result Http.Error Claim)
+  | TS3_WorkUpdated (Result Http.Error Work)
+  | TS3_WorkNoteCreated (Result Http.Error WorkNote)
   | TS3_WitnessAuthResult (Result Http.Error AuthenticationResult)
-  | TS3_WitnessPresentResult (Result Http.Error XisApi.VisitEvent)
 
 type WaiverMsg
   = ShowSignaturePad String
@@ -195,6 +210,9 @@ type WaiverMsg
 type Msg
   = MdlVector (Material.Msg Msg)
   | WizardVector WizardMsg
+  | RfidHelperVector RfidHelperMsg
+  | RfidWasSwiped (Result String Member)
+  -----------------------------------
   | CheckInVector CheckInMsg
   | CheckOutVector CheckOutMsg
   | CreatingAcctVector CreatingAcctMsg

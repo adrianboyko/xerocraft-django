@@ -1,10 +1,11 @@
 
 module TimeSheetPt3Scene exposing
   ( init
+  , rfidWasSwiped
   , sceneWillAppear
   , update
   , view
-  , subscriptions
+  --------------------
   , TimeSheetPt3Model
   )
 
@@ -12,8 +13,6 @@ module TimeSheetPt3Scene exposing
 import Html exposing (Html, text, div, span, p)
 import Html.Attributes exposing (attribute, style)
 import Http exposing (header, Error(..))
-import Keyboard
-import Char
 
 -- Third Party
 import Material
@@ -42,7 +41,6 @@ idxWitnessUsername = [idxTimeSheetPt3, 1]
 idxWitnessPassword = [idxTimeSheetPt3, 2]
 
 tcwMissingStr = "Couldn't get task, claim, and work records!"
-workingStr = "Checking RFID!"
 
 -----------------------------------------------------------------------------
 -- INIT
@@ -68,8 +66,6 @@ type alias TimeSheetPt3Model =
   { records : Maybe (XisApi.Task, XisApi.Claim, XisApi.Work)
   , witnessUsername : String
   , witnessPassword : String
-  , digitsTyped : List Char  -- Digits that make up the RFID code
-  , rfidCode : Maybe Int  -- Set immediately after all digits have been sent.
   , needWitness : Bool
   , badNews : List String
   }
@@ -81,8 +77,6 @@ init flags =
     { records = Nothing
     , witnessUsername = ""
     , witnessPassword = ""
-    , digitsTyped = []
-    , rfidCode = Nothing
     , needWitness = False
     , badNews = []
     }
@@ -106,7 +100,7 @@ sceneWillAppear kioskModel appearing vanishing =
           Just {task, claim, work} ->
             let
               records = Just (task, claim, work)
-              newModel = {sceneModel | records=records, digitsTyped=[], rfidCode=Nothing }
+              newModel = {sceneModel | records=records }
             in (newModel, focusOnIndex idxWitnessUsername)
           _ ->
             ({sceneModel | badNews=[tcwMissingStr]}, Cmd.none)
@@ -133,49 +127,8 @@ update msg kioskModel =
 
   in case msg of
 
-    -- REVIEW: Factor this out into an RFID reader helper? It's also used in ScreenSaver.
-    TS3_KeyDown code ->
-      if amVisible then
-        case sceneModel.rfidCode of
-          Nothing ->
-            case code of
-              13 ->
-                update TS3_Witnessed kioskModel
-              219 ->
-                -- RFID reader is beginning to send a card number, so clear our buffer.
-                ({sceneModel | digitsTyped=[]}, Cmd.none)
-              221 ->
-                -- RFID reader is done sending the card number, so process our buffer.
-                handleRfid kioskModel
-              c ->
-                if c>=48 && c<=57 then
-                  -- A digit, presumably in the RFID's number. '0' = code 48, '9' = code 57.
-                  let updatedDigits = Char.fromCode c :: sceneModel.digitsTyped
-                  in ({sceneModel | digitsTyped = updatedDigits }, Cmd.none)
-                else
-                  -- Unexpected code.
-                  (sceneModel, Cmd.none)
-          Just _ ->
-            ({sceneModel | witnessUsername = workingStr }, Cmd.none)
-      else
-        -- Scene is not visible.
-        (sceneModel, Cmd.none)
-
-    TS3_WitnessListResult (Ok {results}) ->
-      -- ASSERTION: There should be exactly one witness in results.
-      case List.head results of
-        Just w ->
-          -- Reading an RFID will be considered equivalent to providing credentials, for purpose of witnessing work.
-          let
-            sModel = {sceneModel | witnessUsername=w.data.userName}
-            kModel = {kioskModel | timeSheetPt3Model = sModel }
-            synthMsg = TS3_WitnessAuthResult <| Ok <| AuthenticationResult True (Just w)
-          in update synthMsg kModel
-        Nothing ->
-          ({sceneModel | witnessUsername="", badNews=["RFID not registered."]}, Cmd.none)
-
     TS3_UpdateWitnessUsername s ->
-      ({sceneModel | witnessUsername = XisApi.djangoizeId s}, Cmd.none)
+      ({sceneModel | witnessUsername = s}, Cmd.none)
 
     TS3_UpdateWitnessPassword s ->
       ({sceneModel | witnessPassword = s}, Cmd.none)
@@ -193,7 +146,7 @@ update msg kioskModel =
         else
           let
             cmd = xis.authenticate
-              sceneModel.witnessUsername
+              (XisApi.djangoizeId sceneModel.witnessUsername)
               sceneModel.witnessPassword
               (TimeSheetPt3Vector << TS3_WitnessAuthResult)
           in
@@ -229,16 +182,8 @@ update msg kioskModel =
                 witnessUrl = xis.memberUrl witness.id
                 workMod = setWorksWitness (Just witnessUrl) work
                 cmd1 = xis.replaceWork workMod (TimeSheetPt3Vector << TS3_WorkUpdated)
-                cmd2 = xis.createVisitEvent
-                         { who=witnessUrl
-                         , when=kioskModel.currTime
-                         , eventType=VET_Present
-                         , method=VEM_FrontDesk
-                         , reason=Nothing
-                         }
-                         (TimeSheetPt3Vector << TS3_WitnessPresentResult)
               in
-                ({sceneModel | badNews=[]}, Cmd.batch [cmd1, cmd2])
+                ({sceneModel | badNews=[]}, cmd1)
 
             (True, Nothing) ->
               -- XIS shouldn't produce this so I won't trust it.
@@ -281,32 +226,13 @@ update msg kioskModel =
       -- Everything worked. Scene is complete.
       (sceneModel, popTo OldBusiness)
 
-    TS3_WitnessPresentResult (Ok _) ->
-      -- Don't need to do anything when this succeeds.
-      (sceneModel, Cmd.none)
-
     -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
-
-    TS3_WitnessListResult (Err e) ->
-      ( { sceneModel
-        | badNews=[toString e]
-        , rfidCode=Nothing
-        , digitsTyped=[]
-        }
-      , Cmd.none
-      )
 
     TS3_WitnessAuthResult (Err e) ->
       ({sceneModel | badNews=[toString e]}, Cmd.none)
 
     TS3_ClaimUpdated (Err e) ->
       ({sceneModel | badNews=[toString e]}, Cmd.none)
-
-    TS3_WitnessPresentResult (Err e) ->
-      let
-        _ = Debug.log "TS3 ERR" (toString e)
-      in
-        (sceneModel, Cmd.none)
 
     TS3_WorkUpdated (Err e) ->
       case e of
@@ -324,44 +250,6 @@ update msg kioskModel =
       -- Failure to create the work description is non-critical so we'll carry on to next scene.
       -- TODO: Create a backend logging facility so that failures like this can be noted via XisAPI
       (sceneModel, segueTo TimeSheetPt1)
-
-
-handleRfid : KioskModel a -> (TimeSheetPt3Model, Cmd Msg)
-handleRfid kioskModel =
-  let
-    sceneModel = kioskModel.timeSheetPt3Model
-    xis = kioskModel.xisSession
-  in
-    case sceneModel.rfidCode of
-
-      Just _ ->
-        -- We're already in the process of checking a code, so ignore this one.
-        -- It's presumably the same code anyway, since the reader reads multiple times.
-        ( {sceneModel | witnessUsername=workingStr}
-        , Cmd.none
-        )
-
-      Nothing ->
-        let
-          rfidNumber = List.reverse sceneModel.digitsTyped |> String.fromList |> String.toInt
-          filter = Result.map RfidNumberEquals rfidNumber
-        in
-          case (rfidNumber, filter) of
-
-            (Ok n, Ok f) ->
-              ( {sceneModel | rfidCode=Just n, witnessUsername=workingStr}
-              , xis.listMembers [f] (TimeSheetPt3Vector << TS3_WitnessListResult)
-              )
-
-            (Err e, _) ->
-              ( {sceneModel | rfidCode=Nothing, witnessUsername="", badNews=[toString e]}
-              , Cmd.none
-              )
-
-            (_, Err e) ->
-              ( {sceneModel | rfidCode=Nothing, witnessUsername="", badNews=[toString e]}
-              , Cmd.none
-              )
 
 
 -----------------------------------------------------------------------------
@@ -448,12 +336,24 @@ viewWitness kioskModel task claim work =
 -- SUBSCRIPTIONS
 -----------------------------------------------------------------------------
 
-subscriptions: KioskModel a -> Sub Msg
-subscriptions kioskModel =
-    if currentScene kioskModel == TimeSheetPt3 then
-      Keyboard.downs (TimeSheetPt3Vector << TS3_KeyDown)
-    else
-      Sub.none
+
+-----------------------------------------------------------------------------
+-- RFID WAS SWIPED
+-----------------------------------------------------------------------------
+
+rfidWasSwiped : KioskModel a -> Result String Member -> (TimeSheetPt3Model, Cmd Msg)
+rfidWasSwiped kioskModel result =
+  let sceneModel = kioskModel.timeSheetPt3Model
+  in case result of
+
+    Ok m ->
+      -- Reading an RFID will be considered equivalent to providing credentials, for purpose of witnessing work.
+      update
+        (TS3_WitnessAuthResult <| Ok <| AuthenticationResult True (Just m))
+        kioskModel
+
+    Err e ->
+      ({sceneModel | badNews=[toString e]}, Cmd.none)
 
 
 -----------------------------------------------------------------------------
