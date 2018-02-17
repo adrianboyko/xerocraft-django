@@ -1,10 +1,12 @@
 
 module CheckInScene exposing
   ( init
+  , rfidWasSwiped
   , sceneWillAppear
-  , view
-  , update
   , tick
+  , update
+  , view
+  --------------
   , CheckInModel
   )
 
@@ -13,18 +15,21 @@ import Html exposing (Html, div, text, audio)
 import Html.Attributes exposing (src, autoplay)
 import Http
 import Time exposing (Time)
+import Regex
 
 -- Third Party
 import Material
 import Material.Chip as Chip
 import Material.Options as Options exposing (css)
 import List.Extra as ListX
+import List.Nonempty exposing (Nonempty)
 
 -- Local
 import Types exposing (..)
 import Wizard.SceneUtils exposing (..)
-import XisRestApi as XisApi
+import XisRestApi as XisApi exposing (Member)
 import PointInTime as PIT exposing (PointInTime)
+import RfidHelper as RfidHelper exposing (RfidHelperModel, rfidCharsOnly)
 
 -- TODO: If user is signing in after acct creation, show a username hint?
 
@@ -40,24 +45,27 @@ import PointInTime as PIT exposing (PointInTime)
 
 -- This type alias describes the type of kiosk model that this scene requires.
 type alias KioskModel a =
-  ( SceneUtilModel
-    { a
-    | checkInModel : CheckInModel
-    , xisSession : XisApi.Session Msg
-    , currTime : PointInTime
-    }
-  )
+  { a
+  ------------------------------------
+  | mdl : Material.Model
+  , flags : Flags
+  , sceneStack : Nonempty Scene
+  ------------------------------------
+  , checkInModel : CheckInModel
+  , xisSession : XisApi.Session Msg
+  , currTime : PointInTime
+  }
 
 
 -- REVIEW: flexID should be a Maybe?
 type alias CheckInModel =
   { flexId : String  -- UserName or surname.
-  , userNameMatches_SW : List XisApi.Member  -- Matches to username
-  , userNameMatches_EQ : List XisApi.Member  -- Matches to username
-  , lastNameMatches_SW : List XisApi.Member  -- Matches to surname
-  , lastNameMatches_EQ : List XisApi.Member  -- Matches to surname
-  , recentRfidArrivals : List XisApi.Member  -- People who have recently swiped RFID.
-  , checkedInMember : Maybe XisApi.Member -- The member that the person checked in as.
+  , userNameMatches_SW : List Member  -- Matches to username
+  , userNameMatches_EQ : List Member  -- Matches to username
+  , lastNameMatches_SW : List Member  -- Matches to surname
+  , lastNameMatches_EQ : List Member  -- Matches to surname
+  , recentRfidArrivals : List Member  -- People who have recently swiped RFID.
+  , checkedInMember : Maybe Member -- The member that the person checked in as.
   , badNews : List String
   }
 
@@ -86,7 +94,7 @@ sceneWillAppear kioskModel appearingScene =
   if appearingScene == CheckIn
     then
       let
-        cmd1 = getRecentRfidArrivalsCmd kioskModel
+        cmd1 = getRecentRfidsReadCmd kioskModel
         cmd2 = focusOnIndex idxFlexId
       in
         (kioskModel.checkInModel, Cmd.batch [cmd1, cmd2])
@@ -106,27 +114,29 @@ update msg kioskModel =
 
   in case msg of
 
-    UpdateFlexId rawId ->
-      let
-        id = XisApi.djangoizeId rawId
-        cmd1 = xis.listMembers
-          [XisApi.UsernameStartsWith id]
-          (CheckInVector << (UsernamesStartingWith id))
-        cmd2 = xis.listMembers
-          [XisApi.LastNameStartsWith id]
-          (CheckInVector << (LastNamesStartingWith id))
-        cmd3 = xis.listMembers
-          [XisApi.UsernameEquals id]
-          (CheckInVector << (UsernamesEqualTo id))
-        cmd4 = xis.listMembers
-          [XisApi.LastNameEquals id]
-          (CheckInVector << (LastNamesEqualTo id))
-      in
-        if (String.length id) > 2
-        then
-          ( {sceneModel | flexId=id}, Cmd.batch [cmd1, cmd2, cmd3, cmd4])
+    CI_UpdateFlexId rawId ->
+
+        if Regex.contains rfidCharsOnly rawId then
+          ({sceneModel | flexId=rawId}, Cmd.none)
+        else if (String.length rawId) > 2 then
+          let
+            djId = XisApi.djangoizeId rawId
+            cmd1 = xis.listMembers
+              [XisApi.UsernameStartsWith djId, XisApi.IsActive True]
+              (CheckInVector << (UsernamesStartingWith rawId))
+            cmd2 = xis.listMembers
+              [XisApi.LastNameStartsWith djId, XisApi.IsActive True]
+              (CheckInVector << (LastNamesStartingWith rawId))
+            cmd3 = xis.listMembers
+              [XisApi.UsernameEquals djId, XisApi.IsActive True]
+              (CheckInVector << (UsernamesEqualTo rawId))
+            cmd4 = xis.listMembers
+              [XisApi.LastNameEquals djId, XisApi.IsActive True]
+              (CheckInVector << (LastNamesEqualTo rawId))
+          in
+            ({sceneModel | flexId=rawId}, Cmd.batch [cmd1, cmd2, cmd3, cmd4])
         else
-          ( {sceneModel | userNameMatches_SW=[], lastNameMatches_SW=[], flexId=id}, Cmd.none)
+          ({sceneModel | flexId=rawId, userNameMatches_SW=[], lastNameMatches_SW=[]}, Cmd.none)
 
 
     UsernamesStartingWith searchedId (Ok {count, results}) ->
@@ -149,14 +159,15 @@ update msg kioskModel =
       then ({sceneModel | lastNameMatches_EQ = results, badNews = []}, Cmd.none)
       else (sceneModel, Cmd.none)
 
-    UpdateRecentRfidArrivals (Ok {results}) ->
-      ({sceneModel | recentRfidArrivals = List.map (.data >> .who) results}, Cmd.none)
+    UpdateRecentRfidsRead (Ok {results}) ->
+      let
+        recent = List.map (.data >> .who) results
+        unique = ListX.uniqueBy .id recent
+      in
+        ({sceneModel | recentRfidArrivals = unique}, Cmd.none)
 
-    UpdateMember member ->
-      ({sceneModel | checkedInMember=Just member}, segueTo ReasonForVisit)
-
-    CheckInShortcut member ->
-      ({sceneModel | checkedInMember=Just member}, segueTo ReasonForVisit)
+    CI_UpdateMember (Ok member) ->
+      ({sceneModel | checkedInMember=Just member, badNews=[]}, segueTo ReasonForVisit)
 
     ---------- ERRORS ----------
 
@@ -172,7 +183,10 @@ update msg kioskModel =
     LastNamesEqualTo searchedId (Err error) ->
       ({sceneModel | badNews = [toString error]}, Cmd.none)
 
-    UpdateRecentRfidArrivals (Err error) ->
+    UpdateRecentRfidsRead (Err error) ->
+      ({sceneModel | badNews = [toString error]}, Cmd.none)
+
+    CI_UpdateMember (Err error) ->
       ({sceneModel | badNews = [toString error]}, Cmd.none)
 
 
@@ -188,7 +202,7 @@ view : KioskModel a -> Html Msg
 view kioskModel =
   let
     sceneModel = kioskModel.checkInModel
-    clickMsg = \memb -> CheckInVector <| UpdateMember <| memb
+    clickMsg = \memb -> CheckInVector <| CI_UpdateMember <| Ok memb
     acctToChip = \memb ->
       Chip.button
         [Options.onClick (clickMsg memb)]
@@ -209,7 +223,7 @@ view kioskModel =
     "Who are you?"
     ( div []
         (List.concat
-          [ [sceneTextField kioskModel idxFlexId "Enter your Userid or Last Name" sceneModel.flexId (CheckInVector << UpdateFlexId), vspace 0]
+          [ [sceneTextField kioskModel idxFlexId "Enter your Userid or Last Name" sceneModel.flexId (CheckInVector << CI_UpdateFlexId), vspace 0]
           , if List.length matches > 0
              then [vspace 50, text "Tap your userid if you see it below:", vspace 20]
              else [vspace 0]
@@ -240,7 +254,7 @@ tick time kioskModel =
     inc = if visible then 1 else 0
     cmd1 =
       if visible && String.isEmpty sceneModel.flexId
-        then getRecentRfidArrivalsCmd kioskModel
+        then getRecentRfidsReadCmd kioskModel
         else Cmd.none
     cmd = if visible then cmd1 else Cmd.none
   in
@@ -248,24 +262,35 @@ tick time kioskModel =
 
 
 -----------------------------------------------------------------------------
--- SUBSCRIPTIONS
+-- RFID WAS SWIPED
 -----------------------------------------------------------------------------
+
+rfidWasSwiped : KioskModel a -> Result String Member -> (CheckInModel, Cmd Msg)
+rfidWasSwiped kioskModel result =
+  let
+    sceneModel = kioskModel.checkInModel
+  in
+    case result of
+      Ok m ->
+        ({sceneModel | checkedInMember=Just m, badNews=[]}, segueTo ReasonForVisit)
+
+      Err e ->
+        ({sceneModel | badNews=[toString e]}, Cmd.none)
 
 
 -----------------------------------------------------------------------------
 -- COMMANDS
 -----------------------------------------------------------------------------
 
-getRecentRfidArrivalsCmd : KioskModel a -> Cmd Msg
-getRecentRfidArrivalsCmd kioskModel =
+getRecentRfidsReadCmd : KioskModel a -> Cmd Msg
+getRecentRfidsReadCmd kioskModel =
   let
     lowerBound = kioskModel.currTime - (15 * Time.minute)
     filters =
       [ XisApi.VEF_WhenGreaterOrEquals lowerBound
-      , XisApi.VEF_EventTypeEquals XisApi.VET_Arrival
       , XisApi.VEF_EventMethodEquals XisApi.VEM_Rfid
       ]
-    tagger = (CheckInVector << UpdateRecentRfidArrivals)
+    tagger = (CheckInVector << UpdateRecentRfidsRead)
   in
     kioskModel.xisSession.listVisitEvents filters tagger
 

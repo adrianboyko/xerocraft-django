@@ -27,6 +27,7 @@ import NewMemberScene
 import NewUserScene
 import OldBusinessScene
 import ReasonForVisitScene
+import RfidHelper
 import ScreenSaverScene
 import SignUpDoneScene
 import TaskListScene
@@ -35,6 +36,7 @@ import TimeSheetPt2Scene
 import TimeSheetPt3Scene
 import TaskInfoScene
 import WaiverScene
+import WelcomeForRfidScene
 import WelcomeScene
 
 import DjangoRestFramework as DRF
@@ -86,6 +88,8 @@ type alias Model =
   -- api models:
   , xisSession : XisApi.Session Msg
   , membersApi : MembersApi.Session Msg
+  -- rfid helper model:
+  , rfidHelperModel : RfidHelper.RfidHelperModel
   -- Scene models:
   , checkInModel         : CheckInScene.CheckInModel
   , checkInDoneModel     : CheckInDoneScene.CheckInDoneModel
@@ -107,6 +111,7 @@ type alias Model =
   , timeSheetPt2Model    : TimeSheetPt2Scene.TimeSheetPt2Model
   , timeSheetPt3Model    : TimeSheetPt3Scene.TimeSheetPt3Model
   , waiverModel          : WaiverScene.WaiverModel
+  , welcomeForRfidModel  : WelcomeForRfidScene.WelcomeForRfidModel
   , welcomeModel         : WelcomeScene.WelcomeModel
   }
 
@@ -133,6 +138,7 @@ init f =
     (timeSheetPt2Model,    timeSheetPt2Cmd   ) = TimeSheetPt2Scene.init    f
     (timeSheetPt3Model,    timeSheetPt3Cmd   ) = TimeSheetPt3Scene.init    f
     (waiverModel,          waiverCmd         ) = WaiverScene.init          f
+    (welcomeForRfidModel,  welcomeForRfidCmd ) = WelcomeForRfidScene.init  f
     (welcomeModel,         welcomeCmd        ) = WelcomeScene.init         f
     model =
       { flags = f
@@ -142,6 +148,7 @@ init f =
       , mdl = Material.model
       , xisSession = XisApi.createSession f.xisApiFlags (DRF.Token f.uniqueKioskId)
       , membersApi = MembersApi.createSession f.membersApiFlags
+      , rfidHelperModel = RfidHelper.create RfidWasSwiped
       -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
       , checkInModel         = checkInModel
       , checkInDoneModel     = checkInDoneModel
@@ -163,6 +170,7 @@ init f =
       , timeSheetPt2Model    = timeSheetPt2Model
       , timeSheetPt3Model    = timeSheetPt3Model
       , waiverModel          = waiverModel
+      , welcomeForRfidModel  = welcomeForRfidModel
       , welcomeModel         = welcomeModel
       }
     cmds =
@@ -184,6 +192,7 @@ init f =
       , timeSheetPt2Cmd
       , timeSheetPt3Cmd
       , waiverCmd
+      , welcomeForRfidCmd
       , welcomeCmd
       ]
   in
@@ -207,6 +216,31 @@ reset m =
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
+
+    RfidWasSwiped result ->
+      case Nonempty.head model.sceneStack of
+
+        ScreenSaver ->
+          let (newMod, cmd) = ScreenSaverScene.rfidWasSwiped model result
+          in ({model | screenSaverModel = newMod}, cmd)
+
+        CheckIn ->
+          let (newMod, cmd) = CheckInScene.rfidWasSwiped model result
+          in ({model | checkInModel = newMod}, cmd)
+
+        CheckOut ->
+          let (newMod, cmd) = CheckOutScene.rfidWasSwiped model result
+          in ({model | checkOutModel = newMod}, cmd)
+
+        TimeSheetPt3 ->
+          let (newMod, cmd) = TimeSheetPt3Scene.rfidWasSwiped model result
+          in ({model | timeSheetPt3Model = newMod}, cmd)
+
+        _ -> (model, Cmd.none)
+
+    RfidHelperVector msg ->
+      let (rhMod, rhCmd) = RfidHelper.update msg model
+      in ({model | rfidHelperModel=rhMod }, rhCmd)
 
     WizardVector wizMsg ->
       let currScene = Nonempty.head model.sceneStack
@@ -442,6 +476,7 @@ view model =
     TimeSheetPt2    -> TimeSheetPt2Scene.view    model
     TimeSheetPt3    -> TimeSheetPt3Scene.view    model
     Waiver          -> WaiverScene.view          model
+    WelcomeForRfid  -> WelcomeForRfidScene.view  model
     Welcome         -> WelcomeScene.view         model
 
 
@@ -452,19 +487,20 @@ view model =
 subscriptions: Model -> Sub Msg
 subscriptions model =
   let
-    focusSetSub = focusWasSet (WizardVector << FocusWasSet)
-    timeTickSub = Time.every second (WizardVector << Tick)
+    focusSetSubs = focusWasSet (WizardVector << FocusWasSet)
+    rfidHelperSubs = RfidHelper.subscriptions
     screenSaverSubs = ScreenSaverScene.subscriptions model
-    timeSheetPt3Subs = TimeSheetPt3Scene.subscriptions model
+    timeTickSubs = Time.every second (WizardVector << Tick)
     waiverSubs = WaiverScene.subscriptions model
   in
     Sub.batch
-      [ focusSetSub
-      , timeTickSub
-      , timeSheetPt3Subs
+      [ focusSetSubs
+      , rfidHelperSubs
       , screenSaverSubs
+      , timeTickSubs
       , waiverSubs
       ]
+
 
 -----------------------------------------------------------------------------
 -- UTILITIES
