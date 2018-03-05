@@ -318,3 +318,15 @@ postRequest auth url responseDecoder encodedData =
     , timeout = Nothing
     , withCredentials = False
     }
+
+postRequestExpectingString : Authorization -> String -> Enc.Value -> Http.Request String
+postRequestExpectingString auth url encodedData =
+  Http.request
+    { method = "POST"
+    , headers = [authenticationHeader auth]
+    , url = url
+    , body = encodedData |> Http.jsonBody
+    , expect = Http.expectString
+    , timeout = Nothing
+    , withCredentials = False
+    }

@@ -122,6 +122,12 @@ update msg kioskModel =
       in
         ({sceneModel | selectedMethodPks=newSelectedMethodPks}, Cmd.none)
 
+    OkClicked ->
+      ( sceneModel
+      , send <| NewMemberVector <| NM_Segue sceneModel.selectedMethodPks
+      )
+
+
 
 -----------------------------------------------------------------------------
 -- VIEW
@@ -134,7 +140,7 @@ view kioskModel =
     "Just Wondering"
     "How did you hear about us?"
     (howDidYouHearChoices kioskModel)
-    [ButtonSpec "OK" (WizardVector <| Push <| NewMember) True]
+    [ButtonSpec "OK" (HowDidYouHearVector OkClicked) True]
     sceneModel.badNews
 
 howDidYouHearChoices : KioskModel a -> Html Msg

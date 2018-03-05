@@ -1,5 +1,11 @@
 
-module CheckOutDoneScene exposing (init, sceneWillAppear, view, CheckOutDoneModel)
+module CheckOutDoneScene exposing
+  ( init
+  , sceneWillAppear
+  , update
+  , view
+  , CheckOutDoneModel
+  )
 
 -- Standard
 import Html exposing (Html, div, text)
@@ -12,13 +18,11 @@ import List.Nonempty exposing (Nonempty)
 -- Local
 import Types exposing (..)
 import Wizard.SceneUtils exposing (..)
-
+import XisRestApi as XisApi exposing (Member)
 
 -----------------------------------------------------------------------------
 -- CONSTANTS
 -----------------------------------------------------------------------------
-
-displayTimeout = 5
 
 
 -----------------------------------------------------------------------------
@@ -34,14 +38,18 @@ type alias KioskModel a =
   , sceneStack : Nonempty Scene
   ------------------------------------
   , checkOutDoneModel : CheckOutDoneModel
+  , xisSession : XisApi.Session Msg
   }
 
 type alias CheckOutDoneModel =
-  {
+  { member : Maybe Member
   }
 
 init : Flags -> (CheckOutDoneModel, Cmd Msg)
-init flags = ({}, Cmd.none)
+init flags =
+  ( {member = Nothing}
+  , Cmd.none
+  )
 
 
 -----------------------------------------------------------------------------
@@ -60,6 +68,18 @@ sceneWillAppear kioskModel appearing vanishing =
 -----------------------------------------------------------------------------
 -- UPDATE
 -----------------------------------------------------------------------------
+
+update : CheckOutDoneMsg -> KioskModel a -> (CheckOutDoneModel, Cmd Msg)
+update msg kioskModel =
+  let
+    sceneModel = kioskModel.checkOutDoneModel
+    xis = kioskModel.xisSession
+
+  in case msg of
+    COD_Segue member ->
+      ( { sceneModel | member = Just member}
+      , send <| WizardVector <| Push CheckOutDone
+      )
 
 
 -----------------------------------------------------------------------------

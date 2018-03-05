@@ -1,15 +1,34 @@
 module TimeSheetCommon exposing (infoDiv)
 
-
+-- Standard
 import Html exposing (Html, text, div, span)
 import Html.Attributes exposing (style)
 
+-- Third Party
+import Material as Material
+import List.Nonempty as NonEmpty exposing (Nonempty)
+
+-- Local
 import Types exposing (..)
 import CalendarDate
 import Duration
 import XisRestApi exposing (Task, Claim, Work, WorkNoteData)
-import Wizard.SceneUtils exposing (vspace, px, pt, textAreaColor, (=>))
+import Wizard.SceneUtils exposing (vspace, px, pt, textAreaColor, (=>), genericScene)
 import PointInTime exposing (PointInTime)
+
+-----------------------------------------------------------------------------
+-- UTILITIES
+-----------------------------------------------------------------------------
+
+-- This type alias describes the type of kiosk model that this module requires.
+type alias KioskModel a =
+  { a
+  ------------------------------------
+  | mdl : Material.Model
+  , flags : Flags
+  , sceneStack : Nonempty Scene
+  ------------------------------------
+  }
 
 
 -----------------------------------------------------------------------------
@@ -39,10 +58,10 @@ infoDiv curr task claim work otherWorkDesc =
 
       ]
 
+
 -----------------------------------------------------------------------------
 -- STYLES
 -----------------------------------------------------------------------------
-
 
 infoToVerifyStyle = style
   [ "display" => "inline-block"

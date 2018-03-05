@@ -1,23 +1,21 @@
 
-module CheckInDoneScene exposing
+module ErrorScene exposing
   ( init
+  , sceneWillAppear
   , update
   , view
-  , CheckInDoneModel
-  )
+  , ErrorModel)
 
 -- Standard
-import Html exposing (Html, text, div)
-import Time exposing (Time)
+import Html exposing (Html, div, p, text)
 
 -- Third Party
 import Material
-import List.Nonempty exposing (Nonempty)
+import List.Nonempty as NonEmpty exposing (Nonempty)
 
 -- Local
 import Types exposing (..)
 import Wizard.SceneUtils exposing (..)
-import XisRestApi as XisApi exposing (Member)
 
 
 -----------------------------------------------------------------------------
@@ -37,38 +35,59 @@ type alias KioskModel a =
   , flags : Flags
   , sceneStack : Nonempty Scene
   ------------------------------------
-  , checkInDoneModel : CheckInDoneModel
-  , xisSession : XisApi.Session Msg
+  , errorModel : ErrorModel
   }
 
-
-type alias CheckInDoneModel =
-  { member : Maybe Member
+type alias ErrorModel =
+  { errorMessage : Maybe String
   }
 
-
-init : Flags -> (CheckInDoneModel, Cmd Msg)
+init : Flags -> (ErrorModel, Cmd Msg)
 init flags =
-  ( {member = Nothing}
+  ( { errorMessage = Nothing
+    }
   , Cmd.none
   )
+
+
+-----------------------------------------------------------------------------
+-- SCENE WILL APPEAR
+-----------------------------------------------------------------------------
+
+sceneWillAppear : KioskModel a -> Scene -> Scene -> (ErrorModel, Cmd Msg)
+sceneWillAppear kioskModel appearing vanishing =
+  let
+    sceneModel = kioskModel.errorModel
+  in
+    if appearing == Error then
+      (sceneModel, Cmd.none)
+    else
+      (sceneModel, Cmd.none)
 
 
 -----------------------------------------------------------------------------
 -- UPDATE
 -----------------------------------------------------------------------------
 
-update : CheckInDoneMsg -> KioskModel a -> (CheckInDoneModel, Cmd Msg)
+update : ErrorMsg -> KioskModel a -> (ErrorModel, Cmd Msg)
 update msg kioskModel =
   let
-    sceneModel = kioskModel.checkInDoneModel
-    xis = kioskModel.xisSession
+    sceneModel = kioskModel.errorModel
+  in
+    case msg of
 
-  in case msg of
-    CID_Segue member ->
-      ( { sceneModel | member = Just member}
-      , send <| WizardVector <| Push CheckInDone
-      )
+      -- This assumes that the scene currently on top of the stack caused the error.
+      ERR_Segue errMsg ->
+        ( { sceneModel
+          | errorMessage = Just errMsg
+          }
+        , send <| WizardVector <| Push <| Error
+        )
+
+      ERR_ResetClicked ->
+        ( sceneModel
+        , send <| WizardVector <| Reset
+        )
 
 
 -----------------------------------------------------------------------------
@@ -77,17 +96,15 @@ update msg kioskModel =
 
 view : KioskModel a -> Html Msg
 view kioskModel =
-  let sceneModel = kioskModel.checkInDoneModel
-  in genericScene kioskModel
-    "You're Checked In"
-    "Have fun!"
-    (vspace 40)
-    [ButtonSpec "Ok" (WizardVector <| Reset) True]
-    [] -- Never any bad news for this scene
+  let
+    sceneModel = kioskModel.errorModel
+  in
+    errorView
+      kioskModel
+      (Maybe.withDefault "Unspecified Error" sceneModel.errorMessage)
 
 
 -----------------------------------------------------------------------------
 -- TICK (called each second)
 -----------------------------------------------------------------------------
-
 

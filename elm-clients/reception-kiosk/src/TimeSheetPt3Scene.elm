@@ -23,8 +23,6 @@ import TimeSheetCommon exposing (infoDiv)
 import XisRestApi as XisApi exposing (..)
 import Wizard.SceneUtils exposing (..)
 import Types exposing (..)
-import TimeSheetPt1Scene exposing (TimeSheetPt1Model)
-import TimeSheetPt2Scene exposing (TimeSheetPt2Model)
 import Fetchable exposing (..)
 import PointInTime exposing (PointInTime)
 import CalendarDate exposing (CalendarDate)
@@ -55,26 +53,32 @@ type alias KioskModel a =
   , sceneStack : Nonempty Scene
   ------------------------------------
   , currTime : PointInTime
-  , timeSheetPt1Model : TimeSheetPt1Model
-  , timeSheetPt2Model : TimeSheetPt2Model
   , timeSheetPt3Model : TimeSheetPt3Model
   , xisSession : XisApi.Session Msg
   }
 
 
 type alias TimeSheetPt3Model =
-  { records : Maybe (XisApi.Task, XisApi.Claim, XisApi.Work)
+  ----------------- Args:
+  { tcw : Maybe TaskClaimWork      -- REQUIRED
+  , otherWorkDesc : Maybe String   -- OPTIONAL
+  ---------------- Other State:
   , witnessUsername : String
   , witnessPassword : String
   , needWitness : Bool
   , badNews : List String
   }
 
+args x =
+  ( x.tcw
+  , x.otherWorkDesc
+  )
 
 init : Flags -> (TimeSheetPt3Model, Cmd Msg)
 init flags =
   let sceneModel =
-    { records = Nothing
+    { tcw = Nothing
+    , otherWorkDesc = Nothing
     , witnessUsername = ""
     , witnessPassword = ""
     , needWitness = False
@@ -91,17 +95,13 @@ sceneWillAppear : KioskModel a -> Scene -> Scene -> (TimeSheetPt3Model, Cmd Msg)
 sceneWillAppear kioskModel appearing vanishing =
   let
     sceneModel = kioskModel.timeSheetPt3Model
-    pt1Model = kioskModel.timeSheetPt1Model
   in
     case (appearing, vanishing) of
 
       (TimeSheetPt3, _) ->
-        case (pt1Model.oldBusinessItem) of
-          Just {task, claim, work} ->
-            let
-              records = Just (task, claim, work)
-              newModel = {sceneModel | records=records }
-            in (newModel, focusOnIndex idxWitnessUsername)
+        case args sceneModel of
+          (Just _, _) ->
+            (sceneModel, focusOnIndex idxWitnessUsername)
           _ ->
             ({sceneModel | badNews=[tcwMissingStr]}, Cmd.none)
 
@@ -126,6 +126,12 @@ update msg kioskModel =
     amVisible = currentScene kioskModel == TimeSheetPt3
 
   in case msg of
+
+    TS3_Segue (tcw, otherWorkDesc) ->
+      ( {sceneModel | tcw = Just tcw, otherWorkDesc = otherWorkDesc}
+      , let transition = if otherWorkDesc==Nothing then ReplaceWith else Push
+        in send <| WizardVector <| transition <| TimeSheetPt3
+      )
 
     TS3_UpdateWitnessUsername s ->
       ({sceneModel | witnessUsername = s}, Cmd.none)
@@ -153,12 +159,12 @@ update msg kioskModel =
             (sceneModel, cmd)
 
     TS3_Skipped ->
-      case sceneModel.records of
+      case sceneModel.tcw of
 
         Nothing ->
           ({sceneModel | badNews=[tcwMissingStr]}, Cmd.none)
 
-        Just (_, _, work) ->
+        Just {work} ->
           let
             -- Witness is presumably already "Nothing", but will set again anyway.
             workMod = setWorksWitness Nothing work
@@ -169,12 +175,12 @@ update msg kioskModel =
 
     -- Order of updates is important. Update Work here, update Claim later.
     TS3_WitnessAuthResult (Ok {isAuthentic, authenticatedMember}) ->
-      case sceneModel.records of
+      case sceneModel.tcw of
 
         Nothing ->
           ({sceneModel | badNews=[tcwMissingStr]}, Cmd.none)
 
-        Just (_, _, work) ->
+        Just {work} ->
           case (isAuthentic, authenticatedMember) of
 
             (True, Just witness) ->
@@ -195,32 +201,33 @@ update msg kioskModel =
 
     -- Order of updates is important. Update Claim here, now that Work update is done.
     TS3_WorkUpdated (Ok work) ->
-      case sceneModel.records of
+      case sceneModel.tcw of
         Nothing -> ({sceneModel | badNews=[tcwMissingStr]}, Cmd.none)
-        Just (_, c, _) ->
+        Just {claim} ->
           let
             -- TODO: Task might not be done. Work might be stopping for now.
-            claimMod = c |> setClaimsStatus DoneClaimStatus
+            claimMod = claim |> setClaimsStatus DoneClaimStatus
             cmd = xis.replaceClaim claimMod (TimeSheetPt3Vector << TS3_ClaimUpdated)
           in
             ({sceneModel | badNews=[]}, cmd)
 
-    TS3_ClaimUpdated (Ok claim) ->
-      case sceneModel.records of
+    TS3_ClaimUpdated (Ok _) ->
+      case sceneModel.tcw of
+        Just {claim, work} ->
+          ( { sceneModel | badNews = [] }
+          , case sceneModel.otherWorkDesc of
+            Just desc ->
+              xis.createWorkNote
+                { author = Just claim.data.claimingMember
+                , content = desc
+                , work = (xis.workUrl work.id)
+                , whenWritten = kioskModel.currTime
+                }
+                (TimeSheetPt3Vector << TS3_WorkNoteCreated)
+            Nothing ->
+              popTo OldBusiness
+          )
         Nothing -> ({sceneModel | badNews=[tcwMissingStr]}, Cmd.none)
-        Just (_, c, w) ->
-          let
-            pt2Model = kioskModel.timeSheetPt2Model
-            noteData = XisApi.WorkNoteData
-              (Just c.data.claimingMember)
-              pt2Model.otherWorkDesc
-              (xis.workUrl w.id)
-              kioskModel.currTime
-            cmd = if String.length pt2Model.otherWorkDesc > 0
-              then xis.createWorkNote noteData (TimeSheetPt3Vector << TS3_WorkNoteCreated)
-              else (popTo OldBusiness)
-          in
-            ({sceneModel | badNews=[]}, cmd)
 
     TS3_WorkNoteCreated (Ok note) ->
       -- Everything worked. Scene is complete.
@@ -249,7 +256,7 @@ update msg kioskModel =
     TS3_WorkNoteCreated (Err e) ->
       -- Failure to create the work description is non-critical so we'll carry on to next scene.
       -- TODO: Create a backend logging facility so that failures like this can be noted via XisAPI
-      (sceneModel, segueTo TimeSheetPt1)
+      (sceneModel, popTo OldBusiness)
 
 
 -----------------------------------------------------------------------------
@@ -258,13 +265,13 @@ update msg kioskModel =
 
 view : KioskModel a -> Html Msg
 view kioskModel =
-  case kioskModel.timeSheetPt3Model.records of
+  case kioskModel.timeSheetPt3Model.tcw of
 
-    Just (t, c, w) ->
+    Just {task, claim, work} ->
       if kioskModel.timeSheetPt3Model.needWitness then
-        viewWitness kioskModel t c w
+        viewWitness kioskModel task claim work
       else
-        viewQuestion kioskModel t c w
+        viewQuestion kioskModel task claim work
 
     _ -> text ""
 
@@ -273,11 +280,6 @@ viewQuestion : KioskModel a -> XisApi.Task -> XisApi.Claim -> XisApi.Work -> Htm
 viewQuestion kioskModel task claim work =
   let
     sceneModel = kioskModel.timeSheetPt3Model
-    pt2Model = kioskModel.timeSheetPt2Model
-    otherWorkDesc =
-      if String.isEmpty pt2Model.otherWorkDesc
-        then Nothing
-        else Just pt2Model.otherWorkDesc
 
   in genericScene kioskModel
 
@@ -286,7 +288,7 @@ viewQuestion kioskModel task claim work =
 
     ( div []
       [ vspace 50
-      , infoDiv kioskModel.currTime task claim work otherWorkDesc
+      , infoDiv kioskModel.currTime task claim work sceneModel.otherWorkDesc
       , vspace 70
       , p [sceneTextStyle] [text "If you want this work to apply to Work-Trade, you need to have it witnessed by a Staffer. If not, you can skip this step."]
       ]
@@ -302,11 +304,6 @@ viewWitness : KioskModel a -> XisApi.Task -> XisApi.Claim -> XisApi.Work -> Html
 viewWitness kioskModel task claim work =
   let
     sceneModel = kioskModel.timeSheetPt3Model
-    pt2Model = kioskModel.timeSheetPt2Model
-    otherWorkDesc =
-      if String.isEmpty pt2Model.otherWorkDesc
-        then Nothing
-        else Just pt2Model.otherWorkDesc
 
   in genericScene kioskModel
 
@@ -315,7 +312,7 @@ viewWitness kioskModel task claim work =
 
     ( div []
       [ vspace 50
-      , infoDiv kioskModel.currTime task claim work otherWorkDesc
+      , infoDiv kioskModel.currTime task claim work sceneModel.otherWorkDesc
       , vspace 70
       , (sceneTextField kioskModel idxWitnessUsername
           "Witness Username" sceneModel.witnessUsername

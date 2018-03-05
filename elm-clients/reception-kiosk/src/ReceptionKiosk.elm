@@ -21,6 +21,7 @@ import CheckOutScene
 import CheckOutDoneScene
 import CreatingAcctScene
 import EmailInUseScene
+import ErrorScene
 import HowDidYouHearScene
 import MembersOnlyScene
 import NewMemberScene
@@ -42,6 +43,7 @@ import WelcomeScene
 import DjangoRestFramework as DRF
 import XisRestApi as XisApi
 import MembersApi as MembersApi
+import Duration exposing (Duration)
 
 
 -----------------------------------------------------------------------------
@@ -81,6 +83,7 @@ port focusWasSet : (Bool -> msg) -> Sub msg
 type alias Model =
   { flags : Flags
   , currTime : Time
+  , timeShift : Duration  -- For testing. Will always be 0 unless server is on dev host.
   , sceneStack : Nonempty Scene -- 1st element is the top of the stack
   , idxToFocus : Maybe (List Int)  -- Can't use Material.Component.Index (https://github.com/debois/elm-mdl/issues/342)
   -- elm-mdl model:
@@ -97,6 +100,7 @@ type alias Model =
   , checkOutDoneModel    : CheckOutDoneScene.CheckOutDoneModel
   , creatingAcctModel    : CreatingAcctScene.CreatingAcctModel
   , emailInUseModel      : EmailInUseScene.EmailInUseModel
+  , errorModel           : ErrorScene.ErrorModel
   , howDidYouHearModel   : HowDidYouHearScene.HowDidYouHearModel
   , membersOnlyModel     : MembersOnlyScene.MembersOnlyModel
   , screenSaverModel     : ScreenSaverScene.ScreenSaverModel
@@ -124,6 +128,7 @@ init f =
     (checkOutDoneModel,    checkOutDoneCmd   ) = CheckOutDoneScene.init    f
     (creatingAcctModel,    creatingAcctCmd   ) = CreatingAcctScene.init    f
     (emailInUseModel,      emailInUseCmd     ) = EmailInUseScene.init      f
+    (errorModel,           errorCmd          ) = ErrorScene.init           f
     (howDidYouHearModel,   howDidYouHearCmd  ) = HowDidYouHearScene.init   f
     (membersOnlyModel,     membersOnlyCmd    ) = MembersOnlyScene.init     f
     (newMemberModel,       newMemberCmd      ) = NewMemberScene.init       f
@@ -143,6 +148,7 @@ init f =
     model =
       { flags = f
       , currTime = 0
+      , timeShift = f.timeShift
       , sceneStack = Nonempty.fromElement ScreenSaver
       , idxToFocus = Nothing
       , mdl = Material.model
@@ -156,6 +162,7 @@ init f =
       , checkOutDoneModel    = checkOutDoneModel
       , creatingAcctModel    = creatingAcctModel
       , emailInUseModel      = emailInUseModel
+      , errorModel           = errorModel
       , howDidYouHearModel   = howDidYouHearModel
       , membersOnlyModel     = membersOnlyModel
       , newMemberModel       = newMemberModel
@@ -180,6 +187,7 @@ init f =
       , checkOutDoneCmd
       , creatingAcctCmd
       , emailInUseCmd
+      , errorCmd
       , howDidYouHearCmd
       , membersOnlyCmd
       , newMemberCmd
@@ -216,6 +224,9 @@ reset m =
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
+
+    NoOp ->
+      (model, Cmd.none)
 
     RfidWasSwiped result ->
       case Nonempty.head model.sceneStack of
@@ -308,6 +319,7 @@ update msg model =
             (mCO,  cCO)  = CheckOutScene.sceneWillAppear model appearing
             (mCOD, cCOD) = CheckOutDoneScene.sceneWillAppear model appearing vanishing
             (mCA,  cCA)  = CreatingAcctScene.sceneWillAppear model appearing
+            (mERR, cERR) = ErrorScene.sceneWillAppear model appearing vanishing
             (mHD,  cHD)  = HowDidYouHearScene.sceneWillAppear model appearing
             (mMO,  cMO)  = MembersOnlyScene.sceneWillAppear model appearing
             (mNM,  cNM)  = NewMemberScene.sceneWillAppear model appearing
@@ -329,6 +341,7 @@ update msg model =
               , checkOutModel = mCO
               , checkOutDoneModel = mCOD
               , creatingAcctModel = mCA
+              , errorModel = mERR
               , howDidYouHearModel = mHD
               , membersOnlyModel = mMO
               , newMemberModel = mNM
@@ -346,7 +359,7 @@ update msg model =
           in
             (newModel, Cmd.batch
               -- REVIEW: It's too easy to forget to add these.
-              [ cCI, cCO, cCOD, cCA, cHD, cMO, cNM, cNU, cOB
+              [ cCI, cCO, cCOD, cCA, cERR, cHD, cMO, cNM, cNU, cOB
               , cSS, cSUD, cTI, cTL, cTS1, cTS2, cTS3, cW
               ]
             )
@@ -358,7 +371,7 @@ update msg model =
             (mSS, cSS) = ScreenSaverScene.tick time model
             newModel =
               { model
-              | currTime = time
+              | currTime = time + model.timeShift * Duration.ticksPerSecond
               , creatingAcctModel = mCA
               , checkInModel = mCI
               , screenSaverModel = mSS
@@ -384,9 +397,17 @@ update msg model =
           else
             (model, Cmd.none)
 
+    CheckInDoneVector x ->
+      let (sm, cmd) = CheckInDoneScene.update x model
+      in ({model | checkInDoneModel = sm}, cmd)
+
     CheckInVector x ->
       let (sm, cmd) = CheckInScene.update x model
       in ({model | checkInModel = sm}, cmd)
+
+    CheckOutDoneVector x ->
+      let (sm, cmd) = CheckOutDoneScene.update x model
+      in ({model | checkOutDoneModel = sm}, cmd)
 
     CheckOutVector x ->
       let (sm, cmd) = CheckOutScene.update x model
@@ -395,6 +416,14 @@ update msg model =
     CreatingAcctVector x ->
       let (sm, cmd) = CreatingAcctScene.update x model
       in ({model | creatingAcctModel = sm}, cmd)
+
+    EmailInUseVector x ->
+      let (sm, cmd) = EmailInUseScene.update x model
+      in ({model | emailInUseModel = sm}, cmd)
+
+    ErrorVector x ->
+      let (sm, cmd) = ErrorScene.update x model
+      in ({model | errorModel = sm}, cmd)
 
     HowDidYouHearVector x ->
       let (sm, cmd) = HowDidYouHearScene.update x model
@@ -424,6 +453,14 @@ update msg model =
       let (sm, cmd) = ScreenSaverScene.update x model
       in ({model | screenSaverModel = sm}, cmd)
 
+    SignUpDoneVector x ->
+      let (sm, cmd) = SignUpDoneScene.update x model
+      in ({model | signUpDoneModel = sm}, cmd)
+
+    TaskInfoVector x ->
+      let (sm, cmd) = TaskInfoScene.update x model
+      in ({model | taskInfoModel = sm}, cmd)
+
     TaskListVector x ->
       let (sm, cmd) = TaskListScene.update x model
       in ({model | taskListModel = sm}, cmd)
@@ -444,6 +481,10 @@ update msg model =
       let (sm, cmd) = WaiverScene.update x model
       in ({model | waiverModel = sm}, cmd)
 
+    WelcomeForRfidVector x ->
+      let (sm, cmd) = WelcomeForRfidScene.update x model
+      in ({model | welcomeForRfidModel = sm}, cmd)
+
     MdlVector x ->
       Material.update MdlVector x model
 
@@ -462,12 +503,14 @@ view model =
     CheckOutDone    -> CheckOutDoneScene.view    model
     CreatingAcct    -> CreatingAcctScene.view    model
     EmailInUse      -> EmailInUseScene.view      model
+    Error           -> ErrorScene.view           model
     HowDidYouHear   -> HowDidYouHearScene.view   model
     MembersOnly     -> MembersOnlyScene.view     model
     NewMember       -> NewMemberScene.view       model
     NewUser         -> NewUserScene.view         model
     OldBusiness     -> OldBusinessScene.view     model
     ReasonForVisit  -> ReasonForVisitScene.view  model
+    RfidHelper      -> RfidHelper.view           model
     ScreenSaver     -> ScreenSaverScene.view     model
     SignUpDone      -> SignUpDoneScene.view      model
     TaskInfo        -> TaskInfoScene.view        model

@@ -27,7 +27,6 @@ import List.Nonempty exposing (Nonempty)
 import XisRestApi as XisApi exposing (..)
 import Wizard.SceneUtils exposing (..)
 import Types exposing (..)
-import CheckInScene exposing (CheckInModel)
 import Fetchable exposing (..)
 import DjangoRestFramework as DRF
 import PointInTime exposing (PointInTime)
@@ -56,22 +55,37 @@ type alias KioskModel a =
   ------------------------------------
   , currTime : Time
   , taskListModel : TaskListModel
-  , checkInModel : CheckInModel
   , xisSession : XisApi.Session Msg
   }
 
 
 type alias TaskListModel =
-  { workableTasks : Fetchable (List XisApi.Task)
+  ------------- Req'd Args:
+  { member : Maybe Member
+  ------------- Other State:
+  , todaysTasks : Fetchable (List XisApi.Task)
+  , workableTasks : List XisApi.Task
   , selectedTask : Maybe XisApi.Task
+  , claimOnSelectedTask : Maybe Claim
   , badNews : List String
   }
+
+
+args x =
+  ( x.member
+  )
+
 
 init : Flags -> (TaskListModel, Cmd Msg)
 init flags =
   let sceneModel =
-    { workableTasks = Pending
+    ------------- Req'd Args:
+    { member = Nothing
+    ------------- Other State:
+    , todaysTasks = Pending
+    , workableTasks = []
     , selectedTask = Nothing
+    , claimOnSelectedTask = Nothing
     , badNews = []
     }
   in (sceneModel, Cmd.none)
@@ -83,21 +97,30 @@ init flags =
 
 sceneWillAppear : KioskModel a -> Scene -> Scene -> (TaskListModel, Cmd Msg)
 sceneWillAppear kioskModel appearingScene vanishingScene =
-  case (appearingScene, vanishingScene) of
+  let sceneModel = kioskModel.taskListModel
+  in case (appearingScene, vanishingScene) of
 
     (ReasonForVisit, _) ->
       -- Start fetching workable tasks b/c they *might* be on their way to this (TaskList) scene.
-      getWorkableTasks kioskModel
+      getTodaysTasks kioskModel
 
     (TaskList, TaskInfo) ->
       -- User hit back button. Since workable task data was changed by prev visit to this scene, we need to reget it.
-      getWorkableTasks kioskModel
+      getTodaysTasks kioskModel
+
+    (TaskList, _) ->
+      case args sceneModel of
+        (Just _) ->
+          (sceneModel, Cmd.none)
+        _ ->
+          (sceneModel, send <| ErrorVector <| ERR_Segue missingArguments)
 
     _ ->
-      (kioskModel.taskListModel, Cmd.none)
+      (sceneModel, Cmd.none)
 
-getWorkableTasks : KioskModel a -> (TaskListModel, Cmd Msg)
-getWorkableTasks kioskModel =
+
+getTodaysTasks : KioskModel a -> (TaskListModel, Cmd Msg)
+getTodaysTasks kioskModel =
   let
     sceneModel = kioskModel.taskListModel
     currDate = PointInTime.toCalendarDate kioskModel.currTime
@@ -105,94 +128,113 @@ getWorkableTasks kioskModel =
       [ScheduledDateEquals currDate]
       (TaskListVector << TL_TaskListResult)
   in
-    ({sceneModel | workableTasks=Pending}, cmd)
+    ({sceneModel | todaysTasks=Pending}, cmd)
 
 -----------------------------------------------------------------------------
 -- UPDATE
 -----------------------------------------------------------------------------
+
+determineWorkableTasks : TaskListModel -> XisApi.Session Msg -> TaskListModel
+determineWorkableTasks sceneModel xis =
+  case (sceneModel.todaysTasks, sceneModel.member) of
+
+    (Received todaysTasks, Just member) ->
+      let
+        -- TODO: Don't include "Other Work" if there's already a claim on today's instance.
+        -- "Other Work" is offered to everybody, whether or not they are explicitly eligible to work it:
+        otherWorkTaskTest t = t.data.shortDesc == "Other Work"
+        otherWorkTask = List.filter otherWorkTaskTest todaysTasks
+
+        -- The more normal case is to offer up tasks that the user can claim:
+        memberCanClaimTest = xis.memberCanClaimTask member.id
+        claimableTasks = List.filter memberCanClaimTest todaysTasks
+
+        -- The offered/workable tasks are the union of claimable tasks and the "Other Work" task.
+        workableTasks = claimableTasks ++ otherWorkTask
+
+        -- We also want to know which task(s) (if any) have already been claimed:
+        isCurrentClaimant = xis.memberHasStatusOnTask member.id CurrentClaimStatus
+        claimedTask = ListX.find isCurrentClaimant workableTasks
+      in
+        { sceneModel
+        | workableTasks = workableTasks
+        , selectedTask = claimedTask
+        }
+
+    _ -> sceneModel
+
 
 update : TaskListMsg -> KioskModel a -> (TaskListModel, Cmd Msg)
 update msg kioskModel =
   let
     sceneModel = kioskModel.taskListModel
     flags = kioskModel.flags
-    memberId = case kioskModel.checkInModel.checkedInMember of
-      Just m -> m.id
-      Nothing ->
-        -- We shouldn't be able to get to this scene without a defined checkedInMember.
-        -- If it happens, we'll log a message and get through this scene by specifying a bogus id.
-        -- This scene will not find any work for the bogus id and wizard will move on to the next.
-        let _ = Debug.log "checkedInMember" Nothing
-        in -99  -- bogus id
     xis = kioskModel.xisSession
 
   in case msg of
 
+    TL_Segue member ->
+      let
+        newSceneModel =
+          determineWorkableTasks
+            { sceneModel | member = Just member }
+            xis
+      in
+        (newSceneModel, send <| WizardVector <| Push TaskList)
+
+    -- This will accumulate tasks but we don't yet know who the member is,
+    -- so processing of accumulated tasks will be defered to view.
     TL_TaskListResult (Ok {results, next}) ->
       -- TODO: Deal with the possibility of paged results (i.e. next is not Nothing)?
       let
-        -- "Other Work" is offered to everybody, whether or not they are explicitly eligible to work it:
-        otherWorkTaskTest task = task.data.shortDesc == "Other Work"
-        otherWorkTask = List.filter otherWorkTaskTest results
-
-        -- The more normal case is to offer up tasks that the user can claim:
-        memberCanClaimTest = xis.memberCanClaimTask memberId
-        claimableTasks = List.filter memberCanClaimTest results
-
-        -- The offered/workable tasks are the union of claimable tasks and the "Other Work" task.
-        workableTasks = claimableTasks ++ otherWorkTask
-
-        -- We also want ot know which task(s) (if any) have already been claimed:
-        isCurrentClaimant = xis.memberHasStatusOnTask memberId CurrentClaimStatus
-        claimedTask = ListX.find isCurrentClaimant results
+        newSceneModel =
+          determineWorkableTasks
+            { sceneModel | todaysTasks = Received results }
+            xis
       in
-        ( { sceneModel
-          | workableTasks = Received workableTasks
-          , selectedTask = claimedTask
-          }
-          , Cmd.none
-        )
+        (newSceneModel, Cmd.none)
 
     TL_ToggleTask toggledTask ->
-      let
-        claimOnTask = xis.membersClaimOnTask memberId toggledTask
-      in
-        ( { sceneModel
-          | selectedTask = Just toggledTask
-          , badNews = []
-          }
-        , Cmd.none
+      ( { sceneModel
+        | selectedTask = Just toggledTask
+        , badNews = []
+        }
+      , Cmd.none
       )
 
     TL_ValidateTaskChoice ->
-      case sceneModel.selectedTask of
-        Just task ->
-          let
-            result2Msg = TaskListVector << TL_ClaimUpsertResult
-            existingClaim = xis.membersClaimOnTask memberId task
-            upsertCmd = case existingClaim of
-
-              Just c ->
-                let
-                  claimMod = c |> setClaimsStatus WorkingClaimStatus
-                in
-                  xis.replaceClaim claimMod result2Msg
-
-              Nothing ->
-                xis.createClaim
-                  { claimedDuration = Maybe.withDefault 0.0 task.data.workDuration
-                  , claimedStartTime = Just <| PointInTime.toClockTime kioskModel.currTime
-                  , dateVerified = Just <| PointInTime.toCalendarDate kioskModel.currTime
-                  , claimedTask = xis.taskUrl task.id
-                  , claimingMember = xis.memberUrl memberId
-                  , status = WorkingClaimStatus
-                  , workSet = []  -- REVIEW: This is an incoming field only. Not used in create.
-                  }
-                  result2Msg
-          in
-            (sceneModel, upsertCmd)
+      case sceneModel.member of
         Nothing ->
-          ({sceneModel | badNews=["You must choose a task to work!"]}, Cmd.none)
+          (sceneModel, send <| ErrorVector <| ERR_Segue missingArguments)
+        Just m ->
+          case sceneModel.selectedTask of
+            Just task ->
+              let
+                result2Msg = TaskListVector << TL_ClaimUpsertResult
+                existingClaim = xis.membersClaimOnTask m.id task
+                upsertCmd = case existingClaim of
+
+                  Just c ->
+                    let
+                      claimMod = c |> setClaimsStatus WorkingClaimStatus
+                    in
+                      xis.replaceClaim claimMod result2Msg
+
+                  Nothing ->
+                    xis.createClaim
+                      { claimedDuration = Maybe.withDefault 0.0 task.data.workDuration
+                      , claimedStartTime = Just <| PointInTime.toClockTime kioskModel.currTime
+                      , dateVerified = Just <| PointInTime.toCalendarDate kioskModel.currTime
+                      , claimedTask = xis.taskUrl task.id
+                      , claimingMember = xis.memberUrl m.id
+                      , status = WorkingClaimStatus
+                      , workSet = []  -- REVIEW: This is an incoming field only. Not used in create.
+                      }
+                      result2Msg
+              in
+                (sceneModel, upsertCmd)
+            Nothing ->
+              ({sceneModel | badNews=["You must choose a task to work!"]}, Cmd.none)
 
     TL_ClaimUpsertResult (Ok claim) ->
       let
@@ -207,15 +249,20 @@ update msg kioskModel =
             }
             (TaskListVector << TL_WorkInsertResult)
       in
-        (sceneModel, createWorkCmd)
+        ({sceneModel | claimOnSelectedTask=Just claim}, createWorkCmd)
 
     TL_WorkInsertResult (Ok claim) ->
-        (sceneModel, segueTo TaskInfo)
+      case (sceneModel.member, sceneModel.selectedTask, sceneModel.claimOnSelectedTask) of
+        (Just m, Just t, Just c) ->
+          (sceneModel, send <| TaskInfoVector <| TI_Segue (m, t, c))
+        (_, _, _) ->
+          (sceneModel, send <| ErrorVector <| ERR_Segue "Missing member or selected task.")
+
 
     -- -- -- -- ERROR HANDLERS -- -- -- --
 
     TL_TaskListResult (Err error) ->
-      ({sceneModel | workableTasks=Failed (toString error)}, Cmd.none)
+      ({sceneModel | todaysTasks=Failed (toString error)}, Cmd.none)
 
     TL_ClaimUpsertResult (Err error) ->
       ({sceneModel | badNews=[toString error]}, Cmd.none)
@@ -230,12 +277,17 @@ update msg kioskModel =
 
 view : KioskModel a -> Html Msg
 view kioskModel =
-  let sceneModel = kioskModel.taskListModel
-  in case sceneModel.workableTasks of
-
-    Pending -> waitingView kioskModel
-    Received tasks -> chooseView kioskModel tasks
-    Failed err -> errorView kioskModel err
+  let
+    sceneModel = kioskModel.taskListModel
+  in
+    case sceneModel.member of
+      Just m ->
+        case sceneModel.todaysTasks of
+          Pending -> waitingView kioskModel
+          Received _ -> chooseView kioskModel sceneModel.workableTasks m
+          Failed err -> errorView kioskModel err
+      Nothing ->
+        errorView kioskModel missingArguments
 
 
 waitingView : KioskModel a -> Html Msg
@@ -251,28 +303,15 @@ waitingView kioskModel =
       [] -- no errors
 
 
-errorView : KioskModel a -> String -> Html Msg
-errorView kioskModel err =
-  let
-    sceneModel = kioskModel.taskListModel
-  in
-    genericScene kioskModel
-      "Choose a Task"
-      "Please see a staff member"
-      (text "")
-      [ ButtonSpec "OK" (msgForSegueTo OldBusiness) True]
-      [err]
-
-
-chooseView : KioskModel a -> List XisApi.Task -> Html Msg
-chooseView kioskModel tasks =
+chooseView : KioskModel a -> List XisApi.Task -> Member -> Html Msg
+chooseView kioskModel todaysTasks member =
   let
     sceneModel = kioskModel.taskListModel
   in
     genericScene kioskModel
       "Choose a Task"
       "Here are some you can work"
-      ( taskChoices kioskModel tasks)
+      ( taskChoices kioskModel todaysTasks)
       [ ButtonSpec "OK" (TaskListVector <| TL_ValidateTaskChoice) True]
       sceneModel.badNews
 

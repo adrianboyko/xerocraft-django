@@ -130,12 +130,14 @@ timeoutFor scene =
     CheckOutDone -> 5
     CreatingAcct -> 300
     EmailInUse -> 300
+    Error -> 600
     HowDidYouHear -> 300
     MembersOnly -> 300
     NewMember -> 600
     NewUser -> 600
     OldBusiness -> 300
     ReasonForVisit -> 300
+    RfidHelper -> 600
     ScreenSaver -> 86400
     SignUpDone -> 300
     TaskList -> 300
@@ -204,9 +206,8 @@ subscriptions model =
 rfidWasSwiped : KioskModel a -> Result String Member -> (ScreenSaverModel, Cmd Msg)
 rfidWasSwiped kioskModel result =
   case result of
-    Ok m -> (kioskModel.screenSaverModel, segueTo WelcomeForRfid)
+    Ok m -> (kioskModel.screenSaverModel, send <| WelcomeForRfidVector <| W4R_Segue m)
     Err e -> (kioskModel.screenSaverModel, Cmd.none)
-
 
 
 -----------------------------------------------------------------------------

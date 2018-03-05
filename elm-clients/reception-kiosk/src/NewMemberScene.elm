@@ -16,9 +16,9 @@ import Material.Toggles as Toggles
 import Material.Options as Options exposing (css)
 
 -- Local
-import MembersApi as MembersApi
 import Wizard.SceneUtils exposing (..)
 import Types exposing (..)
+import XisRestApi as XisApi
 
 
 -----------------------------------------------------------------------------
@@ -34,27 +34,33 @@ type alias KioskModel a =
   , sceneStack : Nonempty Scene
   ------------------------------------
   , newMemberModel : NewMemberModel
-  , membersApi : MembersApi.Session Msg
+  , xisSession : XisApi.Session Msg
   }
 
+
 type alias NewMemberModel =
-  { firstName : String
+  ------------- Req'd Args:
+  { howDidYouHear : Maybe (List Int)  -- DiscoveryMethod PKs
+  ------------- Other State:
+  , firstName : String
   , lastName : String
   , email : String
   , isAdult : Maybe Bool
-  , userIds : List String
   , badNews : List String
   }
 
+args x = ( x.howDidYouHear )
 
 init : Flags -> (NewMemberModel, Cmd Msg)
 init flags =
   let model =
-   { firstName = ""
+   ------------- Req'd Args:
+   { howDidYouHear = Nothing
+   ------------- Other State:
+   , firstName = ""
    , lastName = ""
    , email = ""
    , isAdult = Nothing
-   , userIds = []
    , badNews = []
    }
   in (model, Cmd.none)
@@ -82,6 +88,11 @@ update msg kioskModel =
   let sceneModel = kioskModel.newMemberModel
   in case msg of
 
+    NM_Segue hdyh ->
+      ( { sceneModel | howDidYouHear = Just hdyh }
+      , send <| WizardVector <| Push NewMember
+      )
+
     UpdateFirstName newVal ->
       ({sceneModel | firstName = newVal}, Cmd.none)
 
@@ -98,12 +109,29 @@ update msg kioskModel =
     Validate ->
       validate kioskModel
 
-    ValidateEmailUnique (Ok {target, matches}) ->
-      if List.length matches > 0 then
-        let userIds = List.map .userName matches
-        in ({sceneModel | userIds=userIds}, segueTo EmailInUse)
+    ValidateEmailUnique (Ok {count, results}) ->
+
+      -- The provided email address is already in use, so segue to Email in Use scene.
+      if count > 0 then
+        (sceneModel, send <| EmailInUseVector <| EIU_Segue results)
+
+      -- The provided email address is not in use, so segue to New User scene.
       else
-        (sceneModel, segueTo NewUser)
+        case (sceneModel.howDidYouHear, sceneModel.isAdult) of
+          (Just hdyh, Just adult) ->
+            ( sceneModel,
+              send
+                <| (NewUserVector << NU_Segue)
+                     ( hdyh
+                     , sceneModel.firstName
+                     , sceneModel.lastName
+                     , sceneModel.email
+                     , adult
+                     )
+            )
+
+          _ ->
+            (sceneModel, send <| ErrorVector <| ERR_Segue missingArguments)
 
     ValidateEmailUnique (Err error) ->
       ({sceneModel | badNews = [toString error]}, Cmd.none)
@@ -117,6 +145,7 @@ validate : KioskModel a -> (NewMemberModel, Cmd Msg)
 validate kioskModel =
   let
     sceneModel = kioskModel.newMemberModel
+    xis = kioskModel.xisSession
 
     norm = String.trim
     fname = norm sceneModel.firstName
@@ -133,11 +162,14 @@ validate kioskModel =
       , if emailInvalid then ["Your email address is not valid."] else []
       , if noAge then ["Please specify if you are adult/minor."] else []
       ]
-    getMatchingAccts = kioskModel.membersApi.getMatchingAccts
-    cmd = if List.length msgs > 0
-      then Cmd.none
-      else getMatchingAccts sceneModel.email (NewMemberVector << ValidateEmailUnique)
 
+    cmd =
+      if List.length msgs > 0 then
+        Cmd.none
+      else
+        xis.listMembers
+          [XisApi.EmailEquals sceneModel.email, XisApi.IsActive True]
+          (NewMemberVector << ValidateEmailUnique)
   in
     ({sceneModel | badNews = msgs}, cmd)
 

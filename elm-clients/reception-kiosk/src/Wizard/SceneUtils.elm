@@ -4,6 +4,7 @@ port module Wizard.SceneUtils exposing
   -------------------
   , blankGenericScene
   , currentScene
+  , errorView
   , focusOnIndex
   , genericScene
   , hideKeyboard
@@ -50,7 +51,7 @@ import Material.Chip as Chip
 import Material.Options as Options exposing (css)
 import Material.List as Lists
 import Material as Material
-import List.Nonempty exposing (Nonempty)
+import List.Nonempty as NonEmpty exposing (Nonempty)
 
 -- Local
 import Types exposing (..)
@@ -122,7 +123,7 @@ sceneIsVisible model scene = (currentScene model) == scene
 
 currentScene : KioskModel a -> Scene
 currentScene model =
-  List.Nonempty.head model.sceneStack
+  NonEmpty.head model.sceneStack
 
 {-| For values that can be automatically generated or manually entered. Such
     values will begin as Auto and may be automatically regenerated as long as
@@ -151,7 +152,7 @@ sceneFrame model sceneHtml =
 frameNavButtons : KioskModel a -> Html Msg
 frameNavButtons model =
   let
-    isBaseScene = List.Nonempty.isSingleton model.sceneStack
+    isBaseScene = NonEmpty.isSingleton model.sceneStack
   in
     div [navDivStyle]
       [ Button.render MdlVector [10000] model.mdl
@@ -291,6 +292,30 @@ hspace amount =
 redSpan : List (Html Msg) -> Html Msg
 redSpan inner =
   span [style ["color"=>"red"]] inner
+
+
+errorView : KioskModel a -> String -> Html Msg
+errorView kioskModel error =
+  genericScene kioskModel
+    "Sorry!"
+    "An error has occurred:"
+    ( div []
+      (
+      [ vspace 125
+      , p [sceneTextStyle] [text error]
+      , vspace 40
+      , div [sceneTextStyle] [text "Scene Stack:"]
+      ]
+      ++
+      List.map
+        (\s -> div [sceneTextStyle] [text <| toString <| s])
+        (NonEmpty.tail kioskModel.sceneStack)
+      ++
+      [ vspace 125 ]
+      )
+    )
+    [ButtonSpec "Reset" (ErrorVector <| ERR_ResetClicked) True]
+    [] -- Never any bad news for this scene
 
 
 -----------------------------------------------------------------------------

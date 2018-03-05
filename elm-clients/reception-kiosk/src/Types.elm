@@ -25,6 +25,14 @@ import XisRestApi as XisApi exposing
   , WorkNote
   , XisRestFlags
   )
+import Duration exposing (Duration)
+
+
+-----------------------------------------------------------------------------
+-- GLOBAL CONSTANTS
+-----------------------------------------------------------------------------
+
+missingArguments = "Can't continue because required arguments were not received."
 
 -----------------------------------------------------------------------------
 -- FLAGS
@@ -32,7 +40,8 @@ import XisRestApi as XisApi exposing
 
 -- This type can move into ReceiptionKiosk.elm, but for the banner fields.
 type alias Flags =
-  { bannerBottomUrl : String
+  { timeShift : Duration
+  , bannerBottomUrl : String
   , bannerTopUrl : String
   , cloneAcctUrl : String
   , csrfToken : String
@@ -56,6 +65,7 @@ type Scene
   | CheckOutDone
   | CreatingAcct
   | EmailInUse
+  | Error
   | HowDidYouHear
   | SignUpDone
   | MembersOnly
@@ -63,6 +73,7 @@ type Scene
   | NewUser
   | OldBusiness
   | ReasonForVisit
+  | RfidHelper  -- The view for RfidHelper is an error message.
   | ScreenSaver
   | TaskList
   | TimeSheetPt1
@@ -83,27 +94,47 @@ mdlIdBase scene =
     CheckOutDone -> 400
     CreatingAcct -> 500
     EmailInUse -> 600
-    HowDidYouHear -> 700
-    MembersOnly -> 800
-    NewMember -> 900
-    NewUser -> 1000
-    OldBusiness -> 1100
-    ReasonForVisit -> 1200
-    ScreenSaver -> 1300
-    SignUpDone -> 1400
-    TaskInfo -> 1500
-    TaskList -> 1600
-    TimeSheetPt1 -> 1700
-    TimeSheetPt2 -> 1800
-    TimeSheetPt3 -> 1900
-    Waiver -> 2000
-    Welcome -> 2100
-    WelcomeForRfid -> 2200
+    Error -> 700
+    HowDidYouHear -> 800
+    MembersOnly -> 900
+    NewMember -> 1000
+    NewUser -> 1100
+    OldBusiness -> 1200
+    ReasonForVisit -> 1300
+    RfidHelper -> 2400  -- CURRENT MAX
+    ScreenSaver -> 1400
+    SignUpDone -> 1500
+    TaskInfo -> 1600
+    TaskList -> 1700
+    TimeSheetPt1 -> 1800
+    TimeSheetPt2 -> 1900
+    TimeSheetPt3 -> 2000
+    Waiver -> 2100
+    Welcome -> 2200
+    WelcomeForRfid -> 2300
 
+-----------------------------------------------------------------------------
+-- KIOSK SESSIION TYPE
+-----------------------------------------------------------------------------
+
+type SessionType = CheckInSession | CheckOutSession
 
 -----------------------------------------------------------------------------
 -- MSG TYPES
 -----------------------------------------------------------------------------
+
+type alias TaskClaimWork =
+  { task: XisApi.Task
+  , claim: XisApi.Claim
+  , work: XisApi.Work  -- If they're not working it, it's not old/unfinished business.
+  }
+
+-----------------------------------------------------------------------------
+-- MSG TYPES
+-----------------------------------------------------------------------------
+
+type CheckInDoneMsg
+  = CID_Segue Member
 
 type CheckInMsg
   = UsernamesStartingWith String (Result Http.Error (PageOf Member))
@@ -114,45 +145,63 @@ type CheckInMsg
   | CI_UpdateFlexId String
   | CI_UpdateMember (Result String Member)
 
+type CheckOutDoneMsg
+  = COD_Segue Member
+
 type CheckOutMsg
   = AccVisitEvents (Result Http.Error (PageOf VisitEvent))
-  | LogCheckOut Int
+  | LogCheckOut Member
   | LogCheckOutResult (Result Http.Error VisitEvent)
 
 type CreatingAcctMsg
-  = XcAcctCreationAttempted (Result Http.Error String)
+  = CA_Segue (List Int, String, String, String, Bool, String, String, String)
+  | XcAcctCreationAttempted (Result Http.Error String)
   | CloneAttempted (Result Http.Error String)
   | IsAdultWasSet (Result Http.Error String)
   | DiscoveryMethodAdded (Result Http.Error String)
+
+type ErrorMsg
+  = ERR_Segue String
+  | ERR_ResetClicked
+
+type EmailInUseMsg
+  = EIU_Segue (List Member)
 
 type HowDidYouHearMsg
   = AccDiscoveryMethods (Result Http.Error (PageOf DiscoveryMethod))  -- "Acc" means "accumulate"
   | ToggleDiscoveryMethod DiscoveryMethod
   | ShuffledDiscoveryMethods (List DiscoveryMethod)
+  | OkClicked
 
 type MembersOnlyMsg
-  = UpdateTimeBlocks (Result Http.Error (PageOf TimeBlock))
+  = MO_Segue Member
+  | UpdateTimeBlocks (Result Http.Error (PageOf TimeBlock))
   | UpdateTimeBlockTypes (Result Http.Error (PageOf TimeBlockType))
   | PayNowAtFrontDesk
   | SendPaymentInfo
+  | ServerSentPaymentInfo (Result Http.Error String)
 
 type NewMemberMsg
-  = UpdateFirstName String
+  = NM_Segue (List Int)  -- DiscoveryMethod PKs
+  | UpdateFirstName String
   | UpdateLastName String
   | UpdateEmail String
   | ToggleIsAdult Bool
   | Validate
-  | ValidateEmailUnique (Result Http.Error MatchingAcctInfo)
+  | ValidateEmailUnique (Result Http.Error (PageOf Member))
 
 type NewUserMsg
-  = ValidateUserNameAndPw
-  | ValidateUserNameUnique (Result Http.Error MatchingAcctInfo)
+  = NU_Segue (List Int, String, String, String, Bool)
+  | ValidateUserNameAndPw
+  | ValidateUserNameUnique (Result Http.Error (PageOf Member))
   | UpdateUserName String
   | UpdatePassword1 String
   | UpdatePassword2 String
 
 type OldBusinessMsg
-  = OB_WorkingClaimsResult (Result Http.Error (PageOf Claim))
+  = OB_SegueA (SessionType, Member)
+  | OB_SegueB (SessionType, Member, Claim)
+  | OB_WorkingClaimsResult (Result Http.Error (PageOf Claim))
   | OB_DeleteSelection
   | OB_NoteRelatedTask Claim (Result Http.Error XisApi.Task)
   | OB_NoteRelatedWork XisApi.Task Claim (Result Http.Error Work)
@@ -161,7 +210,8 @@ type OldBusinessMsg
   | OB_NoteClaimUpdated (Result Http.Error Claim)
 
 type ReasonForVisitMsg
-  = UpdateReasonForVisit VisitEventReason
+  = R4V_Segue Member
+  | UpdateReasonForVisit VisitEventReason
   | ValidateReason
   | LogCheckInResult (Result Http.Error VisitEvent)
 
@@ -174,24 +224,34 @@ type ScreenSaverMsg
   = SS_KeyDown KeyCode
   | SS_MouseClick
 
+type SignUpDoneMsg
+  = SUD_Segue String
+
+type TaskInfoMsg
+  = TI_Segue (Member, XisApi.Task, Claim)
+
 type TaskListMsg
-  = TL_TaskListResult (Result Http.Error (PageOf XisApi.Task))
+  = TL_Segue Member
+  | TL_TaskListResult (Result Http.Error (PageOf XisApi.Task))
   | TL_ToggleTask XisApi.Task
   | TL_ValidateTaskChoice
   | TL_ClaimUpsertResult (Result Http.Error Claim)
   | TL_WorkInsertResult (Result Http.Error Work)
 
 type TimeSheetPt1Msg
-  = TS1_Submit XisApi.Task Claim Work
+  = TS1_Segue TaskClaimWork
+  | TS1_Submit XisApi.Task Claim Work
   | TS1_HrPad Int
   | TS1_MinPad Int
 
 type TimeSheetPt2Msg
-  = TS2_UpdateDescription String
+  = TS2_Segue TaskClaimWork
+  | TS2_UpdateDescription String
   | TS2_Continue
 
 type TimeSheetPt3Msg
-  = TS3_UpdateWitnessUsername String
+  = TS3_Segue (TaskClaimWork, Maybe String)
+  | TS3_UpdateWitnessUsername String
   | TS3_UpdateWitnessPassword String
   | TS3_Witnessed
   | TS3_Skipped
@@ -202,20 +262,31 @@ type TimeSheetPt3Msg
   | TS3_WitnessAuthResult (Result Http.Error AuthenticationResult)
 
 type WaiverMsg
-  = ShowSignaturePad String
+  = WVR_Segue (List Int, String, String, String, Bool, String, String)
+  | ShowSignaturePad String
   | ClearSignaturePad String
   | GetSignature
   | UpdateSignature String  -- String is a data URL representation of an image.
+
+type WelcomeForRfidMsg
+  = W4R_Segue Member
+  | W4R_CheckInClicked
+  | W4R_CheckOutClicked
 
 type Msg
   = MdlVector (Material.Msg Msg)
   | WizardVector WizardMsg
   | RfidHelperVector RfidHelperMsg
   | RfidWasSwiped (Result String Member)
+  | NoOp
   -----------------------------------
+  | CheckInDoneVector CheckInDoneMsg
   | CheckInVector CheckInMsg
+  | CheckOutDoneVector CheckOutDoneMsg
   | CheckOutVector CheckOutMsg
   | CreatingAcctVector CreatingAcctMsg
+  | EmailInUseVector EmailInUseMsg
+  | ErrorVector ErrorMsg
   | HowDidYouHearVector HowDidYouHearMsg
   | MembersOnlyVector MembersOnlyMsg
   | NewMemberVector NewMemberMsg
@@ -223,11 +294,14 @@ type Msg
   | OldBusinessVector OldBusinessMsg
   | ReasonForVisitVector ReasonForVisitMsg
   | ScreenSaverVector ScreenSaverMsg
+  | SignUpDoneVector SignUpDoneMsg
+  | TaskInfoVector TaskInfoMsg
   | TaskListVector TaskListMsg
   | TimeSheetPt1Vector TimeSheetPt1Msg
   | TimeSheetPt2Vector TimeSheetPt2Msg
   | TimeSheetPt3Vector TimeSheetPt3Msg
   | WaiverVector WaiverMsg
+  | WelcomeForRfidVector WelcomeForRfidMsg
 
 type WizardMsg
   = Push Scene

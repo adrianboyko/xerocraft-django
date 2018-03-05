@@ -49,17 +49,17 @@ type alias KioskModel a =
 type alias CheckOutModel =
   { visitEvents : List XisApi.VisitEvent
   , checkedIn : List Member
-  , checkedOutMemberNum : Int  -- TODO: This should be Member not ID.
+  , checkedOutMember : Maybe Member
   , badNews : List String
   }
 
 init : Flags -> (CheckOutModel, Cmd Msg)
 init flags =
   let model =
-    { visitEvents=[]
-    , checkedIn=[]
-    , checkedOutMemberNum = -99  -- A harmless initial value.
-    , badNews=[]
+    { visitEvents = []
+    , checkedIn = []
+    , checkedOutMember = Nothing
+    , badNews = []
     }
   in (model, Cmd.none)
 
@@ -110,10 +110,10 @@ update msg kioskModel =
             in
               (newModel2, Cmd.none)
 
-    LogCheckOut memberNum ->
+    LogCheckOut member ->
       let
         newVisitEvent =
-          { who = xis.memberUrl memberNum
+          { who = xis.memberUrl member.id
           , when = kioskModel.currTime
           , eventType = XisApi.VET_Departure
           , reason = Nothing
@@ -122,10 +122,12 @@ update msg kioskModel =
         tagger = CheckOutVector << LogCheckOutResult
         cmd = xis.createVisitEvent newVisitEvent tagger
       in
-        ({sceneModel | checkedOutMemberNum = memberNum}, cmd)  -- TODO: Change to Member, not num.
+        ({sceneModel | checkedOutMember = Just member}, cmd)
 
     LogCheckOutResult (Ok _) ->
-      (sceneModel, segueTo OldBusiness)
+      case sceneModel.checkedOutMember of
+        Just m -> (sceneModel, send <| OldBusinessVector <| OB_SegueA (CheckOutSession, m))
+        Nothing -> (sceneModel, send <| ErrorVector <| ERR_Segue "Checked out member not known.")
 
     -- ERRORS -------------------------
 
@@ -163,7 +165,7 @@ view kioskModel =
     sceneModel = kioskModel.checkOutModel
     memb2chip = \memb ->
       Chip.button
-        [Options.onClick (CheckOutVector (LogCheckOut memb.id))]
+        [Options.onClick (CheckOutVector (LogCheckOut memb))]
         [Chip.content [] [text memb.data.userName]]
 
   in
@@ -189,7 +191,7 @@ rfidWasSwiped : KioskModel a -> Result String Member -> (CheckOutModel, Cmd Msg)
 rfidWasSwiped kioskModel result =
   case result of
     Ok m ->
-      update (LogCheckOut m.id) kioskModel
+      update (LogCheckOut m) kioskModel
     Err e ->
       let sceneModel = kioskModel.checkOutModel
       in ({sceneModel | badNews = [toString e]}, Cmd.none)

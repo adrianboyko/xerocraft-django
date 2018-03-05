@@ -20,7 +20,6 @@ import TimeSheetCommon exposing (infoDiv)
 import XisRestApi as XisApi exposing (..)
 import Wizard.SceneUtils exposing (..)
 import Types exposing (..)
-import TimeSheetPt1Scene exposing (TimeSheetPt1Model)
 import Fetchable exposing (..)
 import PointInTime exposing (PointInTime)
 import CalendarDate exposing (CalendarDate)
@@ -51,14 +50,15 @@ type alias KioskModel a =
   , sceneStack : Nonempty Scene
   ------------------------------------
   , currTime : PointInTime
-  , timeSheetPt1Model : TimeSheetPt1Model
   , timeSheetPt2Model : TimeSheetPt2Model
   , xisSession : XisApi.Session Msg
   }
 
 
 type alias TimeSheetPt2Model =
-  { records : Maybe (XisApi.Task, XisApi.Claim, XisApi.Work)
+  ---------------- Req'd Args:
+  { tcw : Maybe TaskClaimWork
+  ---------------- Other State:
   , otherWorkDesc : String
   , badNews : List String
   }
@@ -67,7 +67,9 @@ type alias TimeSheetPt2Model =
 init : Flags -> (TimeSheetPt2Model, Cmd Msg)
 init flags =
   let sceneModel =
-    { records = Nothing
+    ---------------- Req'd Args:
+    { tcw = Nothing
+    ---------------- Other State:
     , otherWorkDesc = ""
     , badNews = []
     }
@@ -82,32 +84,23 @@ sceneWillAppear : KioskModel a -> Scene -> Scene -> (TimeSheetPt2Model, Cmd Msg)
 sceneWillAppear kioskModel appearingScene vanishingScene =
   let
     sceneModel = kioskModel.timeSheetPt2Model
-    prevModel = kioskModel.timeSheetPt1Model
   in
     case (appearingScene, vanishingScene) of
 
-      (OldBusiness, _) ->
-        -- This scene assumes that a visit to OldBusiness means that we'll likely be
-        -- dealing with a different T/C/W item when we get here. So reset this scene's state.
-        ({sceneModel | records=Nothing, otherWorkDesc="", badNews=[]}, Cmd.none)
-
       (TimeSheetPt2, _) ->
-        case (prevModel.oldBusinessItem) of
+        case (sceneModel.tcw) of
 
-          Just {task, claim, work} ->
-            let
-              records = Just (task, claim, work)
-            in
-              if task.data.shortDesc == "Other Work" then
-                ({sceneModel | records=records}, Cmd.none)  -- focusOnIndex idxOtherWorkDesc)
+          Just tcw ->
+            if tcw.task.data.shortDesc == "Other Work" then
+              (sceneModel, Cmd.none)  -- focusOnIndex idxOtherWorkDesc)
+            else
+              -- This scene should be invisible because task is not "Other Work".
+              -- User might be going forward OR BACKWARD in the wizard.
+              -- Either way, don't leave this scene on the stack.
+              if vanishingScene==TimeSheetPt1 then
+                (sceneModel, send <| TimeSheetPt3Vector <| TS3_Segue (tcw, Nothing))
               else
-                -- User might be going forward OR BACKWARD in the wizard.
-                -- Either way, don't leave this scene on the stack.
-                if vanishingScene==TimeSheetPt1 then
-                  (sceneModel, replaceWith TimeSheetPt3)
-                else
-                  (sceneModel, pop)
-
+                (sceneModel, pop)
           _ ->
             ({sceneModel | badNews=["Couldn't get task, claim, and work records!"]}, Cmd.none)
 
@@ -127,6 +120,11 @@ update msg kioskModel =
 
   in case msg of
 
+    TS2_Segue tcw ->
+      ( {sceneModel | tcw = Just tcw}
+      , send <| WizardVector <| Push <| TimeSheetPt2
+      )
+
     TS2_UpdateDescription s ->
       ({sceneModel | otherWorkDesc = s}, Cmd.none)
 
@@ -134,7 +132,11 @@ update msg kioskModel =
       if (sceneModel.otherWorkDesc |> String.trim |> String.length) < 10 then
         ({sceneModel | badNews=[moreInfoReqd]}, Cmd.none)
       else
-        (sceneModel, segueTo TimeSheetPt3)
+        case sceneModel.tcw of
+          Just tcw ->
+            (sceneModel, send <| TimeSheetPt3Vector <| TS3_Segue <| (tcw, Just sceneModel.otherWorkDesc))
+          Nothing ->
+            (sceneModel, send <| ErrorVector <| ERR_Segue missingArguments)
 
 
 -----------------------------------------------------------------------------
@@ -143,9 +145,9 @@ update msg kioskModel =
 
 view : KioskModel a -> Html Msg
 view kioskModel =
-  case kioskModel.timeSheetPt2Model.records of
-    Just (t, c, w) -> viewNormal kioskModel t c w
-    _ -> text ""
+  case kioskModel.timeSheetPt2Model.tcw of
+    Just {task, claim, work} -> viewNormal kioskModel task claim work
+    _ -> errorView kioskModel missingArguments
 
 
 viewNormal : KioskModel a -> XisApi.Task -> XisApi.Claim -> XisApi.Work -> Html Msg

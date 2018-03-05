@@ -3,6 +3,7 @@ module RfidHelper exposing
   , rfidCharsOnly
   , subscriptions
   , update
+  , view
   , RfidHelperModel
   )
 
@@ -12,8 +13,11 @@ import Task as Task
 import Char
 import Keyboard
 import Set exposing (Set)
+import Html exposing (Html, div, text, img, br)
 
 -- Third Party
+import Material
+import List.Nonempty as NonEmpty exposing (Nonempty)
 import List.Extra as ListX
 import Hex as Hex
 
@@ -21,16 +25,16 @@ import Hex as Hex
 import Types exposing (..)
 import XisRestApi as XisApi exposing (..)
 import PointInTime exposing (PointInTime)
+import Wizard.SceneUtils exposing (..)
 
 
 -----------------------------------------------------------------------------
 -- CONSTANTS
 -----------------------------------------------------------------------------
 
--- Example of RFID data: ">0C00840D9800"
--- ">" indicates start of data. It is followed by 12 hex characters.
+-- Example of RFID data: ">0C00840D"
+-- ">" indicates start of data. It is followed by 8 hex characters.
 -- "0C00840D" is the big endian representation of the ID
--- "9800" is the checksum.
 
 delimitedRfidNum = Regex.regex ">[0-9A-F]{8}"
 rfidCharsOnly = Regex.regex "^[>0-9A-F]*$"
@@ -43,7 +47,12 @@ rfidCharsOnly = Regex.regex "^[>0-9A-F]*$"
 -- This type alias describes the type of kiosk model that this module requires.
 type alias KioskModel a =
   { a
-  | rfidHelperModel : RfidHelperModel
+  ------------------------------------
+  | mdl : Material.Model
+  , flags : Flags
+  , sceneStack : Nonempty Scene
+  ------------------------------------
+  , rfidHelperModel : RfidHelperModel
   , xisSession : XisApi.Session Msg
   , currTime : PointInTime
   }
@@ -81,15 +90,14 @@ update msg kioskModel =
 
       RH_KeyDown code ->
         let
-          codeAsStr = case code of
-            16 -> ""
-            190 -> ">"
-            c -> c |> Char.fromCode |> String.fromChar
-          typed = model.typed ++ codeAsStr
+          typed = case code of
+            16 -> model.typed  -- i.e. ignore this shift code.
+            190 -> ">"  -- i.e. start char resets the typed buffer.
+            c -> model.typed ++ (c |> Char.fromCode |> String.fromChar)
           finds = Regex.find Regex.All delimitedRfidNum typed
         in
           if List.isEmpty finds then
-            -- There aren't any delimited rfids so just pass s through.
+            -- There aren't any delimited rfids
             ({model | typed=typed}, Cmd.none)
           else
             -- There ARE delimited rfids, so pull them out, process them, and pass a modified s through.
@@ -109,7 +117,7 @@ update msg kioskModel =
           member :: [] ->  -- Exactly ONE match. Good.
             let
               -- Tell our client that an RFID has been swiped:
-              cmd1 = send <| model.clientsMemberVector <| Ok member
+              cmd1 = send <| model.clientsMemberVector <| Ok (Debug.log "SWIPED" member)
               -- Any time somebody is determined to have swiped their RFID, we'll note that they're present:
               cmd2 =
                 if Set.member member.id model.loggedAsPresent then
@@ -175,9 +183,32 @@ checkAnRfid model xis =
       [] ->
         -- There aren't any ids to check. Everything we've tried has failed.
         let
-          cmd = send <| model.clientsMemberVector <| Err "Invalid or unregistered RFID?"
+          cmd = send <| WizardVector <| Push RfidHelper
         in
           ({model | isCheckingRfid=False}, cmd)
+
+
+-----------------------------------------------------------------------------
+-- VIEW
+-----------------------------------------------------------------------------
+
+view : KioskModel a -> Html Msg
+view kioskModel =
+  genericScene kioskModel
+    ("RFID Problem")
+    ""
+    (div [sceneTextStyle]
+      [ vspace 225
+      , text "Couldn't find your RFID in our database."
+      , vspace 0
+      , text "Tap the BACK button and try again or"
+      , vspace 0
+      , text "speak to a staff member for help."
+      , vspace 225
+      ]
+    )
+    []
+    []
 
 
 -----------------------------------------------------------------------------

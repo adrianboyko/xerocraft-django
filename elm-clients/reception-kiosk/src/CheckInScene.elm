@@ -65,7 +65,6 @@ type alias CheckInModel =
   , lastNameMatches_SW : List Member  -- Matches to surname
   , lastNameMatches_EQ : List Member  -- Matches to surname
   , recentRfidArrivals : List Member  -- People who have recently swiped RFID.
-  , checkedInMember : Maybe Member -- The member that the person checked in as.
   , badNews : List String
   }
 
@@ -79,7 +78,6 @@ init flags =
     , lastNameMatches_SW = []
     , lastNameMatches_EQ = []
     , recentRfidArrivals = []
-    , checkedInMember = Nothing
     , badNews = []
     }
   in (model, Cmd.none)
@@ -167,7 +165,9 @@ update msg kioskModel =
         ({sceneModel | recentRfidArrivals = unique}, Cmd.none)
 
     CI_UpdateMember (Ok member) ->
-      ({sceneModel | checkedInMember=Just member, badNews=[]}, segueTo ReasonForVisit)
+      ( { sceneModel | badNews=[] }
+      , send <| ReasonForVisitVector <| R4V_Segue member
+      )
 
     ---------- ERRORS ----------
 
@@ -272,10 +272,14 @@ rfidWasSwiped kioskModel result =
   in
     case result of
       Ok m ->
-        ({sceneModel | checkedInMember=Just m, badNews=[]}, segueTo ReasonForVisit)
+        ( { sceneModel | badNews=[] }
+        , send <| ReasonForVisitVector <| R4V_Segue m
+        )
 
       Err e ->
-        ({sceneModel | badNews=[toString e]}, Cmd.none)
+        ( {sceneModel | badNews=[toString e]}
+        , Cmd.none
+        )
 
 
 -----------------------------------------------------------------------------

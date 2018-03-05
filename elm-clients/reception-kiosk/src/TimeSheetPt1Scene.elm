@@ -30,7 +30,6 @@ import PointInTime exposing (PointInTime)
 import CalendarDate exposing (CalendarDate)
 import ClockTime exposing (ClockTime)
 import Duration exposing (Duration)
-import OldBusinessScene exposing (OldBusinessModel, OldBusinessItem)
 
 
 -----------------------------------------------------------------------------
@@ -53,13 +52,14 @@ type alias KioskModel a =
   ------------------------------------
   , currTime : PointInTime
   , timeSheetPt1Model : TimeSheetPt1Model
-  , oldBusinessModel : OldBusinessModel
   , xisSession : XisApi.Session Msg
   }
 
 
 type alias TimeSheetPt1Model =
-  { oldBusinessItem : Maybe OldBusinessItem
+  ---------- Req'd Args:
+  { tcw : Maybe TaskClaimWork
+  ---------- Other State:
   , hrsWorked : Maybe Int
   , minsWorked : Maybe Int
   , badNews : List String
@@ -69,7 +69,9 @@ type alias TimeSheetPt1Model =
 init : Flags -> (TimeSheetPt1Model, Cmd Msg)
 init flags =
   let sceneModel =
-    { oldBusinessItem = Nothing
+    ------------ Req'd Args:
+    { tcw = Nothing
+    ------------ Other State:
     , hrsWorked = Nothing
     , minsWorked = Nothing
     , badNews = []
@@ -85,7 +87,7 @@ sceneWillAppear : KioskModel a -> Scene -> Scene -> (TimeSheetPt1Model, Cmd Msg)
 sceneWillAppear kioskModel appearing vanishing =
   let
     sceneModel = kioskModel.timeSheetPt1Model
-    selectedItem = kioskModel.oldBusinessModel.selectedItem
+    selectedItem = sceneModel.tcw
 
   in case (appearing, vanishing, selectedItem) of
 
@@ -93,7 +95,7 @@ sceneWillAppear kioskModel appearing vanishing =
     -- dealing with a different T/C/W item when we get here. So reset this scene's state.
     (OldBusiness, _, _) ->
       ( { sceneModel
-        | oldBusinessItem = Nothing
+        | tcw = Nothing
         , hrsWorked = Nothing
         , minsWorked = Nothing
         }
@@ -102,7 +104,7 @@ sceneWillAppear kioskModel appearing vanishing =
 
     (TimeSheetPt1, OldBusiness, Just _) ->
       ( { sceneModel
-        | oldBusinessItem = selectedItem
+        | tcw = selectedItem
         }
       , Cmd.none
       )
@@ -127,6 +129,11 @@ update msg kioskModel =
 
   in case msg of
 
+    TS1_Segue tcw ->
+      ( {sceneModel | tcw = Just tcw}
+      , send <| WizardVector <| Push <| TimeSheetPt1
+      )
+
     TS1_Submit task claim work ->
       let
         chooseHr = "Must choose an hour value."
@@ -147,12 +154,10 @@ update msg kioskModel =
             let
               dur = Time.hour * (toFloat hrs) + Time.minute * (toFloat mins)
               revisedWork = XisApi.setWorksDuration (Just dur) work
+              tcw = TaskClaimWork task claim revisedWork
             in
-              ( { sceneModel
-                | oldBusinessItem=Just (OldBusinessItem task claim revisedWork)
-                , badNews=[]
-                }
-              , segueTo TimeSheetPt2
+              ( { sceneModel | tcw = Just tcw, badNews = []}
+              , send <| TimeSheetPt2Vector <| TS2_Segue tcw
               )
 
     TS1_HrPad hr ->
@@ -171,13 +176,13 @@ view kioskModel =
   let
     sceneModel = kioskModel.timeSheetPt1Model
   in
-    case (sceneModel.oldBusinessItem) of
+    case (sceneModel.tcw) of
 
       Just {task, claim, work} ->
         normalView kioskModel task claim work
 
       Nothing ->
-        failedView kioskModel "Sorry, but something went wrong."
+        errorView kioskModel "Sorry, but something went wrong."
 
 
 normalView : KioskModel a -> XisApi.Task -> XisApi.Claim -> XisApi.Work -> Html Msg
@@ -225,18 +230,6 @@ normalView kioskModel task claim work =
       [ ButtonSpec "Submit" (TimeSheetPt1Vector <| TS1_Submit task claim work) True]
 
       sceneModel.badNews
-
-failedView : KioskModel a -> String -> Html Msg
-failedView kioskModel error =
-  let
-    sceneModel = kioskModel.timeSheetPt1Model
-  in
-    genericScene kioskModel
-      "Volunteer Timesheet"
-      "ERROR"
-      (text "")
-      [] -- no buttons
-      [error]
 
 
 -----------------------------------------------------------------------------

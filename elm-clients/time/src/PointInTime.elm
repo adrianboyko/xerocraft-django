@@ -46,12 +46,11 @@ toClockTime pt = ClockTime (hour pt) (minute pt)
 
 
 toCalendarDate: PointInTime -> CalendarDate
-toCalendarDate pt = CalendarDate (year pt) (month pt) (day pt)
+toCalendarDate pt = CalendarDate (year pt) (month pt) (dayOfMonth pt)
 
 
 isoString: PointInTime -> String
 isoString = Date.fromTime >> DateXFmt.isoString
-
 
 ----------------------------------------------------------
 
@@ -61,8 +60,8 @@ year = Date.fromTime >> Date.year
 month : PointInTime -> Month
 month = Date.fromTime >> Date.month
 
-day : PointInTime -> Int
-day = Date.fromTime >> Date.day
+dayOfMonth : PointInTime -> Int
+dayOfMonth = Date.fromTime >> Date.day
 
 dayOfWeek : PointInTime -> Day
 dayOfWeek = Date.fromTime >> Date.dayOfWeek

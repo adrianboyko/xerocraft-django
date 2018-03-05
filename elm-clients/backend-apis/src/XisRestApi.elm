@@ -41,6 +41,7 @@ import List
 import Regex exposing (regex)
 import String
 import Task exposing (Task)
+import Date exposing (Day(..))
 
 -- Third party
 import List.Extra as ListX
@@ -66,6 +67,7 @@ type alias XisRestFlags =
   { authenticateUrl : ServiceUrl
   , claimListUrl : ResourceListUrl
   , discoveryMethodListUrl : ResourceListUrl
+  , emailMembershipInfoUrl : ServiceUrl
   , memberListUrl : ResourceListUrl
   , membershipListUrl : ResourceListUrl
   , taskListUrl : ResourceListUrl
@@ -166,6 +168,7 @@ type alias Session msg =
   , authenticate: String -> String -> (Result Http.Error AuthenticationResult -> msg) -> Cmd msg
   , coverTime : List Membership -> PointInTime -> Bool
   , defaultBlockType : List TimeBlockType -> Maybe TimeBlockType
+  , emailMembershipInfo : EmailMembershipInfo msg
   , getBlocksTypes : TimeBlock -> List TimeBlockType -> List TimeBlockType
   , memberCanClaimTask : Int -> Task -> Bool
   , memberHasStatusOnTask : Int -> ClaimStatus -> Task -> Bool
@@ -173,6 +176,7 @@ type alias Session msg =
   , membersStatusOnTask : Int -> Task -> Maybe ClaimStatus
   , membersWithStatusOnTask : ClaimStatus -> Task -> List ResourceUrl
   , mostRecentMembership : List Membership -> Maybe Membership
+  , pitInBlock : PointInTime -> TimeBlock -> Bool
   }
 
 createSession : XisRestFlags -> Authorization -> Session msg
@@ -222,6 +226,7 @@ createSession flags auth =
   , authenticate = authenticate flags auth
   , coverTime = coverTime
   , defaultBlockType = defaultBlockType
+  , emailMembershipInfo = emailMembershipInfo flags auth
   , getBlocksTypes = getBlocksTypes
   , memberCanClaimTask = memberCanClaimTask flags
   , memberHasStatusOnTask = memberHasStatusOnTask flags
@@ -229,6 +234,7 @@ createSession flags auth =
   , membersStatusOnTask = membersStatusOnTask flags
   , membersWithStatusOnTask = membersWithStatusOnTask
   , mostRecentMembership = mostRecentMembership
+  , pitInBlock = pitInBlock
   }
 
 
@@ -820,6 +826,7 @@ type alias Member = Resource MemberData
 
 type MemberListFilter
   = RfidNumberEquals Int
+  | EmailEquals String
   | UsernameEquals String
   | UsernameContains String
   | UsernameStartsWith String
@@ -832,6 +839,7 @@ memberListFilterToString : MemberListFilter -> String
 memberListFilterToString filter =
   case filter of
     RfidNumberEquals n -> "rfidnum=" ++ toString n
+    EmailEquals s -> "auth_user__email__iexact=" ++ s
     UsernameEquals s -> "auth_user__username__iexact=" ++ s
     UsernameContains s -> "auth_user__username__icontains=" ++ s
     UsernameStartsWith s -> "auth_user__username__istartswith=" ++ s
@@ -867,48 +875,6 @@ decodeMemberData =
     |> optional "last_name"  (Dec.maybe Dec.string) Nothing
     |> required "latest_nonfuture_membership" (Dec.maybe decodeMembership)
     |> required "username" Dec.string
-
-
------------------------------------------------------------------------------
--- AUTHENTICATE
------------------------------------------------------------------------------
-
-type alias AuthenticationResult =
-  { isAuthentic : Bool
-  , authenticatedMember : Maybe Member
-  }
-
-
-authenticate: XisRestFlags -> Authorization
-  -> String -> String -> (Result Http.Error AuthenticationResult -> msg)
-  -> Cmd msg
-
-
-authenticate flags auth userName password tagger =
-  let
-    request = postRequest
-      auth
-      flags.authenticateUrl
-      decodeAuthenticationResult
-      (encodeAuthenticateRequestData userName password)
-  in
-    Http.send tagger request
-
-
-encodeAuthenticateRequestData : String -> String -> Enc.Value
-encodeAuthenticateRequestData userName password =
-  Enc.object
-    [ ( "username", userName |> Enc.string )
-    , ( "userpw", password |> Enc.string )
-    ]
-
-
-decodeAuthenticationResult : Dec.Decoder AuthenticationResult
-decodeAuthenticationResult =
-  decode AuthenticationResult
-    |> required "is_authentic" Dec.bool
-    |> optional "authenticated_member" (Dec.maybe decodeMember) Nothing
-
 
 
 -----------------------------------------------------------------------------
@@ -953,9 +919,8 @@ defaultBlockType allBlockTypes =
 -----------------------------------------------------------------------------
 
 type alias TimeBlockData =
-  { isNow : Bool
-  , startTime : String
-  , duration : String
+  { startTime : ClockTime
+  , duration : Duration
   , first : Bool
   , second : Bool
   , third : Bool
@@ -989,9 +954,8 @@ decodeTimeBlock = decodeResource decodeTimeBlockData
 decodeTimeBlockData : Dec.Decoder TimeBlockData
 decodeTimeBlockData =
   decode TimeBlockData
-    |> required "is_now" Dec.bool
-    |> required "start_time" Dec.string
-    |> required "duration" Dec.string
+    |> required "start_time" DRF.decodeClockTime
+    |> required "duration" DRF.decodeDuration
     |> required "first" Dec.bool
     |> required "second" Dec.bool
     |> required "third" Dec.bool
@@ -1015,6 +979,44 @@ getBlocksTypes specificBlock allBlockTypes =
     isRelatedBlockType x = List.member (Ok x.id) relatedBlockTypeIds
   in
     List.filter isRelatedBlockType allBlockTypes
+
+pitInBlock : PointInTime -> TimeBlock -> Bool
+pitInBlock pit block =
+  let
+    bd = block.data
+    _ = if bd.last then Debug.crash "The 'last xday' case is not yet supported" else "OK"
+
+    year = PointInTime.year pit
+    month = PointInTime.month pit
+    dayOfMonth = PointInTime.dayOfMonth pit
+    calendarDate = CalendarDate year month dayOfMonth
+
+    actualNth = (PointInTime.dayOfMonth pit) // 7 + 1
+    actualDoW = PointInTime.dayOfWeek pit
+    actualToD = ClockTime.fromTime pit
+
+    nthMatch  -- nth of month
+      = bd.every
+      || bd.first && actualNth == 1
+      || bd.second && actualNth == 2
+      || bd.third && actualNth == 3
+      || bd.fourth && actualNth == 4
+
+    dowMatch -- day of week
+      = bd.monday && actualDoW == Mon
+      || bd.tuesday && actualDoW == Tue
+      || bd.wednesday && actualDoW == Wed
+      || bd.thursday && actualDoW == Thu
+      || bd.friday && actualDoW == Fri
+      || bd.saturday && actualDoW == Sat
+      || bd.sunday && actualDoW == Sun
+
+    startPit = PointInTime.fromCalendarDateAndClockTime calendarDate bd.startTime
+    lateEnough = startPit <= pit
+    earlyEnough = pit <= startPit+bd.duration
+
+  in
+    nthMatch && dowMatch && lateEnough && earlyEnough
 
 
 -----------------------------------------------------------------------------
@@ -1352,3 +1354,60 @@ djangoizeId rawId =
 replaceAll : {oldSub : String, newSub : String} -> String -> String
 replaceAll {oldSub, newSub} whole =
   Regex.replace Regex.All (regex oldSub) (\_ -> newSub) whole
+
+
+-----------------------------------------------------------------------------
+-- NON-REST FUNCTIONALITY
+-----------------------------------------------------------------------------
+
+-- AUTHENTICATE -------------------------------------------------------------
+
+type alias AuthenticationResult =
+  { isAuthentic : Bool
+  , authenticatedMember : Maybe Member
+  }
+
+
+authenticate: XisRestFlags -> Authorization
+  -> String -> String -> (Result Http.Error AuthenticationResult -> msg)
+  -> Cmd msg
+authenticate flags auth userName password tagger =
+  let
+    request = postRequest
+      auth
+      flags.authenticateUrl
+      decodeAuthenticationResult
+      (encodeAuthenticateRequestData userName password)
+  in
+    Http.send tagger request
+
+
+encodeAuthenticateRequestData : String -> String -> Enc.Value
+encodeAuthenticateRequestData userName password =
+  Enc.object
+    [ ( "username", userName |> Enc.string )
+    , ( "userpw", password |> Enc.string )
+    ]
+
+
+decodeAuthenticationResult : Dec.Decoder AuthenticationResult
+decodeAuthenticationResult =
+  decode AuthenticationResult
+    |> required "is_authentic" Dec.bool
+    |> optional "authenticated_member" (Dec.maybe decodeMember) Nothing
+
+
+-- SEND MEMBERSHIP INFO -----------------------------------------------------
+
+type alias EmailMembershipInfo msg = Int -> (Result Http.Error String -> msg) -> Cmd msg
+emailMembershipInfo : XisRestFlags -> Authorization -> EmailMembershipInfo msg
+emailMembershipInfo flags auth memberId tagger =
+  let
+    val = Enc.object [("memberpk", Enc.int memberId)]
+    request = postRequestExpectingString
+      auth
+      flags.emailMembershipInfoUrl
+      val
+  in
+    Http.send tagger request
+
