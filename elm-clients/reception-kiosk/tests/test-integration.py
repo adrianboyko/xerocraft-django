@@ -12,6 +12,7 @@ from django.contrib.auth.models import User
 from freezegun import freeze_time
 from selenium import webdriver
 from selenium.webdriver.firefox.webelement import FirefoxWebElement
+from selenium.common.exceptions import NoSuchElementException
 from pyvirtualdisplay import Display
 from rest_framework.authtoken import models as tokmod
 from django.utils.timezone import make_aware
@@ -126,27 +127,38 @@ class IntegrationTest(LiveServerTestCase):
         template.save()
         template.full_clean()
         management.call_command("scheduletasks", "1")
-        #self.assertTrue(Task.objects.all().count() >= 1)
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     def findTagContaining(self, tagname: str, content: str) -> FirefoxWebElement:
-        self.browser.implicitly_wait(10)
-        xpath = '//{}[contains(.,"{}")]'.format(tagname, content)
-        return self.browser.find_element_by_xpath(xpath)
+        try:
+            self.browser.implicitly_wait(10)
+            xpath = '//{}[contains(.,"{}")]'.format(tagname, content)
+            return self.browser.find_element_by_xpath(xpath)
+        except NoSuchElementException as e:
+            self.fail(e.msg)
 
     def findSingleTag(self, tagname: str) -> FirefoxWebElement:
-        self.browser.implicitly_wait(10)
-        xpath = '//{}'.format(tagname)
-        return self.browser.find_element_by_xpath(xpath)
+        try:
+            self.browser.implicitly_wait(10)
+            xpath = '//{}'.format(tagname)
+            return self.browser.find_element_by_xpath(xpath)
+        except NoSuchElementException as e:
+            self.fail(e.msg)
 
     def clickTagContaining(self, tagname: str, content: str) -> None:
-        element = self.findTagContaining(tagname, content)
-        element.click()
+        try:
+            element = self.findTagContaining(tagname, content)
+            element.click()
+        except NoSuchElementException as e:
+            self.fail(e.msg)
 
     def findInputWithId(self, id: str) -> FirefoxWebElement:
-        self.browser.implicitly_wait(10)
-        return self.browser.find_element_by_id(id)
+        try:
+            self.browser.implicitly_wait(10)
+            return self.browser.find_element_by_id(id)
+        except NoSuchElementException as e:
+            self.fail(e.msg)
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -179,6 +191,10 @@ class IntegrationTest(LiveServerTestCase):
 
     def assert_on_CheckOutDone(self) -> None:
         self.findTagContaining("p", "You're Checked Out")
+        # Because some tests make assertions about VisitEvents after getting to CheckOutDone,
+        # and because CheckOutDone's "Ok" button doesn't appear until its VisitEvent
+        # has been logged, this assertion will wait for the "Ok" button to appear:
+        self.findTagContaining("button", "Ok")
 
     def assert_on_CheckOut(self) -> None:
         self.findTagContaining("p", "Tap Your Userid, Below")
@@ -555,6 +571,9 @@ class IntegrationTest(LiveServerTestCase):
         self.backOneScene()
         self.welcomeForRfid_to_next_viaCheckOut(friendly_name)
         self.checkOutDone_to_start()
+        # Check out was completed, so there should be PRESENT & DEPARTURE VEs:
+        self.assertEqual(VisitEvent.objects.filter(event_type=VisitEvent.EVT_PRESENT).count(), 1)
+        self.assertEqual(VisitEvent.objects.filter(event_type=VisitEvent.EVT_DEPARTURE).count(), 1)
 
         # Invalid RFID
         # Note: We're already at the start screen.

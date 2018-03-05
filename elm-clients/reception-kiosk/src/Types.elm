@@ -147,11 +147,11 @@ type CheckInMsg
 
 type CheckOutDoneMsg
   = COD_Segue Member
+  | COD_LogCheckOutResult (Result Http.Error VisitEvent)
 
 type CheckOutMsg
-  = AccVisitEvents (Result Http.Error (PageOf VisitEvent))
-  | LogCheckOut Member
-  | LogCheckOutResult (Result Http.Error VisitEvent)
+  = CO_AccVisitEvents (Result Http.Error (PageOf VisitEvent))
+  | CO_MemberChosen Member
 
 type CreatingAcctMsg
   = CA_Segue (List Int, String, String, String, Bool, String, String, String)

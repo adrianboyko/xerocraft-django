@@ -49,7 +49,6 @@ type alias KioskModel a =
 type alias CheckOutModel =
   { visitEvents : List XisApi.VisitEvent
   , checkedIn : List Member
-  , checkedOutMember : Maybe Member
   , badNews : List String
   }
 
@@ -58,7 +57,6 @@ init flags =
   let model =
     { visitEvents = []
     , checkedIn = []
-    , checkedOutMember = Nothing
     , badNews = []
     }
   in (model, Cmd.none)
@@ -73,7 +71,7 @@ sceneWillAppear kioskModel appearingScene =
     let
       lowerBound = kioskModel.currTime - (12 * ticksPerHour)
       filters = [ XisApi.VEF_WhenGreaterOrEquals lowerBound ]
-      tagger = (CheckOutVector << AccVisitEvents)
+      tagger = (CheckOutVector << CO_AccVisitEvents)
       cmd = kioskModel.xisSession.listVisitEvents filters tagger
     in
       (kioskModel.checkOutModel, cmd)
@@ -92,7 +90,7 @@ update msg kioskModel =
     xis = kioskModel.xisSession
   in case msg of
 
-    AccVisitEvents (Ok {next, results}) ->
+    CO_AccVisitEvents (Ok {next, results}) ->
       let
         ves = sceneModel.visitEvents ++ results
         newModel = {sceneModel | visitEvents=ves }
@@ -100,7 +98,7 @@ update msg kioskModel =
         case next of
 
           Just url ->
-            (newModel, xis.moreVisitEvents url (CheckOutVector << AccVisitEvents))
+            (newModel, xis.moreVisitEvents url (CheckOutVector << CO_AccVisitEvents))
 
           Nothing ->
             let
@@ -110,31 +108,12 @@ update msg kioskModel =
             in
               (newModel2, Cmd.none)
 
-    LogCheckOut member ->
-      let
-        newVisitEvent =
-          { who = xis.memberUrl member.id
-          , when = kioskModel.currTime
-          , eventType = XisApi.VET_Departure
-          , reason = Nothing
-          , method = XisApi.VEM_FrontDesk
-          }
-        tagger = CheckOutVector << LogCheckOutResult
-        cmd = xis.createVisitEvent newVisitEvent tagger
-      in
-        ({sceneModel | checkedOutMember = Just member}, cmd)
-
-    LogCheckOutResult (Ok _) ->
-      case sceneModel.checkedOutMember of
-        Just m -> (sceneModel, send <| OldBusinessVector <| OB_SegueA (CheckOutSession, m))
-        Nothing -> (sceneModel, send <| ErrorVector <| ERR_Segue "Checked out member not known.")
+    CO_MemberChosen m ->
+      (sceneModel, send <| OldBusinessVector <| OB_SegueA (CheckOutSession, m))
 
     -- ERRORS -------------------------
 
-    AccVisitEvents (Err error) ->
-      ({sceneModel | badNews = [toString error]}, Cmd.none)
-
-    LogCheckOutResult (Err error) ->
+    CO_AccVisitEvents (Err error) ->
       ({sceneModel | badNews = [toString error]}, Cmd.none)
 
 
@@ -165,7 +144,7 @@ view kioskModel =
     sceneModel = kioskModel.checkOutModel
     memb2chip = \memb ->
       Chip.button
-        [Options.onClick (CheckOutVector (LogCheckOut memb))]
+        [Options.onClick (CheckOutVector (CO_MemberChosen memb))]
         [Chip.content [] [text memb.data.userName]]
 
   in
@@ -191,7 +170,7 @@ rfidWasSwiped : KioskModel a -> Result String Member -> (CheckOutModel, Cmd Msg)
 rfidWasSwiped kioskModel result =
   case result of
     Ok m ->
-      update (LogCheckOut m) kioskModel
+      update (CO_MemberChosen m) kioskModel
     Err e ->
       let sceneModel = kioskModel.checkOutModel
       in ({sceneModel | badNews = [toString e]}, Cmd.none)

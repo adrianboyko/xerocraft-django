@@ -19,6 +19,8 @@ import List.Nonempty exposing (Nonempty)
 import Types exposing (..)
 import Wizard.SceneUtils exposing (..)
 import XisRestApi as XisApi exposing (Member)
+import PointInTime exposing (PointInTime)
+
 
 -----------------------------------------------------------------------------
 -- CONSTANTS
@@ -39,15 +41,19 @@ type alias KioskModel a =
   ------------------------------------
   , checkOutDoneModel : CheckOutDoneModel
   , xisSession : XisApi.Session Msg
+  , currTime : PointInTime
   }
 
 type alias CheckOutDoneModel =
   { member : Maybe Member
+  , logOpDone : Bool
   }
 
 init : Flags -> (CheckOutDoneModel, Cmd Msg)
 init flags =
-  ( {member = Nothing}
+  ( { member = Nothing
+    , logOpDone = False
+    }
   , Cmd.none
   )
 
@@ -58,11 +64,30 @@ init flags =
 
 sceneWillAppear : KioskModel a -> Scene -> Scene -> (CheckOutDoneModel, Cmd Msg)
 sceneWillAppear kioskModel appearing vanishing =
-  if appearing == CheckOutDone
-    then
-      (kioskModel.checkOutDoneModel, rebase)
+  let
+    sceneModel = kioskModel.checkOutDoneModel
+  in
+    if appearing == CheckOutDone then
+      case sceneModel.member of
+        Nothing ->
+          (sceneModel, send <| ErrorVector <| ERR_Segue missingArguments)
+        Just m ->
+          let
+            xis = kioskModel.xisSession
+            newVisitEvent =
+              { who = xis.memberUrl m.id
+              , when = kioskModel.currTime
+              , eventType = XisApi.VET_Departure
+              , reason = Nothing
+              , method = XisApi.VEM_FrontDesk
+              }
+            tagger = CheckOutDoneVector << COD_LogCheckOutResult
+            recordVisitCmd = xis.createVisitEvent newVisitEvent tagger
+          in
+            ({sceneModel|logOpDone=False}, Cmd.batch [recordVisitCmd, rebase])
     else
-      (kioskModel.checkOutDoneModel, Cmd.none)
+      -- Ignore appearance of all other scenes.
+      (sceneModel, Cmd.none)
 
 
 -----------------------------------------------------------------------------
@@ -76,10 +101,22 @@ update msg kioskModel =
     xis = kioskModel.xisSession
 
   in case msg of
+
     COD_Segue member ->
       ( { sceneModel | member = Just member}
       , send <| WizardVector <| Push CheckOutDone
       )
+
+    COD_LogCheckOutResult (Ok _) ->
+      ({sceneModel | logOpDone=True}, Cmd.none)
+
+    -- ERRORS -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+    COD_LogCheckOutResult (Err error) ->
+      let
+        _ = Debug.log "COD" (toString error)
+      in
+        ({sceneModel | logOpDone=True}, Cmd.none)
 
 
 -----------------------------------------------------------------------------
@@ -93,7 +130,11 @@ view kioskModel =
     "You're Checked Out"
     "Have a Nice Day!"
     (vspace 40)
-    [ButtonSpec "Ok" msgForReset True]
+    ( if sceneModel.logOpDone then
+        [ButtonSpec "Ok" msgForReset True]
+      else
+        []
+    )
     [] -- Never any bad news for this scene
 
 
