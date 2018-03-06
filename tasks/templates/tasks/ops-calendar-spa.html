@@ -21,7 +21,9 @@
     <div id="myContainer"></div>
     <script src="{% static 'tasks/OpsCalendar.min.js' %}"></script>
     <script>
-        var restUrls = {
+
+        var xisFlags = {
+            "authenticateUrl":        "{% url 'memb:api-authenticate' %}",
             "claimListUrl":           "{% url 'task:claim-list' %}",
             "discoveryMethodListUrl": "{% url 'memb:discoverymethod-list' %}",
             "memberListUrl":          "{% url 'memb:member-list' %}",
@@ -29,12 +31,13 @@
             "taskListUrl":            "{% url 'task:task-list' %}",
             "timeBlocksUrl":          "/ops/api/time_blocks/",
             "timeBlockTypesUrl":      "/ops/api/time_block_types/",
+            "visitEventListUrl":      "{% url 'memb:visitevent-list' %}",
             "workListUrl":            "{% url 'task:work-list' %}",
             "workNoteListUrl":        "{% url 'task:worknote-list' %}"
         };
         var flags = {
             "month": {{ month }},
-            "xisRestFlags": restUrls,
+            "xisRestFlags": xisFlags,
             "year": {{ year }},
             {% if user.is_authenticated and user.member != None %}
             "csrfToken": Cookies.get('csrftoken'),

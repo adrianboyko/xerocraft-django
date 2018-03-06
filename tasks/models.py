@@ -108,8 +108,13 @@ class TaskMixin(models.Model):
     eligible_claimants = models.ManyToManyField(mm.Member, blank=True, related_name="claimable_%(class)s",
         help_text="Anybody chosen is eligible to claim the task.<br/>")
 
-    eligible_tags = models.ManyToManyField(mm.Tag, blank=True, related_name="claimable_%(class)s",
-        help_text="Anybody that has one of the chosen tags is eligible to claim the task.<br/>")
+    anybody_is_eligible = models.BooleanField(default=False,
+        help_text="Indicates whether the task is workable by ANYBODY. Use sparingly!")
+
+    # Simplifying data model. Tags are currently only being used for the "anybody is eligible"
+    # case so I'm replacing eligible_tags with an anybody_is_eligible bool, above.
+    # eligible_tags = models.ManyToManyField(mm.Tag, blank=True, related_name="claimable_%(class)s",
+    #     help_text="Anybody that has one of the chosen tags is eligible to claim the task.<br/>")
 
     reviewer = models.ForeignKey(mm.Member, null=True, blank=True, related_name="reviewable_%(class)s",
         on_delete=models.SET_NULL,
@@ -139,7 +144,7 @@ class TaskMixin(models.Model):
         abstract = True
 
 
-class TemplateEligibleClaimants(models.Model):
+class TemplateEligibleClaimants2(models.Model):
 
     template = models.ForeignKey('RecurringTaskTemplate', null=False,
         on_delete=models.CASCADE,  # Relation means nothing if the template is gone.
@@ -178,9 +183,9 @@ class RecurringTaskTemplate(TaskMixin):
         on_delete=models.SET_NULL,
         help_text="Some recurring tasks (e.g. classes) have a default a default claimant (e.g. the instructor).")
 
-    eligible_claimants = models.ManyToManyField(mm.Member, blank=True,
-        related_name="claimable_%(class)s",
-        # TODO: Add 'through'
+    eligible_claimants_2 = models.ManyToManyField(mm.Member, blank=True,
+        related_name="claimable2_%(class)s",
+        through = 'TemplateEligibleClaimants2',
         help_text="Anybody chosen is eligible to claim the task.<br/>")
 
     # Weekday of month:
@@ -361,11 +366,11 @@ class RecurringTaskTemplate(TaskMixin):
                         work_duration           =self.work_duration,
                         should_nag              =self.should_nag,
                         priority                =self.priority,
+                        anybody_is_eligible     =self.anybody_is_eligible
                     )
 
                     # Many-to-many fields:
                     t.eligible_claimants.set(self.eligible_claimants.all())
-                    t.eligible_tags.set(self.eligible_tags.all())
 
                     if self.default_claimant is not None:
                         t.create_default_claim()
@@ -540,7 +545,7 @@ class Work(models.Model):
         verbose_name_plural = "Work"
 
 
-class EligibleClaimant(models.Model):
+class EligibleClaimant2(models.Model):
 
     task = models.ForeignKey('Task', null=False,
         on_delete=models.CASCADE,  # Relation means nothing if the task is gone.
@@ -584,9 +589,9 @@ class Task(TaskMixin, TimeWindowedObject):
     depends_on = models.ManyToManyField('self', symmetrical=False, related_name="prerequisite_for",
         help_text="If appropriate, specify what tasks must be completed before this one can start.")
 
-    eligible_claimants = models.ManyToManyField(mm.Member, blank=True,
+    eligible_claimants_2 = models.ManyToManyField(mm.Member, blank=True,
         related_name="claimable_tasks",
-        # TODO:  Add 'through'
+        through='EligibleClaimant2',
         help_text="Anybody chosen is eligible to claim the task.<br/>")
 
     claimants = models.ManyToManyField(mm.Member, through=Claim, related_name="tasks_claimed",
@@ -636,7 +641,7 @@ class Task(TaskMixin, TimeWindowedObject):
     def likely_worker(self) -> Optional[mm.Member]:
         """The member that is likely to work (or is already working) the task."""
         for claim in self.claim_set.all():  # type: Claim
-            if claim.status in [claim.STAT_CURRENT, claim.STAT_WORKING]:
+            if claim.status in [claim.STAT_CURRENT, claim.STAT_WORKING, claim.STAT_DONE]:
                 return claim.claiming_member
         return None
 
@@ -694,36 +699,12 @@ class Task(TaskMixin, TimeWindowedObject):
         else:
             return Task.STAFFING_STATUS_UNSTAFFED
 
-    ACTION_STAFF = "S"    # Member staffs the task
-    ACTION_UNSTAFF = "U"  # Member abandons task
-    ACTION_VERIFY = "V"   # Member verifies provisional staffing status
-
-    def possible_actions_for(self, member: mm.Member):
-        actions = set()
-
-        if self.is_active() and self.scheduled_date >= date.today():
-            try:
-                claim = Claim.objects.get(claimed_task=self, claiming_member=member)
-                if claim.status == Claim.STAT_CURRENT:
-                    actions.add(Task.ACTION_UNSTAFF)
-                    if claim.date_verified is None:
-                        actions.add(Task.ACTION_VERIFY)
-                else:
-                    actions.add(Task.ACTION_STAFF)
-            except Claim.DoesNotExist:
-                if member in self.all_eligible_claimants() and not self.is_fully_claimed:
-                    actions.add(Task.ACTION_STAFF)
-        return list(actions)
-
     def all_eligible_claimants(self):
         """
         Determine all eligible claimants whether they're directly eligible by name or indirectly by tag
         :return: A set of Members
         """
-        result = set()
-        result |= set(list(self.eligible_claimants.all()))
-        for tag in self.eligible_tags.all():  # type: mm.Tag
-            result |= set(list(tag.members.all()))
+        result = set(list(self.eligible_claimants.all()))
         return result
 
     @deprecated   # Use claimant_set instead
@@ -792,10 +773,10 @@ class Task(TaskMixin, TimeWindowedObject):
         self.work_duration = templ.work_duration
         self.should_nag = templ.should_nag
         self.priority = templ.priority
+        self.anybody_is_eligible = templ.anybody_is_eligible
 
         # Sets
         self.eligible_claimants = templ.eligible_claimants.all()
-        self.eligible_tags = templ.eligible_tags.all()
 
         # Default claimant
         # Only delete claims that are unverified.

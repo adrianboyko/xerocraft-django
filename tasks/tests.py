@@ -23,7 +23,7 @@ from rest_framework.test import force_authenticate
 
 # Local
 from tasks.models import RecurringTaskTemplate, Task, TaskNote, Claim, Work, WorkNote, Nag, Snippet, Worker
-from members.models import Member, Tag, VisitEvent
+from members.models import Member, VisitEvent
 import tasks.restapi as restapi
 from members.notifications import notify
 
@@ -285,10 +285,6 @@ class Test_VerifyClaim_Scenario3(Test_VerifyClaim_Base):
 class TestTemplateToInstanceCopy(TransactionTestCase):
 
     def setUp(self):
-        tag1 = Tag.objects.create(name="test1",meaning="foo")
-        tag1.full_clean()
-        tag2 = Tag.objects.create(name="test2",meaning="bar")
-        tag2.full_clean()
         self.rt = RecurringTaskTemplate.objects.create(
             short_desc = "a test",
             max_work = timedelta(hours=1.5),
@@ -296,7 +292,6 @@ class TestTemplateToInstanceCopy(TransactionTestCase):
             repeat_interval = 1,
         )
         self.rt.full_clean()
-        self.rt.eligible_tags.add(tag1,tag2)
         self.rt.save()
 
     def test_field_copies(self):
@@ -312,9 +307,8 @@ class TestTemplateToInstanceCopy(TransactionTestCase):
         self.assertEqual(task.max_workers, template.max_workers)
         self.assertEqual(task.reviewer, template.reviewer)
         self.assertEqual(task.max_work, template.max_work)
-        self.assertTrue(len(task.eligible_tags.all())==2)
         self.assertEqual(set(task.eligible_claimants.all()), set(template.eligible_claimants.all()))
-        self.assertEqual(set(task.eligible_tags.all()), set(template.eligible_tags.all()))
+        self.assertEqual(task.anybody_is_eligible, template.anybody_is_eligible)
 
 
 class TestRecurringTaskTemplateCertainDays(TestCase):

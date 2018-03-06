@@ -199,6 +199,18 @@ def update_future_instances(model_admin, request, query_set):
 
 class TemplateAndTaskBase(VersionAdmin):
 
+    # Following is defined only to rename column:
+    def anybody_is_eligible_fmt(self, obj: Task) -> bool:
+        return obj.anybody_is_eligible
+    anybody_is_eligible_fmt.boolean=True
+    anybody_is_eligible_fmt.short_description = "Anybody"
+
+    # Following is defined only to rename column:
+    def should_nag_fmt(self, obj: Task) -> bool:
+        return obj.should_nag
+    should_nag_fmt.boolean=True
+    should_nag_fmt.short_description = "Nag"
+
     def time_window_fmt(self, obj):
         return time_window_fmt(obj.work_start_time, obj.work_duration)
     time_window_fmt.short_description = "Time"
@@ -234,14 +246,6 @@ class EligibleClaimant_Inline(admin.TabularInline):
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-class EligibleTagForTemplate_Inline(admin.TabularInline):
-    model = RecurringTaskTemplate.eligible_tags.through
-    model._meta.verbose_name = "Eligible Tag"
-    model._meta.verbose_name_plural = "Eligible Tags"
-    raw_id_fields = ['tag']
-    extra = 0
-
-
 class EligibleClaimantForTemplate_Inline(EligibleClaimant_Inline):
     model = RecurringTaskTemplate.eligible_claimants.through
     model._meta.verbose_name = "Eligible Claimant"
@@ -263,7 +267,8 @@ class RecurringTaskTemplateAdmin(TemplateAndTaskBase):
     list_display = [
         'short_desc', 'recurrence_str',
         'time_window_fmt', 'work_and_workers_fmt',
-        'priority_fmt', 'default_claimant', 'owner', 'reviewer', 'active', 'should_nag'
+        'priority_fmt', 'default_claimant', 'anybody_is_eligible_fmt',
+        'owner', 'reviewer', 'active', 'should_nag_fmt'
     ]
     actions = [
         update_future_instances,
@@ -290,7 +295,6 @@ class RecurringTaskTemplateAdmin(TemplateAndTaskBase):
 
     inlines = [
         EligibleClaimantForTemplate_Inline,
-        EligibleTagForTemplate_Inline,
     ]
 
     raw_id_fields = ['owner', 'default_claimant', 'reviewer']
@@ -323,6 +327,7 @@ class RecurringTaskTemplateAdmin(TemplateAndTaskBase):
 
         ("People", {'fields': [
             'owner',
+            'anybody_is_eligible',
             'default_claimant',
             'reviewer',
         ]}),
@@ -428,14 +433,6 @@ def get_ScheduledDateListFilter_class(date_field_name):
     return ScheduledDateListFilter
 
 
-class EligibleTagForTask_Inline(admin.TabularInline):
-    model = Task.eligible_tags.through
-    model._meta.verbose_name = "Eligible Tag"
-    model._meta.verbose_name_plural = "Eligible Tags"
-    raw_id_fields = ['tag']
-    extra = 0
-
-
 class EligibleClaimantForTask_Inline(EligibleClaimant_Inline):
     model = Task.eligible_claimants.through
     model._meta.verbose_name = "Eligible Claimant"
@@ -445,6 +442,11 @@ class EligibleClaimantForTask_Inline(EligibleClaimant_Inline):
 @admin.register(Task)
 class TaskAdmin(TemplateAndTaskBase):
 
+    # Following is defined only to rename column:
+    def scheduled_date_fmt(self, obj: Task) -> datetime.date:
+        return obj.scheduled_date
+    scheduled_date_fmt.short_description = "Scheduled"
+
     actions = [
         set_nag_on,
         set_nag_off,
@@ -453,9 +455,9 @@ class TaskAdmin(TemplateAndTaskBase):
         set_priority_high,
     ]
     list_display = [
-        'pk', 'short_desc', 'scheduled_weekday', 'scheduled_date',
-        'time_window_fmt', 'work_and_workers_fmt',
-        'priority_fmt', 'owner', 'should_nag', 'reviewer', 'status',
+        'pk', 'short_desc', 'scheduled_weekday', 'scheduled_date_fmt',
+        'time_window_fmt', 'anybody_is_eligible_fmt', 'work_and_workers_fmt',
+        'priority_fmt', 'owner', 'should_nag_fmt', 'reviewer', 'status',
     ]
     search_fields = [
         'short_desc',
@@ -470,6 +472,7 @@ class TaskAdmin(TemplateAndTaskBase):
         'priority',
         'status',
         'should_nag',
+        'anybody_is_eligible'
     ]
     date_hierarchy = 'scheduled_date'
     fieldsets = [
@@ -493,6 +496,7 @@ class TaskAdmin(TemplateAndTaskBase):
 
         ("People", {'fields': [
             'owner',
+            'anybody_is_eligible',
             'reviewer',
         ]}),
 
@@ -506,7 +510,6 @@ class TaskAdmin(TemplateAndTaskBase):
     inlines = [
         ClaimInline,
         EligibleClaimantForTask_Inline,
-        EligibleTagForTask_Inline,
         TaskNoteInline,
     ]
     raw_id_fields = ['owner', 'eligible_claimants', 'reviewer']

@@ -384,7 +384,7 @@ memberCanUnclaimTask model memberId task =
   case (model.xis.membersClaimOnTask memberId task) of
     Just c ->
       c.data.status == XisApi.CurrentClaimStatus
-      && c.data.dateVerified /= Nothing
+      --&& c.data.dateVerified /= Nothing
     Nothing ->
       False
 
@@ -826,9 +826,9 @@ taskNameCss task =
   , "cursor" => "pointer"
   , "color" => case task.data.staffingStatus of
       XisApi.SS_Staffed     -> "green"
+      XisApi.SS_Done        -> "green"
       XisApi.SS_Provisional -> "#c68e17"
       XisApi.SS_Unstaffed   -> "red"
-      _                     -> "#000000"
   , "text-decoration" => if task.data.status == "C" then "line-through" else "none"
   ]
 

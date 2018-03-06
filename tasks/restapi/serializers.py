@@ -60,6 +60,7 @@ class TaskSerializer(serializers.ModelSerializer):
     class Meta:
         model = tm.Task
         fields = (
+            'anybody_is_eligible',
             'claim_set',
             'creation_date',
             'deadline',
