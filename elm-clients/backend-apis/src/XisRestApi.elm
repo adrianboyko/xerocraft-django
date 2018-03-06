@@ -34,15 +34,14 @@ module XisRestApi
 import Http
 import Json.Encode as Enc
 import Json.Encode.Extra as EncX
-import Json.Decode as Dec exposing (maybe)
+import Json.Decode as Dec
 import Json.Decode.Extra as DecX
 import Json.Decode.Pipeline exposing (decode, required, optional)
 import List
 import Regex exposing (regex)
 import String
 import Task exposing (Task)
-import Time exposing (Time, hour, minute, second)
-import Date
+import Date exposing (Day(..))
 
 -- Third party
 import List.Extra as ListX
@@ -53,22 +52,11 @@ import ClockTime exposing (ClockTime)
 import Duration exposing (Duration)
 import CalendarDate exposing (CalendarDate)
 import PointInTime exposing (PointInTime)
-import RangeOfTime exposing (RangeOfTime)
+import RangeOfTime
 
 -----------------------------------------------------------------------------
 -- CONSTANTS
 -----------------------------------------------------------------------------
-
--- As defined in Django backend:
-staffingStatus_STAFFED     = "S"  -- There is a verified current claim.
-staffingStatus_UNSTAFFED   = "U"  -- There is no current claim.
-staffingStatus_PROVISIONAL = "P"  -- There is an unverified current claim.
-staffingStatus_DONE        = "D"  -- A claim is marked as done.
-
--- As defined in Django backend:
-taskHighPriorityValue   = "H"
-taskMediumPriorityValue = "M"
-taskLowPriorityValue    = "L"
 
 
 -----------------------------------------------------------------------------
@@ -79,6 +67,7 @@ type alias XisRestFlags =
   { authenticateUrl : ServiceUrl
   , claimListUrl : ResourceListUrl
   , discoveryMethodListUrl : ResourceListUrl
+  , emailMembershipInfoUrl : ServiceUrl
   , memberListUrl : ResourceListUrl
   , membershipListUrl : ResourceListUrl
   , taskListUrl : ResourceListUrl
@@ -177,8 +166,9 @@ type alias Session msg =
 
   ----- OTHER -----
   , authenticate: String -> String -> (Result Http.Error AuthenticationResult -> msg) -> Cmd msg
-  , coverTime : List Membership -> Time -> Bool
+  , coverTime : List Membership -> PointInTime -> Bool
   , defaultBlockType : List TimeBlockType -> Maybe TimeBlockType
+  , emailMembershipInfo : EmailMembershipInfo msg
   , getBlocksTypes : TimeBlock -> List TimeBlockType -> List TimeBlockType
   , memberCanClaimTask : Int -> Task -> Bool
   , memberHasStatusOnTask : Int -> ClaimStatus -> Task -> Bool
@@ -186,6 +176,7 @@ type alias Session msg =
   , membersStatusOnTask : Int -> Task -> Maybe ClaimStatus
   , membersWithStatusOnTask : ClaimStatus -> Task -> List ResourceUrl
   , mostRecentMembership : List Membership -> Maybe Membership
+  , pitInBlock : PointInTime -> TimeBlock -> Bool
   }
 
 createSession : XisRestFlags -> Authorization -> Session msg
@@ -235,6 +226,7 @@ createSession flags auth =
   , authenticate = authenticate flags auth
   , coverTime = coverTime
   , defaultBlockType = defaultBlockType
+  , emailMembershipInfo = emailMembershipInfo flags auth
   , getBlocksTypes = getBlocksTypes
   , memberCanClaimTask = memberCanClaimTask flags
   , memberHasStatusOnTask = memberHasStatusOnTask flags
@@ -242,6 +234,7 @@ createSession flags auth =
   , membersStatusOnTask = membersStatusOnTask flags
   , membersWithStatusOnTask = membersWithStatusOnTask
   , mostRecentMembership = mostRecentMembership
+  , pitInBlock = pitInBlock
   }
 
 
@@ -286,7 +279,7 @@ type TaskListFilter
 taskListFilterToString : TaskListFilter -> String
 taskListFilterToString filter =
   case filter of
-    ScheduledDateEquals d -> "scheduled_date=" ++ (CalendarDate.toString d)
+    ScheduledDateEquals d -> "scheduled_date=" ++ CalendarDate.toString d
 
 
 listTasks : XisRestFlags -> Authorization -> FilteringLister TaskListFilter Task msg
@@ -502,9 +495,9 @@ setClaimsStatus newSetting oldClaim =
 claimListFilterToString : ClaimListFilter -> String
 claimListFilterToString filter =
   case filter of
-    ClaimStatusEquals stat -> "status=" ++ (claimStatusValue stat)
-    ClaimingMemberEquals membNum -> "claiming_member=" ++ (toString membNum)
-    ClaimedTaskEquals taskNum -> "claimed_task=" ++ (toString taskNum)
+    ClaimStatusEquals stat -> "status=" ++ claimStatusValue stat
+    ClaimingMemberEquals membNum -> "claiming_member=" ++ toString membNum
+    ClaimedTaskEquals taskNum -> "claimed_task=" ++ toString taskNum
 
 
 listClaims : XisRestFlags -> Authorization -> FilteringLister ClaimListFilter Claim msg
@@ -572,10 +565,10 @@ claimDataNVPs : ClaimData -> List (String, Enc.Value)
 claimDataNVPs cd =
   [ ( "claiming_member", cd.claimingMember |> Enc.string )
   , ( "claimed_task", cd.claimedTask |> Enc.string )
-  , ( "claimed_start_time", cd.claimedStartTime |> (EncX.maybe encodeClockTime))
+  , ( "claimed_start_time", cd.claimedStartTime |> EncX.maybe encodeClockTime)
   , ( "claimed_duration", cd.claimedDuration |> encodeDuration)
   , ( "status", cd.status |> encodeClaimStatus )
-  , ( "date_verified", cd.dateVerified |> (EncX.maybe encodeCalendarDate))
+  , ( "date_verified", cd.dateVerified |> EncX.maybe encodeCalendarDate)
   ]
 
 
@@ -665,7 +658,7 @@ type WorkListFilter
 workListFilterToString : WorkListFilter -> String
 workListFilterToString filter =
   case filter of
-    WorkedClaimEquals id -> "claim=" ++ (toString id)
+    WorkedClaimEquals id -> "claim=" ++ toString id
     WorkDurationIsNull setting -> "work_duration__isnull=" ++ (setting |> toString |> String.toLower)
 
 
@@ -731,19 +724,16 @@ deleteWorkByUrl flags auth url tagger =
   in Http.send tagger request
 
 
-encodeWork : Work -> Enc.Value
-encodeWork = encodeResource workDataNVPs
-
 encodeWorkData : WorkData -> Enc.Value
 encodeWorkData = Enc.object << workDataNVPs
 
 workDataNVPs : WorkData -> List (String, Enc.Value)
 workDataNVPs wd =
   [ ( "claim", wd.claim |> Enc.string )
-  , ( "witness", wd.witness |> (EncX.maybe Enc.string))
+  , ( "witness", wd.witness |> EncX.maybe Enc.string)
   , ( "work_date", wd.workDate |> DRF.encodeCalendarDate)
-  , ( "work_duration", wd.workDuration |> (EncX.maybe DRF.encodeDuration))
-  , ( "work_start_time", wd.workStartTime |> (EncX.maybe DRF.encodeClockTime))
+  , ( "work_duration", wd.workDuration |> EncX.maybe DRF.encodeDuration)
+  , ( "work_start_time", wd.workStartTime |> EncX.maybe DRF.encodeClockTime)
   ]
 
 
@@ -795,7 +785,7 @@ createWorkNote flags auth workNoteData resultToMsg =
 {-| Name Value Pairs for WorkNoteData -}
 workNoteDataNVPs : WorkNoteData -> List (String, Enc.Value)
 workNoteDataNVPs wnd =
-  [ ( "author", wnd.author |> (EncX.maybe Enc.string))
+  [ ( "author", wnd.author |> EncX.maybe Enc.string)
   , ( "content", wnd.content |> Enc.string)
   , ( "work", wnd.work |> Enc.string)
   , ( "when_written", wnd.whenWritten |> PointInTime.isoString |> Enc.string)
@@ -836,6 +826,7 @@ type alias Member = Resource MemberData
 
 type MemberListFilter
   = RfidNumberEquals Int
+  | EmailEquals String
   | UsernameEquals String
   | UsernameContains String
   | UsernameStartsWith String
@@ -847,7 +838,8 @@ type MemberListFilter
 memberListFilterToString : MemberListFilter -> String
 memberListFilterToString filter =
   case filter of
-    RfidNumberEquals n -> "rfidnum=" ++ (toString n)
+    RfidNumberEquals n -> "rfidnum=" ++ toString n
+    EmailEquals s -> "auth_user__email__iexact=" ++ s
     UsernameEquals s -> "auth_user__username__iexact=" ++ s
     UsernameContains s -> "auth_user__username__icontains=" ++ s
     UsernameStartsWith s -> "auth_user__username__istartswith=" ++ s
@@ -883,48 +875,6 @@ decodeMemberData =
     |> optional "last_name"  (Dec.maybe Dec.string) Nothing
     |> required "latest_nonfuture_membership" (Dec.maybe decodeMembership)
     |> required "username" Dec.string
-
-
------------------------------------------------------------------------------
--- AUTHENTICATE
------------------------------------------------------------------------------
-
-type alias AuthenticationResult =
-  { isAuthentic : Bool
-  , authenticatedMember : Maybe Member
-  }
-
-
-authenticate: XisRestFlags -> Authorization
-  -> String -> String -> (Result Http.Error AuthenticationResult -> msg)
-  -> Cmd msg
-
-
-authenticate flags auth userName password tagger =
-  let
-    request = postRequest
-      auth
-      flags.authenticateUrl
-      decodeAuthenticationResult
-      (encodeAuthenticateRequestData userName password)
-  in
-    Http.send tagger request
-
-
-encodeAuthenticateRequestData : String -> String -> Enc.Value
-encodeAuthenticateRequestData userName password =
-  Enc.object
-    [ ( "username", userName |> Enc.string )
-    , ( "userpw", password |> Enc.string )
-    ]
-
-
-decodeAuthenticationResult : Dec.Decoder AuthenticationResult
-decodeAuthenticationResult =
-  decode AuthenticationResult
-    |> required "is_authentic" Dec.bool
-    |> optional "authenticated_member" (Dec.maybe decodeMember) Nothing
-
 
 
 -----------------------------------------------------------------------------
@@ -969,9 +919,8 @@ defaultBlockType allBlockTypes =
 -----------------------------------------------------------------------------
 
 type alias TimeBlockData =
-  { isNow : Bool
-  , startTime : String
-  , duration : String
+  { startTime : ClockTime
+  , duration : Duration
   , first : Bool
   , second : Bool
   , third : Bool
@@ -1005,9 +954,8 @@ decodeTimeBlock = decodeResource decodeTimeBlockData
 decodeTimeBlockData : Dec.Decoder TimeBlockData
 decodeTimeBlockData =
   decode TimeBlockData
-    |> required "is_now" Dec.bool
-    |> required "start_time" Dec.string
-    |> required "duration" Dec.string
+    |> required "start_time" DRF.decodeClockTime
+    |> required "duration" DRF.decodeDuration
     |> required "first" Dec.bool
     |> required "second" Dec.bool
     |> required "third" Dec.bool
@@ -1031,6 +979,44 @@ getBlocksTypes specificBlock allBlockTypes =
     isRelatedBlockType x = List.member (Ok x.id) relatedBlockTypeIds
   in
     List.filter isRelatedBlockType allBlockTypes
+
+pitInBlock : PointInTime -> TimeBlock -> Bool
+pitInBlock pit block =
+  let
+    bd = block.data
+    _ = if bd.last then Debug.crash "The 'last xday' case is not yet supported" else "OK"
+
+    year = PointInTime.year pit
+    month = PointInTime.month pit
+    dayOfMonth = PointInTime.dayOfMonth pit
+    calendarDate = CalendarDate year month dayOfMonth
+
+    actualNth = (PointInTime.dayOfMonth pit) // 7 + 1
+    actualDoW = PointInTime.dayOfWeek pit
+    actualToD = ClockTime.fromTime pit
+
+    nthMatch  -- nth of month
+      = bd.every
+      || bd.first && actualNth == 1
+      || bd.second && actualNth == 2
+      || bd.third && actualNth == 3
+      || bd.fourth && actualNth == 4
+
+    dowMatch -- day of week
+      = bd.monday && actualDoW == Mon
+      || bd.tuesday && actualDoW == Tue
+      || bd.wednesday && actualDoW == Wed
+      || bd.thursday && actualDoW == Thu
+      || bd.friday && actualDoW == Fri
+      || bd.saturday && actualDoW == Sat
+      || bd.sunday && actualDoW == Sun
+
+    startPit = PointInTime.fromCalendarDateAndClockTime calendarDate bd.startTime
+    lateEnough = startPit <= pit
+    earlyEnough = pit <= startPit+bd.duration
+
+  in
+    nthMatch && dowMatch && lateEnough && earlyEnough
 
 
 -----------------------------------------------------------------------------
@@ -1058,7 +1044,7 @@ type MembershipListFilter
 membershipListFilterToString : MembershipListFilter -> String
 membershipListFilterToString filter =
   case filter of
-    MembershipsWithMemberIdEqualTo id -> "member=" ++ (toString id)
+    MembershipsWithMemberIdEqualTo id -> "member=" ++ toString id
 
 
 listMemberships : XisRestFlags -> Authorization -> FilteringLister MembershipListFilter Membership msg
@@ -1285,7 +1271,7 @@ createVisitEvent flags auth visitEventData resultToMsg =
       { method = "POST"
       , headers = [authenticationHeader auth]
       , url = flags.visitEventListUrl
-      , body = visitEventData |> (visitEventDataNVPs flags) |> Enc.object |> Http.jsonBody
+      , body = visitEventData |> visitEventDataNVPs flags |> Enc.object |> Http.jsonBody
       , expect = Http.expectJson decodeVisitEvent
       , timeout = Nothing
       , withCredentials = False
@@ -1368,3 +1354,60 @@ djangoizeId rawId =
 replaceAll : {oldSub : String, newSub : String} -> String -> String
 replaceAll {oldSub, newSub} whole =
   Regex.replace Regex.All (regex oldSub) (\_ -> newSub) whole
+
+
+-----------------------------------------------------------------------------
+-- NON-REST FUNCTIONALITY
+-----------------------------------------------------------------------------
+
+-- AUTHENTICATE -------------------------------------------------------------
+
+type alias AuthenticationResult =
+  { isAuthentic : Bool
+  , authenticatedMember : Maybe Member
+  }
+
+
+authenticate: XisRestFlags -> Authorization
+  -> String -> String -> (Result Http.Error AuthenticationResult -> msg)
+  -> Cmd msg
+authenticate flags auth userName password tagger =
+  let
+    request = postRequest
+      auth
+      flags.authenticateUrl
+      decodeAuthenticationResult
+      (encodeAuthenticateRequestData userName password)
+  in
+    Http.send tagger request
+
+
+encodeAuthenticateRequestData : String -> String -> Enc.Value
+encodeAuthenticateRequestData userName password =
+  Enc.object
+    [ ( "username", userName |> Enc.string )
+    , ( "userpw", password |> Enc.string )
+    ]
+
+
+decodeAuthenticationResult : Dec.Decoder AuthenticationResult
+decodeAuthenticationResult =
+  decode AuthenticationResult
+    |> required "is_authentic" Dec.bool
+    |> optional "authenticated_member" (Dec.maybe decodeMember) Nothing
+
+
+-- SEND MEMBERSHIP INFO -----------------------------------------------------
+
+type alias EmailMembershipInfo msg = Int -> (Result Http.Error String -> msg) -> Cmd msg
+emailMembershipInfo : XisRestFlags -> Authorization -> EmailMembershipInfo msg
+emailMembershipInfo flags auth memberId tagger =
+  let
+    val = Enc.object [("memberpk", Enc.int memberId)]
+    request = postRequestExpectingString
+      auth
+      flags.emailMembershipInfoUrl
+      val
+  in
+    Http.send tagger request
+

@@ -1,5 +1,10 @@
 
-module WelcomeScene exposing (init, view, WelcomeModel)
+module WelcomeForRfidScene exposing
+  ( init
+  , update
+  , view
+  , WelcomeForRfidModel
+  )
 
 -- Standard
 import Html exposing (Html, div, text, img, br)
@@ -7,19 +12,16 @@ import Html.Attributes exposing (src, width, style)
 
 -- Third Party
 import Material
-import List.Nonempty exposing (Nonempty)
+import List.Nonempty as NonEmpty
 
 -- Local
 import Wizard.SceneUtils exposing (..)
 import Types exposing (..)
+import XisRestApi as XisApi exposing (Member)
 
 -----------------------------------------------------------------------------
 -- INIT
 -----------------------------------------------------------------------------
-
-type alias WelcomeModel =
-  {
-  }
 
 -- This type alias describes the type of kiosk model that this scene requires.
 type alias KioskModel a =
@@ -27,13 +29,25 @@ type alias KioskModel a =
   ------------------------------------
   | mdl : Material.Model
   , flags : Flags
-  , sceneStack : Nonempty Scene
+  , sceneStack : NonEmpty.Nonempty Scene
   ------------------------------------
-  , welcomeModel : WelcomeModel
+  , welcomeForRfidModel : WelcomeForRfidModel
+  , xisSession : XisApi.Session Msg
   }
 
-init : Flags -> (WelcomeModel, Cmd Msg)
-init flags = ({}, Cmd.none)
+type alias WelcomeForRfidModel =
+  { member : Maybe Member
+  }
+
+
+init : Flags -> (WelcomeForRfidModel, Cmd Msg)
+init flags = (
+  { member = Nothing
+  }
+  ,
+  Cmd.none
+  )
+
 
 -----------------------------------------------------------------------------
 -- SCENE WILL APPEAR
@@ -44,6 +58,33 @@ init flags = ({}, Cmd.none)
 -- UPDATE
 -----------------------------------------------------------------------------
 
+update : WelcomeForRfidMsg -> KioskModel a -> (WelcomeForRfidModel, Cmd Msg)
+update msg kioskModel =
+  let
+    sceneModel = kioskModel.welcomeForRfidModel
+    xis = kioskModel.xisSession
+
+  in case msg of
+
+    W4R_Segue member ->
+      ( {sceneModel | member = Just member}
+      , send <| WizardVector <| Push <| WelcomeForRfid
+      )
+
+    W4R_CheckInClicked ->
+      ( sceneModel
+      , case sceneModel.member of
+          Just m -> send <| ReasonForVisitVector <| R4V_Segue m
+          Nothing -> send <| ErrorVector <| ERR_Segue missingArguments
+      )
+
+    W4R_CheckOutClicked ->
+      ( sceneModel
+      , case sceneModel.member of
+          Just m -> send <| OldBusinessVector <| OB_SegueA (CheckOutSession, m)
+          Nothing -> send <| ErrorVector <| ERR_Segue missingArguments
+      )
+
 
 -----------------------------------------------------------------------------
 -- VIEW
@@ -51,24 +92,24 @@ init flags = ({}, Cmd.none)
 
 view : KioskModel a -> Html Msg
 view kioskModel =
-  genericScene kioskModel
-    "Welcome!"
+  let
+    button = sceneButton kioskModel
+    sceneModel = kioskModel.welcomeForRfidModel
+    friendlyName =
+      Maybe.withDefault "ERR"
+        <| Maybe.map (.data >> .friendlyName) sceneModel.member
+  in genericScene kioskModel
+    ("Welcome "++ friendlyName ++"!")
     "Choose one of the following:"
     (div [sceneTextStyle]
-      [ vspace 50
-      , text "If you've never signed up here or on our website:"
-      , vspace 20
-      , sceneButton kioskModel <| ButtonSpec "I'm new!" (WizardVector <| Push <| HowDidYouHear) True
-      , vspace 70
-      , text "If you've already signed up here or on our website:"
-      , vspace 20
-      , sceneButton kioskModel <| ButtonSpec "Check In" (WizardVector <| Push <| CheckIn) True
-      , sceneButton kioskModel <| ButtonSpec "Check Out" (WizardVector <| Push <| CheckOut) True
-      , vspace 150
+      [ vspace 225
+      , button <| ButtonSpec "Check In" (WelcomeForRfidVector <| W4R_CheckInClicked) True
+      , button <| ButtonSpec "Check Out" (WelcomeForRfidVector <| W4R_CheckOutClicked) True
+      , vspace 225
       , img [src "/static/members/cactuses.png", bottomImgStyle] []
       ]
     )
-    []  -- Buttons are woven into the rest of the content on this scene.
+    []  -- Buttons are woven into the content of the welcome text.
     []  -- Never any bad news for this scene.
 
 

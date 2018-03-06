@@ -16,12 +16,13 @@ import Date exposing (Date)
 
 -- Third Party
 import String.Extra exposing (..)
+import Material
+import List.Nonempty exposing (Nonempty)
 
 -- Local
 import XerocraftApi as XcApi
 import XisRestApi as XisApi exposing (..)
 import Wizard.SceneUtils exposing (..)
-import CheckInScene exposing (CheckInModel)
 import Types exposing (..)
 import Fetchable exposing (..)
 import CalendarDate
@@ -33,25 +34,30 @@ import CalendarDate
 
 -- This type alias describes the type of kiosk model that this scene requires.
 type alias KioskModel a =
-  (SceneUtilModel
-    { a
-    | membersOnlyModel : MembersOnlyModel
-    , checkInModel : CheckInModel
-    , currTime : Time
-    , flags : Flags
-    , xisSession : XisApi.Session Msg
-    }
-  )
+  { a
+  ------------------------------------
+  | mdl : Material.Model
+  , flags : Flags
+  , sceneStack : Nonempty Scene
+  ------------------------------------
+  , membersOnlyModel : MembersOnlyModel
+  , currTime : Time
+  , xisSession : XisApi.Session Msg
+  }
 
 
 type PaymentInfoState
   = AskingIfMshipCurrent
-  | ConfirmingPaymentInfoSent
+  | SendingPaymentInfo
+  | PaymentInfoSent
   | ExplainingHowToPayNow
 
 
 type alias MembersOnlyModel =
-  { nowBlock : Fetchable (Maybe TimeBlock)
+  -------------- Req'd arguments:
+  { member : Maybe Member
+  -------------- Other state:
+  , nowBlock : Fetchable (Maybe TimeBlock)
   , allTypes : Fetchable (List TimeBlockType)
   , paymentInfoState : PaymentInfoState
   , badNews : List String
@@ -61,7 +67,8 @@ type alias MembersOnlyModel =
 init : Flags -> (MembersOnlyModel, Cmd Msg)
 init flags =
   let sceneModel =
-    { nowBlock = Pending
+    { member = Nothing
+    , nowBlock = Pending
     , allTypes = Pending
     , paymentInfoState = AskingIfMshipCurrent
     , badNews = []
@@ -89,9 +96,16 @@ sceneWillAppear kioskModel appearingScene =
         (sceneModel, Cmd.batch [cmd1, cmd2])
 
     MembersOnly ->
-      if (haveSomethingToSay kioskModel |> Debug.log "Something To Say: ")
-        then (sceneModel, Cmd.none)  -- We need to talk, so show this scene.
-        else (sceneModel, segueTo OldBusiness)  -- Nothing to say, so skip this scene.
+      if haveSomethingToSay kioskModel then
+        -- We need to talk, so show this scene.
+        (sceneModel, Cmd.none)
+      else
+        -- Nothing to say, so skip this scene.
+        case sceneModel.member of
+          Just m ->
+            (sceneModel, send <| OldBusinessVector <| OB_SegueA (CheckInSession, m))
+          Nothing ->
+            (sceneModel, send <| ErrorVector <| ERR_Segue missingArguments)
 
     _ ->
       (sceneModel, Cmd.none)  -- Ignore all other scene appearances.
@@ -106,34 +120,41 @@ haveSomethingToSay : KioskModel a -> Bool
 haveSomethingToSay kioskModel =
   let
     sceneModel = kioskModel.membersOnlyModel
-    mship = kioskModel.checkInModel.checkedInMember
-      |> Maybe.andThen (.data >> .latestNonfutureMembership)
+    mship = sceneModel.member |> Maybe.andThen (.data >> .latestNonfutureMembership)
     membersOnlyStr = "Members Only"
     xis = kioskModel.xisSession
   in
     case (sceneModel.nowBlock, sceneModel.allTypes, mship) of
 
       -- Following is the case where somebody arrives during an explicit time block.
-      (Received (Just nowBlock), Received allTypes, Just mship) ->
+      (Received (Just nowBlock), Received allTypes, maybeMship) ->
         let
           nowBlockTypes = kioskModel.xisSession.getBlocksTypes nowBlock allTypes
           isMembersOnly = List.member membersOnlyStr (List.map (.data >> .name) nowBlockTypes)
-          membershipIsCurrent = xis.coverTime [mship] kioskModel.currTime
         in
-          isMembersOnly && not membershipIsCurrent
+          case maybeMship of
+            Just mship ->
+              let current = xis.coverTime [mship] kioskModel.currTime
+              in isMembersOnly && not current
+            Nothing ->
+              isMembersOnly
 
       -- Following is the case where we're not in any explicit time block.
       -- So use default time block type, if one has been specified.
-      (Received Nothing, Received allTypes, Just mship) ->
+      (Received Nothing, Received allTypes, maybeMship) ->
         let
           defaultBlockType = xis.defaultBlockType allTypes
           isMembersOnly =
             case defaultBlockType of
               Just bt -> bt.data.name == membersOnlyStr
               Nothing -> False
-          current = xis.coverTime [mship] kioskModel.currTime
         in
-          isMembersOnly && not current
+          case maybeMship of
+            Just mship ->
+              let current = xis.coverTime [mship] kioskModel.currTime
+              in isMembersOnly && not current
+            Nothing ->
+              isMembersOnly
 
       _ -> False
 
@@ -147,14 +168,18 @@ update msg kioskModel =
 
   let
     sceneModel = kioskModel.membersOnlyModel
+    xis = kioskModel.xisSession
 
   in case msg of
 
-    -- SUCCESSFUL FETCHES --
+    MO_Segue member ->
+      ( {sceneModel | member = Just member}
+      , send <| WizardVector <| Push <| MembersOnly
+      )
 
     UpdateTimeBlocks (Ok {results}) ->
       let
-        nowBlocks = List.filter (.data >> .isNow) results
+        nowBlocks = List.filter (xis.pitInBlock kioskModel.currTime) results
         nowBlock = List.head nowBlocks
       in
         ({sceneModel | nowBlock = Received nowBlock }, Cmd.none)
@@ -162,26 +187,37 @@ update msg kioskModel =
     UpdateTimeBlockTypes (Ok {results}) ->
       ({sceneModel | allTypes = Received results}, Cmd.none)
 
-
-    -- FAILED FETCHES --
-
-    UpdateTimeBlocks (Err error) ->
-      let msg = toString error |> Debug.log "Error getting time blocks: "
-      in ({sceneModel | nowBlock = Failed msg}, Cmd.none)
-
-    UpdateTimeBlockTypes (Err error) ->
-      let msg = toString error |> Debug.log "Error getting time block types: "
-      in ({sceneModel | allTypes = Failed msg}, Cmd.none)
-
-
-    -- PAYMENT ACTIONS --
-
     SendPaymentInfo ->
-      ({sceneModel | paymentInfoState = ConfirmingPaymentInfoSent}, Cmd.none)
+      let
+        newModel = {sceneModel | paymentInfoState = SendingPaymentInfo}
+        cmd = case sceneModel.member of
+          Just m -> xis.emailMembershipInfo m.id (MembersOnlyVector << ServerSentPaymentInfo)
+          Nothing -> send <| ErrorVector <| ERR_Segue missingArguments
+      in
+        (newModel, cmd)
+
+    ServerSentPaymentInfo (Ok msg) ->
+      let
+        newModel = {sceneModel | paymentInfoState = PaymentInfoSent}
+      in
+        (newModel, Cmd.none)
 
     PayNowAtFrontDesk ->
       ({sceneModel | paymentInfoState = ExplainingHowToPayNow}, Cmd.none)
 
+    -- FAILURES --------------------
+
+    ServerSentPaymentInfo (Err error) ->
+      let msg = toString error |> Debug.log "Error trying to send payment info"
+      in ({sceneModel | nowBlock = Failed msg}, Cmd.none)
+
+    UpdateTimeBlocks (Err error) ->
+      let msg = toString error |> Debug.log "Error getting time blocks"
+      in ({sceneModel | nowBlock = Failed msg}, Cmd.none)
+
+    UpdateTimeBlockTypes (Err error) ->
+      let msg = toString error |> Debug.log "Error getting time block types"
+      in ({sceneModel | allTypes = Failed msg}, Cmd.none)
 
 -----------------------------------------------------------------------------
 -- VIEW
@@ -191,70 +227,70 @@ view : KioskModel a -> Html Msg
 view kioskModel =
   let
     sceneModel = kioskModel.membersOnlyModel
-  in
-    genericScene kioskModel
-      "Supporting Members Only"
-      "Is your supporting membership up to date?"
-      (
-      case sceneModel.paymentInfoState of
-        AskingIfMshipCurrent -> areYouCurrentContent kioskModel
-        ConfirmingPaymentInfoSent -> paymentInfoSentContent kioskModel
-        ExplainingHowToPayNow -> howToPayNowContent kioskModel
-      )
-      []  -- No buttons here. They will be woven into content.
-      []  -- No bad news. Scene will fail silently, but should log somewhere.
-
-
-areYouCurrentContent : KioskModel a -> Html Msg
-areYouCurrentContent kioskModel =
-  let
-    sceneModel = kioskModel.membersOnlyModel
     xis = kioskModel.xisSession
   in
-    case kioskModel.checkInModel.checkedInMember of
+    case sceneModel.member of
 
       Nothing ->
-        -- We shouldn't be able to get to this scene without a defined checkedInMember.
-        -- If it happens, we'll log a message and display an error message.
-        let _ = Debug.log "checkedInMember" Nothing
-        in text "ERROR: checkedInMember not specified"
+          errorView kioskModel missingArguments
 
-      Just checkedInMember ->
-        let
-          however = "However, you may have made a more recent payment that we haven't yet processed."
-          paymentMsg = case checkedInMember.data.latestNonfutureMembership of
-            Just mship ->
-              "Our records show that your most recent membership has an expiration date of "
-              ++ CalendarDate.format "%d-%b-%Y" mship.data.endDate
-              ++ ". "
-            Nothing ->
-              "We have no record of previous payments by you. "
-        in
-          div [sceneTextStyle, sceneTextBlockStyle]
-              [ vspace 20
-              , text (paymentMsg ++ however)
-              , vspace 40
-              , text "If it's time to renew your membership,"
-              , vspace 0
-              , text "choose one of the following:"
-              , vspace 20
-                -- TODO: Should display other options for Work Traders.
-                -- TODO: Payment options should come from a single source on the backend.
-              , sceneButton kioskModel (ButtonSpec "Send Me Payment Info" (MembersOnlyVector <| SendPaymentInfo) True)
-              , vspace 20
-              , sceneButton kioskModel (ButtonSpec "Pay Now at Front Desk" (MembersOnlyVector <| PayNowAtFrontDesk) True)
-                -- TODO: If visitor is a keyholder, offer them 1day for $10
-              , vspace 40
-              , text "If your membership is current, thanks!"
-              , vspace 0
-              , text "Just click below."
-              , vspace 20
-              , sceneButton kioskModel <| ButtonSpec "I'm Current!" (msgForSegueTo OldBusiness) True
-              ]
+      Just m ->
+
+        genericScene kioskModel
+          "Supporting Members Only"
+          "Is your supporting membership up to date?"
+          (
+          case sceneModel.paymentInfoState of
+            AskingIfMshipCurrent -> areYouCurrentContent kioskModel sceneModel xis m
+            SendingPaymentInfo -> areYouCurrentContent kioskModel sceneModel xis m
+            PaymentInfoSent -> paymentInfoSentContent kioskModel sceneModel xis m
+            ExplainingHowToPayNow -> howToPayNowContent kioskModel sceneModel xis m
+          )
+          []  -- No buttons here. They will be woven into content.
+          []  -- No bad news. Scene will fail silently, but should log somewhere.
 
 
-paymentInfoSentContent : KioskModel a -> Html Msg
-paymentInfoSentContent kioskModel =
+areYouCurrentContent : KioskModel a -> MembersOnlyModel -> XisApi.Session Msg -> Member -> Html Msg
+areYouCurrentContent kioskModel sceneModel xis member =
+  let
+    however = "However, you may have made a more recent payment that we haven't yet processed."
+    paymentMsg = case member.data.latestNonfutureMembership of
+      Just mship ->
+        "Our records show that your most recent membership has an expiration date of "
+        ++ CalendarDate.format "%d-%b-%Y" mship.data.endDate
+        ++ ". "
+      Nothing ->
+        "We have no record of previous payments by you. "
+  in
+    div [sceneTextStyle, sceneTextBlockStyle]
+        [ vspace 20
+        , text (paymentMsg ++ however)
+        , vspace 40
+        , text "If it's time to renew your membership,"
+        , vspace 0
+        , text "choose one of the following:"
+        , vspace 20
+          -- TODO: Should display other options for Work Traders.
+          -- TODO: Payment options should come from a single source on the backend.
+        , sceneButton kioskModel (ButtonSpec "Send Me Payment Info" (MembersOnlyVector <| SendPaymentInfo) True)
+        , vspace 20
+        , sceneButton kioskModel (ButtonSpec "Pay Now at Front Desk" (MembersOnlyVector <| PayNowAtFrontDesk) True)
+          -- TODO: If visitor is a keyholder, offer them 1day for $10
+        , vspace 40
+        , text "If your membership is current, thanks!"
+        , vspace 0
+        , text "Just click below."
+        , vspace 20
+        , sceneButton kioskModel
+            <| ButtonSpec
+               "I'm Current!"
+               (OldBusinessVector <| OB_SegueA (CheckInSession, member))
+               True
+        ]
+
+
+paymentInfoSentContent : KioskModel a -> MembersOnlyModel -> XisApi.Session Msg -> Member -> Html Msg
+paymentInfoSentContent kioskModel sceneModel xis member =
   let
     sceneModel = kioskModel.membersOnlyModel
   in
@@ -268,26 +304,31 @@ paymentInfoSentContent kioskModel =
       , vspace 0
       , text "\"Supporting Members Only\" session."
       , vspace 40
-      , sceneButton kioskModel <| ButtonSpec "OK" (msgForSegueTo OldBusiness) True
+      , sceneButton kioskModel
+          <| ButtonSpec
+              "OK"
+              (OldBusinessVector <| OB_SegueA (CheckInSession, member))
+              True
       ]
 
-howToPayNowContent : KioskModel a -> Html Msg
-howToPayNowContent kioskModel =
-  let
-    sceneModel = kioskModel.membersOnlyModel
-  in
-    div [sceneTextStyle, sceneTextBlockStyle]
-      [ vspace 60
-      , img [src "/static/bzw_ops/VisaMcDiscAmexCashCheck.png", payTypesImgStyle] []
-      , vspace 40
-      , text "We accept credit card, cash, and checks."
-      , vspace 0
-      , text "Please ask a Staffer for assistance."
-      , vspace 0
-      , text "Thanks!"
-      , vspace 60
-      , sceneButton kioskModel <| ButtonSpec "OK" (msgForSegueTo OldBusiness) True
-      ]
+howToPayNowContent : KioskModel a -> MembersOnlyModel -> XisApi.Session Msg -> Member -> Html Msg
+howToPayNowContent kioskModel sceneModel xis member =
+  div [sceneTextStyle, sceneTextBlockStyle]
+    [ vspace 60
+    , img [src "/static/bzw_ops/VisaMcDiscAmexCashCheck.png", payTypesImgStyle] []
+    , vspace 40
+    , text "We accept credit card, cash, and checks."
+    , vspace 0
+    , text "Please ask a Staffer for assistance."
+    , vspace 0
+    , text "Thanks!"
+    , vspace 60
+    , sceneButton kioskModel
+        <| ButtonSpec
+             "OK"
+             (OldBusinessVector <| OB_SegueA (CheckInSession, member))
+             True
+    ]
 
 
 -----------------------------------------------------------------------------

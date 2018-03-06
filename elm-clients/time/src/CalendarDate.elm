@@ -35,7 +35,7 @@ import Date.Extra.Core as DateXCore
 import Date.Extra.Config.Config_en_us exposing (config)
 import Date.Extra.I18n.I_en_us as EnUs
 import Date.Extra.Duration as DateXDur
-import String.Extra as StringX exposing (replace)
+import String.Extra exposing (replace)
 import Json.Encode exposing (string)
 
 -- Local

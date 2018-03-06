@@ -1,37 +1,65 @@
 
-module TaskInfoScene exposing (init, sceneWillAppear, view, TaskInfoModel)
+module TaskInfoScene exposing
+  ( init
+  , sceneWillAppear
+  , update
+  , view
+  , TaskInfoModel
+  )
 
 -- Standard
 import Html exposing (Html, text, div, p)
 import Html.Attributes exposing (style)
 
 -- Third Party
+import Material
+import List.Nonempty exposing (Nonempty)
 
 -- Local
 import Wizard.SceneUtils exposing (..)
 import Types exposing (..)
 import TaskListScene exposing (TaskListModel)
+import XisRestApi as XisApi exposing (Member)
 
 -----------------------------------------------------------------------------
 -- INIT
 -----------------------------------------------------------------------------
 
--- TODO: There should be a time out back to Welcome
-
-type alias TaskInfoModel =
-  {
-  }
-
 -- This type alias describes the type of kiosk model that this scene requires.
 type alias KioskModel a =
-  SceneUtilModel
-    { a
-    | taskInfoModel : TaskInfoModel
-    , taskListModel : TaskListModel
-    }
+  { a
+  ------------------------------------
+  | mdl : Material.Model
+  , flags : Flags
+  , sceneStack : Nonempty Scene
+  ------------------------------------
+  , taskInfoModel : TaskInfoModel
+  }
+
+
+type alias TaskInfoModel =
+  ---------- REQ'D ARGS:
+  { member : Maybe Member
+  , task : Maybe XisApi.Task
+  , claim : Maybe XisApi.Claim
+  ---------- NO OTHER STATE
+  }
+
+
+args x =
+  ( x.member
+  , x.task
+  , x.claim
+  )
+
 
 init : Flags -> (TaskInfoModel, Cmd Msg)
-init flags = ({}, Cmd.none)
+init flags =
+  ( { member = Nothing
+    , task = Nothing
+    , claim = Nothing
+    }
+  , Cmd.none)
 
 
 -----------------------------------------------------------------------------
@@ -57,33 +85,46 @@ sceneWillAppear kioskModel appearing vanishing =
 -- UPDATE
 -----------------------------------------------------------------------------
 
+update : TaskInfoMsg -> KioskModel a -> (TaskInfoModel, Cmd Msg)
+update msg kioskModel =
+  let
+    sceneModel = kioskModel.taskInfoModel
+  in case msg of
+    TI_Segue (member, task, claim) ->
+      ( { sceneModel
+        | member = Just member
+        , task = Just task
+        , claim = Just claim
+        }
+      , send <| WizardVector <| Push TaskInfo
+      )
+
+
 -----------------------------------------------------------------------------
 -- VIEW
 -----------------------------------------------------------------------------
 
 view : KioskModel a -> Html Msg
 view kioskModel =
-  let
-    sceneModel = kioskModel.taskInfoModel
-    taskListModel = kioskModel.taskListModel
-    instructions =
-      case taskListModel.selectedTask of
-        Just opsTask -> opsTask.data.instructions
-        Nothing -> "Please see a Staff Member for instructions."
-  in
-    genericScene kioskModel
-      "Thanks for Helping!"
-      "Instructions Follow:"
-      (div [instructionDiv]
-        [ vspace 20
-        , p [instructionPara] [text instructions]
-        , vspace 30
-        , text "When the task is completed, return to this kiosk and use Check Out to close it."
-        , vspace 20
-        ]
-      )
-      [ButtonSpec "Got It!" (msgForSegueTo OldBusiness) True]
-      []  -- Never any bad news for this scene.
+  case args kioskModel.taskInfoModel of
+
+    (Just member, Just task, Just claim) ->
+      genericScene kioskModel
+        "Thanks for Helping!"
+        "Instructions Follow:"
+        (div [instructionDiv]
+          [ vspace 20
+          , p [instructionPara] [text task.data.instructions]
+          , vspace 30
+          , text "When the task is completed, return to this kiosk and use Check Out to close it."
+          , vspace 20
+          ]
+        )
+        [ButtonSpec "Got It!" (OldBusinessVector <| OB_SegueB (CheckInSession, member, claim)) True]
+        []  -- Never any bad news for this scene.
+
+    _ ->
+      errorView kioskModel missingArguments
 
 
 -----------------------------------------------------------------------------

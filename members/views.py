@@ -56,11 +56,6 @@ FACILITY_PUBLIC_IP = settings.BZWOPS_FACILITY_PUBLIC_IP
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = PRIVATE
 
-def _inform_other_systems_of_checkin(member, event_type):
-    # TODO: Inform Kyle's system
-    pass
-
-
 # TODO: Move following to Event class?
 def _log_visit_event(who_in: Union[str, Member, int], event_type, reason=None, method=None) -> Tuple[bool, Union[str, Member]]:
 
@@ -94,7 +89,6 @@ def _log_visit_event(who_in: Union[str, Member, int], event_type, reason=None, m
         return False, "No matching member found."
 
     VisitEvent.objects.create(who=who, event_type=event_type, reason=reason, method=method)
-    _inform_other_systems_of_checkin(who, event_type)
     return True, who
 
 
@@ -339,13 +333,14 @@ def rfid_entry_requested(request, rfid_cardnum):
 def rfid_entry_granted(request, rfid_cardnum):
     member = Member.get_by_card_str(rfid_cardnum)
     if member is not None:
-        event_type = VisitEvent.EVT_ARRIVAL
         VisitEvent.objects.create(
             who=member,
-            event_type=event_type,
+            # RFID reads are not reliable indicators of arrival.
+            # Cards are sometimes read when people walk past the reader on the way OUT.
+            # Therefore, RFID reads will be considered as indicationg *presence*.
+            event_type=VisitEvent.EVT_PRESENT,
             method=VisitEvent.METHOD_RFID,
         )
-        _inform_other_systems_of_checkin(member, event_type)
     else:
         logger.warning("No member found with RFID card# %s", rfid_cardnum)
     return JsonResponse({'success': "Information noted."})
@@ -493,44 +488,22 @@ def desktop_earned_membership_revenue(request):
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 @ensure_csrf_cookie
-def reception_kiosk_spa(request) -> HttpResponse:
-    SERVER = "https://www.xerocraft.org/kfritz/" if settings.ISDEVHOST else "https://www.xerocraft.org/"
+def reception_kiosk_spa(request, time_shift="0.0") -> HttpResponse:
+
+    if settings.ISDEVHOST:
+        SERVER = "https://www.xerocraft.org/kfritz/"
+        time_shift = int(time_shift)  # Time can be shifted for testing purposes on dev hosts.
+    else:
+        SERVER = "https://www.xerocraft.org/"
+        time_shift = 0  # Time cannot be shifted in production.
+
     ACTION_URL = SERVER + "checkinActions2.php"
     props = {
+        "time_shift": time_shift,
         "org_name": ORG_NAME,
         "action_url": ACTION_URL,
     }
     return render(request, "members/reception-kiosk-spa.html", props)
-
-
-# TODO: Add token authentication requirement and staff permission.
-def reception_kiosk_matching_accts(request, flexid) -> JsonResponse:
-
-    usernameq = Q(auth_user__username__istartswith=flexid, auth_user__is_active=True)
-    surnameq = Q(auth_user__last_name__istartswith=flexid, auth_user__is_active=True)
-    emailq = Q(auth_user__email__iexact=flexid, auth_user__is_active=True)
-    membs = Member.objects.filter(usernameq | surnameq | emailq)
-
-    if len(membs) > 10:
-        lflexid = flexid.lower()
-        def exact_match(m: Member):
-            usernameMatch = m.auth_user.username.lower() == lflexid
-            surnameMatch = m.auth_user.last_name.lower() == lflexid
-            emailMatch = m.auth_user.email.lower == lflexid
-            return usernameMatch or surnameMatch or emailMatch
-
-        # Since there are too many matches, lets try to filter it down to EXACT matches.
-        membs = list(filter(exact_match, membs))
-
-    accts = []
-    for memb in membs:  # type: Member
-        acct = {
-            "userName": memb.username,
-            "memberNum": memb.id,
-        }
-        accts.append(acct)
-
-    return JsonResponse({"target": flexid, "matches": accts})
 
 
 def reception_kiosk_add_discovery_method(request) -> JsonResponse:
@@ -578,19 +551,19 @@ def reception_kiosk_set_is_adult(request) -> JsonResponse:
 @api_view(['POST'])
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAdminUser])
-def reception_kiosk_email_mship_buy_options(request) -> JsonResponse:
+def reception_kiosk_email_mship_buy_info(request) -> HttpResponse:
     """ Send email with purchase options to user specified in POST body.
         Email should include a link to online store."""
 
     if request.method != 'POST':
-        return JsonResponse(status=405, data={"result": "failure"})
+        return HttpResponse(status=405, data="Method was not POST.")
 
     try:
         data = json.loads(request.body.decode())
         memberpk = int(data['memberpk'])  # type: int
         member = Member.objects.get(pk=memberpk)  # type: Member
     except Member.DoesNotExist:
-        return JsonResponse(status=404, data={"result": "failure"})
+        return JsonResponse(status=404, data="Member does not exist.")
 
     text_content_template = get_template('members/email-mship-buy-options.txt')
     html_content_template = get_template('members/email-mship-buy-options.html')
@@ -604,7 +577,7 @@ def reception_kiosk_email_mship_buy_options(request) -> JsonResponse:
     msg = EmailMultiAlternatives(subject, text_content, from_email, [to], [bcc_email])
     msg.attach_alternative(html_content, "text/html")
     msg.send()
-    return JsonResponse({"result": "success"})
+    return HttpResponse("Success")
 
 
 @api_view(['POST'])

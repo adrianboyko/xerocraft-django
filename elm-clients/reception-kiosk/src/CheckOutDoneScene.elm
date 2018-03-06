@@ -1,38 +1,61 @@
 
-module CheckOutDoneScene exposing (init, sceneWillAppear, view, CheckOutDoneModel)
+module CheckOutDoneScene exposing
+  ( init
+  , sceneWillAppear
+  , update
+  , view
+  , CheckOutDoneModel
+  )
 
 -- Standard
 import Html exposing (Html, div, text)
 import Time exposing (Time)
 
 -- Third Party
+import Material
+import List.Nonempty exposing (Nonempty)
 
 -- Local
 import Types exposing (..)
 import Wizard.SceneUtils exposing (..)
+import XisRestApi as XisApi exposing (Member)
+import PointInTime exposing (PointInTime)
 
 
 -----------------------------------------------------------------------------
 -- CONSTANTS
 -----------------------------------------------------------------------------
 
-displayTimeout = 5
-
 
 -----------------------------------------------------------------------------
 -- INIT
 -----------------------------------------------------------------------------
 
-type alias CheckOutDoneModel =
-  {
+-- This type alias describes the type of kiosk model that this scene requires.
+type alias KioskModel a =
+  { a
+  ------------------------------------
+  | mdl : Material.Model
+  , flags : Flags
+  , sceneStack : Nonempty Scene
+  ------------------------------------
+  , checkOutDoneModel : CheckOutDoneModel
+  , xisSession : XisApi.Session Msg
+  , currTime : PointInTime
   }
 
--- This type alias describes the type of kiosk model that this scene requires.
-type alias KioskModel a = (SceneUtilModel {a | checkOutDoneModel : CheckOutDoneModel})
+type alias CheckOutDoneModel =
+  { member : Maybe Member
+  , logOpDone : Bool
+  }
 
--- TODO: There should be a time out back to Welcome
 init : Flags -> (CheckOutDoneModel, Cmd Msg)
-init flags = ({}, Cmd.none)
+init flags =
+  ( { member = Nothing
+    , logOpDone = False
+    }
+  , Cmd.none
+  )
 
 
 -----------------------------------------------------------------------------
@@ -41,16 +64,59 @@ init flags = ({}, Cmd.none)
 
 sceneWillAppear : KioskModel a -> Scene -> Scene -> (CheckOutDoneModel, Cmd Msg)
 sceneWillAppear kioskModel appearing vanishing =
-  if appearing == CheckOutDone
-    then
-      (kioskModel.checkOutDoneModel, rebase)
+  let
+    sceneModel = kioskModel.checkOutDoneModel
+  in
+    if appearing == CheckOutDone then
+      case sceneModel.member of
+        Nothing ->
+          (sceneModel, send <| ErrorVector <| ERR_Segue missingArguments)
+        Just m ->
+          let
+            xis = kioskModel.xisSession
+            newVisitEvent =
+              { who = xis.memberUrl m.id
+              , when = kioskModel.currTime
+              , eventType = XisApi.VET_Departure
+              , reason = Nothing
+              , method = XisApi.VEM_FrontDesk
+              }
+            tagger = CheckOutDoneVector << COD_LogCheckOutResult
+            recordVisitCmd = xis.createVisitEvent newVisitEvent tagger
+          in
+            ({sceneModel|logOpDone=False}, Cmd.batch [recordVisitCmd, rebase])
     else
-      (kioskModel.checkOutDoneModel, Cmd.none)
+      -- Ignore appearance of all other scenes.
+      (sceneModel, Cmd.none)
 
 
 -----------------------------------------------------------------------------
 -- UPDATE
 -----------------------------------------------------------------------------
+
+update : CheckOutDoneMsg -> KioskModel a -> (CheckOutDoneModel, Cmd Msg)
+update msg kioskModel =
+  let
+    sceneModel = kioskModel.checkOutDoneModel
+    xis = kioskModel.xisSession
+
+  in case msg of
+
+    COD_Segue member ->
+      ( { sceneModel | member = Just member}
+      , send <| WizardVector <| Push CheckOutDone
+      )
+
+    COD_LogCheckOutResult (Ok _) ->
+      ({sceneModel | logOpDone=True}, Cmd.none)
+
+    -- ERRORS -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+    COD_LogCheckOutResult (Err error) ->
+      let
+        _ = Debug.log "COD" (toString error)
+      in
+        ({sceneModel | logOpDone=True}, Cmd.none)
 
 
 -----------------------------------------------------------------------------
@@ -64,7 +130,11 @@ view kioskModel =
     "You're Checked Out"
     "Have a Nice Day!"
     (vspace 40)
-    [ButtonSpec "Ok" msgForReset True]
+    ( if sceneModel.logOpDone then
+        [ButtonSpec "Ok" msgForReset True]
+      else
+        []
+    )
     [] -- Never any bad news for this scene
 
 

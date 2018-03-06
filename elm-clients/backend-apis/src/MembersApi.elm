@@ -1,26 +1,18 @@
 module MembersApi exposing
   ( createSession
   , Flags
-  , MatchingAcct
-  , MatchingAcctInfo
-  , GenericResult
   , Session
   )
 
 -- Standard
-import Date as Date
 import Json.Decode as Dec
 import Json.Encode as Enc
-import Json.Decode.Extra as DecX
 import Regex exposing (regex)
 import Http
-import Time exposing (Time)
 
 -- Third-Party
-import Json.Decode.Pipeline exposing (decode, required, hardcoded)
 
 -- Local
-import DjangoRestFramework as DRF exposing (PageOf, decodePageOf, authenticationHeader)
 
 
 -----------------------------------------------------------------------------
@@ -30,7 +22,6 @@ import DjangoRestFramework as DRF exposing (PageOf, decodePageOf, authentication
 type alias Session msg =
   { addDiscoveryMethods : AddDiscoveryMethods msg
   , createNewAcct : CreateNewAcct msg
-  , getMatchingAccts : GetMatchingAccts msg
   , setIsAdult : SetIsAdult msg
   }
 
@@ -38,7 +29,6 @@ createSession : Flags -> Session msg
 createSession flags =
   { addDiscoveryMethods = addDiscoveryMethods flags
   , createNewAcct = createNewAcct flags
-  , getMatchingAccts = getMatchingAccts flags
   , setIsAdult = setIsAdult flags
   }
 
@@ -60,43 +50,15 @@ type alias Flags =
   { addDiscoveryMethodUrl : String
   , csrfToken : String
   , discoveryMethodsUrl : String
-  , matchingAcctsUrl : String
   , setIsAdultUrl : String
   , uniqueKioskId : String
   , xcOrgActionUrl : String
-  }
-
-type alias MatchingAcct =
-  { userName : String
-  , memberNum : Int
-  }
-
-type alias MatchingAcctInfo =
-  { target : String
-  , matches : List MatchingAcct
-  }
-
-type alias GenericResult =
-  { result : String
   }
 
 
 -----------------------------------------------------------------------------
 -- API
 -----------------------------------------------------------------------------
-
-type alias GetMatchingAccts msg = String -> (Result Http.Error MatchingAcctInfo -> msg) -> Cmd msg
-getMatchingAccts: Flags -> GetMatchingAccts msg
-getMatchingAccts flags flexId resultToMsg =
-  let
-    url = flags.matchingAcctsUrl++"?format=json"  -- Easier than an "Accept" header.
-      |> replaceAll {oldSub="FLEXID", newSub=flexId}
-    request = Http.get url decodeMatchingAcctInfo
-  in
-    Http.send resultToMsg request
-
-
--- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 type alias CreateNewAcct msg = String -> String -> String -> String -> String -> (Result Http.Error String -> msg) -> Cmd msg
 createNewAcct : Flags -> CreateNewAcct msg
@@ -168,25 +130,3 @@ addDiscoveryMethods flags username userpw methodPks resultToMsg =
   in
     Cmd.batch (List.map (oneCmd << request << bodyObject) methodPks)
 
-
-
------------------------------------------------------------------------------
--- JSON
------------------------------------------------------------------------------
-
-decodeMatchingAcct : Dec.Decoder MatchingAcct
-decodeMatchingAcct =
-  Dec.map2 MatchingAcct
-    (Dec.field "userName" Dec.string)
-    (Dec.field "memberNum" Dec.int)
-
-decodeMatchingAcctInfo : Dec.Decoder MatchingAcctInfo
-decodeMatchingAcctInfo =
-  Dec.map2 MatchingAcctInfo
-    (Dec.field "target" Dec.string)
-    (Dec.field "matches" (Dec.list decodeMatchingAcct))
-
-decodeGenericResult : Dec.Decoder GenericResult
-decodeGenericResult =
-  Dec.map GenericResult
-    (Dec.field "result" Dec.string)

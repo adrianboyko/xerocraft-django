@@ -3,21 +3,21 @@ module DjangoRestFramework exposing (..)
 -- Standard
 import Json.Decode as Dec
 import Json.Encode as Enc
-import Http exposing (header)
+import Http
 import Char
-import Regex exposing (Regex, regex, split, replace, HowMany(..))
-import Time exposing (Time, hour, minute, second)
+import Regex exposing (regex, split, replace, HowMany(..))
+import Time exposing (Time)
 import Result.Extra as ResultX
 import Date exposing (Date)
 import List.Extra as ListX
 
 -- Third-Party
-import Json.Decode.Pipeline exposing (decode, required, optional, hardcoded)
+import Json.Decode.Pipeline exposing (decode, required)
 
 -- Local
 import ClockTime exposing (ClockTime)
 import PointInTime exposing (PointInTime)
-import Duration exposing (Duration)
+import Duration exposing (Duration, ticksPerSecond, ticksPerMinute, ticksPerHour)
 import CalendarDate exposing (CalendarDate)
 
 
@@ -51,7 +51,7 @@ decodeCalendarDate : Dec.Decoder CalendarDate
 decodeCalendarDate =
   Dec.string |> Dec.andThen
     ( \str ->
-      case (CalendarDate.fromString str) of
+      case CalendarDate.fromString str of
         Ok cd -> Dec.succeed cd
         Err err -> Dec.fail err
     )
@@ -93,7 +93,7 @@ decodeClockTime : Dec.Decoder ClockTime
 decodeClockTime =
   Dec.string |> Dec.andThen
     ( \str ->
-      case (clockTimeFromPythonRepr str) of
+      case clockTimeFromPythonRepr str of
         Ok ct -> Dec.succeed ct
         Err err -> Dec.fail err
     )
@@ -115,16 +115,19 @@ clockTimeFromTime t = t |> Date.fromTime |> clockTimeFromDate
 -- POINT-IN-TIME
 -----------------------------------------------------------------------------
 
+decodePointInTime : Dec.Decoder PointInTime
 decodePointInTime =
   Dec.string |> Dec.andThen
     ( \str ->
-      case (PointInTime.fromString str) of
+      case PointInTime.fromString str of
         Ok pit -> Dec.succeed pit
         Err err -> Dec.fail err
     )
 
+encodePointInTime : PointInTime -> Enc.Value
 encodePointInTime =
   PointInTime.isoString >> Enc.string
+
 
 -----------------------------------------------------------------------------
 -- DURATION
@@ -137,8 +140,8 @@ durationFromPythonRepr s =
     partCount = List.length partsAsListString
     partsAsListResultFloat = List.map String.toFloat partsAsListString
     partsAsResultListFloat = ResultX.combine partsAsListResultFloat
-    weights3 = [1*hour, 1*minute, 1*second]
-    weights4 = 24*hour :: weights3
+    weights3 = [1*ticksPerHour, 1*ticksPerMinute, 1*ticksPerSecond]
+    weights4 = 24*ticksPerHour :: weights3
     weights = if partCount == 3 then weights3 else weights4
   in
     Result.map
@@ -151,22 +154,22 @@ durationFromPythonRepr s =
 durationToPythonRepr : Duration -> String
 durationToPythonRepr dur1 =
     let
-        day = 24.0 * hour
+        day = 24.0 * ticksPerHour
 
         daysInt = dur1 / day |> floor
-        dur2 = dur1 - (toFloat daysInt)*day
+        dur2 = dur1 - toFloat daysInt * day
 
-        hoursInt = dur2 / hour |> floor
-        dur3 = dur2 - (toFloat hoursInt)*hour
+        hoursInt = dur2 / ticksPerHour |> floor
+        dur3 = dur2 - toFloat hoursInt * ticksPerHour
 
-        minsInt = dur3 / minute |> floor
-        dur4 = dur3 - (toFloat minsInt)*minute
+        minsInt = dur3 / ticksPerMinute |> floor
+        dur4 = dur3 - toFloat minsInt * ticksPerMinute
 
-        secsInt = dur4 / second |> floor
+        secsInt = dur4 / ticksPerSecond |> floor
 
-        pad = toString >> (String.padLeft 2 '0')
+        pad = toString >> String.padLeft 2 '0'
     in
-        (toString daysInt) ++ " " ++ (pad hoursInt) ++ ":" ++ (pad minsInt) ++ ":" ++ (pad secsInt)
+        toString daysInt ++ " " ++ pad hoursInt ++ ":" ++ pad minsInt ++ ":" ++ pad secsInt
 
 
 decodeDuration : Dec.Decoder Duration
@@ -174,9 +177,9 @@ decodeDuration =
   Dec.string |> Dec.andThen
     -- Could use Json.Decode.Extra.fromResult here, but that wouldn't allow friendlier error msg.
     ( \str ->
-      case (durationFromPythonRepr str) of
+      case durationFromPythonRepr str of
         Ok dur -> Dec.succeed dur
-        Err err -> Dec.fail ("Incorrectly formatted duration: " ++ str)
+        Err _ -> Dec.fail ("Incorrectly formatted duration: " ++ str)
     )
 
 
@@ -215,7 +218,7 @@ decodeResource dataDecoder =
 
 encodeResource : (a -> List (String, Enc.Value)) -> Resource a -> Enc.Value
 encodeResource dataNVPer res =
-  Enc.object (("id", Enc.int res.id) :: (dataNVPer res.data))
+  Enc.object (("id", Enc.int res.id) :: dataNVPer res.data)
 
 
 -----------------------------------------------------------------------------
@@ -244,7 +247,7 @@ decodeResourceUrl =
 
 urlFromId : ResourceListUrl -> Int -> ResourceUrl
 urlFromId listUrl resNum =
-  listUrl ++ (toString resNum) ++ "/"
+  listUrl ++ toString resNum ++ "/"
 
 
 -- Example "https://localhost:8000/ops/api/time_block_types/4/" -> 4
@@ -312,6 +315,18 @@ postRequest auth url responseDecoder encodedData =
     , url = url
     , body = encodedData |> Http.jsonBody
     , expect = Http.expectJson responseDecoder
+    , timeout = Nothing
+    , withCredentials = False
+    }
+
+postRequestExpectingString : Authorization -> String -> Enc.Value -> Http.Request String
+postRequestExpectingString auth url encodedData =
+  Http.request
+    { method = "POST"
+    , headers = [authenticationHeader auth]
+    , url = url
+    , body = encodedData |> Http.jsonBody
+    , expect = Http.expectString
     , timeout = Nothing
     , withCredentials = False
     }

@@ -5,33 +5,31 @@ module TimeSheetPt1Scene exposing
   , update
   , view
   , TimeSheetPt1Model
-  , infoToVerifyStyle -- Used by Pt2 and Pt3
-  , pastWorkStyle -- Used by Pt2 and Pt3
   )
 
 -- Standard
 import Html exposing (Html, text, div, span, table, tr, td)
-import Html.Attributes exposing (style, colspan)
+import Html.Attributes exposing (attribute, style, colspan)
 import Http
 import Time exposing (Time, hour, minute)
 import Tuple
 
 -- Third Party
+import Material
 import Maybe.Extra as MaybeX
 import Update.Extra as UpdateX exposing (addCmd)
-import List.Nonempty as Nonempty
+import List.Nonempty exposing (Nonempty)
 
 -- Local
+import TimeSheetCommon exposing (infoDiv)
 import XisRestApi as XisApi exposing (..)
 import Wizard.SceneUtils exposing (..)
 import Types exposing (..)
 import DjangoRestFramework as DRF
-
 import PointInTime exposing (PointInTime)
 import CalendarDate exposing (CalendarDate)
 import ClockTime exposing (ClockTime)
 import Duration exposing (Duration)
-import OldBusinessScene exposing (OldBusinessModel, OldBusinessItem)
 
 
 -----------------------------------------------------------------------------
@@ -46,18 +44,22 @@ idxTimeSheetPt1 = mdlIdBase TimeSheetPt1
 
 -- This type alias describes the type of kiosk model that this scene requires.
 type alias KioskModel a =
-  (SceneUtilModel
-    { a
-    | currTime : PointInTime
-    , timeSheetPt1Model : TimeSheetPt1Model
-    , oldBusinessModel : OldBusinessModel
-    , xisSession : XisApi.Session Msg
-    }
-  )
+  { a
+  ------------------------------------
+  | mdl : Material.Model
+  , flags : Flags
+  , sceneStack : Nonempty Scene
+  ------------------------------------
+  , currTime : PointInTime
+  , timeSheetPt1Model : TimeSheetPt1Model
+  , xisSession : XisApi.Session Msg
+  }
 
 
 type alias TimeSheetPt1Model =
-  { oldBusinessItem : Maybe OldBusinessItem
+  ---------- Req'd Args:
+  { tcw : Maybe TaskClaimWork
+  ---------- Other State:
   , hrsWorked : Maybe Int
   , minsWorked : Maybe Int
   , badNews : List String
@@ -67,7 +69,9 @@ type alias TimeSheetPt1Model =
 init : Flags -> (TimeSheetPt1Model, Cmd Msg)
 init flags =
   let sceneModel =
-    { oldBusinessItem = Nothing
+    ------------ Req'd Args:
+    { tcw = Nothing
+    ------------ Other State:
     , hrsWorked = Nothing
     , minsWorked = Nothing
     , badNews = []
@@ -83,7 +87,7 @@ sceneWillAppear : KioskModel a -> Scene -> Scene -> (TimeSheetPt1Model, Cmd Msg)
 sceneWillAppear kioskModel appearing vanishing =
   let
     sceneModel = kioskModel.timeSheetPt1Model
-    selectedItem = kioskModel.oldBusinessModel.selectedItem
+    selectedItem = sceneModel.tcw
 
   in case (appearing, vanishing, selectedItem) of
 
@@ -91,7 +95,7 @@ sceneWillAppear kioskModel appearing vanishing =
     -- dealing with a different T/C/W item when we get here. So reset this scene's state.
     (OldBusiness, _, _) ->
       ( { sceneModel
-        | oldBusinessItem = Nothing
+        | tcw = Nothing
         , hrsWorked = Nothing
         , minsWorked = Nothing
         }
@@ -100,7 +104,7 @@ sceneWillAppear kioskModel appearing vanishing =
 
     (TimeSheetPt1, OldBusiness, Just _) ->
       ( { sceneModel
-        | oldBusinessItem = selectedItem
+        | tcw = selectedItem
         }
       , Cmd.none
       )
@@ -125,6 +129,11 @@ update msg kioskModel =
 
   in case msg of
 
+    TS1_Segue tcw ->
+      ( {sceneModel | tcw = Just tcw}
+      , send <| WizardVector <| Push <| TimeSheetPt1
+      )
+
     TS1_Submit task claim work ->
       let
         chooseHr = "Must choose an hour value."
@@ -145,12 +154,10 @@ update msg kioskModel =
             let
               dur = Time.hour * (toFloat hrs) + Time.minute * (toFloat mins)
               revisedWork = XisApi.setWorksDuration (Just dur) work
+              tcw = TaskClaimWork task claim revisedWork
             in
-              ( { sceneModel
-                | oldBusinessItem=Just (OldBusinessItem task claim revisedWork)
-                , badNews=[]
-                }
-              , segueTo TimeSheetPt2
+              ( { sceneModel | tcw = Just tcw, badNews = []}
+              , send <| TimeSheetPt2Vector <| TS2_Segue tcw
               )
 
     TS1_HrPad hr ->
@@ -169,21 +176,21 @@ view kioskModel =
   let
     sceneModel = kioskModel.timeSheetPt1Model
   in
-    case (sceneModel.oldBusinessItem) of
+    case (sceneModel.tcw) of
 
       Just {task, claim, work} ->
         normalView kioskModel task claim work
 
       Nothing ->
-        failedView kioskModel "Sorry, but something went wrong."
+        errorView kioskModel "Sorry, but something went wrong."
 
 
 normalView : KioskModel a -> XisApi.Task -> XisApi.Claim -> XisApi.Work -> Html Msg
 normalView kioskModel task claim work =
   let
     sceneModel = kioskModel.timeSheetPt1Model
-    dateStr = CalendarDate.format "%a, %b %ddd" work.data.workDate
     today = PointInTime.toCalendarDate kioskModel.currTime
+    workedToday = CalendarDate.equal today work.data.workDate
     hrButton h =
       td []
         [ padButton kioskModel
@@ -209,15 +216,7 @@ normalView kioskModel task claim work =
 
       ( div []
         [ vspace 50
-        , div [infoToVerifyStyle]
-            [ text ("Task: \"" ++ task.data.shortDesc ++ "\"")
-            , vspace 20
-            , text ("Date: " ++ dateStr)
-            ]
-        , if CalendarDate.equal today work.data.workDate then
-            vspace 0
-          else
-            span [pastWorkStyle] [vspace 5, text "(Note: This work was done in the past)"]
+        , infoDiv kioskModel.currTime task claim work Nothing
         , vspace 60
         , table [padStyle]
           [ tr [padHeaderStyle] [ td [colspan 3] [text "Hours"], td [] [text "&"], td [colspan 3] [text "Minutes"] ]
@@ -232,22 +231,10 @@ normalView kioskModel task claim work =
 
       sceneModel.badNews
 
-failedView : KioskModel a -> String -> Html Msg
-failedView kioskModel error =
-  let
-    sceneModel = kioskModel.timeSheetPt1Model
-  in
-    genericScene kioskModel
-      "Volunteer Timesheet"
-      "ERROR"
-      (text "")
-      [] -- no buttons
-      [error]
 
 -----------------------------------------------------------------------------
 -- STYLES
 -----------------------------------------------------------------------------
-
 
 padStyle = style
   [ "border-spacing" => px 10
@@ -263,14 +250,4 @@ padHeaderStyle = style
 pastWorkStyle = style
   [ "color" => "red"
   , "font-size" => pt 16
-  ]
-
-infoToVerifyStyle = style
-  [ "display" => "inline-block"
-  , "padding" => px 20
-  , "background" => textAreaColor
-  , "border-width" => px 1
-  , "border-color" => "black"
-  --Cou, "border-style" => "solid"
-  , "border-radius" => px 10
   ]

@@ -484,9 +484,6 @@ class VisitEvent(models.Model):
         default=None, null=True, blank=True,
         help_text="The reason for a visit. Not used on Departures.")
 
-    sync1 = models.BooleanField(default=False,
-        help_text="True if this event has been sync'ed to 'other system #1'")
-
     def debounced(self) -> bool:
         """
         RFID checkin systems may fire multiple times. Skip checkin if "too close" to the prev checkin time.
@@ -510,7 +507,9 @@ class VisitEvent(models.Model):
 
     class Meta:
         ordering = ['when']
-        unique_together = ('who', 'when')
+        # Present & Arriving or Present & Departing may be created at same time.
+        # So I'm removing the uniqueness constraint:
+        # unique_together = ('who', 'when')
 
 
 class WifiMacDetected(models.Model):
@@ -893,24 +892,32 @@ class HourlyMembershipEntry(models.Model):
         on_delete=models.CASCADE,  # If the member is deleted, any record of their free hours is uninteresting.
         help_text="The member whose balance is changing.")
 
-    when = models.DateTimeField(null=False,
-        blank=False, default=timezone.now,
+    when = models.DateTimeField(null=False, blank=False,
+        default=timezone.now,
         help_text="Date/time of the change.")
+
+    expires = models.DateTimeField(null=True, blank=True,
+        default=None,
+        help_text="For credits, the OPTIONAL date on which it expires.")
 
     change = models.DecimalField(max_digits=4, decimal_places=2,
         null=False, blank=False,
         help_text="The amount added (positive) or deleted (negative).")
 
     class Meta:
-        unique_together = ['member', 'when']
         ordering = ['when']
 
     def __str__(self) -> str:
-        return "{} hrs added to {}".format(self.change, self.member.friendly_name)
+        change_str = "added to" if self.change > Decimal("0") else "removed from"
+        return "{} hrs {} {}".format(self.change, change_str, self.member.username)
 
     @property
     def balance(self) -> Decimal:
-        log = HourlyMembershipEntry.objects.filter(member=self.member, when__lte=self.when)
+        log = HourlyMembershipEntry.objects.filter(
+            member=self.member,
+            when__lte=self.when,
+            # expires__gt=self.effective No, we'll add an explicit Entry to reverse it.
+        )
         balance = log.aggregate(models.Sum('change'))['change__sum']
         return balance
 

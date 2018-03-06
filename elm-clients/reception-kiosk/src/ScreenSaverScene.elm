@@ -1,11 +1,13 @@
 
 module ScreenSaverScene exposing
   ( init
+  , rfidWasSwiped
   , sceneWillAppear
-  , update
   , tick
+  , update
   , view
   , subscriptions
+  -------------------
   , ScreenSaverModel
   )
 
@@ -19,12 +21,14 @@ import Char
 
 
 -- Third Party
+import Material
+import List.Nonempty exposing (Nonempty)
 
 -- Local
 import Wizard.SceneUtils exposing (..)
 import Types exposing (..)
 import XisRestApi as XisApi exposing (..)
-import CheckInScene exposing (CheckInModel)
+
 
 -----------------------------------------------------------------------------
 -- CONSTANTS
@@ -35,31 +39,27 @@ import CheckInScene exposing (CheckInModel)
 -- INIT
 -----------------------------------------------------------------------------
 
-type ScreenSaverState
-  = Normal
-  | CheckingRfid
-  | UnknownRfid
+-- This type alias describes the type of kiosk model that this scene requires.
+type alias KioskModel a =
+  { a
+  ------------------------------------
+  | mdl : Material.Model
+  , flags : Flags
+  , sceneStack : Nonempty Scene
+  ------------------------------------
+  , screenSaverModel : ScreenSaverModel
+  }
+
 
 type alias ScreenSaverModel =
-  { state : ScreenSaverState
-  , charsTyped : List Char
-  , idleSeconds : Int
+  { idleSeconds : Int
   , badNews : List String
   }
 
--- This type alias describes the type of kiosk model that this scene requires.
-type alias KioskModel a = SceneUtilModel
-  { a
-  | screenSaverModel : ScreenSaverModel
-  , checkInModel : CheckInModel
-  , xisSession : XisApi.Session Msg
-  }
 
 init : Flags -> (ScreenSaverModel, Cmd Msg)
 init flags =
-  ( { state = Normal
-    , idleSeconds = 0
-    , charsTyped = []
+  ( { idleSeconds = 0
     , badNews = []
     }
     ,
@@ -77,7 +77,7 @@ sceneWillAppear kioskModel appearingScene =
     sceneModel = kioskModel.screenSaverModel
   in
     if appearingScene == ScreenSaver then
-      ({sceneModel | charsTyped = []}, hideKeyboard ())
+      ({sceneModel | idleSeconds=0}, hideKeyboard ())
     else
       ({sceneModel | idleSeconds=0}, Cmd.none)
 
@@ -104,56 +104,17 @@ update msg kioskModel =
         ({sceneModel | idleSeconds=0}, Cmd.none)
 
     SS_KeyDown code ->
-      let
-        prevChars = sceneModel.charsTyped
-      in
-        if amVisible then
-          case code of
-            219 ->
-              -- RFID reader is beginning to send a card number, so clear our buffer.
-              ({sceneModel | charsTyped=[]}, Cmd.none)
-            221 ->
-              -- RFID reader is done sending the card number, so process our buffer.
-              handleRfid kioskModel
-            32 ->
-              -- Spacebar
-              (sceneModel, segueTo Welcome)
-            c ->
-              if c>=48 && c<=57 then
-                -- A digit, presumably in the RFID's number. '0' = code 48, '9' = code 57.
-                ({sceneModel | charsTyped = Char.fromCode c :: prevChars }, Cmd.none)
-              else
-                -- Unexpected code.
-                (sceneModel, Cmd.none)
-        else
-          -- It's a key down on some other scene, so reset idle time.
-          ({sceneModel | idleSeconds=0}, Cmd.none)
-
-    SS_MemberListResult (Ok {results}) ->
-      let
-        checkInModel = kioskModel.checkInModel
-        member = List.head results
-      in
-        case member of
-          Just m -> (sceneModel, CheckInShortcut m |> CheckInVector |> send)
-          Nothing -> (sceneModel, Cmd.none)
-
-    SS_MemberListResult (Err error) ->
-      ({sceneModel | state=UnknownRfid, badNews=[toString error]}, Cmd.none)
-
-
-handleRfid : KioskModel a -> (ScreenSaverModel, Cmd Msg)
-handleRfid kioskModel =
-  let
-    sceneModel = kioskModel.screenSaverModel
-    rfidNumber = List.reverse sceneModel.charsTyped |> String.fromList |> String.toInt
-    filter = Result.map RfidNumberEquals rfidNumber
-    resultHandler = ScreenSaverVector << SS_MemberListResult
-    cmd = case filter of
-      Ok f -> kioskModel.xisSession.listMembers [f] resultHandler
-      Err err -> Cmd.none
-  in
-    ({sceneModel | state=CheckingRfid}, cmd)
+      if amVisible then
+        case code of  -- REVIEW: Maybe allow any keystroke?
+          32 ->
+            -- Spacebar
+            (sceneModel, segueTo Welcome)
+          _ ->
+            -- Uninteresting code
+            (sceneModel, Cmd.none)
+      else
+        -- It's a key down on some other scene, so reset idle time.
+        ({sceneModel | idleSeconds=0}, Cmd.none)
 
 
 -----------------------------------------------------------------------------
@@ -169,21 +130,24 @@ timeoutFor scene =
     CheckOutDone -> 5
     CreatingAcct -> 300
     EmailInUse -> 300
+    Error -> 600
     HowDidYouHear -> 300
     MembersOnly -> 300
     NewMember -> 600
     NewUser -> 600
     OldBusiness -> 300
     ReasonForVisit -> 300
+    RfidHelper -> 600
     ScreenSaver -> 86400
     SignUpDone -> 300
     TaskList -> 300
     TimeSheetPt1 -> 300
-    TimeSheetPt2 -> 300
+    TimeSheetPt2 -> 600  -- Give them time to type a description, get distracted, and continue.
     TimeSheetPt3 -> 600  -- Give them some time to find a staffer.
     TaskInfo -> 600  -- There may be a lot to read in the instructions.
     Waiver -> 600
     Welcome -> 60
+    WelcomeForRfid -> 60
 
 
 tick : Time -> KioskModel a -> (ScreenSaverModel, Cmd Msg)
@@ -204,31 +168,19 @@ tick time kioskModel =
 
 view : KioskModel a -> Html Msg
 view kioskModel =
-  let
-    sceneModel = kioskModel.screenSaverModel
-    (msg1, msg2, msg3) = case sceneModel.state of
-      Normal -> ("Welcome!", "All Visitors Must Sign In", "Tap Spacebar or Screen to Start")
-      CheckingRfid -> ("RFID Detected!", "One Moment Please", "We're looking up your details")
-      UnknownRfid -> ("Uh Oh!", "RFID was not recognized", "Please let a staffer know")
-    beep =
-      if sceneModel.state == CheckingRfid then
-        audio [src "/static/members/beep-22.mp3", autoplay True] []
-      else
-        text ""
-  in  genericScene kioskModel
+  genericScene kioskModel
     ""
     ""
     (div []
       [ vspace 20
-      -- TODO: Do I want to pass all imgs in as flags, as was done with banners?
+      -- REVIEW: Do I want to pass all imgs in as flags, as was done with banners?
       , img [src kioskModel.flags.wavingHandUrl, logoImgStyle] []
       , vspace 20
-      , h1 [h1Style] [text msg1]
+      , h1 [h1Style] [text "Welcome!"]
       , vspace 0
-      , h1 [h1Style] [text msg2]
+      , h1 [h1Style] [text "All Visitors Must Sign In"]
       , vspace 30
-      , h2 [h2Style] [text msg3]
-      , beep
+      , h2 [h2Style] [text "Tap Spacebar or Screen to Start"]
       ]
     )
     []
@@ -245,6 +197,17 @@ subscriptions model =
     [ Mouse.clicks (\_ -> (ScreenSaverVector <| SS_MouseClick))
     , Keyboard.downs (ScreenSaverVector << SS_KeyDown)
     ]
+
+
+-----------------------------------------------------------------------------
+-- RFID WAS SWIPED
+-----------------------------------------------------------------------------
+
+rfidWasSwiped : KioskModel a -> Result String Member -> (ScreenSaverModel, Cmd Msg)
+rfidWasSwiped kioskModel result =
+  case result of
+    Ok m -> (kioskModel.screenSaverModel, send <| WelcomeForRfidVector <| W4R_Segue m)
+    Err e -> (kioskModel.screenSaverModel, Cmd.none)
 
 
 -----------------------------------------------------------------------------

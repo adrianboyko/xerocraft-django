@@ -16,6 +16,8 @@ import Time exposing (Time)
 
 -- Third Party
 import String.Extra exposing (..)
+import List.Nonempty exposing (Nonempty)
+import Material
 
 -- Local
 import MembersApi as MembersApi
@@ -32,32 +34,69 @@ import HowDidYouHearScene exposing (HowDidYouHearModel)
 -- INIT
 -----------------------------------------------------------------------------
 
-type alias CreatingAcctModel =
-  { waitCount: Int
-  , badNews : List String
-  }
-
 -- This type alias describes the type of kiosk model that this scene requires.
 type alias KioskModel a =
-  (SceneUtilModel
-    { a
-    | creatingAcctModel : CreatingAcctModel
-    , howDidYouHearModel : HowDidYouHearModel
-    , newMemberModel : NewMemberModel
-    , newUserModel: NewUserModel
-    , howDidYouHearModel: HowDidYouHearModel
-    , waiverModel : WaiverModel
-    , membersApi : MembersApi.Session Msg
-    }
-  )
+  { a
+  ------------------------------------
+  | mdl : Material.Model
+  , flags : Flags
+  , sceneStack : Nonempty Scene
+  ------------------------------------
+  , creatingAcctModel : CreatingAcctModel
+  , membersApi : MembersApi.Session Msg
+  }
+
+
+type alias CreatingAcctModel =
+  ------------ REQ'D ARGS:
+  { methods : Maybe (List Int)
+  , firstName : Maybe String
+  , lastName : Maybe String
+  , email : Maybe String
+  , isAdult : Maybe Bool
+  , userName : Maybe String
+  , password : Maybe String
+  , signature : Maybe String
+  ------------ OTHER STATE:
+  , waitCount : Int
+  , badNews : List String
+  }
 
 init : Flags -> (CreatingAcctModel, Cmd Msg)
 init flags =
   let sceneModel =
-    { waitCount = 0
+    ------------------ We start with no args:
+    { methods = Nothing
+    , firstName = Nothing
+    , lastName = Nothing
+    , email = Nothing
+    , isAdult = Nothing
+    , userName = Nothing
+    , password = Nothing
+    , signature = Nothing
+    ---------------------- Other state:
+    , waitCount = 0
     , badNews = []
     }
   in (sceneModel, Cmd.none)
+
+
+-----------------------------------------------------------------------------
+-- ARG HELPERS
+-----------------------------------------------------------------------------
+
+-- Pulls the arguments from the rest of the model.
+args m =
+  ( m.methods
+  , m.firstName
+  , m.lastName
+  , m.email
+  , m.isAdult
+  , m.userName
+  , m.password
+  , m.signature
+  )
+
 
 -----------------------------------------------------------------------------
 -- SCENE WILL APPEAR
@@ -65,24 +104,25 @@ init flags =
 
 sceneWillAppear : KioskModel a -> Scene -> (CreatingAcctModel, Cmd Msg)
 sceneWillAppear kioskModel appearingScene =
-  if appearingScene == CreatingAcct
-    then
-      let
-        memberModel = kioskModel.newMemberModel
-        userModel = kioskModel.newUserModel
-        waiverModel = kioskModel.waiverModel
-        fullName = String.join " " [memberModel.firstName, memberModel.lastName]
-        cmd = kioskModel.membersApi.createNewAcct
-          fullName
-          userModel.userName
-          memberModel.email
-          userModel.password1
-          waiverModel.signature
-          (CreatingAcctVector << XcAcctCreationAttempted)
-      in
-        (kioskModel.creatingAcctModel, cmd)
+  let
+    sceneModel = kioskModel.creatingAcctModel
+  in
+    if appearingScene == CreatingAcct then
+      case args sceneModel of
+        (Just _, Just fname, Just lname, Just email, Just _, Just uname, Just pw, Just sig) ->
+          let
+            fullName = String.join " " [fname, lname]
+            cmd = kioskModel.membersApi.createNewAcct
+              fullName uname email pw sig
+              (CreatingAcctVector << XcAcctCreationAttempted)
+          in
+            (sceneModel, cmd)
+
+        (_, _, _, _, _, _, _, _) ->
+          (sceneModel, send <| ErrorVector <| ERR_Segue missingArguments)
+
     else
-      (kioskModel.creatingAcctModel, Cmd.none)
+      (sceneModel, Cmd.none)
 
 
 -----------------------------------------------------------------------------
@@ -94,11 +134,23 @@ update msg kioskModel =
 
   let
     sceneModel = kioskModel.creatingAcctModel
-    newMemberModel = kioskModel.newMemberModel
-    newUserModel = kioskModel.newUserModel
-    howDidYouHearModel = kioskModel.howDidYouHearModel
 
   in case msg of
+
+    CA_Segue (methods, fname, lname, email, adult, uname, pw, sig) ->
+
+      ( { sceneModel
+        | methods = Just methods
+        , firstName = Just fname
+        , lastName = Just lname
+        , email = Just email
+        , isAdult = Just adult
+        , userName = Just uname
+        , password = Just pw
+        , signature = Just sig
+        }
+      , send <| WizardVector <| Push <| CreatingAcct
+      )
 
     XcAcctCreationAttempted (Ok htmlResponseBody) ->
       let
@@ -118,13 +170,15 @@ update msg kioskModel =
           "You have successfully registered your check in! Welcome to Xerocraft!" ->
             -- This is the result we wanted. Account creation was successful.
             let
-              sceneModel = kioskModel.creatingAcctModel
-              userModel = kioskModel.newUserModel
               flags = kioskModel.flags
               cloneFn = XcApi.cloneAcctToXis flags.cloneAcctUrl flags.csrfToken
               resultToMsg = CreatingAcctVector << CloneAttempted
             in
-              ({sceneModel | badNews=[]}, cloneFn userModel.userName userModel.password1 resultToMsg)
+              case args sceneModel of
+                (Just _, Just _, Just _, Just _, Just _, Just uname, Just pw, Just _) ->
+                  ({sceneModel | badNews=[]}, cloneFn uname pw resultToMsg)
+                _ ->
+                  (sceneModel, send <| ErrorVector <| ERR_Segue missingArguments)
 
           "" ->
             -- Couldn't find a message so dump the entire response body as a debugging aid.
@@ -172,22 +226,24 @@ update msg kioskModel =
 
 infoToXisAcct : KioskModel a -> Cmd Msg
 infoToXisAcct kioskModel =
-  let
-    sceneModel = kioskModel.creatingAcctModel
-    memberModel = kioskModel.newMemberModel
-    userModel = kioskModel.newUserModel
-    howDidYouHearModel = kioskModel.howDidYouHearModel
-    membersApi = kioskModel.membersApi
-    -- TODO: Change setIsAdult to setMemberInfo and also pass fname, lname, and email.
-    setIsAdult = membersApi.setIsAdult userModel.userName userModel.password1
-    isAdultVal = Maybe.withDefault False memberModel.isAdult  -- Can't be Nothing at this point in program. "False" is the safest default if this assertion fails.
-    addMethods = membersApi.addDiscoveryMethods userModel.userName userModel.password1
-  in
-    Cmd.batch
-      [ segueTo SignUpDone
-      , setIsAdult isAdultVal (CreatingAcctVector << IsAdultWasSet)
-      , addMethods howDidYouHearModel.selectedMethodPks (CreatingAcctVector << DiscoveryMethodAdded)
-      ]
+  case args kioskModel.creatingAcctModel of
+    (Just methods, Just _, Just _, Just _, Just adult, Just uname, Just pw, Just _) ->
+      let
+        sceneModel = kioskModel.creatingAcctModel
+        membersApi = kioskModel.membersApi
+        -- TODO?: Change setIsAdult to setMemberInfo and also pass fname, lname, and email.
+        setIsAdultCmd =
+          membersApi.setIsAdult uname pw adult
+          (CreatingAcctVector << IsAdultWasSet)
+        addMethodsCmd =
+          membersApi.addDiscoveryMethods uname pw  methods
+          (CreatingAcctVector << DiscoveryMethodAdded)
+        segueCmd = send <| SignUpDoneVector <| SUD_Segue uname
+      in
+        Cmd.batch [segueCmd, setIsAdultCmd, addMethodsCmd]
+    _ ->
+      send <| ErrorVector <| ERR_Segue missingArguments
+
 
 -----------------------------------------------------------------------------
 -- VIEW

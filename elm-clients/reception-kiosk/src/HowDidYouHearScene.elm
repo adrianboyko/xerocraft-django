@@ -9,9 +9,11 @@ import Random
 import List.Extra as ListX
 
 -- Third Party
+import Material
 import Material.Toggles as Toggles
 import Material.Options as Options exposing (css)
 import Random.List
+import List.Nonempty exposing (Nonempty)
 
 -- Local
 import Wizard.SceneUtils exposing (..)
@@ -25,12 +27,15 @@ import XisRestApi as XisApi
 
 -- This type alias describes the type of kiosk model that this scene requires.
 type alias KioskModel a =
-  ( SceneUtilModel
-    { a
-    | howDidYouHearModel : HowDidYouHearModel
-    , xisSession : XisApi.Session Msg
-    }
-  )
+  { a
+  ------------------------------------
+  | mdl : Material.Model
+  , flags : Flags
+  , sceneStack : Nonempty Scene
+  ------------------------------------
+  , howDidYouHearModel : HowDidYouHearModel
+  , xisSession : XisApi.Session Msg
+  }
 
 
 type alias HowDidYouHearModel =
@@ -117,6 +122,12 @@ update msg kioskModel =
       in
         ({sceneModel | selectedMethodPks=newSelectedMethodPks}, Cmd.none)
 
+    OkClicked ->
+      ( sceneModel
+      , send <| NewMemberVector <| NM_Segue sceneModel.selectedMethodPks
+      )
+
+
 
 -----------------------------------------------------------------------------
 -- VIEW
@@ -129,7 +140,7 @@ view kioskModel =
     "Just Wondering"
     "How did you hear about us?"
     (howDidYouHearChoices kioskModel)
-    [ButtonSpec "OK" (WizardVector <| Push <| NewMember) True]
+    [ButtonSpec "OK" (HowDidYouHearVector OkClicked) True]
     sceneModel.badNews
 
 howDidYouHearChoices : KioskModel a -> Html Msg

@@ -14,7 +14,8 @@ import Html.Attributes exposing (..)
 import Regex exposing (regex)
 
 -- Third Party
-import String.Extra exposing (..)
+import Material
+import List.Nonempty exposing (Nonempty)
 
 -- Local
 import Wizard.SceneUtils exposing (..)
@@ -24,28 +25,64 @@ import Types exposing (..)
 -- INIT
 -----------------------------------------------------------------------------
 
+-- These type aliases describes the type of kiosk model that this scene requires.
+type alias KioskModel a =
+  { a
+  ------------------------------------
+  | mdl : Material.Model
+  , flags : Flags
+  , sceneStack : Nonempty Scene
+  ------------------------------------
+  , waiverModel : WaiverModel
+  }
+
+
 type alias WaiverModel =
-  { isSigning : Bool
+  ------------ REQ'D ARGS:
+  { methods : Maybe (List Int)
+  , firstName : Maybe String
+  , lastName : Maybe String
+  , email : Maybe String
+  , isAdult : Maybe Bool
+  , userName : Maybe String
+  , password : Maybe String
+  ------------ OTHER STATE:
+  , isSigning : Bool
   , signature : String  -- This is a data URL
   , badNews : List String
   }
 
--- These type aliases describes the type of kiosk model that this scene requires.
-type alias KioskModel a =
-  (SceneUtilModel
-    { a
-    | waiverModel : WaiverModel
-    }
+
+-- The args we need from the previous scene, pulled from the scene model.
+-- Many of these are required only so we can push them to the next scene.
+args m =
+  ( m.methods
+  , m.firstName
+  , m.lastName
+  , m.email
+  , m.isAdult
+  , m.userName
+  , m.password
   )
 
 init : Flags -> (WaiverModel, Cmd Msg)
 init flags =
   let sceneModel =
-    { isSigning = False
+    ------------ We start with no args. They come in through SEGUE
+    { methods = Nothing
+    , firstName = Nothing
+    , lastName = Nothing
+    , email = Nothing
+    , isAdult = Nothing
+    , userName = Nothing
+    , password = Nothing
+    ------------ Other state:
+    , isSigning = False
     , signature = ""
     , badNews = []
     }
   in (sceneModel, Cmd.none)
+
 
 -----------------------------------------------------------------------------
 -- PORTS
@@ -78,6 +115,19 @@ update msg kioskModel =
   let sceneModel = kioskModel.waiverModel
   in case msg of
 
+    WVR_Segue (methods, fname, lname, email, adult, uname, pw) ->
+      ( { sceneModel
+        | methods = Just methods
+        , firstName = Just fname
+        , lastName = Just lname
+        , email = Just email
+        , isAdult = Just adult
+        , userName = Just uname
+        , password = Just pw
+        }
+      , send <| WizardVector <| Push <| Waiver
+      )
+
     ShowSignaturePad canvasId ->
       ({sceneModel | isSigning=True}, initSignaturePad (canvasId, sceneModel.signature))
 
@@ -88,7 +138,19 @@ update msg kioskModel =
       (sceneModel, sendSignatureImage "image/png")
 
     UpdateSignature dataUrl ->
-      ({sceneModel | signature = dataUrl}, segueTo CreatingAcct)
+      case args sceneModel of
+
+        (Just wdyh, Just fn, Just ln, Just email, Just adult, Just uname, Just pw) ->
+          ( {sceneModel | signature = dataUrl}
+          , send
+              <| CreatingAcctVector
+              <| CA_Segue (wdyh, fn, ln, email, adult, uname, pw, dataUrl)
+          )
+
+        _ ->
+          ( {sceneModel | signature = dataUrl}
+          , send <| ErrorVector <| ERR_Segue missingArguments
+          )
 
 
 -----------------------------------------------------------------------------

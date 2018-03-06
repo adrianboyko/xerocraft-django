@@ -21,12 +21,14 @@ import CheckOutScene
 import CheckOutDoneScene
 import CreatingAcctScene
 import EmailInUseScene
+import ErrorScene
 import HowDidYouHearScene
 import MembersOnlyScene
 import NewMemberScene
 import NewUserScene
 import OldBusinessScene
 import ReasonForVisitScene
+import RfidHelper
 import ScreenSaverScene
 import SignUpDoneScene
 import TaskListScene
@@ -35,11 +37,13 @@ import TimeSheetPt2Scene
 import TimeSheetPt3Scene
 import TaskInfoScene
 import WaiverScene
+import WelcomeForRfidScene
 import WelcomeScene
 
 import DjangoRestFramework as DRF
 import XisRestApi as XisApi
 import MembersApi as MembersApi
+import Duration exposing (Duration)
 
 
 -----------------------------------------------------------------------------
@@ -79,6 +83,7 @@ port focusWasSet : (Bool -> msg) -> Sub msg
 type alias Model =
   { flags : Flags
   , currTime : Time
+  , timeShift : Duration  -- For testing. Will always be 0 unless server is on dev host.
   , sceneStack : Nonempty Scene -- 1st element is the top of the stack
   , idxToFocus : Maybe (List Int)  -- Can't use Material.Component.Index (https://github.com/debois/elm-mdl/issues/342)
   -- elm-mdl model:
@@ -86,6 +91,8 @@ type alias Model =
   -- api models:
   , xisSession : XisApi.Session Msg
   , membersApi : MembersApi.Session Msg
+  -- rfid helper model:
+  , rfidHelperModel : RfidHelper.RfidHelperModel
   -- Scene models:
   , checkInModel         : CheckInScene.CheckInModel
   , checkInDoneModel     : CheckInDoneScene.CheckInDoneModel
@@ -93,6 +100,7 @@ type alias Model =
   , checkOutDoneModel    : CheckOutDoneScene.CheckOutDoneModel
   , creatingAcctModel    : CreatingAcctScene.CreatingAcctModel
   , emailInUseModel      : EmailInUseScene.EmailInUseModel
+  , errorModel           : ErrorScene.ErrorModel
   , howDidYouHearModel   : HowDidYouHearScene.HowDidYouHearModel
   , membersOnlyModel     : MembersOnlyScene.MembersOnlyModel
   , screenSaverModel     : ScreenSaverScene.ScreenSaverModel
@@ -107,6 +115,7 @@ type alias Model =
   , timeSheetPt2Model    : TimeSheetPt2Scene.TimeSheetPt2Model
   , timeSheetPt3Model    : TimeSheetPt3Scene.TimeSheetPt3Model
   , waiverModel          : WaiverScene.WaiverModel
+  , welcomeForRfidModel  : WelcomeForRfidScene.WelcomeForRfidModel
   , welcomeModel         : WelcomeScene.WelcomeModel
   }
 
@@ -119,6 +128,7 @@ init f =
     (checkOutDoneModel,    checkOutDoneCmd   ) = CheckOutDoneScene.init    f
     (creatingAcctModel,    creatingAcctCmd   ) = CreatingAcctScene.init    f
     (emailInUseModel,      emailInUseCmd     ) = EmailInUseScene.init      f
+    (errorModel,           errorCmd          ) = ErrorScene.init           f
     (howDidYouHearModel,   howDidYouHearCmd  ) = HowDidYouHearScene.init   f
     (membersOnlyModel,     membersOnlyCmd    ) = MembersOnlyScene.init     f
     (newMemberModel,       newMemberCmd      ) = NewMemberScene.init       f
@@ -133,15 +143,18 @@ init f =
     (timeSheetPt2Model,    timeSheetPt2Cmd   ) = TimeSheetPt2Scene.init    f
     (timeSheetPt3Model,    timeSheetPt3Cmd   ) = TimeSheetPt3Scene.init    f
     (waiverModel,          waiverCmd         ) = WaiverScene.init          f
+    (welcomeForRfidModel,  welcomeForRfidCmd ) = WelcomeForRfidScene.init  f
     (welcomeModel,         welcomeCmd        ) = WelcomeScene.init         f
     model =
       { flags = f
       , currTime = 0
+      , timeShift = f.timeShift
       , sceneStack = Nonempty.fromElement ScreenSaver
       , idxToFocus = Nothing
       , mdl = Material.model
       , xisSession = XisApi.createSession f.xisApiFlags (DRF.Token f.uniqueKioskId)
       , membersApi = MembersApi.createSession f.membersApiFlags
+      , rfidHelperModel = RfidHelper.create RfidWasSwiped
       -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
       , checkInModel         = checkInModel
       , checkInDoneModel     = checkInDoneModel
@@ -149,6 +162,7 @@ init f =
       , checkOutDoneModel    = checkOutDoneModel
       , creatingAcctModel    = creatingAcctModel
       , emailInUseModel      = emailInUseModel
+      , errorModel           = errorModel
       , howDidYouHearModel   = howDidYouHearModel
       , membersOnlyModel     = membersOnlyModel
       , newMemberModel       = newMemberModel
@@ -163,6 +177,7 @@ init f =
       , timeSheetPt2Model    = timeSheetPt2Model
       , timeSheetPt3Model    = timeSheetPt3Model
       , waiverModel          = waiverModel
+      , welcomeForRfidModel  = welcomeForRfidModel
       , welcomeModel         = welcomeModel
       }
     cmds =
@@ -172,6 +187,7 @@ init f =
       , checkOutDoneCmd
       , creatingAcctCmd
       , emailInUseCmd
+      , errorCmd
       , howDidYouHearCmd
       , membersOnlyCmd
       , newMemberCmd
@@ -184,6 +200,7 @@ init f =
       , timeSheetPt2Cmd
       , timeSheetPt3Cmd
       , waiverCmd
+      , welcomeForRfidCmd
       , welcomeCmd
       ]
   in
@@ -207,6 +224,34 @@ reset m =
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
+
+    NoOp ->
+      (model, Cmd.none)
+
+    RfidWasSwiped result ->
+      case Nonempty.head model.sceneStack of
+
+        ScreenSaver ->
+          let (newMod, cmd) = ScreenSaverScene.rfidWasSwiped model result
+          in ({model | screenSaverModel = newMod}, cmd)
+
+        CheckIn ->
+          let (newMod, cmd) = CheckInScene.rfidWasSwiped model result
+          in ({model | checkInModel = newMod}, cmd)
+
+        CheckOut ->
+          let (newMod, cmd) = CheckOutScene.rfidWasSwiped model result
+          in ({model | checkOutModel = newMod}, cmd)
+
+        TimeSheetPt3 ->
+          let (newMod, cmd) = TimeSheetPt3Scene.rfidWasSwiped model result
+          in ({model | timeSheetPt3Model = newMod}, cmd)
+
+        _ -> (model, Cmd.none)
+
+    RfidHelperVector msg ->
+      let (rhMod, rhCmd) = RfidHelper.update msg model
+      in ({model | rfidHelperModel=rhMod }, rhCmd)
 
     WizardVector wizMsg ->
       let currScene = Nonempty.head model.sceneStack
@@ -274,6 +319,7 @@ update msg model =
             (mCO,  cCO)  = CheckOutScene.sceneWillAppear model appearing
             (mCOD, cCOD) = CheckOutDoneScene.sceneWillAppear model appearing vanishing
             (mCA,  cCA)  = CreatingAcctScene.sceneWillAppear model appearing
+            (mERR, cERR) = ErrorScene.sceneWillAppear model appearing vanishing
             (mHD,  cHD)  = HowDidYouHearScene.sceneWillAppear model appearing
             (mMO,  cMO)  = MembersOnlyScene.sceneWillAppear model appearing
             (mNM,  cNM)  = NewMemberScene.sceneWillAppear model appearing
@@ -295,6 +341,7 @@ update msg model =
               , checkOutModel = mCO
               , checkOutDoneModel = mCOD
               , creatingAcctModel = mCA
+              , errorModel = mERR
               , howDidYouHearModel = mHD
               , membersOnlyModel = mMO
               , newMemberModel = mNM
@@ -312,7 +359,7 @@ update msg model =
           in
             (newModel, Cmd.batch
               -- REVIEW: It's too easy to forget to add these.
-              [ cCI, cCO, cCOD, cCA, cHD, cMO, cNM, cNU, cOB
+              [ cCI, cCO, cCOD, cCA, cERR, cHD, cMO, cNM, cNU, cOB
               , cSS, cSUD, cTI, cTL, cTS1, cTS2, cTS3, cW
               ]
             )
@@ -324,7 +371,7 @@ update msg model =
             (mSS, cSS) = ScreenSaverScene.tick time model
             newModel =
               { model
-              | currTime = time
+              | currTime = time + model.timeShift * Duration.ticksPerSecond
               , creatingAcctModel = mCA
               , checkInModel = mCI
               , screenSaverModel = mSS
@@ -350,9 +397,17 @@ update msg model =
           else
             (model, Cmd.none)
 
+    CheckInDoneVector x ->
+      let (sm, cmd) = CheckInDoneScene.update x model
+      in ({model | checkInDoneModel = sm}, cmd)
+
     CheckInVector x ->
       let (sm, cmd) = CheckInScene.update x model
       in ({model | checkInModel = sm}, cmd)
+
+    CheckOutDoneVector x ->
+      let (sm, cmd) = CheckOutDoneScene.update x model
+      in ({model | checkOutDoneModel = sm}, cmd)
 
     CheckOutVector x ->
       let (sm, cmd) = CheckOutScene.update x model
@@ -361,6 +416,14 @@ update msg model =
     CreatingAcctVector x ->
       let (sm, cmd) = CreatingAcctScene.update x model
       in ({model | creatingAcctModel = sm}, cmd)
+
+    EmailInUseVector x ->
+      let (sm, cmd) = EmailInUseScene.update x model
+      in ({model | emailInUseModel = sm}, cmd)
+
+    ErrorVector x ->
+      let (sm, cmd) = ErrorScene.update x model
+      in ({model | errorModel = sm}, cmd)
 
     HowDidYouHearVector x ->
       let (sm, cmd) = HowDidYouHearScene.update x model
@@ -390,6 +453,14 @@ update msg model =
       let (sm, cmd) = ScreenSaverScene.update x model
       in ({model | screenSaverModel = sm}, cmd)
 
+    SignUpDoneVector x ->
+      let (sm, cmd) = SignUpDoneScene.update x model
+      in ({model | signUpDoneModel = sm}, cmd)
+
+    TaskInfoVector x ->
+      let (sm, cmd) = TaskInfoScene.update x model
+      in ({model | taskInfoModel = sm}, cmd)
+
     TaskListVector x ->
       let (sm, cmd) = TaskListScene.update x model
       in ({model | taskListModel = sm}, cmd)
@@ -410,6 +481,10 @@ update msg model =
       let (sm, cmd) = WaiverScene.update x model
       in ({model | waiverModel = sm}, cmd)
 
+    WelcomeForRfidVector x ->
+      let (sm, cmd) = WelcomeForRfidScene.update x model
+      in ({model | welcomeForRfidModel = sm}, cmd)
+
     MdlVector x ->
       Material.update MdlVector x model
 
@@ -428,12 +503,14 @@ view model =
     CheckOutDone    -> CheckOutDoneScene.view    model
     CreatingAcct    -> CreatingAcctScene.view    model
     EmailInUse      -> EmailInUseScene.view      model
+    Error           -> ErrorScene.view           model
     HowDidYouHear   -> HowDidYouHearScene.view   model
     MembersOnly     -> MembersOnlyScene.view     model
     NewMember       -> NewMemberScene.view       model
     NewUser         -> NewUserScene.view         model
     OldBusiness     -> OldBusinessScene.view     model
     ReasonForVisit  -> ReasonForVisitScene.view  model
+    RfidHelper      -> RfidHelper.view           model
     ScreenSaver     -> ScreenSaverScene.view     model
     SignUpDone      -> SignUpDoneScene.view      model
     TaskInfo        -> TaskInfoScene.view        model
@@ -442,6 +519,7 @@ view model =
     TimeSheetPt2    -> TimeSheetPt2Scene.view    model
     TimeSheetPt3    -> TimeSheetPt3Scene.view    model
     Waiver          -> WaiverScene.view          model
+    WelcomeForRfid  -> WelcomeForRfidScene.view  model
     Welcome         -> WelcomeScene.view         model
 
 
@@ -452,19 +530,20 @@ view model =
 subscriptions: Model -> Sub Msg
 subscriptions model =
   let
-    focusSetSub = focusWasSet (WizardVector << FocusWasSet)
-    timeTickSub = Time.every second (WizardVector << Tick)
+    focusSetSubs = focusWasSet (WizardVector << FocusWasSet)
+    rfidHelperSubs = RfidHelper.subscriptions
     screenSaverSubs = ScreenSaverScene.subscriptions model
-    timeSheetPt3Subs = TimeSheetPt3Scene.subscriptions model
+    timeTickSubs = Time.every second (WizardVector << Tick)
     waiverSubs = WaiverScene.subscriptions model
   in
     Sub.batch
-      [ focusSetSub
-      , timeTickSub
-      , timeSheetPt3Subs
+      [ focusSetSubs
+      , rfidHelperSubs
       , screenSaverSubs
+      , timeTickSubs
       , waiverSubs
       ]
+
 
 -----------------------------------------------------------------------------
 -- UTILITIES

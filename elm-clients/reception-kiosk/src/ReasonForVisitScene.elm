@@ -6,19 +6,21 @@ import Html exposing (Html, text, div, span)
 import Html.Attributes exposing (style)
 
 -- Third Party
+import Material
 import Material.Toggles as Toggles
 import Material.Options as Options exposing (css)
 import Material.List as Lists
+import List.Nonempty exposing (Nonempty)
 
 -- Local
 import Wizard.SceneUtils exposing (..)
 import Types exposing (..)
-import CheckInScene exposing (CheckInModel)
 import DjangoRestFramework exposing (PageOf)
 import XisRestApi as XisApi exposing
   ( VisitEventReason(..)
   , VisitEventMethod(..)
   , VisitEventType(..)
+  , Member
   )
 import PointInTime exposing (PointInTime)
 
@@ -29,25 +31,33 @@ import PointInTime exposing (PointInTime)
 
 -- This type alias describes the type of kiosk model that this scene requires.
 type alias KioskModel a =
-  (SceneUtilModel
-    { a
-    | reasonForVisitModel : ReasonForVisitModel
-    , checkInModel : CheckInModel
-    , xisSession : XisApi.Session Msg
-    , currTime : PointInTime
-    , flags : Flags
-    }
-  )
+  { a
+  ------------------------------------
+  | mdl : Material.Model
+  , flags : Flags
+  , sceneStack : Nonempty Scene
+  ------------------------------------
+  , reasonForVisitModel : ReasonForVisitModel
+  , xisSession : XisApi.Session Msg
+  , currTime : PointInTime
+  }
+
 
 type alias ReasonForVisitModel =
-  { reasonForVisit: Maybe VisitEventReason
+  { member : Maybe Member
+  -- mode is always KioskCheckIn for this scene, so it doesn't require state.
+  , reasonForVisit : Maybe VisitEventReason
   , badNews: List String
   }
 
 init : Flags -> (ReasonForVisitModel, Cmd Msg)
 init flags =
-  let sceneModel = {reasonForVisit = Nothing, badNews = []}
-  in (sceneModel, Cmd.none)
+  ( { member = Nothing
+    , reasonForVisit = Nothing
+    , badNews = []
+    }
+  , Cmd.none
+  )
 
 -----------------------------------------------------------------------------
 -- UPDATE
@@ -57,10 +67,14 @@ update : ReasonForVisitMsg -> KioskModel a -> (ReasonForVisitModel, Cmd Msg)
 update msg kioskModel =
   let
     sceneModel = kioskModel.reasonForVisitModel
-    checkInModel = kioskModel.checkInModel
     xis = kioskModel.xisSession
 
   in case msg of
+
+    R4V_Segue member ->
+      ( {sceneModel | member = Just member}
+      , send <| WizardVector <| Push <| ReasonForVisit
+      )
 
     UpdateReasonForVisit reason ->
       ({sceneModel | reasonForVisit=Just reason, badNews=[]}, Cmd.none)
@@ -72,7 +86,7 @@ update msg kioskModel =
           ({sceneModel | badNews = ["You must choose an activity type."]}, Cmd.none)
         Just reasonForVisit ->
           let
-            cmd = case checkInModel.checkedInMember of
+            cmd = case sceneModel.member of
               Just m ->
                 xis.createVisitEvent
                   { who = xis.memberUrl m.id
@@ -83,20 +97,32 @@ update msg kioskModel =
                   }
                   (ReasonForVisitVector << LogCheckInResult)
               Nothing ->
-                -- We shouldn't get to this scene without there being a checkedInMember.
-                -- If it actually happens, log a message and fake success to get us to next scene.
-                let _ = Debug.log "RFV ERROR" "No checked in member"
-                in segueTo CheckInDone  -- REVIEW: Is this the best choice?
+                send <| ErrorVector <| ERR_Segue missingArguments
           in (sceneModel, cmd)
 
     LogCheckInResult (Ok _) ->
       case sceneModel.reasonForVisit of
+
         Just VER_Volunteer ->
-          (sceneModel, segueTo TaskList)
+          ( sceneModel
+          , case sceneModel.member of
+              Just m -> send <| TaskListVector <| TL_Segue m
+              Nothing -> send <| ErrorVector <| ERR_Segue missingArguments
+          )
+
         Just VER_Member ->
-          (sceneModel, segueTo MembersOnly)
+          ( sceneModel
+          , case sceneModel.member of
+              Just m -> send <| MembersOnlyVector <| MO_Segue m
+              Nothing -> send <| ErrorVector <| ERR_Segue missingArguments
+          )
+
         _ ->
-          (sceneModel, segueTo OldBusiness)
+          ( sceneModel
+          , case sceneModel.member of
+              Just m -> send <| OldBusinessVector <| OB_SegueA (CheckInSession, m)
+              Nothing -> send <| ErrorVector <| ERR_Segue missingArguments
+          )
 
     LogCheckInResult (Err error) ->
       ({sceneModel | badNews = [toString error]}, Cmd.none)

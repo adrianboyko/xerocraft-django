@@ -21,10 +21,9 @@ urlpatterns = [
         views.reception_kiosk_spa,
         name="reception-kiosk"),
 
-    # TODO: Verify that this URL is no longer used and delete it. Reception now uses REST API.
-    url(r'^reception/matching-accts/(?P<flexid>[-a-zA-Z0-9_@+.]{1,32})/$',
-        views.reception_kiosk_matching_accts,
-        name="reception-kiosk-matching-accts"),
+    url(r'^reception/(?P<time_shift>[-0-9]+)/$',  # specify shift in seconds
+        views.reception_kiosk_spa,
+        name="reception-kiosk-timeshift"),
 
     url(r'^reception/add-discovery-method/$',
         views.reception_kiosk_add_discovery_method,
@@ -34,9 +33,9 @@ urlpatterns = [
         views.reception_kiosk_set_is_adult,
         name="reception-kiosk-set-is-adult"),
 
-    url(r'^reception/email-mship-buy-options/$',
-        views.reception_kiosk_email_mship_buy_options,
-        name="reception-kiosk-email-mship-buy-options"),
+    url(r'^reception/email-mship-buy-info/$',
+        views.reception_kiosk_email_mship_buy_info,
+        name="email-mship-buy-info"),
 
     # For desktop:
     # TODO: QR coded membership cards are no longer used.

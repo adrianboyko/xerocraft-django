@@ -20,13 +20,19 @@ class HasRfidNumFilterBackend(filters.BaseFilterBackend):
             return queryset
         else:
             m = Member.get_by_card_str(rfidnum)
-            return queryset.filter(membership_card_md5=m.membership_card_md5)
+            if m is None:
+                return queryset.none()
+            else:
+                return queryset.filter(membership_card_md5=m.membership_card_md5)
 
 
 class MemberFilter(rf.FilterSet):
     class Meta:
         model = Member
         fields = {
+            'auth_user__email': [
+                'iexact',
+            ],
             'auth_user__username': [
                 'iexact',
                 'icontains',

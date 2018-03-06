@@ -114,6 +114,7 @@
             "authenticateUrl":        "{% url 'memb:api-authenticate' %}",
             "claimListUrl":           "{% url 'task:claim-list' %}",
             "discoveryMethodListUrl": "{% url 'memb:discoverymethod-list' %}",
+            "emailMembershipInfoUrl": "{% url 'memb:email-mship-buy-info' %}",
             "memberListUrl":          "{% url 'memb:member-list' %}",
             "membershipListUrl":      "{% url 'memb:membership-list' %}",
             "taskListUrl":            "{% url 'task:task-list' %}",
@@ -128,13 +129,13 @@
             "addDiscoveryMethodUrl": "{% url 'memb:reception-kiosk-add-discovery-method' %}",
             "csrfToken":             csrfToken,
             "discoveryMethodsUrl":   "{% url 'memb:discoverymethod-list' %}",
-            "matchingAcctsUrl":      "{% url 'memb:reception-kiosk-matching-accts' flexid='FLEXID' %}",
             "setIsAdultUrl":         "{% url 'memb:reception-kiosk-set-is-adult' %}",
             "uniqueKioskId":         uniqueKioskId,
             "xcOrgActionUrl":        "{{ action_url }}"
         };
 
         var flags = {
+            "timeShift":             {{ time_shift }},
             "bannerBottomUrl":       "{% static 'bzw_ops/GenericBannerBottom_800x84.png' %}",
             "bannerTopUrl":          "{% static 'bzw_ops/GenericBannerTop_800x155.png' %}",
             "cloneAcctUrl":          "{% url 'xis:clone-acct' %}",

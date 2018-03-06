@@ -1,0 +1,314 @@
+[
+  {
+    "model": "bzw_ops.timeblocktype",
+    "pk": 1,
+    "fields": {
+      "name": "Open Shop",
+      "description": "Absolutely anybody can come to Xerocraft, check us out, and work on their own project, all free-of-charge. Visitors are encouraged to leave a donation if they find Xerocraft useful.",
+      "is_default": false
+    }
+  },
+  {
+    "model": "bzw_ops.timeblocktype",
+    "pk": 2,
+    "fields": {
+      "name": "Members Only",
+      "description": "Xerocraft is open for Supporting Members. These are members who pay monthly dues or have accrued benefits from our Work-Trade program.",
+      "is_default": true
+    }
+  },
+  {
+    "model": "bzw_ops.timeblocktype",
+    "pk": 3,
+    "fields": {
+      "name": "Women, Trans, Femme",
+      "description": "Women, Trans, and Femme makers can come to Xerocraft, check us out, and work on their own project, all free-of-charge. Visitors are encouraged to leave a donation if they find Xerocraft useful.",
+      "is_default": false
+    }
+  },
+  {
+    "model": "bzw_ops.timeblock",
+    "pk": 1,
+    "fields": {
+      "start_time": "19:00:00",
+      "duration": "03:00:00",
+      "first": false,
+      "second": false,
+      "third": false,
+      "fourth": false,
+      "last": false,
+      "every": true,
+      "monday": false,
+      "tuesday": false,
+      "wednesday": false,
+      "thursday": true,
+      "friday": false,
+      "saturday": false,
+      "sunday": false,
+      "types": [
+        1
+      ]
+    }
+  },
+  {
+    "model": "bzw_ops.timeblock",
+    "pk": 2,
+    "fields": {
+      "start_time": "12:00:00",
+      "duration": "04:00:00",
+      "first": false,
+      "second": false,
+      "third": false,
+      "fourth": false,
+      "last": false,
+      "every": true,
+      "monday": false,
+      "tuesday": false,
+      "wednesday": false,
+      "thursday": false,
+      "friday": false,
+      "saturday": true,
+      "sunday": false,
+      "types": [
+        1
+      ]
+    }
+  },
+  {
+    "model": "bzw_ops.timeblock",
+    "pk": 3,
+    "fields": {
+      "start_time": "19:00:00",
+      "duration": "03:00:00",
+      "first": false,
+      "second": false,
+      "third": false,
+      "fourth": false,
+      "last": false,
+      "every": true,
+      "monday": true,
+      "tuesday": false,
+      "wednesday": true,
+      "thursday": false,
+      "friday": false,
+      "saturday": false,
+      "sunday": false,
+      "types": [
+        2
+      ]
+    }
+  },
+  {
+    "model": "bzw_ops.timeblock",
+    "pk": 4,
+    "fields": {
+      "start_time": "12:00:00",
+      "duration": "04:00:00",
+      "first": false,
+      "second": false,
+      "third": false,
+      "fourth": false,
+      "last": false,
+      "every": true,
+      "monday": false,
+      "tuesday": true,
+      "wednesday": false,
+      "thursday": false,
+      "friday": false,
+      "saturday": false,
+      "sunday": false,
+      "types": [
+        2
+      ]
+    }
+  },
+  {
+    "model": "bzw_ops.timeblock",
+    "pk": 5,
+    "fields": {
+      "start_time": "18:00:00",
+      "duration": "03:00:00",
+      "first": false,
+      "second": false,
+      "third": false,
+      "fourth": false,
+      "last": false,
+      "every": true,
+      "monday": false,
+      "tuesday": false,
+      "wednesday": false,
+      "thursday": false,
+      "friday": false,
+      "saturday": false,
+      "sunday": true,
+      "types": [
+        2
+      ]
+    }
+  },
+  {
+    "model": "bzw_ops.timeblock",
+    "pk": 6,
+    "fields": {
+      "start_time": "18:00:00",
+      "duration": "04:00:00",
+      "first": false,
+      "second": false,
+      "third": false,
+      "fourth": false,
+      "last": false,
+      "every": true,
+      "monday": false,
+      "tuesday": true,
+      "wednesday": false,
+      "thursday": false,
+      "friday": false,
+      "saturday": false,
+      "sunday": false,
+      "types": [
+        3
+      ]
+    }
+  },
+  {
+    "model": "bzw_ops.timeblock",
+    "pk": 7,
+    "fields": {
+      "start_time": "12:00:00",
+      "duration": "04:00:00",
+      "first": false,
+      "second": false,
+      "third": false,
+      "fourth": false,
+      "last": false,
+      "every": true,
+      "monday": false,
+      "tuesday": false,
+      "wednesday": false,
+      "thursday": false,
+      "friday": true,
+      "saturday": false,
+      "sunday": false,
+      "types": [
+        2
+      ]
+    }
+  },
+  {
+    "model": "members.discoverymethod",
+    "pk": 1,
+    "fields": {
+      "name": "Word of mouth",
+      "order": 100,
+      "visible": true
+    }
+  },
+  {
+    "model": "members.discoverymethod",
+    "pk": 2,
+    "fields": {
+      "name": "Tucson Meet Yourself",
+      "order": 200,
+      "visible": false
+    }
+  },
+  {
+    "model": "members.discoverymethod",
+    "pk": 3,
+    "fields": {
+      "name": "Tucson Comic-Con",
+      "order": 300,
+      "visible": false
+    }
+  },
+  {
+    "model": "members.discoverymethod",
+    "pk": 4,
+    "fields": {
+      "name": "Other",
+      "order": 1000,
+      "visible": true
+    }
+  },
+  {
+    "model": "members.discoverymethod",
+    "pk": 7,
+    "fields": {
+      "name": "Google search",
+      "order": 1,
+      "visible": true
+    }
+  },
+  {
+    "model": "members.discoverymethod",
+    "pk": 8,
+    "fields": {
+      "name": "Meetup.com",
+      "order": 5,
+      "visible": true
+    }
+  },
+  {
+    "model": "members.discoverymethod",
+    "pk": 9,
+    "fields": {
+      "name": "Facebook",
+      "order": 10,
+      "visible": true
+    }
+  },
+  {
+    "model": "members.discoverymethod",
+    "pk": 10,
+    "fields": {
+      "name": "Twitter",
+      "order": 20,
+      "visible": true
+    }
+  },
+  {
+    "model": "members.discoverymethod",
+    "pk": 11,
+    "fields": {
+      "name": "Maketopolis",
+      "order": 175,
+      "visible": false
+    }
+  },
+  {
+    "model": "members.discoverymethod",
+    "pk": 12,
+    "fields": {
+      "name": "TV commercial",
+      "order": 11,
+      "visible": true
+    }
+  },
+  {
+    "model": "members.discoverymethod",
+    "pk": 13,
+    "fields": {
+      "name": "Pima/Tucson Library",
+      "order": 15,
+      "visible": true
+    }
+  },
+  {
+    "model": "members.discoverymethod",
+    "pk": 14,
+    "fields": {
+      "name": "Saw your sign",
+      "order": 17,
+      "visible": true
+    }
+  },
+  {
+    "model": "members.discoverymethod",
+    "pk": 15,
+    "fields": {
+      "name": "KMKR 99.9 FM",
+      "order": 12,
+      "visible": true
+    }
+  }
+]

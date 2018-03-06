@@ -1,10 +1,10 @@
 port module Wizard.SceneUtils exposing
   ( ButtonSpec
   , PadButtonSpec
-  , SceneUtilModel
   -------------------
   , blankGenericScene
   , currentScene
+  , errorView
   , focusOnIndex
   , genericScene
   , hideKeyboard
@@ -51,10 +51,11 @@ import Material.Chip as Chip
 import Material.Options as Options exposing (css)
 import Material.List as Lists
 import Material as Material
-import List.Nonempty exposing (Nonempty)
+import List.Nonempty as NonEmpty exposing (Nonempty)
 
 -- Local
 import Types exposing (..)
+
 
 -----------------------------------------------------------------------------
 -- PORTS
@@ -69,14 +70,24 @@ port hideKeyboard : () -> Cmd msg  -- Note that () might go away, per https://gi
 -- MISC
 -----------------------------------------------------------------------------
 
+type alias KioskModel a =
+  { a
+  | mdl : Material.Model
+  , flags : Flags
+  , sceneStack : Nonempty Scene
+  }
+
+-----------------------------------------------------------------------------
+-- MISC
+-----------------------------------------------------------------------------
+
+type alias Index = List Int  -- elm-mdl doesn't expose this type.
+
 send : msg -> Cmd msg
 send msg =
   Task.succeed msg
   |> Task.perform identity
 
-type alias SceneUtilModel a = {a | mdl : Material.Model, flags : Flags, sceneStack : Nonempty Scene}
-
-type alias Index = List Int  -- elm-mdl doesn't expose this type.
 
 -- REVIEW: Rename segueTo to push, to match pop?
 segueTo : Scene -> Cmd Msg
@@ -107,12 +118,12 @@ rebase = send <| WizardVector <| Rebase
 msgForReset : Msg
 msgForReset = WizardVector <| Reset
 
-sceneIsVisible : SceneUtilModel a -> Scene -> Bool
+sceneIsVisible : KioskModel a -> Scene -> Bool
 sceneIsVisible model scene = (currentScene model) == scene
 
-currentScene : SceneUtilModel a -> Scene
+currentScene : KioskModel a -> Scene
 currentScene model =
-  List.Nonempty.head model.sceneStack
+  NonEmpty.head model.sceneStack
 
 {-| For values that can be automatically generated or manually entered. Such
     values will begin as Auto and may be automatically regenerated as long as
@@ -129,7 +140,7 @@ type AutoMan a
 
 option_NoTabIndex = Options.attribute <| tabindex <| -99
 
-sceneFrame : SceneUtilModel a -> List (Html Msg) -> Html Msg
+sceneFrame : KioskModel a -> List (Html Msg) -> Html Msg
 sceneFrame model sceneHtml =
   div [frameDivStyle]
     [ img [src model.flags.bannerTopUrl, bannerTopStyle] []
@@ -138,10 +149,10 @@ sceneFrame model sceneHtml =
     , img [src model.flags.bannerBottomUrl, bannerBottomStyle] []
     ]
 
-frameNavButtons : SceneUtilModel a -> Html Msg
+frameNavButtons : KioskModel a -> Html Msg
 frameNavButtons model =
   let
-    isBaseScene = List.Nonempty.isSingleton model.sceneStack
+    isBaseScene = NonEmpty.isSingleton model.sceneStack
   in
     div [navDivStyle]
       [ Button.render MdlVector [10000] model.mdl
@@ -165,7 +176,7 @@ frameNavButtons model =
       ]
 
 
-genericScene : SceneUtilModel a -> String -> String -> Html Msg -> List (ButtonSpec Msg) -> List String -> Html Msg
+genericScene : KioskModel a -> String -> String -> Html Msg -> List (ButtonSpec Msg) -> List String -> Html Msg
 genericScene model title subtitle extraContent buttonSpecs badNews =
   let sceneHtml =
     [ p [sceneTitleStyle] [text title]
@@ -179,13 +190,13 @@ genericScene model title subtitle extraContent buttonSpecs badNews =
   in sceneFrame model sceneHtml
 
 
-blankGenericScene : SceneUtilModel a -> Html Msg
+blankGenericScene : KioskModel a -> Html Msg
 blankGenericScene model =
   genericScene model "" "" (text "") [] []
 
 type alias PadButtonSpec msg = { title : String, msg: msg, colored: Bool }
 
-padButton : SceneUtilModel a -> PadButtonSpec Msg -> Html Msg
+padButton : KioskModel a -> PadButtonSpec Msg -> Html Msg
 padButton model spec =  -- REVIEW: Index 0 is ok because buttons don't have state?
   Button.render MdlVector [0] model.mdl
     (
@@ -199,7 +210,7 @@ padButton model spec =  -- REVIEW: Index 0 is ok because buttons don't have stat
 
 type alias ButtonSpec msg = { title : String, msg: msg, enabled: Bool }
 
-sceneButton : SceneUtilModel a -> ButtonSpec Msg -> Html Msg
+sceneButton : KioskModel a -> ButtonSpec Msg -> Html Msg
 sceneButton model spec =
   Button.render MdlVector [0] model.mdl  -- REVIEW: Index 0 is ok because buttons don't have state?
     ( [ Button.raised
@@ -212,7 +223,7 @@ sceneButton model spec =
     )
     [ text spec.title ]
 
-sceneGenericTextField : SceneUtilModel a -> Index -> String -> String -> (String -> Msg) -> List (Textfield.Property Msg) -> Html Msg
+sceneGenericTextField : KioskModel a -> Index -> String -> String -> (String -> Msg) -> List (Textfield.Property Msg) -> Html Msg
 sceneGenericTextField model index hint value msger options =
   Textfield.render MdlVector index model.mdl
     (
@@ -229,23 +240,23 @@ sceneGenericTextField model index hint value msger options =
     )
     []
 
-sceneTextField : SceneUtilModel a -> Index -> String -> String -> (String -> Msg) -> Html Msg
+sceneTextField : KioskModel a -> Index -> String -> String -> (String -> Msg) -> Html Msg
 sceneTextField model index hint value msger =
   sceneGenericTextField model index hint value msger []
 
-scenePasswordField : SceneUtilModel a -> Index -> String -> String -> (String -> Msg) -> Html Msg
+scenePasswordField : KioskModel a -> Index -> String -> String -> (String -> Msg) -> Html Msg
 scenePasswordField model index hint value msger =
   sceneGenericTextField model index hint value msger [Textfield.password]
 
-sceneEmailField : SceneUtilModel a -> Index -> String -> String -> (String -> Msg) -> Html Msg
+sceneEmailField : KioskModel a -> Index -> String -> String -> (String -> Msg) -> Html Msg
 sceneEmailField model index hint value msger =
   sceneGenericTextField model index hint value msger [Textfield.email]
 
-sceneTextArea : SceneUtilModel a -> Index -> String -> String -> Int -> (String -> Msg) -> Html Msg
+sceneTextArea : KioskModel a -> Index -> String -> String -> Int -> (String -> Msg) -> Html Msg
 sceneTextArea model index hint value numRows msger =
   sceneGenericTextField model index hint value msger [Textfield.textarea, Textfield.rows numRows]
 
-sceneCheckbox : SceneUtilModel a -> Index -> String -> Bool -> Msg -> Html Msg
+sceneCheckbox : KioskModel a -> Index -> String -> Bool -> Msg -> Html Msg
 sceneCheckbox model index label value msger =
   -- Toggle.checkbox doesn't seem to handle centering very well. The following div compensates for that.
   div [style ["text-align"=>"left", "display"=>"inline-block", "width"=>"400px"]]
@@ -281,6 +292,30 @@ hspace amount =
 redSpan : List (Html Msg) -> Html Msg
 redSpan inner =
   span [style ["color"=>"red"]] inner
+
+
+errorView : KioskModel a -> String -> Html Msg
+errorView kioskModel error =
+  genericScene kioskModel
+    "Sorry!"
+    "An error has occurred:"
+    ( div []
+      (
+      [ vspace 125
+      , p [sceneTextStyle] [text error]
+      , vspace 40
+      , div [sceneTextStyle] [text "Scene Stack:"]
+      ]
+      ++
+      List.map
+        (\s -> div [sceneTextStyle] [text <| toString <| s])
+        (NonEmpty.tail kioskModel.sceneStack)
+      ++
+      [ vspace 125 ]
+      )
+    )
+    [ButtonSpec "Reset" (ErrorVector <| ERR_ResetClicked) True]
+    [] -- Never any bad news for this scene
 
 
 -----------------------------------------------------------------------------

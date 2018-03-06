@@ -5,7 +5,6 @@ module OldBusinessScene exposing
   , update
   , view
   , OldBusinessModel
-  , OldBusinessItem
   )
 
 -- Standard
@@ -14,10 +13,11 @@ import Html.Attributes exposing (src, width, style)
 
 -- Third Party
 import Maybe.Extra as MaybeX
+import Material
 import Material.Toggles as Toggles
 import Material.Options as Options
 import List.Extra as ListX
-import List.Nonempty as NonEmpty
+import List.Nonempty as NonEmpty exposing (Nonempty)
 import Update.Extra as UpdateX exposing (addCmd)
 
 -- Local
@@ -26,9 +26,6 @@ import Types exposing (..)
 import XisRestApi as XisApi exposing (..)
 import DjangoRestFramework exposing (idFromUrl)
 import Fetchable exposing (..)
-import CheckInScene exposing (CheckInModel)
-import CheckOutScene exposing (CheckOutModel)
-import TaskListScene exposing (TaskListModel)
 import CalendarDate as CD
 
 
@@ -45,35 +42,46 @@ idxOldBusinessScene = mdlIdBase OldBusiness
 
 -- This type alias describes the type of kiosk model that this scene requires.
 type alias KioskModel a =
-  ( SceneUtilModel
-    { a
-    | oldBusinessModel : OldBusinessModel
-    , checkInModel : CheckInModel
-    , checkOutModel : CheckOutModel
-    , taskListModel : TaskListModel
-    , xisSession : XisApi.Session Msg
-    }
-  )
-
-
-type alias OldBusinessItem =
-  { task: XisApi.Task
-  , claim: XisApi.Claim
-  , work: XisApi.Work  -- If they're not working it, it's not old/unfinished business.
+  { a
+  ------------------------------------
+  | mdl : Material.Model
+  , flags : Flags
+  , sceneStack : Nonempty Scene
+  ------------------------------------
+  , oldBusinessModel : OldBusinessModel
+  , xisSession : XisApi.Session Msg
   }
 
 
 type alias OldBusinessModel =
-  { oldBusiness : List OldBusinessItem
-  , selectedItem : Maybe OldBusinessItem
+  ---------------- Req'd Args:
+  { sessionType : Maybe SessionType
+  , member : Maybe Member
+  ---------------- Optional Args:
+  , thisSessionsClaim : Maybe Claim
+  ---------------- Other State:
+  , allOldBusiness : List TaskClaimWork
+  , selectedItem : Maybe TaskClaimWork
   , workResponsesExpected : Maybe Int
   , workResponsesReceived : Int
   }
 
 
+requiredArgs x =
+  ( x.sessionType
+  , x.member
+  )
+
+
 init : Flags -> (OldBusinessModel, Cmd Msg)
 init flags =
-  ( { oldBusiness = []
+  ( ---------------- Req'd Args:
+    { sessionType = Nothing
+    , member = Nothing
+    ---------------- Optional Args:
+    , thisSessionsClaim = Nothing
+    ---------------- Other State:
+    , allOldBusiness = []
     , selectedItem = Nothing
     , workResponsesExpected = Nothing
     , workResponsesReceived = 0
@@ -113,17 +121,17 @@ sceneWillAppear kioskModel appearing vanishing =
 
 memberId : KioskModel a -> Int
 memberId kioskModel =
-  if NonEmpty.member CheckIn kioskModel.sceneStack then
-    case kioskModel.checkInModel.checkedInMember of
+  let
+    sceneModel = kioskModel.oldBusinessModel
+  in
+    case sceneModel.member of
       Just memb -> memb.id
       Nothing ->
-        -- We shouldn't get to this scene without there being a checkedInMember.
+        -- We shouldn't get to this scene without there being a member.
         -- If it happens, lets log a msg and return a bogus member num.
         -- Providing a bogus member num will cause this scene to be a no-op.
         let _ = Debug.log "checkInMember" Nothing
         in -99
-  else
-    kioskModel.checkOutModel.checkedOutMemberNum
 
 
 checkForOldBusiness : KioskModel a -> (OldBusinessModel, Cmd Msg)
@@ -138,7 +146,7 @@ checkForOldBusiness kioskModel =
       tagging
   in
     ( { sceneModel
-      | oldBusiness=[]
+      | allOldBusiness=[]
       , selectedItem=Nothing
       , workResponsesExpected=Nothing -- We'll know when we get the claims.
       , workResponsesReceived=0
@@ -156,21 +164,37 @@ update msg kioskModel =
   let
     sceneModel = kioskModel.oldBusinessModel
     xis = kioskModel.xisSession
-    theNextScene = nextScene kioskModel
   in
     case msg of
+
+      OB_SegueA (sessionType, member) ->
+        ( {sceneModel | sessionType = Just sessionType, member = Just member}
+        , send <| WizardVector <| Push <| OldBusiness
+        )
+
+      OB_SegueB (sessionType, member, thisSessionsClaim) ->
+        ( { sceneModel
+          | sessionType = Just sessionType
+          , member = Just member
+          , thisSessionsClaim = Just thisSessionsClaim
+          }
+        , send <| WizardVector <| Push <| OldBusiness
+        )
 
       -- This case starts the lookup of tasks corresponding to the open claims.
       OB_WorkingClaimsResult (Ok {results}) ->
         let
-          claims = filterSelectedTask kioskModel results
+          -- We don't want the claim associated with the task the user just started, if any.
+          claims = case sceneModel.thisSessionsClaim of
+            Just c -> List.filter (\x -> x.id /= c.id) results
+            Nothing -> results
           tagger c = OldBusinessVector << (OB_NoteRelatedTask c)
           getTaskCmd c = xis.getTaskFromUrl c.data.claimedTask (tagger c)
           getTaskCmds = List.map getTaskCmd claims
           expected = List.sum <| List.map (List.length << .workSet << .data) claims
         in
-          if List.isEmpty claims then
-            (sceneModel, segueTo theNextScene)
+          if expected == 0 then
+            (sceneModel, segueToDone sceneModel)
           else
             ({sceneModel | workResponsesExpected=Just expected}, Cmd.batch getTaskCmds)
 
@@ -181,36 +205,46 @@ update msg kioskModel =
           getWorkCmd resUrl = xis.getWorkFromUrl resUrl tagger
           getWorkCmds = List.map getWorkCmd claim.data.workSet
         in
-          if List.isEmpty getWorkCmds then
-            (sceneModel, Cmd.none)
-          else
-            (sceneModel, Cmd.batch getWorkCmds)
+          (sceneModel, Cmd.batch getWorkCmds)
 
       -- We're only interested in claims that have an associated work record.
       -- And that work record should have blank duration.
       OB_NoteRelatedWork task claim (Ok work) ->
         let
-          newOldBusiness = (OldBusinessItem task claim work) :: sceneModel.oldBusiness
+          allOldBusinessPlus = TaskClaimWork task claim work :: sceneModel.allOldBusiness
           newCount = sceneModel.workResponsesReceived + 1
           newSceneModel = case work.data.workDuration of
-            Nothing -> {sceneModel | oldBusiness=newOldBusiness, workResponsesReceived=newCount}
+            Nothing -> {sceneModel | allOldBusiness=allOldBusinessPlus, workResponsesReceived=newCount}
             Just _ -> {sceneModel | workResponsesReceived=newCount}
         in
-          considerSkip newSceneModel theNextScene
+          considerSkip newSceneModel
 
       OB_DeleteSelection ->
         case sceneModel.selectedItem of
 
           Just {task, claim, work} ->
             let
-              cmd = xis.deleteWorkById work.id (OldBusinessVector << OB_NoteWorkDeleted)
+              cmd1 = xis.deleteWorkById work.id (OldBusinessVector << OB_NoteWorkDeleted)
+              cmd2 =
+                if List.length claim.data.workSet == 1 then
+                  -- We're deleting the last work so the user is no longer working the claim.
+                  -- So, change the status from Working to Abandoned.
+                  xis.replaceClaim
+                    (setClaimsStatus AbandonedClaimStatus claim)
+                    (OldBusinessVector << OB_NoteClaimUpdated)
+                else
+                  Cmd.none
               newModel = {sceneModel | selectedItem=Nothing }
             in
-              (newModel, cmd)
+              (newModel, Cmd.batch [cmd1, cmd2])
 
           Nothing ->
             -- Shouldn't get here since there must be a selction in order to click "DELETE"
             (sceneModel, Cmd.none)
+
+      OB_NoteClaimUpdated (Ok _) ->
+        -- No action required.
+        (sceneModel, Cmd.none)
 
       OB_NoteWorkDeleted _ ->
         checkForOldBusiness kioskModel
@@ -218,7 +252,7 @@ update msg kioskModel =
       OB_ToggleItem claimId ->
         let
           finder item = item.claim.id == claimId
-          item = ListX.find finder sceneModel.oldBusiness
+          item = ListX.find finder sceneModel.allOldBusiness
         in
           case item of
             Nothing ->
@@ -230,8 +264,8 @@ update msg kioskModel =
 
       OB_WorkingClaimsResult (Err error) ->
         -- It's not a show stopper if this fails. Just log and move on to next scene.
-        let _ = Debug.log (toString error)
-        in (sceneModel, segueTo theNextScene)
+        let _ = Debug.log "WARNING" (toString error)
+        in (sceneModel, segueToDone sceneModel)
 
       OB_NoteRelatedTask claim (Err error) ->
         let
@@ -239,18 +273,23 @@ update msg kioskModel =
           newReceived = sceneModel.workResponsesReceived + count
           newSceneModel = {sceneModel | workResponsesReceived=newReceived}
         in
-          considerSkip newSceneModel theNextScene
+          considerSkip newSceneModel
 
       OB_NoteRelatedWork task claim (Err error) ->
         let
           newReceived = sceneModel.workResponsesReceived + 1
           newSceneModel = {sceneModel | workResponsesReceived=newReceived}
         in
-          considerSkip newSceneModel theNextScene
+          considerSkip newSceneModel
+
+      OB_NoteClaimUpdated (Err error) ->
+        -- This is a non-critical error, so let's log it and do nothing.
+        let _ = Debug.log "WARNING" (toString error)
+        in (sceneModel, Cmd.none)
 
 
-considerSkip : OldBusinessModel -> Scene -> (OldBusinessModel, Cmd Msg)
-considerSkip sceneModel theNextScene =
+considerSkip : OldBusinessModel -> (OldBusinessModel, Cmd Msg)
+considerSkip sceneModel =
   case sceneModel.workResponsesExpected of
 
     Nothing ->
@@ -259,24 +298,13 @@ considerSkip sceneModel theNextScene =
     Just expected ->
       if sceneModel.workResponsesReceived == expected then
         -- We have received all the expected responses, so decide whether or not to skip.
-        if List.length sceneModel.oldBusiness > 0 then
+        if List.length sceneModel.allOldBusiness > 0 then
           (sceneModel, Cmd.none)
         else
-          (sceneModel, segueTo theNextScene)
+          (sceneModel, segueToDone sceneModel)
       else
         -- We have not yet received all the expected responses, so don't do anything...
         (sceneModel, Cmd.none)
-
-
--- The user might have just selected a task to work.
--- If so, we don't want it to appear as "Old Business", so filter it out.
-filterSelectedTask : KioskModel a -> List XisApi.Claim -> List XisApi.Claim
-filterSelectedTask kioskModel claims =
-  case kioskModel.taskListModel.selectedTask of
-    Just task ->
-      List.filter (\claim -> (idFromUrl claim.data.claimedTask) /= Ok task.id) claims
-    Nothing ->
-      claims
 
 
 -----------------------------------------------------------------------------
@@ -287,36 +315,58 @@ view : KioskModel a -> Html Msg
 view kioskModel =
   let
     sceneModel = kioskModel.oldBusinessModel
-    isSelection = MaybeX.isJust sceneModel.selectedItem
   in
-    if List.isEmpty sceneModel.oldBusiness then
-      blankGenericScene kioskModel
-    else
-      let tPhrase = taskPhrase sceneModel.oldBusiness
-      in
+    case requiredArgs sceneModel of
+
+      (Just sessionType, Just member) ->
+        if List.isEmpty sceneModel.allOldBusiness then
+          blankGenericScene kioskModel
+        else
+          let
+            tPhrase = taskPhrase sceneModel.allOldBusiness
+            finish = "Finish"
+            delete = "Delete"
+            skipSpec = ButtonSpec "Skip" (msgForSegueToDone sessionType member) True
+          in
+            genericScene kioskModel
+            ("You Have " ++ tPhrase ++ " In Progress!")
+            "Let's Review Them"
+            ( div [sceneTextStyle]
+              [ vspace 25
+              , text ("Select any that is already completed")
+              , vspace 0
+              , text "and then click 'FINISH' to fill in a timesheet"
+              , vspace 0
+              , text "or 'DELETE' if it was not actually worked."
+              , vspace 20
+              , viewOldBusinessChoices kioskModel sceneModel.allOldBusiness
+              ]
+            )
+            ( case sceneModel.selectedItem of
+              Just tcw ->
+                [ ButtonSpec finish (TimeSheetPt1Vector <| TS1_Segue <| tcw) True
+                , ButtonSpec delete (OldBusinessVector <| OB_DeleteSelection) True
+                , skipSpec
+                ]
+              Nothing ->
+                [ ButtonSpec finish NoOp False
+                , ButtonSpec delete NoOp False
+                , skipSpec
+                ]
+            )
+            []  -- Never any bad news for this scene.
+
+      (_, _) ->
         genericScene kioskModel
-        ("You Have " ++ tPhrase ++ " In Progress!")
-        "Let's Review Them"
-        (div [sceneTextStyle] 
-          [ vspace 25
-          , text ("Select any that is already completed")
-          , vspace 0
-          , text "and then click 'FINISH' to fill in a timesheet"
-          , vspace 0
-          , text "or 'DELETE' if it was not actually worked."
-          , vspace 20
-          , oldBusinessChoices kioskModel sceneModel.oldBusiness
-          ]
-        )
-        [ ButtonSpec "Finish" (msgForSegueTo TimeSheetPt1) isSelection
-        , ButtonSpec "Delete" (OldBusinessVector <| OB_DeleteSelection) isSelection
-        , ButtonSpec "Skip" (msgForSegueTo (nextScene kioskModel)) True
-        ]
-        []  -- Never any bad news for this scene.
+        "Sorry!"
+        "We've encountered an error"
+        (text missingArguments)
+        []
+        []
 
 
-oldBusinessChoices : KioskModel a -> List OldBusinessItem -> Html Msg
-oldBusinessChoices kioskModel business =
+viewOldBusinessChoices : KioskModel a -> List TaskClaimWork -> Html Msg
+viewOldBusinessChoices kioskModel business =
   let
     sceneModel = kioskModel.oldBusinessModel
   in
@@ -332,14 +382,14 @@ oldBusinessChoices kioskModel business =
                 )
               , Options.onToggle (OldBusinessVector <| OB_ToggleItem <| item.claim.id)
               ]
-              [viewOldBusinessItem item]
+              [viewTaskClaimWork item]
             ]
         )
         business
       )
 
-viewOldBusinessItem : OldBusinessItem -> Html Msg
-viewOldBusinessItem {task, claim} =
+viewTaskClaimWork : TaskClaimWork -> Html Msg
+viewTaskClaimWork {task, claim} =
   let
     tDesc = task.data.shortDesc
     tDate = task.data.scheduledDate |> CD.format "%a %b %ddd" -- |> CD.superOrdinals
@@ -360,15 +410,23 @@ taskPhrase l =
 -- SUBSCRIPTIONS
 -----------------------------------------------------------------------------
 
+
 -----------------------------------------------------------------------------
--- UTILITIEs
+-- UTILITIES
 -----------------------------------------------------------------------------
 
-nextScene : KioskModel a -> Scene
-nextScene kioskModel =
-  -- User can only get here via CheckIn or CheckOut.
-  if NonEmpty.member CheckIn kioskModel.sceneStack
-    then CheckInDone else CheckOutDone
+msgForSegueToDone : SessionType -> Member -> Msg
+msgForSegueToDone sessionType member =
+  case sessionType of
+    CheckInSession -> CheckInDoneVector <| CID_Segue member
+    CheckOutSession -> CheckOutDoneVector <| COD_Segue member
+
+segueToDone : OldBusinessModel -> Cmd Msg
+segueToDone sceneModel =
+  case (sceneModel.sessionType, sceneModel.member) of
+    (Just st, Just m) -> send <| msgForSegueToDone st m
+    _ -> send <| ErrorVector <| ERR_Segue missingArguments
+
 
 -----------------------------------------------------------------------------
 -- STYLES

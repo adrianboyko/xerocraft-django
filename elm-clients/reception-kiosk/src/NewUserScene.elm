@@ -7,13 +7,13 @@ import Http
 import Time exposing (Time)
 
 -- Third Party
+import Material
+import List.Nonempty exposing (Nonempty)
 
 -- Local
-import MembersApi as MembersApi
-import XisRestApi as XisApi
+import XisRestApi as XisApi exposing (Member)
 import Wizard.SceneUtils exposing (..)
 import Types exposing (..)
-import NewMemberScene exposing (NewMemberModel)
 
 -----------------------------------------------------------------------------
 -- INIT
@@ -22,26 +22,49 @@ import NewMemberScene exposing (NewMemberModel)
 
 -- This type alias describes the type of kiosk model that this scene requires.
 type alias KioskModel a =
-  ( SceneUtilModel
-    { a
-    | newUserModel : NewUserModel
-    , newMemberModel : NewMemberModel
-    , membersApi : MembersApi.Session Msg
-    }
-  )
+  { a
+  ------------------------------------
+  | mdl : Material.Model
+  , flags : Flags
+  , sceneStack : Nonempty Scene
+  ------------------------------------
+  , newUserModel : NewUserModel
+  , xisSession : XisApi.Session Msg
+  }
 
 type alias NewUserModel =
-  { userName : String
+  ------------- Req'd Args:
+  { howDidYouHear : Maybe (List Int)  -- DiscoveryMethod PKs
+  , fname : Maybe String
+  , lname : Maybe String
+  , email : Maybe String
+  , adult : Maybe Bool
+  ------------- Other State:
+  , userName : String
   , password1 : String
   , password2 : String
   , badNews : List String
   }
 
+args x =
+  ( x.howDidYouHear
+  , x.fname
+  , x.lname
+  , x.email
+  , x.adult
+  )
 
 init : Flags -> (NewUserModel, Cmd Msg)
 init flags =
   let sceneModel =
-    { userName = ""
+    ------------- Req'd Args:
+    { howDidYouHear = Nothing
+    , fname = Nothing
+    , lname = Nothing
+    , email = Nothing
+    , adult = Nothing
+    ------------- Other State:
+    , userName = ""
     , password1 = ""
     , password2 = ""
     , badNews = []
@@ -71,6 +94,17 @@ update msg kioskModel =
   let sceneModel = kioskModel.newUserModel
   in case msg of
 
+    NU_Segue (hdyh, fname, lname, email, adult) ->
+      ( { sceneModel
+        | howDidYouHear = Just hdyh
+        , fname = Just fname
+        , lname = Just lname
+        , email = Just email
+        , adult = Just adult
+        }
+      , send <| WizardVector <| Push NewUser
+      )
+
     UpdateUserName newVal ->
       let djangoizedVal = XisApi.djangoizeId newVal
       in ({sceneModel | userName = djangoizedVal}, Cmd.none)
@@ -84,58 +118,78 @@ update msg kioskModel =
     ValidateUserNameAndPw ->
       validateUserIdAndPw kioskModel
 
-    ValidateUserNameUnique result ->
-      validateUserNameUnique kioskModel result
+    ValidateUserNameUnique (Ok {results}) ->
+      validateUserNameUnique kioskModel results
+
+    ValidateUserNameUnique (Err error) ->
+      ({sceneModel | badNews = [toString error]}, Cmd.none)
 
 
 validateUserIdAndPw : KioskModel a -> (NewUserModel, Cmd Msg)
 validateUserIdAndPw kioskModel =
+
+  case args kioskModel.newUserModel of
+
+    (Just _, Just fnameArg, Just lnameArg, Just _, Just _) ->
+
+      let
+        sceneModel = kioskModel.newUserModel
+        xis = kioskModel.xisSession
+
+        norm = String.trim >> String.toLower
+        uname = norm sceneModel.userName
+        fname = norm fnameArg
+        lname = norm lnameArg
+
+        pwMismatch = sceneModel.password1 /= sceneModel.password2
+        pwShort = String.length sceneModel.password1 < 6
+        userNameShort = String.length uname < 4
+        userNameLong = String.length uname > 20
+        userNameIsFName = fname == uname
+        userNameIsLName = lname == uname
+
+        msgs = List.concat
+          [ if pwMismatch then ["The password fields don't match"] else []
+          , if pwShort then ["The password must have at least 6 characters."] else []
+          , if userNameShort then ["The login id must have at least 4 characters."] else []
+          , if userNameLong then ["The login id cannot be more than 20 characters."] else []
+          , if userNameIsFName then ["The login id cannot be just your first name."] else []
+          , if userNameIsLName then ["The login id cannot be just your last name."] else []
+          ]
+
+        cmd =
+          if List.length msgs > 0 then
+            Cmd.none
+          else
+            xis.listMembers
+              [XisApi.UsernameEquals sceneModel.userName, XisApi.IsActive True]
+              (NewUserVector << ValidateUserNameUnique)
+      in
+        ({sceneModel | badNews = msgs}, cmd)
+
+    _ -> (kioskModel.newUserModel, send <| ErrorVector <| ERR_Segue missingArguments)
+
+
+validateUserNameUnique: KioskModel a -> List Member -> (NewUserModel, Cmd Msg)
+validateUserNameUnique kioskModel matches =
   let
     sceneModel = kioskModel.newUserModel
-    memberModel = kioskModel.newMemberModel
-
-    norm = String.trim >> String.toLower
-    uname = norm sceneModel.userName
-    fname = norm memberModel.firstName
-    lname = norm memberModel.lastName
-
-    pwMismatch = sceneModel.password1 /= sceneModel.password2
-    pwShort = String.length sceneModel.password1 < 6
-    userNameShort = String.length uname < 4
-    userNameLong = String.length uname > 20
-    userNameIsFName = fname == uname
-    userNameIsLName = lname == uname
-
-    msgs = List.concat
-      [ if pwMismatch then ["The password fields don't match"] else []
-      , if pwShort then ["The password must have at least 6 characters."] else []
-      , if userNameShort then ["The login id must have at least 4 characters."] else []
-      , if userNameLong then ["The login id cannot be more than 20 characters."] else []
-      , if userNameIsFName then ["The login id cannot be just your first name."] else []
-      , if userNameIsLName then ["The login id cannot be just your last name."] else []
-      ]
-    getMatchingAccts = kioskModel.membersApi.getMatchingAccts
-    cmd = if List.length msgs > 0
-      then Cmd.none
-      else getMatchingAccts sceneModel.userName (NewUserVector << ValidateUserNameUnique)
+    matchingNames = List.map (\x -> String.toLower x.data.userName) matches
+    chosenName = String.toLower sceneModel.userName
   in
-    ({sceneModel | badNews = msgs}, cmd)
+    if List.member chosenName matchingNames then
+      ({sceneModel | badNews = ["That user name is already in use."]}, Cmd.none)
+    else
+      case args sceneModel of
 
-validateUserNameUnique: KioskModel a -> Result Http.Error MembersApi.MatchingAcctInfo -> (NewUserModel, Cmd Msg)
-validateUserNameUnique kioskModel result =
-  let sceneModel = kioskModel.newUserModel
-  in case result of
-    Ok {target, matches} ->
-      let
-        matchingNames = List.map (\x -> String.toLower x.userName) matches
-        chosenName = String.toLower sceneModel.userName
-      in
-        if List.member chosenName matchingNames then
-          ({sceneModel | badNews = ["That user name is already in use."]}, Cmd.none)
-        else
-          ({sceneModel | badNews = []}, segueTo Waiver)
-    Err error ->
-      ({sceneModel | badNews = [toString error]}, Cmd.none)
+        (Just wdyh, Just fn, Just ln, Just email, Just adult) ->
+          ( { sceneModel | badNews = []}
+          , send
+              <| WaiverVector
+              <| WVR_Segue (wdyh, fn, ln, email, adult, sceneModel.userName, sceneModel.password1)
+          )
+
+        _ -> ({ sceneModel | badNews = []}, send <| ErrorVector <| ERR_Segue missingArguments)
 
 
 -----------------------------------------------------------------------------
