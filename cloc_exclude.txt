@@ -2,11 +2,14 @@ elm-clients/backend-apis/elm-stuff
 elm-clients/offer-task/elm-stuff
 elm-clients/ops-calendar/elm-stuff
 elm-clients/reception-kiosk/elm-stuff
+elm-clients/time/elm-stuff
+elm-clients/time/tests/elm-stuff/
 
 elm-clients/backend-apis/out
 elm-clients/offer-task/out
 elm-clients/ops-calendar/out
 elm-clients/reception-kiosk/out
+elm-clients/time/out
 
 abutils/migrations/
 books/migrations/
