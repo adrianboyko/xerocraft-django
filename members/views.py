@@ -488,7 +488,7 @@ def desktop_earned_membership_revenue(request):
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 @ensure_csrf_cookie
-def reception_kiosk_spa(request, time_shift="0.0") -> HttpResponse:
+def reception_kiosk_spa(request, time_shift="0") -> HttpResponse:
 
     if settings.ISDEVHOST:
         SERVER = "https://www.xerocraft.org/kfritz/"

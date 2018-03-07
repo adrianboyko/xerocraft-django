@@ -247,7 +247,8 @@ type TaskPriority = HighPriority | MediumPriority | LowPriority
 type StaffingStatus = SS_Staffed | SS_Unstaffed | SS_Provisional | SS_Done
 
 type alias TaskData =
-  { claimSet : List Claim
+  { anybodyIsEligible : Bool
+  , claimSet : List Claim
   , creationDate : CalendarDate
   , deadline : Maybe CalendarDate
   , eligibleClaimants : List ResourceUrl
@@ -332,7 +333,7 @@ memberCanClaimTask flags memberNum task =
     alreadyClaimed = memberHasStatusOnTask flags memberNum CurrentClaimStatus task
     abandonedClaim = memberHasStatusOnTask flags memberNum AbandonedClaimStatus task
   in
-    canClaim || alreadyClaimed || abandonedClaim
+    canClaim || alreadyClaimed || abandonedClaim || task.data.anybodyIsEligible
 
 --isFullyClaimed : Task -> Bool
 --isFullyClaimed t = False  -- TODO: Implement
@@ -382,6 +383,7 @@ decodeTask = decodeResource decodeTaskData
 decodeTaskData : Dec.Decoder TaskData
 decodeTaskData =
   decode TaskData
+    |> required "anybody_is_eligible" Dec.bool
     |> required "claim_set" (Dec.list decodeClaim)
     |> required "creation_date" DRF.decodeCalendarDate
     |> required "deadline" (Dec.maybe DRF.decodeCalendarDate)

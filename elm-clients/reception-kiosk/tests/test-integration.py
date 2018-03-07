@@ -3,6 +3,7 @@ from datetime import datetime, date, timedelta, time
 from time import sleep
 from math import floor
 import hashlib
+from typing import Optional
 
 # Third Party
 from django.core import management, mail
@@ -16,7 +17,6 @@ from selenium.common.exceptions import NoSuchElementException
 from pyvirtualdisplay import Display
 from rest_framework.authtoken import models as tokmod
 from django.utils.timezone import make_aware
-import pytz
 
 # Local
 from members.models import Member, VisitEvent, Membership
@@ -106,11 +106,12 @@ class IntegrationTest(LiveServerTestCase):
             user=self.kiosk_user
         )
 
-        self.createTasks(self.SPECIFIC_TASK_SHORT_DESC, self.existing_member)
-        self.createTasks(self.OTHER_WORK_SHORT_DESC, None)
+        self.createTasks(self.SPECIFIC_TASK_SHORT_DESC, self.existing_member, False)
+        self.createTasks(self.OTHER_WORK_SHORT_DESC, None, True)
 
     @classmethod
-    def createTasks(cls, short_desc, default_claimant):
+    def createTasks(cls,
+     short_desc: str, default_claimant: Optional[Member], anybody_is_eligible: bool):
         template = RecurringTaskTemplate.objects.create(
             short_desc=short_desc,
             max_work=timedelta(hours=1.0),
@@ -124,6 +125,7 @@ class IntegrationTest(LiveServerTestCase):
         )
         if default_claimant is not None:
             template.eligible_claimants.add(default_claimant)
+        template.anybody_is_eligible = anybody_is_eligible
         template.save()
         template.full_clean()
         management.call_command("scheduletasks", "1")

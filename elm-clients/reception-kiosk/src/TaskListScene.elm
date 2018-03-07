@@ -140,24 +140,16 @@ determineWorkableTasks sceneModel xis =
 
     (Received todaysTasks, Just member) ->
       let
-        -- TODO: Don't include "Other Work" if there's already a claim on today's instance.
-        -- "Other Work" is offered to everybody, whether or not they are explicitly eligible to work it:
-        otherWorkTaskTest t = t.data.shortDesc == "Other Work"
-        otherWorkTask = List.filter otherWorkTaskTest todaysTasks
-
         -- The more normal case is to offer up tasks that the user can claim:
         memberCanClaimTest = xis.memberCanClaimTask member.id
         claimableTasks = List.filter memberCanClaimTest todaysTasks
 
-        -- The offered/workable tasks are the union of claimable tasks and the "Other Work" task.
-        workableTasks = claimableTasks ++ otherWorkTask
-
         -- We also want to know which task(s) (if any) have already been claimed:
         isCurrentClaimant = xis.memberHasStatusOnTask member.id CurrentClaimStatus
-        claimedTask = ListX.find isCurrentClaimant workableTasks
+        claimedTask = ListX.find isCurrentClaimant claimableTasks
       in
         { sceneModel
-        | workableTasks = workableTasks
+        | workableTasks = claimableTasks
         , selectedTask = claimedTask
         }
 
