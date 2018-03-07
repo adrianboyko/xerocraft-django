@@ -17,6 +17,7 @@ import Maybe exposing (withDefault)
 import Time exposing (Time, second)
 import Json.Decode as Dec
 import Json.Encode as Enc
+import Navigation as Nav
 
 -- Third Party
 import Date.Extra.Format exposing (isoString)
@@ -25,6 +26,7 @@ import Material
 import Material.Button as Button
 import Material.Icon as Icon
 import Material.Options as Options exposing (css)
+import Maybe.Extra exposing (isJust)
 
 -- Local
 import DjangoRestFramework as DRF exposing (PageOf)
@@ -74,6 +76,7 @@ type alias Model =
   , dragStartPt : Maybe Position  -- Where drag began, if user is dragging.
   , errorStr : Maybe String
   , errorStr2 : Maybe String
+  , idleSeconds : Int
   , mdl : Material.Model
   , memberId : Maybe Int
   , mousePt : Position  -- The current mouse position.
@@ -99,6 +102,7 @@ init flags =
       , dragStartPt = Nothing
       , errorStr = Nothing
       , errorStr2 = Nothing
+      , idleSeconds = 0
       , mdl = Material.model
       , memberId = flags.memberId
       , mousePt = Position 0 0
@@ -158,7 +162,11 @@ update action model =
       in
         case model.selectedTask of
           Nothing ->
-            ( detailModel, Cmd.none )
+            -- We want to asynchronously get the latest info for the clicked task, just in
+            -- case it has changed since the last update. Code below uses existing code
+            -- driven by getTasksForDay. This gets more tasks than necessary but works well.
+            -- Probably not worth optimizing.
+            ( detailModel, getTasksForDay model clickedTask.data.scheduledDate )
 
           Just task ->
             if task.id == clickedTask.id then
@@ -267,7 +275,7 @@ update action model =
       ( { model | state = Normal, errorStr = Just (httpErrToStr err) }, Cmd.none )
 
     MouseMove newPt ->
-      ( { model | mousePt = newPt }, Cmd.none )
+      ( { model | mousePt = newPt, idleSeconds = 0 }, Cmd.none )
 
     DragStart pt ->
       ( { model | dragStartPt = Just pt }, Cmd.none )
@@ -290,16 +298,24 @@ update action model =
 
     Tick newTime ->
       let
-        seconds =
-          (round newTime) // 1000
-
-        newModel =
-          { model | time = newTime }
+        seconds = (round newTime) // 1000
+        newModel = { model | time = newTime, idleSeconds = model.idleSeconds+1 }
+        updateCmd =
+          -- This is for occassional update of data:
+          if rem seconds 900 == 0 then updateCurrentMonth model else Cmd.none
+        reloadCmd =
+          -- This is to update the page when a logged in user times out:
+          if model.idleSeconds > 600 && isJust model.userName then Nav.reload else Cmd.none
       in
-        if rem seconds 900 == 0 then
-          getNewMonth newModel 0
-        else
-          ( newModel, Cmd.none )
+        ( newModel, Cmd.batch [updateCmd, reloadCmd] )
+
+
+updateCurrentMonth : Model -> Cmd Msg
+updateCurrentMonth model =
+  Cmd.batch
+    <| List.map
+         (getTasksForDay model)
+         (CP.mapToList .calendarDate model.calendarPage)
 
 
 getNewMonth : Model -> Int -> (Model, Cmd Msg)
