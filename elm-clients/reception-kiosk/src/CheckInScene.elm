@@ -11,7 +11,7 @@ module CheckInScene exposing
   )
 
 -- Standard
-import Html exposing (Html, div, text, audio)
+import Html exposing (Html, div, text)
 import Html.Attributes exposing (src, autoplay)
 import Http
 import Time exposing (Time)
@@ -110,6 +110,7 @@ update msg kioskModel =
     sceneModel = kioskModel.checkInModel
     xis = kioskModel.xisSession
 
+
   in case msg of
 
     CI_UpdateFlexId rawId ->
@@ -136,26 +137,29 @@ update msg kioskModel =
         else
           ({sceneModel | flexId=rawId, userNameMatches_SW=[], lastNameMatches_SW=[]}, Cmd.none)
 
-
     UsernamesStartingWith searchedId (Ok {count, results}) ->
-      if searchedId == sceneModel.flexId && count < 20
-      then ({sceneModel | userNameMatches_SW = results, badNews = []}, Cmd.none)
-      else (sceneModel, Cmd.none)
+      if count < 20 && count > (List.length sceneModel.userNameMatches_SW) then
+        ({sceneModel | userNameMatches_SW = results, badNews = []}, Cmd.none)
+      else
+        (sceneModel, Cmd.none)
 
     UsernamesEqualTo searchedId (Ok {count, results}) ->
-      if searchedId == sceneModel.flexId
-      then ({sceneModel | userNameMatches_EQ = results, badNews = []}, Cmd.none)
-      else (sceneModel, Cmd.none)
+      if searchedId == sceneModel.flexId then
+        ({sceneModel | userNameMatches_EQ = results, badNews = []}, Cmd.none)
+      else
+        (sceneModel, Cmd.none)
 
     LastNamesStartingWith searchedId (Ok {count, results}) ->
-      if searchedId == sceneModel.flexId && count < 20
-      then ({sceneModel | lastNameMatches_SW = results, badNews = []}, Cmd.none)
-      else (sceneModel, Cmd.none)
+      if count < 20 && count > (List.length sceneModel.lastNameMatches_SW) then
+        ({sceneModel | lastNameMatches_SW = results, badNews = []}, Cmd.none)
+      else
+        (sceneModel, Cmd.none)
 
     LastNamesEqualTo searchedId (Ok {count, results}) ->
-      if searchedId == sceneModel.flexId
-      then ({sceneModel | lastNameMatches_EQ = results, badNews = []}, Cmd.none)
-      else (sceneModel, Cmd.none)
+      if searchedId == sceneModel.flexId then
+        ({sceneModel | lastNameMatches_EQ = results, badNews = []}, Cmd.none)
+      else
+        (sceneModel, Cmd.none)
 
     UpdateRecentRfidsRead (Ok {results}) ->
       let
@@ -202,19 +206,21 @@ view : KioskModel a -> Html Msg
 view kioskModel =
   let
     sceneModel = kioskModel.checkInModel
-    clickMsg = \memb -> CheckInVector <| CI_UpdateMember <| Ok memb
-    acctToChip = \memb ->
+    clickMsg m = CheckInVector <| CI_UpdateMember <| Ok m
+    isLastNameMatch m = List.member m sceneModel.lastNameMatches_EQ
+    isUserNameMatch m = List.member m sceneModel.userNameMatches_EQ
+    isExactMatch m = isLastNameMatch m || isUserNameMatch m
+    acctToChip m =
       Chip.button
-        [Options.onClick (clickMsg memb)]
-        [Chip.content [] [text memb.data.userName]]
-    zeroIfTooLong l = if List.length l > 20 then [] else l
+        ([Options.onClick (clickMsg m)]++(m |> isExactMatch |> sceneChipCss))
+        [Chip.content [] [text m.data.userName]]
     matches =
       if String.isEmpty sceneModel.flexId then
         sceneModel.recentRfidArrivals
       else
         (ListX.uniqueBy .id << List.concat)
-          [ zeroIfTooLong sceneModel.userNameMatches_SW
-          , zeroIfTooLong sceneModel.lastNameMatches_SW
+          [ sceneModel.userNameMatches_SW
+          , sceneModel.lastNameMatches_SW
           , sceneModel.userNameMatches_EQ
           , sceneModel.lastNameMatches_EQ
           ]
@@ -229,12 +235,6 @@ view kioskModel =
              else [vspace 0]
           , List.map acctToChip matches
           , [ vspace (if List.length sceneModel.badNews > 0 then 40 else 0) ]
-          , if not (List.isEmpty matches)
-             then
-               -- TODO: Audio tag lag can be very bad. See https://lowlag.alienbill.com/
-               [audio [src "/static/members/beep-22.mp3", autoplay True] []]
-             else
-               [vspace 0]
           ]
         )
     )
@@ -303,7 +303,10 @@ getRecentRfidsReadCmd kioskModel =
 -- STYLES
 -----------------------------------------------------------------------------
 
-sceneChipCss =
-  [ css "margin-left" "3px"
-  , css "margin-right" "3px"
+sceneChipCss isExactMatch =
+  [ css "margin-left" "5px"
+  , css "margin-right" "5px"
+  , css "background-color" (if isExactMatch then "#FFCDD2" else "#DCEDC8")
   ]
+
+
