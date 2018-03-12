@@ -20,7 +20,7 @@ from django.utils.timezone import make_aware
 
 # Local
 from members.models import Member, VisitEvent, Membership
-from tasks.models import RecurringTaskTemplate, Claim
+from tasks.models import RecurringTaskTemplate, Claim, TimeAccountEntry
 
 ONEDAY = timedelta(days=1)
 TWODAYS   = 2 * ONEDAY
@@ -789,6 +789,7 @@ class IntegrationTest(LiveServerTestCase):
         self.checkOutDone_to_start()
 
         self.assertEqual(Claim.objects.filter(status=Claim.STAT_WORKING).count(), 0)
+        self.assertEqual(TimeAccountEntry.objects.count(), 1)
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

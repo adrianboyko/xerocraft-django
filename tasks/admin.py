@@ -11,7 +11,10 @@ from reversion.admin import VersionAdmin
 
 # Local
 from tasks.models import (
-    RecurringTaskTemplate, Task, TaskNote, Claim, Work, Nag, Worker, WorkNote, UnavailableDates, Snippet
+    RecurringTaskTemplate, Task, TaskNote,
+    Claim, Work, WorkNote, Nag,
+    Worker, UnavailableDates, Snippet,
+    TimeAccountEntry
 )
 
 from tasks.templatetags.tasks_extras import duration_str2
@@ -691,3 +694,34 @@ class SnippetAdmin(VersionAdmin):
     list_display = ['pk', 'name', 'description']
     search_fields = ['name', 'description', 'text']
     list_display_links = ['pk', 'name']
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# TIME ACCOUNTS
+
+@admin.register(TimeAccountEntry)
+class TimeAccountEntryAdmin(VersionAdmin):
+
+    list_display = ['pk', 'worker', 'when', 'change', 'explanation']
+
+    fields = ['worker', 'when', 'change', 'explanation', 'work', 'play', 'balance']
+
+    search_fields = [
+        '^worker__member__auth_user__first_name',
+        '^worker__member__auth_user__last_name',
+        '^worker__member__auth_user__username',
+        'worker__member__auth_user__email',
+    ]
+
+    date_hierarchy = 'when'
+
+    raw_id_fields = ['worker', 'work', 'play']
+
+    readonly_fields = [
+        'balance',  # Balances are automatically calculated.
+    ]
+
+    class Media:
+        css = {
+            "all": ("tasks/time-account-admin.css",)  # This hides "denormalized object descs", to use Woj's term.
+        }

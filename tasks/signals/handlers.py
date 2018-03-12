@@ -1,6 +1,7 @@
 # Standard
 import logging
 from datetime import date, datetime, timedelta
+from decimal import Decimal
 
 # Third Party
 from django.db.models.signals import pre_save, post_save
@@ -12,8 +13,8 @@ from django.utils import timezone
 from django.utils.timezone import localtime
 
 # Local
-from members.models import Member, Tagging, VisitEvent
-from tasks.models import Task, Worker, Claim, Nag, RecurringTaskTemplate
+from members.models import Member, Tagging, VisitEvent, Membership
+from tasks.models import Task, Worker, Claim, Work, Nag, RecurringTaskTemplate, TimeAccountEntry
 import members.notifications as notifications
 
 __author__ = 'Adrian'
@@ -83,6 +84,7 @@ HOST = "https://" + Site.objects.get_current().domain
 @receiver(post_save, sender=VisitEvent)
 def notify_staff_of_checkin(sender, **kwargs):
     """Notify a staffer of a visitor's paid status when that visitor checks in."""
+    # TODO: Per feedback from Annette, don't send notices if it's currently "open house".
     unused(sender)
     try:
         if kwargs.get('created', True):
@@ -92,13 +94,18 @@ def notify_staff_of_checkin(sender, **kwargs):
             if visit.event_type != VisitEvent.EVT_ARRIVAL:
                 return
 
+            if visit.who.is_currently_paid():
+                # Let's not overwhelm the staffer with info that doesn't require action.
+                # A paid visitor is welcome anytime, so don't notify the staffer.
+                return
+
             recipient = Worker.scheduled_receptionist()
             if recipient is None:
                 return
 
             if visit.debounced():
                 vname = "{} {}".format(visit.who.first_name, visit.who.last_name).strip()
-                vname = "Anonymous" if len(vname) == "" else vname
+                vname = "Anonymous" if len(vname) == 0 else vname
                 vstat = "Paid" if visit.who.is_currently_paid() else "Unpaid"
                 message = "{}\n{}\n{}".format(visit.who.username, vname, vstat)
                 notifications.notify(recipient, "Check-In", message)
@@ -243,3 +250,98 @@ def notify_manager_re_staff_arrival(sender, **kwargs):
         # Makes sure that problems here do not prevent the visit event from being saved!
         logger.error("Problem in notify_manager_re_staff_arrival: %s", str(e))
 
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# TIME ACCOUNTING
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+@receiver(post_save, sender=Work)
+@receiver(pre_save, sender=Work)
+def credit_time_acct(sender, **kwargs):
+    """When a witnessed work entry is created, credit it to the worker's time account."""
+    unused(sender)
+    try:
+        work = kwargs.get('instance')  # type: Work
+
+        if work.pk is None:
+            # The work hasn't yet been saved to DB, so we can't link a TimeAccountEntry to it.
+            return
+
+        if work.witness is None:
+            # We only credit witnessed work
+            return
+
+        worker = work.claim.claiming_member.worker  # type: Worker
+
+        try:
+            # If there's already an entry for this work, delete it since we'll recreate it.
+            TimeAccountEntry.objects.get(work=work).delete()
+        except TimeAccountEntry.DoesNotExist:
+            pass
+
+        if work.work_start_time is not None:
+            acct_entry_when = datetime.combine(work.work_date, work.work_start_time)
+        else:
+            acct_entry_when = work.work_date
+
+        # Remember: Time accounting is denominated in hours.
+        TimeAccountEntry.objects.create(
+            work=work,
+            explanation="Work done on {}".format(work.work_date),
+            worker=worker,
+            change=Decimal.from_float(work.work_duration.total_seconds() / 3600.0),
+            when=acct_entry_when
+        )
+
+    except Exception as e:
+        # Makes sure that problems here do not prevent the visit event from being saved!
+        logger.error("Problem in credit_time_account: %s", str(e))
+
+
+@receiver(post_save, sender=Membership)
+@receiver(pre_save, sender=Membership)
+def debit_time_acct_for_mship(sender, **kwargs):
+    """When an x month Work Trade membership is purchased, debit the worker's time account."""
+    unused(sender)
+
+    try:
+        mship = kwargs.get('instance')  # type: Membership
+
+        if mship.pk is None:
+            # The mship hasn't yet been saved to DB, so we can't link a TimeAccountEntry to it.
+            return
+
+        if mship.membership_type != Membership.MT_WORKTRADE:
+            # This only applies to Work Trade memberships.
+            return
+
+        worker = mship.member.worker  # type: Worker
+
+        try:
+            # If there's already an entry for this membership, delete it since we'll recreate it.
+            TimeAccountEntry.objects.get(play=mship).delete()
+        except TimeAccountEntry.DoesNotExist:
+            pass
+
+        # REVIEW: This should be two different WT membership types, instead of depending on $price?
+        if mship.sale_price == Decimal("25.00"):
+            time_cost = Decimal("-6.0")
+        elif mship.sale_price == Decimal("10.00"):
+            time_cost = Decimal("-9.0")
+        else:
+            logger.error("Unexpected sale price for mship #%ld", mship.id)
+            # Let them have it for 0 hours, until we figure out what happened and make a manual fix.
+            time_cost = Decimal("0.0")
+
+        # Remember: Time accounting is denominated in hours.
+        TimeAccountEntry.objects.create(
+            play=mship,
+            explanation="Work-trade membership beginning {}".format(mship.start_date),
+            worker=worker,
+            change=time_cost,
+            when=mship.start_date
+        )
+
+    except Exception as e:
+        # Makes sure that problems here do not prevent the visit event from being saved!
+        logger.error("Problem in debit_time_acct_for_mship: %s", str(e))

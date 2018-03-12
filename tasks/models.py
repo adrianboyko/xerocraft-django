@@ -5,12 +5,14 @@ import abc
 from datetime import date, timedelta, datetime, time  # TODO: Replace datetime with django.utils.timezone
 import re
 from typing import Optional
+from decimal import Decimal
 
 # Third party
 from django.db import models
 from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
 from django.utils.translation import ugettext_lazy as _
+from django.utils import timezone
 
 # Local
 from members import models as mm
@@ -939,6 +941,9 @@ class Worker(models.Model):
     @property
     def is_active(self): return self.member.is_active
 
+    def __str__(self) -> str:
+        return self.username
+
     @classmethod
     def scheduled_receptionist(cls) -> Optional[mm.Member]:
         """Returns the currently scheduled receptionis, or None."""
@@ -1040,3 +1045,62 @@ class Snippet(models.Model):
                 logger.warning("%s is a bad snippet reference.", snippet_ref)
                 instr = instr.replace(snippet_ref, Snippet.BAD_SNIPPET_REF_STR)
 
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# TIME ACCOUNTS
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+class TimeAccountEntry(models.Model):
+
+    explanation = models.CharField(max_length=80,
+        null=False, blank=False,
+        help_text="Explanation of this change.")
+
+    worker = models.ForeignKey(Worker,
+        null=False, blank=False,
+        on_delete=models.CASCADE,  # If the member is deleted, any record of their free hours is uninteresting.
+        help_text="The worker whose balance is changing.")
+
+    when = models.DateTimeField(null=False, blank=False,
+        default=timezone.now,
+        help_text="Date/time of the change.")
+
+    expires = models.DateTimeField(null=True, blank=True,
+        default=None,
+        help_text="For credits, the OPTIONAL date on which it expires.")
+
+    change = models.DecimalField(max_digits=4, decimal_places=2,
+        null=False, blank=False,
+        help_text="The amount (in hours) added (positive) or deleted (negative).")
+
+    work = models.ForeignKey(Work,
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        help_text="For credits, a link to the associated work entry, if any.")
+
+    play = models.ForeignKey(mm.Membership,
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        help_text="For debits, a link to the associated membership, if any.")
+
+    class Meta:
+        ordering = ['when']
+        verbose_name_plural = "time account entries"
+
+    def __str__(self) -> str:
+        change_str = "added to" if self.change > Decimal("0") else "removed from"
+        return "{} hrs {} {}".format(self.change, change_str, self.worker.username)
+
+    @property
+    def balance(self) -> Decimal:
+        log = TimeAccountEntry.objects.filter(
+            worker=self.worker,
+            when__lte=self.when,
+            # expires__gt=self.effective No, we'll add an explicit Entry to reverse it.
+        )
+        balance = log.aggregate(models.Sum('change'))['change__sum']
+        return balance
+
+    def clean(self):
+        if self.work is not None and self.play is not None:
+            raise ValidationError("Specify ONE of work or play, or NEITHER. Not both.")

@@ -881,47 +881,6 @@ class Membership(MembershipJournalLiner):
         self.create_membership_jelis(je)
 
 
-class HourlyMembershipEntry(models.Model):
-
-    explanation = models.CharField(max_length=80,
-        null=False, blank=False,
-        help_text="Explanation of this change.")
-
-    member = models.ForeignKey(Member,
-        null=False, blank=False,
-        on_delete=models.CASCADE,  # If the member is deleted, any record of their free hours is uninteresting.
-        help_text="The member whose balance is changing.")
-
-    when = models.DateTimeField(null=False, blank=False,
-        default=timezone.now,
-        help_text="Date/time of the change.")
-
-    expires = models.DateTimeField(null=True, blank=True,
-        default=None,
-        help_text="For credits, the OPTIONAL date on which it expires.")
-
-    change = models.DecimalField(max_digits=4, decimal_places=2,
-        null=False, blank=False,
-        help_text="The amount added (positive) or deleted (negative).")
-
-    class Meta:
-        ordering = ['when']
-
-    def __str__(self) -> str:
-        change_str = "added to" if self.change > Decimal("0") else "removed from"
-        return "{} hrs {} {}".format(self.change, change_str, self.member.username)
-
-    @property
-    def balance(self) -> Decimal:
-        log = HourlyMembershipEntry.objects.filter(
-            member=self.member,
-            when__lte=self.when,
-            # expires__gt=self.effective No, we'll add an explicit Entry to reverse it.
-        )
-        balance = log.aggregate(models.Sum('change'))['change__sum']
-        return balance
-
-
 class KeyFee(MembershipJournalLiner):
     """
     Some key holders satisfy the requirements to hold a key by paying an additional fee above membership dues.
