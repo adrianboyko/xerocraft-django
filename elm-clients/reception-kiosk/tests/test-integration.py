@@ -14,20 +14,14 @@ from freezegun import freeze_time
 from selenium import webdriver
 from selenium.webdriver.firefox.webelement import FirefoxWebElement
 from selenium.common.exceptions import NoSuchElementException
+from selenium.webdriver.common.keys import Keys
 from pyvirtualdisplay import Display
 from rest_framework.authtoken import models as tokmod
 from django.utils.timezone import make_aware
 
 # Local
 from members.models import Member, VisitEvent, Membership
-from tasks.models import RecurringTaskTemplate, Claim, TimeAccountEntry
-
-ONEDAY = timedelta(days=1)
-TWODAYS   = 2 * ONEDAY
-THREEDAYS = 3 * ONEDAY
-FOURDAYS  = 4 * ONEDAY
-
-ONEHOUR = timedelta(hours=1)
+from tasks.models import RecurringTaskTemplate, Claim, TimeAccountEntry, Work
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -287,7 +281,7 @@ class IntegrationTest(LiveServerTestCase):
 
     def checkIn_to_reasonForVisit_viaFlexId(self, flexid: str, username: str) -> None:
         self.assert_on_CheckIn()  # Precondition
-        self.findInputWithId("[100,1]").send_keys(flexid)
+        self.findInputWithId("[100,1]").send_keys(flexid+Keys.ENTER)
         self.clickTagContaining("button", username)
         self.assert_on_ReasonForVisit()  # Postcondition
 
@@ -340,9 +334,9 @@ class IntegrationTest(LiveServerTestCase):
 
     def newMember_to_next_viaInfo(self, fname: str, lname: str, email: str, adult:bool) -> None:
         self.assert_on_NewMember()  # Precondition
-        self.findInputWithId("[1000,3]").send_keys(fname)
-        self.findInputWithId("[1000,4]").send_keys(lname)
-        self.findInputWithId("[1000,5]").send_keys(email)
+        self.findInputWithId("[1000,3]").send_keys(fname+Keys.ENTER)
+        self.findInputWithId("[1000,4]").send_keys(lname+Keys.ENTER)
+        self.findInputWithId("[1000,5]").send_keys(email+Keys.ENTER)
         if adult:
             self.findTagContaining("span", "I'm aged 18 or older").click()
         else:
@@ -352,9 +346,9 @@ class IntegrationTest(LiveServerTestCase):
 
     def newUser_to_waiver_viaIdPw(self, uname: str, pw: str) -> None:
         self.assert_on_NewUser()  # Precondition
-        self.findInputWithId("[1100,1]").send_keys(uname)
-        self.findInputWithId("[1100,2]").send_keys(pw)
-        self.findInputWithId("[1100,3]").send_keys(pw)
+        self.findInputWithId("[1100,1]").send_keys(uname+Keys.ENTER)
+        self.findInputWithId("[1100,2]").send_keys(pw+Keys.ENTER)
+        self.findInputWithId("[1100,3]").send_keys(pw+Keys.ENTER)
         self.clickTagContaining("button", "OK")
         self.assert_on_Waiver()  # Postcondition
 
@@ -432,15 +426,15 @@ class IntegrationTest(LiveServerTestCase):
 
     def timeSheetPt2_to_timeSheetPt3_viaDesc(self, workdesc: str) -> None:
         self.assert_on_TimeSheetPt2()  # Precondition
-        self.findInputWithId("[1900,1]").send_keys(workdesc)
+        self.findInputWithId("[1900,1]").send_keys(workdesc+Keys.ENTER)
         self.clickTagContaining("button", "Continue")
         self.assert_on_TimeSheetPt3()  # Postcondition
 
     def timeSheetPt3_to_next_viaIdPw(self, uname: str, pw: str) -> None:
         self.assert_on_TimeSheetPt3()
         self.clickTagContaining("button", "Witness")
-        self.findInputWithId("[2000,1]").send_keys(uname)
-        self.findInputWithId("[2000,2]").send_keys(pw)
+        self.findInputWithId("[2000,1]").send_keys(uname+Keys.ENTER)
+        self.findInputWithId("[2000,2]").send_keys(pw+Keys.ENTER)
         self.clickTagContaining("button", "Witness")
 
     def timeSheetPt3_to_next_viaRfid(self, rfidstr: str):
@@ -482,6 +476,35 @@ class IntegrationTest(LiveServerTestCase):
     # TESTS
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+    def test_checkOutWithRfidButWitnessWithKeyboard(self):
+
+        print("Check out with RFID but witness with keyboard")
+        workers_friendly_name = self.existing_member.first_name
+
+        # Check IN and start work on task
+        self.load_to_start()
+        self.start_to_welcomeForRfid_viaRfid(self.EXISTING_RFIDHEX, workers_friendly_name)
+        self.welcomeForRfid_to_reasonForVisit_viaCheckIn(workers_friendly_name)
+        self.reasonForVisit_to_next_viaReason(self.REASON_WORK)
+        self.taskList_to_taskInfo_viaDefault()
+        self.taskInfo_to_checkInDone()
+        self.checkInDone_to_start()
+
+        # Check OUT and finish task
+        # Note: We're already on start scene
+        self.start_to_welcomeForRfid_viaRfid(self.EXISTING_RFIDHEX, workers_friendly_name)
+        self.welcomeForRfid_to_next_viaCheckOut(workers_friendly_name)
+        self.oldBusiness_to_timeSheetPt1_viaTaskName(self.SPECIFIC_TASK_SHORT_DESC)
+        self.timeSheetPt1_to_next()
+        # Should land us on Pt3
+        self.timeSheetPt3_to_next_viaIdPw(self.WITNESS_USERNAME, self.WITNESS_PASSWORD)
+        # Should take us to CheckOutDone
+        self.assert_on_CheckOutDone()
+        self.assertEqual(Work.objects.filter(witness=self.witness_member).count(), 1)
+
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
     def test_witnessWithRfid(self):
 
         print("Witness with RFID")
@@ -520,6 +543,7 @@ class IntegrationTest(LiveServerTestCase):
         self.start_to_welcome()
         self.welcome_to_checkIn()
         self.checkIn_to_reasonForVisit_viaRfid(self.EXISTING_RFIDHEX)
+        sleep(2)  # VE is being logged asynchronously, in the background, so give it some time to finish.
         # Check in has not been completed, but there should be a PRESENT VE from the RFID read:
         self.assertEqual(VisitEvent.objects.filter(event_type=VisitEvent.EVT_PRESENT).count(), 1)
 

@@ -1,6 +1,7 @@
 module RfidHelper exposing
   ( create
   , rfidCharsOnly
+  , sceneWillAppear
   , subscriptions
   , update
   , view
@@ -78,6 +79,26 @@ create vectorForMember =
 
 
 -----------------------------------------------------------------------------
+-- SCENE WILL APPEAR
+-----------------------------------------------------------------------------
+
+sceneWillAppear : KioskModel a -> Scene -> Scene -> (RfidHelperModel, Cmd Msg)
+sceneWillAppear kioskModel appearing vanishing =
+
+  -- Nothing should persist across scenes, except for the clientsMemberVector
+  let sceneModel = kioskModel.rfidHelperModel
+  in
+    ( { sceneModel
+      | typed = ""
+      , rfidsToCheck = []
+      , isCheckingRfid = False
+      , loggedAsPresent = Set.empty
+      }
+    , Cmd.none
+    )
+
+
+-----------------------------------------------------------------------------
 -- UPDATE
 -----------------------------------------------------------------------------
 
@@ -117,7 +138,7 @@ update msg kioskModel =
           member :: [] ->  -- Exactly ONE match. Good.
             let
               -- Tell our client that an RFID has been swiped:
-              cmd1 = send <| model.clientsMemberVector <| Ok (Debug.log "SWIPED" member)
+              cmd1 = send <| model.clientsMemberVector <| Ok member
               -- Any time somebody is determined to have swiped their RFID, we'll note that they're present:
               cmd2 =
                 if Set.member member.id model.loggedAsPresent then
@@ -135,6 +156,7 @@ update msg kioskModel =
                 { model
                 | isCheckingRfid = False
                 , rfidsToCheck = []
+                , typed = ""
                 , loggedAsPresent = Set.insert member.id model.loggedAsPresent
                 }
             in
