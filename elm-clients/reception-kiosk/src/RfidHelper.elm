@@ -1,8 +1,8 @@
 module RfidHelper exposing
   ( create
   , rfidCharsOnly
-  , sceneWillAppear
   , subscriptions
+  , tick
   , update
   , view
   , RfidHelperModel
@@ -16,6 +16,7 @@ import Keyboard
 import Set exposing (Set)
 import Html exposing (Html, div, text, img, br)
 import Http
+import Time exposing (Time)
 
 -- Third Party
 import Material
@@ -59,11 +60,13 @@ type alias KioskModel a =
   , currTime : PointInTime
   }
 
-type HelperState
-  = WatchingForRfid String
-  | CheckingAnRfid
-  | ErrorCheckingRfid String
-  | RfidIsNotRegistered
+
+type State
+  = Nominal
+  | CheckingAnRfid Int
+  | EncounteredHttpErr Http.Error
+  | FoundRfidToBeGood
+  | FoundRfidToBeBad
 
 
 type alias RfidHelperModel =
@@ -73,6 +76,7 @@ type alias RfidHelperModel =
   , loggedAsPresent : Set Int
   , clientsMemberVector : Result String Member -> Msg
   , httpErr : Maybe Http.Error
+  , waitCount : Int
   }
 
 
@@ -84,27 +88,8 @@ create vectorForMember =
   , loggedAsPresent = Set.empty
   , clientsMemberVector = vectorForMember
   , httpErr = Nothing
+  , waitCount = 0
   }
-
-
------------------------------------------------------------------------------
--- SCENE WILL APPEAR
------------------------------------------------------------------------------
-
-sceneWillAppear : KioskModel a -> Scene -> Scene -> (RfidHelperModel, Cmd Msg)
-sceneWillAppear kioskModel appearing vanishing =
-
-  -- Nothing should persist across scenes, except for the clientsMemberVector
-  let sceneModel = kioskModel.rfidHelperModel
-  in
-    ( { sceneModel
-      | typed = ""
-      , rfidsToCheck = []
-      , isCheckingRfid = False
-      , loggedAsPresent = Set.empty
-      }
-    , Cmd.none
-    )
 
 
 -----------------------------------------------------------------------------
@@ -139,7 +124,7 @@ update msg kioskModel =
               intMatches = List.filterMap Result.toMaybe resultIntMatches
               newRfidsToCheck = ListX.unique (model.rfidsToCheck++intMatches)
             in
-              checkAnRfid {model | typed=typed, rfidsToCheck=newRfidsToCheck} xis
+              checkAnRfid kioskModel {model | typed=typed, rfidsToCheck=newRfidsToCheck} xis
 
       RH_MemberListResult (Ok {results}) ->
         case results of
@@ -161,6 +146,7 @@ update msg kioskModel =
                     , reason = Nothing
                     }
                     (RfidHelperVector << RH_MemberPresentResult)
+              cmd3 = popThisScene kioskModel
               newModel =
                 { model
                 | isCheckingRfid = False
@@ -169,13 +155,13 @@ update msg kioskModel =
                 , loggedAsPresent = Set.insert member.id model.loggedAsPresent
                 }
             in
-              (newModel, Cmd.batch [cmd1, cmd2])
+              (newModel, Cmd.batch [cmd1, cmd2, cmd3])
 
           [] ->  -- ZERO matches. Bad.
-            checkAnRfid {model | isCheckingRfid=False} xis
+            checkAnRfid kioskModel {model | isCheckingRfid=False} xis
 
           member :: members ->  -- More than one match. Bad.
-            checkAnRfid {model | isCheckingRfid=False} xis
+            checkAnRfid kioskModel {model | isCheckingRfid=False} xis
 
       RH_MemberPresentResult (Ok _) ->
         -- Don't need to do anything when this succeeds.
@@ -184,15 +170,15 @@ update msg kioskModel =
       -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
       RH_MemberListResult (Err e) ->
-        checkAnRfid {model | isCheckingRfid=False, httpErr=Just e} xis
+        checkAnRfid kioskModel {model | isCheckingRfid=False, httpErr=Just e} xis
 
       RH_MemberPresentResult (Err e) ->
           ({model | httpErr=Just e} , Cmd.none)
 
 
 
-checkAnRfid : RfidHelperModel -> XisApi.Session Msg -> (RfidHelperModel, Cmd Msg)
-checkAnRfid model xis =
+checkAnRfid : KioskModel a -> RfidHelperModel -> XisApi.Session Msg -> (RfidHelperModel, Cmd Msg)
+checkAnRfid kioskModel model xis =
   if model.isCheckingRfid then
     -- We only check one at a time, and a check is already in progress, so do nothing.
     (model, Cmd.none)
@@ -202,18 +188,32 @@ checkAnRfid model xis =
 
       rfid :: rfids ->
         let
-          newModel = {model | rfidsToCheck=rfids, isCheckingRfid=True}
+          newModel = {model | rfidsToCheck=rfids, isCheckingRfid=True, waitCount=0}
           memberFilters = [RfidNumberEquals rfid]
           listCmd = xis.listMembers memberFilters (RfidHelperVector << RH_MemberListResult)
+          pushCmd = pushThisScene kioskModel
         in
-          (newModel, listCmd)
+          (newModel, Cmd.batch [listCmd, pushCmd])
 
       [] ->
         -- There aren't any ids to check. Everything we've tried has failed.
-        let
-          cmd = send <| WizardVector <| Push RfidHelper
-        in
-          ({model | isCheckingRfid=False}, cmd)
+        ({model | isCheckingRfid=False}, Cmd.none)
+
+
+pushThisScene : KioskModel a -> Cmd Msg
+pushThisScene kioskModel =
+  if sceneIsVisible kioskModel RfidHelper then
+    Cmd.none
+  else
+    send <| WizardVector <| Push RfidHelper
+
+
+popThisScene : KioskModel a -> Cmd Msg
+popThisScene kioskModel =
+  if sceneIsVisible kioskModel RfidHelper then
+    send <| WizardVector <| Pop
+  else
+    Cmd.none
 
 
 -----------------------------------------------------------------------------
@@ -238,6 +238,8 @@ viewCheckingRfid kioskModel =
     (div [sceneTextStyle]
       [ vspace 225
       , text "One moment while we check our database."
+      , vspace 20
+      , text (String.repeat kioskModel.rfidHelperModel.waitCount "●")
       ]
     )
     []
@@ -251,7 +253,8 @@ viewHttpError kioskModel err =
     ("Http Problem!")
     (DRF.httpErrToStr err)
     (div [sceneTextStyle]
-      [ text "Tap the BACK button and try again or"
+      [ vspace 225
+      , text "Tap the BACK button and try again or"
       , vspace 0
       , text "speak to a staff member for help."
       ]
@@ -286,6 +289,22 @@ viewBadRfid kioskModel =
 subscriptions: Sub Msg
 subscriptions =
   Keyboard.downs (RfidHelperVector << RH_KeyDown)
+
+
+-----------------------------------------------------------------------------
+-- TICK (called each second)
+-----------------------------------------------------------------------------
+
+tick : Time -> KioskModel a -> (RfidHelperModel, Cmd Msg)
+tick time kioskModel =
+  let
+    visible = sceneIsVisible kioskModel RfidHelper
+    sceneModel = kioskModel.rfidHelperModel
+    inc = if visible && sceneModel.isCheckingRfid then 1 else 0
+    newWaitCount = sceneModel.waitCount + inc
+  in
+    if visible then ({sceneModel | waitCount=newWaitCount}, Cmd.none)
+    else (sceneModel, Cmd.none)
 
 
 -----------------------------------------------------------------------------

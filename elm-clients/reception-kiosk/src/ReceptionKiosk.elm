@@ -325,7 +325,6 @@ update msg model =
             (mNM,  cNM)  = NewMemberScene.sceneWillAppear model appearing
             (mNU,  cNU)  = NewUserScene.sceneWillAppear model appearing
             (mOB,  cOB)  = OldBusinessScene.sceneWillAppear model appearing vanishing
-            (mRH,  cRH)  = RfidHelper.sceneWillAppear model appearing vanishing
             (mSS,  cSS)  = ScreenSaverScene.sceneWillAppear model appearing
             (mSUD, cSUD) = SignUpDoneScene.sceneWillAppear model appearing vanishing
             (mTI,  cTI)  = TaskInfoScene.sceneWillAppear model appearing vanishing
@@ -348,7 +347,6 @@ update msg model =
               , newMemberModel = mNM
               , newUserModel = mNU
               , oldBusinessModel = mOB
-              , rfidHelperModel = mRH
               , screenSaverModel = mSS
               , signUpDoneModel = mSUD
               , taskInfoModel = mTI
@@ -362,7 +360,7 @@ update msg model =
             (newModel, Cmd.batch
               -- REVIEW: It's too easy to forget to add these.
               [ cCI, cCO, cCOD, cCA, cERR, cHD, cMO, cNM, cNU, cOB
-              , cRH, cSS, cSUD, cTI, cTL, cTS1, cTS2, cTS3, cW
+              , cSS, cSUD, cTI, cTL, cTS1, cTS2, cTS3, cW
               ]
             )
 
@@ -370,12 +368,14 @@ update msg model =
           let
             (mCA, cCA) = CreatingAcctScene.tick time model
             (mCI, cCI) = CheckInScene.tick time model
+            (mRH, cRH) = RfidHelper.tick time model
             (mSS, cSS) = ScreenSaverScene.tick time model
             newModel =
               { model
               | currTime = time + model.timeShift * Duration.ticksPerSecond
               , creatingAcctModel = mCA
               , checkInModel = mCI
+              , rfidHelperModel = mRH
               , screenSaverModel = mSS
               }
             focusCmd =
@@ -383,7 +383,7 @@ update msg model =
                 Just idx -> idx |> toString |> setFocusIfNoFocus  -- Send to port
                 Nothing -> Cmd.none
           in
-            (newModel, Cmd.batch [focusCmd, cCA, cCI, cSS])
+            (newModel, Cmd.batch [focusCmd, cCA, cCI, cRH, cSS])
 
         FocusOnIndex idx ->
           let
