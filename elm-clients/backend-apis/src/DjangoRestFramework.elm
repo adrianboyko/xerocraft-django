@@ -330,3 +330,26 @@ postRequestExpectingString auth url encodedData =
     , timeout = Nothing
     , withCredentials = False
     }
+
+-----------------------------------------------------------------------------
+-- UTILITIES
+-----------------------------------------------------------------------------
+
+httpErrToStr : Http.Error -> String
+httpErrToStr err =
+  case err of
+    Http.Timeout ->
+      "Timeout"
+
+    Http.NetworkError ->
+      "Network Error"
+
+    Http.BadPayload errStr _ ->
+      errStr
+
+    Http.BadStatus response ->
+      response.status.message
+
+    Http.BadUrl errStr ->
+      errStr
+
