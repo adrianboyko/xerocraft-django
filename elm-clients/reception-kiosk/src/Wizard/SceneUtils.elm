@@ -19,6 +19,7 @@ port module Wizard.SceneUtils exposing
   , pop
   , popTo
   , pt
+  , redSpan
   , replaceWith
   , sceneHeight
   , sceneWidth
