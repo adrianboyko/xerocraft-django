@@ -15,6 +15,7 @@ import Char
 import Keyboard
 import Set exposing (Set)
 import Html exposing (Html, div, text, img, br)
+import Http
 
 -- Third Party
 import Material
@@ -27,7 +28,7 @@ import Types exposing (..)
 import XisRestApi as XisApi exposing (..)
 import PointInTime exposing (PointInTime)
 import Wizard.SceneUtils exposing (..)
-
+import DjangoRestFramework as DRF
 
 -----------------------------------------------------------------------------
 -- CONSTANTS
@@ -58,6 +59,12 @@ type alias KioskModel a =
   , currTime : PointInTime
   }
 
+type HelperState
+  = WatchingForRfid String
+  | CheckingAnRfid
+  | ErrorCheckingRfid String
+  | RfidIsNotRegistered
+
 
 type alias RfidHelperModel =
   { typed : String
@@ -65,6 +72,7 @@ type alias RfidHelperModel =
   , isCheckingRfid : Bool
   , loggedAsPresent : Set Int
   , clientsMemberVector : Result String Member -> Msg
+  , httpErr : Maybe Http.Error
   }
 
 
@@ -75,6 +83,7 @@ create vectorForMember =
   , isCheckingRfid = False
   , loggedAsPresent = Set.empty
   , clientsMemberVector = vectorForMember
+  , httpErr = Nothing
   }
 
 
@@ -174,14 +183,11 @@ update msg kioskModel =
 
       -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-      RH_MemberListResult (Err error) ->
-        checkAnRfid {model | isCheckingRfid=False} xis
+      RH_MemberListResult (Err e) ->
+        checkAnRfid {model | isCheckingRfid=False, httpErr=Just e} xis
 
       RH_MemberPresentResult (Err e) ->
-        let
-          _ = Debug.log "RFID ERR" (toString e)
-        in
-          (model, Cmd.none)
+          ({model | httpErr=Just e} , Cmd.none)
 
 
 
@@ -214,9 +220,50 @@ checkAnRfid model xis =
 -- VIEW
 -----------------------------------------------------------------------------
 
-view : KioskModel a -> Html Msg
+view  : KioskModel a -> Html Msg
 view kioskModel =
+  if kioskModel.rfidHelperModel.isCheckingRfid then
+    viewCheckingRfid kioskModel
+  else
+    case kioskModel.rfidHelperModel.httpErr of
+      Just e -> viewHttpError kioskModel e
+      Nothing -> viewBadRfid kioskModel
+
+
+viewCheckingRfid : KioskModel a -> Html Msg
+viewCheckingRfid kioskModel =
   genericScene kioskModel
+    ("Checking Your RFID")
+    ""
+    (div [sceneTextStyle]
+      [ vspace 225
+      , text "One moment while we check our database."
+      ]
+    )
+    []
+    []
+
+
+viewHttpError : KioskModel a -> Http.Error -> Html Msg
+viewHttpError kioskModel err =
+  let model = kioskModel.rfidHelperModel
+  in genericScene kioskModel
+    ("Http Problem!")
+    (DRF.httpErrToStr err)
+    (div [sceneTextStyle]
+      [ text "Tap the BACK button and try again or"
+      , vspace 0
+      , text "speak to a staff member for help."
+      ]
+    )
+    []
+    []
+
+
+viewBadRfid : KioskModel a -> Html Msg
+viewBadRfid kioskModel =
+  let model = kioskModel.rfidHelperModel
+  in genericScene kioskModel
     ("RFID Problem")
     ""
     (div [sceneTextStyle]
@@ -226,7 +273,6 @@ view kioskModel =
       , text "Tap the BACK button and try again or"
       , vspace 0
       , text "speak to a staff member for help."
-      , vspace 225
       ]
     )
     []
