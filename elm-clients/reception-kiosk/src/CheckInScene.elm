@@ -116,6 +116,8 @@ update msg kioskModel =
     CI_UpdateFlexId rawId ->
 
         if Regex.contains rfidCharsOnly rawId then
+          -- A valid rfid sequence (which starts with ">") is an invalid username.
+          -- This prevents unnecessary lookup of rfid sequences as lnames/unames.
           ({sceneModel | flexId=rawId}, Cmd.none)
         else if (String.length rawId) > 2 then
           let
