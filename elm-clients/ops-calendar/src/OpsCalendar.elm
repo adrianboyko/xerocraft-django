@@ -29,7 +29,7 @@ import Material.Options as Options exposing (css)
 import Maybe.Extra exposing (isJust)
 
 -- Local
-import DjangoRestFramework as DRF exposing (PageOf)
+import DjangoRestFramework as DRF exposing (PageOf, httpErrToStr)
 import XisRestApi as XisApi
 import CalendarDate as CD exposing (CalendarDate)
 import CalendarPage as CP exposing (CalendarPage, CalendarRow, CalendarSquare)
@@ -632,25 +632,6 @@ onClick2 tagger =
 -----------------------------------------------------------------------------
 -- UTILITIES
 -----------------------------------------------------------------------------
-
-httpErrToStr : Http.Error -> String
-httpErrToStr err =
-  case err of
-    Http.Timeout ->
-      "Timeout"
-
-    Http.NetworkError ->
-      "Network Error"
-
-    Http.BadPayload errStr _ ->
-      errStr
-
-    Http.BadStatus response ->
-      response.status.message
-
-    Http.BadUrl errStr ->
-      errStr
-
 
 
 px : Int -> String
