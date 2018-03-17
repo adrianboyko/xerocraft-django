@@ -1,5 +1,5 @@
 
-module ScreenSaverScene exposing
+module StartScene exposing
   ( init
   , rfidWasSwiped
   , sceneWillAppear
@@ -8,7 +8,7 @@ module ScreenSaverScene exposing
   , view
   , subscriptions
   -------------------
-  , ScreenSaverModel
+  , StartModel
   )
 
 -- Standard
@@ -47,17 +47,17 @@ type alias KioskModel a =
   , flags : Flags
   , sceneStack : Nonempty Scene
   ------------------------------------
-  , screenSaverModel : ScreenSaverModel
+  , startModel : StartModel
   }
 
 
-type alias ScreenSaverModel =
+type alias StartModel =
   { idleSeconds : Int
   , badNews : List String
   }
 
 
-init : Flags -> (ScreenSaverModel, Cmd Msg)
+init : Flags -> (StartModel, Cmd Msg)
 init flags =
   ( { idleSeconds = 0
     , badNews = []
@@ -71,12 +71,12 @@ init flags =
 -- SCENE WILL APPEAR
 -----------------------------------------------------------------------------
 
-sceneWillAppear : KioskModel a -> Scene -> (ScreenSaverModel, Cmd Msg)
+sceneWillAppear : KioskModel a -> Scene -> (StartModel, Cmd Msg)
 sceneWillAppear kioskModel appearingScene =
   let
-    sceneModel = kioskModel.screenSaverModel
+    sceneModel = kioskModel.startModel
   in
-    if appearingScene == ScreenSaver then
+    if appearingScene == Start then
       ({sceneModel | idleSeconds=0}, hideKeyboard ())
     else
       ({sceneModel | idleSeconds=0}, Cmd.none)
@@ -86,11 +86,11 @@ sceneWillAppear kioskModel appearingScene =
 -- UPDATE
 -----------------------------------------------------------------------------
 
-update : ScreenSaverMsg -> KioskModel a -> (ScreenSaverModel, Cmd Msg)
+update : StartMsg -> KioskModel a -> (StartModel, Cmd Msg)
 update msg kioskModel =
   let
-    sceneModel = kioskModel.screenSaverModel
-    amVisible = currentScene kioskModel == ScreenSaver
+    sceneModel = kioskModel.startModel
+    amVisible = currentScene kioskModel == Start
 
   in
     case msg of
@@ -138,7 +138,7 @@ timeoutFor scene =
     OldBusiness -> 300
     ReasonForVisit -> 300
     RfidHelper -> 600
-    ScreenSaver -> 86400
+    Start -> 86400
     SignUpDone -> 300
     TaskList -> 300
     TimeSheetPt1 -> 300
@@ -150,10 +150,10 @@ timeoutFor scene =
     WelcomeForRfid -> 60
 
 
-tick : Time -> KioskModel a -> (ScreenSaverModel, Cmd Msg)
+tick : Time -> KioskModel a -> (StartModel, Cmd Msg)
 tick time kioskModel =
   let
-    sceneModel = kioskModel.screenSaverModel
+    sceneModel = kioskModel.startModel
     newSeconds = sceneModel.idleSeconds + 1
     newSceneModel = {sceneModel | idleSeconds = newSeconds}
     tooLong = timeoutFor (currentScene kioskModel)
@@ -194,8 +194,8 @@ view kioskModel =
 subscriptions: KioskModel a -> Sub Msg
 subscriptions model =
   Sub.batch
-    [ Mouse.clicks (\_ -> (ScreenSaverVector <| SS_MouseClick))
-    , Keyboard.downs (ScreenSaverVector << SS_KeyDown)
+    [ Mouse.clicks (\_ -> (StartVector <| SS_MouseClick))
+    , Keyboard.downs (StartVector << SS_KeyDown)
     ]
 
 
@@ -203,11 +203,11 @@ subscriptions model =
 -- RFID WAS SWIPED
 -----------------------------------------------------------------------------
 
-rfidWasSwiped : KioskModel a -> Result String Member -> (ScreenSaverModel, Cmd Msg)
+rfidWasSwiped : KioskModel a -> Result String Member -> (StartModel, Cmd Msg)
 rfidWasSwiped kioskModel result =
   case result of
-    Ok m -> (kioskModel.screenSaverModel, send <| WelcomeForRfidVector <| W4R_Segue m)
-    Err e -> (kioskModel.screenSaverModel, Cmd.none)
+    Ok m -> (kioskModel.startModel, send <| WelcomeForRfidVector <| W4R_Segue m)
+    Err e -> (kioskModel.startModel, Cmd.none)
 
 
 -----------------------------------------------------------------------------

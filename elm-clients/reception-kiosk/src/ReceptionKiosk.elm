@@ -29,7 +29,7 @@ import NewUserScene
 import OldBusinessScene
 import ReasonForVisitScene
 import RfidHelper
-import ScreenSaverScene
+import StartScene
 import SignUpDoneScene
 import TaskListScene
 import TimeSheetPt1Scene
@@ -103,8 +103,8 @@ type alias Model =
   , errorModel           : ErrorScene.ErrorModel
   , howDidYouHearModel   : HowDidYouHearScene.HowDidYouHearModel
   , membersOnlyModel     : MembersOnlyScene.MembersOnlyModel
-  , screenSaverModel     : ScreenSaverScene.ScreenSaverModel
   , signUpDoneModel      : SignUpDoneScene.SignUpDoneModel
+  , startModel           : StartScene.StartModel
   , newMemberModel       : NewMemberScene.NewMemberModel
   , newUserModel         : NewUserScene.NewUserModel
   , oldBusinessModel     : OldBusinessScene.OldBusinessModel
@@ -135,8 +135,8 @@ init f =
     (newUserModel,         newUserCmd        ) = NewUserScene.init         f
     (oldBusinessModel,     oldBusinessCmd    ) = OldBusinessScene.init     f
     (reasonForVisitModel,  reasonForVisitCmd ) = ReasonForVisitScene.init  f
-    (screenSaverModel,     screenSaverCmd    ) = ScreenSaverScene.init     f
     (signUpDoneModel,      signUpDoneCmd     ) = SignUpDoneScene.init      f
+    (startModel,           startCmd          ) = StartScene.init     f
     (taskInfoModel,        taskInfoCmd       ) = TaskInfoScene.init        f
     (taskListModel,        taskListCmd       ) = TaskListScene.init        f
     (timeSheetPt1Model,    timeSheetPt1Cmd   ) = TimeSheetPt1Scene.init    f
@@ -149,7 +149,7 @@ init f =
       { flags = f
       , currTime = 0
       , timeShift = f.timeShift
-      , sceneStack = Nonempty.fromElement ScreenSaver
+      , sceneStack = Nonempty.fromElement Start
       , idxToFocus = Nothing
       , mdl = Material.model
       , xisSession = XisApi.createSession f.xisApiFlags (DRF.Token f.uniqueKioskId)
@@ -169,8 +169,8 @@ init f =
       , newUserModel         = newUserModel
       , oldBusinessModel     = oldBusinessModel
       , reasonForVisitModel  = reasonForVisitModel
-      , screenSaverModel     = screenSaverModel
       , signUpDoneModel      = signUpDoneModel
+      , startModel           = startModel
       , taskInfoModel        = taskInfoModel
       , taskListModel        = taskListModel
       , timeSheetPt1Model    = timeSheetPt1Model
@@ -193,7 +193,7 @@ init f =
       , newMemberCmd
       , newUserCmd
       , reasonForVisitCmd
-      , screenSaverCmd
+      , startCmd
       , taskInfoCmd
       , taskListCmd
       , timeSheetPt1Cmd
@@ -231,9 +231,9 @@ update msg model =
     RfidWasSwiped result ->
       case Nonempty.head model.sceneStack of
 
-        ScreenSaver ->
-          let (newMod, cmd) = ScreenSaverScene.rfidWasSwiped model result
-          in ({model | screenSaverModel = newMod}, cmd)
+        Start ->
+          let (newMod, cmd) = StartScene.rfidWasSwiped model result
+          in ({model | startModel = newMod}, cmd)
 
         CheckIn ->
           let (newMod, cmd) = CheckInScene.rfidWasSwiped model result
@@ -326,8 +326,8 @@ update msg model =
             (mNU,  cNU)  = NewUserScene.sceneWillAppear model appearing
             (mOB,  cOB)  = OldBusinessScene.sceneWillAppear model appearing vanishing
             (mRH,  cRH)  = RfidHelper.sceneWillAppear model appearing vanishing
-            (mSS,  cSS)  = ScreenSaverScene.sceneWillAppear model appearing
             (mSUD, cSUD) = SignUpDoneScene.sceneWillAppear model appearing vanishing
+            (mSS,  cSS)  = StartScene.sceneWillAppear model appearing
             (mTI,  cTI)  = TaskInfoScene.sceneWillAppear model appearing vanishing
             (mTL,  cTL)  = TaskListScene.sceneWillAppear model appearing vanishing
             (mTS1, cTS1) = TimeSheetPt1Scene.sceneWillAppear model appearing vanishing
@@ -349,8 +349,8 @@ update msg model =
               , newUserModel = mNU
               , oldBusinessModel = mOB
               , rfidHelperModel = mRH
-              , screenSaverModel = mSS
               , signUpDoneModel = mSUD
+              , startModel = mSS
               , taskInfoModel = mTI
               , taskListModel = mTL
               , timeSheetPt1Model = mTS1
@@ -371,14 +371,14 @@ update msg model =
             (mCA, cCA) = CreatingAcctScene.tick time model
             (mCI, cCI) = CheckInScene.tick time model
             (mRH, cRH) = RfidHelper.tick time model
-            (mSS, cSS) = ScreenSaverScene.tick time model
+            (mSS, cSS) = StartScene.tick time model
             newModel =
               { model
               | currTime = time + model.timeShift * Duration.ticksPerSecond
               , creatingAcctModel = mCA
               , checkInModel = mCI
               , rfidHelperModel = mRH
-              , screenSaverModel = mSS
+              , startModel = mSS
               }
             focusCmd =
               case model.idxToFocus of
@@ -453,13 +453,13 @@ update msg model =
       let (sm, cmd) = ReasonForVisitScene.update x model
       in ({model | reasonForVisitModel = sm}, cmd)
 
-    ScreenSaverVector x ->
-      let (sm, cmd) = ScreenSaverScene.update x model
-      in ({model | screenSaverModel = sm}, cmd)
-
     SignUpDoneVector x ->
       let (sm, cmd) = SignUpDoneScene.update x model
       in ({model | signUpDoneModel = sm}, cmd)
+
+    StartVector x ->
+      let (sm, cmd) = StartScene.update x model
+      in ({model | startModel = sm}, cmd)
 
     TaskInfoVector x ->
       let (sm, cmd) = TaskInfoScene.update x model
@@ -515,8 +515,8 @@ view model =
     OldBusiness     -> OldBusinessScene.view     model
     ReasonForVisit  -> ReasonForVisitScene.view  model
     RfidHelper      -> RfidHelper.view           model
-    ScreenSaver     -> ScreenSaverScene.view     model
     SignUpDone      -> SignUpDoneScene.view      model
+    Start           -> StartScene.view           model
     TaskInfo        -> TaskInfoScene.view        model
     TaskList        -> TaskListScene.view        model
     TimeSheetPt1    -> TimeSheetPt1Scene.view    model
@@ -536,14 +536,14 @@ subscriptions model =
   let
     focusSetSubs = focusWasSet (WizardVector << FocusWasSet)
     rfidHelperSubs = RfidHelper.subscriptions
-    screenSaverSubs = ScreenSaverScene.subscriptions model
+    startSubs = StartScene.subscriptions model
     timeTickSubs = Time.every second (WizardVector << Tick)
     waiverSubs = WaiverScene.subscriptions model
   in
     Sub.batch
       [ focusSetSubs
       , rfidHelperSubs
-      , screenSaverSubs
+      , startSubs
       , timeTickSubs
       , waiverSubs
       ]

@@ -67,19 +67,19 @@ type Scene
   | EmailInUse
   | Error
   | HowDidYouHear
-  | SignUpDone
   | MembersOnly
   | NewMember
   | NewUser
   | OldBusiness
   | ReasonForVisit
   | RfidHelper  -- The view for RfidHelper is an error message.
-  | ScreenSaver
+  | SignUpDone
+  | Start
+  | TaskInfo
   | TaskList
   | TimeSheetPt1
   | TimeSheetPt2
   | TimeSheetPt3
-  | TaskInfo
   | Waiver
   | Welcome
   | WelcomeForRfid
@@ -102,8 +102,8 @@ mdlIdBase scene =
     OldBusiness -> 1200
     ReasonForVisit -> 1300
     RfidHelper -> 2400  -- CURRENT MAX
-    ScreenSaver -> 1400
     SignUpDone -> 1500
+    Start -> 1400
     TaskInfo -> 1600
     TaskList -> 1700
     TimeSheetPt1 -> 1800
@@ -220,12 +220,12 @@ type RfidHelperMsg
   | RH_MemberListResult (Result Http.Error (PageOf Member))
   | RH_MemberPresentResult (Result Http.Error VisitEvent)
 
-type ScreenSaverMsg
-  = SS_KeyDown KeyCode
-  | SS_MouseClick
-
 type SignUpDoneMsg
   = SUD_Segue String
+
+type StartMsg
+  = SS_KeyDown KeyCode
+  | SS_MouseClick
 
 type TaskInfoMsg
   = TI_Segue (Member, XisApi.Task, Claim)
@@ -293,8 +293,8 @@ type Msg
   | NewUserVector NewUserMsg
   | OldBusinessVector OldBusinessMsg
   | ReasonForVisitVector ReasonForVisitMsg
-  | ScreenSaverVector ScreenSaverMsg
   | SignUpDoneVector SignUpDoneMsg
+  | StartVector StartMsg
   | TaskInfoVector TaskInfoMsg
   | TaskListVector TaskListMsg
   | TimeSheetPt1Vector TimeSheetPt1Msg
