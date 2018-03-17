@@ -14,7 +14,7 @@ from rest_framework.request import Request
 
 def user_is_kiosk(request: Request) -> bool:
     u = request.user  # type: User
-    isAuth = u.is_authenticated()
+    isAuth = u.is_authenticated
     isKioskUsername = u.username in (
         "ReceptionKiosk1",
         "ReceptionKiosk2",

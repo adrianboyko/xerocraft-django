@@ -9,7 +9,7 @@ import calendar
 
 # Third Party
 from dateutil.parser import parse  # python-dateutil in requirements.txt
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse, JsonResponse, Http404
 from django.contrib.auth import authenticate

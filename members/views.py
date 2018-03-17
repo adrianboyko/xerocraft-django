@@ -13,7 +13,7 @@ import json
 from dateutil.relativedelta import relativedelta
 from django.shortcuts import render
 from django.http import HttpResponse, JsonResponse
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.core.exceptions import PermissionDenied
 from django.contrib.auth import authenticate
 from django.contrib.auth.decorators import login_required
