@@ -55,6 +55,7 @@ urlpatterns = [
 
     # DJANGO REST FRAMEWORK API
     url(r'^ops/api/', include(router.urls)),
+    url(r'^ops/log-message/$', views.log_message),
 
     url(r'^helpdesk/', include('helpdesk.urls')),
 

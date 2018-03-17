@@ -4,6 +4,7 @@ module Types exposing (..)
 import Http
 import Time exposing (Time)
 import Keyboard exposing (KeyCode)
+import Mouse exposing (Position)
 
 -- Third Party
 import Material
@@ -225,7 +226,7 @@ type SignUpDoneMsg
 
 type StartMsg
   = SS_KeyDown KeyCode
-  | SS_MouseClick
+  | SS_MouseClick Position
 
 type TaskInfoMsg
   = TI_Segue (Member, XisApi.Task, Claim)
@@ -279,6 +280,7 @@ type Msg
   | RfidHelperVector RfidHelperMsg
   | RfidWasSwiped (Result String Member)
   | NoOp
+  | IgnoreResultHttpErrorString (Result Http.Error String)
   -----------------------------------
   | CheckInDoneVector CheckInDoneMsg
   | CheckInVector CheckInMsg

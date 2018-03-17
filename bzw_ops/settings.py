@@ -271,6 +271,10 @@ LOGGING = {
         }
     },
     'loggers': {
+        'kiosk': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
         'bzw_ops': {
             'handlers': ['console'],
             'level': 'INFO',

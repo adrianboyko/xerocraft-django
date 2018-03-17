@@ -1,7 +1,8 @@
 # Standard
 import time
 from typing import Optional
-from logging import getLogger
+from logging import getLogger, DEBUG, INFO, WARNING, ERROR, CRITICAL
+import json
 
 # Third Party
 from django.core.management import call_command
@@ -13,6 +14,9 @@ from django.template import RequestContext, loader, Template
 from social.apps.django_app.default.models import UserSocialAuth
 from rest_framework.authtoken.models import Token
 from rq import Queue
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework.permissions import IsAdminUser
+from rest_framework.authentication import TokenAuthentication
 
 # Local
 from members.models import Membership, VisitEvent
@@ -217,3 +221,36 @@ def test(request) -> JsonResponse:
 def paypal_webhook(request):
     # Not yet sure what the proper response is. This "OK" response is for testing purposes.
     return HttpResponse("OK")
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# LOGGING
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+level_map = {
+    "D": DEBUG,
+    "I": INFO,
+    "W": WARNING,
+    "E": ERROR,
+    "C": CRITICAL
+}
+
+
+@api_view(['POST'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAdminUser])
+def log_message(request) -> HttpResponse:
+    """ Log a message to the server's logs. """
+
+    if request.method != 'POST':
+        return HttpResponse(status=405, data="Method was not POST.")
+
+    data = json.loads(request.body.decode())
+    logger_name = data['logger_name']  # type: str
+    log_level_str = data['log_level']  # type: str
+    msg_to_log = data['msg_to_log']  # type: str
+
+    logger = getLogger(logger_name)
+    log_level = level_map[log_level_str]
+    logger.log(log_level, msg_to_log)
+    return HttpResponse("Success")

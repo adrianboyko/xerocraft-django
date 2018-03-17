@@ -12,6 +12,7 @@ module XisRestApi
     , ClaimStatus (..)
     , ClaimListFilter (..)
     , DiscoveryMethod, DiscoveryMethodData
+    , LogLevel (..)
     , Member, MemberData
     , Membership, MembershipData
     , MemberListFilter (..)
@@ -68,6 +69,7 @@ type alias XisRestFlags =
   , claimListUrl : ResourceListUrl
   , discoveryMethodListUrl : ResourceListUrl
   , emailMembershipInfoUrl : ServiceUrl
+  , logMessageUrl : ServiceUrl  -- This logs a message on the server side.
   , memberListUrl : ResourceListUrl
   , membershipListUrl : ResourceListUrl
   , taskListUrl : ResourceListUrl
@@ -169,6 +171,7 @@ type alias Session msg =
   , coverTime : List Membership -> PointInTime -> Bool
   , defaultBlockType : List TimeBlockType -> Maybe TimeBlockType
   , emailMembershipInfo : EmailMembershipInfo msg
+  , logMessage : LogMessage msg
   , getBlocksTypes : TimeBlock -> List TimeBlockType -> List TimeBlockType
   , memberCanClaimTask : Int -> Task -> Bool
   , memberHasStatusOnTask : Int -> ClaimStatus -> Task -> Bool
@@ -227,6 +230,7 @@ createSession flags auth =
   , coverTime = coverTime
   , defaultBlockType = defaultBlockType
   , emailMembershipInfo = emailMembershipInfo flags auth
+  , logMessage = logMessage flags auth
   , getBlocksTypes = getBlocksTypes
   , memberCanClaimTask = memberCanClaimTask flags
   , memberHasStatusOnTask = memberHasStatusOnTask flags
@@ -1361,6 +1365,42 @@ replaceAll {oldSub, newSub} whole =
 -----------------------------------------------------------------------------
 -- NON-REST FUNCTIONALITY
 -----------------------------------------------------------------------------
+
+-- LOGGING -------------------------------------------------------------
+
+type LogLevel
+  = LL_Debug
+  | LL_Info
+  | LL_Warning
+  | LL_Error
+  | LL_Critical
+
+logLevelToStr : LogLevel -> String
+logLevelToStr logLevel =
+  case logLevel of
+    LL_Debug -> "D"
+    LL_Info -> "I"
+    LL_Warning -> "W"
+    LL_Error -> "E"
+    LL_Critical -> "C"
+
+type alias LogMessage msg = String -> LogLevel -> String -> (Result Http.Error String -> msg) -> Cmd msg
+logMessage : XisRestFlags -> Authorization -> LogMessage msg
+logMessage flags auth loggerName logLevel msgToLog tagger =
+  let
+    obj =
+      [ ("logger_name", loggerName |> Enc.string)
+      , ("log_level", logLevel |> logLevelToStr |> Enc.string)
+      , ("msg_to_log", msgToLog |> Enc.string)
+      ]
+    val = Enc.object obj
+    request = postRequestExpectingString
+      auth
+      flags.logMessageUrl
+      val
+  in
+    Http.send tagger request
+
 
 -- AUTHENTICATE -------------------------------------------------------------
 

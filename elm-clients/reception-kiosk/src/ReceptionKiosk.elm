@@ -228,6 +228,9 @@ update msg model =
     NoOp ->
       (model, Cmd.none)
 
+    IgnoreResultHttpErrorString _ ->
+      (model, Cmd.none)
+
     RfidWasSwiped result ->
       case Nonempty.head model.sceneStack of
 

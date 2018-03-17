@@ -27,7 +27,7 @@ import List.Nonempty exposing (Nonempty)
 -- Local
 import Wizard.SceneUtils exposing (..)
 import Types exposing (..)
-import XisRestApi as XisApi exposing (..)
+import XisRestApi as XisApi
 
 
 -----------------------------------------------------------------------------
@@ -48,19 +48,18 @@ type alias KioskModel a =
   , sceneStack : Nonempty Scene
   ------------------------------------
   , startModel : StartModel
+  , xisSession : XisApi.Session Msg
   }
 
 
 type alias StartModel =
   { idleSeconds : Int
-  , badNews : List String
   }
 
 
 init : Flags -> (StartModel, Cmd Msg)
 init flags =
   ( { idleSeconds = 0
-    , badNews = []
     }
     ,
     Cmd.none
@@ -95,10 +94,20 @@ update msg kioskModel =
   in
     case msg of
 
-    SS_MouseClick ->
+    SS_MouseClick pos ->
       if amVisible && sceneModel.idleSeconds > 0 then
         -- Note: idleSeconds == 0 means the click was on the scene that segued to here.
-        (sceneModel, segueTo Welcome)
+        let
+          segueCmd = segueTo Welcome
+          msgToLog = "Start Scene clicked at: "++(toString pos)
+          logCmd =
+            kioskModel.xisSession.logMessage
+              "kiosk" -- The logger to be used on the servers side
+              XisApi.LL_Info  -- The logging level
+              msgToLog
+              IgnoreResultHttpErrorString  -- A no-op handler for Result Http.Error String
+        in
+          (sceneModel, Cmd.batch [segueCmd, logCmd])
       else
         -- It's a mouse click on some other scene, so reset idle time.
         ({sceneModel | idleSeconds=0}, Cmd.none)
@@ -138,8 +147,8 @@ timeoutFor scene =
     OldBusiness -> 300
     ReasonForVisit -> 300
     RfidHelper -> 600
-    Start -> 86400
     SignUpDone -> 300
+    Start -> 86400
     TaskList -> 300
     TimeSheetPt1 -> 300
     TimeSheetPt2 -> 600  -- Give them time to type a description, get distracted, and continue.
@@ -147,7 +156,7 @@ timeoutFor scene =
     TaskInfo -> 600  -- There may be a lot to read in the instructions.
     Waiver -> 600
     Welcome -> 60
-    WelcomeForRfid -> 60
+    WelcomeForRfid -> 30
 
 
 tick : Time -> KioskModel a -> (StartModel, Cmd Msg)
@@ -194,7 +203,7 @@ view kioskModel =
 subscriptions: KioskModel a -> Sub Msg
 subscriptions model =
   Sub.batch
-    [ Mouse.clicks (\_ -> (StartVector <| SS_MouseClick))
+    [ Mouse.clicks (StartVector << SS_MouseClick)
     , Keyboard.downs (StartVector << SS_KeyDown)
     ]
 
@@ -203,7 +212,7 @@ subscriptions model =
 -- RFID WAS SWIPED
 -----------------------------------------------------------------------------
 
-rfidWasSwiped : KioskModel a -> Result String Member -> (StartModel, Cmd Msg)
+rfidWasSwiped : KioskModel a -> Result String XisApi.Member -> (StartModel, Cmd Msg)
 rfidWasSwiped kioskModel result =
   case result of
     Ok m -> (kioskModel.startModel, send <| WelcomeForRfidVector <| W4R_Segue m)
