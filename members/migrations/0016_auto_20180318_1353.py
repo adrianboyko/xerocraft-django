@@ -28,11 +28,5 @@ class Migration(migrations.Migration):
         migrations.AlterUniqueTogether(
             name='externalid',
             unique_together=set([('provider', 'uid')]),
-        ),
-        migrations.RunSQL(
-            "CREATE TABLE IF NOT EXISTS social_auth_usersocialauth AS SELECT * FROM members_externalid"
-        ),
-        migrations.RunSQL(
-            "INSERT INTO members_externalid SELECT * FROM social_auth_usersocialauth"
         )
     ]
