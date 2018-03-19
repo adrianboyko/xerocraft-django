@@ -1,14 +1,11 @@
 
 # Standard
-import logging
-import os
 
 # Third party
 from django.contrib.auth.models import User
 from nameparser import HumanName
-from social.apps.django_app.default.models import UserSocialAuth
+from members.models import ExternalId
 import lxml.html
-import requests
 
 # Local
 from xis.xerocraft_org_utils.xerocraftscraper import XerocraftScraper
@@ -91,7 +88,7 @@ class AccountScraper(XerocraftScraper):
             password=User.objects.make_random_password(),
         )
 
-        new_usa = UserSocialAuth.objects.create(
+        new_usa = ExternalId.objects.create(
             user=new_user,
             provider=PROVIDER,
             uid=attrs[USERNUM_KEY],
@@ -106,10 +103,10 @@ class AccountScraper(XerocraftScraper):
 
     def process_attrs(self, attrs):
         try:
-            usa = UserSocialAuth.objects.get(provider=PROVIDER, uid=attrs[USERNUM_KEY])
+            usa = ExternalId.objects.get(provider=PROVIDER, uid=attrs[USERNUM_KEY])
             self.process_account_diffs(usa, attrs)
             return usa.user
-        except UserSocialAuth.DoesNotExist:
+        except ExternalId.DoesNotExist:
             return self.create_account(attrs)
 
     def scrape_profile(self, user_num):

@@ -11,7 +11,6 @@ from django.contrib import auth
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.template import RequestContext, loader, Template
-from social.apps.django_app.default.models import UserSocialAuth
 from rest_framework.authtoken.models import Token
 from rq import Queue
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
@@ -19,7 +18,7 @@ from rest_framework.permissions import IsAdminUser
 from rest_framework.authentication import TokenAuthentication
 
 # Local
-from members.models import Membership, VisitEvent
+from members.models import Membership, VisitEvent, ExternalId
 from bzw_ops.worker import conn
 
 __author__ = 'Adrian'
@@ -114,8 +113,8 @@ def api_get_membership_info(request, provider: str, uid: str) -> HttpResponse:
     """
     This allows the Xerocraft.org website to query Django's more-complete membership info.
     :param request: The http request
-    :param provider: Some value from social_auth_usersocialauth's provider column.
-    :param uid: Some value from social_auth_usersocialauth's uid column.
+    :param provider: Some value from members_externalid's provider column.
+    :param uid: Some value from members_externalid's uid column.
     :return: JSON dict or 401 or 403. JSON dict will include 'current':T/F on success else 'error':<msg>.
     """
 
@@ -136,8 +135,9 @@ def api_get_membership_info(request, provider: str, uid: str) -> HttpResponse:
     if (not token_row.user.is_staff) or (not token_row.user.is_active):
         return HttpResponse('User not authorized', status=403)
 
-    social_auth = UserSocialAuth.objects.get_social_auth(provider, uid)
-    if social_auth is None:
+    try:
+        social_auth = ExternalId.objects.get(provider=provider, uid=uid)
+    except ExternalId.DoesNotExist:
         return JsonResponse({
             'provider': provider,
             'uid': uid,

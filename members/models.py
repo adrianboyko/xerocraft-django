@@ -942,6 +942,30 @@ KeyFee._meta.get_field('end_date').help_text = "End date of portion of membershi
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# ExernalIds (replaces Social Auth's UserSocialAuth)
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+# From https://github.com/omab/python-social-auth/blob/v0.2.21/social/apps/django_app/default/models.py
+
+USER_MODEL = 'auth.User'
+UID_LENGTH = 255
+
+
+class ExternalId(models.Model):
+    """Ids used by user on other systems"""
+    user = models.ForeignKey(USER_MODEL, on_delete=models.CASCADE)
+    provider = models.CharField(max_length=32)
+    uid = models.CharField(max_length=UID_LENGTH)
+    extra_data = models.TextField() # Was JSONField
+
+    def __str__(self):
+        return str(self.user)
+
+    class Meta:
+        unique_together = ('provider', 'uid')
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # Additional Line-Item Models for SaleAdmin in Books app.
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 

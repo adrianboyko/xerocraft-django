@@ -12,8 +12,7 @@ django-debug-toolbar==1.8
 django-extensions==1.9.7
 django-filter==1.1.0
 
-#django-helpdesk==0.1.18
--e git+https://github.com/adrianboyko/django-helpdesk.git@maint_0.1.18#egg=django-helpdesk
+django-helpdesk==0.2.7
 
 django-jenkins==0.110.0
 django-markdown-deux==1.0.5
@@ -56,8 +55,8 @@ python-dateutil==2.4.2
 python-pushover==0.2
 
 # I'm keeping these two together, even though the second is out of alphabetical order.
-python-social-auth==0.3.6
-social-auth-app-django==2.1.0
+#python-social-auth==0.3.6
+#social-auth-app-django==2.1.0
 
 python3-openid==3.0.10
 pytz==2018.3
