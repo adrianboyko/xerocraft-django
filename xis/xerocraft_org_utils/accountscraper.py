@@ -67,14 +67,6 @@ class AccountScraper(XerocraftScraper):
         if user_changed:
             user.save()
 
-        extra_changed = False
-        for key, val in attrs.items():
-            if val in ["", None]: continue
-            user_social_auth.extra_data[key] = val
-            extra_changed = True
-        if extra_changed:
-            user_social_auth.save()
-
     def create_account(self, attrs) -> User:
 
         new_user = User.objects.create(
@@ -92,7 +84,7 @@ class AccountScraper(XerocraftScraper):
             user=new_user,
             provider=PROVIDER,
             uid=attrs[USERNUM_KEY],
-            extra_data=attrs,
+            extra_data="",  # Will probably be removing this field.
         )
 
         self.logger.info(

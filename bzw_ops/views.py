@@ -146,17 +146,11 @@ def api_get_membership_info(request, provider: str, uid: str) -> HttpResponse:
 
     member = social_auth.user.member
 
-    # The following is only meaningful for 'xerocraft.org' provider.
-    # I don't anticipate this view being called for other providers.
-    # If this view IS called for other providers, username will be None.
-    username = social_auth.extra_data.get("User name", None)  # This will be None for some providers.
-
     try:
         latest_pm = Membership.objects.filter(member=member).latest('start_date')
         json = {
             'provider': provider,
             'uid': uid,
-            'username': username,
             'current': member.is_currently_paid(),
             'start-date': latest_pm.start_date,
             'end-date': latest_pm.end_date,
