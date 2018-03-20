@@ -41,7 +41,7 @@ class AccountScraper(XerocraftScraper):
 
     # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-    def process_account_diffs(self, user_social_auth, attrs):
+    def process_account_diffs(self, ext_id_rec, attrs):
 
         # Changeables is a list of (key name in attrs, field name in Django model) tuples.
         # These are the fields we'll check for changes.
@@ -52,7 +52,7 @@ class AccountScraper(XerocraftScraper):
             (EMAIL_KEY,           "email"),
         ]
 
-        user = user_social_auth.user  # type: User
+        user = ext_id_rec.user  # type: User
         user_changed = False
         for key, fieldname in changeables:
             oldval = getattr(user, fieldname) if hasattr(user,fieldname) else ""
@@ -80,7 +80,7 @@ class AccountScraper(XerocraftScraper):
             password=User.objects.make_random_password(),
         )
 
-        new_usa = ExternalId.objects.create(
+        new_extidrec = ExternalId.objects.create(
             user=new_user,
             provider=PROVIDER,
             uid=attrs[USERNUM_KEY],
@@ -95,9 +95,9 @@ class AccountScraper(XerocraftScraper):
 
     def process_attrs(self, attrs):
         try:
-            usa = ExternalId.objects.get(provider=PROVIDER, uid=attrs[USERNUM_KEY])
-            self.process_account_diffs(usa, attrs)
-            return usa.user
+            extidrec = ExternalId.objects.get(provider=PROVIDER, uid=attrs[USERNUM_KEY])
+            self.process_account_diffs(extidrec, attrs)
+            return extidrec.user
         except ExternalId.DoesNotExist:
             return self.create_account(attrs)
 

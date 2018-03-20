@@ -13,7 +13,7 @@ from reversion.admin import VersionAdmin
 from books.admin import Sellable, Invoiceable, sale_link
 from members.models import (
     Tag, Pushover, Tagging, VisitEvent,
-    Member, Membership, GroupMembership, KeyFee,
+    Member, Membership, GroupMembership, KeyFee, ExternalId,
     MemberNote, MemberLogin, MembershipGiftCardRedemption,
     MembershipGiftCard, MembershipGiftCardReference, MembershipCampaign,
     DiscoveryMethod, WifiMacDetected
@@ -473,6 +473,18 @@ class DiscoveryMethodAdmin(VersionAdmin):
     list_filter = ['visible']
 
     ordering = ['order']
+
+
+@admin.register(ExternalId)
+class ExternalIdAdmin(VersionAdmin):
+
+    list_display = ['pk', 'provider', 'uid', 'user', 'extra_data']
+
+    raw_id_fields = ['user']
+
+    search_fields = ['user__username', 'uid']
+
+    list_filter = ['provider']
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
