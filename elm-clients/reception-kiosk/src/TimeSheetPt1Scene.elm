@@ -60,8 +60,8 @@ type alias TimeSheetPt1Model =
   ---------- Req'd Args:
   { tcw : Maybe TaskClaimWork
   ---------- Other State:
-  , hrsWorked : Maybe Int
-  , minsWorked : Maybe Int
+  , hrsWorked : Int
+  , minsWorked : Int
   , badNews : List String
   }
 
@@ -72,8 +72,8 @@ init flags =
     ------------ Req'd Args:
     { tcw = Nothing
     ------------ Other State:
-    , hrsWorked = Nothing
-    , minsWorked = Nothing
+    , hrsWorked = 0
+    , minsWorked = 0
     , badNews = []
     }
   in (sceneModel, Cmd.none)
@@ -96,8 +96,8 @@ sceneWillAppear kioskModel appearing vanishing =
     (OldBusiness, _, _) ->
       ( { sceneModel
         | tcw = Nothing
-        , hrsWorked = Nothing
-        , minsWorked = Nothing
+        , hrsWorked = 0
+        , minsWorked = 0
         }
       , Cmd.none
       )
@@ -136,21 +136,15 @@ update msg kioskModel =
 
     TS1_Submit task claim work ->
       let
-        chooseHr = "Must choose an hour value."
-        chooseMin = "Must choose a minute value."
+        needNonZeroDur = "Specify some hours and/or minutes of work."
+        maybeDelete = "If you didn't work, hit BACK and delete this task."
       in
         case (sceneModel.hrsWorked, sceneModel.minsWorked) of
 
-          (Nothing, Nothing) ->
-            ({sceneModel | badNews=[chooseHr, chooseMin]}, Cmd.none)
+          (0, 0) ->
+            ({sceneModel | badNews=[needNonZeroDur, maybeDelete]}, Cmd.none)
 
-          (Nothing, _) ->
-            ({sceneModel | badNews=[chooseHr]}, Cmd.none)
-
-          (_, Nothing) ->
-            ({sceneModel | badNews=[chooseMin]}, Cmd.none)
-
-          (Just hrs, Just mins) ->
+          (hrs, mins) ->
             let
               dur = Time.hour * (toFloat hrs) + Time.minute * (toFloat mins)
               revisedWork = XisApi.setWorksDuration (Just dur) work
@@ -161,10 +155,10 @@ update msg kioskModel =
               )
 
     TS1_HrPad hr ->
-      ({sceneModel | hrsWorked=Just hr}, Cmd.none)
+      ({sceneModel | hrsWorked=hr}, Cmd.none)
 
     TS1_MinPad mins ->
-      ({sceneModel | minsWorked=Just mins}, Cmd.none)
+      ({sceneModel | minsWorked=mins}, Cmd.none)
 
 
 -----------------------------------------------------------------------------
@@ -195,17 +189,13 @@ normalView kioskModel task claim work =
       td []
         [ padButton kioskModel
            <| PadButtonSpec (h |> toString) (TimeSheetPt1Vector <| TS1_HrPad h)
-           <| case sceneModel.hrsWorked of
-               Just x -> h==x
-               Nothing -> False
+           <| h == sceneModel.hrsWorked
         ]
     minButton m =
       td []
         [ padButton kioskModel
            <| PadButtonSpec (m |> toString |> String.padLeft 2 '0') (TimeSheetPt1Vector <| TS1_MinPad m)
-           <| case sceneModel.minsWorked of
-                Just x -> m==x
-                Nothing -> False
+           <| m == sceneModel.minsWorked
         ]
   in
     genericScene kioskModel
