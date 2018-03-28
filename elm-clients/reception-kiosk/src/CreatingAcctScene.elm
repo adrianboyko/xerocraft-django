@@ -109,11 +109,11 @@ sceneWillAppear kioskModel appearingScene =
   in
     if appearingScene == CreatingAcct then
       case args sceneModel of
-        (Just _, Just fname, Just lname, Just email, Just _, Just uname, Just pw, Just sig) ->
+        (Just _, Just fname, Just lname, Just email, Just isAdult, Just uname, Just pw, Just sig) ->
           let
             fullName = String.join " " [fname, lname]
             cmd = kioskModel.membersApi.createNewAcct
-              fullName uname email pw sig
+              fullName uname email pw sig isAdult
               (CreatingAcctVector << XcAcctCreationAttempted)
           in
             (sceneModel, cmd)

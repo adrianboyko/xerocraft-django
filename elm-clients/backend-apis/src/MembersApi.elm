@@ -60,33 +60,37 @@ type alias Flags =
 -- API
 -----------------------------------------------------------------------------
 
-type alias CreateNewAcct msg = String -> String -> String -> String -> String -> (Result Http.Error String -> msg) -> Cmd msg
+(=>) : String -> String -> String
+(=>) key value = key ++ "=" ++ (Http.encodeUri value)
+
+type alias CreateNewAcct msg = String -> String -> String -> String -> String -> Bool -> (Result Http.Error String -> msg) -> Cmd msg
 createNewAcct : Flags -> CreateNewAcct msg
-createNewAcct flags fullName userName email password signature thing =
+createNewAcct flags fullName userName email password signature isAdult tagger =
   let
-    eq = \key value -> key++"="++value
-    enc = Http.encodeUri
-    formData = String.join "&"
-      [ eq "action" "CheckInFirstTime"
-      , eq "UserInfo-Name" (enc fullName)
-      , eq "UserInfo-Username" (enc userName)
-      , eq "UserInfo-Email" (enc email)
-      , eq "UserInfo-Password" (enc password)
-      , eq "passwordShow" "1"
-      , eq "signature-uri" (enc signature)
+    kvStrs =
+      [ "action" => "CheckInFirstTime"
+      , "UserInfo-Name" => fullName
+      , "UserInfo-Username" => userName
+      , "UserInfo-Email" => email
+      , "UserInfo-Password" => password
+      , "passwordShow" => "1"
+      , "signature-uri" => signature
+      , "JoinMinor" => if isAdult then "No" else "Yes"
       ]
+    formDataStr = String.join "&" kvStrs
     request = Http.request
       { method = "POST"
       , headers = []
       , url = flags.xcOrgActionUrl
-      , body = Http.stringBody "application/x-www-form-urlencoded" formData
+      , body = Http.stringBody "application/x-www-form-urlencoded" formDataStr
       , expect = Http.expectString
       , timeout = Nothing
       , withCredentials = False
       }
    in
-     Http.send thing request
+     Http.send tagger request
 
+-- TODO: setIsAdult can be removed once Kyle makes minor status available for scraping.
 type alias SetIsAdult msg = String -> String -> Bool -> (Result Http.Error String -> msg) -> Cmd msg
 setIsAdult : Flags -> SetIsAdult msg
 setIsAdult flags username userpw newValue resultToMsg =
