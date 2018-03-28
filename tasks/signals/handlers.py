@@ -1,6 +1,6 @@
 # Standard
 import logging
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, time
 from decimal import Decimal
 
 # Third Party
@@ -280,9 +280,11 @@ def credit_time_acct(sender, **kwargs):
             pass
 
         if work.work_start_time is not None:
-            acct_entry_when = datetime.combine(work.work_date, work.work_start_time)
+            when_naive = datetime.combine(work.work_date, work.work_start_time)
         else:
-            acct_entry_when = work.work_date
+            # I guess we'll go with 12:01 am in this case.
+            when_naive = datetime.combine(work.work_date, time(0,1))
+        acct_entry_when = timezone.make_aware(when_naive, timezone.get_current_timezone())
 
         # Remember: Time accounting is denominated in hours.
         TimeAccountEntry.objects.create(
