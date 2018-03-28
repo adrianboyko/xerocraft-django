@@ -57,7 +57,9 @@ type alias KioskModel a =
 
 type alias TimeSheetPt2Model =
   ---------------- Req'd Args:
-  { tcw : Maybe TaskClaimWork
+  { sessionType : Maybe SessionType
+  , member : Maybe Member
+  , tcw : Maybe TaskClaimWork
   ---------------- Other State:
   , otherWorkDesc : String
   , badNews : List String
@@ -68,7 +70,9 @@ init : Flags -> (TimeSheetPt2Model, Cmd Msg)
 init flags =
   let sceneModel =
     ---------------- Req'd Args:
-    { tcw = Nothing
+    { sessionType = Nothing
+    , member = Nothing
+    , tcw = Nothing
     ---------------- Other State:
     , otherWorkDesc = ""
     , badNews = []
@@ -88,21 +92,22 @@ sceneWillAppear kioskModel appearingScene vanishingScene =
     case (appearingScene, vanishingScene) of
 
       (TimeSheetPt2, _) ->
-        case (sceneModel.tcw) of
+        case (sceneModel.tcw, sceneModel.sessionType, sceneModel.member) of
 
-          Just tcw ->
+          (Just tcw, Just sessionType, Just member) ->
             if tcw.task.data.shortDesc == "Other Work" then
               (sceneModel, Cmd.none)  -- focusOnIndex idxOtherWorkDesc)
             else
               -- This scene should be invisible because task is not "Other Work".
               -- User might be going forward OR BACKWARD in the wizard.
               -- Either way, don't leave this scene on the stack.
+              -- Note: TS3 will REPLACE this scene on the stack, if need be.
               if vanishingScene==TimeSheetPt1 then
-                (sceneModel, send <| TimeSheetPt3Vector <| TS3_Segue (tcw, Nothing))
+                (sceneModel, send <| TimeSheetPt3Vector <| TS3_Segue sessionType member tcw Nothing)
               else
                 (sceneModel, pop)
           _ ->
-            ({sceneModel | badNews=["Couldn't get task, claim, and work records!"]}, Cmd.none)
+            (sceneModel, send <| ErrorVector <| ERR_Segue missingArguments)
 
       (_, _) ->
         (sceneModel, Cmd.none)
@@ -120,8 +125,12 @@ update msg kioskModel =
 
   in case msg of
 
-    TS2_Segue tcw ->
-      ( {sceneModel | tcw = Just tcw}
+    TS2_Segue sessionType member tcw ->
+      ( { sceneModel
+        | member = Just member
+        , sessionType = Just sessionType
+        , tcw = Just tcw
+        }
       , send <| WizardVector <| Push <| TimeSheetPt2
       )
 
@@ -132,10 +141,14 @@ update msg kioskModel =
       if (sceneModel.otherWorkDesc |> String.trim |> String.length) < 10 then
         ({sceneModel | badNews=[moreInfoReqd]}, Cmd.none)
       else
-        case sceneModel.tcw of
-          Just tcw ->
-            (sceneModel, send <| TimeSheetPt3Vector <| TS3_Segue <| (tcw, Just sceneModel.otherWorkDesc))
-          Nothing ->
+        case (sceneModel.tcw, sceneModel.sessionType, sceneModel.member) of
+
+          (Just tcw, Just sessionType, Just member) ->
+            ( sceneModel
+            , send <| TimeSheetPt3Vector <| TS3_Segue sessionType member tcw (Just sceneModel.otherWorkDesc)
+            )
+
+          _ ->
             (sceneModel, send <| ErrorVector <| ERR_Segue missingArguments)
 
 

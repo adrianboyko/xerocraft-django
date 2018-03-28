@@ -10,7 +10,7 @@ module TimeSheetPt3Scene exposing
   )
 
 -- Standard
-import Html exposing (Html, text, div, span, p)
+import Html exposing (Html, text, div, span, p, br)
 import Html.Attributes exposing (attribute, style)
 import Http exposing (header, Error(..))
 
@@ -38,8 +38,6 @@ idxTimeSheetPt3 = mdlIdBase TimeSheetPt3
 idxWitnessUsername = [idxTimeSheetPt3, 1]
 idxWitnessPassword = [idxTimeSheetPt3, 2]
 
-tcwMissingStr = "Couldn't get task, claim, and work records!"
-
 -----------------------------------------------------------------------------
 -- INIT
 -----------------------------------------------------------------------------
@@ -57,31 +55,39 @@ type alias KioskModel a =
   , xisSession : XisApi.Session Msg
   }
 
+type SceneState
+  = AskingAboutWitness
+  | AskingWitnessForId String String -- witness username and pw
+  | UpdatingTimeSheet (Maybe Member)  -- the witness
+  | ThankingWitness Member  -- the witness
 
 type alias TimeSheetPt3Model =
-  ----------------- Args:
-  { tcw : Maybe TaskClaimWork      -- REQUIRED
-  , otherWorkDesc : Maybe String   -- OPTIONAL
+  ----------------- Required Args:
+  { sessionType : Maybe SessionType
+  , member : Maybe Member
+  , tcw : Maybe TaskClaimWork
+  ----------------- Optional Args:
+  , otherWorkDesc : Maybe String
   ---------------- Other State:
-  , witnessUsername : String
-  , witnessPassword : String
-  , needWitness : Bool
+  , state : SceneState
   , badNews : List String
   }
 
 args x =
-  ( x.tcw
+  ( x.sessionType
+  , x.member
+  , x.tcw
   , x.otherWorkDesc
   )
 
 init : Flags -> (TimeSheetPt3Model, Cmd Msg)
 init flags =
   let sceneModel =
-    { tcw = Nothing
+    { sessionType = Nothing
+    , member = Nothing
+    , tcw = Nothing
     , otherWorkDesc = Nothing
-    , witnessUsername = ""
-    , witnessPassword = ""
-    , needWitness = False
+    , state = AskingAboutWitness
     , badNews = []
     }
   in (sceneModel, Cmd.none)
@@ -100,14 +106,12 @@ sceneWillAppear kioskModel appearing vanishing =
 
       (TimeSheetPt3, _) ->
         case args sceneModel of
-          (Just _, _) ->
-            (sceneModel, focusOnIndex idxWitnessUsername)
-          _ ->
-            ({sceneModel | badNews=[tcwMissingStr]}, Cmd.none)
 
-      (_, TimeSheetPt3) ->
-        -- Clear the password field when we leave this scene.
-        ({sceneModel | witnessPassword=""}, Cmd.none)
+          (Just _, Just _, Just _, _) ->
+            (sceneModel, focusOnIndex idxWitnessUsername)
+
+          _ ->
+            (sceneModel, send <| ErrorVector <| ERR_Segue missingArguments)
 
       (_, _) ->
         (sceneModel, Cmd.none)
@@ -122,47 +126,57 @@ update msg kioskModel =
   let
     sceneModel = kioskModel.timeSheetPt3Model
     xis = kioskModel.xisSession
-    wName = sceneModel.witnessUsername
     amVisible = currentScene kioskModel == TimeSheetPt3
 
   in case msg of
 
-    TS3_Segue (tcw, otherWorkDesc) ->
-      ( {sceneModel | tcw = Just tcw, otherWorkDesc = otherWorkDesc}
+    TS3_Segue sessionType member tcw otherWorkDesc ->
+      ( { sceneModel
+        | sessionType = Just sessionType
+        , member = Just member
+        , tcw = Just tcw
+        , otherWorkDesc = otherWorkDesc
+        }
       , let transition = if otherWorkDesc==Nothing then ReplaceWith else Push
         in send <| WizardVector <| transition <| TimeSheetPt3
       )
 
-    TS3_UpdateWitnessUsername s ->
-      ({sceneModel | witnessUsername = s}, Cmd.none)
+    TS3_UpdateWitnessUsername uname ->
+      case sceneModel.state of
+        AskingWitnessForId _ pw -> ({sceneModel | state = AskingWitnessForId uname pw}, Cmd.none)
+        _ -> (sceneModel, send <| ErrorVector <| ERR_Segue programmingError)
 
-    TS3_UpdateWitnessPassword s ->
-      ({sceneModel | witnessPassword = s}, Cmd.none)
+    TS3_UpdateWitnessPassword pw ->
+      case sceneModel.state of
+        AskingWitnessForId uname _ -> ({sceneModel | state = AskingWitnessForId uname pw}, Cmd.none)
+        _ -> (sceneModel, send <| ErrorVector <| ERR_Segue programmingError)
 
     TS3_NeedWitness ->
-      ({sceneModel | needWitness=True}, Cmd.none)
+      ({sceneModel | state = AskingWitnessForId "" ""}, Cmd.none)
 
-    TS3_Witnessed ->
-      let
-        nameIsEmpty = String.isEmpty sceneModel.witnessUsername
-        pwIsEmpty = String.isEmpty sceneModel.witnessPassword
-      in
-        if nameIsEmpty || pwIsEmpty then
-          ({sceneModel | badNews = ["Witness name and password must be provided."]}, Cmd.none)
-        else
-          let
-            cmd = xis.authenticate
-              (XisApi.djangoizeId sceneModel.witnessUsername)
-              sceneModel.witnessPassword
-              (TimeSheetPt3Vector << TS3_WitnessAuthResult)
-          in
-            (sceneModel, cmd)
+    TS3_WitnessCredsReady ->
+      case sceneModel.state of
+
+        AskingWitnessForId uname pw ->
+          if String.isEmpty uname || String.isEmpty pw then
+            ({sceneModel | badNews = ["Witness name and password must be provided."]}, Cmd.none)
+          else
+            let
+              cmd = xis.authenticate
+                (XisApi.djangoizeId uname) pw
+                (TimeSheetPt3Vector << TS3_WitnessAuthResult)
+            in
+              (sceneModel, cmd)
+
+        _ ->
+          -- We shouldn't ever get here.
+          (sceneModel, send <| ErrorVector <| ERR_Segue programmingError)
 
     TS3_Skipped ->
       case sceneModel.tcw of
 
         Nothing ->
-          ({sceneModel | badNews=[tcwMissingStr]}, Cmd.none)
+          (sceneModel, send <| ErrorVector <| ERR_Segue missingArguments)
 
         Just {work} ->
           let
@@ -171,14 +185,14 @@ update msg kioskModel =
             -- Previous scenes may have modified work, so update it.
             cmd = xis.replaceWork workMod (TimeSheetPt3Vector << TS3_WorkUpdated)
           in
-            ({sceneModel | badNews=[]}, cmd)
+            ({sceneModel | badNews=[], state = UpdatingTimeSheet Nothing}, cmd)
 
     -- Order of updates is important. Update Work here, update Claim later.
     TS3_WitnessAuthResult (Ok {isAuthentic, authenticatedMember}) ->
       case sceneModel.tcw of
 
         Nothing ->
-          ({sceneModel | badNews=[tcwMissingStr]}, Cmd.none)
+          (sceneModel, send <| ErrorVector <| ERR_Segue missingArguments)
 
         Just {work} ->
           case (isAuthentic, authenticatedMember) of
@@ -189,20 +203,24 @@ update msg kioskModel =
                 workMod = setWorksWitness (Just witnessUrl) work
                 cmd1 = xis.replaceWork workMod (TimeSheetPt3Vector << TS3_WorkUpdated)
               in
-                ({sceneModel | badNews=[]}, cmd1)
+                ( { sceneModel
+                  | badNews=[]
+                  , state=UpdatingTimeSheet (Just witness)
+                  }
+                , cmd1
+                )
 
             (True, Nothing) ->
               -- XIS shouldn't produce this so I won't trust it.
-              let _ = Debug.log "ERROR" "TS3_WitnessAuthResult received (True, Nothing)."
-              in ({sceneModel | badNews=["Could not authenticate "++wName]}, Cmd.none)
+              (sceneModel, send <| ErrorVector <| ERR_Segue programmingError)
 
             (False, _) ->
-              ({sceneModel | badNews=["Could not authenticate "++wName]}, Cmd.none)
+              ({sceneModel | badNews=["Could not authenticate"]}, Cmd.none)
 
     -- Order of updates is important. Update Claim here, now that Work update is done.
     TS3_WorkUpdated (Ok work) ->
       case sceneModel.tcw of
-        Nothing -> ({sceneModel | badNews=[tcwMissingStr]}, Cmd.none)
+        Nothing -> (sceneModel, send <| ErrorVector <| ERR_Segue missingArguments)
         Just {claim} ->
           let
             -- TODO: Task might not be done. Work might be stopping for now.
@@ -213,25 +231,29 @@ update msg kioskModel =
 
     TS3_ClaimUpdated (Ok _) ->
       case sceneModel.tcw of
+
         Just {claim, work} ->
-          ( { sceneModel | badNews = [] }
-          , case sceneModel.otherWorkDesc of
+          case sceneModel.otherWorkDesc of
+
             Just desc ->
-              xis.createWorkNote
-                { author = Just claim.data.claimingMember
-                , content = desc
-                , work = (xis.workUrl work.id)
-                , whenWritten = kioskModel.currTime
-                }
-                (TimeSheetPt3Vector << TS3_WorkNoteCreated)
+              ( { sceneModel | badNews = [] }
+              , xis.createWorkNote
+                  { author = Just claim.data.claimingMember
+                  , content = desc
+                  , work = (xis.workUrl work.id)
+                  , whenWritten = kioskModel.currTime
+                  }
+                  (TimeSheetPt3Vector << TS3_WorkNoteCreated)
+              )
+
             Nothing ->
-              popTo OldBusiness
-          )
-        Nothing -> ({sceneModel | badNews=[tcwMissingStr]}, Cmd.none)
+              thankTheWitness kioskModel
+
+        Nothing -> (sceneModel, send <| ErrorVector <| ERR_Segue missingArguments)
 
     TS3_WorkNoteCreated (Ok note) ->
       -- Everything worked. Scene is complete.
-      (sceneModel, popTo OldBusiness)
+      thankTheWitness kioskModel
 
     -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
@@ -259,25 +281,49 @@ update msg kioskModel =
       (sceneModel, popTo OldBusiness)
 
 
+thankTheWitness kioskModel =
+  let
+    sceneModel = kioskModel.timeSheetPt3Model
+  in
+    case sceneModel.state of
+
+      UpdatingTimeSheet (Just witness) ->
+        ({ sceneModel | badNews = [], state=ThankingWitness witness}, Cmd.none)
+
+      UpdatingTimeSheet Nothing ->
+        ({ sceneModel | badNews = [], state=AskingAboutWitness}, popTo OldBusiness)
+
+      _ ->
+        (sceneModel, send <| ErrorVector <| ERR_Segue programmingError)
+
+
 -----------------------------------------------------------------------------
 -- VIEW
 -----------------------------------------------------------------------------
 
 view : KioskModel a -> Html Msg
 view kioskModel =
-  case kioskModel.timeSheetPt3Model.tcw of
+  let
+    sceneModel = kioskModel.timeSheetPt3Model
+  in
+    case (sceneModel.sessionType, sceneModel.member, sceneModel.tcw) of
 
-    Just {task, claim, work} ->
-      if kioskModel.timeSheetPt3Model.needWitness then
-        viewWitness kioskModel task claim work
-      else
-        viewQuestion kioskModel task claim work
+      (Just sessionType, Just member, Just {task, claim, work}) ->
+        case sceneModel.state of
+          AskingAboutWitness ->
+            view_IsWitnessNeeded kioskModel task claim work
+          AskingWitnessForId witnessUname witnessPw ->
+            view_IdentifyWitness kioskModel task claim work witnessUname witnessPw
+          UpdatingTimeSheet witness ->
+            blankGenericScene kioskModel
+          ThankingWitness witness ->
+            view_ThankWitness kioskModel witness
 
-    _ -> text ""
+      _ -> errorView kioskModel missingArguments
 
 
-viewQuestion : KioskModel a -> XisApi.Task -> XisApi.Claim -> XisApi.Work -> Html Msg
-viewQuestion kioskModel task claim work =
+view_IsWitnessNeeded : KioskModel a -> XisApi.Task -> XisApi.Claim -> XisApi.Work -> Html Msg
+view_IsWitnessNeeded kioskModel task claim work =
   let
     sceneModel = kioskModel.timeSheetPt3Model
 
@@ -300,8 +346,8 @@ viewQuestion kioskModel task claim work =
 
     sceneModel.badNews
 
-viewWitness : KioskModel a -> XisApi.Task -> XisApi.Claim -> XisApi.Work -> Html Msg
-viewWitness kioskModel task claim work =
+view_IdentifyWitness : KioskModel a -> XisApi.Task -> XisApi.Claim -> XisApi.Work -> String -> String -> Html Msg
+view_IdentifyWitness kioskModel task claim work witnessUname witnessPword =
   let
     sceneModel = kioskModel.timeSheetPt3Model
 
@@ -315,18 +361,48 @@ viewWitness kioskModel task claim work =
       , infoDiv kioskModel.currTime task claim work sceneModel.otherWorkDesc
       , vspace 70
       , (sceneTextField kioskModel idxWitnessUsername
-          "Witness Username" sceneModel.witnessUsername
+          "Witness Username" witnessUname
           (TimeSheetPt3Vector << TS3_UpdateWitnessUsername))
       , vspace 40
       , (scenePasswordField kioskModel idxWitnessPassword
-          "Witness Password" sceneModel.witnessPassword
+          "Witness Password" witnessPword
           (TimeSheetPt3Vector << TS3_UpdateWitnessPassword))
       ]
     )
 
-    [ButtonSpec "Witness" (TimeSheetPt3Vector <| TS3_Witnessed) True]
-
+    [ButtonSpec "Witness" (TimeSheetPt3Vector <| TS3_WitnessCredsReady) True]
     sceneModel.badNews
+
+
+view_ThankWitness : KioskModel a -> Member -> Html Msg
+view_ThankWitness kioskModel witness =
+
+  let
+    sceneModel = kioskModel.timeSheetPt3Model
+
+  in
+
+    case (sceneModel.sessionType, sceneModel.member) of
+
+      (Just sessionType, Just worker) ->
+        genericScene kioskModel
+
+          "Volunteer Timesheet"
+          ("Thanks for Witnessing!")
+
+          ( div [sceneTextStyle]
+            [ vspace 40
+            , text ("'" ++ witness.data.userName ++ "' has witnessed the work!")
+            , vspace 20
+            , text ("'" ++ worker.data.userName ++ "' should now continue their " ++ (sessionTypeStr sessionType) ++ ".")
+            ]
+          )
+
+          [ButtonSpec "Ok" (popToMsg OldBusiness) True]
+          sceneModel.badNews
+
+      _ ->
+        errorView kioskModel missingArguments
 
 
 -----------------------------------------------------------------------------

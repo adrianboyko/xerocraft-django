@@ -120,6 +120,11 @@ mdlIdBase scene =
 
 type SessionType = CheckInSession | CheckOutSession
 
+sessionTypeStr st =
+  case st of
+    CheckInSession -> "check in"
+    CheckOutSession -> "check out"
+
 -----------------------------------------------------------------------------
 -- MSG TYPES
 -----------------------------------------------------------------------------
@@ -240,21 +245,21 @@ type TaskListMsg
   | TL_WorkInsertResult (Result Http.Error Work)
 
 type TimeSheetPt1Msg
-  = TS1_Segue TaskClaimWork
+  = TS1_Segue SessionType Member TaskClaimWork
   | TS1_Submit XisApi.Task Claim Work
   | TS1_HrPad Int
   | TS1_MinPad Int
 
 type TimeSheetPt2Msg
-  = TS2_Segue TaskClaimWork
+  = TS2_Segue SessionType Member TaskClaimWork
   | TS2_UpdateDescription String
   | TS2_Continue
 
 type TimeSheetPt3Msg
-  = TS3_Segue (TaskClaimWork, Maybe String)
+  = TS3_Segue SessionType Member TaskClaimWork (Maybe String)
   | TS3_UpdateWitnessUsername String
   | TS3_UpdateWitnessPassword String
-  | TS3_Witnessed
+  | TS3_WitnessCredsReady
   | TS3_Skipped
   | TS3_NeedWitness
   | TS3_ClaimUpdated (Result Http.Error Claim)

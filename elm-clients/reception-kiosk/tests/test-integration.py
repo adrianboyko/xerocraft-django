@@ -256,6 +256,10 @@ class IntegrationTest(LiveServerTestCase):
     def assert_on_TimeSheetPt3(self) -> None:
         self.findTagContaining("p", "Do you need this work to be witnessed?")
 
+    def assert_on_TimeSheetPt3Thanks(self) -> None:
+        self.findTagContaining("p", "Volunteer Timesheet")
+        self.findTagContaining("p", "Thanks for Witnessing")
+
     def assert_on_Waiver(self) -> None:
         self.findTagContaining("p", "Please read and sign the following waiver")
 
@@ -436,10 +440,23 @@ class IntegrationTest(LiveServerTestCase):
         self.findInputWithId("[2000,1]").send_keys(uname+Keys.ENTER)
         self.findInputWithId("[2000,2]").send_keys(pw+Keys.ENTER)
         self.clickTagContaining("button", "Witness")
+        self.assert_on_TimeSheetPt3Thanks()
+        self.clickTagContaining("button", "Ok")
 
     def timeSheetPt3_to_next_viaRfid(self, rfidstr: str):
         self.assert_on_TimeSheetPt3()
         self.findSingleTag("body").send_keys(">"+rfidstr)
+        self.assert_on_TimeSheetPt3Thanks()
+        self.clickTagContaining("button", "Ok")
+
+    def timeSheetPt3_to_next_viaSkip(self) -> None:
+        self.assert_on_TimeSheetPt3()
+        self.clickTagContaining("button", "Skip")
+
+    def timeSheetPt3_to_rfidProblem_viaRfid(self, rfidstr: str):
+        self.assert_on_TimeSheetPt3()
+        self.findSingleTag("body").send_keys(">"+rfidstr)
+        self.assert_on_RfidProblem()
 
     def waiver_to_creatingAcct(self) -> None:
         self.assert_on_Waiver()  # Precondition
@@ -502,7 +519,6 @@ class IntegrationTest(LiveServerTestCase):
         self.assert_on_CheckOutDone()
         self.assertEqual(Work.objects.filter(witness=self.witness_member).count(), 1)
 
-
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     def test_witnessWithRfid(self):
@@ -525,10 +541,34 @@ class IntegrationTest(LiveServerTestCase):
         self.welcomeForRfid_to_next_viaCheckOut(workers_friendly_name)
         self.oldBusiness_to_timeSheetPt1_viaTaskName(self.SPECIFIC_TASK_SHORT_DESC)
         self.timeSheetPt1_to_next()  # Will go to Pt3
-        self.timeSheetPt3_to_next_viaRfid("DEADBEEF")  # Will go to RfidProblem
-        self.assert_on_RfidProblem()
+        self.timeSheetPt3_to_rfidProblem_viaRfid("DEADBEEF")  # Will go to RfidProblem
         self.backOneScene()
         self.timeSheetPt3_to_next_viaRfid(self.WITNESS_RFIDHEX)
+        self.assert_on_CheckOutDone()
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    def test_finishWorkWithoutWitness(self):
+
+        print("Finish Work Without Witness")
+        workers_friendly_name = self.existing_member.first_name
+
+        # Check IN and start work on task
+        self.load_to_start()
+        self.start_to_welcomeForRfid_viaRfid(self.EXISTING_RFIDHEX, workers_friendly_name)
+        self.welcomeForRfid_to_reasonForVisit_viaCheckIn(workers_friendly_name)
+        self.reasonForVisit_to_next_viaReason(self.REASON_WORK)
+        self.taskList_to_taskInfo_viaDefault()
+        self.taskInfo_to_checkInDone()
+        self.checkInDone_to_start()
+
+        # Check OUT and finish the work in progress
+        # Note: We're already on start scene
+        self.start_to_welcomeForRfid_viaRfid(self.EXISTING_RFIDHEX, workers_friendly_name)
+        self.welcomeForRfid_to_next_viaCheckOut(workers_friendly_name)
+        self.oldBusiness_to_timeSheetPt1_viaTaskName(self.SPECIFIC_TASK_SHORT_DESC)
+        self.timeSheetPt1_to_next()  # Will go to Pt3
+        self.timeSheetPt3_to_next_viaSkip()  # This is where we skip the witness.
         self.assert_on_CheckOutDone()
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

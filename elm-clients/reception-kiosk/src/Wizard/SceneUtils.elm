@@ -18,6 +18,8 @@ port module Wizard.SceneUtils exposing
   , px
   , pop
   , popTo
+  , popToMsg
+  , programmingError
   , pt
   , redSpan
   , replaceWith
@@ -104,8 +106,11 @@ focusOnIndex idx =
 pop : Cmd Msg
 pop = send (WizardVector <| Pop)
 
+popToMsg : Scene -> Msg
+popToMsg = WizardVector << PopTo
+
 popTo : Scene -> Cmd Msg
-popTo = send << WizardVector << PopTo
+popTo = send << popToMsg
 
 replaceWith : Scene -> Cmd Msg
 replaceWith = send << WizardVector << ReplaceWith
@@ -318,6 +323,11 @@ errorView kioskModel error =
     [ButtonSpec "Reset" (ErrorVector <| ERR_ResetClicked) True]
     [] -- Never any bad news for this scene
 
+-----------------------------------------------------------------------------
+-- STRINGS
+-----------------------------------------------------------------------------
+
+programmingError = "Programming error. Contact staff."
 
 -----------------------------------------------------------------------------
 -- STYLES

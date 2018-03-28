@@ -58,7 +58,9 @@ type alias KioskModel a =
 
 type alias TimeSheetPt1Model =
   ---------- Req'd Args:
-  { tcw : Maybe TaskClaimWork
+  { sessionType : Maybe SessionType
+  , member : Maybe Member
+  , tcw : Maybe TaskClaimWork
   ---------- Other State:
   , hrsWorked : Int
   , minsWorked : Int
@@ -70,7 +72,9 @@ init : Flags -> (TimeSheetPt1Model, Cmd Msg)
 init flags =
   let sceneModel =
     ------------ Req'd Args:
-    { tcw = Nothing
+    { sessionType = Nothing
+    , member = Nothing
+    , tcw = Nothing
     ------------ Other State:
     , hrsWorked = 0
     , minsWorked = 0
@@ -129,8 +133,12 @@ update msg kioskModel =
 
   in case msg of
 
-    TS1_Segue tcw ->
-      ( {sceneModel | tcw = Just tcw}
+    TS1_Segue sessionType member tcw ->
+      ( { sceneModel
+        | sessionType = Just sessionType
+        , member = Just member
+        , tcw = Just tcw
+        }
       , send <| WizardVector <| Push <| TimeSheetPt1
       )
 
@@ -150,9 +158,15 @@ update msg kioskModel =
               revisedWork = XisApi.setWorksDuration (Just dur) work
               tcw = TaskClaimWork task claim revisedWork
             in
-              ( { sceneModel | tcw = Just tcw, badNews = []}
-              , send <| TimeSheetPt2Vector <| TS2_Segue tcw
-              )
+              case (sceneModel.sessionType, sceneModel.member) of
+                (Just sessionType, Just member) ->
+                  ( { sceneModel | tcw = Just tcw, badNews = []}
+                  , send <| TimeSheetPt2Vector <| TS2_Segue sessionType member tcw
+                  )
+                _ ->
+                  ( sceneModel
+                  , send <| ErrorVector <| ERR_Segue missingArguments
+                  )
 
     TS1_HrPad hr ->
       ({sceneModel | hrsWorked=hr}, Cmd.none)
