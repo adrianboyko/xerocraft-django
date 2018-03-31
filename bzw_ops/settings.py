@@ -128,7 +128,6 @@ INSTALLED_APPS += (
     'books',
     'reversion',
     'modelmailer',
-    'django_sabayon',
     'flock',
     'django_filters',
 

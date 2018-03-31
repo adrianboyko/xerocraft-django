@@ -21,7 +21,6 @@ from django.conf.urls import include, url
 from django.contrib import admin
 from django.conf import settings
 from django.conf.urls.static import static
-from django_sabayon import urls as sabayon_urls
 from rest_framework import routers
 
 # Local
@@ -58,8 +57,5 @@ urlpatterns = [
     url(r'^ops/log-message/$', views.log_message),
 
     url(r'^helpdesk/', include('helpdesk.urls')),
-
-    # The following is for auto-renewal of "letsencrypt" SSL certs
-    url(r'^', include(sabayon_urls)),
 
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
