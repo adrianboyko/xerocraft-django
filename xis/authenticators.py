@@ -48,13 +48,7 @@ class XerocraftBackend(ModelBackend):
 
         # Reuse the Scraper's logic to create a user for this usernum.
         scraper = AccountScraper()
-        if scraper.login():  # Logs in using admin acct in its own requests.session.
-            user = scraper.scrape_profile(usernum)
-            scraper.logout()
-        else:
-            # scraper will log failure to login, so we don't do so here.
-            # REVIEW: Is there any way to inform the person trying to log in?
-            return None
+        user = scraper.scrape_one_account(usernum)
 
         assert(user is not None)
         # Scraper doesn't have access to pws, so they need to be synched by this authenticator.
