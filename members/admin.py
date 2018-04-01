@@ -360,14 +360,16 @@ class MembershipAdmin(VersionAdmin):
         ('start_date', 'end_date'),
         'sale_price',
         ('when_nudged', 'nudge_count'),
+        'sale', 'group',
         'protected',
         'ctrlid',
     ]
 
     readonly_fields = ['ctrlid']
-    raw_id_fields = ['member']
+    raw_id_fields = ['member', 'sale', 'group']
 
     search_fields = [
+        'pk',
         '^member__auth_user__first_name',
         '^member__auth_user__last_name',
         '^member__auth_user__username',
