@@ -29,10 +29,9 @@ freezegun==0.3.9
 gunicorn==19.3.0
 icalendar==3.11.7
 inflection==0.3.1
-
--e git+https://github.com/tgs/nptime.git@d8866bd76e0fcabc45674c69cee30380731d4acd#egg=nptime
 lxml==3.6.1
 nameparser==0.3.11
+nptime=1.1
 numpy==1.13.3
 oauthlib==1.0.3
 paho-mqtt==1.2.3
