@@ -1627,8 +1627,9 @@ class ExpenseTransaction(Journaler):
             raise ValidationError(_("Detail for check payments should only be the bare check number without # or other text."))
           # TODO: Check for duplicate check number here?
 
-        if self.payment_method == self.PAID_BY_CASH and self.method_detail > "":
-            raise ValidationError(_("Cash payments shouldn't have detail. Cash is cash."))
+        if self.method_detail is not None:
+            if self.payment_method == self.PAID_BY_CASH and self.method_detail > "":
+                raise ValidationError(_("Cash payments shouldn't have detail. Cash is cash."))
 
     def checksum(self) -> Decimal:
         """
