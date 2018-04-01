@@ -16,7 +16,6 @@ from members.models import (
     Membership,
     DiscoveryMethod,
     MembershipGiftCardReference,
-    WifiMacDetected,
     VisitEvent,
 )
 
@@ -71,14 +70,6 @@ class MembershipGiftCardReferenceViewSet(viewsets.ModelViewSet):
     queryset = MembershipGiftCardReference.objects.all()
     serializer_class = ser.MembershipGiftCardReferenceSerializer
     filter_fields = {'ctrlid'}
-
-
-class WifiMacDetectedViewSet(viewsets.ModelViewSet):
-    """
-    REST API endpoint that allows WiFi MAC detections to be logged.
-    """
-    queryset = WifiMacDetected.objects.all()
-    serializer_class = ser.WifiMacDetectedSerializer
 
 
 class VisitEventViewSet(viewsets.ModelViewSet):

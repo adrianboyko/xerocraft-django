@@ -90,16 +90,6 @@ class DiscoveryMethodSerializer(serializers.ModelSerializer):
         )
 
 
-class WifiMacDetectedSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = models.WifiMacDetected
-        fields = (
-            'when',
-            'mac',
-        )
-
-
 class VisitEventSerializer(serializers.ModelSerializer):
 
     who_embed = get_MemberSerializer(True)(many=False, read_only=True, source='who')

@@ -16,7 +16,7 @@ from members.models import (
     Member, Membership, GroupMembership, KeyFee, ExternalId,
     MemberNote, MemberLogin, MembershipGiftCardRedemption,
     MembershipGiftCard, MembershipGiftCardReference, MembershipCampaign,
-    DiscoveryMethod, WifiMacDetected
+    DiscoveryMethod
 )
 
 
@@ -67,19 +67,6 @@ class VisitEventAdmin(admin.ModelAdmin):  # No need to version events.
     list_filter = ['when', 'event_type', 'reason', 'method']
     date_hierarchy = 'when'
     raw_id_fields = ['who']
-
-
-@admin.register(WifiMacDetected)
-class WifiMacDetectedAdmin(admin.ModelAdmin):  # No need to version events.
-
-    def has_add_permission(self, request):
-        return False
-        # These are created by automated processes, not humans.
-
-    list_display = ['pk', 'mac', 'when']
-    list_filter = ['when']
-    date_hierarchy = 'when'
-    search_fields = ['mac']
 
 
 class MemberTypeFilter(admin.SimpleListFilter):
