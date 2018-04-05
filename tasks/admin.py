@@ -703,7 +703,7 @@ class SnippetAdmin(VersionAdmin):
 @admin.register(TimeAccountEntry)
 class TimeAccountEntryAdmin(VersionAdmin):
 
-    list_display = ['pk', 'worker', 'when', 'change', 'explanation', 'expires']
+    list_display = ['pk', 'worker', 'when', 'type', 'change', 'explanation', 'expires']
 
     fields = ['worker', 'when', 'change', 'explanation', 'work', 'play', 'balance']
 
@@ -745,7 +745,7 @@ class TimeAccountEntryAdmin(VersionAdmin):
             elif self.value() == 'N':
                 return queryset.exclude(change=Decimal("0.00"))
 
-    list_filter = [NumTypeFilter]
+    list_filter = [NumTypeFilter, 'type']
 
     class Media:
         css = {

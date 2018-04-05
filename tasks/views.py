@@ -8,15 +8,13 @@ from typing import Generator, Tuple, Optional
 from decimal import Decimal
 
 # Third Party
-from dateutil.parser import parse  # python-dateutil in requirements.txt
 from django.urls import reverse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse, JsonResponse, Http404
-from django.contrib.auth import authenticate
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
 from django.views.decorators.csrf import ensure_csrf_cookie
-
+import django.utils.timezone as timezone
 from icalendar import Calendar, Event
 
 # Local
@@ -619,22 +617,39 @@ from django.contrib.auth.models import User
 from collections import OrderedDict
 
 @login_required
-def time_acct_statement(request):
+def time_acct_statement(request, range:str):
     user = request.user  # type: User
 
     # TODO: Need to drive creation of expirations more sensibly.
     TimeAccountEntry.regenerate_expirations(user.member.worker)
 
-    lines = TimeAccountEntry.objects.filter(worker=user.member.worker).order_by('when')
+    statement_start_datetime = timezone.now()  # type: datetime
+    if range == "all":
+        statement_start_datetime -= timedelta(days=365*20)  # A long time ago.
+        subtitle = "for all time"
+    if range == "recent":
+        statement_start_datetime -= timedelta(days=90)  # The rollover limit.
+        subtitle = "last 90 days"
+    lines = TimeAccountEntry.objects.filter(
+        worker=user.member.worker,
+        when__gte=statement_start_datetime
+    ).order_by('when')
 
-    balance = Decimal("00.00")
+    if len(lines) > 0:
+        balance_forward = lines[0].balance - lines[0].change
+    else:
+        balance_forward = Decimal("0.00")
+    balance = balance_forward
     for line in lines:
         balance += line.change
         line.bal = balance
 
     args = {
+        'user': user,
+        'balance_forward': balance_forward,
         'decimalzero': Decimal("0.00"),
-        'lines': lines
+        'lines': lines,
+        'subtitle': subtitle
     }
     return render(request, 'tasks/time-acct-statement.html', args)
 

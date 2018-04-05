@@ -267,7 +267,8 @@ def credit_time_acct(sender, **kwargs):
             # The work hasn't yet been saved to DB, so we can't link a TimeAccountEntry to it.
             return
 
-        worker = work.claim.claiming_member.worker  # type: Worker
+        # While testing in shell, mship.member.worker is not available.
+        worker = Worker.objects.get(member_id=work.claim.claiming_member_id) # type: Worker
 
         try:
             # If there's already an entry for this work, delete it since we'll recreate it.
@@ -286,6 +287,7 @@ def credit_time_acct(sender, **kwargs):
             expires=None  # i.e. n/a
 
         TimeAccountEntry.objects.create(
+            type=TimeAccountEntry.TYPE_DEPOSIT,
             work=work,
             explanation=explanation,
             worker=worker,
@@ -318,7 +320,14 @@ def debit_time_acct_for_mship(sender, **kwargs):
             # This only applies to Work Trade memberships.
             return
 
-        worker = mship.member.worker  # type: Worker
+        if mship.member is None:
+            # Sometimes automatic payment processing can't determine the member.
+            # If we run into one of these cases, just ignore it for now.
+            # It will be handled when the member reference is manuallys set.
+            return
+
+        # While testing in shell, mship.member.worker is not available.
+        worker = Worker.objects.get(member_id=mship.member_id) # type: Worker
 
         try:
             # If there's already an entry for this membership, delete it since we'll recreate it.
@@ -332,17 +341,18 @@ def debit_time_acct_for_mship(sender, **kwargs):
         elif mship.sale_price == Decimal("10.00"):
             time_cost = Decimal("-9.0")
         else:
-            logger.error("Unexpected sale price for mship #%ld", mship.id)
+            logger.error("Unexpected $%f sale price for mship #%ld", mship.sale_price, mship.id)
             # Let them have it for 0 hours, until we figure out what happened and make a manual fix.
             time_cost = Decimal("0.0")
 
         # Remember: Time accounting is denominated in hours.
         TimeAccountEntry.objects.create(
+            type=TimeAccountEntry.TYPE_WITHDRAWAL,
             play=mship,
             explanation="Membership discount".format(mship.start_date),
             worker=worker,
             change=time_cost,
-            when=mship.start_date
+            when=mship.datetime
         )
 
         # TimeAccountEntry.regenerate_expirations(worker)

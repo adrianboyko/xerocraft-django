@@ -20,7 +20,7 @@ urlpatterns = [
 
     # General
     url(r'^kiosk-task-details/(?P<task_pk>[0-9]+)/$', views.kiosk_task_details, name='kiosk-task-details'),
-    url(r'^time-acct-statement/$', views.time_acct_statement, name='time-acct-statement'),
+    url(r'^time-acct-statement/(?P<range>(all)|(recent))/$', views.time_acct_statement, name='time-acct-statement'),
 
     # API
     url(r'^will-work-now/(?P<task_pk>[0-9]+)_(?P<member_card_str>[-_a-zA-Z0-9]{32})/$', views.will_work_now, name='will-work-now'),

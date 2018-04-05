@@ -5,7 +5,7 @@ import base64
 import uuid
 import hashlib
 import re
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, time
 from decimal import Decimal
 from typing import Union, Tuple, Optional
 import abc
@@ -627,6 +627,17 @@ class MembershipJournalLiner(JournalLiner, models.Model):
     sale_price = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
         default=Decimal("0.00"),
         help_text="The price at which this item sold.")
+
+    @property
+    def datetime(self) -> datetime:
+        if False:  # self.start_time is not None:
+            # TODO: This code will run once start_time is added to membership model.
+            naive = datetime.combine(self.start_date, self.start_time)
+        else:
+            # I guess we'll go with 12:01 am in this case.
+            naive = datetime.combine(self.start_date, time(0,1))
+        aware = timezone.make_aware(naive, timezone.get_current_timezone())
+        return aware
 
     class Meta:
         abstract = True

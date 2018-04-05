@@ -1062,6 +1062,19 @@ class Snippet(models.Model):
 
 class TimeAccountEntry(models.Model):
 
+    TYPE_DEPOSIT = "DEP"
+    TYPE_WITHDRAWAL = "WTH"
+    TYPE_EXPIRATION = "EXP"
+    TYPE_ADJUSTMENT = "ADJ"
+    TYPE_CHOICES = [
+        (TYPE_DEPOSIT, "Deposit"),
+        (TYPE_WITHDRAWAL, "Withdrawal"),
+        (TYPE_EXPIRATION, "Expiration"),
+        (TYPE_ADJUSTMENT, "Adjustment")
+    ]
+    type = models.CharField(max_length=3, null=False, choices=TYPE_CHOICES,
+        help_text="The priority of the task, compared to other tasks.")
+
     explanation = models.CharField(max_length=80,
         null=False, blank=False,
         help_text="Explanation of this change.")
@@ -1078,6 +1091,11 @@ class TimeAccountEntry(models.Model):
     expires = models.DateTimeField(null=True, blank=True,
         default=None,
         help_text="For credits, the OPTIONAL date on which it expires.")
+
+    expiration = models.ForeignKey('TimeAccountEntry', related_name='deposit',
+        null=True, blank=True, default=None,
+        on_delete=models.SET_NULL,
+        help_text="For credits, the corresponding entry that expires the unused portion.")
 
     change = models.DecimalField(max_digits=4, decimal_places=2,
         null=False, blank=False,
@@ -1117,58 +1135,55 @@ class TimeAccountEntry(models.Model):
 
     @classmethod
     def regenerate_expirations(cls, worker: Worker) -> None:
+        # TODO: This code doesn't yet handle TYPE_ADJUSTMENT
 
-        # This deletes all the credit expirations.
-        expirations = TimeAccountEntry.objects.filter(
+        # Delete the current expirations since we'll regenerate all of them:
+        TimeAccountEntry.objects.filter(
             worker=worker,
-            change__lte=Decimal("0.00"),
-            play__isnull=True
-        )
-        expirations.delete()
+            type=TimeAccountEntry.TYPE_EXPIRATION,
+        ).delete()
 
-        credits = TimeAccountEntry.objects.filter(worker=worker, change__gt=Decimal("0.00")).order_by('when')
-        debits = TimeAccountEntry.objects.filter(worker=worker, change__lt=Decimal("0.00")).order_by('when')
+        deposits = TimeAccountEntry.objects.filter(
+            worker=worker,
+            type=TimeAccountEntry.TYPE_DEPOSIT
+        ).exclude(change=Decimal("0.00")).order_by('when')
 
-        for credit in credits:  # type: TimeAccountEntry
-            if credit.expires is None:
-                # We don't need to create an expiration, so skip it.
-                continue
-            if credit.change.is_zero():
-                # There's no credited amount to expire, so skip it.
-                continue
+        withdrawals = TimeAccountEntry.objects.filter(
+            worker=worker,
+            type=TimeAccountEntry.TYPE_WITHDRAWAL
+        ).exclude(change=Decimal("0.00")).order_by('when')
 
-            credit_available = credit.change
+        for deposit in deposits:  # type: TimeAccountEntry
+            deposit_available = deposit.change
 
-            # Look at all the debits and decide which use the credit available.
-            for debit in debits:  # type: TimeAccountEntry
-                if credit_available.is_zero():
-                    # The credit under examination has been fully utilized, so skip the rest of the debits.
+            # Look at all the withdrawals and decide which use the deposit available.
+            for withdrawal in withdrawals:  # type: TimeAccountEntry
+                if deposit_available.is_zero():
+                    # The deposit under examination has been fully utilized, so skip the rest of the withdrawals.
                     break
-                if debit.when > credit.expires:
-                    # The credit has expired from the perspective of the debit, so skip it.
+                if withdrawal.when > deposit.expires:
+                    # The deposit has expired from the perspective of the withdrawal, so skip it.
                     # This is what limits rollover.
                     continue
-                if debit.change.is_zero():
-                    # Shouldn't be any, but skip them if there are.
+                if not hasattr(withdrawal, 'not_covered'):
+                    withdrawal.not_covered = withdrawal.change
+                if withdrawal.not_covered.is_zero():
+                    # The withdrawal is already completely covered by other deposits, so skip it.
                     continue
-                if not hasattr(debit, 'debit_remaining'):
-                    debit.debit_remaining = debit.change
-                if debit.debit_remaining.is_zero():
-                    # The debit is already completely covered by previous credits, so skip it.
-                    continue
-                credit_to_use = min(credit_available, -1*debit.debit_remaining)
-                credit_available -= credit_to_use
-                debit.debit_remaining += credit_to_use
+                deposit_amt_to_use = min(deposit_available, -1*withdrawal.not_covered)
+                deposit_available -= deposit_amt_to_use
+                withdrawal.not_covered += deposit_amt_to_use
 
-            if credit_available > Decimal("0.00") and timezone.now() > credit.expires:
-                explanation = "{} hours of {} credit expired".format(credit_available, credit.when)
+            if deposit_available > Decimal("0.00") and timezone.now() > deposit.expires:
+                explanation = "{} rolled-over hour(s) expired".format(deposit_available, deposit.when)
                 TimeAccountEntry.objects.create(
+                    type=TimeAccountEntry.TYPE_EXPIRATION,
                     work=None,
                     play=None,
                     explanation=explanation,
-                    worker=credit.worker,
-                    change=-1 * credit_available,
-                    when=credit.expires,
+                    worker=deposit.worker,
+                    change=-1 * deposit_available,
+                    when=deposit.expires,
                     expires=None  # not applicable.
                 )
 
