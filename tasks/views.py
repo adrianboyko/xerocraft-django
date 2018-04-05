@@ -5,7 +5,7 @@ from datetime import date, datetime, timedelta
 import logging
 import json
 from typing import Generator, Tuple, Optional
-import calendar
+from decimal import Decimal
 
 # Third Party
 from dateutil.parser import parse  # python-dateutil in requirements.txt
@@ -610,6 +610,33 @@ def desktop_timesheet(request):
     # This has been stubbed out with a notice that this form has been retired.
     # REVIEW: Change was made on 1Feb2018. View be removed after some time.
     return render(request, 'tasks/desktop_timesheet.html', {})
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+from tasks.models import TimeAccountEntry
+from django.contrib.auth.models import User
+from collections import OrderedDict
+
+@login_required
+def time_acct_statement(request):
+    user = request.user  # type: User
+
+    # TODO: Need to drive creation of expirations more sensibly.
+    TimeAccountEntry.regenerate_expirations(user.member.worker)
+
+    lines = TimeAccountEntry.objects.filter(worker=user.member.worker).order_by('when')
+
+    balance = Decimal("00.00")
+    for line in lines:
+        balance += line.change
+        line.bal = balance
+
+    args = {
+        'decimalzero': Decimal("0.00"),
+        'lines': lines
+    }
+    return render(request, 'tasks/time-acct-statement.html', args)
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =

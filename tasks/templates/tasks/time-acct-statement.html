@@ -1,0 +1,37 @@
+{% extends "bzw_ops/email-base.html" %}
+
+{% block title %}Time Account Statement{% endblock %}
+
+{% block body %}
+
+    <table style="font-family:Arial; border-collapse:collapse; border:1px solid black; margin:0">
+    <tr>
+        <th style="border:1px solid black;padding:2px 4px 2px 4px;text-align:center">Date</th>
+        <th style="border:1px solid black;padding:2px 4px 2px 4px;text-align:left">Description</th>
+        <th style="border:1px solid black;padding:2px 4px 2px 4px;text-align:right">Debit</th>
+        <th style="border:1px solid black;padding:2px 4px 2px 4px;text-align:right">Credit</th>
+        <th style="border:1px solid black;padding:2px 4px 2px 4px;text-align:right">Balance</th>
+    </tr>
+    {% for line in lines %}
+        <tr>
+        <td style="border:1px solid black;padding:2px 4px 2px 4px;text-align:center">{{ line.when.date }}</td>
+        <td style="border:1px solid black;padding:2px 4px 2px 4px;text-align:left">{{ line.explanation }}</td>
+
+        {% if line.change >= decimalzero %}
+        <td style="border:1px solid black;padding:2px 4px 2px 4px;text-align:right">&nbsp;</td>
+        <td style="border:1px solid black;padding:2px 4px 2px 4px;text-align:right">{{ line.change }}</td>
+        {% else %}
+        <td style="border:1px solid black;padding:2px 4px 2px 4px;text-align:right">{{ line.change }}</td>
+        <td style="border:1px solid black;padding:2px 4px 2px 4px;text-align:right">&nbsp;</td>
+        {% endif %}
+
+        <td style="border:1px solid black;padding:2px 4px 2px 4px;text-align:right">{{ line.bal }}</td>
+        </tr>
+    {% endfor %}
+    </table>
+
+    <p>
+        If you have any questions about this statement, please contact:<br/>
+        <a href="mailto:volunteer@xerocraft.org">volunteer@xerocraft.org</a>
+    </p>
+{% endblock %}

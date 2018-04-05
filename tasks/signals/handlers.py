@@ -267,10 +267,6 @@ def credit_time_acct(sender, **kwargs):
             # The work hasn't yet been saved to DB, so we can't link a TimeAccountEntry to it.
             return
 
-        if work.witness is None:
-            # We only credit witnessed work
-            return
-
         worker = work.claim.claiming_member.worker  # type: Worker
 
         try:
@@ -279,21 +275,26 @@ def credit_time_acct(sender, **kwargs):
         except TimeAccountEntry.DoesNotExist:
             pass
 
-        if work.work_start_time is not None:
-            when_naive = datetime.combine(work.work_date, work.work_start_time)
-        else:
-            # I guess we'll go with 12:01 am in this case.
-            when_naive = datetime.combine(work.work_date, time(0,1))
-        acct_entry_when = timezone.make_aware(when_naive, timezone.get_current_timezone())
-
         # Remember: Time accounting is denominated in hours.
+        if work.witness is not None:
+            explanation="Work witnessed by {}".format(work.witness.username)
+            change=Decimal.from_float(work.work_duration.total_seconds() / 3600.0)
+            expires=work.datetime + timedelta(days=90)
+        else:  # Work was not witnessed so has no value.
+            explanation="Unwitnessed work"
+            change=Decimal.from_float(0.0)
+            expires=None  # i.e. n/a
+
         TimeAccountEntry.objects.create(
             work=work,
-            explanation="Work done on {}".format(work.work_date),
+            explanation=explanation,
             worker=worker,
-            change=Decimal.from_float(work.work_duration.total_seconds() / 3600.0),
-            when=acct_entry_when
+            change=change,
+            when=work.datetime,
+            expires=expires
         )
+
+        # TimeAccountEntry.regenerate_expirations(worker)
 
     except Exception as e:
         # Makes sure that problems here do not prevent the visit event from being saved!
@@ -338,11 +339,13 @@ def debit_time_acct_for_mship(sender, **kwargs):
         # Remember: Time accounting is denominated in hours.
         TimeAccountEntry.objects.create(
             play=mship,
-            explanation="Work-trade membership beginning {}".format(mship.start_date),
+            explanation="Membership discount".format(mship.start_date),
             worker=worker,
             change=time_cost,
             when=mship.start_date
         )
+
+        # TimeAccountEntry.regenerate_expirations(worker)
 
     except Exception as e:
         # Makes sure that problems here do not prevent the visit event from being saved!

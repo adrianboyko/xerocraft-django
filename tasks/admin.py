@@ -1,6 +1,7 @@
 
 # Standard
 import datetime
+from decimal import Decimal
 
 # Third Party
 from django.contrib import admin
@@ -702,7 +703,7 @@ class SnippetAdmin(VersionAdmin):
 @admin.register(TimeAccountEntry)
 class TimeAccountEntryAdmin(VersionAdmin):
 
-    list_display = ['pk', 'worker', 'when', 'change', 'explanation']
+    list_display = ['pk', 'worker', 'when', 'change', 'explanation', 'expires']
 
     fields = ['worker', 'when', 'change', 'explanation', 'work', 'play', 'balance']
 
@@ -713,6 +714,7 @@ class TimeAccountEntryAdmin(VersionAdmin):
         'worker__member__auth_user__email',
     ]
 
+    ordering = ['when']
     date_hierarchy = 'when'
 
     raw_id_fields = ['worker', 'work', 'play']
@@ -720,6 +722,30 @@ class TimeAccountEntryAdmin(VersionAdmin):
     readonly_fields = [
         'balance',  # Balances are automatically calculated.
     ]
+
+    class NumTypeFilter(admin.SimpleListFilter):
+        title = "Change"
+        parameter_name = 'Sign'
+
+        def lookups(self, request, model_admin):
+            return (
+                ('-', _('Negative')),
+                ('0', _('Zero')),
+                ('+', _('Positive')),
+                ('N', _('Nonzero')),
+            )
+
+        def queryset(self, request, queryset):
+            if self.value() == '-':
+                return queryset.filter(change__lt=Decimal("0.00"))
+            elif self.value() == '0':
+                return queryset.filter(change=Decimal("0.00"))
+            elif self.value() == '+':
+                return queryset.filter(change__gt=Decimal("0.00"))
+            elif self.value() == 'N':
+                return queryset.exclude(change=Decimal("0.00"))
+
+    list_filter = [NumTypeFilter]
 
     class Media:
         css = {

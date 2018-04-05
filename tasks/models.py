@@ -535,6 +535,16 @@ class Work(models.Model):
         on_delete=models.SET_NULL,
         help_text="A director or officer that witnessed the work.")
 
+    @property
+    def datetime(self) -> datetime:
+        if self.work_start_time is not None:
+            naive = datetime.combine(self.work_date, self.work_start_time)
+        else:
+            # I guess we'll go with 12:01 am in this case.
+            naive = datetime.combine(self.work_date, time(0,1))
+        aware = timezone.make_aware(naive, timezone.get_current_timezone())
+        return aware
+
     def clean(self):
         work = self; claim = work.claim; task = claim.claimed_task  # Makes it easier to read logic, below:
         if work.work_duration is not None and work.work_duration > claim.claimed_duration:
@@ -1104,3 +1114,61 @@ class TimeAccountEntry(models.Model):
     def clean(self):
         if self.work is not None and self.play is not None:
             raise ValidationError("Specify ONE of work or play, or NEITHER. Not both.")
+
+    @classmethod
+    def regenerate_expirations(cls, worker: Worker) -> None:
+
+        # This deletes all the credit expirations.
+        expirations = TimeAccountEntry.objects.filter(
+            worker=worker,
+            change__lte=Decimal("0.00"),
+            play__isnull=True
+        )
+        expirations.delete()
+
+        credits = TimeAccountEntry.objects.filter(worker=worker, change__gt=Decimal("0.00")).order_by('when')
+        debits = TimeAccountEntry.objects.filter(worker=worker, change__lt=Decimal("0.00")).order_by('when')
+
+        for credit in credits:  # type: TimeAccountEntry
+            if credit.expires is None:
+                # We don't need to create an expiration, so skip it.
+                continue
+            if credit.change.is_zero():
+                # There's no credited amount to expire, so skip it.
+                continue
+
+            credit_available = credit.change
+
+            # Look at all the debits and decide which use the credit available.
+            for debit in debits:  # type: TimeAccountEntry
+                if credit_available.is_zero():
+                    # The credit under examination has been fully utilized, so skip the rest of the debits.
+                    break
+                if debit.when > credit.expires:
+                    # The credit has expired from the perspective of the debit, so skip it.
+                    # This is what limits rollover.
+                    continue
+                if debit.change.is_zero():
+                    # Shouldn't be any, but skip them if there are.
+                    continue
+                if not hasattr(debit, 'debit_remaining'):
+                    debit.debit_remaining = debit.change
+                if debit.debit_remaining.is_zero():
+                    # The debit is already completely covered by previous credits, so skip it.
+                    continue
+                credit_to_use = min(credit_available, -1*debit.debit_remaining)
+                credit_available -= credit_to_use
+                debit.debit_remaining += credit_to_use
+
+            if credit_available > Decimal("0.00") and timezone.now() > credit.expires:
+                explanation = "{} hours of {} credit expired".format(credit_available, credit.when)
+                TimeAccountEntry.objects.create(
+                    work=None,
+                    play=None,
+                    explanation=explanation,
+                    worker=credit.worker,
+                    change=-1 * credit_available,
+                    when=credit.expires,
+                    expires=None  # not applicable.
+                )
+
