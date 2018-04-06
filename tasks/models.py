@@ -788,7 +788,7 @@ class Task(TaskMixin, TimeWindowedObject):
         self.anybody_is_eligible = templ.anybody_is_eligible
 
         # Sets
-        self.eligible_claimants = templ.eligible_claimants.all()
+        self.eligible_claimants.set(templ.eligible_claimants.all())
 
         # Default claimant
         # Only delete claims that are unverified.
