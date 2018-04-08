@@ -695,7 +695,10 @@ class SnippetAdmin(VersionAdmin):
 @admin.register(TimeAccountEntry)
 class TimeAccountEntryAdmin(VersionAdmin):
 
-    list_display = ['pk', 'worker', 'when', 'type', 'change', 'explanation', 'expires']
+    def statement(self, obj): return obj.worker.should_report_work_mtd
+    statement.boolean = True
+
+    list_display = ['pk', 'worker', 'statement', 'when', 'type', 'change', 'explanation', 'expires']
 
     fields = ['worker', 'when', 'change', 'explanation', 'work', 'play', 'balance']
 
