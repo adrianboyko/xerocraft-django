@@ -635,20 +635,27 @@ class RunEmailWMTD(TestCase):
         )
         self.claim.full_clean()
 
+        self.member.worker.should_report_work_mtd = True
+        self.member.worker.save()
+        management.call_command("email_statements")
+        self.assertEqual(len(mail.outbox), 0)  # Beacuse no work has been completed yet.
+
         self.work = Work.objects.create(
             claim=self.claim,
             work_date=datetime.today(),
-            work_duration=timedelta(hours=1.5))
+            work_duration=timedelta(hours=1.5),
+            witness=self.member
+        )
         self.work.full_clean()
 
         self.member.worker.should_report_work_mtd = False
         self.member.worker.save()
-        management.call_command("emailwmtd")
-        self.assertEqual(len(mail.outbox), 0)
+        management.call_command("email_statements")
+        self.assertEqual(len(mail.outbox), 0)  # Because the worker doesn't want updates.
 
         self.member.worker.should_report_work_mtd = True
         self.member.worker.save()
-        management.call_command("emailwmtd")
+        management.call_command("email_statements")
         self.assertEqual(len(mail.outbox), 1)
 
 

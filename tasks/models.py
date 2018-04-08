@@ -914,9 +914,6 @@ class Worker(models.Model):
     calendar_token = models.CharField(max_length=32, null=True, blank=True,
         help_text="Random hex string used to access calendar.")
 
-    last_work_mtd_reported = models.DurationField(default=timedelta(0), null=False, blank=False,
-        help_text="The most recent work MTD total reported to the worker.")
-
     should_include_alarms = models.BooleanField(default=False,
         help_text="Controls whether or not a worker's calendar includes alarms.")
 

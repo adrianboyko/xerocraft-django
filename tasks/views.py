@@ -8,11 +8,13 @@ from typing import Generator, Tuple, Optional
 from decimal import Decimal
 
 # Third Party
-from django.urls import reverse
+from django.conf import settings
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse, JsonResponse, Http404
-from django.contrib.auth.decorators import login_required
-from django.conf import settings
+from django.template.loader import render_to_string
+from django.urls import reverse
 from django.views.decorators.csrf import ensure_csrf_cookie
 import django.utils.timezone as timezone
 from icalendar import Calendar, Event
@@ -20,6 +22,7 @@ from icalendar import Calendar, Event
 # Local
 from tasks.models import Task, Nag, Claim, Work, WorkNote, Worker
 from members.models import Member
+from tasks.models import TimeAccountEntry
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -612,17 +615,12 @@ def desktop_timesheet(request):
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-from tasks.models import TimeAccountEntry
-from django.contrib.auth.models import User
-from collections import OrderedDict
-
-@login_required
-def time_acct_statement(request, range:str):
-    user = request.user  # type: User
-
+# This will be used by the view, below, AND the management command that emails statements.
+def render_time_acct_statement_as_html(user:User, range:str) -> str:
     # TODO: Need to drive creation of expirations more sensibly.
     TimeAccountEntry.regenerate_expirations(user.member.worker)
 
+    subtitle = ""
     statement_start_datetime = timezone.now()  # type: datetime
     if range == "all":
         statement_start_datetime -= timedelta(days=365*20)  # A long time ago.
@@ -651,7 +649,15 @@ def time_acct_statement(request, range:str):
         'lines': lines,
         'subtitle': subtitle
     }
-    return render(request, 'tasks/time-acct-statement.html', args)
+    html = render_to_string('tasks/time-acct-statement.html', args)
+    return html
+
+
+@login_required
+def time_acct_statement(request, range:str):
+    user = request.user  # type: User
+    html = render_time_acct_statement_as_html(user, range)  # type: str
+    return HttpResponse(html)
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
