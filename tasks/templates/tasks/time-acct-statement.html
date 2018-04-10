@@ -22,7 +22,7 @@
     </tr>
     {% for line in lines %}
         <tr>
-        <td style="border:1px solid black;padding:2px 4px 2px 4px;text-align:center">{{ line.when.date }}</td>
+        <td style="border:1px solid black;padding:2px 4px 2px 4px;text-align:center">{{ line.when.date|date:"SHORT_DATE_FORMAT" }}</td>
         <td style="border:1px solid black;padding:2px 4px 2px 4px;text-align:left">{{ line.explanation }}</td>
 
         {% if line.change >= decimalzero %}
