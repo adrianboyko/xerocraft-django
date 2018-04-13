@@ -1,47 +1,43 @@
 
 # Standard
+from typing import Optional
+from sys import exc_info
 
 # Third party
 from django.contrib.auth.models import User
 from nameparser import HumanName
 from members.models import ExternalId
-import lxml.html
+import requests
 
 # Local
-from xis.xerocraft_org_utils.xerocraftscraper import XerocraftScraper
+from .xerocraftscraper import XerocraftScraper
 
 __author__ = 'adrian'
 
-EMAIL_KEY = "Email address"
-PHONE_KEY = "Phone number"
-USERNUM_KEY = "User number"
-USERNAME_KEY = "User name"
+EMAIL_KEY = "Email"
+PHONE_KEY = "Phone"
+USERNUM_KEY = "AutoInc"
+USERNAME_KEY = "Username"
 REALNAME_KEY = "Name"
-FIRSTNAME_KEY = "First Name"  # Infered from real name using "nameparser"
-LASTNAME_KEY = "Last Name"  # Infered from real name using "nameparser"
-SINCE_KEY = "Online-member since"
-PARTICIPATION_KEY = "Participation Rank"
+MINOR_KEY = "Minor"
+BANNED_KEY = "Banned"
+
+FIRSTNAME_KEY = "FName"  # Infered from real name using "nameparser"
+LASTNAME_KEY = "LName"  # Infered from real name using "nameparser"
 DJANGO_USERNAME_KEY = "Django user name"  # Constructed by _djangofy_username()
-ROLE_KEY = "Role at Xerocraft"
+ADULT_KEY = "IsAdult"
+
 PROVIDER = "xerocraft.org"
 
 
 class AccountScraper(XerocraftScraper):
 
-    @staticmethod
-    def djangofy_username(username):
-        username = username.strip()  # Kyle has verified that xerocraft.org database has some untrimmed usernames.
-        newname = ""
-        for c in username:
-            if c.isalnum() or c in "_@+.-":
-                newname += c
-            else:
-                newname += "_"
-        return newname
+    def __init__(self, server_override=None):
+        super().__init__(server_override)
 
     # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-    def process_account_diffs(self, ext_id_rec, attrs):
+    def _process_account_diffs(self, ext_id_rec, attrs):
 
         # Changeables is a list of (key name in attrs, field name in Django model) tuples.
         # These are the fields we'll check for changes.
@@ -67,7 +63,7 @@ class AccountScraper(XerocraftScraper):
         if user_changed:
             user.save()
 
-    def create_account(self, attrs) -> User:
+    def _create_account(self, attrs) -> User:
 
         new_user = User.objects.create(
             username=attrs[DJANGO_USERNAME_KEY],
@@ -93,40 +89,56 @@ class AccountScraper(XerocraftScraper):
 
         return new_user
 
-    def process_attrs(self, attrs):
+    def _process_attrs(self, attrs) -> User:
         try:
             extidrec = ExternalId.objects.get(provider=PROVIDER, uid=attrs[USERNUM_KEY])
-            self.process_account_diffs(extidrec, attrs)
+            self._process_account_diffs(extidrec, attrs)
             return extidrec.user
         except ExternalId.DoesNotExist:
-            return self.create_account(attrs)
+            return self._create_account(attrs)
 
-    def scrape_profile(self, user_num):
+    def scrape_one_account(self, user_num:int) -> User:
+        post_data = {
+            "XSC": XerocraftScraper.get_token(),
+            "ID": user_num
+        }
+        return self._scrape(post_data)
 
-        # Get the profile corresponding to user_num
-        post_data = {"action": "ViewProfile", "id": user_num, "ax": "y"}
-        response = self.session.post(self.server+"actions.php", data=post_data)
-        profile_parsed = lxml.html.fromstring(response.text)
-        if profile_parsed is None: raise AssertionError("Couldn't parse profile for usernum"+user_num)
+    def scrape_all_accounts(self) -> None:
+        post_data = {
+            "XSC": XerocraftScraper.get_token(),
+        }
+        self._scrape(post_data)
 
-        # Pull out interesting info
-        attr_names = profile_parsed.xpath("//div[@id='pp_upper_right']/ul[@class='left']/li/text()")
-        attr_vals  = profile_parsed.xpath("//div[@id='pp_upper_right']/ul[@class='right']/li/text()")
-        username = profile_parsed.xpath("//div[@id='pp_username']//h1/text()")[0]
+    def _scrape(self, post_data) -> Optional[User]:  # REVIEW: This should be a generator instead?
 
-        # Make a dictionary of attributes and massage/infer values, as required.
-        attrs = dict(zip(attr_names, attr_vals))
-        attrs[USERNUM_KEY] = user_num
-        attrs[USERNAME_KEY] = username
-        attrs[DJANGO_USERNAME_KEY] = self.djangofy_username(username)
-        if REALNAME_KEY in attrs:
-            attrs[REALNAME_KEY] = attrs[REALNAME_KEY].replace(" (Admin)", "")
-            name = HumanName(attrs[REALNAME_KEY])
-            attrs[FIRSTNAME_KEY] = name.first
-            attrs[LASTNAME_KEY] = name.last
+        # I couldn't convince the other team not to obfuscate the resource name, so it's "JSON.php"
+        response = requests.post(self.server+"JSON.php", data=post_data)
+        result = None  # type: Optional[User]
+        for attrs in response.json():
 
-        # Do something with the scraped attrs
-        result = self.process_attrs(attrs)
-        result.scraped_attrs = attrs  # The caller might want the scraped attrs.
-        return result
+            try:
+                uname = attrs[USERNAME_KEY]
+                deleted = uname.startswith("DELETED:")
+                empty = len(uname.strip()) == 0
+                if deleted or empty: continue
+
+                attrs[DJANGO_USERNAME_KEY] = self.djangofy_username(attrs[USERNAME_KEY])
+                if REALNAME_KEY in attrs:
+                    attrs[REALNAME_KEY] = attrs[REALNAME_KEY].replace(" (Admin)", "")
+                    name = HumanName(attrs[REALNAME_KEY])
+                    attrs[FIRSTNAME_KEY] = name.first
+                    attrs[LASTNAME_KEY] = name.last
+                    attrs[ADULT_KEY] = True if attrs[MINOR_KEY]=="1" else False
+                result = self._process_attrs(attrs)
+                result.scraped_attrs = attrs  # The caller might want the scraped attrs.
+
+            except Exception as e:
+                # Failure on a particular profile doesn't mean we give up on the rest.
+                # Just log the error and carry on with the rest.
+                # REVIEW: Might want to give up if there are "too many" errors.
+                #e = exc_info()[0]
+                self.logger.error("Failure while working on %s: %s", str(attrs), str(e))
+
+        return result  # The return value is the LAST user scraped.
 
