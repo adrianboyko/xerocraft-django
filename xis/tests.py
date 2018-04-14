@@ -38,14 +38,13 @@ class TestAuthentication(TestCase):
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-# TEMPORARILY REMOVED! DOES NOT TEST FUNCTIONALITY OF PRODUCTION SERVER.
-# class TestPaypalScraper(TestCase):
-#
-#     def test_it(self):
-#         scraper = PaypalScraper()
-#         ids = scraper.scrape_agreement_ids()
-#         # The following assertion assumes that xerocraft.org has agreement ids to scrape.
-#         self.assertGreater(len(ids), 0)
+class TestPaypalScraper(TestCase):
+
+    def test_it(self):
+        scraper = PaypalScraper()
+        ids = scraper.scrape_agreement_ids()
+        # The following assertion assumes that xerocraft.org has agreement ids to scrape.
+        self.assertGreater(len(ids), 0)
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
