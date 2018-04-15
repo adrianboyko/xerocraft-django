@@ -90,7 +90,10 @@ format fmt cd =
     d = toDate cd
     s = DateXFormat.format config fmtMod d
     r dig suff = replace (dig++"dd") (dig++suff)
-    ordinalize = r "0" "th" >> r "1" "st" >> r "2" "nd" >> r "3" "rd" >> replace "dd" "th"
+    ordinalize =
+      r "11" "th" >> r "12" "th" >> r "13" "th"
+      >> r "0" "th" >> r "1" "st" >> r "2" "nd" >> r "3" "rd"
+      >> replace "dd" "th"
   in
     ordinalize s
 

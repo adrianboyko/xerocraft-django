@@ -3,12 +3,33 @@ module Tests exposing (..)
 import Expect exposing (Expectation)
 import Fuzz exposing (Fuzzer, int, list, string)
 import Test exposing (..)
-
+import Date exposing (Month(..))
 
 import ClockTime exposing (ClockTime)
+import CalendarDate exposing (CalendarDate)
 
-suite : Test
-suite =
+calendarDateTest : Test
+calendarDateTest =
+  describe "The CalendarDate module"
+
+    [ test "11th not 11st" <|
+       \_ ->
+         let someCD = {year=2018, month=Apr, day=11}
+         in Expect.equal (CalendarDate.format "%ddd" someCD) "11th"
+
+    , test "12th not 12nd" <|
+       \_ ->
+         let someCD = {year=2018, month=Apr, day=12}
+         in Expect.equal (CalendarDate.format "%ddd" someCD) "12th"
+
+    , test "13th not 13rd" <|
+       \_ ->
+         let someCD = {year=2018, month=Apr, day=13}
+         in Expect.equal (CalendarDate.format "%ddd" someCD) "13th"
+    ]
+
+clockTimeTest : Test
+clockTimeTest =
   describe "The ClockTime module"
 
 
