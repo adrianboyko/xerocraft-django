@@ -164,34 +164,6 @@ def api_get_membership_info(request, provider: str, uid: str) -> HttpResponse:
     return JsonResponse(json)
 
 
-def scrape_checkins():
-
-    def getmax() -> Optional[VisitEvent]:
-        try:
-            return VisitEvent.objects.latest('when')
-        except VisitEvent.DoesNotExist:
-            return None
-
-    prevmax = getmax()
-
-    # Scrape a new check-in. Try up to 16 times.
-    for i in range(16):
-        time.sleep(1)
-        call_command("scrapecheckins")
-        newmax = getmax()
-        if prevmax is None:
-            if newmax is not None:
-                return
-        elif newmax is not None:  # prevmax and newmax are both not None
-            if newmax.when > prevmax.when:
-                return
-
-
-def scrape_xerocraft_org_checkins(request) -> JsonResponse:
-    result = q.enqueue(scrape_checkins)
-    return JsonResponse({'result': "success"})
-
-
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # TEST URL FOR MONITORING SERVICE(S)
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =

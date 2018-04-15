@@ -1,19 +1,3 @@
-"""xerocraft URL Configuration
-
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/1.8/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  url(r'^$', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  url(r'^$', Home.as_view(), name='home')
-Including another URLconf
-    1. Add an import:  from blog import urls as blog_urls
-    2. Add a URL to urlpatterns:  url(r'^blog/', include(blog_urls))
-"""
-
 # Standard
 
 # Third Party
@@ -26,6 +10,7 @@ from rest_framework import routers
 # Local
 from bzw_ops import views
 import bzw_ops.restapi.views as restviews
+import xis.views
 
 router = routers.DefaultRouter()
 router.register(r'time_blocks', restviews.TimeBlockViewSet)
@@ -38,7 +23,7 @@ urlpatterns = [
     url(r'^logout/$', views.logout),
     url(r'^accounting-menu/$', views.accounting_menu),
     url(r'^membership-status/(?P<provider>[-_.a-zA-Z0-9]+)/(?P<id>[-@+._a-zA-Z0-9]+)/$', views.api_get_membership_info),
-    url(r'^scrape-xerocraft-org-checkins/$', views.scrape_xerocraft_org_checkins, name="scrape-xerocraft-org-checkins"),
+    url(r'^scrape-xerocraft-org-checkins/$', xis.views.scrape_xerocraft_org_checkins, name="scrape-xerocraft-org-checkins"),
     url(r'^paypal-webhook', views.paypal_webhook, name="paypal-webhook"),
     url(r'^credits/', views.credits, name="credits"),
 
