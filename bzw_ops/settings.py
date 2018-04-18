@@ -286,6 +286,10 @@ LOGGING = {
             'handlers': ['console'],
             'level': 'INFO',
         },
+        'helpdesk': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
         'members': {
             'handlers': ['console'],
             'level': 'INFO',
