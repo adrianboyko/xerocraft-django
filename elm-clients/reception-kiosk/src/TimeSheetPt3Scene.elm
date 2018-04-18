@@ -108,7 +108,7 @@ sceneWillAppear kioskModel appearing vanishing =
         case args sceneModel of
 
           (Just _, Just _, Just _, _) ->
-            (sceneModel, focusOnIndex idxWitnessUsername)
+            ({sceneModel | state = AskingAboutWitness}, focusOnIndex idxWitnessUsername)
 
           _ ->
             (sceneModel, send <| ErrorVector <| ERR_Segue missingArguments)
