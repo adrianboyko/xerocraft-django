@@ -168,6 +168,7 @@ type alias Session msg =
 
   ----- OTHER -----
   , authenticate: String -> String -> (Result Http.Error AuthenticationResult -> msg) -> Cmd msg
+  , blockHasType : String -> List TimeBlockType -> TimeBlock -> Bool
   , coverTime : List Membership -> PointInTime -> Bool
   , defaultBlockType : List TimeBlockType -> Maybe TimeBlockType
   , emailMembershipInfo : EmailMembershipInfo msg
@@ -227,6 +228,7 @@ createSession flags auth =
 
   ----- OTHER -----
   , authenticate = authenticate flags auth
+  , blockHasType = blockHasType
   , coverTime = coverTime
   , defaultBlockType = defaultBlockType
   , emailMembershipInfo = emailMembershipInfo flags auth
@@ -986,6 +988,15 @@ getBlocksTypes specificBlock allBlockTypes =
   in
     List.filter isRelatedBlockType allBlockTypes
 
+
+blockHasType : String -> List TimeBlockType -> TimeBlock -> Bool
+blockHasType typeName allBlockTypes block =
+  let
+    blocksTypes = getBlocksTypes block allBlockTypes
+  in
+    List.member typeName (List.map (.data >> .name) blocksTypes)
+
+
 pitInBlock : PointInTime -> TimeBlock -> Bool
 pitInBlock pit block =
   let
@@ -1199,6 +1210,7 @@ type VisitEventReason
   | VER_Guest
   | VER_Member
   | VER_Other
+  | VER_PublicAccess
   | VER_Volunteer
 
 
@@ -1233,6 +1245,7 @@ eventReasonString x =
     VER_Curious -> "CUR"
     VER_Guest -> "GST"
     VER_Member -> "MEM"
+    VER_PublicAccess -> "PUB"
     VER_Other -> "OTH"
     VER_Volunteer -> "VOL"
 
@@ -1332,6 +1345,7 @@ decodeVisitEventReason =
         "GST" -> Dec.succeed VER_Guest
         "MEM" -> Dec.succeed VER_Member
         "OTH" -> Dec.succeed VER_Other
+        "PUB" -> Dec.succeed VER_PublicAccess
         "VOL" -> Dec.succeed VER_Volunteer
         other -> Dec.fail <| "Unknown visit event type: " ++ other
     )

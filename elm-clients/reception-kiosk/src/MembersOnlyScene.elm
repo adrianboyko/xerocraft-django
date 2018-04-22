@@ -24,7 +24,6 @@ import XerocraftApi as XcApi
 import XisRestApi as XisApi exposing (..)
 import Wizard.SceneUtils exposing (..)
 import Types exposing (..)
-import Fetchable exposing (..)
 import CalendarDate
 
 
@@ -56,9 +55,9 @@ type PaymentInfoState
 type alias MembersOnlyModel =
   -------------- Req'd arguments:
   { member : Maybe Member
+  , nowBlock : Maybe (Maybe TimeBlock)
+  , allTypes : Maybe (List TimeBlockType)
   -------------- Other state:
-  , nowBlock : Fetchable (Maybe TimeBlock)
-  , allTypes : Fetchable (List TimeBlockType)
   , paymentInfoState : PaymentInfoState
   , badNews : List String
   }
@@ -68,8 +67,8 @@ init : Flags -> (MembersOnlyModel, Cmd Msg)
 init flags =
   let sceneModel =
     { member = Nothing
-    , nowBlock = Pending
-    , allTypes = Pending
+    , nowBlock = Nothing
+    , allTypes = Nothing
     , paymentInfoState = AskingIfMshipCurrent
     , badNews = []
     }
@@ -84,16 +83,6 @@ sceneWillAppear : KioskModel a -> Scene -> (MembersOnlyModel, Cmd Msg)
 sceneWillAppear kioskModel appearingScene =
   let sceneModel = kioskModel.membersOnlyModel
   in case appearingScene of
-
-    ReasonForVisit ->
-      -- We want to have the current time block on hand by the time MembersOnly
-      -- appears, so start the fetch when ReasonForVisit appears.
-      let
-        xis = kioskModel.xisSession
-        cmd1 = xis.listTimeBlocks (MembersOnlyVector << UpdateTimeBlocks)
-        cmd2 = xis.listTimeBlockTypes (MembersOnlyVector << UpdateTimeBlockTypes)
-      in
-        (sceneModel, Cmd.batch [cmd1, cmd2])
 
     MembersOnly ->
       if haveSomethingToSay kioskModel then
@@ -127,10 +116,9 @@ haveSomethingToSay kioskModel =
     case (sceneModel.nowBlock, sceneModel.allTypes, mship) of
 
       -- Following is the case where somebody arrives during an explicit time block.
-      (Received (Just nowBlock), Received allTypes, maybeMship) ->
+      (Just (Just nowBlock), Just allTypes, maybeMship) ->
         let
-          nowBlockTypes = kioskModel.xisSession.getBlocksTypes nowBlock allTypes
-          isMembersOnly = List.member membersOnlyStr (List.map (.data >> .name) nowBlockTypes)
+          isMembersOnly = xis.blockHasType membersOnlyStr allTypes nowBlock
         in
           case maybeMship of
             Just mship ->
@@ -141,7 +129,7 @@ haveSomethingToSay kioskModel =
 
       -- Following is the case where we're not in any explicit time block.
       -- So use default time block type, if one has been specified.
-      (Received Nothing, Received allTypes, maybeMship) ->
+      (Just Nothing, Just allTypes, maybeMship) ->
         let
           defaultBlockType = xis.defaultBlockType allTypes
           isMembersOnly =
@@ -172,20 +160,14 @@ update msg kioskModel =
 
   in case msg of
 
-    MO_Segue member ->
-      ( {sceneModel | member = Just member}
+    MO_Segue member nowBlock allTypes ->
+      ( { sceneModel
+        | member = Just member
+        , nowBlock = Just nowBlock
+        , allTypes = Just allTypes
+        }
       , send <| WizardVector <| Push <| MembersOnly
       )
-
-    UpdateTimeBlocks (Ok {results}) ->
-      let
-        nowBlocks = List.filter (xis.pitInBlock kioskModel.currTime) results
-        nowBlock = List.head nowBlocks
-      in
-        ({sceneModel | nowBlock = Received nowBlock }, Cmd.none)
-
-    UpdateTimeBlockTypes (Ok {results}) ->
-      ({sceneModel | allTypes = Received results}, Cmd.none)
 
     SendPaymentInfo ->
       let
@@ -208,16 +190,14 @@ update msg kioskModel =
     -- FAILURES --------------------
 
     ServerSentPaymentInfo (Err error) ->
-      let msg = toString error |> Debug.log "Error trying to send payment info"
-      in ({sceneModel | nowBlock = Failed msg}, Cmd.none)
+      -- We will pretend it worked but will log the error.
+      let
+        msg = toString error |> Debug.log "Error trying to send payment info"
+      in
+        ( {sceneModel | paymentInfoState = PaymentInfoSent}
+        , Cmd.none
+        )
 
-    UpdateTimeBlocks (Err error) ->
-      let msg = toString error |> Debug.log "Error getting time blocks"
-      in ({sceneModel | nowBlock = Failed msg}, Cmd.none)
-
-    UpdateTimeBlockTypes (Err error) ->
-      let msg = toString error |> Debug.log "Error getting time block types"
-      in ({sceneModel | allTypes = Failed msg}, Cmd.none)
 
 -----------------------------------------------------------------------------
 -- VIEW

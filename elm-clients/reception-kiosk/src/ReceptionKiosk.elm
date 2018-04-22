@@ -328,6 +328,7 @@ update msg model =
             (mNM,  cNM)  = NewMemberScene.sceneWillAppear model appearing
             (mNU,  cNU)  = NewUserScene.sceneWillAppear model appearing
             (mOB,  cOB)  = OldBusinessScene.sceneWillAppear model appearing vanishing
+            (mR4V, cR4V) = ReasonForVisitScene.sceneWillAppear model appearing vanishing
             (mRH,  cRH)  = RfidHelper.sceneWillAppear model appearing vanishing
             (mSUD, cSUD) = SignUpDoneScene.sceneWillAppear model appearing vanishing
             (mSS,  cSS)  = StartScene.sceneWillAppear model appearing
@@ -351,6 +352,7 @@ update msg model =
               , newMemberModel = mNM
               , newUserModel = mNU
               , oldBusinessModel = mOB
+              , reasonForVisitModel = mR4V
               , rfidHelperModel = mRH
               , signUpDoneModel = mSUD
               , startModel = mSS
@@ -365,7 +367,7 @@ update msg model =
             (newModel, Cmd.batch
               -- REVIEW: It's too easy to forget to add these.
               [ cCI, cCO, cCOD, cCA, cERR, cHD, cMO, cNM, cNU, cOB
-              , cRH, cSS, cSUD, cTI, cTL, cTS1, cTS2, cTS3, cW
+              , cRH, cR4V, cSS, cSUD, cTI, cTL, cTS1, cTS2, cTS3, cW
               ]
             )
 

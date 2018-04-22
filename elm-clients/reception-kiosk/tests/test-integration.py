@@ -163,8 +163,9 @@ class IntegrationTest(LiveServerTestCase):
     REASON_CLUB    = "Club activity (FRC, VEX, PEC)"
     REASON_GUEST   = "Guest of a paying member"
     REASON_OTHER   = "Other"
-    REASON_MEMBER  = "Personal project"
+    REASON_MEMBER  = "Membership privileges"
     REASON_WORK    = "Volunteering or staffing"
+    REASON_PUBLIC  = "Free public access (Open Hack)"
 
     # Simple reasons are those that go straight to the CheckInDone scene.
     simple_reasons = [
@@ -173,6 +174,7 @@ class IntegrationTest(LiveServerTestCase):
         REASON_GUEST,
         REASON_LOOKING,
         REASON_OTHER
+        # REASON_PUBLIC  Excluded because it only appears at certain times.
     ]
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -730,7 +732,7 @@ class IntegrationTest(LiveServerTestCase):
     def test_CheckMembershipPrivilegesLogic(self):
         print("Check Membership Privileges Logic")
 
-        def checkin(dayOfMonth, hours, minutes, endcheck, msg):
+        def checkin(dayOfMonth, hours, minutes, reason, endcheck, msg):
             now = make_aware(datetime.now())
             pit = make_aware(datetime(2018, 2, dayOfMonth, hours, minutes, 00))
             time_shift = floor((pit - now).total_seconds())  # type: int
@@ -740,19 +742,22 @@ class IntegrationTest(LiveServerTestCase):
                 self.start_to_welcome()
                 self.welcome_to_checkIn()
                 self.checkIn_to_reasonForVisit_viaFlexId(self.EXISTING_USERNAME, self.EXISTING_USERNAME)
-                self.reasonForVisit_to_next_viaReason(self.REASON_MEMBER)
+                self.reasonForVisit_to_next_viaReason(reason)
                 endcheck()
 
         checkin(  # year=2018, month=2
-            dayOfMonth=19, hours=20, minutes=00, endcheck=self.assert_on_MembersOnly,
+            dayOfMonth=19, hours=20, minutes=00, reason=self.REASON_MEMBER,
+            endcheck=self.assert_on_MembersOnly,
             msg="During Monday members-only block, no membership ever. NOT allowed.")
 
         checkin(  # year=2018, month=2
-            dayOfMonth=22, hours=12, minutes=00, endcheck=self.assert_on_MembersOnly,
+            dayOfMonth=22, hours=12, minutes=00, reason=self.REASON_MEMBER,
+            endcheck=self.assert_on_MembersOnly,
             msg="Thursday, default block, no membership ever. NOT allowed.")
 
         checkin(  # year=2018, month=2
-            dayOfMonth=22, hours=20, minutes=00, endcheck=self.assert_on_CheckInDone,
+            dayOfMonth=22, hours=20, minutes=00, reason=self.REASON_PUBLIC,
+            endcheck=self.assert_on_CheckInDone,
             msg="During Thursday open-house block, no membership ever. Allowed.")
 
         # Add an EXPIRED membership:
@@ -764,15 +769,18 @@ class IntegrationTest(LiveServerTestCase):
         )
 
         checkin(  # year=2018, month=2
-            dayOfMonth=19, hours=20, minutes=00, endcheck=self.assert_on_MembersOnly,
+            dayOfMonth=19, hours=20, minutes=00, reason=self.REASON_MEMBER,
+            endcheck=self.assert_on_MembersOnly,
             msg="During Monday members-only block, EXPIRED membership. NOT allowed.")
 
         checkin(  # year=2018, month=2
-            dayOfMonth=22, hours=12, minutes=00, endcheck=self.assert_on_MembersOnly,
+            dayOfMonth=22, hours=12, minutes=00, reason=self.REASON_MEMBER,
+            endcheck=self.assert_on_MembersOnly,
             msg="Thursday, default block, EXPIRED membership. NOT allowed.")
 
         checkin(  # year=2018, month=2
-            dayOfMonth=22, hours=20, minutes=00, endcheck=self.assert_on_CheckInDone,
+            dayOfMonth=22, hours=20, minutes=00, reason=self.REASON_PUBLIC,
+            endcheck=self.assert_on_CheckInDone,
             msg="During Thursday open-house block, EXPIRED membership. Allowed.")
 
         # Add an FUTURE membership:
@@ -784,15 +792,18 @@ class IntegrationTest(LiveServerTestCase):
         )
 
         checkin(  # year=2018, month=2
-            dayOfMonth=19, hours=20, minutes=00, endcheck=self.assert_on_MembersOnly,
+            dayOfMonth=19, hours=20, minutes=00, reason=self.REASON_MEMBER,
+            endcheck=self.assert_on_MembersOnly,
             msg="During Monday members-only block, FUTURE membership. NOT allowed.")
 
         checkin(  # year=2018, month=2
-            dayOfMonth=22, hours=12, minutes=00, endcheck=self.assert_on_MembersOnly,
+            dayOfMonth=22, hours=12, minutes=00, reason=self.REASON_MEMBER,
+            endcheck=self.assert_on_MembersOnly,
             msg="Thursday, default block, FUTURE membership. NOT allowed.")
 
         checkin(  # year=2018, month=2
-            dayOfMonth=22, hours=20, minutes=00, endcheck=self.assert_on_CheckInDone,
+            dayOfMonth=22, hours=20, minutes=00, reason=self.REASON_PUBLIC,
+            endcheck=self.assert_on_CheckInDone,
             msg="During Thursday open-house block, FUTURE membership. Allowed.")
 
         # Add an CURRENT membership:
@@ -804,15 +815,18 @@ class IntegrationTest(LiveServerTestCase):
         )
 
         checkin(  # year=2018, month=2
-            dayOfMonth=19, hours=20, minutes=00, endcheck=self.assert_on_CheckInDone,
+            dayOfMonth=19, hours=20, minutes=00, reason=self.REASON_MEMBER,
+            endcheck=self.assert_on_CheckInDone,
             msg="During Monday members-only block, CURRENT membership. Allowed.")
 
         checkin(  # year=2018, month=2
-            dayOfMonth=22, hours=12, minutes=00, endcheck=self.assert_on_CheckInDone,
+            dayOfMonth=22, hours=12, minutes=00, reason=self.REASON_MEMBER,
+            endcheck=self.assert_on_CheckInDone,
             msg="Thursday, default block, CURRENT membership. Allowed.")
 
         checkin(  # year=2018, month=2
-            dayOfMonth=22, hours=20, minutes=00, endcheck=self.assert_on_CheckInDone,
+            dayOfMonth=22, hours=20, minutes=00, reason=self.REASON_PUBLIC,
+            endcheck=self.assert_on_CheckInDone,
             msg="During Thursday open-house block, CURRENT membership. Allowed.")
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -11,6 +11,7 @@ from typing import Union, Tuple, Optional
 import abc
 
 # Third Party
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 from django.contrib.auth.models import User
@@ -28,6 +29,7 @@ from abutils.time import is_very_last_day_of_month
 
 TZ = timezone.get_default_timezone()
 
+ORG_NAME = settings.BZWOPS_CONFIG.get('ORG_NAME', "")
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # CTRLID Functions
@@ -464,6 +466,7 @@ class VisitEvent(models.Model):
     event_type = models.CharField(max_length=1, choices=VISIT_EVENT_CHOICES, null=False, blank=False,
         help_text="The type of visit event.")
 
+    REASON_PUBLIC_ACCESS = "PUB"
     REASON_CURIOUS = "CUR"
     REASON_CLASS = "CLS"
     REASON_MEMBER = "MEM"
@@ -472,7 +475,8 @@ class VisitEvent(models.Model):
     REASON_VOLUNTEER = "VOL"
     REASON_OTHER = "OTH"
     VISIT_REASON_CHOICES = [
-        (REASON_CURIOUS, "Checking it out"),
+        (REASON_PUBLIC_ACCESS, "Free public access"),
+        (REASON_CURIOUS, "Checking out "+ORG_NAME),
         (REASON_CLASS, "Attending a class"),
         (REASON_MEMBER, "Membership privileges"),
         (REASON_CLUB, "Club privileges"),

@@ -180,9 +180,7 @@ type HowDidYouHearMsg
   | OkClicked
 
 type MembersOnlyMsg
-  = MO_Segue Member
-  | UpdateTimeBlocks (Result Http.Error (PageOf TimeBlock))
-  | UpdateTimeBlockTypes (Result Http.Error (PageOf TimeBlockType))
+  = MO_Segue Member (Maybe TimeBlock) (List TimeBlockType)
   | PayNowAtFrontDesk
   | SendPaymentInfo
   | ServerSentPaymentInfo (Result Http.Error String)
@@ -217,6 +215,8 @@ type OldBusinessMsg
 
 type ReasonForVisitMsg
   = R4V_Segue Member
+  | UpdateTimeBlocks (Result Http.Error (PageOf TimeBlock))
+  | UpdateTimeBlockTypes (Result Http.Error (PageOf TimeBlockType))
   | UpdateReasonForVisit VisitEventReason
   | ValidateReason
   | LogCheckInResult (Result Http.Error VisitEvent)
