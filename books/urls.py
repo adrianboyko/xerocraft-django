@@ -20,6 +20,7 @@ urlpatterns = [
     url(r'^cash-balances-vs-time/$', views.cash_balances_vs_time, name='cash-balances-vs-time'),
     url(r'^items-needing-attn/$', views.items_needing_attn, name='items-needing-attn'),
     url(r'^account-history/(?P<account_pk>[0-9]+)_(?P<begin_date>[0-9]+)_(?P<end_date>[0-9]+)/$', views.account_history, name='account-history'),
+    url(r'^account-history/(?P<account_pk>[0-9]+)/$', views.account_history, name='account-history'),
 
     # Webhooks for Payment Processors
     url(r'^squareup/$', views.squareup_webhook, name='squareup-webhook'),

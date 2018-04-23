@@ -154,6 +154,7 @@ class AccountAdmin(VersionAdmin):
         'category', 'type',
         'manager',
         'description',
+        'associated_user'
     ]
 
     list_display_links = ['pk', 'name']
@@ -162,10 +163,12 @@ class AccountAdmin(VersionAdmin):
         ('name', 'parent'),
         ('category', 'type'),
         'manager',
+        'associated_user',
+        'associated_entity',
         'description',
     ]
 
-    raw_id_fields = ['manager', 'parent']
+    raw_id_fields = ['manager', 'parent', 'associated_user', 'associated_entity']
 
     list_filter = ['category', 'type']
 

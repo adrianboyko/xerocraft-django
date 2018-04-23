@@ -5,6 +5,7 @@ from logging import getLogger
 from typing import List
 import json
 from decimal import Decimal
+from typing import Optional
 
 # Third Party
 from django.shortcuts import render
@@ -15,6 +16,7 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import settings
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 import requests
 
 # import numpy as np
@@ -289,16 +291,34 @@ def items_needing_attn(request):
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 @login_required
-def account_history(request, account_pk: int, begin_date: str, end_date: str):
-
+def account_history(
+    request,
+    account_pk: int,
+    begin_date: Optional[str] = None,
+    end_date: Optional[str] = None
+):
     acct = get_object_or_404(Account, id=account_pk)
 
-    begin_year = int(begin_date[0:4])
-    begin_month = int(begin_date[4:6])
-    begin_day = int(begin_date[6:8])
-    end_year = int(end_date[0:4])
-    end_month = int(end_date[4:6])
-    end_day = int(end_date[6:8])
+    now = timezone.localtime(timezone.now())
+
+    if begin_date is None:
+        begin_year = now.year-1
+        begin_month = now.month
+        begin_day = now.day
+    else:
+        begin_year = int(begin_date[0:4])
+        begin_month = int(begin_date[4:6])
+        begin_day = int(begin_date[6:8])
+
+    if end_date is None:
+        end_year = now.year
+        end_month = now.month
+        end_day = now.day
+    else:
+        end_year = int(end_date[0:4])
+        end_month = int(end_date[4:6])
+        end_day = int(end_date[6:8])
+
     begin_date = date(year=begin_year, month=begin_month, day=begin_day)
     end_date = date(year=end_year, month=end_month, day=end_day)
     end_date = min(end_date, date.today())
@@ -311,20 +331,23 @@ def account_history(request, account_pk: int, begin_date: str, end_date: str):
 
     jelis.sort(key=lambda x: x.journal_entry.when)
 
-    jelis_with_total = []
-    start_balance = Decimal("0.00")
-    running_total = start_balance
+    decrease_total = Decimal("0.00")
+    increase_total = Decimal("0.00")
     for jeli in jelis:
-        jeli.sign = Decimal("+1") if jeli.action == jeli.ACTION_BALANCE_INCREASE else Decimal("-1")
-        running_total += jeli.sign * jeli.amount
-        jeli.total = running_total
-        jelis_with_total.append(jeli)
-
-    del jelis
+        if jeli.action == jeli.ACTION_BALANCE_INCREASE:
+            increase_total += jeli.amount
+            jeli.sign = 1
+        else:
+            decrease_total += jeli.amount
+            jeli.sign = -1
 
     params = {
+        'begin_date': begin_date,
+        'end_date': end_date,
         'acct': acct,
-        'start_balance': start_balance,
-        'jelis': jelis_with_total,
+        'jelis': jelis,
+        'decrease_total': decrease_total,
+        'increase_total': increase_total,
+        'change_total': increase_total - decrease_total,
     }
     return render(request, 'books/account-history.html', params)

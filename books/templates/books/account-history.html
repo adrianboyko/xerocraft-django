@@ -6,19 +6,21 @@
     <style>
         tr:nth-child(even) {background-color: #f2f2f2}
         th {
-            font-size:10pt;
-            font-weight:normal;
+            font-size: 10pt;
+            font-weight: normal;
             background-color: #79aec8;
             color: white;
         }
         .right {
           text-align: right;
           margin-right: 1em;
+          padding:0 10px 0 10px;
         }
 
         .left {
           text-align: left;
           margin-left: 1em;
+          padding:0 10px 0 10px;
         }
     </style>
 {% endblock %}
@@ -33,27 +35,32 @@
 
 {% block content %}
 
-        <h2>{{acct.name}}</h2>
-        <br/>
-        <table>
+        <h2>Activity on "{{acct.name}}" for period {{begin_date}} to {{ end_date }}</h2>
+        Summary over period:<br/>
+        <div style="padding-left:20px; padding-bottom:15px; line-height:1em;">
+            Total increases: {{ increase_total }}<br/>
+            Total decreases: {{ decrease_total }}<br/>
+            Total net change: {{ change_total }}<br/>
+        </div>
+        Details for period:<br/>
+        <table style="margin-left:20px;">
         <tr>
-            <th>Date</th>
+            <th class="left">Date</th>
             <th class="right">Decrease</th>
             <th class="right">Increase</th>
-            <th class="right">Balance</th>
-        </tr>
-        <tr>
-            <td colspan="3"></td>
-            <td class="right">{{start_balance}}</td>
         </tr>
         {% for jeli in jelis %}
             <tr>
-                <td>{{jeli.journal_entry.when}}</td>
+                <td class="left">{{jeli.journal_entry.when}}</td>
                 <td class="right">{% if jeli.sign < 0 %}<a href="{{jeli.journal_entry.source_url}}">{{jeli.amount}}</a>{% endif %}</td>
                 <td class="right">{% if jeli.sign > 0 %}<a href="{{jeli.journal_entry.source_url}}">{{jeli.amount}}</a>{% endif %}</td>
-                <td class="right">{{jeli.total}}</td>
             </tr>
         {% endfor %}
+        <tr>
+            <td class="left">Total:</td>
+            <td class="right">{{decrease_total}}</td>
+            <td class="right">{{increase_total}}</td>
+        </tr>
         </table>
 
 {% endblock %}

@@ -150,6 +150,16 @@ class Account(models.Model):
     description = models.TextField(max_length=1024,
         help_text="A discussion of the account's purpose. What is it for? What is it NOT for?")
 
+    associated_user = models.ForeignKey(User, null=True, blank=True,
+        related_name='associated_account',
+        on_delete=models.SET_NULL,  # Keep this account even if the user is deleted.
+        help_text="The person who is associated with this account, if any.")
+
+    associated_entity = models.ForeignKey('Entity', null=True, blank=True,
+        related_name='associated_entity',
+        on_delete=models.SET_NULL,  # Keep this account even if the entity is deleted.
+        help_text="The entity which is associated with this account, if any.")
+
     acct_cache = dict()  # type: Dict[str, Account]
 
     @staticmethod
@@ -181,6 +191,11 @@ class Account(models.Model):
 
     def __str__(self):
         return self.name
+
+    def clean(self):
+        if self.associated_user is not None and self.associated_entity is not None:
+            raise ValidationError("Only one of user or entity can be specified.")
+        self.dbcheck()
 
     def dbcheck(self):
         if self.parent is not None:
