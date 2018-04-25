@@ -1,7 +1,6 @@
 
 module MembersOnlyScene exposing
   ( init
-  , sceneWillAppear
   , update
   , view
   , MembersOnlyModel
@@ -47,6 +46,7 @@ type alias KioskModel a =
 
 type PaymentInfoState
   = AskingIfMshipCurrent
+  -- | InformingAboutPlayTime
   | SendingPaymentInfo
   | PaymentInfoSent
   | ExplainingHowToPayNow
@@ -76,29 +76,8 @@ init flags =
 
 
 -----------------------------------------------------------------------------
--- SCENE WILL APPEAR
+-- UPDATE
 -----------------------------------------------------------------------------
-
-sceneWillAppear : KioskModel a -> Scene -> (MembersOnlyModel, Cmd Msg)
-sceneWillAppear kioskModel appearingScene =
-  let sceneModel = kioskModel.membersOnlyModel
-  in case appearingScene of
-
-    MembersOnly ->
-      if haveSomethingToSay kioskModel then
-        -- We need to talk, so show this scene.
-        (sceneModel, Cmd.none)
-      else
-        -- Nothing to say, so skip this scene.
-        case sceneModel.member of
-          Just m ->
-            (sceneModel, send <| OldBusinessVector <| OB_SegueA (CheckInSession, m))
-          Nothing ->
-            (sceneModel, send <| ErrorVector <| ERR_Segue missingArguments)
-
-    _ ->
-      (sceneModel, Cmd.none)  -- Ignore all other scene appearances.
-
 
 {- Will keep this simple, for now. This scene will appear if all of the following are true:
    (1) We know what type of time block we're in.
@@ -147,10 +126,6 @@ haveSomethingToSay kioskModel =
       _ -> False
 
 
------------------------------------------------------------------------------
--- UPDATE
------------------------------------------------------------------------------
-
 update : MembersOnlyMsg -> KioskModel a -> (MembersOnlyModel, Cmd Msg)
 update msg kioskModel =
 
@@ -161,13 +136,24 @@ update msg kioskModel =
   in case msg of
 
     MO_Segue member nowBlock allTypes ->
-      ( { sceneModel
-        | member = Just member
-        , nowBlock = Just nowBlock
-        , allTypes = Just allTypes
-        }
-      , send <| WizardVector <| Push <| MembersOnly
-      )
+
+      if haveSomethingToSay kioskModel then
+        -- We need to talk, so show this scene.
+        ( { sceneModel
+          | member = Just member
+          , nowBlock = Just nowBlock
+          , allTypes = Just allTypes
+          }
+        , send <| WizardVector <| Push <| MembersOnly
+        )
+      else
+        -- Nothing to say, so skip this scene.
+        case sceneModel.member of
+          Just m ->
+            (sceneModel, send <| OldBusinessVector <| OB_SegueA (CheckInSession, m))
+          Nothing ->
+            (sceneModel, send <| ErrorVector <| ERR_Segue missingArguments)
+
 
     SendPaymentInfo ->
       let

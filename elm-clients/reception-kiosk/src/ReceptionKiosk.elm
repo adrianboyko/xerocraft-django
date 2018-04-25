@@ -324,7 +324,6 @@ update msg model =
             (mCA,  cCA)  = CreatingAcctScene.sceneWillAppear model appearing
             (mERR, cERR) = ErrorScene.sceneWillAppear model appearing vanishing
             (mHD,  cHD)  = HowDidYouHearScene.sceneWillAppear model appearing
-            (mMO,  cMO)  = MembersOnlyScene.sceneWillAppear model appearing
             (mNM,  cNM)  = NewMemberScene.sceneWillAppear model appearing
             (mNU,  cNU)  = NewUserScene.sceneWillAppear model appearing
             (mOB,  cOB)  = OldBusinessScene.sceneWillAppear model appearing vanishing
@@ -348,7 +347,6 @@ update msg model =
               , creatingAcctModel = mCA
               , errorModel = mERR
               , howDidYouHearModel = mHD
-              , membersOnlyModel = mMO
               , newMemberModel = mNM
               , newUserModel = mNU
               , oldBusinessModel = mOB
@@ -366,7 +364,7 @@ update msg model =
           in
             (newModel, Cmd.batch
               -- REVIEW: It's too easy to forget to add these.
-              [ cCI, cCO, cCOD, cCA, cERR, cHD, cMO, cNM, cNU, cOB
+              [ cCI, cCO, cCOD, cCA, cERR, cHD, cNM, cNU, cOB
               , cRH, cR4V, cSS, cSUD, cTI, cTL, cTS1, cTS2, cTS3, cW
               ]
             )
