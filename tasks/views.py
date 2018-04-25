@@ -638,7 +638,8 @@ def render_time_acct_statement_as_html(user:User, range:str) -> str:
     else:
         balance_forward = Decimal("0.00")
     balance = balance_forward
-    for line in lines:
+    for line in lines:  # type: TimeAccountEntry
+        line.when = timezone.localtime(line.when)
         balance += line.change
         line.bal = balance
 
