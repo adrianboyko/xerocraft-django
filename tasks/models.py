@@ -592,8 +592,8 @@ class Task(TaskMixin, TimeWindowedObject):
     scheduled_date = models.DateField(null=True, blank=True,
         help_text="If appropriate, set a date on which the task must be performed.")
 
-    orig_sched_date = models.DateField(null=True, blank=True,
-        # Having a default value would mask certain incorrect usages, so none is specified.
+    orig_sched_date = models.DateField(
+        null=True, blank=True,  # Tasks that have no template don't need this to be specified.
         help_text="This is the first value that scheduled_date was set to. Required to avoid recreating a rescheduled task.")
 
     deadline = models.DateField(null=True, blank=True,
@@ -647,7 +647,9 @@ class Task(TaskMixin, TimeWindowedObject):
         if self.recurring_task_template is not None and self.scheduled_date is None:
             raise ValidationError(_("A task corresponding to a ScheduledTaskTemplate must have a scheduled date."))
 
-        if self.scheduled_date is not None and self.orig_sched_date is None:
+        if self.recurring_task_template is not None \
+          and self.scheduled_date is not None \
+          and self.orig_sched_date is None:
             raise ValidationError(_("orig_sched_date must be set when scheduled_date is FIRST set."))
 
     @property
