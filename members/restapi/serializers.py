@@ -28,12 +28,14 @@ def get_MemberSerializer(respect_privacy: bool) -> Type[serializers.ModelSeriali
         'friendly_name',
         'is_active',
         'is_currently_paid',  # TODO: Remove this and add "is_current" to Membership serialization.
-        'latest_nonfuture_membership'
+        'latest_nonfuture_membership',
+        'worker'
     )
 
     class MemberSerializer(serializers.ModelSerializer):
 
         latest_nonfuture_membership = MembershipSerializer(many=False, read_only=True)
+        worker = serializers.HyperlinkedRelatedField(read_only=True, view_name='task:worker-detail')
 
         class Meta:
             model = models.Member
