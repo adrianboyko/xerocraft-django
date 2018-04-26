@@ -923,6 +923,14 @@ class Worker(models.Model):
     should_report_work_mtd = models.BooleanField(default=False,
         help_text="Controls whether reports should be sent to worker when work MTD changes.")
 
+    @property
+    def time_acct_balance(self) -> Decimal:
+        entries = TimeAccountEntry.objects.filter(worker=self.member.worker)
+        if len(entries) == 0:
+            return Decimal("0.00")
+        else:
+            return entries.last().balance
+
     def populate_calendar_token(self):
         "Creates a calendar token if none exists, else does nothing."
         if self.calendar_token is None or len(self.calendar_token) == 0:
