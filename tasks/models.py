@@ -593,6 +593,7 @@ class Task(TaskMixin, TimeWindowedObject):
         help_text="If appropriate, set a date on which the task must be performed.")
 
     orig_sched_date = models.DateField(null=True, blank=True,
+        # Having a default value would mask certain incorrect usages, so none is specified.
         help_text="This is the first value that scheduled_date was set to. Required to avoid recreating a rescheduled task.")
 
     deadline = models.DateField(null=True, blank=True,

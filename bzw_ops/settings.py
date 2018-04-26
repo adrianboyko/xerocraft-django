@@ -122,7 +122,6 @@ INSTALLED_APPS += (
     'inventory',
     'soda',
     'crispy_forms',
-    #'social.apps.django_app.default',
     'rest_framework',
     'rest_framework.authtoken',
     'books',
