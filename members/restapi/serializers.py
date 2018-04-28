@@ -8,6 +8,7 @@ from rest_framework import serializers
 
 # Local
 import members.models as models
+import tasks.restapi.serializers as task_serilizers
 
 
 def get_MemberSerializer(respect_privacy: bool) -> Type[serializers.ModelSerializer]:
@@ -35,7 +36,7 @@ def get_MemberSerializer(respect_privacy: bool) -> Type[serializers.ModelSeriali
     class MemberSerializer(serializers.ModelSerializer):
 
         latest_nonfuture_membership = MembershipSerializer(many=False, read_only=True)
-        worker = serializers.HyperlinkedRelatedField(read_only=True, view_name='task:worker-detail')
+        worker = task_serilizers.WorkerSerializer(read_only=True)
 
         class Meta:
             model = models.Member
