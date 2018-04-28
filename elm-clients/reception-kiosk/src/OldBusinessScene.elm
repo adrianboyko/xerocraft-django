@@ -167,12 +167,12 @@ update msg kioskModel =
   in
     case msg of
 
-      OB_SegueA (sessionType, member) ->
+      OB_SegueA sessionType member ->
         ( {sceneModel | sessionType = Just sessionType, member = Just member}
         , send <| WizardVector <| Push <| OldBusiness
         )
 
-      OB_SegueB (sessionType, member, thisSessionsClaim) ->
+      OB_SegueB sessionType member thisSessionsClaim ->
         ( { sceneModel
           | sessionType = Just sessionType
           , member = Just member

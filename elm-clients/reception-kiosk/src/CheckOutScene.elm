@@ -109,7 +109,7 @@ update msg kioskModel =
               (newModel2, Cmd.none)
 
     CO_MemberChosen m ->
-      (sceneModel, send <| OldBusinessVector <| OB_SegueA (CheckOutSession, m))
+      (sceneModel, send <| OldBusinessVector <| OB_SegueA CheckOutSession m)
 
     -- ERRORS -------------------------
 

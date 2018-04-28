@@ -203,8 +203,8 @@ type NewUserMsg
   | UpdatePassword2 String
 
 type OldBusinessMsg
-  = OB_SegueA (SessionType, Member)
-  | OB_SegueB (SessionType, Member, Claim)
+  = OB_SegueA SessionType Member
+  | OB_SegueB SessionType Member Claim
   | OB_WorkingClaimsResult (Result Http.Error (PageOf Claim))
   | OB_DeleteSelection
   | OB_NoteRelatedTask Claim (Result Http.Error XisApi.Task)

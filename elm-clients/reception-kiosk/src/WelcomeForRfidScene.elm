@@ -81,7 +81,7 @@ update msg kioskModel =
     W4R_CheckOutClicked ->
       ( sceneModel
       , case sceneModel.member of
-          Just m -> send <| OldBusinessVector <| OB_SegueA (CheckOutSession, m)
+          Just m -> send <| OldBusinessVector <| OB_SegueA CheckOutSession m
           Nothing -> send <| ErrorVector <| ERR_Segue missingArguments
       )
 

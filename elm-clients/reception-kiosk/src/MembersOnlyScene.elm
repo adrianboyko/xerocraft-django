@@ -24,6 +24,7 @@ import XisRestApi as XisApi exposing (..)
 import Wizard.SceneUtils exposing (..)
 import Types exposing (..)
 import CalendarDate
+import PointInTime exposing (PointInTime)
 
 
 -----------------------------------------------------------------------------
@@ -45,18 +46,16 @@ type alias KioskModel a =
 
 
 type PaymentInfoState
-  = AskingIfMshipCurrent
-  -- | InformingAboutPlayTime
-  | SendingPaymentInfo
-  | PaymentInfoSent
+  = AskingAboutBankedTime
+  | AskingIfMshipCurrent
   | ExplainingHowToPayNow
+  | PaymentInfoSent
+  | SendingPaymentInfo
 
 
 type alias MembersOnlyModel =
   -------------- Req'd arguments:
   { member : Maybe Member
-  , nowBlock : Maybe (Maybe TimeBlock)
-  , allTypes : Maybe (List TimeBlockType)
   -------------- Other state:
   , paymentInfoState : PaymentInfoState
   , badNews : List String
@@ -67,8 +66,6 @@ init : Flags -> (MembersOnlyModel, Cmd Msg)
 init flags =
   let sceneModel =
     { member = Nothing
-    , nowBlock = Nothing
-    , allTypes = Nothing
     , paymentInfoState = AskingIfMshipCurrent
     , badNews = []
     }
@@ -84,46 +81,24 @@ init flags =
    (2) The time block is tagged as being for Supporting Members Only.
    (3) We have the user's membership info.
 -}
-haveSomethingToSay : KioskModel a -> Bool
-haveSomethingToSay kioskModel =
+membersOnlyButNotMember :
+  XisApi.Session a -> Member -> PointInTime -> Maybe TimeBlock -> List TimeBlockType -> Bool
+membersOnlyButNotMember
+  xis member now nowBlock allTypes =
+
   let
-    sceneModel = kioskModel.membersOnlyModel
-    mship = sceneModel.member |> Maybe.andThen (.data >> .latestNonfutureMembership)
     membersOnlyStr = "Members Only"
-    xis = kioskModel.xisSession
+    defaultBlockTypeName = case xis.defaultBlockType allTypes of
+      Just bt -> bt.data.name
+      Nothing -> ""
+    isCurrent = case member.data.latestNonfutureMembership of
+      Just m -> xis.coverTime [m] now
+      Nothing -> False
+    isMembersOnly = case nowBlock of
+      Just nb -> xis.blockHasType membersOnlyStr allTypes nb
+      Nothing -> defaultBlockTypeName == membersOnlyStr
   in
-    case (sceneModel.nowBlock, sceneModel.allTypes, mship) of
-
-      -- Following is the case where somebody arrives during an explicit time block.
-      (Just (Just nowBlock), Just allTypes, maybeMship) ->
-        let
-          isMembersOnly = xis.blockHasType membersOnlyStr allTypes nowBlock
-        in
-          case maybeMship of
-            Just mship ->
-              let current = xis.coverTime [mship] kioskModel.currTime
-              in isMembersOnly && not current
-            Nothing ->
-              isMembersOnly
-
-      -- Following is the case where we're not in any explicit time block.
-      -- So use default time block type, if one has been specified.
-      (Just Nothing, Just allTypes, maybeMship) ->
-        let
-          defaultBlockType = xis.defaultBlockType allTypes
-          isMembersOnly =
-            case defaultBlockType of
-              Just bt -> bt.data.name == membersOnlyStr
-              Nothing -> False
-        in
-          case maybeMship of
-            Just mship ->
-              let current = xis.coverTime [mship] kioskModel.currTime
-              in isMembersOnly && not current
-            Nothing ->
-              isMembersOnly
-
-      _ -> False
+    isMembersOnly && not isCurrent
 
 
 update : MembersOnlyMsg -> KioskModel a -> (MembersOnlyModel, Cmd Msg)
@@ -137,22 +112,15 @@ update msg kioskModel =
 
     MO_Segue member nowBlock allTypes ->
 
-      if haveSomethingToSay kioskModel then
-        -- We need to talk, so show this scene.
-        ( { sceneModel
-          | member = Just member
-          , nowBlock = Just nowBlock
-          , allTypes = Just allTypes
-          }
-        , send <| WizardVector <| Push <| MembersOnly
-        )
-      else
-        -- Nothing to say, so skip this scene.
-        case sceneModel.member of
-          Just m ->
-            (sceneModel, send <| OldBusinessVector <| OB_SegueA (CheckInSession, m))
-          Nothing ->
-            (sceneModel, send <| ErrorVector <| ERR_Segue missingArguments)
+      let
+        newSceneModel = { sceneModel | member = Just member }
+      in
+        if membersOnlyButNotMember xis member kioskModel.currTime nowBlock allTypes then
+          -- We need to talk, so push this scene.
+          (newSceneModel, send <| WizardVector <| Push <| MembersOnly)
+        else
+          -- Nothing to say, so skip this scene.
+          (newSceneModel, send <| OldBusinessVector <| OB_SegueA CheckInSession member)
 
 
     SendPaymentInfo ->
@@ -198,7 +166,7 @@ view kioskModel =
     case sceneModel.member of
 
       Nothing ->
-          errorView kioskModel missingArguments
+        errorView kioskModel missingArguments
 
       Just m ->
 
@@ -207,6 +175,7 @@ view kioskModel =
           "Is your supporting membership up to date?"
           (
           case sceneModel.paymentInfoState of
+            AskingAboutBankedTime -> askingAboutBankedTime kioskModel sceneModel xis m
             AskingIfMshipCurrent -> areYouCurrentContent kioskModel sceneModel xis m
             SendingPaymentInfo -> areYouCurrentContent kioskModel sceneModel xis m
             PaymentInfoSent -> paymentInfoSentContent kioskModel sceneModel xis m
@@ -215,6 +184,9 @@ view kioskModel =
           []  -- No buttons here. They will be woven into content.
           []  -- No bad news. Scene will fail silently, but should log somewhere.
 
+
+askingAboutBankedTime kioskModel sceneModel xis member =
+  text "TODO!"
 
 areYouCurrentContent : KioskModel a -> MembersOnlyModel -> XisApi.Session Msg -> Member -> Html Msg
 areYouCurrentContent kioskModel sceneModel xis member =
@@ -250,7 +222,7 @@ areYouCurrentContent kioskModel sceneModel xis member =
         , sceneButton kioskModel
             <| ButtonSpec
                "I'm Current!"
-               (OldBusinessVector <| OB_SegueA (CheckInSession, member))
+               (OldBusinessVector <| OB_SegueA CheckInSession member)
                True
         ]
 
@@ -273,7 +245,7 @@ paymentInfoSentContent kioskModel sceneModel xis member =
       , sceneButton kioskModel
           <| ButtonSpec
               "OK"
-              (OldBusinessVector <| OB_SegueA (CheckInSession, member))
+              (OldBusinessVector <| OB_SegueA CheckInSession member)
               True
       ]
 
@@ -292,7 +264,7 @@ howToPayNowContent kioskModel sceneModel xis member =
     , sceneButton kioskModel
         <| ButtonSpec
              "OK"
-             (OldBusinessVector <| OB_SegueA (CheckInSession, member))
+             (OldBusinessVector <| OB_SegueA CheckInSession member)
              True
     ]
 
