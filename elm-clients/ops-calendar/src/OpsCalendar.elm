@@ -422,7 +422,7 @@ detailView model t =
     left = px (model.detailPt.x + (model.mousePt.x - dragStartPt_.x))
     top = px (model.detailPt.y + (model.mousePt.y - dragStartPt_.y))
     onMouseDown = on "mousedown" (Dec.map DragStart Mouse.position)
-    startStr = Maybe.map CT.toString t.data.workStartTime |> Maybe.withDefault "?"
+    startStr = Maybe.map (CT.format "%l:%M %p") t.data.workStartTime |> Maybe.withDefault "?"
     durStr = Maybe.map Dur.toString t.data.workDuration |> Maybe.withDefault "?"
     name = Maybe.withDefault "nobody" t.data.nameOfLikelyWorker
   in

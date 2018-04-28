@@ -25,10 +25,8 @@ type alias ClockTime =
 
 toString : ClockTime -> String
 toString ct =
-  let
-    stringParts = List.map Basics.toString [ct.hour, ct.minute]
-  in
-    String.join ":" stringParts
+  format "%H:%M" ct
+
 
 {-| Assumes that given string is from a human and requires that AM or PM be explicitly included
 because a value like 9:45 is ambiguous when coming from a human. -}
