@@ -11,6 +11,7 @@ from django.contrib import auth
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.template import RequestContext, loader, Template
+from django.views.decorators.csrf import csrf_exempt
 from rest_framework.authtoken.models import Token
 from rq import Queue
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
@@ -184,6 +185,7 @@ def test(request) -> JsonResponse:
 # OTHER
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
+@csrf_exempt
 def paypal_webhook(request):
     # Not yet sure what the proper response is. This "OK" response is for testing purposes.
     return HttpResponse("OK")
