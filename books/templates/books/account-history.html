@@ -48,18 +48,21 @@
             <th class="left">Date</th>
             <th class="right">Decrease</th>
             <th class="right">Increase</th>
+            <th class="left">Description</th>
         </tr>
         {% for jeli in jelis %}
             <tr>
                 <td class="left">{{jeli.journal_entry.when}}</td>
                 <td class="right">{% if jeli.sign < 0 %}<a href="{{jeli.journal_entry.source_url}}">{{jeli.amount}}</a>{% endif %}</td>
                 <td class="right">{% if jeli.sign > 0 %}<a href="{{jeli.journal_entry.source_url}}">{{jeli.amount}}</a>{% endif %}</td>
+                <td class="left">{{jeli.description}}</td>
             </tr>
         {% endfor %}
         <tr>
-            <td class="left">Total:</td>
-            <td class="right">{{decrease_total}}</td>
-            <td class="right">{{increase_total}}</td>
+            <th class="left">Totals 🡺</th>
+            <th class="right">{{decrease_total}}</th>
+            <th class="right">{{increase_total}}</th>
+            <th class="right">&nbsp;</th>
         </tr>
         </table>
 

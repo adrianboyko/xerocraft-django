@@ -26,6 +26,9 @@ logger = getLogger("books")
 
 ORG_NAME = settings.BZWOPS_CONFIG['ORG_NAME']
 
+DEC0 = Decimal("0.00")
+DEC1 = Decimal("1.00")
+
 ACCT_LIABILITY_PAYABLE = 39
 ACCT_LIABILITY_UNEARNED_MSHIP_REVENUE = 46
 ACCT_ASSET_RECEIVABLE = 40
@@ -321,6 +324,9 @@ class JournalEntryLineItem(models.Model):
         help_text="The amount of the increase or decrease (always positive)",
         validators=[MinValueValidator(Decimal('0.00'))])
 
+    description = models.CharField(max_length=128, blank=True,
+        help_text="A brief description of this line item.")
+
     def iscredit(self):
         if self.account.type == Account.TYPE_CREDIT:
             return self.action == self.ACTION_BALANCE_INCREASE
@@ -529,12 +535,14 @@ class Budget(Journaler):
             je.prebatch(JournalEntryLineItem(
                 account=self.from_acct,
                 action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
-                amount=self.amount
+                amount=self.amount,
+                description="Transfer to {}".format(self.name)
             ))
             je.prebatch(JournalEntryLineItem(
                 account=self.to_acct,
                 action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
-                amount=self.amount
+                amount=self.amount,
+                description = "Contribution from budget"
             ))
             Journaler.batch(je)
             d += relativedelta(months=1)
@@ -1559,6 +1567,7 @@ class ExpenseClaim(Journaler):
                 account=eli.account,
                 action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
                 amount=eli.amount-eli.discount,
+                description=eli.description
             ))
             Journaler.batch(je)
 
@@ -1770,7 +1779,7 @@ class ExpenseLineItem(models.Model, JournalLiner):
         if self.claim is None and self.exp is None:
             raise ValidationError(_("Expense line item must be part of a claim or transaction."))
 
-    def create_journalentry_lineitems(self, je: JournalEntry, factor=Decimal("1")):
+    def create_journalentry_lineitems(self, je: JournalEntry, factor=DEC1):
 
         # If the expense is against an acct that's part of a budget,
         # return the general cash and take from the budget fund instead.
@@ -1788,6 +1797,7 @@ class ExpenseLineItem(models.Model, JournalLiner):
                     account=budget.to_acct,
                     action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
                     amount=factor*self.amount,
+                    description=self.description if factor==DEC1 else "{:.0%} of {}".format(factor, self.description)
                 ))
 
         if self.discount > Decimal(0.00):  # Note, this is for CHARITABLE discounts against goods or services.
