@@ -13,6 +13,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
+from django.contrib.sites.models import Site
 from django.utils.translation import ugettext_lazy as _
 from django.conf import settings
 from nameparser import HumanName
@@ -408,7 +409,9 @@ class Journaler(models.Model):
     def get_absolute_url(self):
         content_type = ContentType.objects.get_for_model(self.__class__)
         url_name = "admin:{}_{}_change".format(content_type.app_label, content_type.model)
-        return reverse(url_name, args=[str(self.id)])
+        relative_url = reverse(url_name, args=[str(self.id)])
+        host = Site.objects.get_current().domain
+        return "https://{}{}".format(host, relative_url)
 
     @classmethod
     def save_batch(cls):
