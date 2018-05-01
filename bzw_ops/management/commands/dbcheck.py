@@ -3,16 +3,20 @@
 
 import unittest
 import sys
+import multiprocessing as mp
+from typing import List, Optional
 
 # Third Party
 from django.core.management.base import BaseCommand
 from django.apps import apps
 from django.core.exceptions import ValidationError
+from django.db import connection
 
 # Local
 
 
 __author__ = 'adrian'
+NUM_CORE = 4
 
 
 class Command(BaseCommand):
@@ -24,15 +28,28 @@ class Command(BaseCommand):
         unittest.TextTestRunner().run(suite)
 
 
+def test_object(modelname_and_obj) -> List[str]:
+    modelname, obj = modelname_and_obj
+    #if type(obj).__name__ != "JournalEntry": return []
+    try:
+        obj.full_clean()
+        if hasattr(obj, "dbcheck"): obj.dbcheck()
+        return []
+    except ValidationError as e:
+        return ["{} #{}, {} {}".format(modelname, obj.pk, obj, e.messages)]
+
+
 class DbCheck(unittest.TestCase):
 
     def test_models(self):
-
-        total_err_count = 0
         problems = []
+        total_err_count = 0
 
-        #TODO: Get list of apps from settings module.
-        for appname in ['books', 'inventory', 'members', 'modelmailer', 'tasks', 'bzw_ops', 'xis']:
+        connection.close()
+        pool = mp.Pool(NUM_CORE)
+
+        # TODO: Get list of apps from settings module.
+        for appname in ['books', 'inventory', 'members', 'modelmailer', 'soda', 'tasks', 'bzw_ops', 'xis']:
             print(appname)
             app = apps.get_app_config(appname)
             for modelname, model in app.models.items():
@@ -40,29 +57,18 @@ class DbCheck(unittest.TestCase):
                 model_info_str = "   {}, {} objs".format(modelname, total_obj_count)
                 print(model_info_str, end="")
                 sys.stdout.flush()
-                obj_count = 0
+                objs = model.objects.all()  # TODO: Call model.objs_for_dbcheck() instead, if it exists.
+                model_problems = pool.map(
+                    test_object,
+                    ((modelname, obj) for obj in objs)
+                )
                 model_err_count = 0
-                errstr = ""
-                for obj in model.objects.all():  # TODO: Call model.objs_for_dbcheck() instead, if it exists.
-                    # if type(obj).__name__ != "JournalEntry": continue
-                    try:
-                        obj.full_clean()
-                        if hasattr(obj, "dbcheck"): obj.dbcheck()
-                    except ValidationError as e:
-                        problems.append("{} #{}, {} {}".format(modelname, obj.pk, obj, e.messages))
-                        model_err_count += 1
-                        total_err_count += 1
-                        continue
-                    finally:
-                        obj_count += 1
-                        if obj_count % 10 == 0:
-                            progress = obj_count/total_obj_count
-                            errstr = ", *** {} ERRS ***".format(model_err_count) if model_err_count > 0 else ""
-                            print("\r{}, {:.0%} done{}".format(model_info_str, progress, errstr), end="")
-                            sys.stdout.flush()
-                print("\r{}{}".format(model_info_str, errstr), end="")
-                # Above string is shorter than the string it replaces. So print some spaces to clear out leftover:
-                print("                     ")
+                for obj_problems in model_problems:
+                    problems.extend(obj_problems)
+                    total_err_count += len(obj_problems)
+                    model_err_count += len(obj_problems)
+
+                print(", {} problems".format(model_err_count))
 
         if total_err_count > 0:
             print("DBCheck found the following issues:")
