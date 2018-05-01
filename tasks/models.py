@@ -430,9 +430,11 @@ class Claim(models.Model, TimeWindowedObject):
     stake_date = models.DateField(auto_now_add=True,
         help_text="The date on which the member staked this claim.")
 
+    # REVIEW: The next two allow multiple people to split tasks that occur in windows.
+    # But I'm abandoning that idea and will split tasks explicitly, instead.
+    # As a result, these two fields should probably be removed.
     claimed_start_time = models.TimeField(null=True, blank=True,
         help_text="If the task specifies a start time and duration, this must fall within that time span. Otherwise it should be blank.")
-
     claimed_duration = models.DurationField(null=False, blank=False,
         help_text="The amount of work the member plans to do on the task.")
 
@@ -459,12 +461,9 @@ class Claim(models.Model, TimeWindowedObject):
 
     def clean(self):
         task = self.claimed_task; claim = self  # Makes it easier to read clean logic.
-        if claim.claimed_duration <= timedelta(0):
-            raise ValidationError(_("Duration must be greater than zero"))
+
         if task.work_start_time is not None and claim.claimed_start_time is None:
             raise ValidationError(_("Must specify the start time for this claim."))
-        if task.work_start_time is None and claim.claimed_start_time is not None:
-            pass  # REVIEW: I think this will be OK.
 
     def dbcheck(self):
         if False:  # TODO: Finish this check
@@ -546,9 +545,7 @@ class Work(models.Model):
         return aware
 
     def clean(self):
-        work = self; claim = work.claim; task = claim.claimed_task  # Makes it easier to read logic, below:
-        if work.work_duration is not None and work.work_duration > claim.claimed_duration:
-            raise ValidationError(_("Can't report more work than was claimed."))
+        pass
 
     def __str__(self):
         return "{} worked {} on {}".format(self.claim.claiming_member.username, self.work_duration, self.work_date)
