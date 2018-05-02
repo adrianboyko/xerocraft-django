@@ -60,7 +60,7 @@
         {% for acct in revenue_accts %}
             <tr data-tt-id="{{acct.pk}}" data-tt-parent-id="{{acct.parent_id|default:"revenue"}}">
                 <td class="acctname" title='{{acct.description}}'>{{acct.name}}</td>
-                <td class="acctpk">{{acct.pk}}</td>
+                <td class="acctpk"><a href="{% url 'books:account-history' acct.pk %}">{{acct.pk}}</a></td>
                 <td class="acctmgr">{{acct.manager|default:"-"}}</td>
             </tr>
         {% endfor %}
