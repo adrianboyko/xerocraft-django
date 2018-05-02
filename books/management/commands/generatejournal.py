@@ -50,7 +50,7 @@ class Command(BaseCommand):
         print("Found {} Errors:".format(len(errors)))
         for je in errors:
             url = je.source_url
-            if settings.DEBUG:
+            if settings.ISDEVHOST:
                 url = url.replace(Site.objects.get_current().domain, "localhost:8000")
             print("\n   {} doesn't balance:".format(je))
             print("      "+url)
