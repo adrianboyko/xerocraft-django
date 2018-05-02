@@ -13,6 +13,7 @@ from rest_framework import viewsets
 from django.http.response import HttpResponse
 from django.http.request import HttpRequest
 from django.contrib.auth.decorators import login_required
+from django.contrib.sites.models import Site
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import settings
 from django.shortcuts import get_object_or_404
@@ -333,13 +334,17 @@ def account_history(
 
     decrease_total = Decimal("0.00")
     increase_total = Decimal("0.00")
-    for jeli in jelis:
+    host = Site.objects.get_current().domain
+    for jeli in jelis:  # type: JournalEntryLineItem
         if jeli.action == jeli.ACTION_BALANCE_INCREASE:
             increase_total += jeli.amount
             jeli.sign = 1
         else:
             decrease_total += jeli.amount
             jeli.sign = -1
+        if settings.ISDEVHOST:
+            # DB contains abs URLs pointing to production, so I'll modify them to localhost.
+            jeli.journal_entry.source_url = jeli.journal_entry.source_url.replace(host, "localhost:8000")
 
     params = {
         'begin_date': begin_date,
