@@ -43,10 +43,10 @@ class Command(BaseCommand):
                 journaler.create_journalentry()
             print("Done.\n")
 
-        Journaler.save_batch()
-        JournalLiner.save_batch()
+        Journaler.save_je_batch()
+        JournalLiner.save_jeli_batch()
 
-        errors = journaler_class.get_unbalanced_journal_entries()
+        errors = Journaler.get_unbalanced_journal_entries()
         print("Found {} Errors:".format(len(errors)))
         for je in errors:
             url = je.source_url
@@ -57,8 +57,8 @@ class Command(BaseCommand):
             for li in je.journalentrylineitem_set.all():
                 print("      {}".format(str(li)))
 
-        total_dr = journaler_class._grand_total_debits
-        total_cr = journaler_class._grand_total_credits
+        total_dr = Journaler._grand_total_debits
+        total_cr = Journaler._grand_total_credits
         total_diff = total_cr - total_dr
         print("\nTotals")
         print("  debits:  {0:9.2f}".format(total_dr))
