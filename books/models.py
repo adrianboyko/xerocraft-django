@@ -6,6 +6,7 @@ from decimal import Decimal
 from typing import Dict, List, Optional, Tuple
 from abc import abstractmethod, ABCMeta
 from logging import getLogger
+from collections import Counter
 
 # Third party
 from django.db import models
@@ -38,6 +39,14 @@ ACCT_EXPENSE_BUSINESS = 30
 ACCT_REVENUE_DONATION = 35  # General Donations.
 ACCT_REVENUE_MEMBERSHIP = 6
 ACCT_REVENUE_DISCOUNT = 49
+
+PROD_HOST = Site.objects.get_current().domain
+DEV_HOST = "localhost:8000"
+
+
+def quote_entity(name: str) -> str:
+    return "[{}]".format(name)
+
 
 # class PayerAKA(models.Model):
 #     """ Intended primarily to record name variations that are used in payments, etc. """
@@ -242,12 +251,43 @@ class JournalEntry(models.Model):
         return jeli
 
     def process_prebatch(self):
+        self._simplify_prebatched_lineitems()
         if len(self.prebatched_lineitems) == 0:
-            print("Journal Entry for {} has no line items!".format(self.source_url))
+            url = self.source_url
+            if settings.ISDEVHOST:
+                url = url.replace(PROD_HOST, DEV_HOST)
+            print("Journal Entry for {} has no line items!".format(url))
         for jeli in self.prebatched_lineitems:
             jeli.journal_entry_id = self.id
-            JournalLiner.batch(jeli)
+            JournalLiner.batch_jeli(jeli)
         self.prebatched_lineitems = []
+
+    def _simplify_prebatched_lineitems(self) -> None:
+        """Merge line items that are identical except for amount."""
+
+        # Process the current prebatched line items using a Counter to merge them.
+        # We need to convert amounts to pennies because Counter only works with ints.
+        merger = Counter()
+        pennies_per_dollar = Decimal("100.00")
+        for jeli in self.prebatched_lineitems:
+            key = (jeli.account, jeli.description)
+            sign = 1 if jeli.action == jeli.ACTION_BALANCE_INCREASE else -1
+            pennies = int(jeli.amount * pennies_per_dollar)
+            merger.update({key: sign*pennies})
+
+        # Regenerate the prebatched line items from the Counter:
+        self.prebatched_lineitems = []
+        for ((acct, desc), pennies) in merger.items():
+            act = JournalEntryLineItem.ACTION_BALANCE_INCREASE if pennies > 0 else JournalEntryLineItem.ACTION_BALANCE_DECREASE
+            if pennies != 0:
+                newjeli = JournalEntryLineItem(
+                    account=acct,
+                    description=desc,
+                    amount=Decimal.from_float(abs(pennies/100.0)),
+                    action=act
+                )
+                self.prebatched_lineitems.append(newjeli)
+
 
     def debit_and_credit_totals(self) -> Tuple[Decimal, Decimal]:
         total_debits = Decimal(0.0)
@@ -353,7 +393,7 @@ class Journaler(models.Model):
 
     __metaclass__ = ABCMeta
 
-    _batch = list()  # type: List[JournalEntry]
+    _je_batch = list()  # type: List[JournalEntry]
     _link_names_of_relevant_children = None
     _unbalanced_journal_entries = list()  # type: List[JournalEntry]
     _grand_total_debits = Decimal(0.00)
@@ -384,7 +424,7 @@ class Journaler(models.Model):
 
     @classmethod
     def link_names_of_relevant_children(cls):
-        if cls._link_names_of_relevant_children == None:
+        if cls._link_names_of_relevant_children is None:
             related_objects = [
                 f for f in cls._meta.get_fields()
                   if (f.one_to_many or f.one_to_one)
@@ -410,20 +450,19 @@ class Journaler(models.Model):
         content_type = ContentType.objects.get_for_model(self.__class__)
         url_name = "admin:{}_{}_change".format(content_type.app_label, content_type.model)
         relative_url = reverse(url_name, args=[str(self.id)])
-        host = Site.objects.get_current().domain
-        return "https://{}{}".format(host, relative_url)
+        return "https://{}{}".format(PROD_HOST, relative_url)
 
     @classmethod
-    def save_batch(cls):
+    def save_je_batch(cls):
         """
         Save the currently batched JournalEntry instances using bulk_create,
         and stage the associated pre-batched JournalEntryLineItems for batch creation.
         """
         # NOTE: As of 1/18/2016, this will only work in Django version 1.10 with Postgres
-        JournalEntry.objects.bulk_create(cls._batch)
-        for je in cls._batch:
+        JournalEntry.objects.bulk_create(cls._je_batch)
+        for je in cls._je_batch:
             je.process_prebatch()
-        cls._batch = []
+        cls._je_batch = []
 
     @classmethod
     def batch(cls, je: JournalEntry):
@@ -439,9 +478,9 @@ class Journaler(models.Model):
         if balance != Decimal(0.00):
             cls._unbalanced_journal_entries.append(je)
             je.unbalanced = True
-        cls._batch.append(je)
-        if len(cls._batch) > 1000:
-            cls.save_batch()
+        cls._je_batch.append(je)
+        if len(cls._je_batch) > 1000:
+            cls.save_je_batch()
         return je
 
     def journal_one_transaction(self):
@@ -451,18 +490,18 @@ class Journaler(models.Model):
         """
         JournalEntry.objects.filter(source_url=self.get_absolute_url()).delete()
         self.create_journalentry()
-        Journaler.save_batch()
-        JournalLiner.save_batch()
+        Journaler.save_je_batch()
+        JournalLiner.save_jeli_batch()
 
     @classmethod
     def get_unbalanced_journal_entries(cls):
         return cls._unbalanced_journal_entries
 
 
-class JournalLiner:
+class JournalLiner(object):
     __metaclass__ = ABCMeta
 
-    _batch = list()  # type:List[JournalEntryLineItem]
+    _jeli_batch = list()  # type:List[JournalEntryLineItem]
 
     # Each journal liner will have its own logic for creating its line items in the specified entry.
     @abstractmethod
@@ -470,15 +509,15 @@ class JournalLiner:
         raise NotImplementedError
 
     @classmethod
-    def save_batch(cls):
-        created = JournalEntryLineItem.objects.bulk_create(cls._batch)
-        cls._batch = []
+    def save_jeli_batch(cls):
+        created = JournalEntryLineItem.objects.bulk_create(cls._jeli_batch)
+        cls._jeli_batch = []
 
     @classmethod
-    def batch(cls, jeli: JournalEntryLineItem):
-        cls._batch.append(jeli)
-        if len(cls._batch) > 1000:
-            cls.save_batch()
+    def batch_jeli(cls, jeli: JournalEntryLineItem):
+        cls._jeli_batch.append(jeli)
+        if len(cls._jeli_batch) > 1000:
+            cls.save_jeli_batch()
         return jeli
 
 
@@ -539,13 +578,13 @@ class Budget(Journaler):
                 account=self.from_acct,
                 action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
                 amount=self.amount,
-                description="Transfer to {}".format(self.name)
+                description="Budget xfer to {}".format(self.name)
             ))
             je.prebatch(JournalEntryLineItem(
                 account=self.to_acct,
                 action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
                 amount=self.amount,
-                description = "Contribution from budget"
+                description="Budget contribution"
             ))
             Journaler.batch(je)
             d += relativedelta(months=1)
@@ -618,6 +657,7 @@ class CashTransfer(Journaler):
 
     class Meta:
         unique_together = ['from_acct', 'to_acct', 'when', 'why']
+
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # ENTITY - Any person or organization that is not a member.
@@ -743,7 +783,8 @@ class ReceivableInvoice(make_InvoiceBase(recv_invoice_help)):
         je.prebatch(JournalEntryLineItem(
             account=Account.get(ACCT_ASSET_RECEIVABLE),
             action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
-            amount=self.amount
+            amount=self.amount,
+            description="We invoiced [{}]".format(self.name())
         ))
         self.create_lineitems_for(je)
         Journaler.batch(je)
@@ -799,7 +840,8 @@ class PayableInvoice(make_InvoiceBase(payable_invoice_help)):
         je.prebatch(JournalEntryLineItem(
             account=Account.get(ACCT_LIABILITY_PAYABLE),
             action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
-            amount=self.amount
+            amount=self.amount,
+            description="{} invoiced us".format(quote_entity(self.name()))
         ))
         self.create_lineitems_for(je)
         Journaler.batch(je)
@@ -1096,14 +1138,16 @@ class Sale(Journaler):
         je.prebatch(JournalEntryLineItem(
             account=Account.get(ACCT_ASSET_CASH),
             action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
-            amount=self.total_paid_by_customer-self.processing_fee
+            amount=self.total_paid_by_customer-self.processing_fee,
+            description="{} paid us".format(quote_entity(self.payer_str or "unkown"))
         ))
         if self.processing_fee > Decimal(0.00):
             if self.fee_payer == self.FEE_PAID_BY_US:
                 je.prebatch(JournalEntryLineItem(
                     account=Account.get(ACCT_EXPENSE_BUSINESS),
                     action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
-                    amount=self.processing_fee
+                    amount=self.processing_fee,
+                    description="Payment processing fee"
                 ))
 
         self.create_lineitems_for(je)
@@ -1204,6 +1248,7 @@ class OtherItem(models.Model, JournalLiner):
             account=self.type.revenue_acct,
             action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
             amount=self.sale_price * (self.qty_sold or Decimal('1')),
+            description=self.type.name
         ))
 
 
@@ -1293,6 +1338,7 @@ class MonetaryDonation(models.Model, JournalLiner):
             account=self.earmark,
             action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
             amount=self.amount,
+            #description="Donation from {}".format(self.sale.payer_str)
         ))
 
         # If this donation is contributing to a fund raising campaign then
@@ -1559,18 +1605,21 @@ class ExpenseClaim(Journaler):
                     account=Account.get(ACCT_REVENUE_DONATION),
                     action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
                     amount=eli.amount,
+                    #description="Donated expense claim reimbursment from {}".format(self.claimant.username)
                 ))
             else:
                 je.prebatch(JournalEntryLineItem(
                     account=Account.get(ACCT_LIABILITY_PAYABLE),
                     action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
                     amount=eli.amount-eli.discount,
+                    #description="Expense claim received from {}".format(self.claimant)
+
                 ))
             je.prebatch(JournalEntryLineItem(
                 account=eli.account,
                 action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
                 amount=eli.amount-eli.discount,
-                description=eli.description
+                #description=eli.description
             ))
             Journaler.batch(je)
 
@@ -1613,6 +1662,19 @@ class ExpenseTransaction(Journaler):
     recipient_email = models.EmailField(max_length=40, blank=True,
         help_text="Optional, sometimes useful ",
         verbose_name="Optional email")
+
+    @property
+    def recipient_str(self) -> Optional[str]:
+        if self.recipient_name > "":
+            return self.recipient_name
+        elif self.recipient_acct is not None:
+            return str(self.recipient_acct.member)
+        elif self.recipient_email > "":
+            return self.recipient_email
+        elif self.recipient_entity is not None:
+            return self.recipient_entity.name
+        else:
+            return None
 
     amount_paid = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
         help_text="The dollar amount of the payment.")
@@ -1684,19 +1746,20 @@ class ExpenseTransaction(Journaler):
             when=self.payment_date,
             source_url=self.get_absolute_url()
         )
-        je.prebatch(JournalEntryLineItem(
-            account=Account.get(ACCT_ASSET_CASH),
-            action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
-            amount=self.amount_paid
-        ))
+        # je.prebatch(JournalEntryLineItem(
+        #     account=Account.get(ACCT_ASSET_CASH),
+        #     action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
+        #     amount=self.amount_paid,
+        #     description="We paid {}".format(quote_entity(self.recipient_str))
+        # ))
         self.create_lineitems_for(je)
         # The following is not handled by the previous line:
-        for eli in self.expenselineitem_set.all():
-            je.prebatch(JournalEntryLineItem(
-                account=eli.account,
-                action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
-                amount=eli.amount
-            ))
+        # for eli in self.expenselineitem_set.all():
+        #     je.prebatch(JournalEntryLineItem(
+        #         account=eli.account,
+        #         action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
+        #         amount=eli.amount
+        #     ))
         Journaler.batch(je)
 
 
@@ -1723,6 +1786,7 @@ class ExpenseClaimReference(models.Model, JournalLiner):
             account=Account.get(ACCT_LIABILITY_PAYABLE),
             action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
             amount=amount,
+            #description="Claim reimbursement paid to {}".format(self.claim.claimant)
         ))
 
         for eli in self.claim.expenselineitem_set.all():
@@ -1784,24 +1848,33 @@ class ExpenseLineItem(models.Model, JournalLiner):
 
     def create_journalentry_lineitems(self, je: JournalEntry, factor=DEC1):
 
+        if self.exp is not None:
+            who_paid = self.exp.recipient_str
+        elif self.claim is not None:
+            who_paid = self.claim.claimant.username
+        else:
+            who_paid = "unknown"
+
         # If the expense is against an acct that's part of a budget,
         # return the general cash and take from the budget fund instead.
         budgets = self.account.budget_set.all()  # type: List[Budget]
         assert len(budgets) <= 1
         if len(budgets) == 1:
             budget = budgets[0]  # type: Budget
-            if budget is not None:
-                je.prebatch(JournalEntryLineItem(
-                    account=Account.get(ACCT_ASSET_CASH),
-                    action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
-                    amount=factor*self.amount,
-                ))
-                je.prebatch(JournalEntryLineItem(
-                    account=budget.to_acct,
-                    action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
-                    amount=factor*self.amount,
-                    description=self.description if factor==DEC1 else "{:.0%} of {}".format(factor, self.description)
-                ))
+            assert budget is not None
+            je.prebatch(JournalEntryLineItem(
+                account=budget.to_acct,
+                action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
+                amount=factor * self.amount,
+                description="We paid {}".format(quote_entity(who_paid))
+            ))
+        else:
+            je.prebatch(JournalEntryLineItem(
+                account=Account.get(ACCT_ASSET_CASH),
+                action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
+                amount=factor * self.amount,
+                description="We paid {}".format(quote_entity(who_paid))
+            ))
 
         if self.discount > Decimal(0.00):  # Note, this is for CHARITABLE discounts against goods or services.
             je.prebatch(JournalEntryLineItem(
@@ -1841,15 +1914,18 @@ class PayableInvoiceReference(models.Model, JournalLiner):
 
     def create_journalentry_lineitems(self, je: JournalEntry):
 
-        amount = self.invoice.amount
-
-        if self.portion is not None:
+        if self.portion is not None and self.portion < self.invoice.amount:
+            desc = "Partial payment of invoice from {}".format(self.invoice.name())
             amount = self.portion
+        else:
+            desc = "Paid invoice from {}".format(self.invoice.name())
+            amount = self.invoice.amount
 
         je.prebatch(JournalEntryLineItem(
             account=Account.get(ACCT_LIABILITY_PAYABLE),
             action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
             amount=amount,
+            #description=desc
         ))
 
 
