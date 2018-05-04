@@ -53,8 +53,8 @@
         {% for jeli in jelis %}
             <tr>
                 <td class="left">{{jeli.journal_entry.when}}</td>
-                <td class="right">{% if jeli.sign < 0 %}<a href="{{jeli.journal_entry.source_url}}">{{jeli.amount}}</a>{% endif %}</td>
-                <td class="right">{% if jeli.sign > 0 %}<a href="{{jeli.journal_entry.source_url}}">{{jeli.amount}}</a>{% endif %}</td>
+                <td class="right">{% if jeli.sign < 0 %}<a href="{{jeli.journal_entry.relative_source_url}}">{{jeli.amount}}</a>{% endif %}</td>
+                <td class="right">{% if jeli.sign > 0 %}<a href="{{jeli.journal_entry.relative_source_url}}">{{jeli.amount}}</a>{% endif %}</td>
                 <td class="left">{{jeli.description}}</td>
             </tr>
         {% endfor %}

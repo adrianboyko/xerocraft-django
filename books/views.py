@@ -6,6 +6,7 @@ from typing import List
 import json
 from decimal import Decimal
 from typing import Optional
+from urllib.parse import urlsplit
 
 # Third Party
 from django.shortcuts import render
@@ -13,7 +14,6 @@ from rest_framework import viewsets
 from django.http.response import HttpResponse
 from django.http.request import HttpRequest
 from django.contrib.auth.decorators import login_required
-from django.contrib.sites.models import Site
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import settings
 from django.shortcuts import get_object_or_404
@@ -334,17 +334,16 @@ def account_history(
 
     decrease_total = Decimal("0.00")
     increase_total = Decimal("0.00")
-    host = Site.objects.get_current().domain
     for jeli in jelis:  # type: JournalEntryLineItem
+        je = jeli.journal_entry  # type: JournalEntry
         if jeli.action == jeli.ACTION_BALANCE_INCREASE:
             increase_total += jeli.amount
             jeli.sign = 1
         else:
             decrease_total += jeli.amount
             jeli.sign = -1
-        if settings.ISDEVHOST:
-            # DB contains abs URLs pointing to production, so I'll modify them to localhost.
-            jeli.journal_entry.source_url = jeli.journal_entry.source_url.replace(host, "localhost:8000")
+        # DB contains abs URLs pointing to production, so I'll add relative urls.
+        je.relative_source_url = urlsplit(je.source_url).path
 
     params = {
         'begin_date': begin_date,
