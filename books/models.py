@@ -637,12 +637,14 @@ class CashTransfer(Journaler):
         je.prebatch(JournalEntryLineItem(
             account=self.from_acct,
             action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
-            amount=self.amount
+            amount=self.amount,
+            description="Transfer to {}".format(self.to_acct.name)
         ))
         je.prebatch(JournalEntryLineItem(
             account=self.to_acct,
             action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
-            amount=self.amount
+            amount=self.amount,
+            description = "Transfer from {}".format(self.from_acct.name)
         ))
         Journaler.batch(je)
 
