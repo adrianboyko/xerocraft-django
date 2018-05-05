@@ -541,6 +541,9 @@ def register_journaler():
 @register_journaler()
 class Budget(Journaler):
 
+    year = models.IntegerField(blank=False, default=date.today().year,
+        help_text="The fiscal year during which this budget applies.")
+
     name = models.CharField(max_length=40, blank=False,
         help_text="Name of the budget.")
 
@@ -557,47 +560,35 @@ class Budget(Journaler):
     for_accts = models.ManyToManyField(Account, blank=True,
         help_text="The account(s) ultimately funded by this budget.")
 
-    begins = models.DateField(null=False, blank=False,
-        help_text="Date of first monthly transfer.")
-
-    ends = models.DateField(null=False, blank=False,
-        help_text="Date of last monthly transfer.")
-
     amount = models.DecimalField(max_digits=7, decimal_places=2, null=False, blank=False,
-        help_text="The amount of each transfer.",
+        help_text="The amount budgeted for the year.",
         validators=[MinValueValidator(Decimal('0.00'))])
 
     def _create_journalentries(self):
-        d = self.begins  # type: date
-        while d <= self.ends:
-            je = JournalEntry(
-                when=d,
-                source_url=self.get_absolute_url(),
-            )
-            je.prebatch(JournalEntryLineItem(
-                account=self.from_acct,
-                action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
-                amount=self.amount,
-                description="Budget xfer to {}".format(self.name)
-            ))
-            je.prebatch(JournalEntryLineItem(
-                account=self.to_acct,
-                action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
-                amount=self.amount,
-                description="Budget contribution"
-            ))
-            Journaler.batch(je)
-            d += relativedelta(months=1)
+        je = JournalEntry(
+            when=date(self.year, 1, 1),
+            source_url=self.get_absolute_url(),
+        )
+        je.prebatch(JournalEntryLineItem(
+            account=self.from_acct,
+            action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
+            amount=self.amount,
+            description="Budget xfer to {}".format(self.name)
+        ))
+        je.prebatch(JournalEntryLineItem(
+            account=self.to_acct,
+            action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
+            amount=self.amount,
+            description="Budget contribution"
+        ))
+        Journaler.batch(je)
 
     def __str__(self):
         return self.name
 
     def clean(self):
-        if self.begins.day != 1:
-            raise ValidationError({'begins': ["Please choose a date which is the 1st of some month."]})
-        if self.ends.day != 1:
-            raise ValidationError({'ends': ["Please choose a date which is the 1st of some month."]})
-        # TODO: Might also want to check that accounts are either "Cash" or descendants of "Cash"
+        pass
+        # TODO: Might want to check that accounts are either "Cash" or descendants of "Cash"
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -1778,7 +1769,7 @@ class ExpenseTransaction(Journaler):
         for eli in self.expenselineitem_set.all():
 
             je.prebatch(JournalEntryLineItem(
-                account=get_cashacct_for_expenseacct(eli.account),
+                account=get_cashacct_for_expenseacct(eli.account, je.when.year),
                 action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
                 amount=eli.amount,
                 description="We paid {}".format(quote_entity(self.recipient_str))
@@ -1795,9 +1786,12 @@ class ExpenseTransaction(Journaler):
 
 
 # REVIEW:
-def get_cashacct_for_expenseacct(expenseacct: Account) -> Account:
-    budgets = expenseacct.budget_set.all()  # type: List[Budget]
-    assert len(budgets) <= 1
+def get_cashacct_for_expenseacct(expenseacct: Account, transaction_year: int) -> Account:
+
+    budgets = expenseacct.budget_set.filter(year=transaction_year)  # type: List[Budget]
+    if len(budgets) > 1:
+        budget_names = list(map(lambda x: x.name, budgets))
+        logger.error("%s has too many active budgets: %s", expenseacct, str(budget_names))
     if len(budgets) == 1:
         budget = budgets[0]  # type: Budget
         assert budget is not None
@@ -1847,7 +1841,7 @@ class ExpenseClaimReference(models.Model, JournalLiner):
             portion_dec = Decimal.from_float(round(portion_flt, 2))  # type: Decimal
 
             je.prebatch(JournalEntryLineItem(
-                account=get_cashacct_for_expenseacct(eli.account),
+                account=get_cashacct_for_expenseacct(eli.account, je.when.year),
                 action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
                 amount=portion_dec,
                 description="We paid {}".format(quote_entity(who_paid))
@@ -1964,7 +1958,7 @@ class PayableInvoiceReference(models.Model, JournalLiner):
         for pili in self.invoice.payableinvoicelineitem_set.all():  # type: PayableInvoiceLineItem
 
             je.prebatch(JournalEntryLineItem(
-                account=get_cashacct_for_expenseacct(pili.account),
+                account=get_cashacct_for_expenseacct(pili.account, je.when.year),
                 action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
                 amount=pili.amount,
                 description="spam"

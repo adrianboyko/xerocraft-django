@@ -196,12 +196,13 @@ class BudgetAdmin(JournalerAdmin):
         raw_id_fields = ['account']
         extra = 0
 
-    list_display = ['pk', 'name', 'begins', 'ends', 'amount', 'from_acct', 'to_acct']
+    list_display = ['pk', 'name', 'year', 'amount', 'from_acct', 'to_acct']
     list_display_links = ['pk', 'name']
-    fields = ['name', 'begins', 'ends', 'amount', 'from_acct', 'to_acct']
+    fields = ['name', 'year', 'amount', 'from_acct', 'to_acct']
     raw_id_fields = ['from_acct', 'to_acct']
     change_actions = ['viewjournal_action']  # DjangoObjectActions
     inlines = [CoveredAcctInline]
+    list_filter = ['year']
 
     class Media:
         css = {
