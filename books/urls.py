@@ -16,6 +16,7 @@ urlpatterns = [
     # url(r'^cumulative-vs-date-chart/$', views.cumulative_vs_date_chart, name='cumulative-vs-date-chart'),
     # url(r'^cumulative-vs-date-chart/2/$', views.cumulative_vs_date_chart, name='cumulative-vs-date-chart'),
     url(r'^cumulative-rev-exp-chart/$', views.revenues_and_expenses_from_journal, name='cumulative-rev-exp-chart'),
+    url(r'^cashonhand-vs-time-chart/$', views.cashonhand_vs_time_chart, name='cashonhand-vs-time-chart'),
     url(r'^chart-of-accounts/$', views.chart_of_accounts, name='chart-of-accounts'),
     url(r'^cash-balances-vs-time/$', views.cash_balances_vs_time, name='cash-balances-vs-time'),
     url(r'^items-needing-attn/$', views.items_needing_attn, name='items-needing-attn'),

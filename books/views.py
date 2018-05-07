@@ -1,6 +1,6 @@
 
 # Standard
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from logging import getLogger
 from typing import List
 import json
@@ -19,6 +19,7 @@ from django.contrib.auth import settings
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 import requests
+from numpy import array
 
 # import numpy as np
 # from dateutil.parser import parse
@@ -26,6 +27,7 @@ import requests
 # Local
 from .models import (
     Account, ACCT_ASSET_CASH,
+    BankAccountBalance,
     Sale, SaleNote, Note,
     MonetaryDonation,
     OtherItem, OtherItemType,
@@ -43,18 +45,51 @@ _logger = getLogger("books")
 
 SQUAREUP_APIV1_TOKEN = settings.BZWOPS_BOOKS_CONFIG['SQUAREUP_APIV1_TOKEN']
 
+ONE_DAY = timedelta(days=1)
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+def _grp(pts):
+    """ Grouping aggregator """
+    curr_x = None
+    y_sum = 0
+    pts.sort(key=lambda pt: pt[0])
+    for pt in pts:
+        if curr_x is None:
+            curr_x = pt[0]
+        if curr_x != pt[0]:
+            yield [curr_x, y_sum]
+            curr_x = pt[0]
+            y_sum = 0
+        y_sum += pt[1]
+
 
 def _acc(pts):
     """ Accumulates """
     acc_vs_time = []
     acc_to_date = 0.0
-    pts.sort(key=lambda pt: pt[0])
-    for x in pts:
-        acc_to_date += x[1]
-        acc_vs_time.append([x[0], acc_to_date])
-    return acc_vs_time
+    for pt in _grp(pts):
+        acc_to_date += pt[1]
+        yield [pt[0], acc_to_date]
+
+
+def _fill(pts):
+    """ Interpolator that uses most recent previous value """
+    prev_pt = None
+    for pt in pts:
+        if prev_pt is None:
+            prev_pt = pt
+        while prev_pt[0] < pt[0]-ONE_DAY:
+            prev_pt = [prev_pt[0]+ONE_DAY, prev_pt[1]]
+            yield prev_pt
+        yield pt
+        prev_pt = pt
+
+
+def _shift(amount:float, pts):
+    """ Shifts all y values up or down """
+    for pt in pts:
+        yield [pt[0], pt[1]+amount]
 
 
 # def _fits(pts):
@@ -166,6 +201,75 @@ def revenues_and_expenses_from_journal(request):
     }
     return render(request, 'books/cumulative-rev-exp-chart.html', params)
 
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+@login_required
+def cashonhand_vs_time_chart(request):
+
+    # TODO: Turn this into a @directors_only decorator that uses @login_required
+    # REVIEW: This creates a dependency on "members". Review members/books relationship.
+    if not request.user.member.is_tagged_with("Director"):
+        return HttpResponse("This page is for Directors only.")
+
+    start = date(2017, 1, 1)
+    end = date.today()
+
+    root_cash_acct = Account.get(ACCT_ASSET_CASH)
+    cash_accts = filter(
+        lambda x: x.is_subaccount_of(root_cash_acct) or x == root_cash_acct,
+        Account.objects.all()
+    ) # type: List[Account]
+    cash_acct_ids = map(
+        lambda x: x.id,
+        cash_accts
+    ) # type: List[int]
+
+    cash_jelis = JournalEntryLineItem.objects.filter(
+      account_id__in=cash_acct_ids,
+      journal_entry__when__gte=start,
+      journal_entry__when__lte=end
+    ).prefetch_related('journal_entry')
+
+    cash_deltas = []
+    for jeli in cash_jelis:  # type: JournalEntryLineItem
+        if jeli.action == JournalEntryLineItem.ACTION_BALANCE_DECREASE:
+            pt = [jeli.journal_entry.when, -1.0*float(jeli.amount)]
+        else:
+            pt = [jeli.journal_entry.when, 1.0*float(jeli.amount)]
+        cash_deltas.append(pt)
+    cash_pts = list(_fill(_acc(cash_deltas)))
+
+    bank_pts = map(
+        lambda bal: [bal.when, float(bal.balance)],
+        BankAccountBalance.objects.filter(
+            when__gte=start,
+            when__lte=end,
+            order_on_date=0,
+        ).order_by("when")
+    )
+    bank_pts = list(_fill(bank_pts))
+
+    # Fit cash points to bank points:
+    n = min(len(bank_pts), len(cash_pts))
+    assert cash_pts[0][0] == bank_pts[0][0]
+    assert cash_pts[n-1][0] == bank_pts[n-1][0]
+    bs = array([y for [x, y] in bank_pts[0:n]])
+    cs = array([y for [x, y] in cash_pts[0:n]])
+    sumofsq_min = None
+    optimal_offset = None
+    for i in range(n):
+        offset = bs[i]-cs[i]
+        residuals = (bs - (cs + offset))
+        sumofsq = (sum(residuals*residuals))
+        if sumofsq_min is None or sumofsq < sumofsq_min:
+            sumofsq_min = sumofsq
+            optimal_offset = offset
+
+    params = {
+        'cash': _shift(optimal_offset, cash_pts),
+        'bank': bank_pts
+    }
+    return render(request, 'books/cashonhand-vs-time-chart.html', params)
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
@@ -197,10 +301,9 @@ def squareup_webhook(request):
             qty = int(float(item['quantity']))
             msg = "{}, qty {}".format(sku, qty)
             notifications.notify(recipient, "SquareUp Purchase", msg)
-
         return HttpResponse("Ok")
     except requests.exceptions.ConnectionError:
-        _logger.error("Couldn't purchase info from SquareUp.")
+        _logger.error("Couldn't get purchase info from SquareUp.")
         return HttpResponse("Error")
 
 

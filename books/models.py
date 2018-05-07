@@ -11,7 +11,7 @@ from collections import Counter
 # Third party
 from django.db import models
 from django.core.exceptions import ValidationError
-from django.core.validators import MinValueValidator
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.sites.models import Site
@@ -1959,11 +1959,15 @@ class PayableInvoiceReference(models.Model, JournalLiner):
 
         for pili in self.invoice.payableinvoicelineitem_set.all():  # type: PayableInvoiceLineItem
 
+            factor = float(amount) / float(self.invoice.amount)  # type: float
+            portion_flt = factor * float(pili.amount)  # type: float
+            portion_dec = Decimal.from_float(round(portion_flt, 2))  # type: Decimal
+
             je.prebatch(JournalEntryLineItem(
                 account=get_cashacct_for_expenseacct(pili.account, je.when.year),
                 action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
-                amount=pili.amount,
-                description="spam"
+                amount=portion_dec,
+                description=desc
             ))
 
 
@@ -1995,3 +1999,10 @@ class BankAccountBalance(models.Model):
 
     balance = models.DecimalField(max_digits=8, decimal_places=2, null=False, blank=False,
         help_text="The dollar balance on the given date.")
+
+    order_on_date = models.IntegerField(default=0, blank=False,
+        help_text="0 indicates end-of-day! Earlier entries must be negative.",
+        validators=[MaxValueValidator(0)])
+
+    class Meta:
+        unique_together = ['bank_account', 'when', 'order_on_date']
