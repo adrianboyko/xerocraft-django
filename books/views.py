@@ -211,7 +211,7 @@ def cashonhand_vs_time_chart(request):
     if not request.user.member.is_tagged_with("Director"):
         return HttpResponse("This page is for Directors only.")
 
-    start = date(2017, 1, 1)
+    start = date(2016, 9, 12)
     end = date.today()
 
     root_cash_acct = Account.get(ACCT_ASSET_CASH)
