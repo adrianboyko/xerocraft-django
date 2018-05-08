@@ -984,15 +984,30 @@ class ExpenseTransactionAdmin(JournalerAdmin):
 # BANK ACCOUNTS AND BALANCES
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
+
 @admin.register(BankAccount)
 class BankAccountAdmin(VersionAdmin):
-    pass
+    list_display = ['pk', 'name', 'description']
 
+
+# REVIEW: Following class is very similar to MemberTypeFilter. Can they be combined?
+class BalanceOrderFilter(admin.SimpleListFilter):
+    title = "order on date"
+    parameter_name = 'ood'
+
+    def lookups(self, request, model_admin):
+        return (
+            ('eod', _('Only end of day')),
+        )
+
+    def queryset(self, request, queryset):
+        if self.value() == 'eod':
+            return queryset.filter(order_on_date=0)
 
 @admin.register(BankAccountBalance)
 class BankAccountBalanceAdmin(VersionAdmin):
-    list_display = ['pk', 'bank_account', 'when', 'balance']
-    list_filter = ['bank_account',]
+    list_display = ['pk', 'bank_account', 'when', 'order_on_date', 'balance']
+    list_filter = ['bank_account__name', BalanceOrderFilter]
     date_hierarchy = 'when'
 
 
