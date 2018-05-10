@@ -2,7 +2,7 @@
 # Standard
 from datetime import date, datetime, timedelta
 from logging import getLogger
-from typing import List
+from typing import List, Tuple, Iterator, Union
 import json
 from decimal import Decimal
 from typing import Optional
@@ -21,13 +21,11 @@ from django.utils import timezone
 import requests
 from numpy import array
 
-# import numpy as np
-# from dateutil.parser import parse
 
 # Local
 from .models import (
     Account, ACCT_ASSET_CASH,
-    BankAccountBalance,
+    BankAccount, BankAccountBalance,
     Sale, SaleNote, Note,
     MonetaryDonation,
     OtherItem, OtherItemType,
@@ -47,9 +45,12 @@ SQUAREUP_APIV1_TOKEN = settings.BZWOPS_BOOKS_CONFIG['SQUAREUP_APIV1_TOKEN']
 
 ONE_DAY = timedelta(days=1)
 
+DatedFloat = Tuple[Union[date,str], float]  # Date can be either iso string or date.
+
+
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-def _grp(pts):
+def _grp(pts:List[DatedFloat]) -> Iterator[DatedFloat]:
     """ Grouping aggregator """
     curr_x = None
     y_sum = 0
@@ -58,38 +59,38 @@ def _grp(pts):
         if curr_x is None:
             curr_x = pt[0]
         if curr_x != pt[0]:
-            yield [curr_x, y_sum]
+            yield (curr_x, y_sum)
             curr_x = pt[0]
             y_sum = 0
         y_sum += pt[1]
 
 
-def _acc(pts):
+def _acc(pts:List[DatedFloat]) -> Iterator[DatedFloat]:
     """ Accumulates """
     acc_vs_time = []
     acc_to_date = 0.0
     for pt in _grp(pts):
         acc_to_date += pt[1]
-        yield [pt[0], acc_to_date]
+        yield (pt[0], acc_to_date)
 
 
-def _fill(pts):
+def _fill(pts:Iterator[DatedFloat]) -> Iterator[DatedFloat]:
     """ Interpolator that uses most recent previous value """
     prev_pt = None
     for pt in pts:
         if prev_pt is None:
             prev_pt = pt
         while prev_pt[0] < pt[0]-ONE_DAY:
-            prev_pt = [prev_pt[0]+ONE_DAY, prev_pt[1]]
+            prev_pt = (prev_pt[0]+ONE_DAY, prev_pt[1])
             yield prev_pt
         yield pt
         prev_pt = pt
 
 
-def _shift(amount:float, pts):
+def _shift(amount:float, pts:Iterator[DatedFloat]) -> Iterator[DatedFloat]:
     """ Shifts all y values up or down """
     for pt in pts:
-        yield [pt[0], pt[1]+amount]
+        yield (pt[0], pt[1]+amount)
 
 
 # def _fits(pts):
@@ -176,13 +177,13 @@ def revenues_and_expenses_from_journal(request):
     start = date(2015, 1, 1)
     end = date.today()
 
-    def get_data(category, factor):
+    def get_data(category, factor) -> List:
         data = []
         for jeli in JournalEntryLineItem.objects.filter(
           account__category=category,
           journal_entry__when__gte=start,
           journal_entry__when__lte=end).prefetch_related('journal_entry'):  # type: JournalEntryLineItem
-            pt = [jeli.journal_entry.when.isoformat(), factor * float(jeli.amount)]
+            pt = (jeli.journal_entry.when.isoformat(), factor * float(jeli.amount))
             data.append(pt)
         return data
 
@@ -201,19 +202,10 @@ def revenues_and_expenses_from_journal(request):
     }
     return render(request, 'books/cumulative-rev-exp-chart.html', params)
 
+
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-@login_required
-def cashonhand_vs_time_chart(request):
-
-    # TODO: Turn this into a @directors_only decorator that uses @login_required
-    # REVIEW: This creates a dependency on "members". Review members/books relationship.
-    if not request.user.member.is_tagged_with("Director"):
-        return HttpResponse("This page is for Directors only.")
-
-    start = date(2016, 9, 12)
-    end = date.today()
-
+def get_cash_pts(start: date, end:date) -> List[DatedFloat]:
     root_cash_acct = Account.get(ACCT_ASSET_CASH)
     cash_accts = filter(
         lambda x: x.is_subaccount_of(root_cash_acct) or x == root_cash_acct,
@@ -233,21 +225,44 @@ def cashonhand_vs_time_chart(request):
     cash_deltas = []
     for jeli in cash_jelis:  # type: JournalEntryLineItem
         if jeli.action == JournalEntryLineItem.ACTION_BALANCE_DECREASE:
-            pt = [jeli.journal_entry.when, -1.0*float(jeli.amount)]
+            pt = (jeli.journal_entry.when, -1.0*float(jeli.amount))
         else:
-            pt = [jeli.journal_entry.when, 1.0*float(jeli.amount)]
+            pt = (jeli.journal_entry.when, 1.0*float(jeli.amount))
         cash_deltas.append(pt)
     cash_pts = list(_fill(_acc(cash_deltas)))
+    return cash_pts
 
-    bank_pts = map(
-        lambda bal: [bal.when, float(bal.balance)],
-        BankAccountBalance.objects.filter(
-            when__gte=start,
-            when__lte=end,
-            order_on_date=0,
-        ).order_by("when")
-    )
-    bank_pts = list(_fill(bank_pts))
+
+def get_bank_pts(start: date, end:date) -> List[DatedFloat]:
+
+    grouped_pts = [(start+timedelta(days=d), 0.0) for d in range((end-start).days+1)]
+    for ba in BankAccount.objects.all():  # type: BankAccount
+        ba_pts = map(
+            lambda bal: (bal.when, float(bal.balance)),
+            BankAccountBalance.objects.filter(
+                bank_account=ba,
+                when__gte=start,
+                when__lte=end,
+                order_on_date=0,
+            ).order_by("when")  # type: List[DatedFloat]
+        )
+        grouped_pts = _grp(list(grouped_pts) + list(_fill(ba_pts)))
+    return list(grouped_pts)
+
+
+@login_required
+def cashonhand_vs_time_chart(request):
+
+    # TODO: Turn this into a @directors_only decorator that uses @login_required
+    # REVIEW: This creates a dependency on "members". Review members/books relationship.
+    if not request.user.member.is_tagged_with("Director"):
+        return HttpResponse("This page is for Directors only.")
+
+    start = date(2016, 1, 1)  # 2016-09-12
+    end = date(2018, 4, 30)  # date.today()
+
+    cash_pts = get_cash_pts(start, end)  # The cash story according to our books
+    bank_pts = get_bank_pts(start, end)  # The cash story according to bank statements.
 
     # Fit cash points to bank points:
     n = min(len(bank_pts), len(cash_pts))
@@ -255,15 +270,33 @@ def cashonhand_vs_time_chart(request):
     assert cash_pts[n-1][0] == bank_pts[n-1][0]
     bs = array([y for [x, y] in bank_pts[0:n]])
     cs = array([y for [x, y] in cash_pts[0:n]])
-    sumofsq_min = None
+
     optimal_offset = None
-    for i in range(n):
-        offset = bs[i]-cs[i]
-        residuals = (bs - (cs + offset))
-        sumofsq = (sum(residuals*residuals))
-        if sumofsq_min is None or sumofsq < sumofsq_min:
-            sumofsq_min = sumofsq
+
+    # This method uses least squares to find a fit between books and bank:
+    # sumofsq_min = None
+    # for i in range(n):
+    #     offset = bs[i]-cs[i]
+    #     residuals = (bs - (cs + offset))
+    #     sumofsq = (sum(residuals*residuals))
+    #     if sumofsq_min is None or sumofsq < sumofsq_min:
+    #         sumofsq_min = sumofsq
+    #         optimal_offset = offset
+
+    # This method uses crossing count to find a fit between books and bank:
+    crossings_max = 0
+    for offset in range(-50000,50000,100):
+        crossings = 0
+        r = (bs - (cs + offset))  # residuals
+        for i in range(1,n):
+            if r[i-1] == 0 or r[i] == 0:
+                continue
+            if r[i-1]/abs(r[i-1]) != r[i]/abs(r[i]):
+                crossings += 1
+        if crossings > crossings_max:
+            crossings_max = crossings
             optimal_offset = offset
+
 
     params = {
         'cash': _shift(optimal_offset, cash_pts),
@@ -340,43 +373,6 @@ def chart_of_accounts(request: HttpRequest):
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 @login_required
-def cash_balances_vs_time(request):
-
-    # TODO: Turn this into a @directors_only decorator that uses @login_required
-    # REVIEW: This creates a dependency on "members". Review members/books relationship.
-    if not request.user.member.is_tagged_with("Director"):
-        return HttpResponse("This page is for Directors only.")
-
-    start = date(2015, 1, 1)
-    end = date.today()
-
-    def get_xis_pts_for(acct: Account):
-        data = []
-        for jeli in JournalEntryLineItem.objects.filter(
-          account=acct,
-          journal_entry__when__gte=start,
-          journal_entry__when__lte=end):  # type: JournalEntryLineItem
-            factor = 1.0 if jeli.action == jeli.ACTION_BALANCE_INCREASE else -1.0
-            pt = [jeli.journal_entry.when.isoformat(), factor * float(jeli.amount)]
-            data.append(pt)
-        return data
-
-    cash_root = Account.get(ACCT_ASSET_CASH)  # type: Account
-    xis_accts = cash_root.subaccounts  # type: List[Account]
-    xis_accts.append(cash_root)  # type: List[Account]
-    xis_pts = []
-    for acct in xis_accts:
-        xis_pts.extend(get_xis_pts_for(acct))
-    xis_pts = _acc(xis_pts)
-
-    params = {'xis_pts': xis_pts}
-
-    return render(request, 'books/cash-balances-vs-time.html', params)
-
-
-# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-
-@login_required
 def items_needing_attn(request):
 
     notes_needing_attn = []
@@ -406,7 +402,7 @@ def account_history(
     now = timezone.localtime(timezone.now())
 
     if begin_date is None:
-        begin_year = now.year-1
+        begin_year = now.year-3
         begin_month = now.month
         begin_day = now.day
     else:

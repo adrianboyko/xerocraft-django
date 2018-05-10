@@ -121,6 +121,18 @@ class NoteInline(admin.TabularInline):
 # ACCOUNTS
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
+class AccountParentFilter(admin.SimpleListFilter):
+    title = "parent"
+    parameter_name = 'parent'
+
+    def lookups(self, request, model_admin):
+        accts = Account.objects.all()
+        return [(a.id, a.name) for a in accts if len(a.subaccounts)>0]
+
+    def queryset(self, request, queryset):
+        return queryset.filter(Q(active=True)&(Q(parent=self.value())|Q(id=self.value())))
+
+
 @admin.register(Account)
 class AccountAdmin(VersionAdmin):
 
@@ -152,9 +164,8 @@ class AccountAdmin(VersionAdmin):
         'name',
         'parent',
         'category', 'type',
-        'manager',
+        #'manager',
         'description',
-        'associated_user'
     ]
 
     list_display_links = ['pk', 'name']
@@ -163,14 +174,13 @@ class AccountAdmin(VersionAdmin):
         ('name', 'parent'),
         ('category', 'type'),
         'manager',
-        'associated_user',
-        'associated_entity',
         'description',
+        'active',
     ]
 
-    raw_id_fields = ['manager', 'parent', 'associated_user', 'associated_entity']
+    raw_id_fields = ['manager', 'parent']
 
-    list_filter = ['category', 'type']
+    list_filter = ['category', 'type', AccountParentFilter]
 
     search_fields = ['=id', 'description', 'name']
 
@@ -700,7 +710,7 @@ class ExpenseLineItemInline(admin.TabularInline):
         'discount',
         'approved_by',
     ]
-    raw_id_fields = ['bought_from', 'approved_by', 'account']
+    raw_id_fields = ['bought_from', 'approved_by']
     extra = 0
 
     class Media:

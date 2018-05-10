@@ -163,15 +163,8 @@ class Account(models.Model):
     description = models.TextField(max_length=1024,
         help_text="A discussion of the account's purpose. What is it for? What is it NOT for?")
 
-    associated_user = models.ForeignKey(User, null=True, blank=True,
-        related_name='associated_account',
-        on_delete=models.SET_NULL,  # Keep this account even if the user is deleted.
-        help_text="The person who is associated with this account, if any.")
-
-    associated_entity = models.ForeignKey('Entity', null=True, blank=True,
-        related_name='associated_entity',
-        on_delete=models.SET_NULL,  # Keep this account even if the entity is deleted.
-        help_text="The entity which is associated with this account, if any.")
+    active = models.BooleanField(default=True,
+        help_text="Uncheck when an account is no longer actively used.")
 
     acct_cache = dict()  # type: Dict[str, Account]
 
@@ -206,8 +199,6 @@ class Account(models.Model):
         return self.name
 
     def clean(self):
-        if self.associated_user is not None and self.associated_entity is not None:
-            raise ValidationError("Only one of user or entity can be specified.")
         self.dbcheck()
 
     def dbcheck(self):
@@ -1339,7 +1330,7 @@ class MonetaryDonation(models.Model, JournalLiner):
             account=self.earmark,
             action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
             amount=self.amount,
-            #description="Donation from {}".format(self.sale.payer_str)
+            description="Donation from {}".format(quote_entity(self.sale.payer_str or "unknown"))
         ))
 
         # If this donation is contributing to a fund raising campaign then
@@ -1352,11 +1343,14 @@ class MonetaryDonation(models.Model, JournalLiner):
                     account=Account.get(ACCT_ASSET_CASH),
                     action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
                     amount=net_donation,
+                    # Description string must have exactly this form in order to optimize out:
+                    description="{} paid us".format(quote_entity(self.sale.payer_str or "unkown"))
                 ))
                 je.prebatch(JournalEntryLineItem(
                     account=campaign.cash_account,
                     action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
                     amount=net_donation,
+                    description="Donation from {}".format(quote_entity(self.sale.payer_str or "unknown"))
                 ))
         except Campaign.DoesNotExist:
             pass
@@ -1409,7 +1403,7 @@ class Campaign(models.Model):
     is_active = models.BooleanField(default=True,
         help_text="Whether or not this campaign is currently being pursued.")
 
-    target_amount = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
+    target_amount = models.DecimalField(max_digits=7, decimal_places=2, null=False, blank=False,
         help_text="The total amount that needs to be collected in donations.")
 
     revenue_account = models.OneToOneField(Account, null=False, blank=False,
@@ -1888,6 +1882,10 @@ class ExpenseLineItem(models.Model):
 
     account = models.ForeignKey(Account, null=False, blank=False,
         on_delete=models.CASCADE,  # Line items are parts of the larger claim, so delete if claim is deleted.
+        limit_choices_to=
+            (models.Q(category=Account.CAT_EXPENSE) | models.Q(category=Account.CAT_ASSET))
+            & ~
+            (models.Q(parent_id=ACCT_ASSET_CASH) | models.Q(id=ACCT_ASSET_CASH)),
         help_text="The account against which this line item is claimed, e.g. 'Wood Shop', '3D Printers'.")
 
     receipt_num = models.IntegerField(null=True, blank=True,
@@ -1900,16 +1898,21 @@ class ExpenseLineItem(models.Model):
     def __str__(self):
         return "${} on {}".format(self.amount, self.expense_date)
 
-    def clean(self):
-        if self.account is not None:  # Req'd but not guaranteed to set yet.
-
+    def _check_acct(self):
+        if self.account is not None:  # Req'd but not guaranteed to be set yet.
             if self.account.category not in [Account.CAT_EXPENSE, Account.CAT_ASSET]:
                 raise ValidationError(_("Account chosen must have category EXPENSE or ASSET."))
+            if self.account.is_subaccount_of(Account.get(ACCT_ASSET_CASH)):
+                raise ValidationError({'account':[_("Cannot expense against a cash account. You probably want a 'supplies', 'maintenance', or 'equipment' account, instead.")]})
+
+    def clean(self):
+        self._check_acct()
 
     def dbcheck(self):
         # Relationships can't be checked in clean but can be checked later in a "db check" operation.
         if self.claim is None and self.exp is None:
             raise ValidationError(_("Expense line item must be part of a claim or transaction."))
+        self._check_acct()
 
 
 class ExpenseTransactionNote(Note):
