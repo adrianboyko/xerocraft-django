@@ -130,7 +130,10 @@ class AccountParentFilter(admin.SimpleListFilter):
         return [(a.id, a.name) for a in accts if len(a.subaccounts)>0]
 
     def queryset(self, request, queryset):
-        return queryset.filter(Q(active=True)&(Q(parent=self.value())|Q(id=self.value())))
+        if self.value() is None:
+            return queryset
+        else:
+            return queryset.filter(Q(active=True)&(Q(parent=self.value())|Q(id=self.value())))
 
 
 @admin.register(Account)

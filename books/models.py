@@ -1767,10 +1767,15 @@ class ExpenseTransaction(Journaler):
             je.prebatch(JournalEntryLineItem(
                 account=get_cashacct_for_expenseacct(eli.account, je.when.year),
                 action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
-                amount=eli.amount,
+                amount=eli.amount - eli.discount,
                 description="We paid {}".format(quote_entity(self.recipient_str))
             ))
-
+            je.prebatch(JournalEntryLineItem(
+                account=Account.get(ACCT_REVENUE_DISCOUNT),
+                action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
+                amount=eli.discount,
+                description="{} donated by discount".format(quote_entity(self.recipient_str))
+            ))
             je.prebatch(JournalEntryLineItem(
                 account=eli.account,
                 action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
@@ -1835,6 +1840,8 @@ class ExpenseClaimReference(models.Model, JournalLiner):
             factor = float(amount) / float(self.claim.amount)  # type: float
             portion_flt = factor * float(eli.amount)  # type: float
             portion_dec = Decimal.from_float(round(portion_flt, 2))  # type: Decimal
+            discount_flt = factor * float(eli.discount)  # type: float
+            discount_dec = Decimal.from_float(round(discount_flt, 2))  # type: Decimal
 
             je.prebatch(JournalEntryLineItem(
                 account=get_cashacct_for_expenseacct(eli.account, je.when.year),
@@ -1843,11 +1850,11 @@ class ExpenseClaimReference(models.Model, JournalLiner):
                 description="We paid {}".format(quote_entity(who_paid))
             ))
 
-            if eli.discount > Decimal(0.00):  # Note, this is for CHARITABLE discounts against goods or services.
+            if eli.discount > DEC0:  # Note, this is for CHARITABLE discounts against goods or services.
                 je.prebatch(JournalEntryLineItem(
                     account=Account.get(ACCT_REVENUE_DISCOUNT),
                     action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
-                    amount=eli.discount,
+                    amount=discount_dec,
                 ))
 
 
