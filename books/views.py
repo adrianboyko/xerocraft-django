@@ -285,10 +285,10 @@ def cashonhand_vs_time_chart(request):
 
     # This method uses crossing count to find a fit between books and bank:
     crossings_max = 0
-    for offset in range(-50000,50000,100):
+    for offset in range(-50000, 50000, 100):
         crossings = 0
         r = (bs - (cs + offset))  # residuals
-        for i in range(1,n):
+        for i in range(1, n):
             if r[i-1] == 0 or r[i] == 0:
                 continue
             if r[i-1]/abs(r[i-1]) != r[i]/abs(r[i]):
@@ -297,12 +297,12 @@ def cashonhand_vs_time_chart(request):
             crossings_max = crossings
             optimal_offset = offset
 
-
     params = {
         'cash': _shift(optimal_offset, cash_pts),
         'bank': bank_pts
     }
     return render(request, 'books/cashonhand-vs-time-chart.html', params)
+
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
@@ -342,7 +342,8 @@ def squareup_webhook(request):
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-def chart_of_accounts(request: HttpRequest):
+@login_required
+def account_browser(request: HttpRequest):
 
     def flatten_and_label(accts: List[Account]) -> List[Account]:
         result = []
@@ -367,7 +368,7 @@ def chart_of_accounts(request: HttpRequest):
         'revenue_accts': flatten_and_label(revenue_root_accts),
     }
 
-    return render(request, 'books/chart-of-accounts.html', params)
+    return render(request, 'books/account-browser.html', params)
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -402,9 +403,9 @@ def account_history(
     now = timezone.localtime(timezone.now())
 
     if begin_date is None:
-        begin_year = now.year-3
-        begin_month = now.month
-        begin_day = now.day
+        begin_year = 2015
+        begin_month = 1
+        begin_day = 1
     else:
         begin_year = int(begin_date[0:4])
         begin_month = int(begin_date[4:6])
