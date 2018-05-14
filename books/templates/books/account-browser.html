@@ -17,11 +17,12 @@
             grid-column-gap: 10px;
         }
 
-        .grid-container { display: inline-grid; }
+        .grid-item {
+            border:1px solid gray;
+        }
 
         #coa { width:auto; margin-left:30px; margin-top:30px; }
         .acctname { }
-        .acctpk { text-align:right; }
         .accttype { font-weight: bold; }
 
         table.treetable tbody tr td {
@@ -29,88 +30,111 @@
             padding: .1em 1em;
         }
 
+        table.treetable {
+            border: none;
+        }
+
         iframe {
             width:100%;
             height:97vh;
-            border:1px solid #888;
         }
 
         tr:hover {color:red;}
-        #loading-message {color:red; font-size:16pt; margin-top:2em;}
+
+        #loading-message {
+            display: none;
+            padding: 1em;
+        }
+
+        #loading-message span {
+            background-color: red;
+            font-weight: bold;
+            color: white;
+            padding:5px;
+            font-size: 14pt;
+        }
+
     </style>
     <script>
         var detail_url = "{% url 'books:account-history' 9999 %}";
         function acctClick(acctNum) {
-            document.getElementById("loading-message").style.cssText = "display:block;";
-            document.getElementById("journal").src = detail_url.replace("9999", acctNum);
+            $("#loading-message").css("display", "block");
+            $("#journal").attr("src", detail_url.replace("9999", acctNum));
         }
-        function acctLoaded() {
-            document.getElementById("loading-message").style.cssText = "display:none;";
-        }
-        function docLoaded() {
-            document.getElementById("journal").onload = acctLoaded;
+        function iframeLoaded() {
+            $("#loading-message").css("display", "none");
         }
     </script>
 
 </head>
 
-<body style="font-family: Arial, Helvetica, sans-serif;" onload="docLoaded()">
+<body style="font-family: Arial, Helvetica, sans-serif;">
 
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/jquery-ui.min.js"></script>
 
     <div class="grid-container">
-    <div class="grid-item" style="grid-column-start:1; grid-column-end:1">
-    <table id="coa" class="treetable" style="width:100%; margin:0" ><tbody>
-        <tr class="accttype" data-tt-id="asset"><td colspan="3">Asset Accounts</td></tr>
-        {% for acct in asset_accts %}
-            <tr data-tt-id="{{acct.pk}}" data-tt-parent-id="{{acct.parent_id|default:"asset"}}" onClick='acctClick({{acct.pk}})'>
-                <td class="acctname" title='{{acct.description}}'>{{acct.name}} ({{acct.pk}})</td>
-            </tr>
-        {% endfor %}
+        <div class="grid-item" style="grid-column-start:1; grid-column-end:1; padding-top:1em; padding-bottom:1em;">
+            <table id="coa" class="treetable" style="width:100%; margin:0"><tbody>
+                <tr class="accttype" data-tt-id="asset"><td colspan="3">Asset Accounts</td></tr>
+                {% for acct in asset_accts %}
+                    <tr data-tt-id="{{acct.pk}}" data-tt-parent-id="{{acct.parent_id|default:"asset"}}">
+                        <td class="acctname" title='{{acct.description}}'>
+                            <span style="padding:0" onClick='acctClick({{acct.pk}})'>{{acct.name}} ({{acct.pk}})</span>
+                        </td>
+                    </tr>
+                {% endfor %}
 
-        <tr class="accttype" data-tt-id="expense"><td colspan="3">Expense Accounts</td></tr>
-        {% for acct in expense_accts %}
-            <tr data-tt-id="{{acct.pk}}" data-tt-parent-id="{{acct.parent_id|default:"expense"}}" onClick='acctClick({{acct.pk}})'>
-                <td class="acctname" title='{{acct.description}}'>{{acct.name}} ({{acct.pk}})</td>
-            </tr>
-        {% endfor %}
+                <tr class="accttype" data-tt-id="expense"><td colspan="3">Expense Accounts</td></tr>
+                {% for acct in expense_accts %}
+                    <tr data-tt-id="{{acct.pk}}" data-tt-parent-id="{{acct.parent_id|default:"expense"}}">
+                        <td class="acctname" title='{{acct.description}}'>
+                            <span style="padding:0" onClick='acctClick({{acct.pk}})'>{{acct.name}} ({{acct.pk}})</span>
+                        </td>
+                    </tr>
+                {% endfor %}
 
-        <tr class="accttype" data-tt-id="liability"><td colspan="3">Liability Accounts</td></tr>
-        {% for acct in liability_accts %}
-            <tr data-tt-id="{{acct.pk}}" data-tt-parent-id="{{acct.parent_id|default:"liability"}}" onClick='acctClick({{acct.pk}})'>
-                <td class="acctname" title='{{acct.description}}'>{{acct.name}} ({{acct.pk}})</td>
-            </tr>
-        {% endfor %}
+                <tr class="accttype" data-tt-id="liability"><td colspan="3">Liability Accounts</td></tr>
+                {% for acct in liability_accts %}
+                    <tr data-tt-id="{{acct.pk}}" data-tt-parent-id="{{acct.parent_id|default:"liability"}}">
+                        <td class="acctname" title='{{acct.description}}'>
+                            <span style="padding:0" onClick='acctClick({{acct.pk}})'>{{acct.name}} ({{acct.pk}})</span>
+                        </td>
+                    </tr>
+                {% endfor %}
 
-        <tr class="accttype" data-tt-id="equity"><td colspan="3">Equity Accounts</td></tr>
-        {% for acct in equity_accts %}
-            <tr data-tt-id="{{acct.pk}}" data-tt-parent-id="{{acct.parent_id|default:"equity"}}" onClick='acctClick({{acct.pk}})'>
-                <td class="acctname" title='{{acct.description}}'>{{acct.name}} ({{acct.pk}})</td>
-            </tr>
-        {% endfor %}
+                <tr class="accttype" data-tt-id="equity"><td colspan="3">Equity Accounts</td></tr>
+                {% for acct in equity_accts %}
+                    <tr data-tt-id="{{acct.pk}}" data-tt-parent-id="{{acct.parent_id|default:"equity"}}">
+                        <td class="acctname" title='{{acct.description}}'>
+                            <span style="padding:0" onClick='acctClick({{acct.pk}})'>{{acct.name}} ({{acct.pk}})</span>
+                        </td>
+                    </tr>
+                {% endfor %}
 
-        <tr class="accttype" data-tt-id="revenue"><td colspan="3">Revenue Accounts</td></tr>
-        {% for acct in revenue_accts %}
-            <tr data-tt-id="{{acct.pk}}" data-tt-parent-id="{{acct.parent_id|default:"revenue"}}" onClick='acctClick({{acct.pk}})'>
-                <td class="acctname" title='{{acct.description}}'>{{acct.name}} ({{acct.pk}})</td>
-            </tr>
-        {% endfor %}
+                <tr class="accttype" data-tt-id="revenue"><td colspan="3">Revenue Accounts</td></tr>
+                {% for acct in revenue_accts %}
+                    <tr data-tt-id="{{acct.pk}}" data-tt-parent-id="{{acct.parent_id|default:"revenue"}}">
+                        <td class="acctname" title='{{acct.description}}'>{{acct.name}} ({{acct.pk}})</td>
+                    </tr>
+                {% endfor %}
 
-    </tbody></table>
-    <div id="loading-message" style="display:none;">Loading...</div>
+            </tbody></table>
 
-    </div>
+            <div id="loading-message"><span> Loading </span></div>
 
-    <div class="grid-item" style="grid-column-start:2; grid-column-end:2">
-        <iframe id="journal" name="journal" on>Hello</iframe>
-    </div>
+        </div>
+
+        <div class="grid-item" style="grid-column-start:2; grid-column-end:2">
+            <iframe id="journal" name="journal" frameborder="0"></iframe>
+        </div>
     </div>
 
     {# TreeTable stuff must be before body close tag. #}
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-treetable/3.2.0/jquery.treetable.min.js"></script>
     <script>
         $("#coa").treetable({ expandable: true, indent: 19 });
+        $("#journal").load(iframeLoaded);
     </script>
 </body>
 
