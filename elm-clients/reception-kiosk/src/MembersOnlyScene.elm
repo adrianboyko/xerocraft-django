@@ -46,8 +46,7 @@ type alias KioskModel a =
 
 
 type PaymentInfoState
-  = AskingAboutBankedTime
-  | AskingIfMshipCurrent
+  = PresentingOptions
   | ExplainingHowToPayNow
   | PaymentInfoSent
   | SendingPaymentInfo
@@ -66,7 +65,7 @@ init : Flags -> (MembersOnlyModel, Cmd Msg)
 init flags =
   let sceneModel =
     { member = Nothing
-    , paymentInfoState = AskingIfMshipCurrent
+    , paymentInfoState = PresentingOptions
     , badNews = []
     }
   in (sceneModel, Cmd.none)
@@ -117,6 +116,7 @@ update msg kioskModel =
       in
         if membersOnlyButNotMember xis member kioskModel.currTime nowBlock allTypes then
           -- We need to talk, so push this scene.
+
           (newSceneModel, send <| WizardVector <| Push <| MembersOnly)
         else
           -- Nothing to say, so skip this scene.
@@ -172,12 +172,11 @@ view kioskModel =
 
         genericScene kioskModel
           "Supporting Members Only"
-          "Is your supporting membership up to date?"
+          "We are not currently open to the public"
           (
           case sceneModel.paymentInfoState of
-            AskingAboutBankedTime -> askingAboutBankedTime kioskModel sceneModel xis m
-            AskingIfMshipCurrent -> areYouCurrentContent kioskModel sceneModel xis m
-            SendingPaymentInfo -> areYouCurrentContent kioskModel sceneModel xis m
+            PresentingOptions -> optionsContent kioskModel sceneModel xis m
+            SendingPaymentInfo -> optionsContent kioskModel sceneModel xis m
             PaymentInfoSent -> paymentInfoSentContent kioskModel sceneModel xis m
             ExplainingHowToPayNow -> howToPayNowContent kioskModel sceneModel xis m
           )
@@ -185,46 +184,54 @@ view kioskModel =
           []  -- No bad news. Scene will fail silently, but should log somewhere.
 
 
-askingAboutBankedTime kioskModel sceneModel xis member =
-  text "TODO!"
-
-areYouCurrentContent : KioskModel a -> MembersOnlyModel -> XisApi.Session Msg -> Member -> Html Msg
-areYouCurrentContent kioskModel sceneModel xis member =
+optionsContent : KioskModel a -> MembersOnlyModel -> XisApi.Session Msg -> Member -> Html Msg
+optionsContent kioskModel sceneModel xis member =
   let
-    however = "However, you may have made a more recent payment that we haven't yet processed."
     paymentMsg = case member.data.latestNonfutureMembership of
       Just mship ->
-        "Our records show that your most recent membership has an expiration date of "
+        "Our records show that your most recent membership expired on "
         ++ CalendarDate.format "%d-%b-%Y" mship.data.endDate
-        ++ ". "
+        ++ "."
       Nothing ->
-        "We have no record of previous payments by you. "
+        "We have no record of previous payments by you."
   in
     div [sceneTextStyle, sceneTextBlockStyle]
         [ vspace 20
-        , text (paymentMsg ++ however)
+        , text (paymentMsg)
         , vspace 40
-        , text "If it's time to renew your membership,"
-        , vspace 0
-        , text "choose one of the following:"
-        , vspace 20
-          -- TODO: Should display other options for Work Traders.
-          -- TODO: Payment options should come from a single source on the backend.
-        , sceneButton kioskModel (ButtonSpec "Send Me Payment Info" (MembersOnlyVector <| SendPaymentInfo) True)
-        , vspace 20
-        , sceneButton kioskModel (ButtonSpec "Pay Now at Front Desk" (MembersOnlyVector <| PayNowAtFrontDesk) True)
-          -- TODO: If visitor is a keyholder, offer them 1day for $10
-        , vspace 40
-        , text "If your membership is current, thanks!"
-        , vspace 0
-        , text "Just click below."
-        , vspace 20
+        , text "Do you believe that you've already purchased a membership that covers today's visit?"
+        , vspace 60
         , sceneButton kioskModel
             <| ButtonSpec
-               "I'm Current!"
+               "Yes"
                (OldBusinessVector <| OB_SegueA CheckInSession member)
                True
+        , sceneButton kioskModel
+            <| ButtonSpec
+               "No"
+               (OldBusinessVector <| OB_SegueA CheckInSession member)
+               True
+
         ]
+
+--        , text "choose one of the following:"
+--        , vspace 20
+--          -- TODO: Should display other options for Work Traders.
+--          -- TODO: Payment options should come from a single source on the backend.
+--        , sceneButton kioskModel (ButtonSpec "Send Me Payment Info" (MembersOnlyVector <| SendPaymentInfo) True)
+--        , vspace 20
+--        , sceneButton kioskModel (ButtonSpec "Pay Now at Front Desk" (MembersOnlyVector <| PayNowAtFrontDesk) True)
+--          -- TODO: If visitor is a keyholder, offer them 1day for $10
+--        , vspace 40
+--        , text "If your membership is current, thanks!"
+--        , vspace 0
+--        , text "Just click below."
+--        , vspace 20
+--        , sceneButton kioskModel
+--            <| ButtonSpec
+--               "I have paid"
+--               (OldBusinessVector <| OB_SegueA CheckInSession member)
+--               True
 
 
 paymentInfoSentContent : KioskModel a -> MembersOnlyModel -> XisApi.Session Msg -> Member -> Html Msg
