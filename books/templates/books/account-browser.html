@@ -54,12 +54,67 @@
             font-size: 14pt;
         }
 
+        .styled-year-select {
+           height: 20px;
+           overflow: hidden;
+           background: lightgray;
+           display: inline-block;
+           width: 60px;
+        }
+
+        .styled-year-select select {
+           background: transparent;
+           border: none;
+           font-size: 14px;
+           height: 20px;
+           padding: 1px; /* If you add too much padding here, the options won't show in IE */
+           width: 60px;
+        }
+
+        .styled-month-select {
+           height: 20px;
+           overflow: hidden;
+           background: lightgray;
+           display: inline-block;
+           width: 50px;
+        }
+
+        .styled-month-select select {
+           background: transparent;
+           border: none;
+           font-size: 14px;
+           height: 20px;
+           padding: 1px; /* If you add too much padding here, the options won't show in IE */
+           width: 50px;
+        }
+
     </style>
     <script>
-        var detail_url = "{% url 'books:account-history' 9999 %}";
+
+        function lastday(year, month) {
+            d = new Date(Number(year), Number(month)+1, 1);
+            d.setDate(d.getDate() - 1);
+            return d;
+        }
+
+        function isoStr(date) {
+            return date.toISOString().substr(0,10).replace("-", "").replace("-", "");
+        }
+
+        var detailUrl = "{% url 'books:account-history-in-range' 9999 11111111 22222222 %}";
+
         function acctClick(acctNum) {
+            var startMonth = $("#start-month").find(":selected").attr("value");
+            var startYear = $("#start-year").find(":selected").attr("value");
+            var endMonth = $("#end-month").find(":selected").attr("value");
+            var endYear = $("#end-year").find(":selected").attr("value");
+            startDate = new Date(startYear, startMonth, 1);
+            endDate = new Date(lastday(endYear, endMonth));
             $("#loading-message").css("display", "block");
-            $("#journal").attr("src", detail_url.replace("9999", acctNum));
+            var url =  detailUrl.replace("9999", acctNum);
+            url = url.replace("11111111", isoStr(startDate));
+            url = url.replace("22222222", isoStr(endDate));
+            $("#journal").attr("src", url);
         }
         function iframeLoaded() {
             $("#loading-message").css("display", "none");
@@ -75,6 +130,63 @@
 
     <div class="grid-container">
         <div class="grid-item" style="grid-column-start:1; grid-column-end:1; padding-top:1em; padding-bottom:1em;">
+
+            Choose a date range:<br/>
+            &nbsp;
+            <div class="styled-month-select">
+                <select id="start-month">
+                    <option value="0" selected>Jan</option>
+                    <option value="1">Feb</option>
+                    <option value="2">Mar</option>
+                    <option value="3">Apr</option>
+                    <option value="4">May</option>
+                    <option value="5">Jun</option>
+                    <option value="6">Jul</option>
+                    <option value="7">Aug</option>
+                    <option value="8">Sep</option>
+                    <option value="9">Oct</option>
+                    <option value="10">Nov</option>
+                    <option value="11">Dec</option>
+                </select>
+            </div>
+
+            <div class="styled-year-select">
+                <select id="start-year">
+                    <option value="2016" selected>2016</option>
+                    <option value="2017">2017</option>
+                    <option value="2018">2018</option>
+                </select>
+            </div>
+
+            <span style="display:inline-block; position:relative; bottom: .3em;">to</span>
+
+            <div class="styled-month-select">
+                <select id="end-month">
+                    <option value="0">Jan</option>
+                    <option value="1">Feb</option>
+                    <option value="2">Mar</option>
+                    <option value="3">Apr</option>
+                    <option value="4">May</option>
+                    <option value="5">Jun</option>
+                    <option value="6">Jul</option>
+                    <option value="7">Aug</option>
+                    <option value="8">Sep</option>
+                    <option value="9">Oct</option>
+                    <option value="10">Nov</option>
+                    <option value="11" selected>Dec</option>
+                </select>
+            </div>
+
+            <div class="styled-year-select">
+                <select id="end-year">
+                    <option value="2016">2016</option>
+                    <option value="2017">2017</option>
+                    <option value="2018" selected>2018</option>
+                </select>
+            </div>
+
+            <br/><br/>
+            Choose an account:
             <table id="coa" class="treetable" style="width:100%; margin:0"><tbody>
                 <tr class="accttype" data-tt-id="asset"><td colspan="3">Asset Accounts</td></tr>
                 {% for acct in asset_accts %}

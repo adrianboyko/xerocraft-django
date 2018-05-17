@@ -19,7 +19,7 @@ urlpatterns = [
     url(r'^cashonhand-vs-time-chart/$', views.cashonhand_vs_time_chart, name='cashonhand-vs-time-chart'),
     url(r'^account-browser/$', views.account_browser, name='account-browser'),
     url(r'^items-needing-attn/$', views.items_needing_attn, name='items-needing-attn'),
-    url(r'^account-history/(?P<account_pk>[0-9]+)_(?P<begin_date>[0-9]+)_(?P<end_date>[0-9]+)/$', views.account_history, name='account-history'),
+    url(r'^account-history/(?P<account_pk>[0-9]+)_(?P<begin_date>[0-9]+)_(?P<end_date>[0-9]+)/$', views.account_history, name='account-history-in-range'),
     url(r'^account-history/(?P<account_pk>[0-9]+)/$', views.account_history, name='account-history'),
 
     # Webhooks for Payment Processors
