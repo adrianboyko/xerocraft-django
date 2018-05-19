@@ -133,6 +133,8 @@ update msg kioskModel =
 timeoutFor : Scene -> Int
 timeoutFor scene =
   case scene of
+    AuthorizeEntry -> 300  -- But this scene never appears.
+    BuyMembership -> 300
     CheckIn -> 60
     CheckInDone -> 5
     CheckOut -> 60
@@ -141,10 +143,10 @@ timeoutFor scene =
     EmailInUse -> 300
     Error -> 600
     HowDidYouHear -> 300
-    MembersOnly -> 300
     NewMember -> 600
     NewUser -> 600
     OldBusiness -> 300
+    PublicHours -> 300
     ReasonForVisit -> 300
     RfidHelper -> 600
     SignUpDone -> 300
@@ -154,10 +156,11 @@ timeoutFor scene =
     TimeSheetPt2 -> 600  -- Give them time to type a description, get distracted, and continue.
     TimeSheetPt3 -> 600  -- Give them some time to find a staffer.
     TaskInfo -> 600  -- There may be a lot to read in the instructions.
+    UseBankedHours -> 300
     Waiver -> 600
     Welcome -> 60
     WelcomeForRfid -> 30
-
+    YouCantEnter -> 300
 
 tick : Time -> KioskModel a -> (StartModel, Cmd Msg)
 tick time kioskModel =

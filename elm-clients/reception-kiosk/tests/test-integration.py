@@ -194,6 +194,10 @@ class IntegrationTest(LiveServerTestCase):
         # has been logged, this assertion will wait for the "Ok" button to appear:
         self.findTagContaining("button", "Ok")
 
+    def assert_on_BuyNow(self) -> None:
+        self.findTagContaining("div", "Buy a Membership")
+        self.findTagContaining("p", "Please ask a Staffer for Assistance")
+
     def assert_on_CheckOut(self) -> None:
         self.findTagContaining("p", "Tap Your Userid, Below")
 
@@ -212,16 +216,6 @@ class IntegrationTest(LiveServerTestCase):
         # NOTE: This is actually the view for the RfidHelper module.
         self.findTagContaining("p", "RFID Problem")
 
-    def assert_on_MembersOnly(self) -> None:
-        self.findTagContaining("p", "Supporting Members Only")
-        self.findTagContaining("p", "Is your supporting membership up to date?")
-
-    def assert_on_MembersOnly_PayNow(self) -> None:
-        self.findTagContaining("div", "We accept credit card, cash, and checks.")
-
-    def assert_on_MembersOnly_SentEmail(self) -> None:
-        self.findTagContaining("div", "We've sent payment information to you via email!")
-
     def assert_on_NewMember(self) -> None:
         self.findTagContaining("p", "Let's Create an Account!")
         self.findTagContaining("p", "Please tell us about yourself:")
@@ -232,6 +226,10 @@ class IntegrationTest(LiveServerTestCase):
 
     def assert_on_OldBusiness(self) -> None:
         self.findTagContaining("p", "Let's Review Them")
+
+    def assert_on_PublicHours(self) -> None:
+        self.findTagContaining("p", "Our Public Access Hours")
+        self.findTagContaining("p", "There's No Cost to Attend")
 
     def assert_on_ReasonForVisit(self) -> None:
         self.findTagContaining("p", "Today's Activity")
@@ -272,6 +270,10 @@ class IntegrationTest(LiveServerTestCase):
     def assert_on_WelcomeForRfid(self, friendly_name:str) -> None:
         self.findTagContaining("p", "Welcome {}!".format(friendly_name))
         self.findTagContaining("p", "Choose one of the following:")
+
+    def assert_on_YouCantEnter(self) -> None:
+        self.findTagContaining("p", "Supporting Members Only")
+        self.findTagContaining("p", "We are not currently open to the public")
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # SCENE TRANSITIONS
@@ -701,27 +703,27 @@ class IntegrationTest(LiveServerTestCase):
                 self.welcome_to_checkIn()
                 self.checkIn_to_reasonForVisit_viaFlexId(self.EXISTING_USERNAME, self.EXISTING_USERNAME)
                 self.reasonForVisit_to_next_viaReason(self.REASON_MEMBER)
-                self.assert_on_MembersOnly()
+                self.assert_on_YouCantEnter()
 
-        buttonText = "Send Me Payment Info"
+        buttonText = "Come back during public hours"
         print("  "+buttonText)
         checkin()
         before_count = len(mail.outbox)
         self.clickTagContaining("button", buttonText)
-        self.assert_on_MembersOnly_SentEmail()
+        self.assert_on_PublicHours()
         self.assertEqual(len(mail.outbox), before_count+1)
         self.clickTagContaining("button", "OK")
         self.assert_on_CheckInDone()
 
-        buttonText = "Pay Now at Front Desk"
+        buttonText = "Pay now at front desk"
         print("  "+buttonText)
         checkin()
         self.clickTagContaining("button", buttonText)
-        self.assert_on_MembersOnly_PayNow()
+        self.assert_on_BuyNow()
         self.clickTagContaining("button", "OK")
         self.assert_on_CheckInDone()
 
-        buttonText = "I'm Current!"
+        buttonText = "Hold on, I already paid!"
         print("  "+buttonText)
         checkin()
         self.clickTagContaining("button", buttonText)
@@ -747,12 +749,12 @@ class IntegrationTest(LiveServerTestCase):
 
         checkin(  # year=2018, month=2
             dayOfMonth=19, hours=20, minutes=00, reason=self.REASON_MEMBER,
-            endcheck=self.assert_on_MembersOnly,
+            endcheck=self.assert_on_YouCantEnter(),
             msg="During Monday members-only block, no membership ever. NOT allowed.")
 
         checkin(  # year=2018, month=2
             dayOfMonth=22, hours=12, minutes=00, reason=self.REASON_MEMBER,
-            endcheck=self.assert_on_MembersOnly,
+            endcheck=self.assert_on_YouCantEnter(),
             msg="Thursday, default block, no membership ever. NOT allowed.")
 
         checkin(  # year=2018, month=2
@@ -770,12 +772,12 @@ class IntegrationTest(LiveServerTestCase):
 
         checkin(  # year=2018, month=2
             dayOfMonth=19, hours=20, minutes=00, reason=self.REASON_MEMBER,
-            endcheck=self.assert_on_MembersOnly,
+            endcheck=self.assert_on_YouCantEnter(),
             msg="During Monday members-only block, EXPIRED membership. NOT allowed.")
 
         checkin(  # year=2018, month=2
             dayOfMonth=22, hours=12, minutes=00, reason=self.REASON_MEMBER,
-            endcheck=self.assert_on_MembersOnly,
+            endcheck=self.assert_on_YouCantEnter(),
             msg="Thursday, default block, EXPIRED membership. NOT allowed.")
 
         checkin(  # year=2018, month=2
@@ -793,12 +795,12 @@ class IntegrationTest(LiveServerTestCase):
 
         checkin(  # year=2018, month=2
             dayOfMonth=19, hours=20, minutes=00, reason=self.REASON_MEMBER,
-            endcheck=self.assert_on_MembersOnly,
+            endcheck=self.assert_on_YouCantEnter(),
             msg="During Monday members-only block, FUTURE membership. NOT allowed.")
 
         checkin(  # year=2018, month=2
             dayOfMonth=22, hours=12, minutes=00, reason=self.REASON_MEMBER,
-            endcheck=self.assert_on_MembersOnly,
+            endcheck=self.assert_on_YouCantEnter(),
             msg="Thursday, default block, FUTURE membership. NOT allowed.")
 
         checkin(  # year=2018, month=2

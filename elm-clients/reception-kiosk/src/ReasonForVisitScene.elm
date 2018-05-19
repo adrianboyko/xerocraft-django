@@ -168,7 +168,7 @@ update msg kioskModel =
         Just VER_Member ->
           ( sceneModel
           , case (sceneModel.member, sceneModel.nowBlock, sceneModel.allTypes) of
-              (Just m, Received nb, Received at) -> send <| MembersOnlyVector <| MO_Segue m nb at
+              (Just m, Received nb, Received at) -> send <| AuthorizeEntryVector <| AE_Segue m nb at
               _ -> send <| ErrorVector <| ERR_Segue missingArguments
           )
 

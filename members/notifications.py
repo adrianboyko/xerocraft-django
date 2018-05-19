@@ -44,6 +44,9 @@ def notify(
         notify.MOST_RECENT_MESSSAGE = message
         return True
 
+    if settings.ISDEVHOST:
+        return False
+
     if not pushover_available:
         return False
 

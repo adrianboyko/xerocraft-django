@@ -15,6 +15,8 @@ import Material
 
 -- Local
 import Types exposing (..)
+import AuthorizeEntryScene
+import BuyMembershipScene
 import CheckInScene
 import CheckInDoneScene
 import CheckOutScene
@@ -23,10 +25,10 @@ import CreatingAcctScene
 import EmailInUseScene
 import ErrorScene
 import HowDidYouHearScene
-import MembersOnlyScene
 import NewMemberScene
 import NewUserScene
 import OldBusinessScene
+import PublicHoursScene
 import ReasonForVisitScene
 import RfidHelper
 import StartScene
@@ -36,9 +38,11 @@ import TimeSheetPt1Scene
 import TimeSheetPt2Scene
 import TimeSheetPt3Scene
 import TaskInfoScene
+import UseBankedHoursScene
 import WaiverScene
 import WelcomeForRfidScene
 import WelcomeScene
+import YouCantEnterScene
 
 import DjangoRestFramework as DRF
 import XisRestApi as XisApi
@@ -94,6 +98,8 @@ type alias Model =
   -- rfid helper model:
   , rfidHelperModel : RfidHelper.RfidHelperModel
   -- Scene models:
+  , authorizeEntryModel  : AuthorizeEntryScene.AuthorizeEntryModel
+  , buyMembershipModel   : BuyMembershipScene.BuyMembershipModel
   , checkInModel         : CheckInScene.CheckInModel
   , checkInDoneModel     : CheckInDoneScene.CheckInDoneModel
   , checkOutModel        : CheckOutScene.CheckOutModel
@@ -102,26 +108,30 @@ type alias Model =
   , emailInUseModel      : EmailInUseScene.EmailInUseModel
   , errorModel           : ErrorScene.ErrorModel
   , howDidYouHearModel   : HowDidYouHearScene.HowDidYouHearModel
-  , membersOnlyModel     : MembersOnlyScene.MembersOnlyModel
   , signUpDoneModel      : SignUpDoneScene.SignUpDoneModel
   , startModel           : StartScene.StartModel
   , newMemberModel       : NewMemberScene.NewMemberModel
   , newUserModel         : NewUserScene.NewUserModel
   , oldBusinessModel     : OldBusinessScene.OldBusinessModel
+  , publicHoursModel     : PublicHoursScene.PublicHoursModel
   , reasonForVisitModel  : ReasonForVisitScene.ReasonForVisitModel
   , taskInfoModel        : TaskInfoScene.TaskInfoModel
   , taskListModel        : TaskListScene.TaskListModel
   , timeSheetPt1Model    : TimeSheetPt1Scene.TimeSheetPt1Model
   , timeSheetPt2Model    : TimeSheetPt2Scene.TimeSheetPt2Model
   , timeSheetPt3Model    : TimeSheetPt3Scene.TimeSheetPt3Model
+  , useBankedHoursModel  : UseBankedHoursScene.UseBankedHoursModel
   , waiverModel          : WaiverScene.WaiverModel
   , welcomeForRfidModel  : WelcomeForRfidScene.WelcomeForRfidModel
   , welcomeModel         : WelcomeScene.WelcomeModel
+  , youCantEnterModel    : YouCantEnterScene.YouCantEnterModel
   }
 
 init : Flags -> (Model, Cmd Msg)
 init f =
   let
+    (authorizeEntryModel,  authorizeEntryCmd ) = AuthorizeEntryScene.init  f
+    (buyMembershipModel,   buyMembershipCmd  ) = BuyMembershipScene.init   f
     (checkInModel,         checkInCmd        ) = CheckInScene.init         f
     (checkInDoneModel,     checkInDoneCmd    ) = CheckInDoneScene.init     f
     (checkOutModel,        checkOutCmd       ) = CheckOutScene.init        f
@@ -130,21 +140,23 @@ init f =
     (emailInUseModel,      emailInUseCmd     ) = EmailInUseScene.init      f
     (errorModel,           errorCmd          ) = ErrorScene.init           f
     (howDidYouHearModel,   howDidYouHearCmd  ) = HowDidYouHearScene.init   f
-    (membersOnlyModel,     membersOnlyCmd    ) = MembersOnlyScene.init     f
     (newMemberModel,       newMemberCmd      ) = NewMemberScene.init       f
     (newUserModel,         newUserCmd        ) = NewUserScene.init         f
     (oldBusinessModel,     oldBusinessCmd    ) = OldBusinessScene.init     f
+    (publicHoursModel,     publicHoursCmd    ) = PublicHoursScene.init     f
     (reasonForVisitModel,  reasonForVisitCmd ) = ReasonForVisitScene.init  f
     (signUpDoneModel,      signUpDoneCmd     ) = SignUpDoneScene.init      f
-    (startModel,           startCmd          ) = StartScene.init     f
+    (startModel,           startCmd          ) = StartScene.init           f
     (taskInfoModel,        taskInfoCmd       ) = TaskInfoScene.init        f
     (taskListModel,        taskListCmd       ) = TaskListScene.init        f
     (timeSheetPt1Model,    timeSheetPt1Cmd   ) = TimeSheetPt1Scene.init    f
     (timeSheetPt2Model,    timeSheetPt2Cmd   ) = TimeSheetPt2Scene.init    f
     (timeSheetPt3Model,    timeSheetPt3Cmd   ) = TimeSheetPt3Scene.init    f
+    (useBankedHoursModel,  useBankedHoursmd  ) = UseBankedHoursScene.init  f
     (waiverModel,          waiverCmd         ) = WaiverScene.init          f
     (welcomeForRfidModel,  welcomeForRfidCmd ) = WelcomeForRfidScene.init  f
     (welcomeModel,         welcomeCmd        ) = WelcomeScene.init         f
+    (youCantEnterModel,    youCantEnterCmd   ) = YouCantEnterScene.init    f
     model =
       { flags = f
       , currTime = 0
@@ -156,6 +168,8 @@ init f =
       , membersApi = MembersApi.createSession f.membersApiFlags
       , rfidHelperModel = RfidHelper.create RfidWasSwiped
       -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+      , authorizeEntryModel  = authorizeEntryModel
+      , buyMembershipModel   = buyMembershipModel
       , checkInModel         = checkInModel
       , checkInDoneModel     = checkInDoneModel
       , checkOutModel        = checkOutModel
@@ -164,10 +178,10 @@ init f =
       , emailInUseModel      = emailInUseModel
       , errorModel           = errorModel
       , howDidYouHearModel   = howDidYouHearModel
-      , membersOnlyModel     = membersOnlyModel
       , newMemberModel       = newMemberModel
       , newUserModel         = newUserModel
       , oldBusinessModel     = oldBusinessModel
+      , publicHoursModel     = publicHoursModel
       , reasonForVisitModel  = reasonForVisitModel
       , signUpDoneModel      = signUpDoneModel
       , startModel           = startModel
@@ -176,12 +190,16 @@ init f =
       , timeSheetPt1Model    = timeSheetPt1Model
       , timeSheetPt2Model    = timeSheetPt2Model
       , timeSheetPt3Model    = timeSheetPt3Model
+      , useBankedHoursModel  = useBankedHoursModel
       , waiverModel          = waiverModel
       , welcomeForRfidModel  = welcomeForRfidModel
       , welcomeModel         = welcomeModel
+      , youCantEnterModel    = youCantEnterModel
       }
     cmds =
-      [ checkInCmd
+      [ authorizeEntryCmd
+      , buyMembershipCmd
+      , checkInCmd
       , checkInDoneCmd
       , checkOutCmd
       , checkOutDoneCmd
@@ -189,9 +207,9 @@ init f =
       , emailInUseCmd
       , errorCmd
       , howDidYouHearCmd
-      , membersOnlyCmd
       , newMemberCmd
       , newUserCmd
+      , publicHoursCmd
       , reasonForVisitCmd
       , startCmd
       , taskInfoCmd
@@ -202,6 +220,7 @@ init f =
       , waiverCmd
       , welcomeForRfidCmd
       , welcomeCmd
+      , youCantEnterCmd
       ]
   in
     (model, Cmd.batch cmds)
@@ -404,6 +423,14 @@ update msg model =
           else
             (model, Cmd.none)
 
+    AuthorizeEntryVector x ->
+      let (sm, cmd) = AuthorizeEntryScene.update x model
+      in ({model | authorizeEntryModel = sm}, cmd)
+
+    BuyMembershipVector x ->
+      let (sm, cmd) = BuyMembershipScene.update x model
+      in ({model | buyMembershipModel = sm}, cmd)
+
     CheckInDoneVector x ->
       let (sm, cmd) = CheckInDoneScene.update x model
       in ({model | checkInDoneModel = sm}, cmd)
@@ -436,10 +463,6 @@ update msg model =
       let (sm, cmd) = HowDidYouHearScene.update x model
       in ({model | howDidYouHearModel = sm}, cmd)
 
-    MembersOnlyVector x ->
-      let (sm, cmd) = MembersOnlyScene.update x model
-      in ({model | membersOnlyModel = sm}, cmd)
-
     NewMemberVector x ->
       let (sm, cmd) = NewMemberScene.update x model
       in ({model | newMemberModel = sm}, cmd)
@@ -451,6 +474,10 @@ update msg model =
     OldBusinessVector x ->
       let (sm, cmd) = OldBusinessScene.update x model
       in ({model | oldBusinessModel = sm}, cmd)
+
+    PublicHoursVector x ->
+      let (sm, cmd) = PublicHoursScene.update x model
+      in ({model | publicHoursModel = sm}, cmd)
 
     ReasonForVisitVector x ->
       let (sm, cmd) = ReasonForVisitScene.update x model
@@ -484,6 +511,10 @@ update msg model =
       let (sm, cmd) = TimeSheetPt3Scene.update x model
       in ({model | timeSheetPt3Model = sm}, cmd)
 
+    UseBankedHoursVector x ->
+      let (sm, cmd) = UseBankedHoursScene.update x model
+      in ({model | useBankedHoursModel = sm}, cmd)
+
     WaiverVector x ->
       let (sm, cmd) = WaiverScene.update x model
       in ({model | waiverModel = sm}, cmd)
@@ -491,6 +522,10 @@ update msg model =
     WelcomeForRfidVector x ->
       let (sm, cmd) = WelcomeForRfidScene.update x model
       in ({model | welcomeForRfidModel = sm}, cmd)
+
+    YouCantEnterVector x ->
+      let (sm, cmd) = YouCantEnterScene.update x model
+      in ({model | youCantEnterModel = sm}, cmd)
 
     MdlVector x ->
       Material.update MdlVector x model
@@ -504,6 +539,8 @@ view : Model -> Html Msg
 view model =
   let currScene = Nonempty.head model.sceneStack
   in case currScene of
+    AuthorizeEntry  -> AuthorizeEntryScene.view  model
+    BuyMembership   -> BuyMembershipScene.view   model
     CheckIn         -> CheckInScene.view         model
     CheckInDone     -> CheckInDoneScene.view     model
     CheckOut        -> CheckOutScene.view        model
@@ -512,10 +549,10 @@ view model =
     EmailInUse      -> EmailInUseScene.view      model
     Error           -> ErrorScene.view           model
     HowDidYouHear   -> HowDidYouHearScene.view   model
-    MembersOnly     -> MembersOnlyScene.view     model
     NewMember       -> NewMemberScene.view       model
     NewUser         -> NewUserScene.view         model
     OldBusiness     -> OldBusinessScene.view     model
+    PublicHours     -> PublicHoursScene.view     model
     ReasonForVisit  -> ReasonForVisitScene.view  model
     RfidHelper      -> RfidHelper.view           model
     SignUpDone      -> SignUpDoneScene.view      model
@@ -525,9 +562,11 @@ view model =
     TimeSheetPt1    -> TimeSheetPt1Scene.view    model
     TimeSheetPt2    -> TimeSheetPt2Scene.view    model
     TimeSheetPt3    -> TimeSheetPt3Scene.view    model
+    UseBankedHours  -> UseBankedHoursScene.view  model
     Waiver          -> WaiverScene.view          model
     WelcomeForRfid  -> WelcomeForRfidScene.view  model
     Welcome         -> WelcomeScene.view         model
+    YouCantEnter    -> YouCantEnterScene.view    model
 
 
 -----------------------------------------------------------------------------
