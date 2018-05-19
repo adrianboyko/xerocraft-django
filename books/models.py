@@ -6,13 +6,15 @@ from decimal import Decimal
 from typing import Dict, List, Optional, Tuple
 from abc import abstractmethod, ABCMeta
 from logging import getLogger
+from collections import Counter
 
 # Third party
 from django.db import models
 from django.core.exceptions import ValidationError
-from django.core.validators import MinValueValidator
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
+from django.contrib.sites.models import Site
 from django.utils.translation import ugettext_lazy as _
 from django.conf import settings
 from nameparser import HumanName
@@ -26,6 +28,9 @@ logger = getLogger("books")
 
 ORG_NAME = settings.BZWOPS_CONFIG['ORG_NAME']
 
+DEC0 = Decimal("0.00")
+DEC1 = Decimal("1.00")
+
 ACCT_LIABILITY_PAYABLE = 39
 ACCT_LIABILITY_UNEARNED_MSHIP_REVENUE = 46
 ACCT_ASSET_RECEIVABLE = 40
@@ -34,6 +39,14 @@ ACCT_EXPENSE_BUSINESS = 30
 ACCT_REVENUE_DONATION = 35  # General Donations.
 ACCT_REVENUE_MEMBERSHIP = 6
 ACCT_REVENUE_DISCOUNT = 49
+
+PROD_HOST = Site.objects.get_current().domain
+DEV_HOST = "localhost:8000"
+
+
+def quote_entity(name: str) -> str:
+    return "[{}]".format(name)
+
 
 # class PayerAKA(models.Model):
 #     """ Intended primarily to record name variations that are used in payments, etc. """
@@ -150,15 +163,8 @@ class Account(models.Model):
     description = models.TextField(max_length=1024,
         help_text="A discussion of the account's purpose. What is it for? What is it NOT for?")
 
-    associated_user = models.ForeignKey(User, null=True, blank=True,
-        related_name='associated_account',
-        on_delete=models.SET_NULL,  # Keep this account even if the user is deleted.
-        help_text="The person who is associated with this account, if any.")
-
-    associated_entity = models.ForeignKey('Entity', null=True, blank=True,
-        related_name='associated_entity',
-        on_delete=models.SET_NULL,  # Keep this account even if the entity is deleted.
-        help_text="The entity which is associated with this account, if any.")
+    active = models.BooleanField(default=True,
+        help_text="Uncheck when an account is no longer actively used.")
 
     acct_cache = dict()  # type: Dict[str, Account]
 
@@ -193,8 +199,6 @@ class Account(models.Model):
         return self.name
 
     def clean(self):
-        if self.associated_user is not None and self.associated_entity is not None:
-            raise ValidationError("Only one of user or entity can be specified.")
         self.dbcheck()
 
     def dbcheck(self):
@@ -238,12 +242,43 @@ class JournalEntry(models.Model):
         return jeli
 
     def process_prebatch(self):
+        self._simplify_prebatched_lineitems()
         if len(self.prebatched_lineitems) == 0:
-            print("Journal Entry for {} has no line items!".format(self.source_url))
+            url = self.source_url
+            if settings.ISDEVHOST:
+                url = url.replace(PROD_HOST, DEV_HOST)
+            print("Journal Entry for {} has no line items!".format(url))
         for jeli in self.prebatched_lineitems:
             jeli.journal_entry_id = self.id
-            JournalLiner.batch(jeli)
+            JournalLiner.batch_jeli(jeli)
         self.prebatched_lineitems = []
+
+    def _simplify_prebatched_lineitems(self) -> None:
+        """Merge line items that are identical except for amount."""
+
+        # Process the current prebatched line items using a Counter to merge them.
+        # We need to convert amounts to pennies because Counter only works with ints.
+        merger = Counter()
+        pennies_per_dollar = Decimal("100.00")
+        for jeli in self.prebatched_lineitems:
+            key = (jeli.account, jeli.description)
+            sign = 1 if jeli.action == jeli.ACTION_BALANCE_INCREASE else -1
+            pennies = int(jeli.amount * pennies_per_dollar)
+            merger.update({key: sign*pennies})
+
+        # Regenerate the prebatched line items from the Counter:
+        self.prebatched_lineitems = []
+        for ((acct, desc), pennies) in merger.items():
+            act = JournalEntryLineItem.ACTION_BALANCE_INCREASE if pennies > 0 else JournalEntryLineItem.ACTION_BALANCE_DECREASE
+            if pennies != 0:
+                newjeli = JournalEntryLineItem(
+                    account=acct,
+                    description=desc,
+                    amount=Decimal.from_float(abs(pennies/100.0)),
+                    action=act
+                )
+                self.prebatched_lineitems.append(newjeli)
+
 
     def debit_and_credit_totals(self) -> Tuple[Decimal, Decimal]:
         total_debits = Decimal(0.0)
@@ -321,6 +356,9 @@ class JournalEntryLineItem(models.Model):
         help_text="The amount of the increase or decrease (always positive)",
         validators=[MinValueValidator(Decimal('0.00'))])
 
+    description = models.CharField(max_length=128, blank=True,
+        help_text="A brief description of this line item.")
+
     def iscredit(self):
         if self.account.type == Account.TYPE_CREDIT:
             return self.action == self.ACTION_BALANCE_INCREASE
@@ -346,7 +384,7 @@ class Journaler(models.Model):
 
     __metaclass__ = ABCMeta
 
-    _batch = list()  # type: List[JournalEntry]
+    _je_batch = list()  # type: List[JournalEntry]
     _link_names_of_relevant_children = None
     _unbalanced_journal_entries = list()  # type: List[JournalEntry]
     _grand_total_debits = Decimal(0.00)
@@ -377,7 +415,7 @@ class Journaler(models.Model):
 
     @classmethod
     def link_names_of_relevant_children(cls):
-        if cls._link_names_of_relevant_children == None:
+        if cls._link_names_of_relevant_children is None:
             related_objects = [
                 f for f in cls._meta.get_fields()
                   if (f.one_to_many or f.one_to_one)
@@ -402,24 +440,25 @@ class Journaler(models.Model):
     def get_absolute_url(self):
         content_type = ContentType.objects.get_for_model(self.__class__)
         url_name = "admin:{}_{}_change".format(content_type.app_label, content_type.model)
-        return reverse(url_name, args=[str(self.id)])
+        relative_url = reverse(url_name, args=[str(self.id)])
+        return "https://{}{}".format(PROD_HOST, relative_url)
 
     @classmethod
-    def save_batch(cls):
+    def save_je_batch(cls):
         """
         Save the currently batched JournalEntry instances using bulk_create,
         and stage the associated pre-batched JournalEntryLineItems for batch creation.
         """
         # NOTE: As of 1/18/2016, this will only work in Django version 1.10 with Postgres
-        JournalEntry.objects.bulk_create(cls._batch)
-        for je in cls._batch:
+        JournalEntry.objects.bulk_create(cls._je_batch)
+        for je in cls._je_batch:
             je.process_prebatch()
-        cls._batch = []
+        cls._je_batch = []
 
     @classmethod
     def batch(cls, je: JournalEntry):
         """Adds a JournalEntry instance to the batch that's accumulating for eventual bulk_create."""
-        balance = Decimal(0.00)
+        balance = Decimal("0.00")
         for jeli in je.prebatched_lineitems:
             if jeli.iscredit():
                 balance += jeli.amount
@@ -427,12 +466,12 @@ class Journaler(models.Model):
             else:
                 balance -= jeli.amount
                 cls._grand_total_debits += jeli.amount
-        if balance != Decimal(0.00):
+        if abs(balance) > Decimal("0.05"):  # Don't report *small* errors due to rounding.
             cls._unbalanced_journal_entries.append(je)
             je.unbalanced = True
-        cls._batch.append(je)
-        if len(cls._batch) > 1000:
-            cls.save_batch()
+        cls._je_batch.append(je)
+        if len(cls._je_batch) > 1000:
+            cls.save_je_batch()
         return je
 
     def journal_one_transaction(self):
@@ -442,18 +481,18 @@ class Journaler(models.Model):
         """
         JournalEntry.objects.filter(source_url=self.get_absolute_url()).delete()
         self.create_journalentry()
-        Journaler.save_batch()
-        JournalLiner.save_batch()
+        Journaler.save_je_batch()
+        JournalLiner.save_jeli_batch()
 
     @classmethod
     def get_unbalanced_journal_entries(cls):
         return cls._unbalanced_journal_entries
 
 
-class JournalLiner:
+class JournalLiner(object):
     __metaclass__ = ABCMeta
 
-    _batch = list()  # type:List[JournalEntryLineItem]
+    _jeli_batch = list()  # type:List[JournalEntryLineItem]
 
     # Each journal liner will have its own logic for creating its line items in the specified entry.
     @abstractmethod
@@ -461,15 +500,15 @@ class JournalLiner:
         raise NotImplementedError
 
     @classmethod
-    def save_batch(cls):
-        created = JournalEntryLineItem.objects.bulk_create(cls._batch)
-        cls._batch = []
+    def save_jeli_batch(cls):
+        created = JournalEntryLineItem.objects.bulk_create(cls._jeli_batch)
+        cls._jeli_batch = []
 
     @classmethod
-    def batch(cls, jeli: JournalEntryLineItem):
-        cls._batch.append(jeli)
-        if len(cls._batch) > 1000:
-            cls.save_batch()
+    def batch_jeli(cls, jeli: JournalEntryLineItem):
+        cls._jeli_batch.append(jeli)
+        if len(cls._jeli_batch) > 1000:
+            cls.save_jeli_batch()
         return jeli
 
 
@@ -493,6 +532,9 @@ def register_journaler():
 @register_journaler()
 class Budget(Journaler):
 
+    year = models.IntegerField(blank=False, default=date.today().year,
+        help_text="The fiscal year during which this budget applies.")
+
     name = models.CharField(max_length=40, blank=False,
         help_text="Name of the budget.")
 
@@ -509,45 +551,35 @@ class Budget(Journaler):
     for_accts = models.ManyToManyField(Account, blank=True,
         help_text="The account(s) ultimately funded by this budget.")
 
-    begins = models.DateField(null=False, blank=False,
-        help_text="Date of first monthly transfer.")
-
-    ends = models.DateField(null=False, blank=False,
-        help_text="Date of last monthly transfer.")
-
     amount = models.DecimalField(max_digits=7, decimal_places=2, null=False, blank=False,
-        help_text="The amount of each transfer.",
+        help_text="The amount budgeted for the year.",
         validators=[MinValueValidator(Decimal('0.00'))])
 
     def _create_journalentries(self):
-        d = self.begins  # type: date
-        while d <= self.ends:
-            je = JournalEntry(
-                when=d,
-                source_url=self.get_absolute_url(),
-            )
-            je.prebatch(JournalEntryLineItem(
-                account=self.from_acct,
-                action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
-                amount=self.amount
-            ))
-            je.prebatch(JournalEntryLineItem(
-                account=self.to_acct,
-                action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
-                amount=self.amount
-            ))
-            Journaler.batch(je)
-            d += relativedelta(months=1)
+        je = JournalEntry(
+            when=date(self.year, 1, 1),
+            source_url=self.get_absolute_url(),
+        )
+        je.prebatch(JournalEntryLineItem(
+            account=self.from_acct,
+            action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
+            amount=self.amount,
+            description="Budget xfer to {}".format(self.name)
+        ))
+        je.prebatch(JournalEntryLineItem(
+            account=self.to_acct,
+            action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
+            amount=self.amount,
+            description="Budget contribution"
+        ))
+        Journaler.batch(je)
 
     def __str__(self):
         return self.name
 
     def clean(self):
-        if self.begins.day != 1:
-            raise ValidationError({'begins': ["Please choose a date which is the 1st of some month."]})
-        if self.ends.day != 1:
-            raise ValidationError({'ends': ["Please choose a date which is the 1st of some month."]})
-        # TODO: Might also want to check that accounts are either "Cash" or descendants of "Cash"
+        pass
+        # TODO: Might want to check that accounts are either "Cash" or descendants of "Cash"
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -596,17 +628,20 @@ class CashTransfer(Journaler):
         je.prebatch(JournalEntryLineItem(
             account=self.from_acct,
             action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
-            amount=self.amount
+            amount=self.amount,
+            description="Transfer to {}".format(self.to_acct.name)
         ))
         je.prebatch(JournalEntryLineItem(
             account=self.to_acct,
             action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
-            amount=self.amount
+            amount=self.amount,
+            description = "Transfer from {}".format(self.from_acct.name)
         ))
         Journaler.batch(je)
 
     class Meta:
         unique_together = ['from_acct', 'to_acct', 'when', 'why']
+
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # ENTITY - Any person or organization that is not a member.
@@ -732,7 +767,8 @@ class ReceivableInvoice(make_InvoiceBase(recv_invoice_help)):
         je.prebatch(JournalEntryLineItem(
             account=Account.get(ACCT_ASSET_RECEIVABLE),
             action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
-            amount=self.amount
+            amount=self.amount,
+            description="We invoiced [{}]".format(self.name())
         ))
         self.create_lineitems_for(je)
         Journaler.batch(je)
@@ -788,9 +824,18 @@ class PayableInvoice(make_InvoiceBase(payable_invoice_help)):
         je.prebatch(JournalEntryLineItem(
             account=Account.get(ACCT_LIABILITY_PAYABLE),
             action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
-            amount=self.amount
+            amount=self.amount,
+            description="{} invoiced us".format(quote_entity(self.name()))
         ))
-        self.create_lineitems_for(je)
+
+        for pili in self.payableinvoicelineitem_set.all():  # type: PayableInvoiceLineItem
+            je.prebatch(JournalEntryLineItem(
+                account=pili.account,
+                action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
+                amount=pili.amount,
+                description=pili.description
+            ))
+
         Journaler.batch(je)
 
 
@@ -1085,14 +1130,16 @@ class Sale(Journaler):
         je.prebatch(JournalEntryLineItem(
             account=Account.get(ACCT_ASSET_CASH),
             action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
-            amount=self.total_paid_by_customer-self.processing_fee
+            amount=self.total_paid_by_customer-self.processing_fee,
+            description="{} paid us".format(quote_entity(self.payer_str or "unkown"))
         ))
         if self.processing_fee > Decimal(0.00):
             if self.fee_payer == self.FEE_PAID_BY_US:
                 je.prebatch(JournalEntryLineItem(
                     account=Account.get(ACCT_EXPENSE_BUSINESS),
                     action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
-                    amount=self.processing_fee
+                    amount=self.processing_fee,
+                    description="Payment processing fee"
                 ))
 
         self.create_lineitems_for(je)
@@ -1193,6 +1240,7 @@ class OtherItem(models.Model, JournalLiner):
             account=self.type.revenue_acct,
             action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
             amount=self.sale_price * (self.qty_sold or Decimal('1')),
+            description=self.type.name
         ))
 
 
@@ -1282,6 +1330,7 @@ class MonetaryDonation(models.Model, JournalLiner):
             account=self.earmark,
             action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
             amount=self.amount,
+            description="Donation from {}".format(quote_entity(self.sale.payer_str or "unknown"))
         ))
 
         # If this donation is contributing to a fund raising campaign then
@@ -1294,11 +1343,14 @@ class MonetaryDonation(models.Model, JournalLiner):
                     account=Account.get(ACCT_ASSET_CASH),
                     action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
                     amount=net_donation,
+                    # Description string must have exactly this form in order to optimize out:
+                    description="{} paid us".format(quote_entity(self.sale.payer_str or "unkown"))
                 ))
                 je.prebatch(JournalEntryLineItem(
                     account=campaign.cash_account,
                     action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
                     amount=net_donation,
+                    description="Donation from {}".format(quote_entity(self.sale.payer_str or "unknown"))
                 ))
         except Campaign.DoesNotExist:
             pass
@@ -1322,15 +1374,20 @@ class ReceivableInvoiceReference(models.Model, JournalLiner):
 
     def create_journalentry_lineitems(self, je: JournalEntry):
 
-        amount = self.invoice.amount
+        whostr = quote_entity(self.invoice.name())
 
-        if self.portion is not None:
+        if self.portion is not None and self.portion < self.invoice.amount:
             amount = self.portion
+            desc = "{} partially paid our invoice".format(whostr)
+        else:
+            amount = self.invoice.amount
+            desc = "{} paid our invoice".format(whostr)
 
         je.prebatch(JournalEntryLineItem(
             account=Account.get(ACCT_ASSET_RECEIVABLE),
             action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
             amount=amount,
+            description=desc
         ))
 
 
@@ -1346,7 +1403,7 @@ class Campaign(models.Model):
     is_active = models.BooleanField(default=True,
         help_text="Whether or not this campaign is currently being pursued.")
 
-    target_amount = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
+    target_amount = models.DecimalField(max_digits=7, decimal_places=2, null=False, blank=False,
         help_text="The total amount that needs to be collected in donations.")
 
     revenue_account = models.OneToOneField(Account, null=False, blank=False,
@@ -1537,30 +1594,46 @@ class ExpenseClaim(Journaler):
     def _create_journalentries(self):
 
         source_url = self.get_absolute_url()
+        name_str = quote_entity(self.claimant.username)
+        when = self.when_submitted
+
+        if when is None:
+            # Explicitly submitting isn't yet a req'd part of our workflow.
+            # As a result, most claims (at time of this writing) don't have a submitted date and never well.
+            # This gives us a date that is CLOSE TO the date on which they should have submitted.
+            latest_eli = self.expenselineitem_set.latest('expense_date')  # type: ExpenseLineItem
+            when = latest_eli.expense_date
+
+        je = JournalEntry(
+            when=when,
+            source_url=source_url
+        )
+
+        if self.donate_reimbursement:
+            je.prebatch(JournalEntryLineItem(
+                account=Account.get(ACCT_REVENUE_DONATION),
+                action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
+                amount=self.amount,
+                description="{} donated an expense claim reimbursment to us".format(name_str)
+            ))
+        else:
+            je.prebatch(JournalEntryLineItem(
+                account=Account.get(ACCT_LIABILITY_PAYABLE),
+                action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
+                amount=self.amount,
+                description="{} filed an expense claim against us".format(name_str)
+
+            ))
 
         for eli in self.expenselineitem_set.all():  # type: ExpenseLineItem
-            je = JournalEntry(
-                when=eli.expense_date,
-                source_url=source_url
-            )
-            if self.donate_reimbursement:
-                je.prebatch(JournalEntryLineItem(
-                    account=Account.get(ACCT_REVENUE_DONATION),
-                    action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
-                    amount=eli.amount,
-                ))
-            else:
-                je.prebatch(JournalEntryLineItem(
-                    account=Account.get(ACCT_LIABILITY_PAYABLE),
-                    action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
-                    amount=eli.amount-eli.discount,
-                ))
             je.prebatch(JournalEntryLineItem(
                 account=eli.account,
                 action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
                 amount=eli.amount-eli.discount,
+                description=eli.description
             ))
-            Journaler.batch(je)
+
+        Journaler.batch(je)
 
 
 class ExpenseClaimNote(Note):
@@ -1601,6 +1674,19 @@ class ExpenseTransaction(Journaler):
     recipient_email = models.EmailField(max_length=40, blank=True,
         help_text="Optional, sometimes useful ",
         verbose_name="Optional email")
+
+    @property
+    def recipient_str(self) -> Optional[str]:
+        if self.recipient_name > "":
+            return self.recipient_name
+        elif self.recipient_acct is not None:
+            return str(self.recipient_acct.member)
+        elif self.recipient_email > "":
+            return self.recipient_email
+        elif self.recipient_entity is not None:
+            return self.recipient_entity.name
+        else:
+            return None
 
     amount_paid = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
         help_text="The dollar amount of the payment.")
@@ -1672,20 +1758,47 @@ class ExpenseTransaction(Journaler):
             when=self.payment_date,
             source_url=self.get_absolute_url()
         )
-        je.prebatch(JournalEntryLineItem(
-            account=Account.get(ACCT_ASSET_CASH),
-            action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
-            amount=self.amount_paid
-        ))
+
         self.create_lineitems_for(je)
-        # The following is not handled by the previous line:
+
+        # Run through the line items creating cash/expense entries.
         for eli in self.expenselineitem_set.all():
+
+            je.prebatch(JournalEntryLineItem(
+                account=get_cashacct_for_expenseacct(eli.account, je.when.year),
+                action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
+                amount=eli.amount - eli.discount,
+                description="We paid {}".format(quote_entity(self.recipient_str))
+            ))
+            je.prebatch(JournalEntryLineItem(
+                account=Account.get(ACCT_REVENUE_DISCOUNT),
+                action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
+                amount=eli.discount,
+                description="{} donated by discount".format(quote_entity(self.recipient_str))
+            ))
             je.prebatch(JournalEntryLineItem(
                 account=eli.account,
                 action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
-                amount=eli.amount
+                amount=eli.amount,
+                description=eli.description
             ))
+
         Journaler.batch(je)
+
+
+# REVIEW:
+def get_cashacct_for_expenseacct(expenseacct: Account, transaction_year: int) -> Account:
+
+    budgets = expenseacct.budget_set.filter(year=transaction_year)  # type: List[Budget]
+    if len(budgets) > 1:
+        budget_names = list(map(lambda x: x.name, budgets))
+        logger.error("%s has too many active budgets: %s", expenseacct, str(budget_names))
+    if len(budgets) == 1:
+        budget = budgets[0]  # type: Budget
+        assert budget is not None
+        return budget.to_acct
+    else:
+        return Account.get(ACCT_ASSET_CASH)
 
 
 class ExpenseClaimReference(models.Model, JournalLiner):
@@ -1705,19 +1818,48 @@ class ExpenseClaimReference(models.Model, JournalLiner):
 
     def create_journalentry_lineitems(self, je: JournalEntry):
 
-        amount = self.portion if self.portion is not None else self.claim.amount
+        uname = quote_entity(self.claim.claimant.username)
+        if self.portion is not None and self.portion < self.claim.amount:
+            desc = "We partially paid {}'s expense claim".format(uname)
+            amount = self.portion
+        else:
+            desc = "We paid {}'s expense claim".format(uname)
+            amount = self.claim.amount
 
         je.prebatch(JournalEntryLineItem(
             account=Account.get(ACCT_LIABILITY_PAYABLE),
             action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
             amount=amount,
+            description=desc
         ))
 
-        for eli in self.claim.expenselineitem_set.all():
-            eli.create_journalentry_lineitems(je, amount / self.claim.amount)
+        for eli in self.claim.expenselineitem_set.all():  # type: ExpenseLineItem
+
+            who_paid = self.claim.claimant.username
+
+            factor = float(amount) / float(self.claim.amount)  # type: float
+            portion_flt = factor * float(eli.amount)  # type: float
+            portion_dec = Decimal.from_float(round(portion_flt, 2))  # type: Decimal
+            discount_flt = factor * float(eli.discount)  # type: float
+            discount_dec = Decimal.from_float(round(discount_flt, 2))  # type: Decimal
+
+            je.prebatch(JournalEntryLineItem(
+                account=get_cashacct_for_expenseacct(eli.account, je.when.year),
+                action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
+                amount=portion_dec,
+                description="We paid {}".format(quote_entity(who_paid))
+            ))
+
+            if eli.discount > DEC0:  # Note, this is for CHARITABLE discounts against goods or services.
+                je.prebatch(JournalEntryLineItem(
+                    account=Account.get(ACCT_REVENUE_DISCOUNT),
+                    action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
+                    amount=discount_dec,
+                ))
 
 
-class ExpenseLineItem(models.Model, JournalLiner):
+
+class ExpenseLineItem(models.Model):
 
     # An expense line item can appear in an ExpenseClaim or in an ExpenseTransaction
 
@@ -1747,6 +1889,10 @@ class ExpenseLineItem(models.Model, JournalLiner):
 
     account = models.ForeignKey(Account, null=False, blank=False,
         on_delete=models.CASCADE,  # Line items are parts of the larger claim, so delete if claim is deleted.
+        limit_choices_to=
+            (models.Q(category=Account.CAT_EXPENSE) | models.Q(category=Account.CAT_ASSET))
+            & ~
+            (models.Q(parent_id=ACCT_ASSET_CASH) | models.Q(id=ACCT_ASSET_CASH)),
         help_text="The account against which this line item is claimed, e.g. 'Wood Shop', '3D Printers'.")
 
     receipt_num = models.IntegerField(null=True, blank=True,
@@ -1759,43 +1905,21 @@ class ExpenseLineItem(models.Model, JournalLiner):
     def __str__(self):
         return "${} on {}".format(self.amount, self.expense_date)
 
-    def clean(self):
-        if self.account is not None:  # Req'd but not guaranteed to set yet.
-
+    def _check_acct(self):
+        if self.account is not None:  # Req'd but not guaranteed to be set yet.
             if self.account.category not in [Account.CAT_EXPENSE, Account.CAT_ASSET]:
                 raise ValidationError(_("Account chosen must have category EXPENSE or ASSET."))
+            if self.account.is_subaccount_of(Account.get(ACCT_ASSET_CASH)):
+                raise ValidationError({'account':[_("Cannot expense against a cash account. You probably want a 'supplies', 'maintenance', or 'equipment' account, instead.")]})
+
+    def clean(self):
+        self._check_acct()
 
     def dbcheck(self):
         # Relationships can't be checked in clean but can be checked later in a "db check" operation.
         if self.claim is None and self.exp is None:
             raise ValidationError(_("Expense line item must be part of a claim or transaction."))
-
-    def create_journalentry_lineitems(self, je: JournalEntry, factor=Decimal("1")):
-
-        # If the expense is against an acct that's part of a budget,
-        # return the general cash and take from the budget fund instead.
-        budgets = self.account.budget_set.all()  # type: List[Budget]
-        assert len(budgets) <= 1
-        if len(budgets) == 1:
-            budget = budgets[0]  # type: Budget
-            if budget is not None:
-                je.prebatch(JournalEntryLineItem(
-                    account=Account.get(ACCT_ASSET_CASH),
-                    action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
-                    amount=factor*self.amount,
-                ))
-                je.prebatch(JournalEntryLineItem(
-                    account=budget.to_acct,
-                    action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
-                    amount=factor*self.amount,
-                ))
-
-        if self.discount > Decimal(0.00):  # Note, this is for CHARITABLE discounts against goods or services.
-            je.prebatch(JournalEntryLineItem(
-                account=Account.get(ACCT_REVENUE_DISCOUNT),
-                action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
-                amount=self.discount,
-            ))
+        self._check_acct()
 
 
 class ExpenseTransactionNote(Note):
@@ -1828,16 +1952,33 @@ class PayableInvoiceReference(models.Model, JournalLiner):
 
     def create_journalentry_lineitems(self, je: JournalEntry):
 
-        amount = self.invoice.amount
-
-        if self.portion is not None:
+        name_str = quote_entity(self.invoice.name())
+        if self.portion is not None and self.portion < self.invoice.amount:
+            desc = "We partially paid {}'s invoice".format(name_str)
             amount = self.portion
+        else:
+            desc = "We paid {}'s invoice".format(name_str)
+            amount = self.invoice.amount
 
         je.prebatch(JournalEntryLineItem(
             account=Account.get(ACCT_LIABILITY_PAYABLE),
             action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
             amount=amount,
+            description=desc
         ))
+
+        for pili in self.invoice.payableinvoicelineitem_set.all():  # type: PayableInvoiceLineItem
+
+            factor = float(amount) / float(self.invoice.amount)  # type: float
+            portion_flt = factor * float(pili.amount)  # type: float
+            portion_dec = Decimal.from_float(round(portion_flt, 2))  # type: Decimal
+
+            je.prebatch(JournalEntryLineItem(
+                account=get_cashacct_for_expenseacct(pili.account, je.when.year),
+                action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
+                amount=portion_dec,
+                description=desc
+            ))
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -1868,3 +2009,10 @@ class BankAccountBalance(models.Model):
 
     balance = models.DecimalField(max_digits=8, decimal_places=2, null=False, blank=False,
         help_text="The dollar balance on the given date.")
+
+    order_on_date = models.IntegerField(default=0, blank=False,
+        help_text="0 indicates end-of-day! Earlier entries must be negative.",
+        validators=[MaxValueValidator(0)])
+
+    class Meta:
+        unique_together = ['bank_account', 'when', 'order_on_date']

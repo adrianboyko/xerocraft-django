@@ -32,18 +32,25 @@ clockTimeTest : Test
 clockTimeTest =
   describe "The ClockTime module"
 
-
     [ test "toString AM" <|
        \_ ->
          let someCT = ClockTime 11 45
          in Expect.equal (ClockTime.toString someCT) "11:45"
-
 
     , test "toString PM" <|
        \_ ->
          let someCT = ClockTime 12 30
          in Expect.equal (ClockTime.toString someCT) "12:30"
 
+    , test "toString Top of Hour" <|
+       \_ ->
+         let someCT = ClockTime 12 00
+         in Expect.equal (ClockTime.toString someCT) "12:00"
+
+    , test "toString single digit hour and minute" <|
+       \_ ->
+         let someCT = ClockTime 9 5
+         in Expect.equal (ClockTime.toString someCT) "09:05"
 
     , test "fromString AM" <|
        \_ ->

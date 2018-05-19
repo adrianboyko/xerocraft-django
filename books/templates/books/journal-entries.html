@@ -2,6 +2,29 @@
 {% load i18n l10n admin_urls %}
 {% block branding %}<h1 id="site-name">Xerocraft Django Admin</h1>{% endblock %}
 
+{% block extrastyle %}
+    <style>
+        /* tr:nth-child(even) {background-color: #f2f2f2} */
+        th {
+            font-size: 10pt;
+            font-weight: normal;
+            background-color: #79aec8;
+            color: white;
+        }
+        .right {
+          text-align: right;
+          margin-right: 1em;
+          padding:0 10px 0 10px;
+        }
+
+        .left {
+          text-align: left;
+          margin-left: 1em;
+          padding:0 10px 0 10px;
+        }
+    </style>
+{% endblock %}
+
 {% block breadcrumbs %}
     <div class="breadcrumbs">
         <a href="{% url 'admin:index' %}">{% trans 'Home' %}</a> &rsaquo;
@@ -14,28 +37,34 @@
 
 {% block content %}
     {% for je in journal_entries %}
-        &nbsp;&nbsp;&nbsp;{{ je.when }}<br/>
+        Entry dated {{ je.when }}:<br/>
 
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Debits
+        <table style="margin-left:10px">
+        <tr><td class="left" colspan="2">Debits:</td></tr>
         {% for li in je.journalentrylineitem_set.all %}
             {% if li.isdebit %}
-                <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-                ${{ li.amount }}
-                {% if li.action == '>' %}increase{% else %}decrease{% endif %}
-                to '{{ li.account }}'
+                <tr>
+                    <td></td>
+                    <td class="right">${{ li.amount }}</td>
+                    <td class="left">{% if li.action == '>' %}increase{% else %}decrease{% endif %}</td>
+                    <td class="left">{{ li.account }}</td>
+                    <td class="left">{{li.description}}</td>
+                </tr>
             {% endif %}
         {% endfor %}
-        <br/>
 
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Credits
+        <tr><td class="left" colspan="2">Credits:</td></tr>
         {% for li in je.journalentrylineitem_set.all %}
             {% if li.iscredit %}
-                <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-                ${{ li.amount }}
-                {% if li.action == '>' %}increase{% else %}decrease{% endif %}
-                to '{{ li.account }}'
+                <tr>
+                    <td></td>
+                    <td class="right">${{ li.amount }}</td>
+                    <td class="left">{% if li.action == '>' %}increase{% else %}decrease{% endif %}</td>
+                    <td class="left">{{ li.account }}</td>
+                    <td class="left">{{li.description}}</td>
+                </tr>
             {% endif %}
         {% endfor %}
-        <br/><br/>
+        </table>
     {% endfor %}
 {% endblock %}

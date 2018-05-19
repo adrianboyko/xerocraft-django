@@ -1,8 +1,10 @@
 # Standard
-from decimal import Decimal
 from typing import List
+
 # Third party
 from django.core.management.base import BaseCommand
+from django.conf import settings
+from django.contrib.sites.models import Site
 
 # Local
 from books.models import (
@@ -41,19 +43,22 @@ class Command(BaseCommand):
                 journaler.create_journalentry()
             print("Done.\n")
 
-        Journaler.save_batch()
-        JournalLiner.save_batch()
+        Journaler.save_je_batch()
+        JournalLiner.save_jeli_batch()
 
-        errors = journaler_class.get_unbalanced_journal_entries()
+        errors = Journaler.get_unbalanced_journal_entries()
         print("Found {} Errors:".format(len(errors)))
         for je in errors:
+            url = je.source_url
+            if settings.ISDEVHOST:
+                url = url.replace(Site.objects.get_current().domain, "localhost:8000")
             print("\n   {} doesn't balance:".format(je))
-            print("      http://localhost:8000{}".format(je.source_url))  # TODO: Get base from sites app?
+            print("      "+url)
             for li in je.journalentrylineitem_set.all():
                 print("      {}".format(str(li)))
 
-        total_dr = journaler_class._grand_total_debits
-        total_cr = journaler_class._grand_total_credits
+        total_dr = Journaler._grand_total_debits
+        total_cr = Journaler._grand_total_credits
         total_diff = total_cr - total_dr
         print("\nTotals")
         print("  debits:  {0:9.2f}".format(total_dr))

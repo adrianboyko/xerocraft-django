@@ -1,0 +1,236 @@
+{% load staticfiles %}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Account Browser</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/jquery-treetable/3.2.0/css/jquery.treetable.min.css" rel="stylesheet" type="text/css" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/jquery-treetable/3.2.0/css/jquery.treetable.theme.default.min.css" rel="stylesheet" type="text/css" />
+    <style>
+
+        .grid-container {
+            width:99%;
+            display: grid;
+            grid-template-columns: 30% 70%;
+            grid-column-gap: 10px;
+        }
+
+        .grid-item {
+            border:1px solid gray;
+        }
+
+        #coa { width:auto; margin-left:30px; margin-top:30px; }
+        .acctname { }
+        .accttype { font-weight: bold; }
+
+        table.treetable tbody tr td {
+            cursor: default;
+            padding: .1em 1em;
+        }
+
+        table.treetable {
+            border: none;
+        }
+
+        iframe {
+            width:100%;
+            height:97vh;
+        }
+
+        tr:hover {color:red;}
+
+        #loading-message {
+            display: none;
+            padding: 1em;
+        }
+
+        #loading-message span {
+            background-color: red;
+            font-weight: bold;
+            color: white;
+            padding:5px;
+            font-size: 14pt;
+        }
+
+        .styled-select {
+           height: 20px;
+           overflow: hidden;
+           background: lightgray;
+           display: inline-block;
+        }
+
+        .styled-select select {
+           background: transparent;
+           border: none;
+           font-size: 14px;
+           height: 20px;
+           padding: 1px; /* If you add too much padding here, the options won't show in IE */
+        }
+
+    </style>
+    <script>
+
+        function lastday(year, month) {
+            d = new Date(Number(year), Number(month)+1, 1);
+            d.setDate(d.getDate() - 1);
+            return d;
+        }
+
+        function isoStr(date) {
+            return date.toISOString().substr(0,10).replace("-", "").replace("-", "");
+        }
+
+        var detailUrl = "{% url 'books:account-history-in-range' 9999 11111111 22222222 %}";
+
+        function acctClick(acctNum) {
+            var startMonth = $("#start-month").find(":selected").attr("value");
+            var startYear = $("#start-year").find(":selected").attr("value");
+            var endMonth = $("#end-month").find(":selected").attr("value");
+            var endYear = $("#end-year").find(":selected").attr("value");
+            startDate = new Date(startYear, startMonth, 1);
+            endDate = new Date(lastday(endYear, endMonth));
+            $("#loading-message").css("display", "block");
+            var url =  detailUrl.replace("9999", acctNum);
+            url = url.replace("11111111", isoStr(startDate));
+            url = url.replace("22222222", isoStr(endDate));
+            $("#journal").attr("src", url);
+        }
+        function iframeLoaded() {
+            $("#loading-message").css("display", "none");
+        }
+    </script>
+
+</head>
+
+<body style="font-family: Arial, Helvetica, sans-serif;">
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/jquery-ui.min.js"></script>
+
+    <div class="grid-container">
+        <div class="grid-item" style="grid-column-start:1; grid-column-end:1; padding-top:1em; padding-bottom:1em;">
+
+            Choose a date range:<br/>
+            &nbsp;
+            <div class="styled-select">
+                <select id="start-month">
+                    <option value="0" selected>Jan</option>
+                    <option value="1">Feb</option>
+                    <option value="2">Mar</option>
+                    <option value="3">Apr</option>
+                    <option value="4">May</option>
+                    <option value="5">Jun</option>
+                    <option value="6">Jul</option>
+                    <option value="7">Aug</option>
+                    <option value="8">Sep</option>
+                    <option value="9">Oct</option>
+                    <option value="10">Nov</option>
+                    <option value="11">Dec</option>
+                </select>
+            </div>
+
+            <div class="styled-select">
+                <select id="start-year">
+                    <option value="2016" selected>2016</option>
+                    <option value="2017">2017</option>
+                    <option value="2018">2018</option>
+                </select>
+            </div>
+
+            <span style="display:inline-block; position:relative; bottom: .3em;">to</span>
+
+            <div class="styled-select">
+                <select id="end-month">
+                    <option value="0">Jan</option>
+                    <option value="1">Feb</option>
+                    <option value="2">Mar</option>
+                    <option value="3">Apr</option>
+                    <option value="4">May</option>
+                    <option value="5">Jun</option>
+                    <option value="6">Jul</option>
+                    <option value="7">Aug</option>
+                    <option value="8">Sep</option>
+                    <option value="9">Oct</option>
+                    <option value="10">Nov</option>
+                    <option value="11" selected>Dec</option>
+                </select>
+            </div>
+
+            <div class="styled-select">
+                <select id="end-year">
+                    <option value="2016">2016</option>
+                    <option value="2017">2017</option>
+                    <option value="2018" selected>2018</option>
+                </select>
+            </div>
+
+            <br/><br/>
+            Choose an account:
+            <table id="coa" class="treetable" style="width:100%; margin:0"><tbody>
+                <tr class="accttype" data-tt-id="asset"><td colspan="3">Asset Accounts</td></tr>
+                {% for acct in asset_accts %}
+                    <tr data-tt-id="{{acct.pk}}" data-tt-parent-id="{{acct.parent_id|default:"asset"}}">
+                        <td class="acctname" title='{{acct.description}}'>
+                            <span style="padding:0" onClick='acctClick({{acct.pk}})'>{{acct.name}} ({{acct.pk}})</span>
+                        </td>
+                    </tr>
+                {% endfor %}
+
+                <tr class="accttype" data-tt-id="expense"><td colspan="3">Expense Accounts</td></tr>
+                {% for acct in expense_accts %}
+                    <tr data-tt-id="{{acct.pk}}" data-tt-parent-id="{{acct.parent_id|default:"expense"}}">
+                        <td class="acctname" title='{{acct.description}}'>
+                            <span style="padding:0" onClick='acctClick({{acct.pk}})'>{{acct.name}} ({{acct.pk}})</span>
+                        </td>
+                    </tr>
+                {% endfor %}
+
+                <tr class="accttype" data-tt-id="liability"><td colspan="3">Liability Accounts</td></tr>
+                {% for acct in liability_accts %}
+                    <tr data-tt-id="{{acct.pk}}" data-tt-parent-id="{{acct.parent_id|default:"liability"}}">
+                        <td class="acctname" title='{{acct.description}}'>
+                            <span style="padding:0" onClick='acctClick({{acct.pk}})'>{{acct.name}} ({{acct.pk}})</span>
+                        </td>
+                    </tr>
+                {% endfor %}
+
+                <tr class="accttype" data-tt-id="equity"><td colspan="3">Equity Accounts</td></tr>
+                {% for acct in equity_accts %}
+                    <tr data-tt-id="{{acct.pk}}" data-tt-parent-id="{{acct.parent_id|default:"equity"}}">
+                        <td class="acctname" title='{{acct.description}}'>
+                            <span style="padding:0" onClick='acctClick({{acct.pk}})'>{{acct.name}} ({{acct.pk}})</span>
+                        </td>
+                    </tr>
+                {% endfor %}
+
+                <tr class="accttype" data-tt-id="revenue"><td colspan="3">Revenue Accounts</td></tr>
+                {% for acct in revenue_accts %}
+                    <tr data-tt-id="{{acct.pk}}" data-tt-parent-id="{{acct.parent_id|default:"revenue"}}">
+                        <td class="acctname" title='{{acct.description}}'>
+                            <span style="padding:0" onClick='acctClick({{acct.pk}})'>{{acct.name}} ({{acct.pk}})</span>
+                        </td>
+                    </tr>
+                {% endfor %}
+
+            </tbody></table>
+
+            <div id="loading-message"><span> Loading </span></div>
+
+        </div>
+
+        <div class="grid-item" style="grid-column-start:2; grid-column-end:2">
+            <iframe id="journal" name="journal" frameborder="0"></iframe>
+        </div>
+    </div>
+
+    {# TreeTable stuff must be before body close tag. #}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-treetable/3.2.0/jquery.treetable.min.js"></script>
+    <script>
+        $("#coa").treetable({ expandable: true, indent: 19 });
+        $("#journal").load(iframeLoaded);
+    </script>
+</body>
+
+</html>

@@ -22,7 +22,8 @@ from django.utils.translation import ugettext_lazy as _
 from books.models import (
     Account, Sale, ReceivableInvoice,
     JournalEntry, JournalEntryLineItem, Journaler, JournalLiner,
-    ACCT_REVENUE_MEMBERSHIP, ACCT_LIABILITY_UNEARNED_MSHIP_REVENUE
+    ACCT_REVENUE_MEMBERSHIP, ACCT_LIABILITY_UNEARNED_MSHIP_REVENUE,
+    quote_entity
 )
 from abutils.utils import generate_ctrlid
 from abutils.time import is_very_last_day_of_month
@@ -662,20 +663,29 @@ class MembershipJournalLiner(JournalLiner, models.Model):
                 account=Account.get(ACCT_REVENUE_MEMBERSHIP),
                 action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
                 amount=amount,
+                description="From unearned membership revenue"
             ))
 
             je2.prebatch(JournalEntryLineItem(
                 account=Account.get(ACCT_LIABILITY_UNEARNED_MSHIP_REVENUE),
                 action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
                 amount=amount,
+                description="To (earned) membership revenue"
             ))
 
             Journaler.batch(je2)
 
+        if hasattr(self, 'member') and hasattr(self, 'membership_type'):
+            uname = quote_entity(self.member.username) if self.member is not None else "unknown"
+            mtype = Membership.MEMBERSHIP_TYPE_STRINGS[self.membership_type]
+            desc = "{} purchased a membership ({})".format(uname, mtype)
+        else:
+            desc = "Membership purchase"
         je.prebatch(JournalEntryLineItem(
             account=Account.get(ACCT_LIABILITY_UNEARNED_MSHIP_REVENUE),
             action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
             amount=self.sale_price,
+            description=desc
         ))
 
         mship_duration = self.end_date - self.start_date  # type: timedelta
@@ -791,6 +801,7 @@ class Membership(MembershipJournalLiner):
         (MT_FAMILY,        "Family"),
         (MT_GIFTCARD,      "Gift Card"),
     ]
+    MEMBERSHIP_TYPE_STRINGS = dict(MEMBERSHIP_TYPE_CHOICES)
     membership_type = models.CharField(max_length=1, choices=MEMBERSHIP_TYPE_CHOICES,
         null=False, blank=False, default=MT_REGULAR,
         help_text="The type of membership.")

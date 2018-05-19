@@ -121,6 +121,21 @@ class NoteInline(admin.TabularInline):
 # ACCOUNTS
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
+class AccountParentFilter(admin.SimpleListFilter):
+    title = "parent"
+    parameter_name = 'parent'
+
+    def lookups(self, request, model_admin):
+        accts = Account.objects.all()
+        return [(a.id, a.name) for a in accts if len(a.subaccounts)>0]
+
+    def queryset(self, request, queryset):
+        if self.value() is None:
+            return queryset
+        else:
+            return queryset.filter(Q(active=True)&(Q(parent=self.value())|Q(id=self.value())))
+
+
 @admin.register(Account)
 class AccountAdmin(VersionAdmin):
 
@@ -152,9 +167,8 @@ class AccountAdmin(VersionAdmin):
         'name',
         'parent',
         'category', 'type',
-        'manager',
+        #'manager',
         'description',
-        'associated_user'
     ]
 
     list_display_links = ['pk', 'name']
@@ -163,14 +177,13 @@ class AccountAdmin(VersionAdmin):
         ('name', 'parent'),
         ('category', 'type'),
         'manager',
-        'associated_user',
-        'associated_entity',
         'description',
+        'active',
     ]
 
-    raw_id_fields = ['manager', 'parent', 'associated_user', 'associated_entity']
+    raw_id_fields = ['manager', 'parent']
 
-    list_filter = ['category', 'type']
+    list_filter = ['category', 'type', AccountParentFilter]
 
     search_fields = ['=id', 'description', 'name']
 
@@ -196,12 +209,13 @@ class BudgetAdmin(JournalerAdmin):
         raw_id_fields = ['account']
         extra = 0
 
-    list_display = ['pk', 'name', 'begins', 'ends', 'amount', 'from_acct', 'to_acct']
+    list_display = ['pk', 'name', 'year', 'amount', 'from_acct', 'to_acct']
     list_display_links = ['pk', 'name']
-    fields = ['name', 'begins', 'ends', 'amount', 'from_acct', 'to_acct']
+    fields = ['name', 'year', 'amount', 'from_acct', 'to_acct']
     raw_id_fields = ['from_acct', 'to_acct']
     change_actions = ['viewjournal_action']  # DjangoObjectActions
     inlines = [CoveredAcctInline]
+    list_filter = ['year']
 
     class Media:
         css = {
@@ -699,7 +713,7 @@ class ExpenseLineItemInline(admin.TabularInline):
         'discount',
         'approved_by',
     ]
-    raw_id_fields = ['bought_from', 'approved_by', 'account']
+    raw_id_fields = ['bought_from', 'approved_by']
     extra = 0
 
     class Media:
@@ -983,15 +997,30 @@ class ExpenseTransactionAdmin(JournalerAdmin):
 # BANK ACCOUNTS AND BALANCES
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
+
 @admin.register(BankAccount)
 class BankAccountAdmin(VersionAdmin):
-    pass
+    list_display = ['pk', 'name', 'description']
 
+
+# REVIEW: Following class is very similar to MemberTypeFilter. Can they be combined?
+class BalanceOrderFilter(admin.SimpleListFilter):
+    title = "order on date"
+    parameter_name = 'ood'
+
+    def lookups(self, request, model_admin):
+        return (
+            ('eod', _('Only end of day')),
+        )
+
+    def queryset(self, request, queryset):
+        if self.value() == 'eod':
+            return queryset.filter(order_on_date=0)
 
 @admin.register(BankAccountBalance)
 class BankAccountBalanceAdmin(VersionAdmin):
-    list_display = ['pk', 'bank_account', 'when', 'balance']
-    list_filter = ['bank_account',]
+    list_display = ['pk', 'bank_account', 'when', 'order_on_date', 'balance']
+    list_filter = ['bank_account__name', BalanceOrderFilter]
     date_hierarchy = 'when'
 
 
