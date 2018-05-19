@@ -1206,6 +1206,9 @@ class OtherItemType(models.Model):
     def __str__(self):
         return self.name
 
+    class Meta:
+        ordering = ['name']
+
 
 class OtherItem(models.Model, JournalLiner):
 
@@ -1287,6 +1290,10 @@ class MonetaryDonation(models.Model, JournalLiner):
     earmark = models.ForeignKey(Account, null=False, blank=False,
         default=ACCT_REVENUE_DONATION,
         on_delete=models.PROTECT,
+        limit_choices_to=
+            (models.Q(parent_id=ACCT_REVENUE_DONATION)|models.Q(id=ACCT_REVENUE_DONATION))
+            & ~
+            models.Q(id=ACCT_REVENUE_DISCOUNT),
         help_text="Specify a donation subaccount, when possible.")
 
     # I'm only doing this so that CampaignAdmin can show MonetaryDonation inlines.

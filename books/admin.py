@@ -258,7 +258,6 @@ class MonetaryDonationInline(admin.StackedInline):
         'earmark',
         'reward',
     ]
-    raw_id_fields = ['earmark']
     extra = 0
 
 
