@@ -14,7 +14,7 @@ from django.utils.timezone import localtime
 
 # Local
 from members.models import Member, Tagging, VisitEvent, Membership
-from tasks.models import Task, Worker, Claim, Work, Nag, RecurringTaskTemplate, TimeAccountEntry
+from tasks.models import Task, Worker, Claim, Work, Nag, RecurringTaskTemplate, TimeAccountEntry, Play
 import members.notifications as notifications
 
 __author__ = 'Adrian'
@@ -257,7 +257,7 @@ def notify_manager_re_staff_arrival(sender, **kwargs):
 
 @receiver(post_save, sender=Work)
 @receiver(pre_save, sender=Work)
-def credit_time_acct(sender, **kwargs):
+def credit_time_acct_for_work(sender, **kwargs):
     """When a witnessed work entry is created, credit it to the worker's time account."""
     unused(sender)
     try:
@@ -331,7 +331,7 @@ def debit_time_acct_for_mship(sender, **kwargs):
 
         try:
             # If there's already an entry for this membership, delete it since we'll recreate it.
-            TimeAccountEntry.objects.get(play=mship).delete()
+            TimeAccountEntry.objects.get(mship=mship).delete()
         except TimeAccountEntry.DoesNotExist:
             pass
 
@@ -348,7 +348,7 @@ def debit_time_acct_for_mship(sender, **kwargs):
         # Remember: Time accounting is denominated in hours.
         TimeAccountEntry.objects.create(
             type=TimeAccountEntry.TYPE_WITHDRAWAL,
-            play=mship,
+            mship=mship,
             explanation="Membership discount".format(mship.start_date),
             worker=worker,
             change=time_cost,
@@ -360,3 +360,47 @@ def debit_time_acct_for_mship(sender, **kwargs):
     except Exception as e:
         # Makes sure that problems here do not prevent the visit event from being saved!
         logger.error("Problem in debit_time_acct_for_mship: %s", str(e))
+
+
+@receiver(post_save, sender=Play)
+@receiver(pre_save, sender=Play)
+def debit_time_acct_for_play(sender, **kwargs):
+    """When somebody plays for x hours, debit the worker's time account by 0.5x"""
+    unused(sender)
+
+    try:
+        play = kwargs.get('instance')  # type: Play
+
+        if play.pk is None:
+            # The mship hasn't yet been saved to DB, so we can't link a TimeAccountEntry to it.
+            return
+
+        # While testing in shell, mship.member.worker is not available.
+        player = Member.objects.get(id=play.playing_member_id) # type: Member
+
+        try:
+            # If there's already an entry for this membership, delete it since we'll recreate it.
+            TimeAccountEntry.objects.get(play=play).delete()
+        except TimeAccountEntry.DoesNotExist:
+            pass
+
+        # Remember: Time accounting is denominated in hours.
+        time_cost = -0.5 * play.play_duration.total_seconds() / 3600.0  # float
+        explanation="{} hour(s) of play time".format(time_cost)
+
+        # Remember: Time accounting is denominated in hours.
+        TimeAccountEntry.objects.create(
+            type=TimeAccountEntry.TYPE_WITHDRAWAL,
+            play=play,
+            explanation="{} hour(s) of play time".format(time_cost),
+            worker=player.worker,
+            change=time_cost,
+            when=play.datetime
+        )
+
+        # TimeAccountEntry.regenerate_expirations(worker)
+
+    except Exception as e:
+        # Makes sure that problems here do not prevent the visit event from being saved!
+        logger.error("Problem in debit_time_acct_for_play: %s", str(e))
+

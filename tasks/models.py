@@ -1057,6 +1057,46 @@ class Snippet(models.Model):
 # TIME ACCOUNTS
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+class Play(models.Model):
+
+    playing_member = models.ForeignKey(mm.Member,
+        on_delete=models.PROTECT,  # Members shouldn't be deleted
+        help_text="The member who played.")
+
+    play_date = models.DateField(
+        null=False, blank=False,
+        help_text="The date on which the member played.")
+
+    play_start_time = models.TimeField(
+        null=True, blank=True,
+        help_text="The time at which play began.")
+
+    play_duration = models.DurationField(null=True, blank=True,
+        validators=[positive_duration],
+        help_text="Time spent playing. Only blank if play is in progress or member forgot to check out.")
+
+    # TODO: This is common to Work and Play so factor it out of both.
+    @property
+    def datetime(self) -> datetime:
+        if self.play_start_time is not None:
+            naive = datetime.combine(self.play_date, self.play_start_time)
+        else:
+            # I guess we'll go with 12:01 am in this case.
+            naive = datetime.combine(self.play_date, time(0,1))
+        aware = timezone.make_aware(naive, timezone.get_current_timezone())
+        return aware
+
+    def clean(self):
+        pass
+
+    def __str__(self):
+        return "{} played {} on {}".format(self.playing_member.username, self.play_duration, self.play_date)
+
+    class Meta:
+        ordering = ['play_date']
+        verbose_name_plural = "Work"
+
+
 class TimeAccountEntry(models.Model):
 
     TYPE_DEPOSIT = "DEP"
@@ -1100,12 +1140,17 @@ class TimeAccountEntry(models.Model):
 
     work = models.ForeignKey(Work,
         null=True, blank=True,
-        on_delete=models.SET_NULL,
-        help_text="For credits, a link to the associated work entry, if any.")
+        on_delete=models.CASCADE,  # Delete this entry if the work backing it up is deleted.
+        help_text="For credits, a link to the associated work, if any.")
 
-    play = models.ForeignKey(mm.Membership,
+    play = models.ForeignKey(Play,
         null=True, blank=True,
-        on_delete=models.SET_NULL,
+        on_delete=models.CASCADE,  # Delete this entry if the play backing it up is deleted.
+        help_text="For debits, a link to the associated play, if any.")
+
+    mship = models.ForeignKey(mm.Membership,
+        null=True, blank=True,
+        on_delete=models.CASCADE,  # Delete this entry if the mship backing it up is deleted.
         help_text="For debits, a link to the associated membership, if any.")
 
     class Meta:
@@ -1127,8 +1172,9 @@ class TimeAccountEntry(models.Model):
         return balance
 
     def clean(self):
-        if self.work is not None and self.play is not None:
-            raise ValidationError("Specify ONE of work or play, or NEITHER. Not both.")
+        link_count = sum([self.work is not None, self.mship is not None, self.play is not None])
+        if link_count > 1:
+            raise ValidationError("Specify ONE of work/play/mship or NONE of them.")
 
     @classmethod
     def regenerate_expirations(cls, worker: Worker) -> None:

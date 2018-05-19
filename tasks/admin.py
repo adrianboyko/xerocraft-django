@@ -15,10 +15,11 @@ from tasks.models import (
     RecurringTaskTemplate, Task, TaskNote,
     Claim, Work, WorkNote, Nag,
     Worker, UnavailableDates, Snippet,
-    TimeAccountEntry
+    TimeAccountEntry, Play
 )
 
 from tasks.templatetags.tasks_extras import duration_str2
+
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
@@ -688,7 +689,7 @@ class TimeAccountEntryAdmin(VersionAdmin):
 
     list_display = ['pk', 'worker', 'statement', 'when', 'type', 'change', 'explanation', 'expires']
 
-    fields = ['worker', 'when', 'change', 'explanation', 'work', 'play', 'balance']
+    fields = ['worker', 'when', 'change', 'explanation', 'work', 'play', 'mship', 'balance']
 
     search_fields = [
         '^worker__member__auth_user__first_name',
@@ -700,7 +701,7 @@ class TimeAccountEntryAdmin(VersionAdmin):
     ordering = ['when']
     date_hierarchy = 'when'
 
-    raw_id_fields = ['worker', 'work', 'play']
+    raw_id_fields = ['worker', 'work', 'play', 'mship']
 
     readonly_fields = [
         'balance',  # Balances are automatically calculated.
@@ -734,3 +735,17 @@ class TimeAccountEntryAdmin(VersionAdmin):
         css = {
             "all": ("tasks/time-account-admin.css",)  # This hides "denormalized object descs", to use Woj's term.
         }
+
+
+@admin.register(Play)
+class PlayAdmin(VersionAdmin):
+    raw_id_fields = ['playing_member']
+    list_display = ['pk', 'play_date', 'playing_member', 'play_start_time', 'play_duration']
+    list_filter = [get_ScheduledDateListFilter_class('play_date')]
+    date_hierarchy = 'play_date'
+    search_fields = [
+        '^playing_member__auth_user__first_name',
+        '^playing_member__auth_user__last_name',
+        '^playing_member__auth_user__username',
+    ]
+
