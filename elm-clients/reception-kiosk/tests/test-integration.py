@@ -3,10 +3,10 @@ from datetime import datetime, date, timedelta, time
 from time import sleep
 from math import floor
 import hashlib
-from typing import Optional
+from typing import Optional, Callable
 
 # Third Party
-from django.core import management, mail
+from django.core import management
 from django.urls import reverse
 from django.test import LiveServerTestCase
 from django.contrib.auth.models import User
@@ -195,7 +195,7 @@ class IntegrationTest(LiveServerTestCase):
         self.findTagContaining("button", "Ok")
 
     def assert_on_BuyNow(self) -> None:
-        self.findTagContaining("div", "Buy a Membership")
+        self.findTagContaining("p", "Buy a Membership")
         self.findTagContaining("p", "Please ask a Staffer for Assistance")
 
     def assert_on_CheckOut(self) -> None:
@@ -708,11 +708,21 @@ class IntegrationTest(LiveServerTestCase):
         buttonText = "Come back during public hours"
         print("  "+buttonText)
         checkin()
-        before_count = len(mail.outbox)
         self.clickTagContaining("button", buttonText)
         self.assert_on_PublicHours()
-        self.assertEqual(len(mail.outbox), before_count+1)
         self.clickTagContaining("button", "OK")
+        self.assert_on_Start()
+
+        buttonText = "Pay now at front desk"
+        print("  "+buttonText)
+        checkin()
+        self.clickTagContaining("button", buttonText)
+        self.assert_on_BuyNow()
+        self.clickTagContaining("button", "No Thanks")
+        self.assert_on_YouCantEnter()
+        self.clickTagContaining("button", buttonText)
+        self.assert_on_BuyNow()
+        self.clickTagContaining("button", "I Did It!")
         self.assert_on_CheckInDone()
 
         buttonText = "Pay now at front desk"
@@ -720,8 +730,8 @@ class IntegrationTest(LiveServerTestCase):
         checkin()
         self.clickTagContaining("button", buttonText)
         self.assert_on_BuyNow()
-        self.clickTagContaining("button", "OK")
-        self.assert_on_CheckInDone()
+        self.clickTagContaining("button", "No Thanks")
+        self.assert_on_YouCantEnter()
 
         buttonText = "Hold on, I already paid!"
         print("  "+buttonText)
@@ -734,7 +744,7 @@ class IntegrationTest(LiveServerTestCase):
     def test_CheckMembershipPrivilegesLogic(self):
         print("Check Membership Privileges Logic")
 
-        def checkin(dayOfMonth, hours, minutes, reason, endcheck, msg):
+        def checkin(dayOfMonth, hours, minutes, reason, endcheck: Callable, msg):
             now = make_aware(datetime.now())
             pit = make_aware(datetime(2018, 2, dayOfMonth, hours, minutes, 00))
             time_shift = floor((pit - now).total_seconds())  # type: int
@@ -749,12 +759,12 @@ class IntegrationTest(LiveServerTestCase):
 
         checkin(  # year=2018, month=2
             dayOfMonth=19, hours=20, minutes=00, reason=self.REASON_MEMBER,
-            endcheck=self.assert_on_YouCantEnter(),
+            endcheck=self.assert_on_YouCantEnter,
             msg="During Monday members-only block, no membership ever. NOT allowed.")
 
         checkin(  # year=2018, month=2
             dayOfMonth=22, hours=12, minutes=00, reason=self.REASON_MEMBER,
-            endcheck=self.assert_on_YouCantEnter(),
+            endcheck=self.assert_on_YouCantEnter,
             msg="Thursday, default block, no membership ever. NOT allowed.")
 
         checkin(  # year=2018, month=2
@@ -772,12 +782,12 @@ class IntegrationTest(LiveServerTestCase):
 
         checkin(  # year=2018, month=2
             dayOfMonth=19, hours=20, minutes=00, reason=self.REASON_MEMBER,
-            endcheck=self.assert_on_YouCantEnter(),
+            endcheck=self.assert_on_YouCantEnter,
             msg="During Monday members-only block, EXPIRED membership. NOT allowed.")
 
         checkin(  # year=2018, month=2
             dayOfMonth=22, hours=12, minutes=00, reason=self.REASON_MEMBER,
-            endcheck=self.assert_on_YouCantEnter(),
+            endcheck=self.assert_on_YouCantEnter,
             msg="Thursday, default block, EXPIRED membership. NOT allowed.")
 
         checkin(  # year=2018, month=2
@@ -795,12 +805,12 @@ class IntegrationTest(LiveServerTestCase):
 
         checkin(  # year=2018, month=2
             dayOfMonth=19, hours=20, minutes=00, reason=self.REASON_MEMBER,
-            endcheck=self.assert_on_YouCantEnter(),
+            endcheck=self.assert_on_YouCantEnter,
             msg="During Monday members-only block, FUTURE membership. NOT allowed.")
 
         checkin(  # year=2018, month=2
             dayOfMonth=22, hours=12, minutes=00, reason=self.REASON_MEMBER,
-            endcheck=self.assert_on_YouCantEnter(),
+            endcheck=self.assert_on_YouCantEnter,
             msg="Thursday, default block, FUTURE membership. NOT allowed.")
 
         checkin(  # year=2018, month=2
