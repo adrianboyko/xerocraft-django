@@ -20,7 +20,6 @@ import members.notifications as notifications
 from members.models import (
     Member, Tag, Tagging, VisitEvent, Membership, Pushover, MembershipGiftCard, DiscoveryMethod
 )
-from members.views import _calculate_accrued_membership_revenue
 from members.notifications import pushover_available
 from members.management.commands.membershipnudge import Command as MembershipNudgeCmd
 import members.views as views
@@ -205,9 +204,7 @@ class TestMembership(TestCase):
 # VIEWS
 
 class TestViews(TestCase):
-
-    def test_calculate_accrued_membership_revenue(self):
-        _calculate_accrued_membership_revenue()
+    pass
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
