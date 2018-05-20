@@ -38,20 +38,21 @@
 
         h1 { font-size:22pt; margin-top:50px; }
 
-        td h2 {
-            font-size: 14pt;
-            display: block;
+        .button {
+            font-size: 16pt;
+            display: inline-block;
             border: 1px solid black;
             line-height: 1em;
-            height: 75px;
-            margin:15px;
+            width: 145px;
             border-radius: 8px;
-            vertical-align: center;
-            padding-top: 45px;
+            padding-top: 35px;
+            padding-bottom: 35px;
             background-color: #eeeeee;
         }
 
-        h2:hover { background-color: powderblue; }
+        div a { margin: 10px; }
+
+        .button:hover { background-color: powderblue; }
 
         ul { font-size:10pt; }
         img { width:40px; margin-right:0; }
@@ -77,6 +78,7 @@
         a:active {
             color: red;
         }
+
         a {
             color: black;
             text-decoration: none;
@@ -89,44 +91,28 @@
 
     <img id="x" src="{% static 'bzw_ops/Big Bold X.png' %}" alt="Xerocraft Logo"/>
 
-<table style="width:35%;" align="center">
-    <tr>
-        <td>
-            <a href="/members/desktop/member-count-vs-date/">
-                <h2>Member Count<br/>Versus Date</h2>
-            </a>
-        </td>
-        <td>
-            <a href="/books/cashonhand-vs-time-chart/">
-                <h2>Cash On Hand<br/>Versus Date</h2>
-            </a>
+    <div>
+        <a href="/members/desktop/member-count-vs-date/"><!--
+        --><div class="button">Member Count<br/>Versus Date</div></a>
 
-        </td>
-        <td>
-            <a href="/books/cumulative-rev-exp-chart/">
-                <h2>Revenue/Expense<br/>Versus Date</h2>
-            </a>
-        </td>
-    </tr>
-    <tr>
-        <td>
-            <a href="/books/account-browser/">
-                <h2>Account<br/>Browser</h2>
-            </a>
-        </td>
-        <td>
-            <a href="/">
-                <h2>Main<br/>Menu</h2>
-            </a>
-        </td>
-        <td>
-            <a href="/books/items-needing-attn/">
-                <h2>Items Needing<br/>Attention</h2>
-            </a>
-        </td>
-    </tr>
+        <a href="/books/cashonhand-vs-time-chart/"><!--
+        --><div class="button">Cash On Hand<br/>Versus Date</div></a>
 
-</table>
+        <a href="/books/cumulative-rev-exp-chart/"><!--
+        --><div class="button">Revenue/Expense<br/>Versus Date</div></a>
+    </div>
+    <br/>
+    <div>
+        <a href="/books/account-browser/"><!--
+        --><div class="button">Account<br/>Browser</div></a>
+
+        <a href="/"><!--
+        --><div class="button">Main<br/>Menu</div></a>
+
+        <a href="/books/items-needing-attn/"><!--
+        --><div class="button">Items Needing<br/>Attention</div></a>
+    </div>
+
 
     {% if user.is_authenticated %}
         <br/>
