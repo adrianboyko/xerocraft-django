@@ -44,7 +44,6 @@ urlpatterns = [
     url(r'^desktop/member-tags/$', views.member_tags, name='desktop-member-tags'),
     url(r'^desktop/member-tags/(?P<member_pk>[0-9]+)(?P<op>[+-])(?P<tag_pk>[0-9]+)/$', views.member_tags, name='desktop-member-tags'),
     url(r'^desktop/member-count-vs-date/$', views.desktop_member_count_vs_date, name='desktop-member-count-vs-date'),
-    url(r'^desktop/earned-membership-revenue/$', views.desktop_earned_membership_revenue, name='earned-membership-revenue'),
 
     # For mobile apps:
     # TODO: Mobile app is not currently used.
@@ -57,10 +56,6 @@ urlpatterns = [
     # DJANGO REST FRAMEWORK API (AKA "XisApi")
     url(r'^api/', include(router.urls)),
     url(r'^api-authenticate/', views.api_authenticate, name='api-authenticate'),
-
-    # OTHER
-    url(r'^csv/monthly-accrued-membership/$', views.csv_monthly_accrued_membership, name='csv-monthly-accrued-membership'),
-    url(r'^csv/monthly-accrued-membership-download/$', views.csv_monthly_accrued_membership_download, name='csv-monthly-accrued-membership_download'),
 
     # RFID cards
     url(r'^rfid-entry-requested/(?P<rfid_cardnum>[0-9]{1,32})/$', views.rfid_entry_requested, name='rfid-entry-requested'),

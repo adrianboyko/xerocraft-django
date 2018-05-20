@@ -29,7 +29,7 @@
             height: 134px;
             margin-top: 8%;
             margin-right: 0px;
-            margin-bottom: 35px;
+            margin-bottom: 40px;
             animation-name: glow;
             animation-delay: 1s;
             animation-duration: 3s;
@@ -37,10 +37,28 @@
         }
 
         h1 { font-size:22pt; margin-top:50px; }
-        h2 { font-size:14pt; margin-top:20px; margin-bottom:0; }
+
+        .button {
+            font-size: 16pt;
+            display: inline-block;
+            border: 1px solid black;
+            line-height: 1em;
+            width: 145px;
+            border-radius: 8px;
+            padding-top: 35px;
+            padding-bottom: 35px;
+            background-color: #eeeeee;
+        }
+
+        div a { margin: 10px; }
+
+        .button:hover { background-color: powderblue; }
+
         ul { font-size:10pt; }
-        img { width:40px; margin-right:0pt; }
-        td { vertical-align:center; text-align:center; width:33%; }
+        img { width:40px; margin-right:0; }
+
+        td { vertical-align:center; text-align:center; width:33%; border:1px black}
+
         span { font-size:10pt; font-weight:normal; }
         span.exp { color:red; }
 
@@ -49,6 +67,7 @@
             padding: 11px;
             background-color: #ffb3b3;
             border-radius: 8px;
+            font-size: 14pt;
         }
 
         h2#logout a {
@@ -56,48 +75,47 @@
             text-decoration: none;
         }
 
+        a:active {
+            color: red;
+        }
+
+        a {
+            color: black;
+            text-decoration: none;
+        }
 
     </style>
-
 </head>
 
 <body style="text-align:center">
 
     <img id="x" src="{% static 'bzw_ops/Big Bold X.png' %}" alt="Xerocraft Logo"/>
 
-<table style="width:50%;" align="center">
-    <tr>
-        <td>
-            <h2>Member Count<br/>Versus Date</h2>
-            <a href="/members/desktop/member-count-vs-date/">chart</a>
-        </td>
-        <td>
-            <h2>Monthly Earned<br/>M'ship Revenue</h2>
-            <a href="/members/desktop/earned-membership-revenue/">chart</a> or
-            <a href="/members/csv/monthly-accrued-membership/">csv</a>
+    <div>
+        <a href="/members/desktop/member-count-vs-date/"><!--
+        --><div class="button">Member Count<br/>Versus Date</div></a>
 
-        </td>
-        <td>
-            <h2>Revenue &amp; Expenses<br/>Versus Date</h2>
-            <a href="/books/cumulative-rev-exp-chart/">chart</a>
-        </td>
-    </tr>
-    <tr>
-        <td>
-            <a href="/books/account-browser/"><h2>Account<br/>Browser</h2></a>
-        </td>
-        <td>
-            <h2 style="margin-top:40px;"><a href="/">Main Menu</a></h2>
-        </td>
-        <td>
-            <a href="/books/items-needing-attn/"><h2>Items Needing<br/>Attention</h2></a>
-        </td>
-    </tr>
+        <a href="/books/cashonhand-vs-time-chart/"><!--
+        --><div class="button">Cash On Hand<br/>Versus Date</div></a>
 
-</table>
+        <a href="/books/cumulative-rev-exp-chart/"><!--
+        --><div class="button">Revenue/Expense<br/>Versus Date</div></a>
+    </div>
+    <br/>
+    <div>
+        <a href="/books/account-browser/"><!--
+        --><div class="button">Account<br/>Browser</div></a>
+
+        <a href="/"><!--
+        --><div class="button">Main<br/>Menu</div></a>
+
+        <a href="/books/items-needing-attn/"><!--
+        --><div class="button">Items Needing<br/>Attention</div></a>
+    </div>
+
 
     {% if user.is_authenticated %}
-        <br/><br/>
+        <br/>
         <h2 id="logout">
             <a href="/logout/">Logout {{ request.user }}</a>
         </h2>

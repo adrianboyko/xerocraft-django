@@ -3,8 +3,6 @@
 from datetime import date, timedelta
 from collections import Counter
 from time import mktime
-import csv
-from decimal import Decimal
 from logging import getLogger
 from typing import Union, Tuple, Optional
 import json
@@ -19,8 +17,6 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.conf import settings
-from django.db.models import Q
-from django.utils import timezone
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import get_template
 
@@ -38,7 +34,6 @@ from reportlab.lib.pagesizes import letter
 # Local
 from members.models import Member, Tag, Tagging, VisitEvent, Membership, DiscoveryMethod
 from members.forms import Desktop_ChooseUserForm
-from members.models import GroupMembership
 from members.restapi.serializers import get_MemberSerializer
 from abutils.utils import request_is_from_host
 
@@ -399,88 +394,6 @@ def desktop_member_count_vs_date(request):
 
     data = list(zip(js_times, reg_counts, fam_counts, wt_counts, group_counts, comp_counts))
     return render(request, 'members/desktop-member-count-vs-date.html', {'data': data})
-
-
-@login_required()
-def csv_monthly_accrued_membership(request):
-    if not request.user.member.is_tagged_with("Director"):
-        return HttpResponse("This page is for Directors only.")
-
-    params = {'download_url': reverse('memb:csv-monthly-accrued-membership_download')}
-    return render(request, 'members/util-will-download.html', params)
-
-
-def _calculate_accrued_membership_revenue():
-
-    end_date = date.today()  # .replace(day=1)  # - relativedelta(days=1)
-    indi_data = Counter()
-    grp_data = Counter()
-
-    for pm in Membership.objects.all():
-
-        duration = pm.end_date - pm.start_date
-        days = 1.0 + duration.total_seconds() / (60.0*60.0*24.0)
-        amt_per_day = pm.sale_price / Decimal(days)
-        day = max(pm.start_date, date(2015, 1, 1))
-        while day <= min(pm.end_date, end_date):
-            indi_data.update({(day.year, day.month): amt_per_day})
-            day += relativedelta(days=1)
-
-    for gm in GroupMembership.objects.all():
-        if gm.sale_price == 0.0:
-            logger.warning("$0 group membership #%s: %s", gm.pk, str(gm))
-
-        duration = gm.end_date - gm.start_date
-        days = 1.0 + duration.total_seconds() / (60.0*60.0*24.0)
-        amt_per_day = gm.sale_price / Decimal(days)
-        day = max(gm.start_date, date(2015,1,1))
-        while day <= min(gm.end_date, end_date):
-            grp_data.update({(day.year, day.month): amt_per_day})
-            day += relativedelta(days=1)
-
-    dates = sorted([x for x in indi_data])
-    indi_vals = [indi_data[k] for k in dates]
-    grp_vals = [grp_data[k] for k in dates]
-    indi_vals = [x if isinstance(x, Decimal) else Decimal(x) for x in indi_vals]
-    grp_vals = [x if isinstance(x, Decimal) else Decimal(x) for x in grp_vals]
-    data = list(zip(dates, indi_vals, grp_vals))
-    return data
-
-
-@login_required()
-def csv_monthly_accrued_membership_download(request):
-    if not request.user.member.is_tagged_with("Director"):
-        return HttpResponse("This page is for Directors only.")
-
-    data = _calculate_accrued_membership_revenue()
-
-    response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename="monthly-accrued-membership.csv"'
-
-    writer = csv.writer(response)
-    TWOPLACES = Decimal('0.01')
-    writer.writerow(["year", "month", "indi rev", "group rev"])
-
-    for (year, month), indi_val, grp_val in data:
-        writer.writerow([year, month, indi_val.quantize(TWOPLACES), grp_val.quantize(TWOPLACES)])
-
-    return response
-
-
-@login_required()
-def desktop_earned_membership_revenue(request):
-    if not request.user.member.is_tagged_with("Director"):
-        return HttpResponse("This page is for Directors only.")
-
-    data = _calculate_accrued_membership_revenue()
-    chart_data = []
-    for (y, m), indi_earned, grp_earned in list(data):
-        indi_earned = indi_earned if indi_earned != 0 else "null"
-        grp_earned = grp_earned if grp_earned != 0 else "null"
-        chart_data.append([y, m, indi_earned, grp_earned])
-
-    del chart_data[-1]  # Don't show current month.
-    return render(request, 'members/desktop-earned-mship-rev.html', {'data': chart_data})
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
