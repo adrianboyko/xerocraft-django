@@ -1094,7 +1094,7 @@ class Play(models.Model):
 
     class Meta:
         ordering = ['play_date']
-        verbose_name_plural = "Work"
+        verbose_name_plural = "Play"
 
 
 class TimeAccountEntry(models.Model):
