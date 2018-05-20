@@ -84,8 +84,12 @@ sceneWillAppear kioskModel appearingScene vanishingScene =
 
     -- We want to have the current time block on hand by the time ReasonForVisit
     -- appears, so start the fetch when welcome scenes appear.
-    Welcome -> getTimeBlocks kioskModel
-    WelcomeForRfid -> getTimeBlocks kioskModel
+
+    Welcome ->
+      getTimeBlocks kioskModel
+
+    WelcomeForRfid ->
+      getTimeBlocks kioskModel
 
     _ ->
       (sceneModel, Cmd.none)  -- Ignore all other scene appearances.
@@ -164,14 +168,14 @@ update msg kioskModel =
         Just VER_Member ->
           ( sceneModel
           , case (sceneModel.member, sceneModel.nowBlock, sceneModel.allTypes) of
-              (Just m, Received nb, Received at) -> send <| MembersOnlyVector <| MO_Segue m nb at
+              (Just m, Received nb, Received at) -> send <| AuthorizeEntryVector <| AE_Segue m nb at
               _ -> send <| ErrorVector <| ERR_Segue missingArguments
           )
 
         _ ->
           ( sceneModel
           , case sceneModel.member of
-              Just m -> send <| OldBusinessVector <| OB_SegueA (CheckInSession, m)
+              Just m -> send <| OldBusinessVector <| OB_SegueA CheckInSession m
               Nothing -> send <| ErrorVector <| ERR_Segue missingArguments
           )
 

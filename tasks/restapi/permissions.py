@@ -112,6 +112,30 @@ class TaskPermission(permissions.BasePermission):
 
 
 # ---------------------------------------------------------------------------
+# WORKERS
+# ---------------------------------------------------------------------------
+
+class WorkerPermission(permissions.BasePermission):
+
+    def has_object_permission(self, request: Request, view, obj: tm.Worker) -> bool:
+
+        memb = request.user.member  # type: mm.Member
+
+        if request.method in permissions.SAFE_METHODS:
+            return True
+
+        if request.method in ("PUT", "PATCH"):
+            return user_is_kiosk(request)
+
+        # REVIEW: Why is this needed?
+        if type(obj) is tm.Worker:
+            return user_is_kiosk(request)
+
+        return False
+
+
+
+# ---------------------------------------------------------------------------
 # WORKS
 # ---------------------------------------------------------------------------
 

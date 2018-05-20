@@ -760,6 +760,36 @@ decodeWorkData =
 
 
 -----------------------------------------------------------------------------
+-- WORKERS
+-----------------------------------------------------------------------------
+
+type alias WorkerData =
+  { member : ResourceUrl
+  , shouldIncludeAlarms : Bool
+  , shouldNag : Bool
+  , shouldSendStatements : Bool
+  , timeAcctBalance : Maybe Int
+  }
+
+
+type alias Worker = Resource WorkerData
+
+
+decodeWorker : Dec.Decoder Worker
+decodeWorker = decodeResource decodeWorkerData
+
+
+decodeWorkerData : Dec.Decoder WorkerData
+decodeWorkerData =
+  decode WorkerData
+    |> required "member" decodeResourceUrl
+    |> required "should_include_alarms" Dec.bool
+    |> required "should_nag" Dec.bool
+    |> required "should_report_work_mtd" Dec.bool
+    |> required "time_acct_balance" (Dec.maybe Dec.int)
+
+
+-----------------------------------------------------------------------------
 -- WORK NOTES
 -----------------------------------------------------------------------------
 
@@ -826,6 +856,7 @@ type alias MemberData =
   , lastName : Maybe String
   , latestNonfutureMembership : Maybe Membership  -- Read only
   , userName : String
+  , worker : Worker  -- Read only
   }
 
 
@@ -883,7 +914,7 @@ decodeMemberData =
     |> optional "last_name"  (Dec.maybe Dec.string) Nothing
     |> required "latest_nonfuture_membership" (Dec.maybe decodeMembership)
     |> required "username" Dec.string
-
+    |> required "worker" decodeWorker
 
 -----------------------------------------------------------------------------
 -- TIME BLOCK TYPES

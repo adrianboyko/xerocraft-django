@@ -84,6 +84,26 @@ class TaskSerializer(serializers.ModelSerializer):
         )
 
 
+class WorkerSerializer(serializers.ModelSerializer):
+
+    member = serializers.HyperlinkedRelatedField(
+        view_name='memb:member-detail',
+        queryset=tm.Claim.objects.all(),
+        style={'base_template': 'input.html'},
+    )
+
+    class Meta:
+        model = tm.Worker
+        fields = (
+            'id',
+            'member',
+            'should_include_alarms',
+            'should_nag',
+            'should_report_work_mtd',
+            'time_acct_balance'
+        )
+
+
 class WorkNoteSerializer(serializers.ModelSerializer):
 
     work = serializers.HyperlinkedRelatedField(

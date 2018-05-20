@@ -60,7 +60,9 @@ type alias Flags =
 -----------------------------------------------------------------------------
 
 type Scene
-  = CheckIn
+  = AuthorizeEntry
+  | BuyMembership
+  | CheckIn
   | CheckInDone
   | CheckOut
   | CheckOutDone
@@ -68,10 +70,10 @@ type Scene
   | EmailInUse
   | Error
   | HowDidYouHear
-  | MembersOnly
   | NewMember
   | NewUser
   | OldBusiness
+  | PublicHours
   | ReasonForVisit
   | RfidHelper  -- The view for RfidHelper is an error message.
   | SignUpDone
@@ -81,14 +83,18 @@ type Scene
   | TimeSheetPt1
   | TimeSheetPt2
   | TimeSheetPt3
+  | UseBankedHours
   | Waiver
   | Welcome
   | WelcomeForRfid
+  | YouCantEnter
 
 -- Material id space needs to be chopped up for scenes:
 mdlIdBase : Scene -> Int
 mdlIdBase scene =
   case scene of
+    AuthorizeEntry -> 900
+    BuyMembership -> 2500
     CheckIn -> 100
     CheckInDone -> 200
     CheckOut -> 300
@@ -97,12 +103,12 @@ mdlIdBase scene =
     EmailInUse -> 600
     Error -> 700
     HowDidYouHear -> 800
-    MembersOnly -> 900
     NewMember -> 1000
     NewUser -> 1100
     OldBusiness -> 1200
+    PublicHours -> 2800     -- Current Max
     ReasonForVisit -> 1300
-    RfidHelper -> 2400  -- CURRENT MAX
+    RfidHelper -> 2400
     SignUpDone -> 1500
     Start -> 1400
     TaskInfo -> 1600
@@ -110,9 +116,11 @@ mdlIdBase scene =
     TimeSheetPt1 -> 1800
     TimeSheetPt2 -> 1900
     TimeSheetPt3 -> 2000
+    UseBankedHours -> 2600
     Waiver -> 2100
     Welcome -> 2200
     WelcomeForRfid -> 2300
+    YouCantEnter -> 2700
 
 -----------------------------------------------------------------------------
 -- KIOSK SESSIION TYPE
@@ -138,6 +146,9 @@ type alias TaskClaimWork =
 -----------------------------------------------------------------------------
 -- MSG TYPES
 -----------------------------------------------------------------------------
+
+type BuyMembershipMsg
+  = BM_Segue Member
 
 type CheckInDoneMsg
   = CID_Segue Member
@@ -179,11 +190,8 @@ type HowDidYouHearMsg
   | ShuffledDiscoveryMethods (List DiscoveryMethod)
   | OkClicked
 
-type MembersOnlyMsg
-  = MO_Segue Member (Maybe TimeBlock) (List TimeBlockType)
-  | PayNowAtFrontDesk
-  | SendPaymentInfo
-  | ServerSentPaymentInfo (Result Http.Error String)
+type AuthorizeEntryMsg
+  = AE_Segue Member (Maybe TimeBlock) (List TimeBlockType)
 
 type NewMemberMsg
   = NM_Segue (List Int)  -- DiscoveryMethod PKs
@@ -203,8 +211,8 @@ type NewUserMsg
   | UpdatePassword2 String
 
 type OldBusinessMsg
-  = OB_SegueA (SessionType, Member)
-  | OB_SegueB (SessionType, Member, Claim)
+  = OB_SegueA SessionType Member
+  | OB_SegueB SessionType Member Claim
   | OB_WorkingClaimsResult (Result Http.Error (PageOf Claim))
   | OB_DeleteSelection
   | OB_NoteRelatedTask Claim (Result Http.Error XisApi.Task)
@@ -212,6 +220,9 @@ type OldBusinessMsg
   | OB_ToggleItem Int
   | OB_NoteWorkDeleted (Result Http.Error String)
   | OB_NoteClaimUpdated (Result Http.Error Claim)
+
+type PublicHoursMsg
+  = PH_Segue Member
 
 type ReasonForVisitMsg
   = R4V_Segue Member
@@ -267,6 +278,9 @@ type TimeSheetPt3Msg
   | TS3_WorkNoteCreated (Result Http.Error WorkNote)
   | TS3_WitnessAuthResult (Result Http.Error AuthenticationResult)
 
+type UseBankedHoursMsg
+  = UBH_Segue Member
+
 type WaiverMsg
   = WVR_Segue (List Int, String, String, String, Bool, String, String)
   | ShowSignaturePad String
@@ -279,6 +293,12 @@ type WelcomeForRfidMsg
   | W4R_CheckInClicked
   | W4R_CheckOutClicked
 
+type YouCantEnterMsg
+  = YCE_Segue Member
+  | PayNowAtFrontDesk Member
+  | AlreadyPaid Member
+
+
 type Msg
   = MdlVector (Material.Msg Msg)
   | WizardVector WizardMsg
@@ -287,6 +307,8 @@ type Msg
   | NoOp
   | IgnoreResultHttpErrorString (Result Http.Error String)
   -----------------------------------
+  | AuthorizeEntryVector AuthorizeEntryMsg
+  | BuyMembershipVector BuyMembershipMsg
   | CheckInDoneVector CheckInDoneMsg
   | CheckInVector CheckInMsg
   | CheckOutDoneVector CheckOutDoneMsg
@@ -295,10 +317,10 @@ type Msg
   | EmailInUseVector EmailInUseMsg
   | ErrorVector ErrorMsg
   | HowDidYouHearVector HowDidYouHearMsg
-  | MembersOnlyVector MembersOnlyMsg
   | NewMemberVector NewMemberMsg
   | NewUserVector NewUserMsg
   | OldBusinessVector OldBusinessMsg
+  | PublicHoursVector PublicHoursMsg
   | ReasonForVisitVector ReasonForVisitMsg
   | SignUpDoneVector SignUpDoneMsg
   | StartVector StartMsg
@@ -307,8 +329,10 @@ type Msg
   | TimeSheetPt1Vector TimeSheetPt1Msg
   | TimeSheetPt2Vector TimeSheetPt2Msg
   | TimeSheetPt3Vector TimeSheetPt3Msg
+  | UseBankedHoursVector UseBankedHoursMsg
   | WaiverVector WaiverMsg
   | WelcomeForRfidVector WelcomeForRfidMsg
+  | YouCantEnterVector YouCantEnterMsg
 
 type WizardMsg
   = Push Scene

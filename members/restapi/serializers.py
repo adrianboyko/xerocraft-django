@@ -8,6 +8,7 @@ from rest_framework import serializers
 
 # Local
 import members.models as models
+import tasks.restapi.serializers as task_serilizers
 
 
 def get_MemberSerializer(respect_privacy: bool) -> Type[serializers.ModelSerializer]:
@@ -28,12 +29,14 @@ def get_MemberSerializer(respect_privacy: bool) -> Type[serializers.ModelSeriali
         'friendly_name',
         'is_active',
         'is_currently_paid',  # TODO: Remove this and add "is_current" to Membership serialization.
-        'latest_nonfuture_membership'
+        'latest_nonfuture_membership',
+        'worker'
     )
 
     class MemberSerializer(serializers.ModelSerializer):
 
         latest_nonfuture_membership = MembershipSerializer(many=False, read_only=True)
+        worker = task_serilizers.WorkerSerializer(read_only=True)
 
         class Meta:
             model = models.Member

@@ -65,6 +65,25 @@ class TaskViewSet(viewsets.ModelViewSet):
 
 
 # ---------------------------------------------------------------------------
+# WORKERS
+# ---------------------------------------------------------------------------
+
+class WorkerViewSet(viewsets.ModelViewSet):
+    queryset = tm.Worker.objects.all().order_by('id')
+    serializer_class = ts.WorkerSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly, tp.WorkerPermission]
+    # filter_class = filt.WorkerFilter
+
+    def get_queryset(self):
+
+        if user_is_kiosk(self.request):
+            return tm.Worker.objects.all().order_by('id')
+        else:
+            # We used to trim down the set for non-kiosk users, but won't, for now.
+            return tm.Worker.objects.all().order_by('id')
+
+
+# ---------------------------------------------------------------------------
 # WORKS
 # ---------------------------------------------------------------------------
 
