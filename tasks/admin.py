@@ -7,6 +7,7 @@ from decimal import Decimal
 from django.contrib import admin
 from django.contrib.admin.views import main
 from django.utils.translation import ugettext_lazy as _
+from django.utils.html import format_html
 from nptime import nptime
 from reversion.admin import VersionAdmin
 
@@ -235,16 +236,15 @@ class TemplateAndTaskBase(VersionAdmin):
 
 class EligibleClaimant_Inline(admin.TabularInline):
 
-    def should_nag(self, obj):
+    def allows_nags(self, obj) -> bool:
         return obj.member.worker.should_nag
-    should_nag.boolean = True
+    allows_nags.boolean = True
 
-    def edit_worker(self, obj):
-        return "<a href='/admin/tasks/worker/{}/'>{}</a>".format(obj.member.worker.id, obj.member.friendly_name)
-    edit_worker.allow_tags = True
+    def edit_worker(self, obj) -> str:
+        return format_html("<a href='/admin/tasks/worker/{}/'>{}</a>", obj.member.worker.id, obj.member.friendly_name)
 
-    fields = ["member", "should_nag", "edit_worker"]
-    readonly_fields = ["should_nag", "edit_worker"]
+    fields = ["member", "should_nag", "allows_nags", "edit_worker"]
+    readonly_fields = ["allows_nags", "edit_worker"]
     raw_id_fields = ['member']
     extra = 0
 
@@ -252,7 +252,7 @@ class EligibleClaimant_Inline(admin.TabularInline):
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 class EligibleClaimantForTemplate_Inline(EligibleClaimant_Inline):
-    model = RecurringTaskTemplate.eligible_claimants.through
+    model = RecurringTaskTemplate.eligible_claimants_2.through
     model._meta.verbose_name = "Eligible Claimant"
     model._meta.verbose_name_plural = "Eligible Claimants"
 
@@ -439,7 +439,7 @@ def get_ScheduledDateListFilter_class(date_field_name):
 
 
 class EligibleClaimantForTask_Inline(EligibleClaimant_Inline):
-    model = Task.eligible_claimants.through
+    model = Task.eligible_claimants_2.through
     model._meta.verbose_name = "Eligible Claimant"
     model._meta.verbose_name_plural = "Eligible Claimants"
 
@@ -517,7 +517,7 @@ class TaskAdmin(TemplateAndTaskBase):
         EligibleClaimantForTask_Inline,
         TaskNoteInline,
     ]
-    raw_id_fields = ['owner', 'eligible_claimants', 'reviewer']
+    raw_id_fields = ['owner', 'eligible_claimants_2', 'reviewer']
 
     class Media:
         css = {

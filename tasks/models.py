@@ -4,7 +4,7 @@ import logging
 import abc
 from datetime import date, timedelta, datetime, time  # TODO: Replace datetime with django.utils.timezone
 import re
-from typing import Optional
+from typing import Optional, Set
 from decimal import Decimal
 
 # Third party
@@ -107,9 +107,6 @@ class TaskMixin(models.Model):
     max_work = models.DurationField(null=False, blank=False,
         help_text="The max total amount of hours that can be claimed/worked for this task.")
 
-    eligible_claimants = models.ManyToManyField(mm.Member, blank=True, related_name="claimable_%(class)s",
-        help_text="Anybody chosen is eligible to claim the task.<br/>")
-
     anybody_is_eligible = models.BooleanField(default=False,
         help_text="Indicates whether the task is workable by ANYBODY. Use sparingly!")
 
@@ -146,13 +143,13 @@ class TaskMixin(models.Model):
         abstract = True
 
 
-class TemplateEligibleClaimants2(models.Model):
+class TemplateEligibleClaimant2(models.Model):
 
     template = models.ForeignKey('RecurringTaskTemplate', null=False,
         on_delete=models.CASCADE,  # Relation means nothing if the template is gone.
         help_text="The task in this relation.")
 
-    member = models.ForeignKey(mm.Member,
+    member = models.ForeignKey(mm.Member, null=False,
         on_delete=models.CASCADE,  # Relation means nothing if the member is gone.
         help_text="The member in this relation.")
 
@@ -171,6 +168,9 @@ class TemplateEligibleClaimants2(models.Model):
     should_nag = models.BooleanField(default=False,
         help_text="If true, member will be encouraged to work instances of the template.")
 
+    def __str__(self) -> str:
+        return "{} can claim {}".format(self.member.username, self.template.short_desc)
+
 
 class RecurringTaskTemplate(TaskMixin):
     """Uses two mutually exclusive methods to define a schedule for recurring tasks.
@@ -187,7 +187,7 @@ class RecurringTaskTemplate(TaskMixin):
 
     eligible_claimants_2 = models.ManyToManyField(mm.Member, blank=True,
         related_name="claimable2_%(class)s",
-        through = 'TemplateEligibleClaimants2',
+        through = 'TemplateEligibleClaimant2',
         help_text="Anybody chosen is eligible to claim the task.<br/>")
 
     # Weekday of month:
@@ -372,7 +372,12 @@ class RecurringTaskTemplate(TaskMixin):
                     )
 
                     # Many-to-many fields:
-                    t.eligible_claimants.set(self.eligible_claimants.all())
+                    for ec in TemplateEligibleClaimant2.objects.filter(template_id=self.id):  # type: TemplateEligibleClaimant2
+                        EligibleClaimant2.objects.create(
+                            task_id=t.id,
+                            member_id=ec.member.id,
+                            type=ec.type
+                        )
 
                     if self.default_claimant is not None:
                         t.create_default_claim()
@@ -404,6 +409,14 @@ class RecurringTaskTemplate(TaskMixin):
     def __str__(self):
         return "%s [%s]" % (self.short_desc, self.recurrence_str())
 
+    def all_eligible_claimants(self) -> Set[mm.Member]:
+        """
+        Determine all eligible claimants whether they're directly eligible by name or indirectly by tag
+        :return: A set of Members
+        """
+        result = set(list(self.eligible_claimants_2.all()))
+        return result
+
     class Meta:
         ordering = [
             'short_desc',
@@ -430,7 +443,7 @@ class Claim(models.Model, TimeWindowedObject):
     stake_date = models.DateField(auto_now_add=True,
         help_text="The date on which the member staked this claim.")
 
-    # REVIEW: The next two allow multiple people to split tasks that occur in windows.
+    # TODO: The next two allow multiple people to split tasks that occur in windows.
     # But I'm abandoning that idea and will split tasks explicitly, instead.
     # As a result, these two fields should probably be removed.
     claimed_start_time = models.TimeField(null=True, blank=True,
@@ -438,8 +451,17 @@ class Claim(models.Model, TimeWindowedObject):
     claimed_duration = models.DurationField(null=False, blank=False,
         help_text="The amount of work the member plans to do on the task.")
 
+    # TODO: This should go away under new scheme? A claim will only be created if it is verified.
     date_verified = models.DateField(null=True, blank=True)
 
+    # TODO: Status should go away. Equivalents exist:
+    # CURRENT: Claim record exists
+    # EXPIRED: EligibleClaimant status EXPIRED
+    # QUEUED: Abandoning this idea
+    # ABANDONED: EligibleClaimant status EXPIRED
+    # WORKING: Work record exists
+    # DONE: Work record has time specified.
+    # UNINTERESTED: EligibleClaimant status DECLINED
     STAT_CURRENT      = "C"  # Member has a current claim on the task.
     STAT_EXPIRED      = "X"  # Member didn't verify or finish the task while claimed, so member's claim has expired.
     STAT_QUEUED       = "Q"  # Member is interested in claiming task but it is already fully claimed.
@@ -555,6 +577,8 @@ class Work(models.Model):
 
 
 class EligibleClaimant2(models.Model):
+    # This class is for Tasks.
+    # See also: TemplateEligibleClaimant2
 
     task = models.ForeignKey('Task', null=False,
         on_delete=models.CASCADE,  # Relation means nothing if the task is gone.
@@ -568,11 +592,13 @@ class EligibleClaimant2(models.Model):
     TYPE_ELIGIBLE_2ND     = "2ND"
     TYPE_ELIGIBLE_3RD     = "3RD"
     TYPE_DECLINED         = "DEC"
+    TYPE_EXPIRED          = "EXP"
     TYPE_CHOICES = [
         (TYPE_DEFAULT_CLAIMANT, "Default Claimant"),
         (TYPE_ELIGIBLE_2ND,     "Eligible, 2nd String"),
         (TYPE_ELIGIBLE_3RD,     "Eligible, 3rd String"),
-        (TYPE_DECLINED,         "Will No Claim"),
+        (TYPE_DECLINED,         "Will Not Claim"),
+        (TYPE_EXPIRED,          "Did Not Respond"),
     ]
     type = models.CharField(max_length=3, choices=TYPE_CHOICES, null=False, blank=False,
         help_text="The type of this relationship.")
@@ -716,7 +742,7 @@ class Task(TaskMixin, TimeWindowedObject):
         Determine all eligible claimants whether they're directly eligible by name or indirectly by tag
         :return: A set of Members
         """
-        result = set(list(self.eligible_claimants.all()))
+        result = set(list(self.eligible_claimants_2.all()))
         return result
 
     @deprecated   # Use claimant_set instead
@@ -788,7 +814,13 @@ class Task(TaskMixin, TimeWindowedObject):
         self.anybody_is_eligible = templ.anybody_is_eligible
 
         # Sets
-        self.eligible_claimants.set(templ.eligible_claimants.all())
+        EligibleClaimant2.objects.filter(task_id=self.id).delete()
+        for tec in TemplateEligibleClaimant2.objects.filter(template_id=templ.id): # type: TemplateEligibleClaimant2
+            EligibleClaimant2.objects.create(
+                task_id=self.id,
+                member_id=tec.member.id,
+                type=tec.type
+            )
 
         # Default claimant
         # Only delete claims that are unverified.

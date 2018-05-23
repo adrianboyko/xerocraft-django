@@ -143,7 +143,7 @@ def maintenance_nag(sender, **kwargs):
         # This gets tasks that are scheduled like maintenance tasks.
         # I.e. those that need to be done every X days, but can slide.
         tasks = Task.objects.filter(
-            eligible_claimants=visit.who,
+            eligible_claimants_2__member=visit.who,
             scheduled_date=date.today(),
             status=Task.STAT_ACTIVE,
             should_nag=True,
