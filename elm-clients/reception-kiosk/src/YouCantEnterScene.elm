@@ -84,13 +84,17 @@ update msg kioskModel =
       in
         (newSceneModel, send <| WizardVector <| Push YouCantEnter)
 
-    PayNowAtFrontDesk member ->
+    PayNowAtFrontDesk_Clicked member ->
       -- TODO: Send a text to the staffer so they can help?
       (sceneModel, send <| BuyMembershipVector <| BM_Segue member)
 
-    AlreadyPaid member ->
+    AlreadyPaid_Clicked member ->
       -- TODO: Log the member's claim? Send a text to the staffer so they can verify?
       (sceneModel, send <| OldBusinessVector <| OB_SegueA CheckInSession member)
+
+    UseBankedHours_Clicked member ->
+      -- TODO: Send a text to the staffer so they can help?
+      (sceneModel, send <| UseBankedHoursVector <| UBH_Segue member)
 
 
 -----------------------------------------------------------------------------
@@ -131,7 +135,7 @@ optionsContent kioskModel sceneModel xis member =
   in
     div [sceneTextStyle, sceneTextBlockStyle]
         [ vspace 30
-        , text "If you wish to use Xerocraft at this time, you need to have a paid membership. So, what would you like to do? Choose below:"
+        , text "If you wish to use Xerocraft at this time, you need to have a supporting membership or banked hours. What would you like to do? Choose below:"
         , vspace 60
         , sceneButton kioskModel
             (ButtonSpec
@@ -143,14 +147,21 @@ optionsContent kioskModel sceneModel xis member =
         , sceneButton kioskModel
             (ButtonSpec
                "Pay now at front desk"
-               (YouCantEnterVector <| PayNowAtFrontDesk member)
+               (YouCantEnterVector <| PayNowAtFrontDesk_Clicked member)
                True
             )
         , vspace 30
         , sceneButton kioskModel
             (ButtonSpec
-               "Hold on, I already paid!"
-               (YouCantEnterVector <| AlreadyPaid member)
+               "I already paid"
+               (YouCantEnterVector <| AlreadyPaid_Clicked member)
+               True
+            )
+        , hspace 10
+        , sceneButton kioskModel
+            (ButtonSpec
+               "Use banked hrs"
+               (YouCantEnterVector <| UseBankedHours_Clicked member)
                True
             )
         , vspace 60

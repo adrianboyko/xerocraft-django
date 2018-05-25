@@ -44,6 +44,25 @@ class ClaimSerializer(serializers.ModelSerializer):
         )
 
 
+class PlaySerializer(serializers.ModelSerializer):
+
+    playing_member = serializers.HyperlinkedRelatedField(
+        view_name='memb:member-detail',
+        queryset = mm.Member.objects.all(),
+        style={'base_template': 'input.html'},
+    )
+
+    class Meta:
+        model = tm.Play
+        fields = (
+            'id',
+            'play_date',
+            'play_duration',
+            'play_start_time',
+            'playing_member',
+        )
+
+
 class TaskSerializer(serializers.ModelSerializer):
 
     # TODO: owner, reviewer, etc, should not be read-only.

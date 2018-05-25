@@ -134,7 +134,6 @@ class WorkerPermission(permissions.BasePermission):
         return False
 
 
-
 # ---------------------------------------------------------------------------
 # WORKS
 # ---------------------------------------------------------------------------
@@ -160,6 +159,29 @@ class WorkPermission(permissions.BasePermission):
 
         # REVIEW: Why is this needed?
         if type(obj) is tm.Work:
+            return user_is_kiosk(request)
+
+        return False
+
+
+# ---------------------------------------------------------------------------
+# PLAYS
+# ---------------------------------------------------------------------------
+
+class PlayPermission(permissions.BasePermission):
+
+    def has_object_permission(self, request: Request, view, obj: tm.Play) -> bool:
+
+        memb = request.user.member  # type: mm.Member
+
+        if request.method in permissions.SAFE_METHODS:
+            return True
+
+        if request.method in ("PUT", "PATCH"):
+            return user_is_kiosk(request)
+
+        # REVIEW: Why is this needed?
+        if type(obj) is tm.Play:
             return user_is_kiosk(request)
 
         return False

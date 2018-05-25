@@ -18,6 +18,7 @@ import XisRestApi as XisApi exposing
   , Claim
   , DiscoveryMethod
   , Member
+  , Play
   , TimeBlock
   , TimeBlockType
   , VisitEvent
@@ -280,6 +281,10 @@ type TimeSheetPt3Msg
 
 type UseBankedHoursMsg
   = UBH_Segue Member
+  | UseSomeHours_Clicked Member
+  | WillVolunteer_Clicked Member
+  | PlayCreation_Result Member (Result Http.Error Play)
+  | PlayList_Result Member (Result Http.Error (PageOf Play))
 
 type WaiverMsg
   = WVR_Segue (List Int, String, String, String, Bool, String, String)
@@ -295,8 +300,9 @@ type WelcomeForRfidMsg
 
 type YouCantEnterMsg
   = YCE_Segue Member
-  | PayNowAtFrontDesk Member
-  | AlreadyPaid Member
+  | PayNowAtFrontDesk_Clicked Member
+  | AlreadyPaid_Clicked Member
+  | UseBankedHours_Clicked Member
 
 
 type Msg
