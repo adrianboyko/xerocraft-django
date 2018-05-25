@@ -15,7 +15,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunSQL(
-            "INSERT INTO members_externalid SELECT * FROM social_auth_usersocialauth"
-        )
+        # migrations.RunSQL(
+        #     "INSERT INTO members_externalid SELECT * FROM social_auth_usersocialauth"
+        # )
     ]
