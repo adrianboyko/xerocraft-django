@@ -146,6 +146,8 @@ class Account(models.Model):
         null=False, blank=False,
         help_text="The category of the account.")
 
+    category_names = dict(CAT_CHOICES)
+
     TYPE_CREDIT = "C"
     TYPE_DEBIT  = "D"
     TYPE_CHOICES = [
@@ -194,6 +196,10 @@ class Account(models.Model):
         if self.parent == other:
             return True
         return self.parent.is_subaccount_of(other)
+
+    @property
+    def category_name(self):
+        return Account.category_names[self.category]
 
     def __str__(self):
         return self.name
@@ -587,7 +593,7 @@ class Budget(Journaler):
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 @register_journaler()
-class CashTransfer(Journaler):
+class CashTransfer(Journaler):  # Started life as a cash xfer but is now a more general acct transfer.
 
     from_acct = models.ForeignKey(Account, null=False, blank=False,
         related_name='from_xfer_set',
@@ -610,15 +616,13 @@ class CashTransfer(Journaler):
         help_text="A short explanation of the transfer.")
 
     def clean(self):
-        cash_root_acct = Account.get(ACCT_ASSET_CASH)
-        if self.from_acct != cash_root_acct:
-            if not self.from_acct.is_subaccount_of(cash_root_acct):
-                msg = "Account chosen must be a subaccount of {}.".format(cash_root_acct.name)
-                raise ValidationError({'from_acct': [msg]})
-        if self.to_acct != cash_root_acct:
-            if not self.to_acct.is_subaccount_of(cash_root_acct):
-                msg = "Account chosen must be a subaccount of {}.".format(cash_root_acct.name)
-                raise ValidationError({'to_acct': [msg]})
+        # REVIEW: Is this constraint too tight from an accounting perspective?
+        if self.from_acct.category != self.to_acct.category:
+            msg = "Accounts must be in same category but 'From' is {} and 'To' is {}.".format(
+                self.from_acct.category_name,
+                self.to_acct.category_name
+            )
+            raise ValidationError(msg)
 
     def _create_journalentries(self):
         je = JournalEntry(
@@ -641,6 +645,7 @@ class CashTransfer(Journaler):
 
     class Meta:
         unique_together = ['from_acct', 'to_acct', 'when', 'why']
+        verbose_name = "transfer"
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
