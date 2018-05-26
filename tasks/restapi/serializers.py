@@ -68,7 +68,9 @@ class TaskSerializer(serializers.ModelSerializer):
     # TODO: owner, reviewer, etc, should not be read-only.
     owner = serializers.HyperlinkedRelatedField(read_only=True, view_name='memb:member-detail')
     reviewer = serializers.HyperlinkedRelatedField(read_only=True, view_name='memb:member-detail')
-    eligible_claimants = serializers.HyperlinkedRelatedField(read_only=True, many=True, view_name='memb:member-detail')
+    eligible_claimants = serializers.HyperlinkedRelatedField(
+        read_only=True, many=True, view_name='memb:member-detail', source='eligible_claimants_2'
+    )
     claim_set = ClaimSerializer(many=True, read_only=True)
     name_of_likely_worker = serializers.ReadOnlyField()  # This is a helpful "denormalization"
 

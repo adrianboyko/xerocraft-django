@@ -22,7 +22,16 @@ from rest_framework.test import APIRequestFactory
 from rest_framework.test import force_authenticate
 
 # Local
-from tasks.models import RecurringTaskTemplate, Task, TaskNote, Claim, Work, WorkNote, Nag, Snippet, Worker
+from tasks.models import (
+    RecurringTaskTemplate, TemplateEligibleClaimant2,
+    Task, TaskNote, EligibleClaimant2,
+    Claim,
+    Work, WorkNote,
+    Nag,
+    Snippet,
+    Worker
+
+)
 from members.models import Member, VisitEvent
 import tasks.restapi as restapi
 from members.notifications import notify
@@ -68,11 +77,11 @@ class Test_VerifyClaim_Base(LiveServerTestCase):
             default_claimant=self.memb1,
             should_nag=True,
         )
-
-        rt.eligible_claimants.add(self.memb2)
-        rt.eligible_claimants.add(self.memb3)
         rt.save()
         rt.full_clean()
+
+        TemplateEligibleClaimant2.objects.create(template=rt, member=self.memb2)
+        TemplateEligibleClaimant2.objects.create(template=rt, member=self.memb3)
 
         management.call_command("scheduletasks", "0")
         self.task = rt.instances.all()[0]
@@ -307,7 +316,7 @@ class TestTemplateToInstanceCopy(TransactionTestCase):
         self.assertEqual(task.max_workers, template.max_workers)
         self.assertEqual(task.reviewer, template.reviewer)
         self.assertEqual(task.max_work, template.max_work)
-        self.assertEqual(set(task.eligible_claimants.all()), set(template.eligible_claimants.all()))
+        self.assertEqual(set(task.all_eligible_claimants()), set(template.all_eligible_claimants()))
         self.assertEqual(task.anybody_is_eligible, template.anybody_is_eligible)
 
 
@@ -386,8 +395,9 @@ class TestViews(TestCase):
             repeat_interval=1,
         )
         self.rt.full_clean()
-        self.rt.eligible_claimants.add(self.member)
+        TemplateEligibleClaimant2.objects.create(template=self.rt, member=self.member)
         self.rt.create_tasks(max_days_in_advance=3)
+
         self.task = Task.objects.first()
         tn = TaskNote.objects.create(task=self.task, author=self.member, content="spam", status=TaskNote.INFO)
         tn.full_clean()
@@ -598,7 +608,8 @@ class RunSchedAndNagCmds(TestCase):
             should_nag=True,
         )
         self.rt.full_clean()
-        self.rt.eligible_claimants.add(member)
+
+        TemplateEligibleClaimant2.objects.create(template=self.rt, member=member)
 
     def test_run_nagger(self):
         management.call_command("scheduletasks", "2")
@@ -685,6 +696,9 @@ class TestWindowedObject(TestCase):
     def test_task_and_ABC(self):
 
         def caselet(result, start=None, dur=None, sched=None, dead=None, start_leeway=zerodur, end_leeway=zerodur):
+            # TODO: If sched is None, this checks to see if we're in today's window.
+            # TODO: But it also needs to check to see if we're in YESTERDAY's window.
+            # TODO: This is because yesterday's window can spill over into today.
             self.t.work_start_time = start
             self.t.work_duration = dur
             self.t.scheduled_date = sched
@@ -854,10 +868,11 @@ class TestRestApi_Tasks(TestCase):
     def test_can_claim_task_if_eligible(self):
 
         # Somebody creates a task that caller is eligible to work:
-        t = Task.objects.create(**self.task_data)
-        t.eligible_claimants.add(self.caller)
+        t = Task.objects.create(**self.task_data)  # type: Task
         t.save()
         t.clean()
+
+        EligibleClaimant2.objects.create(task=t, member=self.caller)
 
         view = restapi.views.ClaimViewSet.as_view({'post': 'create'})
         self.claim_data["claimed_task"] = "{}{}/".format(self.task_list_uri, t.pk)

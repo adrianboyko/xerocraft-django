@@ -10,7 +10,7 @@ from django.db.models import F
 from django.conf import settings
 
 # Local
-from tasks.models import Task, Claim, Nag, Worker
+from tasks.models import Task, Claim, Nag, Worker, EligibleClaimant2
 from members.models import Member
 
 __author__ = 'adrian'
@@ -150,10 +150,14 @@ class Command(BaseCommand):
           claiming_member=F('claimed_task__recurring_task_template__default_claimant'),
           date_verified__isnull=True):
             # If we get here, it means that we've asked default claimant to verify twice but haven't heard back.
-            if claim.claiming_member not in claim.claimed_task.eligible_claimants.all():
+            if claim.claiming_member not in claim.claimed_task.all_eligible_claimants():
                 # It looks like person who set up the task forgot to make default claimant an eligible claimant.
                 # So let's add the default claimant to the list of eligible claimants.
-                claim.claimed_task.eligible_claimants.add(claim.claiming_member)
+                EligibleClaimant2.objects.create(
+                    task=claim.claimed_task,
+                    member=claim.claiming_member,
+                    type=EligibleClaimant2.TYPE_DEFAULT_CLAIMANT
+                )
             # Change the default claimant's claim to EXPIRED
             # because we now want to nag to ALL eligible claimants.
             # Note that "verified date" is not set for status EXPIRED.

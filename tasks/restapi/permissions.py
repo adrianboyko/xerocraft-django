@@ -61,7 +61,7 @@ class ClaimPermission(permissions.BasePermission):
                 if claimed_task.is_fully_claimed:
                     return False
 
-            if claiming_member not in claimed_task.eligible_claimants.all():
+            if claiming_member not in claimed_task.all_eligible_claimants():
                 # Don't allow non-eligible claimant.
                 return False
 
