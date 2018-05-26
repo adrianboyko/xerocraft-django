@@ -9,4 +9,7 @@ urlpatterns = [
         views.clone_acct,
         name="clone-acct"),
 
+    url(r'^now-playing-on-kmkr/$',
+        views.now_playing_on_kmkr,
+        name='now-playing-on-kmkr'),
 ]

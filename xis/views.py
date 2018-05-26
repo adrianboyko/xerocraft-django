@@ -35,3 +35,8 @@ def scrape_xerocraft_org_checkins(request) -> JsonResponse:
     # TODO: We no longer need to scrape checkins but this remains as a stub until the other systems are modified so that they no longer use this URL.
     logger.info("Unecessary request to /scrape-xerocraft-org-checkins/. Update requesting system.")
     return JsonResponse({'result': "success"})
+
+
+def now_playing_on_kmkr(request) -> JsonResponse:
+    return JsonResponse({"result": "success"})
+
