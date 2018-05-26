@@ -59,30 +59,41 @@ class TimeWindowedObject(object):
     def window_end_datetime(self):
         return self.window_start_datetime() + self.window_duration()
 
-    def in_daterange_now(self):
-        """Determine whether we are currently in the date range for this object without considering time of day."""
+    def in_daterange(self, d: date):
+        """Determine whether date "d" is in the date range for this object without considering time of day."""
         scheddate = self.window_sched_date()
-        nowdate = datetime.now().date()
         deaddate = self.window_deadline()
-        if deaddate is not None and nowdate > deaddate:
+        if deaddate is not None and d > deaddate:
             return False  # The deadline for completing this work has passed, so we're out of the window.
-        if scheddate is not None and scheddate != nowdate:
+        if scheddate is not None and scheddate != d:
             return False  # The scheduled date has passed so we're out of the window.
         return True
 
     def in_window_now(self, start_leeway=timedelta(0), end_leeway=timedelta(0)):
         """Determine whether we are currently in the time range AND date range for this object."""
 
+        now = datetime.now()
+
         if self.window_start_time() is not None and self.window_duration() is not None:
-            now = datetime.now()
-            start = self.window_start_datetime() + start_leeway
-            end = self.window_end_datetime() + end_leeway
-            if start > now:
-                return False
-            if end < now:
+
+            # The simplest case is that we're in a window that started on today's date:
+            today_start = self.window_start_datetime() + start_leeway
+            today_end = self.window_end_datetime() + end_leeway
+            in_todays_window = today_start <= now <= today_end
+
+            # But it's also possible that we're in a window that started on yesterday's date:
+            yesterday_start = today_start + timedelta(days=-1)
+            yesterday_end = today_end + timedelta(days=-1)
+            in_yesterdays_window = yesterday_start <= now <= yesterday_end
+
+            if in_todays_window:
+                return self.in_daterange(today_start.date())
+            elif in_yesterdays_window:
+                return self.in_daterange(yesterday_start.date())
+            else:
                 return False
 
-        return self.in_daterange_now()
+        return self.in_daterange(now.date())
 
 
 class TaskMixin(models.Model):
