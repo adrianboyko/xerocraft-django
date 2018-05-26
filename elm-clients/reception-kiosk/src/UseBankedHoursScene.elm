@@ -45,18 +45,10 @@ type alias KioskModel a =
   }
 
 
-type PaymentInfoState
-  = PresentingOptions
-  | ExplainingHowToPayNow
-  | PaymentInfoSent
-  | SendingPaymentInfo
-
-
 type alias UseBankedHoursModel =
   -------------- Req'd arguments:
   { member : Maybe Member
   -------------- Other state:
-  , paymentInfoState : PaymentInfoState
   , badNews : List String
   }
 
@@ -65,7 +57,6 @@ init : Flags -> (UseBankedHoursModel, Cmd Msg)
 init flags =
   let sceneModel =
     { member = Nothing
-    , paymentInfoState = PresentingOptions
     , badNews = []
     }
   in (sceneModel, Cmd.none)
@@ -74,31 +65,6 @@ init flags =
 -----------------------------------------------------------------------------
 -- UPDATE
 -----------------------------------------------------------------------------
-
-{- Will keep this simple, for now. This scene will appear if all of the following are true:
-   (1) We know what type of time block we're in.
-   (2) The time block is tagged as being for Supporting Members Only.
-   (3) We have the user's membership info.
--}
-useBankedHoursButNotMember :
-  XisApi.Session a -> Member -> PointInTime -> Maybe TimeBlock -> List TimeBlockType -> Bool
-useBankedHoursButNotMember
-  xis member now nowBlock allTypes =
-
-  let
-    useBankedHoursStr = "Members Only"
-    defaultBlockTypeName = case xis.defaultBlockType allTypes of
-      Just bt -> bt.data.name
-      Nothing -> ""
-    isCurrent = case member.data.latestNonfutureMembership of
-      Just m -> xis.coverTime [m] now
-      Nothing -> False
-    isUseBankedHours = case nowBlock of
-      Just nb -> xis.blockHasType useBankedHoursStr allTypes nb
-      Nothing -> defaultBlockTypeName == useBankedHoursStr
-  in
-    isUseBankedHours && not isCurrent
-
 
 update : UseBankedHoursMsg -> KioskModel a -> (UseBankedHoursModel, Cmd Msg)
 update msg kioskModel =
@@ -114,11 +80,48 @@ update msg kioskModel =
       let
         newSceneModel = { sceneModel | member = Just member }
       in
-        (newSceneModel, Cmd.none)
+        (newSceneModel, send <| WizardVector <| Push UseBankedHours)
+
+    UseSomeHours_Clicked member ->
+      let
+        searchPlay = xis.listPlays
+          [ PlayingMemberEquals member.id
+          , PlayDateEquals (PointInTime.toCalendarDate kioskModel.currTime)
+          , PlayDurationIsNull True
+          ]
+          (UseBankedHoursVector << (PlayList_Result member))
+      in
+        (sceneModel, searchPlay)
+
+    PlayList_Result member (Ok {count}) ->
+      let
+        cmd = if count > 0 -- Does user already have an open play record?
+          then xis.createPlay
+            { playDuration = Nothing
+            , playDate = PointInTime.toCalendarDate kioskModel.currTime
+            , playStartTime = Just <| PointInTime.toClockTime kioskModel.currTime
+            , playingMember = xis.memberUrl member.id
+            }
+            (UseBankedHoursVector << (PlayCreation_Result member))
+          else send <| OldBusinessVector <| OB_SegueA CheckInSession member
+      in
+        (sceneModel, cmd)
+
+    PlayCreation_Result member (Ok _) ->
+      (sceneModel, send <| OldBusinessVector <| OB_SegueA CheckInSession member)
+
+    WillVolunteer_Clicked member ->
+      -- TODO: What do we want to do here to track or encourage this pledge?
+      (sceneModel, send <| OldBusinessVector <| OB_SegueA CheckInSession member)
 
 
     -- FAILURES --------------------
 
+    PlayCreation_Result member (Err error) ->
+      ({sceneModel | badNews = [toString error]}, Cmd.none)
+
+    PlayList_Result member (Err error) ->
+      ({sceneModel | badNews = [toString error]}, Cmd.none)
 
 
 -----------------------------------------------------------------------------
@@ -136,14 +139,45 @@ view kioskModel =
       Nothing ->
         errorView kioskModel missingArguments
 
-      Just m ->
+      Just member ->
+        let
+          balance = Maybe.withDefault 0.0 member.data.worker.data.timeAcctBalance
+        in
+          if balance <= 0.0 then
+            view_BadBalance kioskModel member balance
+          else
+            view_GoodBalance kioskModel member balance
 
-        genericScene kioskModel
-          "Supporting Members Only"
-          "We are not currently open to the public"
-          (text "Hello!")
-          []  -- No buttons here. They will be woven into content.
-          []  -- No bad news. Scene will fail silently, but should log somewhere.
+
+view_GoodBalance kioskModel member balance =
+  genericScene kioskModel
+    "Your Banked Hours Balance"
+    ""
+    (div [sceneTextBlockStyle, sceneTextStyle]
+      [ vspace 60
+      , text <| "You have " ++ (toString balance) ++ " hour(s) banked! "
+      , text <| "Because we offer a 2-for-1 deal, that's good for " ++ (toString <| 2.0*balance) ++ " hour(s) of membership privileges."
+      , vspace 40
+      , text <| "If you want to use some of this credit, you'll need to CHECK OUT when you're done so we know how much time to deduct."
+      ]
+    )
+    [ButtonSpec "Got It!" (UseBankedHoursVector <| UseSomeHours_Clicked member) True]
+    kioskModel.useBankedHoursModel.badNews
+
+
+view_BadBalance kioskModel member balance =
+  genericScene kioskModel
+    "Your Banked Hours Balance"
+    ""
+    (div [sceneTextBlockStyle, sceneTextStyle]
+      [ vspace 60
+      , text <| "You have " ++ (toString balance) ++ " hour(s) banked. "
+      , text <| "You're going to need to do some volunteer work to build up your balance."
+      ]
+    )
+    [ ButtonSpec "I'll Volunteer" (UseBankedHoursVector <| WillVolunteer_Clicked member) True
+    ]
+    kioskModel.useBankedHoursModel.badNews
 
 
 -----------------------------------------------------------------------------

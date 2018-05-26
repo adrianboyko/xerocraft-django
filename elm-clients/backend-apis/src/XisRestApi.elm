@@ -17,6 +17,7 @@ module XisRestApi
     , Membership, MembershipData
     , MemberListFilter (..)
     , MembershipListFilter (..)
+    , Play, PlayData, PlayListFilter (..)
     , Session
     , Task, StaffingStatus(..), TaskData
     , TaskListFilter (..)
@@ -25,9 +26,8 @@ module XisRestApi
     , TimeBlockType, TimeBlockTypeData
     , VisitEvent, VisitEventDataOut
     , VisitEventType(..), VisitEventReason(..), VisitEventListFilter(..), VisitEventMethod(..)
-    , Work, WorkData
+    , Work, WorkData, WorkListFilter (..)
     , WorkNote, WorkNoteData
-    , WorkListFilter (..)
     , XisRestFlags
     )
 
@@ -72,6 +72,7 @@ type alias XisRestFlags =
   , logMessageUrl : ServiceUrl  -- This logs a message on the server side.
   , memberListUrl : ResourceListUrl
   , membershipListUrl : ResourceListUrl
+  , playListUrl : ResourceListUrl
   , taskListUrl : ResourceListUrl
   , timeBlocksUrl : ResourceListUrl  -- TODO: Should be timeBlockListUrl
   , timeBlockTypesUrl : ResourceListUrl  -- TODO: Should be timeBlockTypeListUrl
@@ -128,17 +129,21 @@ type alias Session msg =
   ----- RESOURCE GETTERS -----
   -- TODO: Getters should use "filters", like list filters. E.g. "ById" and "FromUrl"
   { getMembershipById : GetterById Membership msg
+  , getPlayByUrl : GetterFromUrl Play msg
   , getTaskById : GetterById Task msg
   , getTaskFromUrl : GetterFromUrl Task msg
   , getWorkFromUrl : GetterFromUrl Work msg
 
   ----- RESOURCE CREATORS -----
   , createClaim : Creator ClaimData Claim msg
+  , createPlay : Creator PlayData Play msg
   , createVisitEvent : Creator VisitEventDataOut VisitEvent msg
   , createWork : Creator WorkData Work msg
   , createWorkNote : Creator WorkNoteData WorkNote msg
 
   ----- RESOURCE DELETERS -----
+  , deletePlayById : DeleterById msg
+  , deletePlayByUrl : DeleterByUrl msg
   , deleteWorkById : DeleterById msg
   , deleteWorkByUrl : DeleterByUrl msg
 
@@ -147,6 +152,7 @@ type alias Session msg =
   , listDiscoveryMethods : Lister DiscoveryMethod msg
   , listMembers : FilteringLister MemberListFilter Member msg
   , listMemberships : FilteringLister MembershipListFilter Membership msg
+  , listPlays : FilteringLister PlayListFilter Play msg
   , listTasks : FilteringLister TaskListFilter Task msg
   , listTimeBlocks : Lister TimeBlock msg
   , listTimeBlockTypes : Lister TimeBlockType msg
@@ -188,17 +194,21 @@ createSession flags auth =
 
   ----- RESOURCE GETTERS -----
   { getMembershipById = getMembershipById flags auth
+  , getPlayByUrl = getPlayFromUrl flags auth
   , getTaskById = getTaskById flags auth
   , getTaskFromUrl = getTaskFromUrl flags auth
   , getWorkFromUrl = getWorkFromUrl flags auth
 
   ----- RESOURCE CREATORS -----
   , createClaim = createClaim flags auth
+  , createPlay = createPlay flags auth
   , createVisitEvent = createVisitEvent flags auth
   , createWork = createWork flags auth
   , createWorkNote = createWorkNote flags auth
 
   ----- RESOURCE DELETERS -----
+  , deletePlayById = deletePlayById flags auth
+  , deletePlayByUrl = deletePlayByUrl flags auth
   , deleteWorkById = deleteWorkById flags auth
   , deleteWorkByUrl = deleteWorkByUrl flags auth
 
@@ -207,6 +217,7 @@ createSession flags auth =
   , listDiscoveryMethods = listDiscoveryMethods flags auth
   , listMembers = listMembers flags auth
   , listMemberships = listMemberships flags auth
+  , listPlays = listPlays flags auth
   , listTasks = listTasks flags auth
   , listTimeBlocks = listTimeBlocks flags auth
   , listTimeBlockTypes = listTimeBlockTypes flags auth
@@ -613,7 +624,7 @@ createClaim flags auth claimData resultToMsg =
 
 
 -----------------------------------------------------------------------------
--- WORKS
+-- WORK
 -----------------------------------------------------------------------------
 
 type alias WorkData =
@@ -768,7 +779,7 @@ type alias WorkerData =
   , shouldIncludeAlarms : Bool
   , shouldNag : Bool
   , shouldSendStatements : Bool
-  , timeAcctBalance : Maybe Int
+  , timeAcctBalance : Maybe Float
   }
 
 
@@ -786,7 +797,7 @@ decodeWorkerData =
     |> required "should_include_alarms" Dec.bool
     |> required "should_nag" Dec.bool
     |> required "should_report_work_mtd" Dec.bool
-    |> required "time_acct_balance" (Dec.maybe Dec.int)
+    |> required "time_acct_balance" (Dec.maybe Dec.float)
 
 
 -----------------------------------------------------------------------------
@@ -841,6 +852,117 @@ decodeWorkNoteData =
     |> required "content" Dec.string
     |> required "work" DRF.decodeResourceUrl
     |> required "when_written" (Dec.string |> Dec.andThen (PointInTime.fromString >> DecX.fromResult))
+
+
+-----------------------------------------------------------------------------
+-- PLAY
+-----------------------------------------------------------------------------
+
+type alias PlayData =
+  { playingMember : ResourceUrl
+  , playDate : CalendarDate
+  , playDuration : Maybe Duration
+  , playStartTime : Maybe ClockTime
+  }
+
+
+type alias Play = Resource PlayData
+
+
+-- "Changing" nested records is awkward in Elm, so these "setters" are provided.
+setPlaysDuration : Maybe Duration -> Play -> Play
+setPlaysDuration newSetting oldPlay =
+  let
+    data = oldPlay.data
+    newData = {data | playDuration = newSetting}
+  in
+    {oldPlay | data = newData}
+
+
+type PlayListFilter
+  = PlayDurationIsNull Bool
+  | PlayingMemberEquals Int
+  | PlayDateEquals CalendarDate
+
+
+playListFilterToString : PlayListFilter -> String
+playListFilterToString filter =
+  case filter of
+    PlayDurationIsNull setting -> "play_duration__isnull=" ++ (setting |> toString |> String.toLower)
+    PlayingMemberEquals id ->  "playing_member=" ++ toString id
+    PlayDateEquals d -> "play_date=" ++ CalendarDate.toString d
+
+
+listPlays : XisRestFlags -> Authorization -> FilteringLister PlayListFilter Play msg
+listPlays flags auth  filters resultToMsg =
+  let
+    request = getRequest
+      auth
+      (filteredListUrl flags.playListUrl filters playListFilterToString)
+      (decodePageOf decodePlay)
+  in
+    Http.send resultToMsg request
+
+
+getPlayFromUrl : XisRestFlags -> Authorization -> GetterFromUrl Play msg
+getPlayFromUrl flags auth url resultToMsg =
+  let
+    request = getRequest auth url decodePlay
+  in
+    Http.send resultToMsg request
+
+
+createPlay : XisRestFlags -> Authorization -> Creator PlayData Play msg
+createPlay flags auth playData resultToMsg =
+  let
+    request = Http.request
+      { method = "POST"
+      , headers = [authenticationHeader auth]
+      , url = flags.playListUrl
+      , body = playData |> encodePlayData |> Http.jsonBody
+      , expect = Http.expectJson decodePlay
+      , timeout = Nothing
+      , withCredentials = False
+      }
+  in
+    Http.send resultToMsg request
+
+
+deletePlayById : XisRestFlags -> Authorization -> DeleterById msg
+deletePlayById flags auth id tagger =
+  let url = urlFromId flags.playListUrl id
+  in deletePlayByUrl flags auth url tagger
+
+
+deletePlayByUrl : XisRestFlags -> Authorization -> DeleterByUrl msg
+deletePlayByUrl flags auth url tagger =
+  let request = deleteRequest auth url
+  in Http.send tagger request
+
+
+encodePlayData : PlayData -> Enc.Value
+encodePlayData = Enc.object << playDataNVPs
+
+playDataNVPs : PlayData -> List (String, Enc.Value)
+playDataNVPs pd =
+  [ ( "playing_member", pd.playingMember |> Enc.string)
+  , ( "play_date", pd.playDate |> DRF.encodeCalendarDate)
+  , ( "play_duration", pd.playDuration |> EncX.maybe DRF.encodeDuration)
+  , ( "play_start_time", pd.playStartTime |> EncX.maybe DRF.encodeClockTime)
+  ]
+
+
+decodePlay : Dec.Decoder Play
+decodePlay = decodeResource decodePlayData
+
+
+decodePlayData : Dec.Decoder PlayData
+decodePlayData =
+  decode PlayData
+    |> required "playing_member" decodeResourceUrl
+    |> required "play_date" DRF.decodeCalendarDate
+    |> required "play_duration" (Dec.maybe DRF.decodeDuration)
+    |> required "play_start_time" (Dec.maybe DRF.decodeClockTime)
 
 
 -----------------------------------------------------------------------------

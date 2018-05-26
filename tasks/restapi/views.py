@@ -42,6 +42,29 @@ class ClaimViewSet(viewsets.ModelViewSet):
 
 
 # ---------------------------------------------------------------------------
+# PLAYs
+# ---------------------------------------------------------------------------
+
+class PlayViewSet(viewsets.ModelViewSet):
+    queryset = tm.Play.objects.all().order_by('id')
+    serializer_class = ts.PlaySerializer
+    permission_classes = [IsAuthenticatedOrReadOnly, tp.PlayPermission]
+    authentication_classes = [
+        ta.NagAuthentication,
+    ] + api_settings.DEFAULT_AUTHENTICATION_CLASSES
+    filter_class = filt.PlayFilter
+
+    def get_queryset(self):
+        user = self.request.user  # type: User
+
+        if user_is_kiosk(self.request):
+            return tm.Play.objects.all().order_by('id')
+        else:
+            # We used to trim down the set for non-kiosk users, but won't, for now.
+            return tm.Play.objects.all().order_by('id')
+
+
+# ---------------------------------------------------------------------------
 # TASKS
 # ---------------------------------------------------------------------------
 
