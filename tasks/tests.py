@@ -278,7 +278,7 @@ class Test_VerifyClaim_Scenario3(Test_VerifyClaim_Base):
             response.raise_for_status()
             self.assertTrue("already staffed" in response.text)
         except:
-            self.fail("Bad response to default assignee's nonsensical affirmative reply.")
+            self.fail("Bad (or no) response from: "+yes_url)
 
     def do_day_0(self):
         # Nothing happens on this day in this scenario
