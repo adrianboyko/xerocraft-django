@@ -99,15 +99,8 @@ update msg kioskModel =
         -- Note: idleSeconds == 0 means the click was on the scene that segued to here.
         let
           segueCmd = segueTo Welcome
-          msgToLog = "Start Scene clicked at: "++(toString pos)
-          logCmd =
-            kioskModel.xisSession.logMessage
-              "kiosk" -- The logger to be used on the servers side
-              XisApi.LL_Info  -- The logging level
-              msgToLog
-              IgnoreResultHttpErrorString  -- A no-op handler for Result Http.Error String
         in
-          (sceneModel, Cmd.batch [segueCmd, logCmd])
+          (sceneModel, segueCmd)
       else
         -- It's a mouse click on some other scene, so reset idle time.
         ({sceneModel | idleSeconds=0}, Cmd.none)
