@@ -696,9 +696,6 @@ class TestWindowedObject(TestCase):
     def test_task_and_ABC(self):
 
         def caselet(result, start=None, dur=None, sched=None, dead=None, start_leeway=zerodur, end_leeway=zerodur):
-            # TODO: If sched is None, this checks to see if we're in today's window.
-            # TODO: But it also needs to check to see if we're in YESTERDAY's window.
-            # TODO: This is because yesterday's window can spill over into today.
             self.t.work_start_time = start
             self.t.work_duration = dur
             self.t.scheduled_date = sched
