@@ -95,7 +95,7 @@ update msg kioskModel =
 
     PlayList_Result member (Ok {count}) ->
       let
-        cmd = if count > 0 -- Does user already have an open play record?
+        cmd = if count == 0 -- There is not yet a play record.
           then xis.createPlay
             { playDuration = Nothing
             , playDate = PointInTime.toCalendarDate kioskModel.currTime
