@@ -21,7 +21,11 @@ from django.utils.timezone import make_aware
 
 # Local
 from members.models import Member, VisitEvent, Membership
-from tasks.models import RecurringTaskTemplate, Claim, TimeAccountEntry, Work
+from tasks.models import (
+    RecurringTaskTemplate, TemplateEligibleClaimant2,
+    Claim, TimeAccountEntry, Work
+)
+
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -118,7 +122,10 @@ class IntegrationTest(LiveServerTestCase):
             priority=RecurringTaskTemplate.PRIO_HIGH
         )
         if default_claimant is not None:
-            template.eligible_claimants.add(default_claimant)
+            TemplateEligibleClaimant2.objects.create(
+                template=template,
+                member=default_claimant,
+            )
         template.anybody_is_eligible = anybody_is_eligible
         template.save()
         template.full_clean()
@@ -733,7 +740,7 @@ class IntegrationTest(LiveServerTestCase):
         self.clickTagContaining("button", "No Thanks")
         self.assert_on_YouCantEnter()
 
-        buttonText = "Hold on, I already paid!"
+        buttonText = "I already paid"
         print("  "+buttonText)
         checkin()
         self.clickTagContaining("button", buttonText)

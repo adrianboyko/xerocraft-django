@@ -120,7 +120,7 @@ view kioskModel =
           , vspace 20
           ]
         )
-        [ButtonSpec "Got It!" (OldBusinessVector <| OB_SegueB CheckInSession member claim) True]
+        [ButtonSpec "Got It!" (OldBusinessVector <| OB_SegueB CheckInSession member (CurrentClaim claim)) True]
         []  -- Never any bad news for this scene.
 
     _ ->

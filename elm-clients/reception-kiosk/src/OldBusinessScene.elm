@@ -58,7 +58,7 @@ type alias OldBusinessModel =
   { sessionType : Maybe SessionType
   , member : Maybe Member
   ---------------- Optional Args:
-  , thisSessionsClaim : Maybe Claim
+  , currentBusiness : CurrentBusiness
   ---------------- Other State:
   , allOldBusiness : List TaskClaimWork
   , selectedItem : Maybe TaskClaimWork
@@ -79,7 +79,7 @@ init flags =
     { sessionType = Nothing
     , member = Nothing
     ---------------- Optional Args:
-    , thisSessionsClaim = Nothing
+    , currentBusiness = NoCurrentBusiness
     ---------------- Other State:
     , allOldBusiness = []
     , selectedItem = Nothing
@@ -172,11 +172,11 @@ update msg kioskModel =
         , send <| WizardVector <| Push <| OldBusiness
         )
 
-      OB_SegueB sessionType member thisSessionsClaim ->
+      OB_SegueB sessionType member currentBusiness ->
         ( { sceneModel
           | sessionType = Just sessionType
           , member = Just member
-          , thisSessionsClaim = Just thisSessionsClaim
+          , currentBusiness = currentBusiness
           }
         , send <| WizardVector <| Push <| OldBusiness
         )
@@ -185,9 +185,10 @@ update msg kioskModel =
       OB_WorkingClaimsResult (Ok {results}) ->
         let
           -- We don't want the claim associated with the task the user just started, if any.
-          claims = case sceneModel.thisSessionsClaim of
-            Just c -> List.filter (\x -> x.id /= c.id) results
-            Nothing -> results
+          claims = case sceneModel.currentBusiness of
+            CurrentClaim c -> List.filter (\x -> x.id /= c.id) results
+            CurrentPlay p -> results
+            NoCurrentBusiness -> results
           tagger c = OldBusinessVector << (OB_NoteRelatedTask c)
           getTaskCmd c = xis.getTaskFromUrl c.data.claimedTask (tagger c)
           getTaskCmds = List.map getTaskCmd claims

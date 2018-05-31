@@ -211,9 +211,14 @@ type NewUserMsg
   | UpdatePassword1 String
   | UpdatePassword2 String
 
+type CurrentBusiness
+  = CurrentClaim Claim
+  | CurrentPlay Play
+  | NoCurrentBusiness
+
 type OldBusinessMsg
   = OB_SegueA SessionType Member
-  | OB_SegueB SessionType Member Claim
+  | OB_SegueB SessionType Member CurrentBusiness
   | OB_WorkingClaimsResult (Result Http.Error (PageOf Claim))
   | OB_DeleteSelection
   | OB_NoteRelatedTask Claim (Result Http.Error XisApi.Task)
