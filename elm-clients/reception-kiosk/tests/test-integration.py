@@ -4,6 +4,7 @@ from time import sleep
 from math import floor
 import hashlib
 from typing import Optional, Callable
+from decimal import Decimal
 
 # Third Party
 from django.core import management
@@ -23,9 +24,9 @@ from django.utils.timezone import make_aware
 from members.models import Member, VisitEvent, Membership
 from tasks.models import (
     RecurringTaskTemplate, TemplateEligibleClaimant2,
-    Claim, TimeAccountEntry, Work
+    Claim, Work, Task, Play,
+    TimeAccountEntry
 )
-
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -130,6 +131,36 @@ class IntegrationTest(LiveServerTestCase):
         template.save()
         template.full_clean()
         management.call_command("scheduletasks", "1")
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @classmethod
+    def create_simple_task(cls) -> Task:
+        task = Task.objects.create(
+            max_work=timedelta(hours=1),
+            short_desc="test"
+        )
+        return task
+
+    @classmethod
+    def claim_task(cls, task: Task, username: str) -> Claim:
+        user = User.objects.get(username=username)
+        claim = Claim.objects.create(
+            claimed_task=task,
+            claiming_member=user.member,
+            claimed_duration=timedelta(hours=1)
+        )
+        return claim
+
+    @classmethod
+    def work_claim(cls, claim: Claim, hours: int) -> Work:
+        work = Work.objects.create(
+            claim=claim,
+            work_date=date.today(),
+            work_duration=timedelta(hours=hours),
+            witness=claim.claiming_member
+        )
+        return work
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -266,6 +297,13 @@ class IntegrationTest(LiveServerTestCase):
     def assert_on_TimeSheetPt3Thanks(self) -> None:
         self.findTagContaining("p", "Volunteer Timesheet")
         self.findTagContaining("p", "Thanks for Witnessing")
+
+    def assert_on_UseBankedHours(self, hasHours: bool) -> None:
+        self.findTagContaining("p", "Your Banked Hours Balance")
+        if hasHours:
+            self.findTagContaining("button", "Got It!")
+        else:
+            self.findTagContaining("button", "I'll Volunteer")
 
     def assert_on_Waiver(self) -> None:
         self.findTagContaining("p", "Please read and sign the following waiver")
@@ -721,7 +759,7 @@ class IntegrationTest(LiveServerTestCase):
         self.assert_on_Start()
 
         buttonText = "Pay now at front desk"
-        print("  "+buttonText)
+        print("  "+buttonText+" (user pays)")
         checkin()
         self.clickTagContaining("button", buttonText)
         self.assert_on_BuyNow()
@@ -733,7 +771,7 @@ class IntegrationTest(LiveServerTestCase):
         self.assert_on_CheckInDone()
 
         buttonText = "Pay now at front desk"
-        print("  "+buttonText)
+        print("  "+buttonText+" (user doesn't pay)")
         checkin()
         self.clickTagContaining("button", buttonText)
         self.assert_on_BuyNow()
@@ -745,6 +783,33 @@ class IntegrationTest(LiveServerTestCase):
         checkin()
         self.clickTagContaining("button", buttonText)
         self.assert_on_CheckInDone()
+
+        self.assertEqual(0, Play.objects.all().count())
+
+        buttonText = "Use banked hrs"
+        print("  "+buttonText+" (0 banked)")
+        checkin()
+        self.clickTagContaining("button", buttonText)
+        self.assert_on_UseBankedHours(False)
+        self.clickTagContaining("button", "I'll Volunteer")
+        self.assert_on_CheckInDone()
+
+        self.assertEqual(1, Play.objects.all().count())
+
+        task = self.create_simple_task()
+        claim = self.claim_task(task, self.EXISTING_USERNAME)
+        work = self.work_claim(claim, 1)
+
+        buttonText = "Use banked hrs"
+        print("  "+buttonText+" (>0 banked)")
+        checkin()
+        self.clickTagContaining("button", buttonText)
+        self.assert_on_UseBankedHours(True)
+        self.clickTagContaining("button", "Got It!")
+        self.assert_on_CheckInDone()
+
+        # This will still have count 1 because there's already an open play record.
+        self.assertEqual(1, Play.objects.all().count())
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
