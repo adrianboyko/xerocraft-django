@@ -112,7 +112,7 @@ update msg kioskModel =
 
     WillVolunteer_Clicked member ->
       -- TODO: What do we want to do here to track or encourage this pledge?
-      (sceneModel, send <| OldBusinessVector <| OB_SegueA CheckInSession member)
+      (sceneModel, send <| UseBankedHoursVector <| UseSomeHours_Clicked member)
 
 
     -- FAILURES --------------------
