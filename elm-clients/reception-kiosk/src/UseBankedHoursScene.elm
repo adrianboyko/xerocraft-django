@@ -107,8 +107,8 @@ update msg kioskModel =
       in
         (sceneModel, cmd)
 
-    PlayCreation_Result member (Ok _) ->
-      (sceneModel, send <| OldBusinessVector <| OB_SegueA CheckInSession member)
+    PlayCreation_Result member (Ok play) ->
+      (sceneModel, send <| OldBusinessVector <| OB_SegueB CheckInSession member <| SomePlay play)
 
     WillVolunteer_Clicked member ->
       -- TODO: What do we want to do here to track or encourage this pledge?

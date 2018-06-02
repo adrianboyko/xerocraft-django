@@ -40,24 +40,21 @@ type alias KioskModel a =
 type alias TaskInfoModel =
   ---------- REQ'D ARGS:
   { member : Maybe Member
-  , task : Maybe XisApi.Task
-  , claim : Maybe XisApi.Claim
+  , tcw : Maybe TaskClaimWork
   ---------- NO OTHER STATE
   }
 
 
 args x =
   ( x.member
-  , x.task
-  , x.claim
+  , x.tcw
   )
 
 
 init : Flags -> (TaskInfoModel, Cmd Msg)
 init flags =
   ( { member = Nothing
-    , task = Nothing
-    , claim = Nothing
+    , tcw = Nothing
     }
   , Cmd.none)
 
@@ -90,11 +87,10 @@ update msg kioskModel =
   let
     sceneModel = kioskModel.taskInfoModel
   in case msg of
-    TI_Segue (member, task, claim) ->
+    TI_Segue member tcw ->
       ( { sceneModel
         | member = Just member
-        , task = Just task
-        , claim = Just claim
+        , tcw = Just tcw
         }
       , send <| WizardVector <| Push TaskInfo
       )
@@ -108,19 +104,19 @@ view : KioskModel a -> Html Msg
 view kioskModel =
   case args kioskModel.taskInfoModel of
 
-    (Just member, Just task, Just claim) ->
+    (Just member, Just tcw) ->
       genericScene kioskModel
         "Thanks for Helping!"
         "Instructions Follow:"
         (div [instructionDiv]
           [ vspace 20
-          , p [instructionPara] [text task.data.instructions]
+          , p [instructionPara] [text tcw.task.data.instructions]
           , vspace 30
           , text "When the task is completed, return to this kiosk and use Check Out to close it."
           , vspace 20
           ]
         )
-        [ButtonSpec "Got It!" (OldBusinessVector <| OB_SegueB CheckInSession member (CurrentClaim claim)) True]
+        [ButtonSpec "Got It!" (OldBusinessVector <| OB_SegueB CheckInSession member <| SomeTCW tcw) True]
         []  -- Never any bad news for this scene.
 
     _ ->

@@ -243,10 +243,10 @@ update msg kioskModel =
       in
         ({sceneModel | claimOnSelectedTask=Just claim}, createWorkCmd)
 
-    TL_WorkInsertResult (Ok claim) ->
+    TL_WorkInsertResult (Ok w) ->
       case (sceneModel.member, sceneModel.selectedTask, sceneModel.claimOnSelectedTask) of
         (Just m, Just t, Just c) ->
-          (sceneModel, send <| TaskInfoVector <| TI_Segue (m, t, c))
+          (sceneModel, send <| TaskInfoVector <| TI_Segue m (TaskClaimWork t c w))
         (_, _, _) ->
           (sceneModel, send <| ErrorVector <| ERR_Segue "Missing member or selected task.")
 

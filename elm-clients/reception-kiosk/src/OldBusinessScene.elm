@@ -58,10 +58,10 @@ type alias OldBusinessModel =
   { sessionType : Maybe SessionType
   , member : Maybe Member
   ---------------- Optional Args:
-  , currentBusiness : CurrentBusiness
+  , currentBusiness : Maybe Business
   ---------------- Other State:
-  , allOldBusiness : List TaskClaimWork
-  , selectedItem : Maybe TaskClaimWork
+  , allOldBusiness : List Business
+  , selectedBusiness : Maybe Business
   , workResponsesExpected : Maybe Int
   , workResponsesReceived : Int
   }
@@ -79,10 +79,10 @@ init flags =
     { sessionType = Nothing
     , member = Nothing
     ---------------- Optional Args:
-    , currentBusiness = NoCurrentBusiness
+    , currentBusiness = Nothing
     ---------------- Other State:
     , allOldBusiness = []
-    , selectedItem = Nothing
+    , selectedBusiness = Nothing
     , workResponsesExpected = Nothing
     , workResponsesReceived = 0
     }
@@ -138,20 +138,24 @@ checkForOldBusiness : KioskModel a -> (OldBusinessModel, Cmd Msg)
 checkForOldBusiness kioskModel =
   let
     sceneModel = kioskModel.oldBusinessModel
-    tagging = (OldBusinessVector << OB_WorkingClaimsResult)
-    cmd = kioskModel.xisSession.listClaims
+    cmd1 = kioskModel.xisSession.listClaims
       [ ClaimingMemberEquals <| memberId kioskModel
       , ClaimStatusEquals WorkingClaimStatus
       ]
-      tagging
+      (OldBusinessVector << OB_WorkingClaimsResult)
+    cmd2 = kioskModel.xisSession.listPlays
+      [ PlayingMemberEquals <| memberId kioskModel
+      , PlayDurationIsNull True
+      ]
+      (OldBusinessVector << OB_OpenPlaysResult)
   in
     ( { sceneModel
       | allOldBusiness=[]
-      , selectedItem=Nothing
+      , selectedBusiness=Nothing
       , workResponsesExpected=Nothing -- We'll know when we get the claims.
       , workResponsesReceived=0
       }
-    , cmd
+    , Cmd.batch [cmd1, cmd2]
     )
 
 
@@ -176,7 +180,7 @@ update msg kioskModel =
         ( { sceneModel
           | sessionType = Just sessionType
           , member = Just member
-          , currentBusiness = currentBusiness
+          , currentBusiness = Just currentBusiness
           }
         , send <| WizardVector <| Push <| OldBusiness
         )
@@ -184,11 +188,11 @@ update msg kioskModel =
       -- This case starts the lookup of tasks corresponding to the open claims.
       OB_WorkingClaimsResult (Ok {results}) ->
         let
-          -- We don't want the claim associated with the task the user just started, if any.
+          -- We don't want the business that the user just started, if any.
           claims = case sceneModel.currentBusiness of
-            CurrentClaim c -> List.filter (\x -> x.id /= c.id) results
-            CurrentPlay p -> results
-            NoCurrentBusiness -> results
+            Just (SomeTCW tcw) -> List.filter (\x -> x.id /= tcw.claim.id) results
+            Just (SomePlay p) -> results
+            Nothing -> results
           tagger c = OldBusinessVector << (OB_NoteRelatedTask c)
           getTaskCmd c = xis.getTaskFromUrl c.data.claimedTask (tagger c)
           getTaskCmds = List.map getTaskCmd claims
@@ -212,7 +216,7 @@ update msg kioskModel =
       -- And that work record should have blank duration.
       OB_NoteRelatedWork task claim (Ok work) ->
         let
-          allOldBusinessPlus = TaskClaimWork task claim work :: sceneModel.allOldBusiness
+          allOldBusinessPlus = SomeTCW (TaskClaimWork task claim work) :: sceneModel.allOldBusiness
           newCount = sceneModel.workResponsesReceived + 1
           newSceneModel = case work.data.workDuration of
             Nothing -> {sceneModel | allOldBusiness=allOldBusinessPlus, workResponsesReceived=newCount}
@@ -221,9 +225,9 @@ update msg kioskModel =
           considerSkip newSceneModel
 
       OB_DeleteSelection ->
-        case sceneModel.selectedItem of
+        case sceneModel.selectedBusiness of
 
-          Just {task, claim, work} ->
+          Just (SomeTCW {task, claim, work}) ->
             let
               cmd1 = xis.deleteWorkById work.id (OldBusinessVector << OB_NoteWorkDeleted)
               cmd2 =
@@ -235,9 +239,14 @@ update msg kioskModel =
                     (OldBusinessVector << OB_NoteClaimUpdated)
                 else
                   Cmd.none
-              newModel = {sceneModel | selectedItem=Nothing }
+              newModel = {sceneModel | selectedBusiness=Nothing }
             in
               (newModel, Cmd.batch [cmd1, cmd2])
+
+          Just (SomePlay p) ->
+            ( sceneModel
+            , xis.deletePlayById p.id (OldBusinessVector << OB_NotePlayDeleted)
+            )
 
           Nothing ->
             -- Shouldn't get here since there must be a selction in order to click "DELETE"
@@ -250,16 +259,14 @@ update msg kioskModel =
       OB_NoteWorkDeleted _ ->
         checkForOldBusiness kioskModel
 
-      OB_ToggleItem claimId ->
-        let
-          finder item = item.claim.id == claimId
-          item = ListX.find finder sceneModel.allOldBusiness
-        in
-          case item of
-            Nothing ->
-              (sceneModel, Cmd.none)
-            Just i ->
-              ({sceneModel | selectedItem = Just i}, Cmd.none)
+      OB_ToggleItem item ->
+        ({sceneModel | selectedBusiness = Just item}, Cmd.none)
+
+      OB_OpenPlaysResult (Ok _) ->
+        (sceneModel, Cmd.none)
+
+      OB_NotePlayDeleted (Ok _) ->
+        (sceneModel, Cmd.none)
 
       ----------------------------------
 
@@ -285,6 +292,14 @@ update msg kioskModel =
 
       OB_NoteClaimUpdated (Err error) ->
         -- This is a non-critical error, so let's log it and do nothing.
+        let _ = Debug.log "WARNING" (toString error)
+        in (sceneModel, Cmd.none)
+
+      OB_OpenPlaysResult (Err error) ->
+        let _ = Debug.log "WARNING" (toString error)
+        in (sceneModel, Cmd.none)
+
+      OB_NotePlayDeleted (Err error) ->
         let _ = Debug.log "WARNING" (toString error)
         in (sceneModel, Cmd.none)
 
@@ -343,10 +358,19 @@ view kioskModel =
               , viewOldBusinessChoices kioskModel sceneModel.allOldBusiness
               ]
             )
-            ( case sceneModel.selectedItem of
-              Just tcw ->
+            ( case sceneModel.selectedBusiness of
+              Just (SomeTCW tcw) ->
                 [ ButtonSpec finish (TimeSheetPt1Vector <| TS1_Segue sessionType member tcw) True
                 , ButtonSpec delete (OldBusinessVector <| OB_DeleteSelection) True
+                , skipSpec
+                ]
+              Just (SomePlay play) ->
+--                [ ButtonSpec finish (PlaySheetVector <| PS_Segue sessionType member play) True
+--                , ButtonSpec delete (OldBusinessVector <| OB_DeleteSelection) True
+--                , skipSpec
+--                ]
+                [ ButtonSpec finish NoOp False
+                , ButtonSpec delete NoOp False
                 , skipSpec
                 ]
               Nothing ->
@@ -366,7 +390,7 @@ view kioskModel =
         []
 
 
-viewOldBusinessChoices : KioskModel a -> List TaskClaimWork -> Html Msg
+viewOldBusinessChoices : KioskModel a -> List Business -> Html Msg
 viewOldBusinessChoices kioskModel business =
   let
     sceneModel = kioskModel.oldBusinessModel
@@ -377,25 +401,37 @@ viewOldBusinessChoices kioskModel business =
           div [businessDivStyle "#dddddd"]
             [ Toggles.radio MdlVector [idxOldBusinessScene, index] kioskModel.mdl
               [ Toggles.value
-                (case sceneModel.selectedItem of
+                (case sceneModel.selectedBusiness of
+                  Just (SomeTCW tcw) -> SomeTCW tcw == item
+                  Just (SomePlay p) -> SomePlay p == item
                   Nothing -> False
-                  Just i -> i == item
                 )
-              , Options.onToggle (OldBusinessVector <| OB_ToggleItem <| item.claim.id)
+              , Options.onToggle (OldBusinessVector <| OB_ToggleItem <| item)
               ]
-              [viewTaskClaimWork item]
+              [viewBusiness item]
             ]
         )
         business
       )
 
-viewTaskClaimWork : TaskClaimWork -> Html Msg
-viewTaskClaimWork {task, claim} =
+
+viewBusiness : Business -> Html Msg
+viewBusiness business =
+  case business of
+    SomeTCW tcw -> viewTCW tcw
+    SomePlay p -> viewPlay p
+
+viewTCW : TaskClaimWork -> Html Msg
+viewTCW {task, claim} =
   let
     tDesc = task.data.shortDesc
     tDate = task.data.scheduledDate |> CD.format "%a %b %ddd" -- |> CD.superOrdinals
   in
     text <| tDesc ++ ", " ++ tDate
+
+viewPlay : Play -> Html Msg
+viewPlay play =
+  text "This is a play item"
 
 
 taskPhrase : List a -> String

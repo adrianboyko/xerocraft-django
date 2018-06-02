@@ -211,19 +211,20 @@ type NewUserMsg
   | UpdatePassword1 String
   | UpdatePassword2 String
 
-type CurrentBusiness
-  = CurrentClaim Claim
-  | CurrentPlay Play
-  | NoCurrentBusiness
+type Business
+  = SomeTCW TaskClaimWork
+  | SomePlay Play
 
 type OldBusinessMsg
   = OB_SegueA SessionType Member
-  | OB_SegueB SessionType Member CurrentBusiness
+  | OB_SegueB SessionType Member Business
   | OB_WorkingClaimsResult (Result Http.Error (PageOf Claim))
+  | OB_OpenPlaysResult (Result Http.Error (PageOf Play))
   | OB_DeleteSelection
   | OB_NoteRelatedTask Claim (Result Http.Error XisApi.Task)
   | OB_NoteRelatedWork XisApi.Task Claim (Result Http.Error Work)
-  | OB_ToggleItem Int
+  | OB_NotePlayDeleted (Result Http.Error String)
+  | OB_ToggleItem Business
   | OB_NoteWorkDeleted (Result Http.Error String)
   | OB_NoteClaimUpdated (Result Http.Error Claim)
 
@@ -251,7 +252,7 @@ type StartMsg
   | SS_MouseClick Position
 
 type TaskInfoMsg
-  = TI_Segue (Member, XisApi.Task, Claim)
+  = TI_Segue Member TaskClaimWork
 
 type TaskListMsg
   = TL_Segue Member
