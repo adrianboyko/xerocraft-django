@@ -263,7 +263,8 @@ class IntegrationTest(LiveServerTestCase):
         self.findTagContaining("p", "Choose an id and password for our website:")
 
     def assert_on_OldBusiness(self) -> None:
-        self.findTagContaining("p", "Let's Review Them")
+        self.findTagContaining("p", "We Need Some Info From You")
+        self.findTagContaining("p", "(to update your hours balance)")
 
     def assert_on_PublicHours(self) -> None:
         self.findTagContaining("p", "Our Public Access Hours")
@@ -419,7 +420,7 @@ class IntegrationTest(LiveServerTestCase):
     def oldBusiness_to_timeSheetPt1_viaTaskName(self, taskname: str) -> None:
         self.assert_on_OldBusiness()  # Precondition
         self.clickTagContaining("span", taskname)
-        self.clickTagContaining("button", "Finish")
+        self.clickTagContaining("button", "Log")
         self.assert_on_TimeSheetPt1()  # Postcondition
 
     def reasonForVisit_to_next_viaReason(self, reason: str) -> None:

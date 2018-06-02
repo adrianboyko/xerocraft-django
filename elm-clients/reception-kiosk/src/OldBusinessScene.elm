@@ -262,11 +262,22 @@ update msg kioskModel =
       OB_ToggleItem item ->
         ({sceneModel | selectedBusiness = Just item}, Cmd.none)
 
-      OB_OpenPlaysResult (Ok _) ->
-        (sceneModel, Cmd.none)
+      OB_OpenPlaysResult (Ok {results}) ->
+        let
+          -- We don't want the business that the user just started, if any.
+          plays = case sceneModel.currentBusiness of
+            Just (SomePlay p) -> List.filter (\x -> x.id /= p.id) results
+            Just (SomeTCW _) -> results
+            Nothing -> results
+          someOldBusiness = sceneModel.allOldBusiness
+          moreOldBusiness = List.map SomePlay plays
+        in
+          ( {sceneModel | allOldBusiness = List.append someOldBusiness moreOldBusiness}
+          , Cmd.none
+          )
 
       OB_NotePlayDeleted (Ok _) ->
-        (sceneModel, Cmd.none)
+        checkForOldBusiness kioskModel
 
       ----------------------------------
 
@@ -339,22 +350,17 @@ view kioskModel =
           blankGenericScene kioskModel
         else
           let
-            tPhrase = taskPhrase sceneModel.allOldBusiness
-            finish = "Finish"
+            finish = "Log"
             delete = "Delete"
             skipSpec = ButtonSpec "Skip" (msgForSegueToDone sessionType member) True
           in
             genericScene kioskModel
-            ("You Have " ++ tPhrase ++ " In Progress!")
-            "Let's Review Them"
+            "We Need Some Info From You"
+            "(to update your hours balance)"
             ( div [sceneTextStyle]
               [ vspace 25
-              , text ("Select any that is already completed")
-              , vspace 0
-              , text "and then click 'FINISH' to fill in a timesheet"
-              , vspace 0
-              , text "or 'DELETE' if it was not actually worked."
-              , vspace 20
+              , text ("Select an item below then click 'LOG' to fill in a timesheet.")
+              , vspace 40
               , viewOldBusinessChoices kioskModel sceneModel.allOldBusiness
               ]
             )
@@ -365,12 +371,8 @@ view kioskModel =
                 , skipSpec
                 ]
               Just (SomePlay play) ->
---                [ ButtonSpec finish (PlaySheetVector <| PS_Segue sessionType member play) True
---                , ButtonSpec delete (OldBusinessVector <| OB_DeleteSelection) True
---                , skipSpec
---                ]
-                [ ButtonSpec finish NoOp False
-                , ButtonSpec delete NoOp False
+                [ ButtonSpec finish NoOp False  -- [ ButtonSpec finish (PlaySheetVector <| PS_Segue sessionType member play) True
+                , ButtonSpec delete (OldBusinessVector <| OB_DeleteSelection) True
                 , skipSpec
                 ]
               Nothing ->
@@ -421,6 +423,7 @@ viewBusiness business =
     SomeTCW tcw -> viewTCW tcw
     SomePlay p -> viewPlay p
 
+
 viewTCW : TaskClaimWork -> Html Msg
 viewTCW {task, claim} =
   let
@@ -429,18 +432,13 @@ viewTCW {task, claim} =
   in
     text <| tDesc ++ ", " ++ tDate
 
+
 viewPlay : Play -> Html Msg
 viewPlay play =
-  text "This is a play item"
-
-
-taskPhrase : List a -> String
-taskPhrase l =
   let
-    n = List.length l
-    nStr = toString n
+    tDate = play.data.playDate |> CD.format "%a %b %ddd" -- |> CD.superOrdinals
   in
-    nStr ++ if n>1 then " Tasks" else " Task"
+    text <| "Membership Privileges, " ++ tDate
 
 
 -----------------------------------------------------------------------------
@@ -457,6 +455,7 @@ msgForSegueToDone sessionType member =
   case sessionType of
     CheckInSession -> CheckInDoneVector <| CID_Segue member
     CheckOutSession -> CheckOutDoneVector <| COD_Segue member
+
 
 segueToDone : OldBusinessModel -> Cmd Msg
 segueToDone sceneModel =
