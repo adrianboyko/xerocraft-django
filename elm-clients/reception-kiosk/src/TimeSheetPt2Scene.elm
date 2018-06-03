@@ -16,7 +16,7 @@ import Material
 import List.Nonempty exposing (Nonempty)
 
 -- Local
-import TimeSheetCommon exposing (infoDiv)
+import TimeSheetCommon as Common exposing (infoDiv)
 import XisRestApi as XisApi exposing (..)
 import Wizard.SceneUtils exposing (..)
 import Types exposing (..)
@@ -169,7 +169,7 @@ viewNormal kioskModel task claim work =
     sceneModel = kioskModel.timeSheetPt2Model
 
   in genericScene kioskModel
-    "Volunteer Timesheet"
+    Common.title
     "Please describe the work you did"
 
     ( div []

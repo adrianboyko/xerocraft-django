@@ -19,7 +19,7 @@ import Material
 import List.Nonempty exposing (Nonempty)
 
 -- Local
-import TimeSheetCommon exposing (infoDiv)
+import TimeSheetCommon as Common exposing (infoDiv)
 import XisRestApi as XisApi exposing (..)
 import Wizard.SceneUtils exposing (..)
 import Types exposing (..)
@@ -329,7 +329,7 @@ view_IsWitnessNeeded kioskModel task claim work =
 
   in genericScene kioskModel
 
-    "Volunteer Timesheet"
+    Common.title
     "Do you need this work to be witnessed?"
 
     ( div []
@@ -353,7 +353,7 @@ view_IdentifyWitness kioskModel task claim work witnessUname witnessPword =
 
   in genericScene kioskModel
 
-    "Volunteer Timesheet"
+    Common.title
     "Do you need this work to be witnessed?"
 
     ( div []
@@ -387,7 +387,7 @@ view_ThankWitness kioskModel witness =
       (Just sessionType, Just worker) ->
         genericScene kioskModel
 
-          "Volunteer Timesheet"
+          Common.title
           ("Thanks for Witnessing!")
 
           ( div [sceneTextStyle]

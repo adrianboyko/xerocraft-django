@@ -286,17 +286,24 @@ class IntegrationTest(LiveServerTestCase):
     def assert_on_TaskList(self) -> None:
         self.findTagContaining("p", "Choose a Task")
 
-    def assert_on_TimeSheetPt1(self) -> None:
+    def assert_on_TimeSheetPt1_forWork(self) -> None:
+        self.findTagContaining("p", "Timesheet")
         self.findTagContaining("p", "Let us know how long you worked!")
 
+    def assert_on_TimeSheetPt1_forPlay(self) -> None:
+        self.findTagContaining("p", "Timesheet")
+        self.findTagContaining("p", "How long did you use Xerocraft?")
+
     def assert_on_TimeSheetPt2(self) -> None:
+        self.findTagContaining("p", "Timesheet")
         self.findTagContaining("p", "Please describe the work you did")
 
     def assert_on_TimeSheetPt3(self) -> None:
+        self.findTagContaining("p", "Timesheet")
         self.findTagContaining("p", "Do you need this work to be witnessed?")
 
     def assert_on_TimeSheetPt3Thanks(self) -> None:
-        self.findTagContaining("p", "Volunteer Timesheet")
+        self.findTagContaining("p", "Timesheet")
         self.findTagContaining("p", "Thanks for Witnessing")
 
     def assert_on_UseBankedHours(self, hasHours: bool) -> None:
@@ -421,7 +428,7 @@ class IntegrationTest(LiveServerTestCase):
         self.assert_on_OldBusiness()  # Precondition
         self.clickTagContaining("span", taskname)
         self.clickTagContaining("button", "Log")
-        self.assert_on_TimeSheetPt1()  # Postcondition
+        self.assert_on_TimeSheetPt1_forWork()  # Postcondition
 
     def reasonForVisit_to_next_viaReason(self, reason: str) -> None:
         self.assert_on_ReasonForVisit()  # Precondition
@@ -472,7 +479,7 @@ class IntegrationTest(LiveServerTestCase):
         self.assert_on_TaskInfo()  # Postcondition
 
     def timeSheetPt1_to_next(self) -> None:
-        self.assert_on_TimeSheetPt1()  # Precondition
+        self.assert_on_TimeSheetPt1_forWork()  # Precondition
         self.clickTagContaining("button", "2")
         self.clickTagContaining("button", "00")
         self.clickTagContaining("button", "Submit")

@@ -4,6 +4,7 @@ module XisRestApi
     , djangoizeId
     , setClaimsDateVerified
     , setClaimsStatus
+    , setPlaysDuration
     , setWorksDuration
     , setWorksWitness
     --------------------
@@ -163,6 +164,7 @@ type alias Session msg =
   ----- RESOURCE REPLACERS
   , replaceClaim : Replacer Claim msg
   , replaceWork : Replacer Work msg
+  , replacePlay : Replacer Play msg
 
   ----- RESOURCE URLS -----
   , claimUrl : Int -> ResourceUrl
@@ -228,6 +230,7 @@ createSession flags auth =
   ----- RESOURCE REPLACERS -----
   , replaceClaim = replaceClaim flags auth
   , replaceWork = replaceWork flags auth
+  , replacePlay = replacePlay flags auth
 
   ----- RESOURCE URLS -----
   , claimUrl = urlFromId flags.claimListUrl
@@ -920,6 +923,22 @@ createPlay flags auth playData resultToMsg =
       , headers = [authenticationHeader auth]
       , url = flags.playListUrl
       , body = playData |> encodePlayData |> Http.jsonBody
+      , expect = Http.expectJson decodePlay
+      , timeout = Nothing
+      , withCredentials = False
+      }
+  in
+    Http.send resultToMsg request
+
+
+replacePlay : XisRestFlags -> Authorization -> Replacer Play msg
+replacePlay flags auth play resultToMsg =
+  let
+    request = Http.request
+      { method = "PUT"
+      , headers = [authenticationHeader auth]
+      , url = urlFromId flags.playListUrl play.id
+      , body = play.data |> encodePlayData |> Http.jsonBody
       , expect = Http.expectJson decodePlay
       , timeout = Nothing
       , withCredentials = False

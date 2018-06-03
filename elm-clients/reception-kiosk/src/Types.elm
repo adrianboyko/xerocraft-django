@@ -267,6 +267,7 @@ type TimeSheetPt1Msg
   | TS1_Submit SessionType Member Business
   | TS1_HrPad Int
   | TS1_MinPad Int
+  | TS1_ReplacePlay_Result (Result Http.Error Play)
 
 type TimeSheetPt2Msg
   = TS2_Segue SessionType Member TaskClaimWork

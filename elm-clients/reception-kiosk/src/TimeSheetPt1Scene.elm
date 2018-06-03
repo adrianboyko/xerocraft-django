@@ -21,7 +21,7 @@ import Update.Extra as UpdateX exposing (addCmd)
 import List.Nonempty exposing (Nonempty)
 
 -- Local
-import TimeSheetCommon exposing (infoDiv)
+import TimeSheetCommon as Common exposing (infoDiv)
 import XisRestApi as XisApi exposing (..)
 import Wizard.SceneUtils exposing (..)
 import Types exposing (..)
@@ -156,7 +156,7 @@ update msg kioskModel =
 
         (hrs, mins) ->
           let
-            dur = Time.hour * (toFloat hrs) + Time.minute * (toFloat mins)
+            dur = hrsAndMinsToDur hrs mins
             revisedWork = XisApi.setWorksDuration (Just dur) work
             tcw = TaskClaimWork task claim revisedWork
           in
@@ -172,17 +172,32 @@ update msg kioskModel =
 
         (hrs, mins) ->
           let
-            dur = Time.hour * (toFloat hrs) + Time.minute * (toFloat mins)
+            dur = hrsAndMinsToDur hrs mins
+            updatedPlay = play |> XisApi.setPlaysDuration (Just dur)
           in
             ( { sceneModel | badNews = [] }
-            , Cmd.none
+            , xis.replacePlay updatedPlay (TimeSheetPt1Vector << TS1_ReplacePlay_Result)
             )
 
     TS1_HrPad hr ->
-      ({sceneModel | hrsWorked=hr}, Cmd.none)
+      ( {sceneModel | hrsWorked=hr}
+      , Cmd.none
+      )
 
     TS1_MinPad mins ->
-      ({sceneModel | minsWorked=mins}, Cmd.none)
+      ( {sceneModel | minsWorked=mins}
+      , Cmd.none
+      )
+
+    TS1_ReplacePlay_Result (Ok _) ->
+      ( {sceneModel | badNews = []}
+      , popTo OldBusiness
+      )
+
+    TS1_ReplacePlay_Result (Err error) ->
+      ( {sceneModel | badNews=[toString error]}
+      , Cmd.none
+      )
 
 
 -----------------------------------------------------------------------------
@@ -226,9 +241,12 @@ normalView kioskModel sessionType member business =
   in
     genericScene kioskModel
 
-      "Volunteer Timesheet"
+      Common.title
 
-      "Let us know how long you worked!"
+      ( case business of
+          SomeTCW _ -> "Let us know how long you worked!"
+          SomePlay _ -> "How long did you use Xerocraft?"
+      )
 
       ( div []
         [ vspace 50
@@ -246,6 +264,14 @@ normalView kioskModel sessionType member business =
       [ ButtonSpec "Submit" (TimeSheetPt1Vector <| TS1_Submit sessionType member business) True]
 
       sceneModel.badNews
+
+
+-----------------------------------------------------------------------------
+-- UTILITY
+-----------------------------------------------------------------------------
+
+hrsAndMinsToDur hrs mins =
+  Time.hour * (toFloat hrs) + Time.minute * (toFloat mins)
 
 
 -----------------------------------------------------------------------------

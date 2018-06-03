@@ -1,4 +1,4 @@
-module TimeSheetCommon exposing (infoDiv)
+module TimeSheetCommon exposing (infoDiv, title)
 
 -- Standard
 import Html exposing (Html, text, div, span)
@@ -17,7 +17,7 @@ import Wizard.SceneUtils exposing (vspace, px, pt, textAreaColor, (=>), genericS
 import PointInTime exposing (PointInTime)
 
 -----------------------------------------------------------------------------
--- UTILITIES
+-- TYPES
 -----------------------------------------------------------------------------
 
 -- This type alias describes the type of kiosk model that this module requires.
@@ -84,8 +84,15 @@ infoDivForPlay curr play =
 
 
 -----------------------------------------------------------------------------
+-- CONSTANTS
+-----------------------------------------------------------------------------
+
+title = "Timesheet"
+
+-----------------------------------------------------------------------------
 -- STYLES
 -----------------------------------------------------------------------------
+
 
 infoToVerifyStyle = style
   [ "display" => "inline-block"
