@@ -174,7 +174,7 @@ viewNormal kioskModel task claim work =
 
     ( div []
       [ vspace 50
-      , infoDiv kioskModel.currTime task claim work Nothing
+      , infoDiv kioskModel.currTime (SomeTCW <| TaskClaimWork task claim work) Nothing
       , vspace 70
       , div [textAreaContainerStyle]
           [ sceneTextArea kioskModel idxOtherWorkDesc

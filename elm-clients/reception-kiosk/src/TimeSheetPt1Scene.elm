@@ -60,12 +60,15 @@ type alias TimeSheetPt1Model =
   ---------- Req'd Args:
   { sessionType : Maybe SessionType
   , member : Maybe Member
-  , tcw : Maybe TaskClaimWork
+  , business : Maybe Business
   ---------- Other State:
   , hrsWorked : Int
   , minsWorked : Int
   , badNews : List String
   }
+
+
+args model = (model.sessionType, model.member, model.business)
 
 
 init : Flags -> (TimeSheetPt1Model, Cmd Msg)
@@ -74,7 +77,7 @@ init flags =
     ------------ Req'd Args:
     { sessionType = Nothing
     , member = Nothing
-    , tcw = Nothing
+    , business = Nothing
     ------------ Other State:
     , hrsWorked = 0
     , minsWorked = 0
@@ -91,7 +94,7 @@ sceneWillAppear : KioskModel a -> Scene -> Scene -> (TimeSheetPt1Model, Cmd Msg)
 sceneWillAppear kioskModel appearing vanishing =
   let
     sceneModel = kioskModel.timeSheetPt1Model
-    selectedItem = sceneModel.tcw
+    selectedItem = sceneModel.business
 
   in case (appearing, vanishing, selectedItem) of
 
@@ -99,7 +102,7 @@ sceneWillAppear kioskModel appearing vanishing =
     -- dealing with a different T/C/W item when we get here. So reset this scene's state.
     (OldBusiness, _, _) ->
       ( { sceneModel
-        | tcw = Nothing
+        | business = Nothing
         , hrsWorked = 0
         , minsWorked = 0
         }
@@ -108,7 +111,7 @@ sceneWillAppear kioskModel appearing vanishing =
 
     (TimeSheetPt1, OldBusiness, Just _) ->
       ( { sceneModel
-        | tcw = selectedItem
+        | business = selectedItem
         }
       , Cmd.none
       )
@@ -125,6 +128,9 @@ sceneWillAppear kioskModel appearing vanishing =
 -- UPDATE
 -----------------------------------------------------------------------------
 
+needNonZeroDur = "Specify some hours and/or minutes of work."
+maybeDelete = "If you didn't work, hit BACK and delete this task."
+
 update : TimeSheetPt1Msg -> KioskModel a -> (TimeSheetPt1Model, Cmd Msg)
 update msg kioskModel =
   let
@@ -133,40 +139,44 @@ update msg kioskModel =
 
   in case msg of
 
-    TS1_Segue sessionType member tcw ->
+    TS1_Segue sessionType member business ->
       ( { sceneModel
         | sessionType = Just sessionType
         , member = Just member
-        , tcw = Just tcw
+        , business = Just business
         }
       , send <| WizardVector <| Push <| TimeSheetPt1
       )
 
-    TS1_Submit task claim work ->
-      let
-        needNonZeroDur = "Specify some hours and/or minutes of work."
-        maybeDelete = "If you didn't work, hit BACK and delete this task."
-      in
-        case (sceneModel.hrsWorked, sceneModel.minsWorked) of
+    TS1_Submit sessionType member (SomeTCW {task, claim, work}) ->
+      case (sceneModel.hrsWorked, sceneModel.minsWorked) of
 
-          (0, 0) ->
-            ({sceneModel | badNews=[needNonZeroDur, maybeDelete]}, Cmd.none)
+        (0, 0) ->
+          ({sceneModel | badNews=[needNonZeroDur, maybeDelete]}, Cmd.none)
 
-          (hrs, mins) ->
-            let
-              dur = Time.hour * (toFloat hrs) + Time.minute * (toFloat mins)
-              revisedWork = XisApi.setWorksDuration (Just dur) work
-              tcw = TaskClaimWork task claim revisedWork
-            in
-              case (sceneModel.sessionType, sceneModel.member) of
-                (Just sessionType, Just member) ->
-                  ( { sceneModel | tcw = Just tcw, badNews = []}
-                  , send <| TimeSheetPt2Vector <| TS2_Segue sessionType member tcw
-                  )
-                _ ->
-                  ( sceneModel
-                  , send <| ErrorVector <| ERR_Segue missingArguments
-                  )
+        (hrs, mins) ->
+          let
+            dur = Time.hour * (toFloat hrs) + Time.minute * (toFloat mins)
+            revisedWork = XisApi.setWorksDuration (Just dur) work
+            tcw = TaskClaimWork task claim revisedWork
+          in
+            ( { sceneModel | badNews = [] }
+            , send <| TimeSheetPt2Vector <| TS2_Segue sessionType member tcw
+            )
+
+    TS1_Submit sessionType member (SomePlay play) ->
+      case (sceneModel.hrsWorked, sceneModel.minsWorked) of
+
+        (0, 0) ->
+          ({sceneModel | badNews=[needNonZeroDur, maybeDelete]}, Cmd.none)
+
+        (hrs, mins) ->
+          let
+            dur = Time.hour * (toFloat hrs) + Time.minute * (toFloat mins)
+          in
+            ( { sceneModel | badNews = [] }
+            , Cmd.none
+            )
 
     TS1_HrPad hr ->
       ({sceneModel | hrsWorked=hr}, Cmd.none)
@@ -184,21 +194,23 @@ view kioskModel =
   let
     sceneModel = kioskModel.timeSheetPt1Model
   in
-    case (sceneModel.tcw) of
+    case args sceneModel of
 
-      Just {task, claim, work} ->
-        normalView kioskModel task claim work
+      (Just sessionType, Just member, Just business) ->
+        normalView kioskModel sessionType member business
 
-      Nothing ->
+      _ ->
         errorView kioskModel "Sorry, but something went wrong."
 
 
-normalView : KioskModel a -> XisApi.Task -> XisApi.Claim -> XisApi.Work -> Html Msg
-normalView kioskModel task claim work =
+normalView : KioskModel a -> SessionType -> Member -> Business -> Html Msg
+normalView kioskModel sessionType member business =
   let
     sceneModel = kioskModel.timeSheetPt1Model
     today = PointInTime.toCalendarDate kioskModel.currTime
-    workedToday = CalendarDate.equal today work.data.workDate
+    workedToday = case business of
+      SomeTCW tcw -> CalendarDate.equal today tcw.work.data.workDate
+      SomePlay p -> CalendarDate.equal today p.data.playDate
     hrButton h =
       td []
         [ padButton kioskModel
@@ -220,7 +232,7 @@ normalView kioskModel task claim work =
 
       ( div []
         [ vspace 50
-        , infoDiv kioskModel.currTime task claim work Nothing
+        , infoDiv kioskModel.currTime business Nothing
         , vspace 60
         , table [padStyle]
           [ tr [padHeaderStyle] [ td [colspan 3] [text "Hours"], td [] [text "&"], td [colspan 3] [text "Minutes"] ]
@@ -231,7 +243,7 @@ normalView kioskModel task claim work =
         ]
       )
 
-      [ ButtonSpec "Submit" (TimeSheetPt1Vector <| TS1_Submit task claim work) True]
+      [ ButtonSpec "Submit" (TimeSheetPt1Vector <| TS1_Submit sessionType member business) True]
 
       sceneModel.badNews
 

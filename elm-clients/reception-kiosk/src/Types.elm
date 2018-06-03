@@ -263,8 +263,8 @@ type TaskListMsg
   | TL_WorkInsertResult (Result Http.Error Work)
 
 type TimeSheetPt1Msg
-  = TS1_Segue SessionType Member TaskClaimWork
-  | TS1_Submit XisApi.Task Claim Work
+  = TS1_Segue SessionType Member Business
+  | TS1_Submit SessionType Member Business
   | TS1_HrPad Int
   | TS1_MinPad Int
 

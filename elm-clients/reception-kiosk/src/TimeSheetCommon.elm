@@ -12,7 +12,7 @@ import List.Nonempty as NonEmpty exposing (Nonempty)
 import Types exposing (..)
 import CalendarDate
 import Duration
-import XisRestApi exposing (Task, Claim, Work, WorkNoteData)
+import XisRestApi exposing (Task, Claim, Work, WorkNoteData, Play)
 import Wizard.SceneUtils exposing (vspace, px, pt, textAreaColor, (=>), genericScene)
 import PointInTime exposing (PointInTime)
 
@@ -35,8 +35,15 @@ type alias KioskModel a =
 -- UTILITIES
 -----------------------------------------------------------------------------
 
-infoDiv : PointInTime -> Task -> Claim -> Work -> Maybe String -> Html Msg
-infoDiv curr task claim work otherWorkDesc =
+infoDiv : PointInTime -> Business -> Maybe String -> Html Msg
+infoDiv curr business workDescStr =
+  case business of
+    SomeTCW {task, claim, work} -> infoDivForTCW curr task claim work workDescStr
+    SomePlay play -> infoDivForPlay curr play
+
+
+infoDivForTCW : PointInTime -> Task -> Claim -> Work -> Maybe String -> Html Msg
+infoDivForTCW curr task claim work otherWorkDesc =
   let
     today = PointInTime.toCalendarDate curr
     dateStr = CalendarDate.format "%a, %b %ddd" work.data.workDate
@@ -56,6 +63,23 @@ infoDiv curr task claim work otherWorkDesc =
             Nothing ->
               text ""
 
+      ]
+
+infoDivForPlay : PointInTime -> Play -> Html Msg
+infoDivForPlay curr play =
+  let
+    today = PointInTime.toCalendarDate curr
+    dateStr = CalendarDate.format "%a, %b %ddd" play.data.playDate
+    dateColor = if CalendarDate.equal today play.data.playDate then "black" else "red"
+    playDurStr =  case play.data.playDuration of
+      Nothing -> ""
+      Just dur -> Duration.toString dur ++ " on "
+  in
+    div [infoToVerifyStyle]
+      [ text ("Membership Privileges")
+      , vspace 20
+      , text playDurStr
+      , span [style ["color"=>dateColor]] [text dateStr]
       ]
 
 

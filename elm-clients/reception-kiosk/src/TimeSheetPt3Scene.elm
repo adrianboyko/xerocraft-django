@@ -334,7 +334,7 @@ view_IsWitnessNeeded kioskModel task claim work =
 
     ( div []
       [ vspace 50
-      , infoDiv kioskModel.currTime task claim work sceneModel.otherWorkDesc
+      , infoDiv kioskModel.currTime (SomeTCW <| TaskClaimWork task claim work) sceneModel.otherWorkDesc
       , vspace 70
       , p [sceneTextStyle] [text "If you want this work to apply to Work-Trade, you need to have it witnessed by a Staffer. If not, you can skip this step."]
       ]
@@ -358,7 +358,7 @@ view_IdentifyWitness kioskModel task claim work witnessUname witnessPword =
 
     ( div []
       [ vspace 50
-      , infoDiv kioskModel.currTime task claim work sceneModel.otherWorkDesc
+      , infoDiv kioskModel.currTime (SomeTCW <| TaskClaimWork task claim work) sceneModel.otherWorkDesc
       , vspace 70
       , (sceneTextField kioskModel idxWitnessUsername
           "Witness Username" witnessUname

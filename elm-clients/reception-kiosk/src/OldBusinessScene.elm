@@ -366,12 +366,12 @@ view kioskModel =
             )
             ( case sceneModel.selectedBusiness of
               Just (SomeTCW tcw) ->
-                [ ButtonSpec finish (TimeSheetPt1Vector <| TS1_Segue sessionType member tcw) True
+                [ ButtonSpec finish (TimeSheetPt1Vector <| TS1_Segue sessionType member (SomeTCW tcw)) True
                 , ButtonSpec delete (OldBusinessVector <| OB_DeleteSelection) True
                 , skipSpec
                 ]
               Just (SomePlay play) ->
-                [ ButtonSpec finish NoOp False  -- [ ButtonSpec finish (PlaySheetVector <| PS_Segue sessionType member play) True
+                [ ButtonSpec finish (TimeSheetPt1Vector <| TS1_Segue sessionType member (SomePlay play)) True
                 , ButtonSpec delete (OldBusinessVector <| OB_DeleteSelection) True
                 , skipSpec
                 ]
