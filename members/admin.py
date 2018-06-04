@@ -18,6 +18,7 @@ from members.models import (
     MembershipGiftCard, MembershipGiftCardReference, MembershipCampaign,
     DiscoveryMethod
 )
+from tasks.models import TemplateEligibleClaimant2  # TODO: Make these point at workers instead of members, so functionality can be moved to tasks/admin
 
 
 @admin.register(Tag)
@@ -107,6 +108,13 @@ class MemberNoteInline(admin.TabularInline):
     extra = 0
 
 
+# TODO: Should move to tasks/admin.py. Low priority.
+class TaskEligibilityInline(admin.TabularInline):
+    model = TemplateEligibleClaimant2
+    raw_id_fields = ['member', 'template']
+    extra = 0
+
+
 @admin.register(Member)
 class MemberAdmin(VersionAdmin):
 
@@ -190,7 +198,13 @@ class MemberAdmin(VersionAdmin):
 
     list_filter = [MemberTypeFilter, 'is_adult']
 
-    inlines = [MemberNoteInline, TaggingForMember, PushoverInline, MembershipInline]
+    inlines = [
+        MemberNoteInline,
+        TaggingForMember,
+        TaskEligibilityInline,  # TODO: Should move to WorkerAdmin. Low priority.
+        PushoverInline,
+        MembershipInline
+    ]
 
     class Media:
         css = {
