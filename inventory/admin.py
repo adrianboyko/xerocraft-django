@@ -63,6 +63,7 @@ class ParkingPermitAdmin(VersionAdmin):
     raw_id_fields = ['owner', 'approving_member', 'location']
 
     search_fields = [
+        'short_desc',
         '^owner__auth_user__first_name',
         '^owner__auth_user__last_name',
         '^owner__auth_user__username',
