@@ -96,14 +96,16 @@ update msg kioskModel =
     PlayList_Result member (Ok {count}) ->
       let
         cmd = if count == 0 -- There is not yet a play record.
-          then xis.createPlay
-            { playDuration = Nothing
-            , playDate = PointInTime.toCalendarDate kioskModel.currTime
-            , playStartTime = Just <| PointInTime.toClockTime kioskModel.currTime
-            , playingMember = xis.memberUrl member.id
-            }
-            (UseBankedHoursVector << (PlayCreation_Result member))
-          else send <| OldBusinessVector <| OB_SegueA CheckInSession member
+          then
+            xis.createPlay
+              { playDuration = Nothing
+              , playDate = PointInTime.toCalendarDate kioskModel.currTime
+              , playStartTime = Just <| PointInTime.toClockTime kioskModel.currTime
+              , playingMember = xis.memberUrl member.id
+              }
+              (UseBankedHoursVector << (PlayCreation_Result member))
+          else
+            send <| OldBusinessVector <| OB_SegueA CheckInSession member
       in
         (sceneModel, cmd)
 

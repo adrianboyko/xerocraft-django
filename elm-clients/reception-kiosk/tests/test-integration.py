@@ -30,6 +30,15 @@ from tasks.models import (
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# GUI'S CONSTANT STRINGS
+
+USE_BANKED_HOURS      = "Use banked hrs"
+I_WILL_VOLUNTEER      = "I'll Volunteer"
+GOT_IT                = "Got It!"
+MEMBERSHIP_PRIVILEGES = "Membership Privileges"
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 class IntegrationTest(LiveServerTestCase):
 
@@ -309,9 +318,9 @@ class IntegrationTest(LiveServerTestCase):
     def assert_on_UseBankedHours(self, hasHours: bool) -> None:
         self.findTagContaining("p", "Your Banked Hours Balance")
         if hasHours:
-            self.findTagContaining("button", "Got It!")
+            self.findTagContaining("button", GOT_IT)
         else:
-            self.findTagContaining("button", "I'll Volunteer")
+            self.findTagContaining("button", I_WILL_VOLUNTEER)
 
     def assert_on_Waiver(self) -> None:
         self.findTagContaining("p", "Please read and sign the following waiver")
@@ -515,6 +524,14 @@ class IntegrationTest(LiveServerTestCase):
         self.findSingleTag("body").send_keys(">"+rfidstr)
         self.assert_on_RfidProblem()
 
+    def useBankedHours_to_checkInDone(self, has_hours: bool) -> None:
+        self.assert_on_UseBankedHours(has_hours)  # Precondition
+        if has_hours:
+            self.clickTagContaining("button", GOT_IT)
+        else:
+            self.clickTagContaining("button", I_WILL_VOLUNTEER)
+        self.assert_on_CheckInDone()  # Postcondition
+
     def waiver_to_creatingAcct(self) -> None:
         self.assert_on_Waiver()  # Precondition
         self.clickTagContaining("button", "Sign")
@@ -546,6 +563,9 @@ class IntegrationTest(LiveServerTestCase):
         self.clickTagContaining("button", "I'm new!")
         self.assert_on_HowDidYouHear()  # Postcondition
 
+    def youCantEnter_to_useBankedHours(self) -> None:
+        self.assert_on_YouCantEnter()  # Precondition
+        self.clickTagContaining("button", USE_BANKED_HOURS)
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # TESTS
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -794,26 +814,29 @@ class IntegrationTest(LiveServerTestCase):
 
         self.assertEqual(0, Play.objects.all().count())
 
-        buttonText = "Use banked hrs"
+        buttonText = USE_BANKED_HOURS
         print("  "+buttonText+" (0 banked)")
         checkin()
         self.clickTagContaining("button", buttonText)
         self.assert_on_UseBankedHours(False)
-        self.clickTagContaining("button", "I'll Volunteer")
+        self.clickTagContaining("button", I_WILL_VOLUNTEER)
         self.assert_on_CheckInDone()
 
         self.assertEqual(1, Play.objects.all().count())
 
+        # Clear out the play from previous step.
+        Play.objects.all().delete()
+        # And create some work to represent a positive balance.
         task = self.create_simple_task()
         claim = self.claim_task(task, self.EXISTING_USERNAME)
         work = self.work_claim(claim, 1)
 
-        buttonText = "Use banked hrs"
+        buttonText = USE_BANKED_HOURS
         print("  "+buttonText+" (>0 banked)")
         checkin()
         self.clickTagContaining("button", buttonText)
         self.assert_on_UseBankedHours(True)
-        self.clickTagContaining("button", "Got It!")
+        self.clickTagContaining("button", GOT_IT)
         self.assert_on_CheckInDone()
 
         # This will still have count 1 because there's already an open play record.
@@ -1084,3 +1107,34 @@ class IntegrationTest(LiveServerTestCase):
             self.checkIn_to_reasonForVisit_viaFlexId(self.EXISTING_USERNAME, self.EXISTING_USERNAME)
             self.reasonForVisit_to_next_viaReason(reason)
             self.checkInDone_to_start()
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    def test_StartPlayThenDelete(self):
+        print("Use Banked Hours, then Delete")
+
+        self.assertEqual(Play.objects.count(), 0)
+
+        # Check in and start using banked hours
+        self.load_to_start()
+        self.start_to_welcome()
+        self.welcome_to_checkIn()
+        self.checkIn_to_reasonForVisit_viaFlexId(self.EXISTING_USERNAME, self.EXISTING_USERNAME)
+        self.reasonForVisit_to_next_viaReason(self.REASON_MEMBER)
+        self.youCantEnter_to_useBankedHours()
+        self.useBankedHours_to_checkInDone(False)  # does not have hours
+        self.checkInDone_to_start()
+
+        self.assertEqual(VisitEvent.objects.count(), 1)
+        self.assertEqual(Play.objects.count(), 1)
+
+        # Check out and delete play record
+        self.start_to_welcome()
+        self.welcome_to_checkOut()
+        self.checkOut_to_next_viaUname(self.EXISTING_USERNAME)
+        self.oldBusiness_to_next_viaDelete(MEMBERSHIP_PRIVILEGES)
+        self.checkOutDone_to_start()
+
+        self.assertEqual(VisitEvent.objects.count(), 2)
+        self.assertEqual(Play.objects.count(), 0)
+

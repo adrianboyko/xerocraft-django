@@ -64,6 +64,7 @@ type alias OldBusinessModel =
   , selectedBusiness : Maybe Business
   , workResponsesExpected : Maybe Int
   , workResponsesReceived : Int
+  , gotSomePlays : Maybe Bool
   }
 
 
@@ -85,6 +86,7 @@ init flags =
     , selectedBusiness = Nothing
     , workResponsesExpected = Nothing
     , workResponsesReceived = 0
+    , gotSomePlays = Nothing
     }
   , Cmd.none
   )
@@ -150,10 +152,11 @@ checkForOldBusiness kioskModel =
       (OldBusinessVector << OB_OpenPlaysResult)
   in
     ( { sceneModel
-      | allOldBusiness=[]
-      , selectedBusiness=Nothing
-      , workResponsesExpected=Nothing -- We'll know when we get the claims.
-      , workResponsesReceived=0
+      | allOldBusiness = []
+      , selectedBusiness = Nothing
+      , workResponsesExpected = Nothing -- We'll know when we get the claims.
+      , workResponsesReceived = 0
+      , gotSomePlays = Nothing
       }
     , Cmd.batch [cmd1, cmd2]
     )
@@ -197,11 +200,12 @@ update msg kioskModel =
           getTaskCmd c = xis.getTaskFromUrl c.data.claimedTask (tagger c)
           getTaskCmds = List.map getTaskCmd claims
           expected = List.sum <| List.map (List.length << .workSet << .data) claims
+          newModel = {sceneModel | workResponsesExpected = Just expected}
         in
-          if expected == 0 then
-            (sceneModel, segueToDone sceneModel)
+          if expected > 0 then
+            (newModel, Cmd.batch getTaskCmds)
           else
-            ({sceneModel | workResponsesExpected=Just expected}, Cmd.batch getTaskCmds)
+            considerSkip newModel
 
       -- This case starts the lookup of works corresponding to the open claims.
       OB_NoteRelatedTask claim (Ok task) ->
@@ -264,17 +268,24 @@ update msg kioskModel =
 
       OB_OpenPlaysResult (Ok {results}) ->
         let
-          -- We don't want the business that the user just started, if any.
+          -- We don't want the business that the user started during this session, if any.
           plays = case sceneModel.currentBusiness of
             Just (SomePlay p) -> List.filter (\x -> x.id /= p.id) results
             Just (SomeTCW _) -> results
             Nothing -> results
           someOldBusiness = sceneModel.allOldBusiness
           moreOldBusiness = List.map SomePlay plays
+          newModel =
+            { sceneModel
+            | gotSomePlays = Just <| not <| List.isEmpty plays
+            , allOldBusiness = List.append someOldBusiness moreOldBusiness
+            }
         in
-          ( {sceneModel | allOldBusiness = List.append someOldBusiness moreOldBusiness}
-          , Cmd.none
-          )
+          case newModel.gotSomePlays of
+            Just True -> (newModel, Cmd.none)
+            Just False -> considerSkip newModel
+            -- The following is impossible because we set newModel.gotSomePlays to Just <something>, above.
+            Nothing -> (newModel, send <| ErrorVector <| ERR_Segue "Impossible state")
 
       OB_NotePlayDeleted (Ok _) ->
         checkForOldBusiness kioskModel
@@ -317,15 +328,20 @@ update msg kioskModel =
 
 considerSkip : OldBusinessModel -> (OldBusinessModel, Cmd Msg)
 considerSkip sceneModel =
-  case sceneModel.workResponsesExpected of
+  case (sceneModel.workResponsesExpected, sceneModel.gotSomePlays) of
 
-    Nothing ->
+    (Nothing, _) ->
       (sceneModel, Cmd.none)
 
-    Just expected ->
-      if sceneModel.workResponsesReceived == expected then
-        -- We have received all the expected responses, so decide whether or not to skip.
-        if List.length sceneModel.allOldBusiness > 0 then
+    (_, Nothing) ->
+      (sceneModel, Cmd.none)
+
+    (Just 0, Just False) ->
+      (sceneModel, segueToDone sceneModel)
+
+    (Just expectedResponses, Just gotPlays) ->
+      if sceneModel.workResponsesReceived == expectedResponses then
+        if List.length sceneModel.allOldBusiness > 0 || gotPlays then
           (sceneModel, Cmd.none)
         else
           (sceneModel, segueToDone sceneModel)

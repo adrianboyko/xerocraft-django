@@ -386,16 +386,21 @@ def debit_time_acct_for_play(sender, **kwargs):
             pass
 
         # Remember: Time accounting is denominated in hours.
-        time_cost = -0.5 * play.play_duration.total_seconds() / 3600.0  # float
-        explanation="{} hour(s) of play time".format(time_cost)
+        if play.play_duration is None:
+            hours_cost = -2.0  # DEFAULT VALUE, I.E. HALF OF 4.0
+            explanation="Unspecified play time! Defaulted to 4.0hrs"
+        else:
+            hours_played = play.play_duration.total_seconds() / 3600.0  # type: float
+            hours_cost = -0.5 * hours_played  # type: float
+            explanation="{} hour(s) of play time".format(hours_played)
 
         # Remember: Time accounting is denominated in hours.
         TimeAccountEntry.objects.create(
             type=TimeAccountEntry.TYPE_WITHDRAWAL,
             play=play,
-            explanation="{} hour(s) of play time".format(time_cost),
+            explanation=explanation,
             worker=player.worker,
-            change=time_cost,
+            change=hours_cost,
             when=play.datetime
         )
 
