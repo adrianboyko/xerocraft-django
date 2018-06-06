@@ -133,6 +133,7 @@ timeoutFor scene =
     CheckOut -> 60
     CheckOutDone -> 5
     CreatingAcct -> 300
+    DispenseSoda -> 60
     EmailInUse -> 300
     Error -> 600
     HowDidYouHear -> 300

@@ -68,6 +68,7 @@ type Scene
   | CheckOut
   | CheckOutDone
   | CreatingAcct
+  | DispenseSoda
   | EmailInUse
   | Error
   | HowDidYouHear
@@ -101,13 +102,14 @@ mdlIdBase scene =
     CheckOut -> 300
     CheckOutDone -> 400
     CreatingAcct -> 500
+    DispenseSoda -> 2900  -- Current Max
     EmailInUse -> 600
     Error -> 700
     HowDidYouHear -> 800
     NewMember -> 1000
     NewUser -> 1100
     OldBusiness -> 1200
-    PublicHours -> 2800     -- Current Max
+    PublicHours -> 2800
     ReasonForVisit -> 1300
     RfidHelper -> 2400
     SignUpDone -> 1500
@@ -177,6 +179,10 @@ type CreatingAcctMsg
   | CloneAttempted (Result Http.Error String)
   | IsAdultWasSet (Result Http.Error String)
   | DiscoveryMethodAdded (Result Http.Error String)
+
+type DispenseSodaMsg
+  = DS_Segue Member
+  | DS_Dispense Member Int
 
 type ErrorMsg
   = ERR_Segue String
@@ -327,6 +333,7 @@ type Msg
   | CheckOutDoneVector CheckOutDoneMsg
   | CheckOutVector CheckOutMsg
   | CreatingAcctVector CreatingAcctMsg
+  | DispenseSodaVector DispenseSodaMsg
   | EmailInUseVector EmailInUseMsg
   | ErrorVector ErrorMsg
   | HowDidYouHearVector HowDidYouHearMsg

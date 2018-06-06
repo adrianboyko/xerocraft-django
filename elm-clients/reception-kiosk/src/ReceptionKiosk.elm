@@ -22,6 +22,7 @@ import CheckInDoneScene
 import CheckOutScene
 import CheckOutDoneScene
 import CreatingAcctScene
+import DispenseSodaScene
 import EmailInUseScene
 import ErrorScene
 import HowDidYouHearScene
@@ -105,6 +106,7 @@ type alias Model =
   , checkOutModel        : CheckOutScene.CheckOutModel
   , checkOutDoneModel    : CheckOutDoneScene.CheckOutDoneModel
   , creatingAcctModel    : CreatingAcctScene.CreatingAcctModel
+  , dispenseSodaModel    : DispenseSodaScene.DispenseSodaModel
   , emailInUseModel      : EmailInUseScene.EmailInUseModel
   , errorModel           : ErrorScene.ErrorModel
   , howDidYouHearModel   : HowDidYouHearScene.HowDidYouHearModel
@@ -137,6 +139,7 @@ init f =
     (checkOutModel,        checkOutCmd       ) = CheckOutScene.init        f
     (checkOutDoneModel,    checkOutDoneCmd   ) = CheckOutDoneScene.init    f
     (creatingAcctModel,    creatingAcctCmd   ) = CreatingAcctScene.init    f
+    (dispenseSodaModel,    dispenseSodaCmd   ) = DispenseSodaScene.init    f
     (emailInUseModel,      emailInUseCmd     ) = EmailInUseScene.init      f
     (errorModel,           errorCmd          ) = ErrorScene.init           f
     (howDidYouHearModel,   howDidYouHearCmd  ) = HowDidYouHearScene.init   f
@@ -175,6 +178,7 @@ init f =
       , checkOutModel        = checkOutModel
       , checkOutDoneModel    = checkOutDoneModel
       , creatingAcctModel    = creatingAcctModel
+      , dispenseSodaModel    = dispenseSodaModel
       , emailInUseModel      = emailInUseModel
       , errorModel           = errorModel
       , howDidYouHearModel   = howDidYouHearModel
@@ -204,6 +208,7 @@ init f =
       , checkOutCmd
       , checkOutDoneCmd
       , creatingAcctCmd
+      , dispenseSodaCmd
       , emailInUseCmd
       , errorCmd
       , howDidYouHearCmd
@@ -451,6 +456,10 @@ update msg model =
       let (sm, cmd) = CreatingAcctScene.update x model
       in ({model | creatingAcctModel = sm}, cmd)
 
+    DispenseSodaVector x ->
+      let (sm, cmd) = DispenseSodaScene.update x model
+      in ({model | dispenseSodaModel = sm}, cmd)
+
     EmailInUseVector x ->
       let (sm, cmd) = EmailInUseScene.update x model
       in ({model | emailInUseModel = sm}, cmd)
@@ -546,6 +555,7 @@ view model =
     CheckOut        -> CheckOutScene.view        model
     CheckOutDone    -> CheckOutDoneScene.view    model
     CreatingAcct    -> CreatingAcctScene.view    model
+    DispenseSoda    -> DispenseSodaScene.view    model
     EmailInUse      -> EmailInUseScene.view      model
     Error           -> ErrorScene.view           model
     HowDidYouHear   -> HowDidYouHearScene.view   model
