@@ -1151,34 +1151,20 @@ class Sale(Journaler):
         Journaler.batch(je)
 
 
-class SaleLineItem:  # TODO: This class is not yet used but could simplify some of the logic in this module.
+class SaleLineItem (models.Model):
 
-    __metaclass__ = ABCMeta
+    sale = models.ForeignKey(Sale,
+        on_delete=models.CASCADE,  # No point in keeping the line item if the sale is gone.
+        help_text="The sale for which this is a line item.")
 
-    # sale = models.ForeignKey(Sale,
-    #     on_delete=models.CASCADE,  # No point in keeping the line item if the sale is gone.
-    #     help_text="The sale for which this is a line item.")
-    #
-    # sale_price = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
-    #     help_text="The UNIT price at which this/these item(s) sold.")
-    #
-    # qty_sold = models.IntegerField(null=True, blank=True, default=None,
-    #     help_text="The quantity of the item sold. Leave blank if quantity is not known.")
+    sale_price = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
+        help_text="The UNIT price at which this/these item(s) sold.")
 
-    @property
-    @abstractmethod
-    def sale(self) -> Sale:
-        raise NotImplementedError("Must be implemented in subclass.")
+    qty_sold = models.IntegerField(null=True, blank=True, default=None,
+        help_text="The quantity of the item sold. Leave blank if quantity is not known.")
 
-    @property
-    @abstractmethod
-    def sale_price(self) -> Decimal:
-        raise NotImplementedError("Must be implemented in subclass.")
-
-    @property
-    @abstractmethod
-    def qty_sold(self) -> Optional[int]:
-        raise NotImplementedError("Must be implemented in subclass.")
+    class Meta:
+        abstract = True
 
 
 class SaleNote(Note):
