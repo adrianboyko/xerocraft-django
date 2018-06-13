@@ -1,0 +1,27 @@
+
+
+#id_custom_details {width:400px}
+
+#id_script {width:400px}
+
+.aligned label {width:auto}
+
+form .aligned input + p.help, form .aligned textarea + p.help, form .aligned select + p.help, form .aligned input + div.help, form .aligned select + div.help {
+    margin-left: 0;
+}
+
+.aligned div.field-box.field-transaction_number label + div.readonly {
+    margin-left: 135px;
+}
+
+.aligned div.field-box.field-underwriter label + div.readonly {
+    margin-left: 85px;
+}
+
+div.field-box.field-end_date {
+    margin-left: 30px;
+}
+
+form .aligned div.help {
+    margin-left: 0;
+}
