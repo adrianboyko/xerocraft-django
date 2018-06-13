@@ -30,16 +30,18 @@ def is_nth_xxxday_of_month(some_date: date, nth: int) -> bool:
 # REVIEW: There are a few classes that have this form. Make an ABC?
 def days_of_week_str(obj) -> str:
     blank = '\u25CC'
-    return "%s%s%s%s%s%s%s" % (
-        "S" if obj.sunday else blank,
-        "M" if obj.monday else blank,
-        "T" if obj.tuesday else blank,
-        "W" if obj.wednesday else blank,
-        "T" if obj.thursday else blank,
-        "F" if obj.friday else blank,
-        "S" if obj.saturday else blank,
+    suffix = "s" if hasattr(obj, 'sundays') else ""
+    day_settings = (
+        "S" if getattr(obj, "sunday" + suffix) else blank,
+        "M" if getattr(obj, "monday" + suffix) else blank,
+        "T" if getattr(obj, "tuesday" + suffix) else blank,
+        "W" if getattr(obj, "wednesday" + suffix) else blank,
+        "T" if getattr(obj, "thursday" + suffix) else blank,
+        "F" if getattr(obj, "friday" + suffix) else blank,
+        "S" if getattr(obj, "saturday" + suffix) else blank,
     )
-
+    result = "%s%s%s%s%s%s%s" % day_settings
+    return result
 
 # REVIEW: There are a few classes that have this form. Make an ABC?
 def ordinals_of_month_str(obj) -> str:
