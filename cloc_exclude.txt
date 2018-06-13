@@ -15,8 +15,10 @@ abutils/migrations/
 books/migrations/
 bzw_ops/migrations/
 inventory/migrations/
+kmkr/migrations/
 members/migrations/
 modelmailer/migrations/
+soda/migrations/
 tasks/migrations/
 xis/migrations/
 
@@ -24,8 +26,10 @@ abutils/static/
 books/static/
 bzw_ops/static/
 inventory/static/
+kmkr/static/
 members/static/
 modelmailer/static/
+soda/static/
 tasks/static/
 xis/static/
 

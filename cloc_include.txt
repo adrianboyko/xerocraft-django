@@ -1,10 +1,13 @@
 abutils
+arduino
 books
 bzw_ops
 elm-clients
 flock
 inventory
+kmkr
 members
 modelmailer
+soda
 tasks
 xis
