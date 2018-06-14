@@ -22,6 +22,7 @@ class VendLogSerializer(serializers.ModelSerializer):
         model = sm.VendLog
         fields = (
             'id',
+            'when',
             'who_for',
             'product',
         )

@@ -5,7 +5,6 @@
 from django.contrib.auth.models import User
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
-from rest_framework.settings import api_settings
 
 # Local
 from members.models import Member
@@ -22,7 +21,7 @@ from xis.utils import user_is_kiosk
 class VendLogViewSet(viewsets.ModelViewSet):
     queryset = sm.VendLog.objects.all().order_by('id')
     serializer_class = ts.VendLogSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    permission_classes = [tp.VendLogPermission]
 
     def get_queryset(self):
 

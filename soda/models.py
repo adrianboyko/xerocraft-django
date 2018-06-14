@@ -1,6 +1,7 @@
 
 # Standard
 from typing import Optional
+import logging
 
 # Third-party
 from django.db import models
@@ -18,6 +19,9 @@ MQTT_PW = settings.BZWOPS_SODA_CONFIG.get('MQTT_PW', None)
 MQTT_TOPIC = settings.BZWOPS_SODA_CONFIG.get('MQTT_TOPIC', None)
 
 
+_logger = logging.getLogger("soda")
+
+
 class Product(models.Model):
 
     name = models.CharField(max_length=40, unique=True,
@@ -26,7 +30,12 @@ class Product(models.Model):
     def vend(self):
         bin = VendingMachineBin.for_product(self)
         if bin is not None:
-            bin.vend()
+            if settings.ISDEVHOST:
+                _logger.info("Would have vended from bin {}.".format(bin))
+            else:
+                bin.vend()
+        else:
+            _logger.warning("No bin specified for {}.".format(self.name))
 
     def __str__(self):
         return self.name
