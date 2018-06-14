@@ -1,14 +1,13 @@
 
 # Standard
+import logging
 
 # Third Party
-from django.contrib.auth.models import User
-from django.contrib.auth import authenticate
 from rest_framework import permissions
 from rest_framework.request import Request
+from django.shortcuts import get_object_or_404
 
 # Local
-import members.models as mm
 import soda.models as sm
 from xis.utils import user_is_kiosk
 
@@ -18,8 +17,11 @@ def getpk(uri: str) -> int:
     return int(uri.split('/')[-2])
 
 
+_logger = logging.getLogger("soda")
+
+
 # ---------------------------------------------------------------------------
-# PLAYS
+# VEND LOG
 # ---------------------------------------------------------------------------
 
 class VendLogPermission(permissions.BasePermission):
@@ -30,32 +32,28 @@ class VendLogPermission(permissions.BasePermission):
             return True
 
         if request.method in ["PATCH", "PUT"]:
-            # I believe this is safe because Django subsequently goes to has_object_permissions
-            return True
+            return False
 
-        if request.method == "POST":
-            if user_is_kiosk(request):
-                return True
-            # Web interface to REST API sends POST with no body to determine if
-            # a read/write or read-only interface should be presented. In general,
-            # anybody can post a claim, so we'll return True for this case.
+        if request.method == "POST" and user_is_kiosk(request):
+
+            # DRF's web interface sends POST with no body to determine if
+            # a read/write or read-only options should be presented.
             datalen = request.META.get('CONTENT_LENGTH', '0')  # type: str
             if datalen == '0' or datalen == '':
                 return True
 
+            product = get_object_or_404(sm.Product, pk=request.POST["product"])
+            return product.is_in_machine
+
         return False
 
-    def has_object_permission(self, request: Request, view, obj: sm.VendLog) -> bool:
+    def has_object_permission(self, request: Request, view, log: sm.VendLog) -> bool:
 
         if request.method in permissions.SAFE_METHODS:
             return True
 
         if request.method in ("PUT", "PATCH"):
-            return user_is_kiosk(request)
-
-        # REVIEW: Why is this needed?
-        if type(obj) is sm.VendLog:
-            return user_is_kiosk(request)
+            return False
 
         return False
 
