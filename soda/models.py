@@ -37,6 +37,10 @@ class Product(models.Model):
         else:
             _logger.warning("No bin specified for {}.".format(self.name))
 
+    @property
+    def is_in_machine(self) -> bool:
+        return len(self.vendingmachinebin_set.all()) > 0
+
     def __str__(self):
         return self.name
 
