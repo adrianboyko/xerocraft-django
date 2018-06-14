@@ -3,7 +3,6 @@
 
 # Third Party
 from django.contrib.auth.models import User
-from django.contrib.auth import authenticate
 from rest_framework import permissions
 from rest_framework.request import Request
 
@@ -148,8 +147,6 @@ def get_resnum_from_url(resurl: str) -> int:
 class WorkPermission(permissions.BasePermission):
 
     def has_object_permission(self, request: Request, view, obj: tm.Work) -> bool:
-
-        memb = request.user.member  # type: mm.Member
 
         if request.method in permissions.SAFE_METHODS:
             return True
