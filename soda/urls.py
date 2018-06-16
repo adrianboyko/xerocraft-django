@@ -10,6 +10,7 @@ import soda.restapi.views as restviews
 app_name = "soda"  # This is the app namespace not the app name.
 
 router = routers.DefaultRouter()
+router.register(r'product', restviews.ProductViewSet)
 router.register(r'vendlog', restviews.VendLogViewSet)
 
 urlpatterns = [

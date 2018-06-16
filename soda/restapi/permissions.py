@@ -42,7 +42,8 @@ class VendLogPermission(permissions.BasePermission):
             if datalen == '0' or datalen == '':
                 return True
 
-            product = get_object_or_404(sm.Product, pk=request.POST["product"])
+            product_id = getpk(request.data["product"])
+            product = get_object_or_404(sm.Product, pk=product_id)
             return product.is_in_machine
 
         return False

@@ -6,11 +6,10 @@ import logging
 # Third-party
 from django.db import models
 from django.conf import settings
-from django.contrib.auth.models import User
 import paho.mqtt.client as mqtt
 
 # Local
-
+from members.models import Member
 
 MQTT_SERVER = settings.BZWOPS_SODA_CONFIG.get('MQTT_SERVER', None)
 MQTT_PORT = settings.BZWOPS_SODA_CONFIG.get('MQTT_PORT', None)
@@ -97,7 +96,7 @@ class VendLog(models.Model):
     when = models.DateTimeField(auto_now_add=True,
         help_text="Date and time that the product was vended.")
 
-    who_for = models.ForeignKey(User, null=False,
+    who_for = models.ForeignKey(Member, null=False,
         on_delete=models.PROTECT,
         help_text="Who was this product vended for?")
 

@@ -102,7 +102,7 @@ view kioskModel =
     ("Welcome "++ friendlyName ++"!")
     "Choose one of the following:"
     (div [sceneTextStyle]
-      [ vspace 225
+      [ vspace 185
       , button <| ButtonSpec "Check In" (WelcomeForRfidVector <| W4R_CheckInClicked) True
       , button <| ButtonSpec "Check Out" (WelcomeForRfidVector <| W4R_CheckOutClicked) True
       , ( case sceneModel.member of
@@ -116,7 +116,7 @@ view kioskModel =
                  text ""
             Nothing -> text ""
         )
-      , vspace 225
+      , vspace 185
       , img [src "/static/members/cactuses.png", bottomImgStyle] []
       ]
     )
