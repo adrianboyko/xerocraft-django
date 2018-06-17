@@ -1,21 +1,24 @@
 
 # Standard
 from typing import Optional
+import logging
 
 # Third-party
 from django.db import models
 from django.conf import settings
-from django.contrib.auth.models import User
 import paho.mqtt.client as mqtt
 
 # Local
-
+from members.models import Member
 
 MQTT_SERVER = settings.BZWOPS_SODA_CONFIG.get('MQTT_SERVER', None)
 MQTT_PORT = settings.BZWOPS_SODA_CONFIG.get('MQTT_PORT', None)
 MQTT_USER = settings.BZWOPS_SODA_CONFIG.get('MQTT_USER', None)
 MQTT_PW = settings.BZWOPS_SODA_CONFIG.get('MQTT_PW', None)
 MQTT_TOPIC = settings.BZWOPS_SODA_CONFIG.get('MQTT_TOPIC', None)
+
+
+_logger = logging.getLogger("soda")
 
 
 class Product(models.Model):
@@ -26,7 +29,16 @@ class Product(models.Model):
     def vend(self):
         bin = VendingMachineBin.for_product(self)
         if bin is not None:
-            bin.vend()
+            if settings.ISDEVHOST:
+                _logger.info("Would have vended from bin {}.".format(bin))
+            else:
+                bin.vend()
+        else:
+            _logger.warning("No bin specified for {}.".format(self.name))
+
+    @property
+    def is_in_machine(self) -> bool:
+        return len(self.vendingmachinebin_set.all()) > 0
 
     def __str__(self):
         return self.name
@@ -84,7 +96,7 @@ class VendLog(models.Model):
     when = models.DateTimeField(auto_now_add=True,
         help_text="Date and time that the product was vended.")
 
-    who_for = models.ForeignKey(User, null=False,
+    who_for = models.ForeignKey(Member, null=False,
         on_delete=models.PROTECT,
         help_text="Who was this product vended for?")
 

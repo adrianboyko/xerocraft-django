@@ -21,6 +21,7 @@ import XisRestApi as XisApi exposing
   , Play
   , TimeBlock
   , TimeBlockType
+  , VendLog
   , VisitEvent
   , VisitEventReason
   , Work
@@ -183,6 +184,7 @@ type CreatingAcctMsg
 type DispenseSodaMsg
   = DS_Segue Member
   | DS_Dispense Member Int
+  | DS_Dispense_Result (Result Http.Error VendLog)
 
 type ErrorMsg
   = ERR_Segue String

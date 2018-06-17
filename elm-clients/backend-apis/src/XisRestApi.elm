@@ -25,6 +25,7 @@ module XisRestApi
     , TaskPriority (..)
     , TimeBlock, TimeBlockData
     , TimeBlockType, TimeBlockTypeData
+    , VendLog, VendLogData
     , VisitEvent, VisitEventDataOut
     , VisitEventType(..), VisitEventReason(..), VisitEventListFilter(..), VisitEventMethod(..)
     , Work, WorkData, WorkListFilter (..)
@@ -74,9 +75,11 @@ type alias XisRestFlags =
   , memberListUrl : ResourceListUrl
   , membershipListUrl : ResourceListUrl
   , playListUrl : ResourceListUrl
+  , productListUrl : ResourceListUrl
   , taskListUrl : ResourceListUrl
   , timeBlocksUrl : ResourceListUrl  -- TODO: Should be timeBlockListUrl
   , timeBlockTypesUrl : ResourceListUrl  -- TODO: Should be timeBlockTypeListUrl
+  , vendLogListUrl : ResourceListUrl
   , visitEventListUrl : ResourceListUrl
   , workListUrl : ResourceListUrl
   , workNoteListUrl : ResourceListUrl
@@ -138,6 +141,7 @@ type alias Session msg =
   ----- RESOURCE CREATORS -----
   , createClaim : Creator ClaimData Claim msg
   , createPlay : Creator PlayData Play msg
+  , createVendLog : Creator VendLogData VendLog msg
   , createVisitEvent : Creator VisitEventDataOut VisitEvent msg
   , createWork : Creator WorkData Work msg
   , createWorkNote : Creator WorkNoteData WorkNote msg
@@ -169,7 +173,9 @@ type alias Session msg =
   ----- RESOURCE URLS -----
   , claimUrl : Int -> ResourceUrl
   , memberUrl : Int -> ResourceUrl
+  , productUrl : Int  -> ResourceUrl
   , taskUrl : Int -> ResourceUrl
+  , vendLogUrl : Int -> ResourceUrl
   , visitEventUrl : Int -> ResourceUrl
   , workUrl : Int -> ResourceUrl
   , workNoteUrl : Int -> ResourceUrl
@@ -204,6 +210,7 @@ createSession flags auth =
   ----- RESOURCE CREATORS -----
   , createClaim = createClaim flags auth
   , createPlay = createPlay flags auth
+  , createVendLog = createVendLog flags auth
   , createVisitEvent = createVisitEvent flags auth
   , createWork = createWork flags auth
   , createWorkNote = createWorkNote flags auth
@@ -235,9 +242,11 @@ createSession flags auth =
   ----- RESOURCE URLS -----
   , claimUrl = urlFromId flags.claimListUrl
   , memberUrl = urlFromId flags.memberListUrl
+  , productUrl = urlFromId flags.productListUrl
   , taskUrl = urlFromId flags.taskListUrl
-  , workUrl = urlFromId flags.workListUrl
+  , vendLogUrl = urlFromId flags.visitEventListUrl
   , visitEventUrl = urlFromId flags.visitEventListUrl
+  , workUrl = urlFromId flags.workListUrl
   , workNoteUrl = urlFromId flags.workNoteListUrl
 
   ----- OTHER -----
@@ -1333,6 +1342,56 @@ decodeDiscoveryMethodData =
     |> required "name" Dec.string
     |> required "order" Dec.int
     |> required "visible" Dec.bool
+
+
+-----------------------------------------------------------------------------
+-- VEND LOG (SODA)
+-----------------------------------------------------------------------------
+
+type alias VendLogData =
+  { whoFor : ResourceUrl
+  , when : PointInTime
+  , product : ResourceUrl
+  }
+
+
+type alias VendLog = Resource VendLogData
+
+
+vendLogDataNVPs : XisRestFlags -> VendLogData -> List (String, Enc.Value)
+vendLogDataNVPs flags log =
+  [ ( "who_for", log.whoFor |> Enc.string)
+  , ( "when", log.when |> DRF.encodePointInTime )
+  , ( "product", log.product |> Enc.string )
+  ]
+
+createVendLog : XisRestFlags -> Authorization -> Creator VendLogData VendLog msg
+createVendLog flags auth vendLogData resultToMsg =
+  let
+    request = Http.request
+      { method = "POST"
+      , headers = [authenticationHeader auth]
+      , url = flags.vendLogListUrl
+      , body = vendLogData |> vendLogDataNVPs flags |> Enc.object |> Http.jsonBody
+      , expect = Http.expectJson decodeVendLog
+      , timeout = Nothing
+      , withCredentials = False
+      }
+  in
+    Http.send resultToMsg request
+
+
+decodeVendLog : Dec.Decoder VendLog
+decodeVendLog = decodeResource decodeVendLogData
+
+
+decodeVendLogData : Dec.Decoder VendLogData
+decodeVendLogData =
+  decode VendLogData
+    |> required "who_for" decodeResourceUrl
+    |> required "when" DRF.decodePointInTime
+    |> required "product" decodeResourceUrl
+
 
 
 -----------------------------------------------------------------------------

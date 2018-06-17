@@ -3,6 +3,7 @@
 
 # Third Party
 from rest_framework import serializers
+from django.contrib.auth.models import User
 
 # Local
 import tasks.models as tm

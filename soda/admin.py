@@ -12,7 +12,7 @@ from .models import Product, SkuToProductMapping, VendingMachineBin, VendLog
 
 @admin.register(Product)
 class ProductAdmin(VersionAdmin):
-    pass
+    list_display = ['pk', 'name']
 
 
 @admin.register(SkuToProductMapping)
