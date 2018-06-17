@@ -14,13 +14,13 @@ class ClaimSerializer(serializers.ModelSerializer):
 
     claimed_task = serializers.HyperlinkedRelatedField(
         view_name='task:task-detail',
-        queryset = tm.Task.objects.all(),
+        queryset=tm.Task.objects.all(),
         style={'base_template': 'input.html'},
     )
 
     claiming_member = serializers.HyperlinkedRelatedField(
         view_name='memb:member-detail',
-        queryset = mm.Member.objects.all(),
+        queryset=mm.Member.objects.all(),
         style={'base_template': 'input.html'},
     )
 
@@ -49,7 +49,7 @@ class PlaySerializer(serializers.ModelSerializer):
 
     playing_member = serializers.HyperlinkedRelatedField(
         view_name='memb:member-detail',
-        queryset = mm.Member.objects.all(),
+        queryset=mm.Member.objects.all(),
         style={'base_template': 'input.html'},
     )
 
@@ -162,7 +162,7 @@ class WorkSerializer(serializers.ModelSerializer):
         view_name='memb:member-detail',
         queryset=mm.Member.objects.all(),
         allow_null=True,
-        style = {'base_template': 'input.html'},
+        style={'base_template': 'input.html'},
     )
     notes = WorkNoteSerializer(many=True, read_only=True)
 
