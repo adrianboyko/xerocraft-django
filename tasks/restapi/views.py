@@ -31,15 +31,6 @@ class ClaimViewSet(viewsets.ModelViewSet):
     ] + api_settings.DEFAULT_AUTHENTICATION_CLASSES
     filter_fields = {'claiming_member', 'claimed_task', 'status'}
 
-    def get_queryset(self):
-        user = self.request.user  # type: User
-
-        if user_is_kiosk(self.request):
-            return tm.Claim.objects.all().order_by('id')
-        else:
-            # We used to trim down the set for non-kiosk users, but won't, for now.
-            return tm.Claim.objects.all().order_by('id')
-
 
 # ---------------------------------------------------------------------------
 # PLAYs
@@ -53,15 +44,6 @@ class PlayViewSet(viewsets.ModelViewSet):
         ta.NagAuthentication,
     ] + api_settings.DEFAULT_AUTHENTICATION_CLASSES
     filter_class = filt.PlayFilter
-
-    def get_queryset(self):
-        user = self.request.user  # type: User
-
-        if user_is_kiosk(self.request):
-            return tm.Play.objects.all().order_by('id')
-        else:
-            # We used to trim down the set for non-kiosk users, but won't, for now.
-            return tm.Play.objects.all().order_by('id')
 
 
 # ---------------------------------------------------------------------------
@@ -77,15 +59,6 @@ class TaskViewSet(viewsets.ModelViewSet):
     ] + api_settings.DEFAULT_AUTHENTICATION_CLASSES
     filter_fields = {'scheduled_date'}
 
-    def get_queryset(self):
-        user = self.request.user  # type: User
-
-        if user_is_kiosk(self.request):
-            return tm.Task.objects.all().order_by('id')
-        else:
-            # We used to trim down the set for non-kiosk users, but won't, for now.
-            return tm.Task.objects.all().order_by('id')
-
 
 # ---------------------------------------------------------------------------
 # WORKERS
@@ -96,14 +69,6 @@ class WorkerViewSet(viewsets.ModelViewSet):
     serializer_class = ts.WorkerSerializer
     permission_classes = [IsAuthenticatedOrReadOnly, tp.WorkerPermission]
     # filter_class = filt.WorkerFilter
-
-    def get_queryset(self):
-
-        if user_is_kiosk(self.request):
-            return tm.Worker.objects.all().order_by('id')
-        else:
-            # We used to trim down the set for non-kiosk users, but won't, for now.
-            return tm.Worker.objects.all().order_by('id')
 
 
 # ---------------------------------------------------------------------------
@@ -116,24 +81,8 @@ class WorkViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticatedOrReadOnly, tp.WorkPermission]
     filter_class = filt.WorkFilter
 
-    def get_queryset(self):
-
-        if user_is_kiosk(self.request):
-            return tm.Work.objects.all().order_by('id')
-        else:
-            # We used to trim down the set for non-kiosk users, but won't, for now.
-            return tm.Work.objects.all().order_by('id')
-
 
 class WorkNoteViewSet(viewsets.ModelViewSet):
     queryset = tm.WorkNote.objects.all().order_by('id')
     serializer_class = ts.WorkNoteSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
-
-    def get_queryset(self):
-
-        if user_is_kiosk(self.request):
-            return tm.WorkNote.objects.all().order_by('id')
-        else:
-            # We used to trim down the set for non-kiosk users, but won't, for now.
-            return tm.WorkNote.objects.all().order_by('id')
