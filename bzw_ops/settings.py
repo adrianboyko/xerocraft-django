@@ -151,6 +151,12 @@ MIDDLEWARE = (
     'whitenoise.middleware.WhiteNoiseMiddleware',
 )
 
+if DEBUG:
+    MIDDLEWARE += (
+        'debug_toolbar.middleware.DebugToolbarMiddleware',
+    )
+    INTERNAL_IPS = ('127.0.0.1', '192.168.0.101',)
+
 SESSION_COOKIE_AGE = 10*60
 SESSION_SECURITY_WARN_AFTER = 9*60
 SESSION_SAVE_EVERY_REQUEST = True
@@ -327,6 +333,11 @@ REST_FRAMEWORK = {
         'django_filters.rest_framework.DjangoFilterBackend',
         #'rest_framework.filters.DjangoFilterBackend',
         'rest_framework.filters.OrderingFilter',
+    ],
+
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+        #'rest_framework.renderers.BrowsableAPIRenderer',
     ],
 
     'PAGE_SIZE': 100,
