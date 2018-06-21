@@ -13,6 +13,7 @@ app_name = "tasks"  # This is the app namespace not the app name.
 router = routers.DefaultRouter()
 router.register(r'tasks', restviews.TaskViewSet)
 router.register(r'classes', restviews.ClassViewSet)
+router.register(r'classxpersons', restviews.ClassXPesronViewSet)
 router.register(r'claims', restviews.ClaimViewSet)
 router.register(r'plays', restviews.PlayViewSet)
 router.register(r'workers', restviews.WorkerViewSet)

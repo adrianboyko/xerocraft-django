@@ -95,3 +95,7 @@ class WorkNoteViewSet(viewsets.ModelViewSet):
 class ClassViewSet(viewsets.ModelViewSet):
     queryset = tm.Class.objects.all().order_by('id')
     serializer_class = ts.ClassSerializer
+
+class ClassXPesronViewSet(viewsets.ModelViewSet):
+    queryset = tm.Class_x_Person.objects.all().order_by('id')
+    serializer_class = ts.ClassxPersonSerializer
