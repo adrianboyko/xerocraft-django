@@ -1042,8 +1042,10 @@ class Inlineable:
 
     def __call__(self, inline_cls):
         inline_cls.model = self.model_cls
-        if not issubclass(inline_cls, admin.StackedInline):
-            raise ValueError('Wrapped class must subclass django.contrib.admin.StackedInline.')
+        isStacked = issubclass(inline_cls, admin.StackedInline)
+        isTabular = issubclass(inline_cls, admin.TabularInline)
+        if not isStacked and not isTabular:
+            raise ValueError('Wrapped class must subclass InlineModelAdmin.')
         admin.site._registry[self.container_cls].inlines.append(inline_cls)
         return inline_cls
 
