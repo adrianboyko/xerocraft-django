@@ -1422,6 +1422,14 @@ class Class_x_Person (models.Model):
         assert payments in [0, 1]
         return payments > 0
 
+    @property
+    def person_username(self) -> str:
+        return self.the_person.username
+
+    @property
+    def person_firstname(self) -> str:
+        return self.the_person.first_name
+
 
 class ClassPayment (SaleLineItem):
 

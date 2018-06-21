@@ -86,3 +86,12 @@ class WorkNoteViewSet(viewsets.ModelViewSet):
     queryset = tm.WorkNote.objects.all().order_by('id')
     serializer_class = ts.WorkNoteSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
+
+
+# ---------------------------------------------------------------------------
+# CLASSES
+# ---------------------------------------------------------------------------
+
+class ClassViewSet(viewsets.ModelViewSet):
+    queryset = tm.Class.objects.all().order_by('id')
+    serializer_class = ts.ClassSerializer
