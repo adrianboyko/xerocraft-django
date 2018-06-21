@@ -360,7 +360,7 @@ class JournalEntryLineItem(models.Model):
 
     amount = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
         help_text="The amount of the increase or decrease (always positive)",
-        validators=[MinValueValidator(Decimal('0.00'))])
+        validators=[MinValueValidator(DEC0)])
 
     description = models.CharField(max_length=128, blank=True,
         help_text="A brief description of this line item.")
@@ -464,7 +464,7 @@ class Journaler(models.Model):
     @classmethod
     def batch(cls, je: JournalEntry):
         """Adds a JournalEntry instance to the batch that's accumulating for eventual bulk_create."""
-        balance = Decimal("0.00")
+        balance = DEC0
         for jeli in je.prebatched_lineitems:
             if jeli.iscredit():
                 balance += jeli.amount
@@ -559,7 +559,7 @@ class Budget(Journaler):
 
     amount = models.DecimalField(max_digits=7, decimal_places=2, null=False, blank=False,
         help_text="The amount budgeted for the year.",
-        validators=[MinValueValidator(Decimal('0.00'))])
+        validators=[MinValueValidator(DEC0)])
 
     def _create_journalentries(self):
         je = JournalEntry(
@@ -610,7 +610,7 @@ class CashTransfer(Journaler):  # Started life as a cash xfer but is now a more 
 
     amount = models.DecimalField(max_digits=7, decimal_places=2, null=False, blank=False,
         help_text="The amount of the transfer.",
-        validators=[MinValueValidator(Decimal('0.00'))])
+        validators=[MinValueValidator(DEC0)])
 
     why = models.CharField(max_length=80, blank=False,
         help_text="A short explanation of the transfer.")
