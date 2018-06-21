@@ -16,10 +16,11 @@ from tasks.models import (
     RecurringTaskTemplate, Task, TaskNote,
     Claim, Work, WorkNote, Nag,
     Worker, UnavailableDates, Snippet,
-    TimeAccountEntry, Play
+    TimeAccountEntry, Play,
+    Class, ClassPayment, Class_x_Person
 )
-
 from tasks.templatetags.tasks_extras import duration_str2
+from books.admin import Sellable, Invoiceable, sale_link
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -748,4 +749,68 @@ class PlayAdmin(VersionAdmin):
         '^playing_member__auth_user__last_name',
         '^playing_member__auth_user__username',
     ]
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# CLASSES
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+@admin.register(Class)
+class ClassAdmin(VersionAdmin):
+
+    class InterestedPerson_Inline(admin.TabularInline):
+
+        # This method is only needed to tag the field as boolean.
+        def paid(self, obj:Class_x_Person) -> bool:
+            return obj.paid
+        paid.boolean = True
+
+        model = Class_x_Person
+        model._meta.verbose_name = "Interested Person"
+        model._meta.verbose_name_plural = "Interested People"
+        fields = ["the_person", "status", 'paid']
+        raw_id_fields = ['the_person']
+        readonly_fields = ['paid']
+        extra = 0
+
+    fields = [
+        ('scheduled_date', 'start_time', 'canceled'),
+        ('title', 'short_desc'),
+        'info',
+        ('max_students', 'minor_policy'),
+        'department',
+        'teaching_task',
+        ('member_price', 'nonmember_price', 'materials_fee'),
+        ('prerequisite_tag', 'certification_tag'),
+        ('publicity_image', 'printed_handout'),
+    ]
+
+    readonly_fields = ['scheduled_date', 'start_time']
+
+    inlines = [InterestedPerson_Inline]
+
+    raw_id_fields = ['teaching_task']
+    class Media:
+        css = {
+            "all": (
+                "abutils/admin-tabular-inline.css", # This hides "denormalized object descs", to use Wojciech's term.
+                "tasks/class-admin.css"
+            )
+        }
+
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# Line-Item Inlines for SaleAdmin in Books app.
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+@Sellable(ClassPayment)
+class ClassPaymentLineItem(admin.StackedInline):
+    extra = 0
+    fields = [
+        'the_class',
+        'the_person',
+        'sale_price',
+        'financial_aid_discount',
+    ]
+    raw_id_fields = ['the_person', 'the_class',]
 

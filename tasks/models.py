@@ -10,15 +10,21 @@ from decimal import Decimal
 # Third party
 from django.db import models
 from django.core.exceptions import ValidationError
-from django.core.validators import RegexValidator
+from django.core.validators import RegexValidator, MinValueValidator
+
 from django.utils.translation import ugettext_lazy as _
 from django.utils import timezone
 
 # Local
 from members import models as mm
+from inventory.models import Shop  # TODO: Move "Shop" to bzw_ops?
 from abutils.deprecation import deprecated
 from abutils.time import days_of_week_str, matches_weekday_of_month_pattern
 from abutils.validators import positive_duration
+from books.models import SaleLineItem
+
+
+_DEC0 = Decimal('0.00')
 
 
 class TimeWindowedObject(object):
@@ -970,7 +976,7 @@ class Worker(models.Model):
     def time_acct_balance(self) -> Decimal:
         entries = TimeAccountEntry.objects.filter(worker=self.member.worker)
         if len(entries) == 0:
-            return Decimal("0.00")
+            return _DEC0
         else:
             return entries.last().balance
 
@@ -1240,12 +1246,12 @@ class TimeAccountEntry(models.Model):
         deposits = TimeAccountEntry.objects.filter(
             worker=worker,
             type=TimeAccountEntry.TYPE_DEPOSIT
-        ).exclude(change=Decimal("0.00")).order_by('when')
+        ).exclude(change=_DEC0).order_by('when')
 
         withdrawals = TimeAccountEntry.objects.filter(
             worker=worker,
             type=TimeAccountEntry.TYPE_WITHDRAWAL
-        ).exclude(change=Decimal("0.00")).order_by('when')
+        ).exclude(change=_DEC0).order_by('when')
 
         for deposit in deposits:  # type: TimeAccountEntry
             deposit_available = deposit.change
@@ -1268,7 +1274,7 @@ class TimeAccountEntry(models.Model):
                 deposit_available -= deposit_amt_to_use
                 withdrawal.not_covered += deposit_amt_to_use
 
-            if deposit_available > Decimal("0.00") and timezone.now() > deposit.expires:
+            if deposit_available > _DEC0 and timezone.now() > deposit.expires:
                 explanation = "{} rolled-over hour(s) expired".format(deposit_available, deposit.when)
                 TimeAccountEntry.objects.create(
                     type=TimeAccountEntry.TYPE_EXPIRATION,
@@ -1280,4 +1286,167 @@ class TimeAccountEntry(models.Model):
                     when=deposit.expires,
                     expires=None  # not applicable.
                 )
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# CLASSES (a class, like "intro to sewing", is a type of Task)
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+class Class (models.Model):
+
+    title = models.CharField(max_length=80, blank=False,
+        help_text="Title of the class.")
+
+    short_desc = models.CharField(max_length=256, blank=True,
+        help_text="Short description of the class.")
+
+    info = models.TextField(max_length=2048, blank=False,
+        help_text="Detailed info about the class.")
+
+    canceled = models.BooleanField(default=False,
+        help_text="Has the class been canceled?")
+
+    max_students = models.IntegerField(null=True, blank=True,
+        help_text="The max class size. If not blank, RSVPs are required.",
+        validators = [MinValueValidator(1)])
+
+    department = models.ForeignKey(Shop, blank=True, null=True,
+        on_delete=models.PROTECT,  # Don't allow a dept/shop to be deleted if it is referenced.
+        help_text="The department/shop presenting this class.")
+
+    # STAFFING / SCHEDULING - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    teaching_task = models.ForeignKey(Task, blank=True, null=True,
+        on_delete=models.PROTECT,  # Don't task to be deleted if it is referenced.
+        help_text="The teaching task associated with this class.")
+
+    # PRICING - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    member_price = models.DecimalField(max_digits=5, decimal_places=2, null=False, blank=False,
+        help_text="Price of class for members.",
+        validators=[MinValueValidator(_DEC0)])
+
+    nonmember_price = models.DecimalField(max_digits=5, decimal_places=2, null=False, blank=False,
+        help_text="Price of class for nonmembers (general public).",
+        validators=[MinValueValidator(_DEC0)])
+
+    materials_fee = models.DecimalField(max_digits=5, decimal_places=2, null=False, blank=False,
+        help_text="Cost of materials used in class. Same for members and nonmembers.",
+        validators=[MinValueValidator(_DEC0)])
+
+    # CERTIFICATIONS - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    prerequisite_tag = models.ForeignKey(mm.Tag, null=True, blank=True,
+        related_name="dependent_class_set",
+        on_delete=models.PROTECT,  # Don't allow deletion of a referenced tag.
+        help_text="A certification that the student must already have to enroll in this class.")
+
+    certification_tag = models.ForeignKey(mm.Tag, null=True, blank=True,
+        related_name="completed_class_set",
+        on_delete=models.PROTECT,  # Don't allow deletion of a referenced tag.
+        help_text="The certification that a student will receive upon completion of course.")
+
+    # MINORS - - - - - - - - - - - - - - - - - - - - - - - -
+
+    MINORS_ALONE      = "ALON"
+    MINORS_WITHPARENT = "WPAR"
+    MINORS_NOTALLOWED = "NONE"
+    MINORS_CHOICES = [
+        (MINORS_ALONE,      "May attend, unaccompanied"),
+        (MINORS_WITHPARENT, "May attend, with parent"),
+        (MINORS_NOTALLOWED, "Not allowed"),
+    ]
+    minor_policy = models.CharField(max_length=4, choices=MINORS_CHOICES,
+        null=False, blank=False,
+        help_text="Are minors allowed in this class?")
+
+    # MEDIA - - - - - - - - - - - - - - - - - - - - - - - -
+
+    publicity_image = models.ImageField(null=True, blank=True,
+        help_text="An image to be used when publicizing this class."
+    )
+
+    printed_handout = models.FileField(null=True, blank=True,
+        help_text="A file to be printed and handed out to students."
+    )
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    def __str__(self):
+        return self.title
+
+    @property
+    def scheduled_date(self) -> date:
+        return self.teaching_task.scheduled_date
+
+    @property
+    def start_time(self) -> time:
+        return self.teaching_task.work_start_time
+
+    class Meta:
+        verbose_name_plural = "Classes"
+
+
+class Class_x_Person (models.Model):
+
+    the_class = models.ForeignKey(Class, null=False, blank=False,
+        on_delete=models.CASCADE,  # The involvement means nothing if the class is gone.
+        help_text="The class that somebody is interested in.")
+
+    the_person = models.ForeignKey(mm.Member, null=False, blank=False,
+        on_delete=models.PROTECT,  # Don't allow deletion of "member" if
+        help_text="The person who is interested in the class.")
+
+    STATUS_REMIND   = "RMND"
+    STATUS_RSVPED   = "RSVP"
+    STATUS_ARRIVED  = "ARVD"
+    STATUS_NOSHOW   = "NOSH"
+    STATUS_TURNAWAY = "TURN"
+    STATUS_CHOICES = [
+        (STATUS_REMIND,    "Person wants a reminder a couple days before class."),
+        (STATUS_RSVPED,    "Person has RSVPed for the class."),
+        (STATUS_ARRIVED,   "Person has arrived to take the class."),
+        (STATUS_NOSHOW,    "Person did not arrive in time to take the class."),
+        (STATUS_TURNAWAY,  "Person showed up but no room for them in the class."),
+    ]
+    status = models.CharField(max_length=4, choices=STATUS_CHOICES,
+        null=False, blank=False,
+        help_text="The current status of this person for this class.")
+
+    status_updated = models.DateTimeField(null=True, blank=True,
+        help_text="The date/time on which the current status was last updated.")
+
+    @property
+    def paid(self) -> bool:
+        payments = ClassPayment.objects.filter(the_class=self.the_class, the_person=self.the_person).count()
+        assert payments in [0, 1]
+        return payments > 0
+
+
+class ClassPayment (SaleLineItem):
+
+    # Separate FKs to the class and the person will make for simpler data entry when cash is paid. 
+    # And it allows a purchase to be made even if there isn't yet a Class_x_Person.
+
+    the_class = models.ForeignKey(Class, null=False, blank=False,
+        on_delete=models.PROTECT,  
+        help_text="The class that is being paid for.")
+
+    the_person = models.ForeignKey(mm.Member, null=False, blank=False,
+        on_delete=models.PROTECT,  
+        help_text="The person who will attend the class.")
+
+    # This field will automatically be denormalized from the_class and the_person.
+    # Doing so will require creation of a Class_x_Person if one does not already exist.
+    
+    class_x_person = models.ForeignKey(Class_x_Person, null=True, blank=True,
+        on_delete=models.PROTECT,  
+        help_text="The person who will attend the class.")
+
+    # Financial aid option:
+
+    financial_aid_discount = models.DecimalField(max_digits=6, decimal_places=2,
+        null=False, blank=False, default=_DEC0,
+        help_text="Amount discounted because person qualifies for aid on basis of TANF or low income.",
+        validators=[MinValueValidator(_DEC0)])
 

@@ -14,7 +14,10 @@ from django.utils.timezone import localtime
 
 # Local
 from members.models import Member, Tagging, VisitEvent, Membership
-from tasks.models import Task, Worker, Claim, Work, Nag, RecurringTaskTemplate, TimeAccountEntry, Play
+from tasks.models import (
+    Task, Worker, Claim, Work, Nag, RecurringTaskTemplate, TimeAccountEntry, Play,
+    Class_x_Person, ClassPayment
+)
 import members.notifications as notifications
 
 __author__ = 'Adrian'
@@ -410,3 +413,30 @@ def debit_time_acct_for_play(sender, **kwargs):
         # Makes sure that problems here do not prevent the visit event from being saved!
         logger.error("Problem in debit_time_acct_for_play: %s", str(e))
 
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# CLASSES
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+@receiver(post_save, sender=ClassPayment)
+def classpayment_postsave(sender: ClassPayment, **kwargs):
+    """When somebody plays pays for class, create a Class_x_Person, if one doesn't already exist."""
+
+    try:
+        cp = kwargs.get('instance')  # type: ClassPayment
+
+        if cp.pk is None:
+            return
+
+        try:
+            Class_x_Person.objects.get(the_person=cp.the_person, the_class=cp.the_class)
+        except Class_x_Person.DoesNotExist:
+            Class_x_Person.objects.create(
+                the_class=cp.the_class,
+                the_person=cp.the_person,
+                status=Class_x_Person.STATUS_RSVPED,  # Payment counts as an RSVP
+                status_updated=timezone.now()
+            )
+
+    except Exception as e:
+        logger.error("Problem in classpayment_postsave: %s", str(e))

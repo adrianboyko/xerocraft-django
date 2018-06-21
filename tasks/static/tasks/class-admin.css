@@ -1,0 +1,50 @@
+
+.aligned label {width:auto}
+
+
+.aligned div.field-box.field-scheduled_date label + div.readonly {
+    margin-left: 130px;
+}
+
+.aligned div.field-box.field-scheduled_date {
+    margin-right: 50px;
+}
+
+.aligned div.field-box.field-start_time label + div.readonly {
+    margin-left: 90px;
+}
+
+.aligned div.field-box.field-start_time {
+    margin-right: 50px;
+}
+
+.aligned div.field-canceled div.help {
+    display: none;
+}
+
+.aligned div.field-canceled {
+    padding-top: 3px;
+}
+
+form .aligned input + p.help, form .aligned textarea + p.help, form .aligned select + p.help, form .aligned input + div.help, form .aligned select + div.help {
+    margin-left: 0;
+}
+
+.aligned div.field-publicity_image div.help {
+    margin-left: 160px;
+}
+
+.aligned div.field-printed_handout div.help {
+    margin-left: 160px;
+}
+
+.aligned div.field-info div.help {
+    margin-left: 33px;
+}
+
+form .aligned div.help {
+    margin-left: 0;
+}
+
+#id_short_desc { width:500px }
+#id_info { width:900px }
