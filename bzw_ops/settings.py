@@ -109,7 +109,7 @@ if ISDEVHOST:
     INSTALLED_APPS += (
         'django_jenkins',
         'django_extensions',
-        #'debug_toolbar',
+        'debug_toolbar',
     )
 
 INSTALLED_APPS += (
