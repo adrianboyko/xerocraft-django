@@ -203,6 +203,7 @@ class ClassxPersonSerializer(serializers.ModelSerializer):
     class Meta:
         model = tm.Class_x_Person
         fields = (
+            'id',
             'the_class',
             'the_person',
             'status',
