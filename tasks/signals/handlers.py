@@ -419,24 +419,42 @@ def debit_time_acct_for_play(sender, **kwargs):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 @receiver(post_save, sender=ClassPayment)
-def classpayment_postsave(sender: ClassPayment, **kwargs):
-    """When somebody plays pays for class, create a Class_x_Person, if one doesn't already exist."""
-
+def classpayment_postsave(sender, instance: ClassPayment, **kwargs):
+    """When somebody pays for class, create a Class_x_Person or update the existing one."""
     try:
-        cp = kwargs.get('instance')  # type: ClassPayment
-
-        if cp.pk is None:
-            return
-
         try:
-            Class_x_Person.objects.get(the_person=cp.the_person, the_class=cp.the_class)
+            # Is there a CXP record that points to this ClassPayment?
+            cxp = Class_x_Person.objects.get(payment=instance)
+            # YES, there is! So let's update it.
+            if cxp.status != Class_x_Person.STATUS_RSVPED or cxp.the_class != instance.the_class:
+                cxp.status = Class_x_Person.STATUS_RSVPED  # Payment counts as an RSVP
+                cxp.status_updated = timezone.now()
+            cxp.the_class = instance.the_class
+            cxp.the_person = instance.the_person
+            cxp.save()
+
         except Class_x_Person.DoesNotExist:
-            Class_x_Person.objects.create(
-                the_class=cp.the_class,
-                the_person=cp.the_person,
-                status=Class_x_Person.STATUS_RSVPED,  # Payment counts as an RSVP
-                status_updated=timezone.now()
-            )
+            # NO, there isn't!
+            try:
+                # Is there a CXP that was previously created and MATCHES this ClassPayment?
+                cxp = Class_x_Person.objects.get(
+                    the_class=instance.the_class,
+                    the_person=instance.the_person)
+                # YES, there is! So update it and point it at this ClassPayment.
+                if cxp.status != Class_x_Person.STATUS_RSVPED:
+                    cxp.status = Class_x_Person.STATUS_RSVPED  # Payment counts as an RSVP
+                    cxp.status_updated = timezone.now()
+                cxp.payment = instance
+                cxp.save()
+            except Class_x_Person.DoesNotExist:
+                # NO, there isn't anything! So let's create one from scratch.
+                Class_x_Person.objects.create(
+                    the_class=instance.the_class,
+                    the_person=instance.the_person,
+                    status=Class_x_Person.STATUS_RSVPED,  # Payment counts as an RSVP
+                    status_updated=timezone.now(),
+                    payment=instance)
 
     except Exception as e:
         logger.error("Problem in classpayment_postsave: %s", str(e))
+

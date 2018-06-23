@@ -1397,6 +1397,10 @@ class Class_x_Person (models.Model):
         on_delete=models.PROTECT,  # Don't allow deletion of "member" if
         help_text="The person who is interested in the class.")
 
+    payment = models.OneToOneField('ClassPayment', null=True, blank=True,
+        on_delete=models.SET_NULL,
+        help_text="The associated payment, if any exists.")
+
     STATUS_REMIND   = "RMND"
     STATUS_RSVPED   = "RSVP"
     STATUS_ARRIVED  = "ARVD"
@@ -1414,13 +1418,12 @@ class Class_x_Person (models.Model):
         help_text="The current status of this person for this class.")
 
     status_updated = models.DateTimeField(null=True, blank=True,
+        default=timezone.now,
         help_text="The date/time on which the current status was last updated.")
 
     @property
     def paid(self) -> bool:
-        payments = ClassPayment.objects.filter(the_class=self.the_class, the_person=self.the_person).count()
-        assert payments in [0, 1]
-        return payments > 0
+        return self.payment is not None
 
     @property
     def person_username(self) -> str:
@@ -1429,6 +1432,9 @@ class Class_x_Person (models.Model):
     @property
     def person_firstname(self) -> str:
         return self.the_person.first_name
+
+    class Meta:
+        unique_together = ['the_class', 'the_person']
 
 
 class ClassPayment (SaleLineItem):
@@ -1444,13 +1450,6 @@ class ClassPayment (SaleLineItem):
         on_delete=models.PROTECT,  
         help_text="The person who will attend the class.")
 
-    # This field will automatically be denormalized from the_class and the_person.
-    # Doing so will require creation of a Class_x_Person if one does not already exist.
-    
-    class_x_person = models.ForeignKey(Class_x_Person, null=True, blank=True,
-        on_delete=models.PROTECT,  
-        help_text="The person who will attend the class.")
-
     # Financial aid option:
 
     financial_aid_discount = models.DecimalField(max_digits=6, decimal_places=2,
@@ -1458,3 +1457,5 @@ class ClassPayment (SaleLineItem):
         help_text="Amount discounted because person qualifies for aid on basis of TANF or low income.",
         validators=[MinValueValidator(_DEC0)])
 
+    class Meta:
+        unique_together = ['the_class', 'the_person']
