@@ -768,9 +768,9 @@ class ClassAdmin(VersionAdmin):
         model = Class_x_Person
         model._meta.verbose_name = "Interested Person"
         model._meta.verbose_name_plural = "Interested People"
-        fields = ["the_person", "status", 'paid']
+        fields = ["the_person", "status", 'status_updated', 'paid']
         raw_id_fields = ['the_person']
-        readonly_fields = ['paid']
+        readonly_fields = ['paid', 'status_updated']
         extra = 0
 
     fields = [
