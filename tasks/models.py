@@ -1314,6 +1314,12 @@ class Class (models.Model):
         on_delete=models.PROTECT,  # Don't allow a dept/shop to be deleted if it is referenced.
         help_text="The department/shop presenting this class.")
 
+    # We've had a lot of trouble with people RSVP'ing far in advance and then not showing up.
+    # To address that, we'll try having shorter RSVP periods. If a person registers as interested
+    # in a class, they'll receive an RSVP reminder at the beginning of this period.
+    rsvp_period = models.IntegerField(null=False, blank=False, default=3,
+        help_text="How many days before class date will RSVPs be accepted?")
+
     # STAFFING / SCHEDULING - - - - - - - - - - - - - - - - - - - - - - - - -
 
     teaching_task = models.ForeignKey(Task, blank=True, null=True,
