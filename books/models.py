@@ -19,7 +19,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.conf import settings
 from nameparser import HumanName
 from django.urls import reverse
-from dateutil.relativedelta import relativedelta
+import psycopg2
 
 # Local
 from abutils.utils import generate_ctrlid
@@ -40,8 +40,13 @@ ACCT_REVENUE_DONATION = 35  # General Donations.
 ACCT_REVENUE_MEMBERSHIP = 6
 ACCT_REVENUE_DISCOUNT = 49
 
-PROD_HOST = Site.objects.get_current().domain
-DEV_HOST = "localhost:8000"
+
+try:
+    PROD_HOST = Site.objects.get_current().domain
+    DEV_HOST = "localhost:8000"
+except psycopg2.ProgrammingError:
+    PROD_HOST = "example.com"
+    DEV_HOST = "localhost:8000"
 
 
 def quote_entity(name: str) -> str:
