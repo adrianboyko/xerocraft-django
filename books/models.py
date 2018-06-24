@@ -9,6 +9,7 @@ from logging import getLogger
 from collections import Counter
 
 # Third party
+import django.db.utils as dbutils
 from django.db import models
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator, MaxValueValidator
@@ -19,7 +20,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.conf import settings
 from nameparser import HumanName
 from django.urls import reverse
-import psycopg2
+
 
 # Local
 from abutils.utils import generate_ctrlid
@@ -44,7 +45,7 @@ ACCT_REVENUE_DISCOUNT = 49
 try:
     PROD_HOST = Site.objects.get_current().domain
     DEV_HOST = "localhost:8000"
-except psycopg2.ProgrammingError:
+except dbutils.ProgrammingError:
     PROD_HOST = "example.com"
     DEV_HOST = "localhost:8000"
 
