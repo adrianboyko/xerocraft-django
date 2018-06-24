@@ -81,7 +81,10 @@ def staffing_update_notification(sender, **kwargs):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 # HOST = "http://192.168.1.101:8000"  # For testing
-HOST = "https://" + Site.objects.get_current().domain
+try:
+    HOST = "https://" + Site.objects.get_current().domain
+except:
+    HOST = "example.com"
 
 
 @receiver(post_save, sender=VisitEvent)

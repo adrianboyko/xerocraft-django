@@ -40,9 +40,12 @@ ACCT_REVENUE_DONATION = 35  # General Donations.
 ACCT_REVENUE_MEMBERSHIP = 6
 ACCT_REVENUE_DISCOUNT = 49
 
-
-PROD_HOST = Site.objects.get_current().domain
-DEV_HOST = "localhost:8000"
+try:
+    PROD_HOST = Site.objects.get_current().domain
+    DEV_HOST = "localhost:8000"
+except:
+    PROD_HOST = "example.com"
+    DEV_HOST = "localhost:8000"
 
 
 def quote_entity(name: str) -> str:
