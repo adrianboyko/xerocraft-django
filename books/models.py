@@ -9,7 +9,6 @@ from logging import getLogger
 from collections import Counter
 
 # Third party
-import django.db.utils as dbutils
 from django.db import models
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator, MaxValueValidator
@@ -42,12 +41,8 @@ ACCT_REVENUE_MEMBERSHIP = 6
 ACCT_REVENUE_DISCOUNT = 49
 
 
-try:
-    PROD_HOST = Site.objects.get_current().domain
-    DEV_HOST = "localhost:8000"
-except dbutils.ProgrammingError:
-    PROD_HOST = "example.com"
-    DEV_HOST = "localhost:8000"
+PROD_HOST = Site.objects.get_current().domain
+DEV_HOST = "localhost:8000"
 
 
 def quote_entity(name: str) -> str:
