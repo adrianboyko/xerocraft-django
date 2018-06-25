@@ -61,6 +61,7 @@ SERVER_EMAIL = 'xis+error@xerocraft.org'  # Django only uses this for error emai
 ALLOWED_HOSTS = (
     'xerocraft-django.herokuapp.com',
     'xis.xerocraft.us',
+    'xis-test.herokuapp.com'
 )
 if ISDEVHOST:
     ALLOWED_HOSTS += (
