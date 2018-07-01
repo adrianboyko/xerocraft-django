@@ -954,6 +954,8 @@ class Sale(Journaler):
     PAID_BY_WEPAY    = "W"
     PAID_BY_PAYPAL   = "P"
     PAID_BY_GOFUNDME = "G"
+    # PAID_BY_XFER     = "X"  # Electronic transfer
+    # PAID_BY_TAB      = "T"  # # Prepaid and/or credit, depending on member.
     PAID_BY_CHOICES = [
         (PAID_BY_CASH,     "Cash"),
         (PAID_BY_CHECK,    "Check"),
@@ -962,6 +964,8 @@ class Sale(Journaler):
         (PAID_BY_WEPAY,    "WePay"),
         (PAID_BY_PAYPAL,   "PayPal"),
         (PAID_BY_GOFUNDME, "GoFundMe"),
+        # (PAID_BY_XFER,     "Electronic"),
+        # (PAID_BY_TAB,      "Tab"),
     ]
     payment_method = models.CharField(max_length=1, choices=PAID_BY_CHOICES,
         null=False, blank=False, default=PAID_BY_CASH,
@@ -1010,7 +1014,7 @@ class Sale(Journaler):
         # Attempt to match by EMAIL
         if self.payer_email is not None and len(self.payer_email) > 0:
             try:
-                email_matches = User.objects.filter(email=self.payer_email, is_active=True)
+                email_matches = User.objects.filter(email__iexact=self.payer_email, is_active=True)
                 if len(email_matches) == 1:
                     self.payer_acct = email_matches[0]
                     return True
@@ -1696,10 +1700,12 @@ class ExpenseTransaction(Journaler):
     PAID_BY_CASH   = "$"
     PAID_BY_CHECK  = "C"
     PAID_BY_XFER   = "X"  # Electronic transfer
+    # PAID_BY_TAB    = "T"  # Prepaid and/or credit, depending on member.
     PAID_BY_CHOICES = [
         (PAID_BY_CASH,  "Cash"),
         (PAID_BY_CHECK, "Check"),
         (PAID_BY_XFER,  "Electronic"),
+        # (PAID_BY_XFER,  "Tab"),
     ]
     payment_method = models.CharField(max_length=1, choices=PAID_BY_CHOICES,
         null=False, blank=False, default=PAID_BY_CASH,
