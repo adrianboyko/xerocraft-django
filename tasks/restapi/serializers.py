@@ -203,6 +203,7 @@ class ClassxPersonSerializer(serializers.ModelSerializer):
     class Meta:
         model = tm.Class_x_Person
         fields = (
+            'id',
             'the_class',
             'the_person',
             'status',
@@ -221,7 +222,7 @@ class ClassSerializer(serializers.ModelSerializer):
         style={'base_template': 'input.html'},
     )
 
-    persons = ClassxPersonSerializer(
+    ro_persons = ClassxPersonSerializer(
         read_only=True, many=True,
         source='class_x_person_set'
     )
@@ -233,22 +234,23 @@ class ClassSerializer(serializers.ModelSerializer):
         model = tm.Class
         fields = (
             'id',
+            'canceled',
+            'certification_tag',
+            'department',
+            'info',
+            'materials_fee',
+            'max_students',
+            'member_price',
+            'minor_policy',
+            'nonmember_price',
+            'prerequisite_tag',
+            'printed_handout',
+            'publicity_image',
+            'ro_persons',
             'ro_scheduled_date',
             'ro_start_time',
-            'title',
+            'rsvp_period',
             'short_desc',
-            'info',
-            'canceled',
-            'max_students',
-            'department',
             'teaching_task',
-            'member_price',
-            'nonmember_price',
-            'materials_fee',
-            'prerequisite_tag',
-            'certification_tag',
-            'minor_policy',
-            'publicity_image',
-            'printed_handout',
-            'persons',
+            'title',
         )
