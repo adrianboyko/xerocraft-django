@@ -5,7 +5,8 @@ from datetime import date
 # Third-party
 from django.db import models
 from django.core.exceptions import ValidationError
-from django.core.validators import MinValueValidator, MaxValueValidator
+from django.core.validators import MinValueValidator
+from django.utils import timezone
 
 # Local
 from books.models import SaleLineItem
@@ -145,3 +146,30 @@ class UnderwritingLogEntry (models.Model):
         verbose_name = "Underwriting Log Entry"
         verbose_name_plural = "Underwriting Log Entries"
 
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# WHAT'S PLAYING
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+class PlayLogEntry (models.Model):
+
+    start = models.DateTimeField(blank=False, null=False,
+        default=timezone.now,
+        help_text="The date & time that airing of item began.")
+
+    duration = models.DurationField(blank=False, null=False,
+        help_text="The expected duration of the item.")
+
+    TITLE_MAX_LENGTH = 128
+    title = models.CharField(max_length=TITLE_MAX_LENGTH, blank=False, null=False,
+        help_text="The title of the item.")
+
+    ARTIST_MAX_LENGTH = 128
+    artist = models.CharField(max_length=ARTIST_MAX_LENGTH, blank=False, null=False,
+        help_text="The artist/dj/etc featured in this item.")
+
+    track_id = models.IntegerField(blank=False, null=False,
+        help_text="The track ID of the item in the Radio DJ database.")
+
+    track_type = models.IntegerField(blank=False, null=False,
+        help_text="The type of the item in the Radio DJ database.")

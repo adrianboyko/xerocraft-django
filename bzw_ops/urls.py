@@ -33,6 +33,7 @@ urlpatterns = [
     url(r'^admin/', admin.site.urls),
     url(r'^members/', include('members.urls', namespace="memb")),
     url(r'^books/', include('books.urls', namespace="book")),
+    url(r'^kmkr/', include('kmkr.urls', namespace="kmkr")),
     url(r'^soda/', include('soda.urls', namespace="soda")),
     url(r'^tasks/', include('tasks.urls', namespace="task")),
     url(r'^inventory/', include('inventory.urls', namespace="inv")),

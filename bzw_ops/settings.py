@@ -298,6 +298,10 @@ LOGGING = {
             'handlers': ['console'],
             'level': 'INFO',
         },
+        'kmkr': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
         'members': {
             'handlers': ['console'],
             'level': 'INFO',

@@ -8,8 +8,4 @@ urlpatterns = [
     url(r'^clone-acct/$',  # clones a www.xerocraft.org account to XIS
         views.clone_acct,
         name="clone-acct"),
-
-    url(r'^now-playing-on-kmkr/$',
-        views.now_playing_on_kmkr,
-        name='now-playing-on-kmkr'),
 ]

@@ -11,6 +11,7 @@ from kmkr.models import (
     UnderwritingSpots,
     UnderwritingLogEntry,
     OnAirPersonality,
+    PlayLogEntry,
 )
 from books.admin import Sellable
 
@@ -177,3 +178,23 @@ class UnderwritingSpots_LineItem(admin.StackedInline):
     raw_id_fields = ['holds_donation']
 
 
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# PLAY LOG
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+@admin.register(PlayLogEntry)
+class PlayLogEntryAdmin(admin.ModelAdmin):
+
+    list_filter = ['track_type']
+
+    date_hierarchy = 'start'
+
+    list_display = [
+        'pk',
+        'start',
+        'duration',
+        'title',
+        'artist',
+        'track_id',
+        'track_type',
+    ]

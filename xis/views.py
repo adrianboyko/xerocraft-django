@@ -37,6 +37,3 @@ def scrape_xerocraft_org_checkins(request) -> JsonResponse:
     return JsonResponse({'result': "success"})
 
 
-def now_playing_on_kmkr(request) -> JsonResponse:
-    return JsonResponse({"result": "success"})
-
