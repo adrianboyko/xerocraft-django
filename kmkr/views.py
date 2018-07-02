@@ -35,7 +35,7 @@ def now_playing(request) -> JsonResponse:
 
     if len(duration) == 5:
         # RadioDJ sends MM:SS which Django/Python interprets as HH:MM
-        duration += "00:"+duration
+        duration = "00:"+duration
 
     PlayLogEntry.objects.create(
         start=start,
