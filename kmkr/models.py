@@ -171,5 +171,38 @@ class PlayLogEntry (models.Model):
     track_id = models.IntegerField(blank=False, null=False,
         help_text="The track ID of the item in the Radio DJ database.")
 
+    TYPE_MUSIC = 0
+    TYPE_JINGLE = 1
+    TYPE_SWEEPER = 2
+    TYPE_VOICEOVER = 3
+    TYPE_COMMERCIAL = 4
+    TYPE_ISTREAM = 5
+    TYPE_OTHER = 6
+    TYPE_VDF = 7
+    TYPE_REQUEST = 8
+    TYPE_NEWS = 9
+    TYPE_PLAYLIST_EVENT = 10
+    TYPE_FILE_BY_DATE = 11
+    TYPE_NEWEST_FROM_FOLDER = 12
+    TYPE_CHOICES = [
+        (TYPE_MUSIC, "Music"),
+        (TYPE_JINGLE, "Jingle"),
+        (TYPE_SWEEPER, "Sweeper"),
+        (TYPE_VOICEOVER, "Voiceover"),
+        (TYPE_COMMERCIAL, "Commercial"),
+        (TYPE_ISTREAM, "Internet Stream"),
+        (TYPE_OTHER, "Other"),
+        (TYPE_VDF, "Variable Duration File"),
+        (TYPE_REQUEST, "Request"),
+        (TYPE_NEWS, "News"),
+        (TYPE_PLAYLIST_EVENT, "Playlist Event"),
+        (TYPE_FILE_BY_DATE, "File By Date"),
+        (TYPE_NEWEST_FROM_FOLDER, "Newest From Folder"),
+    ]
     track_type = models.IntegerField(blank=False, null=False,
+        choices=TYPE_CHOICES,
         help_text="The type of the item in the Radio DJ database.")
+
+    class Meta:
+        verbose_name = "Play Log Entry"
+        verbose_name_plural = "Play Log Entries"

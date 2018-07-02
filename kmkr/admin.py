@@ -187,6 +187,8 @@ class PlayLogEntryAdmin(admin.ModelAdmin):
 
     list_filter = ['track_type']
 
+    search_fields = ['title', 'artist']
+
     date_hierarchy = 'start'
 
     list_display = [

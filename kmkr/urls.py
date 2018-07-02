@@ -8,4 +8,8 @@ urlpatterns = [
     url(r'^now-playing/$',
         views.now_playing,
         name='now-playing'),
+
+    url(r'^now-playing-info/$',
+        views.now_playing_info,
+        name='now-playing-info'),
 ]
