@@ -11,6 +11,7 @@ from kmkr.models import (
     UnderwritingSpots,
     UnderwritingLogEntry,
     OnAirPersonality,
+    OnAirPersonalitySocialMedia,
     PlayLogEntry,
 )
 from books.admin import Sellable
@@ -22,11 +23,24 @@ from books.admin import Sellable
 
 @admin.register(OnAirPersonality)
 class OnAirPersonalityAdmin(VersionAdmin):
+
+    class SocialMedia_Inline(admin.TabularInline):
+        model = OnAirPersonalitySocialMedia
+        model._meta.verbose_name = "Social Media Acct"
+        extra = 0
+        raw_id_fields = ['personality']
+
     list_display = ['pk', 'member', 'moniker', 'active']
     list_display_links = ['pk', 'member',]
     raw_id_fields = ['member']
     list_filter = ['active']
+    inlines = [SocialMedia_Inline]
 
+    class Media:
+        css = {
+            # This hides "denormalized object descs", to use Wojciech's term.
+            "all": ("abutils/admin-tabular-inline.css",)
+        }
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # SHOW
@@ -112,7 +126,7 @@ class UnderwritingSpotsAdmin(VersionAdmin):
         'holds_donation',
         ('sale_price', 'qty_sold'),
         ('start_date', 'end_date'),
-        ('spot_seconds', 'slot'),
+        ('spot_seconds', 'slot', 'track_id'),
         ('script', 'custom_details')
     ]
 

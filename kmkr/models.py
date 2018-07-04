@@ -37,6 +37,19 @@ class OnAirPersonality (models.Model):
         verbose_name_plural = "On Air Personalities"
 
 
+class OnAirPersonalitySocialMedia (models.Model):
+
+    personality = models.ForeignKey(OnAirPersonality, null=False, blank=False,
+        on_delete=models.CASCADE,  # If we're getting rid of the personality, we don't need their social media info.
+        help_text="The on air personality associated with this social media account.")
+
+    social_media = models.URLField(null=False, blank=False,
+        help_text="URL for the personality's social media account.")
+
+    class Meta:
+        verbose_name = "On Air Personality's Social Media"
+        verbose_name_plural = "On Air Personality's Social Media"
+
 class Show (models.Model):
 
     title = models.CharField(max_length=80,
@@ -105,8 +118,8 @@ class UnderwritingSpots (SaleLineItem):
     specific_shows = models.ManyToManyField(Show, blank=True,
         help_text="If spot(s) MUST run during some specific show(s), select them.")
 
-    title = models.CharField(max_length=80,
-        help_text="The name of the audio file on Radio DJ.")
+    track_id = models.IntegerField(blank=True, null=True,
+        help_text="The ID of the associated track on Radio DJ.")
 
     script = models.TextField(max_length=2048, blank=False,
         help_text="The text to read on-air.")
