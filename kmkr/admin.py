@@ -198,22 +198,32 @@ class UnderwritingSpots_LineItem(admin.StackedInline):
 
 @admin.register(Track)
 class TrackAdmin(admin.ModelAdmin):
-    pass
+
+    list_filter = ['track_type']
+
+    search_fields = ['title', 'artist']
+
+    list_display = [
+        'pk',
+        'title',
+        'artist',
+        'radiodj_id',
+        'track_type'
+    ]
 
 
 @admin.register(PlayLogEntry)
 class PlayLogEntryAdmin(admin.ModelAdmin):
-    pass
-    # list_filter = ['track__track_type']
-    #
-    # search_fields = ['track__title', 'track__artist']
-    #
-    # date_hierarchy = 'start'
-    #
-    # list_display = [
-    #     'pk',
-    #     'start',
-    #     'track',
-    # ]
-    #
-    # raw_id_fields = ['track']
+    list_filter = ['track__track_type']
+
+    search_fields = ['track__title', 'track__artist']
+
+    date_hierarchy = 'start'
+
+    list_display = [
+        'pk',
+        'start',
+        'track',
+    ]
+
+    raw_id_fields = ['track']
