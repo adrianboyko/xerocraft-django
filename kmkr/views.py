@@ -50,7 +50,7 @@ def now_playing(request) -> JsonResponse:
         radiodj_id = int(request.POST['ID'])  # type: int
         track_type = int(request.POST['TYPE'])  # type: int
 
-        track, _ = Track.objects.get_or_create(
+        track, _ = Track.objects.update_or_create(
             radiodj_id=radiodj_id,
             defaults={
                 "duration": duration,
