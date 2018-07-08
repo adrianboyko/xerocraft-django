@@ -164,11 +164,7 @@ class UnderwritingLogEntry (models.Model):
 # WHAT'S PLAYING
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-class PlayLogEntry (models.Model):
-
-    start = models.DateTimeField(blank=False, null=False,
-        default=timezone.now,
-        help_text="The date & time that airing of item began.")
+class Track (models.Model):
 
     duration = models.DurationField(blank=False, null=False,
         help_text="The expected duration of the item.")
@@ -181,7 +177,7 @@ class PlayLogEntry (models.Model):
     artist = models.CharField(max_length=ARTIST_MAX_LENGTH, blank=False, null=False,
         help_text="The artist/dj/etc featured in this item.")
 
-    track_id = models.IntegerField(blank=False, null=False,
+    radiodj_id = models.IntegerField(blank=False, null=False, unique=True,
         help_text="The track ID of the item in the Radio DJ database.")
 
     TYPE_MUSIC = 0
@@ -213,6 +209,68 @@ class PlayLogEntry (models.Model):
         (TYPE_NEWEST_FROM_FOLDER, "Newest From Folder"),
     ]
     track_type = models.IntegerField(blank=False, null=False,
+        choices=TYPE_CHOICES,
+        help_text="The type of the item in the Radio DJ database.")
+
+    def __str__(self) -> str:
+        return self.title + " by " + self.artist
+
+
+class PlayLogEntry (models.Model):
+
+    start = models.DateTimeField(blank=False, null=False,
+        default=timezone.now,
+        help_text="The date & time that airing of item began.")
+
+    track = models.ForeignKey(Track, null=True, blank=True,
+        on_delete=models.PROTECT,  # Don't allow deletion of track if it has been aired.
+        help_text="The track which was aired.")
+
+    # BELOW WILL BE DELETED
+
+    duration = models.DurationField(blank=True, null=True,
+        help_text="The expected duration of the item.")
+
+    TITLE_MAX_LENGTH = 128
+    title = models.CharField(max_length=TITLE_MAX_LENGTH, blank=True, null=True,
+        help_text="The title of the item.")
+
+    ARTIST_MAX_LENGTH = 128
+    artist = models.CharField(max_length=ARTIST_MAX_LENGTH, blank=True, null=True,
+        help_text="The artist/dj/etc featured in this item.")
+
+    radiodj_id = models.IntegerField(blank=True, null=True,
+        help_text="The track ID of the item in the Radio DJ database.")
+
+    TYPE_MUSIC = 0
+    TYPE_JINGLE = 1
+    TYPE_SWEEPER = 2
+    TYPE_VOICEOVER = 3
+    TYPE_COMMERCIAL = 4
+    TYPE_ISTREAM = 5
+    TYPE_OTHER = 6
+    TYPE_VDF = 7
+    TYPE_REQUEST = 8
+    TYPE_NEWS = 9
+    TYPE_PLAYLIST_EVENT = 10
+    TYPE_FILE_BY_DATE = 11
+    TYPE_NEWEST_FROM_FOLDER = 12
+    TYPE_CHOICES = [
+        (TYPE_MUSIC, "Music"),
+        (TYPE_JINGLE, "Jingle"),
+        (TYPE_SWEEPER, "Sweeper"),
+        (TYPE_VOICEOVER, "Voiceover"),
+        (TYPE_COMMERCIAL, "Commercial"),
+        (TYPE_ISTREAM, "Internet Stream"),
+        (TYPE_OTHER, "Other"),
+        (TYPE_VDF, "Variable Duration File"),
+        (TYPE_REQUEST, "Request"),
+        (TYPE_NEWS, "News"),
+        (TYPE_PLAYLIST_EVENT, "Playlist Event"),
+        (TYPE_FILE_BY_DATE, "File By Date"),
+        (TYPE_NEWEST_FROM_FOLDER, "Newest From Folder"),
+    ]
+    track_type = models.IntegerField(blank=True, null=True,
         choices=TYPE_CHOICES,
         help_text="The type of the item in the Radio DJ database.")
 

@@ -12,7 +12,7 @@ from kmkr.models import (
     UnderwritingLogEntry,
     OnAirPersonality,
     OnAirPersonalitySocialMedia,
-    PlayLogEntry,
+    PlayLogEntry, Track
 )
 from books.admin import Sellable
 
@@ -193,24 +193,27 @@ class UnderwritingSpots_LineItem(admin.StackedInline):
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-# PLAY LOG
+# PLAY LOG & TRACKS
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+@admin.register(Track)
+class TrackAdmin(admin.ModelAdmin):
+    pass
+
 
 @admin.register(PlayLogEntry)
 class PlayLogEntryAdmin(admin.ModelAdmin):
-
-    list_filter = ['track_type']
-
-    search_fields = ['title', 'artist']
-
-    date_hierarchy = 'start'
-
-    list_display = [
-        'pk',
-        'start',
-        'duration',
-        'title',
-        'artist',
-        'track_id',
-        'track_type',
-    ]
+    pass
+    # list_filter = ['track__track_type']
+    #
+    # search_fields = ['track__title', 'track__artist']
+    #
+    # date_hierarchy = 'start'
+    #
+    # list_display = [
+    #     'pk',
+    #     'start',
+    #     'track',
+    # ]
+    #
+    # raw_id_fields = ['track']

@@ -7,9 +7,9 @@ from datetime import datetime, timedelta
 from django.http import JsonResponse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_http_methods, require_GET
+from django.views.decorators.http import require_http_methods
 # Local
-from .models import PlayLogEntry
+from .models import PlayLogEntry, Track
 
 logger = getLogger("kmkr")
 
@@ -18,37 +18,52 @@ logger = getLogger("kmkr")
 def now_playing(request) -> JsonResponse:
 
     if request.method == "GET":
-        ple = PlayLogEntry.objects.latest('start')
-        time_remaining = (ple.start + ple.duration) - timezone.now()
+
+        # TODO: Get should return Show info during times that shows are scheduled.
+
+        aired = PlayLogEntry.objects.latest('start')  # type: PlayLogEntry
+        time_remaining = (aired.start + aired.track.duration) - timezone.now()
         if time_remaining.total_seconds() < 0:
             time_remaining = None
+
         return JsonResponse({
-            'id': ple.id,
-            'start': ple.start,
-            'duration': ple.duration,
-            'title': ple.title,
-            'artist': ple.artist,
-            'track_id': int(ple.track_id),
-            'track_type': int(ple.track_type),
+            'id': aired.id,
+            'start': aired.start,
+            'duration': aired.track.duration,
+            'title': aired.track.title,
+            'artist': aired.track.artist,
+            'radiodj_id': int(aired.track.radiodj_id),
+            'track_type': int(aired.track.track_type),
             'time_remaining': time_remaining
         })
 
     if request.method == "POST":
+
+        # TODO: Posted data should be IGNORED during show times.
+
         duration = request.POST['DURATION']  # type: str
         if len(duration) == 5:
             # RadioDJ sends MM:SS which Django/Python interprets as HH:MM
             duration = "00:"+duration
         title = request.POST['TITLE']  # type: str
         artist = request.POST['ARTIST']  # type: str
-        track_id = request.POST['ID']  # type: str
-        track_type = request.POST['TYPE']  # type: str
+        radiodj_id = int(request.POST['ID'])  # type: int
+        track_type = int(request.POST['TYPE'])  # type: int
+
+        track, _ = Track.objects.get_or_create(
+            radiodj_id=radiodj_id,
+            defaults={
+                "duration": duration,
+                "title": title,
+                "artist": artist,
+                "radiodj_id": radiodj_id,
+                "track_type": track_type
+            }
+        )
+
         PlayLogEntry.objects.create(
             start=timezone.now(),
-            duration=duration,
-            title=title,
-            artist=artist,
-            track_id=int(track_id),
-            track_type=int(track_type)
+            track=track
         )
         return JsonResponse({"result": "success"})
 
