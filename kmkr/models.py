@@ -213,7 +213,7 @@ class Track (models.Model):
         help_text="The type of the item in the Radio DJ database.")
 
     def __str__(self) -> str:
-        return self.title + " by " + self.artist
+        return '"{}" by {}'.format(self.title, self.artist)
 
 
 class PlayLogEntry (models.Model):
@@ -229,3 +229,33 @@ class PlayLogEntry (models.Model):
     class Meta:
         verbose_name = "Play Log Entry"
         verbose_name_plural = "Play Log Entries"
+
+
+class Rating (models.Model):
+
+    what = models.ForeignKey(PlayLogEntry, blank=False, null=False,
+        on_delete=models.CASCADE,
+        help_text="What was rated.")
+
+    who = models.ForeignKey(Member, blank=False, null=False,
+        on_delete=models.CASCADE,
+        help_text="Person who rated.")
+
+    RATE_TWO_THUMBS_UP = 2
+    RATE_ONE_THUMB_UP = 1
+    RATE_NEUTRAL = 0
+    RATE_ONE_THUMB_DOWN = -1
+    RATE_TWO_THUMBS_DOWN = -2
+    RATE_CHOICES = [
+        (RATE_TWO_THUMBS_UP, "Two thumbs up"),
+        (RATE_ONE_THUMB_UP, "One thumb up"),
+        (RATE_NEUTRAL, "Neutral"),
+        (RATE_ONE_THUMB_DOWN, "One thumb down"),
+        (RATE_TWO_THUMBS_DOWN, "Two thumbs down"),
+    ]
+    rating = models.IntegerField(blank=False, null=False,
+        choices=RATE_CHOICES,
+        help_text="The rating")
+
+    class Meta:
+        unique_together = ['what', 'who']

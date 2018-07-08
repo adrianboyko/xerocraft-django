@@ -3,6 +3,7 @@
 
 # Third-Party
 from django.contrib import admin
+from django.db.models import Sum, Count
 from reversion.admin import VersionAdmin
 
 # Local
@@ -12,7 +13,7 @@ from kmkr.models import (
     UnderwritingLogEntry,
     OnAirPersonality,
     OnAirPersonalitySocialMedia,
-    PlayLogEntry, Track
+    PlayLogEntry, Track, Rating
 )
 from books.admin import Sellable
 
@@ -214,6 +215,24 @@ class TrackAdmin(admin.ModelAdmin):
 
 @admin.register(PlayLogEntry)
 class PlayLogEntryAdmin(admin.ModelAdmin):
+
+    def get_queryset(self, request):
+        qs = super(PlayLogEntryAdmin, self).get_queryset(request)
+        return qs.annotate(Sum('rating__rating')).annotate(Count('rating'))
+
+    def rating(self, ple: PlayLogEntry):
+        return ple.rating__rating__sum
+
+    def votes(self, ple: PlayLogEntry) -> str:
+        cnt = ple.rating__count
+        return "-" if cnt == 0 else str(cnt)
+
+    def one_thumb_up(self, ple: PlayLogEntry) -> int:
+        return ple.rating_set.filter(rating=Rating.RATE_ONE_THUMB_UP).count()
+
+    def one_thumb_down(self, ple: PlayLogEntry) -> int:
+        return ple.rating_set.filter(rating=Rating.RATE_ONE_THUMB_DOWN).count()
+
     list_filter = ['track__track_type']
 
     search_fields = ['track__title', 'track__artist']
@@ -224,6 +243,15 @@ class PlayLogEntryAdmin(admin.ModelAdmin):
         'pk',
         'start',
         'track',
+        'rating',
+        'votes',
     ]
 
     raw_id_fields = ['track']
+
+    class Rating_Inline(admin.TabularInline):
+        model = Rating
+        extra = 0
+        raw_id_fields = ['who']
+
+    inlines = [Rating_Inline]
