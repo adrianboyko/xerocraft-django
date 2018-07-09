@@ -50,10 +50,11 @@ class OnAirPersonalitySocialMedia (models.Model):
         verbose_name = "On Air Personality's Social Media"
         verbose_name_plural = "On Air Personality's Social Media"
 
+
 class Show (models.Model):
 
     title = models.CharField(max_length=80,
-        help_text="A short description/name for the task.")
+        help_text="The name of this show.")
 
     description = models.TextField(max_length=2048,
         help_text="A description of the show for public consumption.")
@@ -84,6 +85,35 @@ class Show (models.Model):
 
     def __str__(self) -> str:
         return self.title
+
+
+class ShowTime(models.Model):
+
+    show = models.ForeignKey(Show, null=False, blank=False,
+        on_delete=models.CASCADE,
+        help_text="The show in question.")
+
+    start_time = models.TimeField(null=False, blank=False,
+        help_text="The time at which the show begins.")
+
+    minute_duration = models.IntegerField(null=False, blank=False,
+        help_text="The duration of the show in MINUTES.")
+
+    # Weekday of month:
+    first = models.BooleanField(default=False, verbose_name="1st")
+    second = models.BooleanField(default=False, verbose_name="2nd")
+    third = models.BooleanField(default=False, verbose_name="3rd")
+    fourth = models.BooleanField(default=False, verbose_name="4th")
+    every = models.BooleanField(default=True)
+
+    # Day of week:
+    sundays = models.BooleanField(default=False, verbose_name="Sun")
+    mondays = models.BooleanField(default=False, verbose_name="Mon")
+    tuesdays = models.BooleanField(default=False, verbose_name="Tue")
+    wednesdays = models.BooleanField(default=False, verbose_name="Wed")
+    thursdays = models.BooleanField(default=False, verbose_name="Thu")
+    fridays = models.BooleanField(default=False, verbose_name="Fri")
+    saturdays = models.BooleanField(default=False, verbose_name="Sat")
 
 
 class UnderwritingSpots (SaleLineItem):

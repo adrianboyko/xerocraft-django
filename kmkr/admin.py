@@ -8,7 +8,7 @@ from reversion.admin import VersionAdmin
 
 # Local
 from kmkr.models import (
-    Show,
+    Show, ShowTime,
     UnderwritingSpots,
     UnderwritingLogEntry,
     OnAirPersonality,
@@ -50,6 +50,16 @@ class OnAirPersonalityAdmin(VersionAdmin):
 @admin.register(Show)
 class ShowAdmin(VersionAdmin):
 
+    list_filter = ['active']
+
+    list_display = ['id', 'title', 'active']
+
+    list_display_links = ['id', 'title']
+
+    fields = ['title', 'description', 'active']
+
+    search_fields = ['title', 'description']
+
     class Host_Inline(admin.TabularInline):
         model = Show.hosts.through
         model._meta.verbose_name = "Host"
@@ -57,30 +67,12 @@ class ShowAdmin(VersionAdmin):
         extra = 0
         raw_id_fields = ['onairpersonality']
 
-    def days(self, obj:Show)->str: return obj.days_of_week_str
+    class ShowTime_Inline(admin.TabularInline):
+        model = ShowTime
+        extra = 0
+        raw_id_fields = ['show']
 
-    def mins(self, obj:Show)->str: return str(obj.minute_duration)
-
-    list_filter = ['active']
-
-    list_display = ['id', 'title', 'days', 'start_time', 'mins', 'active']
-
-    list_display_links = ['id', 'title']
-
-    fieldsets = [
-        ("BASICS",
-            {'fields': ['title', 'description', 'active']}),
-        ("SCHEDULE",
-            {'fields': [
-                ('mondays', 'tuesdays', 'wednesdays', 'thursdays', 'fridays', 'saturdays', 'sundays'),
-                'start_time',
-                'minute_duration',
-        ]})
-    ]
-
-    search_fields = ['title', 'description']
-
-    inlines = [Host_Inline]
+    inlines = [Host_Inline, ShowTime_Inline]
 
     class Media:
         css = {
