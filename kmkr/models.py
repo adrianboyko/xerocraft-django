@@ -59,20 +59,6 @@ class Show (models.Model):
     description = models.TextField(max_length=2048,
         help_text="A description of the show for public consumption.")
 
-    start_time = models.TimeField(null=False, blank=False,
-        help_text="The time at which the show begins.")
-
-    minute_duration = models.IntegerField(null=False, blank=False,
-        help_text="The duration of the show in MINUTES.")
-
-    mondays = models.BooleanField(default=False)
-    tuesdays = models.BooleanField(default=False)
-    wednesdays = models.BooleanField(default=False)
-    thursdays = models.BooleanField(default=False)
-    fridays = models.BooleanField(default=False)
-    saturdays = models.BooleanField(default=False)
-    sundays = models.BooleanField(default=False)
-
     hosts = models.ManyToManyField(OnAirPersonality,
         help_text="Host(s) of the show.")
 

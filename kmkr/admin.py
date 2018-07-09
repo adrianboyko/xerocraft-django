@@ -52,7 +52,15 @@ class ShowAdmin(VersionAdmin):
 
     list_filter = ['active']
 
-    list_display = ['id', 'title', 'active']
+    def hosts_fmt(self, show: Show):
+        result = map(
+            lambda h: h.moniker,
+            show.hosts.all()
+        )
+        return list(result)
+    hosts_fmt.short_description = 'host(s)'
+
+    list_display = ['id', 'title', 'hosts_fmt', 'active']
 
     list_display_links = ['id', 'title']
 
