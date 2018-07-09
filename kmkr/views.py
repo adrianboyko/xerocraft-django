@@ -4,14 +4,16 @@ from logging import getLogger
 from datetime import datetime, timedelta
 
 # Third Party
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
+
 # Local
 from .models import PlayLogEntry, Track
 
 logger = getLogger("kmkr")
+
 
 @csrf_exempt
 @require_http_methods(["GET", "POST"])
@@ -67,3 +69,17 @@ def now_playing(request) -> JsonResponse:
         )
         return JsonResponse({"result": "success"})
 
+
+@require_http_methods(["GET"])
+def now_playing_fbapp(request) -> HttpResponse:
+    aired = PlayLogEntry.objects.latest('start')  # type: PlayLogEntry
+    time_remaining = (aired.start + aired.track.duration) - timezone.now()
+    if time_remaining.total_seconds() > 0:
+        return HttpResponse(str(aired.track))
+    else:
+        return HttpResponse("Nothing currently playing.")
+
+
+@require_http_methods(["GET"])
+def now_playing_fbapp_privacy_policy(request) -> HttpResponse:
+    return HttpResponse("This app does not collect any personal information.")
