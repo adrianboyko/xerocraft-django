@@ -70,6 +70,7 @@ def now_playing(request) -> JsonResponse:
         return JsonResponse({"result": "success"})
 
 
+@csrf_exempt
 @require_http_methods(["GET", "POST"])
 def now_playing_fbapp(request) -> HttpResponse:
     aired = PlayLogEntry.objects.latest('start')  # type: PlayLogEntry
