@@ -76,7 +76,7 @@ def now_playing_fbapp(request) -> HttpResponse:
     aired = PlayLogEntry.objects.latest('start')  # type: PlayLogEntry
     time_remaining = (aired.start + aired.track.duration) - timezone.now()
     response = HttpResponse()
-    response['X-Frame-Options'] = "ALLOW-FROM https://facebook.com/"
+    response['X-Frame-Options'] = "ALLOW-FROM https://www.facebook.com/"
     if time_remaining.total_seconds() > 0:
         response.write(str(aired.track))
     else:
