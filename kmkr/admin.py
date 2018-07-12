@@ -60,11 +60,11 @@ class ShowAdmin(VersionAdmin):
         return list(result)
     hosts_fmt.short_description = 'host(s)'
 
-    list_display = ['id', 'title', 'hosts_fmt', 'active']
+    list_display = ['id', 'title', 'duration', 'hosts_fmt', 'active']
 
     list_display_links = ['id', 'title']
 
-    fields = ['title', 'description', 'active']
+    fields = ['title', 'duration', 'description', 'active']
 
     search_fields = ['title', 'description']
 

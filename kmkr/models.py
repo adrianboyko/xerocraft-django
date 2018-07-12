@@ -1,6 +1,7 @@
 
 # Standard
-from datetime import date
+from datetime import date, time, datetime, timedelta
+from typing import Optional, Tuple
 
 # Third-party
 from django.db import models
@@ -11,7 +12,7 @@ from django.utils import timezone
 # Local
 from books.models import SaleLineItem
 from members.models import Member
-import abutils.time
+import abutils.time as abtime
 
 
 class OnAirPersonality (models.Model):
@@ -56,21 +57,43 @@ class Show (models.Model):
     title = models.CharField(max_length=80,
         help_text="The name of this show.")
 
-    description = models.TextField(max_length=2048,
+    description = models.TextField(max_length=2048, null=False, blank=False,
         help_text="A description of the show for public consumption.")
 
     hosts = models.ManyToManyField(OnAirPersonality,
         help_text="Host(s) of the show.")
+
+    duration = models.DurationField(null=False, blank=False,
+        default=timedelta(minutes=60),
+        help_text="The duration of the show.")
 
     active = models.BooleanField(default=True,
         help_text="Checked if this show is still active.")
 
     @property
     def days_of_week_str(self) -> str:
-        return abutils.time.days_of_week_str(self)
+        return abtime.days_of_week_str(self)
 
     def __str__(self) -> str:
         return self.title
+
+    def is_in_progress(self) -> bool:
+        lt = timezone.localtime(timezone.now())
+        return any(x.covers(lt) for x in self.showtime_set.all())
+
+    @classmethod
+    def current_show(cls) -> Optional['Show']:
+        for show in Show.objects.all():
+            if show.is_in_progress():
+              return show
+        return None
+
+    def current_showtime(self) -> Optional['ShowTime']:
+        lt = timezone.localtime(timezone.now())
+        for showtime in self.showtime_set.all():  # type: ShowTime
+            if showtime.covers(lt):
+                return showtime
+        return None
 
 
 class ShowTime(models.Model):
@@ -81,9 +104,6 @@ class ShowTime(models.Model):
 
     start_time = models.TimeField(null=False, blank=False,
         help_text="The time at which the show begins.")
-
-    minute_duration = models.IntegerField(null=False, blank=False,
-        help_text="The duration of the show in MINUTES.")
 
     # Weekday of month:
     first = models.BooleanField(default=False, verbose_name="1st")
@@ -100,6 +120,24 @@ class ShowTime(models.Model):
     thursdays = models.BooleanField(default=False, verbose_name="Thu")
     fridays = models.BooleanField(default=False, verbose_name="Fri")
     saturdays = models.BooleanField(default=False, verbose_name="Sat")
+
+    # Some dynamic code (in other modules) requires these aliases:
+    def sunday(self) -> bool: return self.sundays
+    def monday(self) -> bool: return self.mondays
+    def tuesday(self) -> bool: return self.tuesdays
+    def wednesday(self) -> bool: return self.wednesdays
+    def thursday(self) -> bool: return self.thursdays
+    def friday(self) -> bool: return self.fridays
+    def satday(self) -> bool: return self.saturdays
+
+    def covers(self, dt: datetime) -> bool:
+        day_match = abtime.matches_weekday_of_month_pattern(self, dt.date())
+        time_match = abtime.time_in_timespan(
+            dt.time(),
+            self.start_time,
+            self.show.duration
+        )
+        return True if day_match and time_match else False
 
 
 class UnderwritingSpots (SaleLineItem):
@@ -155,7 +193,6 @@ class UnderwritingSpots (SaleLineItem):
 
         if self.slot == self.SLOT_SHOW and len(self.specific_shows.count())==0:
             raise ValidationError("At least one show must be specified if slot is 'speciic show(s)'")
-
 
     class Meta:
         verbose_name = "Underwriting Spots"

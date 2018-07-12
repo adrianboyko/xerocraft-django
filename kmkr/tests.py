@@ -1,54 +1,95 @@
 
 # Standard
-from datetime import timedelta
+from datetime import timedelta, time, datetime, date
 
 # Third-Party
 from django.test import TestCase, Client
 from django.urls import reverse
+from django.utils import timezone
+from freezegun import freeze_time
 
 # Local
-from .models import PlayLogEntry, Track
+from .models import PlayLogEntry, Track, Show, ShowTime
 
 
 class TestNowPlaying(TestCase):
 
-    def test_post_and_get(self):
+    tz = timezone.get_current_timezone()
+
+    url = reverse('kmkr:now-playing')
+
+    data1 = {
+        "TITLE": "Spam It",
+        "ARTIST": "The Spammers",
+        "ID": 999,
+        "TYPE": Track.TYPE_JINGLE,
+        "DURATION": "03:33"
+    }
+
+    def test_track_add_get_update_get(self):
+
         client = Client()
 
-        url = reverse('kmkr:now-playing')
-
-        data1 = {
-            "TITLE": "Spam It",
-            "ARTIST": "The Spammers",
-            "ID": 999,
-            "TYPE": Track.TYPE_JINGLE,
-            "DURATION": "03:33"
-        }
-        response = client.post(url, data1)
+        response = client.post(self.url, self.data1)
         self.assertEqual(response.status_code, 200)
 
-        response = client.get(url)
+        response = client.get(self.url)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()['title'], data1['TITLE'])
-        self.assertEqual(response.json()['artist'], data1['ARTIST'])
-        self.assertEqual(response.json()['radiodj_id'], data1['ID'])
-        self.assertEqual(response.json()['track_type'], data1['TYPE'])
+        json = response.json()
+        self.assertEqual(json['track']['title'], self.data1['TITLE'])
+        self.assertEqual(json['track']['artist'], self.data1['ARTIST'])
+        self.assertEqual(json['track']['radiodj_id'], self.data1['ID'])
+        self.assertEqual(json['track']['track_type'], self.data1['TYPE'])
 
         # Simulate the case where the title is updated in RadioDJ:
         data2 = {
             "TITLE": "xxxxxxxxx",
-            "ARTIST": data1['ARTIST'],
-            "ID": data1['ID'],
-            "TYPE": data1['TYPE'],
-            "DURATION": data1['DURATION'],
+            "ARTIST": self.data1['ARTIST'],
+            "ID": self.data1['ID'],
+            "TYPE": self.data1['TYPE'],
+            "DURATION": self.data1['DURATION'],
         }
 
-        response = client.post(url, data2)
+        response = client.post(self.url, data2)
         self.assertEqual(response.status_code, 200)
 
-        response = client.get(url)
+        response = client.get(self.url)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()['title'], data2['TITLE'])  # The field that changed
-        self.assertEqual(response.json()['artist'], data1['ARTIST'])
-        self.assertEqual(response.json()['radiodj_id'], data1['ID'])
-        self.assertEqual(response.json()['track_type'], data1['TYPE'])
+        json = response.json()
+        self.assertEqual(json['track']['title'], data2['TITLE'])  # The field that changed
+        self.assertEqual(json['track']['artist'], self.data1['ARTIST'])
+        self.assertEqual(json['track']['radiodj_id'], self.data1['ID'])
+        self.assertEqual(json['track']['track_type'], self.data1['TYPE'])
+
+
+    def test_current_show(self):
+
+        client = Client()
+
+        show = Show.objects.create(
+            title="Bob's Show",
+            description="Bob talks about stuff",
+            duration=timedelta(hours=1)
+        )
+        showtime = ShowTime.objects.create(
+            show=show,
+            mondays=True,
+            start_time=time(14, 00, 00)
+        )
+
+        dt = timezone.make_aware(datetime(2018, 7, 9, 14, 30, 00), self.tz)
+
+        # Should be current at dt
+        with freeze_time(dt):
+            response = client.get(self.url)
+            self.assertEqual(response.status_code, 200)
+            json = response.json()
+            self.assertIsNotNone(json['show'])
+            self.assertEqual(json['show']['title'], show.title)
+
+        # Should NOT be current at dt + 3hrs
+        with freeze_time(dt+timedelta(hours=3)):
+            response = client.get(self.url)
+            self.assertEqual(response.status_code, 200)
+            json = response.json()
+            self.assertIsNone(json['show'])
