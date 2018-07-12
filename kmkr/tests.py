@@ -77,7 +77,7 @@ class TestNowPlaying(TestCase):
             start_time=time(14, 00, 00)
         )
 
-        dt = timezone.make_aware(datetime(2018, 7, 9, 14, 30, 00), self.tz)
+        dt = timezone.make_aware(datetime(2018, 7, 9, 14, 30, 00), self.tz)  # This is a Monday
 
         # Should be current at dt
         with freeze_time(dt):
@@ -89,6 +89,13 @@ class TestNowPlaying(TestCase):
 
         # Should NOT be current at dt + 3hrs
         with freeze_time(dt+timedelta(hours=3)):
+            response = client.get(self.url)
+            self.assertEqual(response.status_code, 200)
+            json = response.json()
+            self.assertIsNone(json['show'])
+
+        # should NOT be current at dt + 24hours
+        with freeze_time(dt+timedelta(hours=24)):
             response = client.get(self.url)
             self.assertEqual(response.status_code, 200)
             json = response.json()

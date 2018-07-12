@@ -122,13 +122,20 @@ class ShowTime(models.Model):
     saturdays = models.BooleanField(default=False, verbose_name="Sat")
 
     # Some dynamic code (in other modules) requires these aliases:
+    @property
     def sunday(self) -> bool: return self.sundays
+    @property
     def monday(self) -> bool: return self.mondays
+    @property
     def tuesday(self) -> bool: return self.tuesdays
+    @property
     def wednesday(self) -> bool: return self.wednesdays
+    @property
     def thursday(self) -> bool: return self.thursdays
+    @property
     def friday(self) -> bool: return self.fridays
-    def satday(self) -> bool: return self.saturdays
+    @property
+    def saturday(self) -> bool: return self.saturdays
 
     def covers(self, dt: datetime) -> bool:
         day_match = abtime.matches_weekday_of_month_pattern(self, dt.date())
