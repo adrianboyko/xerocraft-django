@@ -39,16 +39,15 @@ def now_playing(request) -> JsonResponse:
         try:
             ple = PlayLogEntry.objects.latest('start')  # type: PlayLogEntry
             time_remaining = (ple.start + ple.track.duration) - tznow  # type: timedelta
-            if time_remaining.total_seconds() > 0:
-                trackdata = {
-                    'title': ple.track.title,
-                    'artist': ple.track.artist,
-                    'radiodj_id': int(ple.track.radiodj_id),
-                    'track_type': int(ple.track.track_type),
-                    'start_datetime': ple.start,
-                    'duration_seconds': round(ple.track.duration.total_seconds(), 1),
-                    'remaining_seconds': round(time_remaining.total_seconds(), 1)
-                }
+            trackdata = {
+                'title': ple.track.title,
+                'artist': ple.track.artist,
+                'radiodj_id': int(ple.track.radiodj_id),
+                'track_type': int(ple.track.track_type),
+                'start_datetime': ple.start,
+                'duration_seconds': round(ple.track.duration.total_seconds(), 1),
+                'remaining_seconds': round(time_remaining.total_seconds(), 1)
+            }
         except PlayLogEntry.DoesNotExist:
             pass  # trackdata is already None
 
