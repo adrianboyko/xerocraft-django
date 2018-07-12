@@ -58,6 +58,6 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(help_text='The show in question.', on_delete=django.db.models.deletion.CASCADE, to='kmkr.Show'),
         ),
 
-        migrations.RunPython(forward_func)
+        #migrations.RunPython(forward_func)
 
     ]
