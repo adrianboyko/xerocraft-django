@@ -32,7 +32,7 @@ def now_playing(request) -> JsonResponse:
                 'title': show.title,
                 'hosts': [x.moniker for x in show.hosts.all()],
                 'start_time': showtime.start_time,
-                'duration_seconds': show.duration.total_seconds(),
+                'duration_seconds': round(show.duration.total_seconds(), 1),
             }
 
         trackdata = None
@@ -41,13 +41,13 @@ def now_playing(request) -> JsonResponse:
             time_remaining = (ple.start + ple.track.duration) - tznow  # type: timedelta
             if time_remaining.total_seconds() > 0:
                 trackdata = {
-                    'start': ple.start,
-                    'duration': ple.track.duration.total_seconds(),
                     'title': ple.track.title,
                     'artist': ple.track.artist,
                     'radiodj_id': int(ple.track.radiodj_id),
                     'track_type': int(ple.track.track_type),
-                    'remaining_seconds': time_remaining.total_seconds()
+                    'start_datetime': ple.start,
+                    'duration_seconds': round(ple.track.duration.total_seconds(), 1),
+                    'remaining_seconds': round(time_remaining.total_seconds(), 1)
                 }
         except PlayLogEntry.DoesNotExist:
             pass  # trackdata is already None
