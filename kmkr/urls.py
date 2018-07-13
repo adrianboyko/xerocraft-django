@@ -17,4 +17,8 @@ urlpatterns = [
         views.now_playing_fbapp_privacy_policy,
         name='now-playing-fbapp-privacy-policy'),
 
+    url(r'^track-logger-spa/$',
+        views.track_logger_spa,
+        name='track-logger-spa'),
+
 ]

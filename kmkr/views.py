@@ -1,17 +1,24 @@
 
 # Standard
 from logging import getLogger
-from datetime import datetime, timedelta
-from typing import Tuple, Optional
+from datetime import timedelta
 
 # Third Party
 from django.http import JsonResponse, HttpResponse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
+from django.views.decorators.csrf import ensure_csrf_cookie
+from django.shortcuts import render
+from django.conf import settings
 
 # Local
-from .models import PlayLogEntry, Track, Show, ShowTime, OnAirPersonality
+from .models import PlayLogEntry, Track, Show
+
+
+ORG_NAME = settings.BZWOPS_ORG_NAME
+ORG_NAME_POSSESSIVE = settings.BZWOPS_ORG_NAME_POSSESSIVE
+FACILITY_PUBLIC_IP = settings.BZWOPS_FACILITY_PUBLIC_IP
 
 logger = getLogger("kmkr")
 
@@ -106,3 +113,13 @@ def now_playing_fbapp(request) -> HttpResponse:
 @require_http_methods(["GET"])
 def now_playing_fbapp_privacy_policy(request) -> HttpResponse:
     return HttpResponse("This app does not collect any personal information.")
+
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+@ensure_csrf_cookie
+def track_logger_spa(request) -> HttpResponse:
+
+    props = {
+        "org_name": ORG_NAME,
+    }
+    return render(request, "kmkr/track-logger-spa.html", props)
