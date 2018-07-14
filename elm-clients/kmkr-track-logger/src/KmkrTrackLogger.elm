@@ -11,6 +11,11 @@ import Time exposing (Time, second)
 -- Third Party
 import Material
 import Material.Button as Button
+import Material.Textfield as Textfield
+import Material.Table as Table
+import Material.Options exposing (css)
+import Material.Icon as Icon
+import Material.Layout as Layout
 
 -- Local
 import ClockTime as CT
@@ -102,10 +107,49 @@ update action model =
 
 view : Model -> Html Msg
 view model =
-  div []
-    [ text "Hello"
-    ]
+  Layout.render Mdl model.mdl
+  [ Layout.fixedHeader
+  ]
+  { header = layout_header model
+  , drawer = []
+  , tabs = ([], [])
+  , main = [layout_main model]
+  }
 
+
+layout_header : Model -> List (Html Msg)
+layout_header model =
+  [ Layout.title [css "margin" "20px"] [text "DJ Data Entry / Tracks for Show"]
+  ]
+
+layout_main : Model -> Html Msg
+layout_main model =
+  Table.table []
+  [ Table.tbody []
+    (List.map (tableRow model) (List.range 1 60))
+  ]
+
+
+tableRow : Model -> Int -> Html Msg
+tableRow model r =
+  let
+    aTd s r c = Table.td restTdStyle [Textfield.render Mdl [r,c] model.mdl [Textfield.label s] []]
+  in
+    Table.tr []
+    [ Table.td firstTdStyle [text <| toString r]
+    , aTd "artist" r 1
+    , aTd "title" r 2
+    , aTd "mm:ss" r 3
+    , Table.td firstTdStyle
+      [ Button.render Mdl [r] model.mdl
+        [ Button.fab
+        , Button.plain
+        -- , Options.onClick MyClickMsg
+        ]
+        [ Icon.i "play_arrow"]
+      ]
+
+    ]
 
 
 -----------------------------------------------------------------------------
@@ -142,4 +186,14 @@ unselectable =
     , "user-select" => "none"
     ]
 
+firstTdStyle =
+  [ css "border-style" "none"
+  , css "color" "gray"
+  , css "font-size" "26pt"
+  , css "font-weight" "bold"
+  ]
 
+restTdStyle =
+  [ css "border-style" "none"
+  , css "padding-top" "0"
+  ]
