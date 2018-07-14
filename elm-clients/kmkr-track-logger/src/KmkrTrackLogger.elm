@@ -133,13 +133,15 @@ layout_main model =
 tableRow : Model -> Int -> Html Msg
 tableRow model r =
   let
-    aTd s r c = Table.td restTdStyle [Textfield.render Mdl [r,c] model.mdl [Textfield.label s] []]
+    aTd s r c opts =
+      Table.td restTdStyle
+        [Textfield.render Mdl [r,c] model.mdl (opts++[Textfield.label s]) []]
   in
     Table.tr []
     [ Table.td firstTdStyle [text <| toString r]
-    , aTd "artist" r 1
-    , aTd "title" r 2
-    , aTd "mm:ss" r 3
+    , aTd "Artist" r 1 []
+    , aTd "Title" r 2 []
+    , aTd "MM:SS" r 3 [css "width" "55px"]
     , Table.td firstTdStyle
       [ Button.render Mdl [r] model.mdl
         [ Button.fab
