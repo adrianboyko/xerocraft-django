@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Expects to be run in $ProjectFileDir$/elm-clients/kmkr-track-logger/
 
+clear
+
 set -x
 
 ELM=src/KmkrTrackLogger.elm
@@ -15,5 +17,3 @@ then
 fi
 
 paplay /usr/share/sounds/ubuntu/stereo/dialog-information.ogg
-popd
-
