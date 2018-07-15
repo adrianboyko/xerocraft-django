@@ -107,7 +107,7 @@ view kioskModel =
       , button <| ButtonSpec "Check Out" (WelcomeForRfidVector <| W4R_CheckOutClicked) True
       , ( case sceneModel.member of
             Just m ->
-              if List.member m.id [1, 1842] then  -- beta testers
+              if List.member m.id [1, 2, 1842] then  -- beta testers
                 div []
                   [ vspace 40
                   , sceneButton kioskModel <| ButtonSpec "Give Me Soda!" (DispenseSodaVector <| DS_Segue m) True
