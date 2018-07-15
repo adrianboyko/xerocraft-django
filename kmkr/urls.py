@@ -1,7 +1,13 @@
 from django.conf.urls import url, include
 from . import views
+from .restapi import views as restviews
+from rest_framework import routers
 
 app_name = "kmkr"  # This is the app namespace not the app name.
+
+router = routers.DefaultRouter()
+router.register(r'playlogentries', restviews.PlayLogEntryViewSet)
+router.register(r'shows', restviews.ShowViewSet)
 
 urlpatterns = [
 
@@ -20,5 +26,7 @@ urlpatterns = [
     url(r'^track-logger-spa/$',
         views.track_logger_spa,
         name='track-logger-spa'),
+
+    url(r'^api/', include(router.urls)),
 
 ]
