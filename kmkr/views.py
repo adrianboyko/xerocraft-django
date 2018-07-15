@@ -62,6 +62,8 @@ def now_playing(request) -> JsonResponse:
 
     if request.method == "POST":
 
+        # TODO: Only allow posts from facility's perimiter IP address.
+
         duration = request.POST['DURATION']  # type: str
         if len(duration) == 5:
             # RadioDJ sends MM:SS which Django/Python interprets as HH:MM
