@@ -70,5 +70,5 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(blank=True, default=None, help_text='The track that was aired.', null=True, on_delete=django.db.models.deletion.PROTECT, to='kmkr.Track'),
         ),
 
-        migrations.RunPython(forward_func)
+        #migrations.RunPython(forward_func)
     ]
