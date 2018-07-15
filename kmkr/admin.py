@@ -242,6 +242,8 @@ class PlayLogEntryAdmin(admin.ModelAdmin):
     list_display = [
         'pk',
         'start',
+        'show',
+        'show_date',
         'track',
         'rating',
         'votes',
