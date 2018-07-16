@@ -23,8 +23,8 @@ urlpatterns = [
         views.now_playing_fbapp_privacy_policy,
         name='now-playing-fbapp-privacy-policy'),
 
-    url(r'^track-logger-spa/$',
-        views.track_logger_spa,
+    url(r'^dj-ops/$',
+        views.dj_ops_spa,
         name='track-logger-spa'),
 
     url(r'^api/', include(router.urls)),

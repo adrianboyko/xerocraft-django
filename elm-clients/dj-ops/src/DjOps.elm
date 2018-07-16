@@ -1,9 +1,9 @@
-module KmkrTrackLogger exposing (..)
+module DjOps exposing (..)
 
 -- Standard
-import Html exposing (Html, div, text)
+import Html exposing (Html, div, text, select, option, input)
 import Html as Html
-import Html.Attributes exposing (style, href)
+import Html.Attributes exposing (style, href, attribute)
 import Html.Events exposing (onClick, on)
 import Http as Http
 import Time exposing (Time, second)
@@ -54,6 +54,7 @@ type alias Model =
   { mdl : Material.Model
   , xis : XisApi.Session Msg
   , time : PointInTime
+  , shows: List XisApi.Show
   }
 
 
@@ -67,9 +68,11 @@ init flags =
       { mdl = Material.model
       , xis = XisApi.createSession flags.xisRestFlags auth
       , time = 0
+      , shows = []
       }
+    command = model.xis.listShows ShowList_Result
   in
-    (model, Cmd.none)
+    (model, command)
 
 
 -----------------------------------------------------------------------------
@@ -81,6 +84,7 @@ type
   Msg
   = Tick Time
   | Mdl (Material.Msg Msg)
+  | ShowList_Result (Result Http.Error (DRF.PageOf XisApi.Show))
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -98,6 +102,11 @@ update action model =
       in
         ( newModel, Cmd.none )
 
+    ShowList_Result (Ok {results}) ->
+      ({model | shows=results}, Cmd.none)
+
+    ShowList_Result (Err error) ->
+      (model, Cmd.none)
 
 
 -----------------------------------------------------------------------------
@@ -117,9 +126,20 @@ view model =
   }
 
 
+showOptions : Model -> List (Html Msg)
+showOptions model =
+  List.map
+    (\show -> option [] [text show.data.title])
+    model.shows
+
 layout_header : Model -> List (Html Msg)
 layout_header model =
-  [ Layout.title [css "margin" "20px"] [text "DJ Data Entry / Tracks for Show"]
+  [ Layout.title [css "margin" "20px"]
+    [ text "DJ Ops Console"
+    , select [showSelectStyle] (showOptions model)
+    , input [userIdPwInputStyle, attribute "placeholder" "userid", attribute "type" "userid"] []
+    , input [userIdPwInputStyle, attribute "placeholder" "password", attribute "type" "password"] []
+    ]
   ]
 
 layout_main : Model -> Html Msg
@@ -175,18 +195,17 @@ subscriptions model =
 -- STYLES
 -----------------------------------------------------------------------------
 
-
 (=>) = (,)
 
-
-unselectable =
+showSelectStyle =
   style
-    [ "-moz-user-select" => "-moz-none"
-    , "-khtml-user-select" => "none"
-    , "-webkit-user-select" => "none"
-    , "-ms-user-select" => "none"
-    , "user-select" => "none"
-    ]
+  [ "margin-left" => "50px"
+  ]
+
+userIdPwInputStyle =
+  style
+  [ "margin-left" => "50px"
+  ]
 
 firstTdStyle =
   [ css "border-style" "none"

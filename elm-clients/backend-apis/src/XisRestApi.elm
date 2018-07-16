@@ -20,6 +20,7 @@ module XisRestApi
     , MembershipListFilter (..)
     , Play, PlayData, PlayListFilter (..)
     , Session
+    , Show
     , Task, StaffingStatus(..), TaskData
     , TaskListFilter (..)
     , TaskPriority (..)
@@ -76,6 +77,7 @@ type alias XisRestFlags =
   , membershipListUrl : ResourceListUrl
   , playListUrl : ResourceListUrl
   , productListUrl : ResourceListUrl
+  , showListUrl : ResourceListUrl
   , taskListUrl : ResourceListUrl
   , timeBlocksUrl : ResourceListUrl  -- TODO: Should be timeBlockListUrl
   , timeBlockTypesUrl : ResourceListUrl  -- TODO: Should be timeBlockTypeListUrl
@@ -158,6 +160,7 @@ type alias Session msg =
   , listMembers : FilteringLister MemberListFilter Member msg
   , listMemberships : FilteringLister MembershipListFilter Membership msg
   , listPlays : FilteringLister PlayListFilter Play msg
+  , listShows : Lister Show msg
   , listTasks : FilteringLister TaskListFilter Task msg
   , listTimeBlocks : Lister TimeBlock msg
   , listTimeBlockTypes : Lister TimeBlockType msg
@@ -174,6 +177,7 @@ type alias Session msg =
   , claimUrl : Int -> ResourceUrl
   , memberUrl : Int -> ResourceUrl
   , productUrl : Int  -> ResourceUrl
+  , showUrl : Int -> ResourceUrl
   , taskUrl : Int -> ResourceUrl
   , vendLogUrl : Int -> ResourceUrl
   , visitEventUrl : Int -> ResourceUrl
@@ -227,6 +231,7 @@ createSession flags auth =
   , listMembers = listMembers flags auth
   , listMemberships = listMemberships flags auth
   , listPlays = listPlays flags auth
+  , listShows = listShows flags auth
   , listTasks = listTasks flags auth
   , listTimeBlocks = listTimeBlocks flags auth
   , listTimeBlockTypes = listTimeBlockTypes flags auth
@@ -243,6 +248,7 @@ createSession flags auth =
   , claimUrl = urlFromId flags.claimListUrl
   , memberUrl = urlFromId flags.memberListUrl
   , productUrl = urlFromId flags.productListUrl
+  , showUrl = urlFromId flags.showListUrl
   , taskUrl = urlFromId flags.taskListUrl
   , vendLogUrl = urlFromId flags.visitEventListUrl
   , visitEventUrl = urlFromId flags.visitEventListUrl
@@ -1605,6 +1611,41 @@ djangoizeId rawId =
 replaceAll : {oldSub : String, newSub : String} -> String -> String
 replaceAll {oldSub, newSub} whole =
   Regex.replace Regex.All (regex oldSub) (\_ -> newSub) whole
+
+
+
+-----------------------------------------------------------------------------
+-- KMKR SHOWS
+-----------------------------------------------------------------------------
+
+type alias ShowData =
+  { title : String
+  , duration : Duration
+  , description : String
+  , active : Bool
+  }
+
+
+type alias Show = Resource ShowData
+
+
+listShows : XisRestFlags -> Authorization -> Lister Show msg
+listShows model auth resultToMsg =
+  let request = Http.get model.showListUrl (decodePageOf decodeShow)
+  in Http.send resultToMsg request
+
+
+decodeShow : Dec.Decoder Show
+decodeShow = decodeResource decodeShowData
+
+
+decodeShowData : Dec.Decoder ShowData
+decodeShowData =
+  Dec.map4 ShowData
+    (Dec.field "title" Dec.string)
+    (Dec.field "duration" DRF.decodeDuration)
+    (Dec.field "description" Dec.string)
+    (Dec.field "active" Dec.bool)
 
 
 -----------------------------------------------------------------------------

@@ -1,6 +1,6 @@
 {
     "version": "1.0.0",
-    "summary": "Elm client for DJs to enter tracks played.",
+    "summary": "Elm client for DJs.",
     "repository": "https://github.com/user/project.git",
     "license": "BSD3",
     "source-directories": [

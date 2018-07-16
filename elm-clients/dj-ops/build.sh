@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# Expects to be run in $ProjectFileDir$/elm-clients/kmkr-track-logger/
+# Expects to be run in $ProjectFileDir$/elm-clients/dj-ops/
 
 clear
 
 set -x
 
-ELM=src/KmkrTrackLogger.elm
-JS=out/KmkrTrackLogger.js
-MIN=../../kmkr/static/kmkr/KmkrTrackLogger.min.js
+ELM=src/DjOps.elm
+JS=out/DjOps.js
+MIN=../../kmkr/static/kmkr/DjOps.min.js
 
 if elm-make --yes ${ELM} --output=${JS} && cat ${JS} > ${MIN}
 #if elm-make --debug --yes ${ELM} --output=${JS} && minify ${JS} > ${MIN}

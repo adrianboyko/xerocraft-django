@@ -74,7 +74,7 @@
     <div id="myContainer"></div>
 
     <script src="{% static 'members/js.cookie.js' %}"></script>  <!-- TODO: members? -->
-    <script src="{% static 'kmkr/KmkrTrackLogger.min.js' %}"></script>
+    <script src="{% static 'kmkr/DjOps.min.js' %}"></script>
     <script>
 
         // KIOSK ID
@@ -106,6 +106,7 @@
             "membershipListUrl":      "{% url 'memb:membership-list' %}",
             "playListUrl":            "{% url 'task:play-list' %}",
             "productListUrl":         "{% url 'soda:product-list' %}",
+            "showListUrl":            "{% url 'kmkr:show-list' %}",
             "taskListUrl":            "{% url 'task:task-list' %}",
             "timeBlocksUrl":          "/ops/api/time_blocks/",
             "timeBlockTypesUrl":      "/ops/api/time_block_types/",
@@ -121,7 +122,7 @@
         };
 
         var myContainer = document.getElementById("myContainer");
-        var app = Elm.KmkrTrackLogger.embed(myContainer, flags);
+        var app = Elm.DjOps.embed(myContainer, flags);
 
 
     </script>

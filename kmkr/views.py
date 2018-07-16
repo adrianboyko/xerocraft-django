@@ -119,9 +119,9 @@ def now_playing_fbapp_privacy_policy(request) -> HttpResponse:
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 @ensure_csrf_cookie
-def track_logger_spa(request) -> HttpResponse:
+def dj_ops_spa(request) -> HttpResponse:
 
     props = {
         "org_name": ORG_NAME,
     }
-    return render(request, "kmkr/track-logger-spa.html", props)
+    return render(request, "kmkr/dj-ops.html", props)
