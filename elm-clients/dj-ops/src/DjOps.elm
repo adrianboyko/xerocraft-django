@@ -1,7 +1,7 @@
 module DjOps exposing (..)
 
 -- Standard
-import Html exposing (Html, div, text, select, option, input, p, br, span)
+import Html exposing (Html, div, text, select, option, input, p, br, span, table, tr, td)
 import Html as Html
 import Html.Attributes exposing (style, href, attribute)
 import Html.Events exposing (onClick, on)
@@ -146,10 +146,11 @@ tabs model =
     [ text "start"
     , text "tracks"
     , text "underwriting"
-    , text "membership"
+    , text "finish"
     ]
   , [ Color.background (Color.color Color.DeepPurple Color.S400) ]
   )
+
 
 view : Model -> Html Msg
 view model =
@@ -163,11 +164,13 @@ view model =
   , main = [layout_main model]
   }
 
+
 tagattr x = attribute x x
+
 
 showSelector : Model -> Html Msg
 showSelector model =
-  select [style ["margin-left"=>"20px"], attribute "required" ""] <|
+  select [style ["margin-left"=>"0px"], attribute "required" ""] <|
     ( option
        [attribute "value" "", tagattr "selected", tagattr "disabled", tagattr "hidden"]
        [text "Please pick a show..."]
@@ -183,7 +186,7 @@ showSelector model =
 
 showDateSelector : Model -> Html Msg
 showDateSelector model =
-  div [style ["margin-left"=>"20px"]]
+  div [style ["margin-left"=>"0px"]]
   [ (DatePicker.view
       model.showDate
       DatePicker.defaultSettings
@@ -212,12 +215,21 @@ layout_main model =
 
 
 tab_start model =
+  let
+    numTd = td [style ["padding-left"=>"5px", "font-size"=>"24pt", "color"=>"#3f51b5"]]
+    instTd = td [style ["padding-left"=>"15px"]]
+    para = p [style ["margin-top"=>"10px"]]
+    row = tr []
+  in
+    div [style ["margin"=>"30px", "zoom"=>"1.3"]]
+    [ p [] [text "Welcome to the DJ Ops Console!"]
+    , table []
+      [ row [numTd [text "➊ "], instTd [para [text "Use your RFID to log in."]]]
+      , row [numTd [text "➋ "], instTd [para [text "Choose a show to work on: ", br [] [], showSelector model]]]
+      , row [numTd [text "➌ "], instTd [para [text "Specify the show date: ", showDateSelector model]]]
+      ]
+    ]
 
-  div [style ["margin"=>"30px", "zoom"=>"1.3"]]
-  [ p [] [text "Welcome to the DJ Ops Console!"]
-  , p [] [text "Choose a show to work on: ", br [] [], showSelector model]
-  , p [] [text "And specify the show date: ", showDateSelector model]
-  ]
 
 
 tab_tracks model =
