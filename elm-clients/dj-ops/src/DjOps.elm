@@ -198,7 +198,8 @@ showDateSelector model =
 layout_header : Model -> List (Html Msg)
 layout_header model =
   [ Layout.title [css "margin" "20px"]
-    [ text "DJ Ops Console"
+    [ span [style ["margin-right"=>"10px"]] [text "🎶 "]
+    , text "DJ Ops Console"
     ]
   ]
 
