@@ -64,7 +64,7 @@ class TaggingAdmin(VersionAdmin):
             else:
                 return queryset.filter(tag__name=self.value())
 
-    list_filter = ['tag__active', TagFilter]
+    list_filter = ['tag__active', 'can_tag', TagFilter]
 
     raw_id_fields = ['tagged_member', 'authorizing_member']
 
