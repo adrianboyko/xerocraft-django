@@ -1024,23 +1024,30 @@ class Sale(Journaler):
                 pass
 
         # Attempt to match by NAME
+        def try_name(fname, lname):
+            if fname is not None and lname is not None and len(fname + lname) > 0:
+                try:
+                    name_matches = User.objects.filter(
+                        first_name__iexact=fname,
+                        last_name__iexact=lname,
+                        is_active=True,
+                    )
+                    if len(name_matches) == 1:
+                        self.payer_acct = name_matches[0]
+                        return True
+                    elif len(name_matches) > 1:
+                        logger.warning("Unable to link sale b/c multiple %s %s accts", fname, lname)
+                except User.DoesNotExist:
+                    pass
+            return False
         nameobj = HumanName(str(self.payer_name))
-        fname = nameobj.first
-        lname = nameobj.last
-        if fname is not None and lname is not None and len(fname+lname) > 0:
-            try:
-                name_matches = User.objects.filter(
-                    first_name__iexact=fname,
-                    last_name__iexact=lname,
-                    is_active=True,
-                )
-                if len(name_matches) == 1:
-                    self.payer_acct = name_matches[0]
-                    return True
-                elif len(name_matches) > 1:
-                    logger.warning("Unable to link sale b/c multiple %s %s accts", fname, lname)
-            except User.DoesNotExist:
-                pass
+        if try_name(nameobj.first, nameobj.last):  # This is the usual European case.
+            return True
+        if nameobj.middle is not None and len(nameobj.middle)>0:
+            if try_name(nameobj.first, nameobj.middle+" "+nameobj.last):  # Intended to help with Hispanic combo surnames.
+                return True
+            if try_name(nameobj.first+" "+nameobj.middle, nameobj.last):  # Might help with Chinese names?
+                return True
         return False
 
     class Meta:
