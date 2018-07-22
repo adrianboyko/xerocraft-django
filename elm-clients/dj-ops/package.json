@@ -1,0 +1,15 @@
+{
+  "name": "dj-ops",
+  "version": "1.0.0",
+  "description": "Ops Console for KMKR DJs",
+  "main": "webpack.config.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "."
+  },
+  "author": "Adrian Boyko",
+  "license": "ISC"
+}
