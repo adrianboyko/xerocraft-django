@@ -41,15 +41,34 @@ class TagAdmin(VersionAdmin):
 @admin.register(Tagging)
 class TaggingAdmin(VersionAdmin):
 
-    def members_username(self, object):
+    def members_username(self, object: Tagging):
         return object.tagged_member.username
     members_username.admin_order_field = 'tagged_member__auth_user__username'
+    members_username.short_description = 'Username'
 
-    list_filter = ['tag__name']
+    def tag_active(self, object: Tagging):
+        return object.tag.active
+    tag_active.short_description = "Active"
+    tag_active.boolean = True
+
+    class TagFilter(admin.SimpleListFilter):
+        title = "Tag Name"
+        parameter_name = "tag-name"
+
+        def lookups(self, request, model_admin):
+            return [(t.name, t.name) for t in Tag.objects.filter(active=True)]
+
+        def queryset(self, request, queryset):
+            if self.value() is None:
+                return queryset
+            else:
+                return queryset.filter(tag__name=self.value())
+
+    list_filter = ['tag__active', TagFilter]
 
     raw_id_fields = ['tagged_member', 'authorizing_member']
 
-    list_display = ['pk', 'tagged_member', 'members_username', 'tag', 'can_tag', 'date_tagged', 'authorizing_member']
+    list_display = ['pk', 'tag_active', 'tagged_member', 'members_username', 'tag', 'can_tag', 'date_tagged', 'authorizing_member']
 
     search_fields = [
         '^tagged_member__auth_user__first_name',

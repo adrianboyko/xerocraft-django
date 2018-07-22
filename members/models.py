@@ -388,6 +388,7 @@ class Tagging(models.Model):
 
     tag = models.ForeignKey(Tag,
         on_delete=models.CASCADE,  # If a tag is deleted, it doesn't make sense to keep the associated taggings.
+        limit_choices_to={'active': True},
         help_text="The tag assigned to the member.")
 
     authorizing_member = models.ForeignKey(Member, null=True, blank=True, related_name='authorized_taggings',
