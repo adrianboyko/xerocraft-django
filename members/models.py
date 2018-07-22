@@ -59,6 +59,8 @@ def next_giftcardref_ctrlid() -> str:
 # Models
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
+# Useful MetaTags would be things like "Group" and "Skill"
+#
 # class MetaTag(models.Model):
 #
 #     name = models.CharField(max_length=40,
