@@ -32,6 +32,11 @@ class TagAdmin(VersionAdmin):
 
     search_fields = ['name', 'meaning']
 
+    class Media:
+        css = {
+            "all": ("members/tag-admin.css",)
+        }
+
 
 @admin.register(Tagging)
 class TaggingAdmin(VersionAdmin):
