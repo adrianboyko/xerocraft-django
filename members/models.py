@@ -74,13 +74,19 @@ class Tag(models.Model):
     """
     name = models.CharField(max_length=40, unique=True,
         help_text="A short name for the tag.")
+
     meaning = models.TextField(max_length=500,
         help_text="A discussion of the tag's semantics. What does it mean? What does it NOT mean?")
+
+    active = models.BooleanField(default=True,
+        help_text="Indicates whether a tag should be used when entering new data. Only use active tags.")
+
     # meta_tags = models.ManyToManyField(MetaTag, blank=True,
     #     help_text="A tag can have zero or more metatags.")
 
-    def __str__(self):
-        return self.name
+    def __str__(self) -> str:
+        suffix = "" if self.active == True else " (DON'T USE)"
+        return self.name + suffix
 
     class Meta:
         ordering = ['name']
@@ -705,6 +711,7 @@ class GroupMembership(MembershipJournalLiner):
 
     group_tag = models.ForeignKey(Tag, null=False, blank=False,
         on_delete=models.PROTECT,  # A group membership's tag should be changed before deleting the unwanted tag.
+        limit_choices_to={'active': True},
         help_text="Group membership is initially populated with the set of people having this tag.")
 
     max_members = models.IntegerField(default=None, null=True, blank=True,

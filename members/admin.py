@@ -24,9 +24,11 @@ from tasks.models import TemplateEligibleClaimant2  # TODO: Make these point at 
 @admin.register(Tag)
 class TagAdmin(VersionAdmin):
 
-    list_display = ['pk', 'name', 'meaning']
+    list_filter = ['active']
 
-    fields = ['name', 'meaning']
+    list_display = ['pk', 'name', 'active', 'meaning']
+
+    fields = ['name', 'active', 'meaning']
 
     search_fields = ['name', 'meaning']
 
