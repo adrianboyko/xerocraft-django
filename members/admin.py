@@ -512,7 +512,7 @@ class DiscoveryMethodAdmin(VersionAdmin):
 @admin.register(ExternalId)
 class ExternalIdAdmin(VersionAdmin):
 
-    list_display = ['pk', 'provider', 'uid', 'user', 'extra_data']
+    list_display = ['pk', 'user', 'provider', 'uid', 'extra_data']
 
     raw_id_fields = ['user']
 

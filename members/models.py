@@ -975,7 +975,7 @@ class ExternalId(models.Model):
     user = models.ForeignKey(USER_MODEL, on_delete=models.CASCADE)
     provider = models.CharField(max_length=32)
     uid = models.CharField(max_length=UID_LENGTH)
-    extra_data = models.TextField() # Was JSONField
+    extra_data = models.TextField(blank=True) # Was JSONField
 
     def __str__(self):
         return str(self.user)

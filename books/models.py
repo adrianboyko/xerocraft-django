@@ -20,7 +20,6 @@ from django.conf import settings
 from nameparser import HumanName
 from django.urls import reverse
 
-
 # Local
 from abutils.utils import generate_ctrlid
 
@@ -1011,7 +1010,7 @@ class Sale(Journaler):
         if self.protected:
             return False
 
-        # Attempt to match by EMAIL
+        # Attempt to match by Member's EMAIL ----------------------------------------
         if self.payer_email is not None and len(self.payer_email) > 0:
             try:
                 email_matches = User.objects.filter(email__iexact=self.payer_email, is_active=True)
@@ -1023,7 +1022,21 @@ class Sale(Journaler):
             except User.DoesNotExist:
                 pass
 
-        # Attempt to match by NAME
+        # Attempt to match by External IDs ----------------------------------------
+        # E.g. PayPal uses email addrs as ids, so we can record them in ExternalIds and use them here.
+        from members.models import ExternalId  # import here to avoid circular dependency.
+        if self.payer_email is not None and len(self.payer_email) > 0:
+            extids = ExternalId.objects.filter(uid=self.payer_email)
+            if len(extids) > 0:
+                users = set([x.user for x in extids])  # Using set to remove duplicates.
+                if len(users) > 1:
+                    logger.warning("Unable to link sale b/c multiple accounts for %", self.payer_email)
+                else:
+                    assert len(users) == 1
+                    self.payer_acct = list(users)[0]
+                    return True
+
+        # Attempt to match by NAME ----------------------------------------------
         def try_name(fname, lname):
             if fname is not None and lname is not None and len(fname + lname) > 0:
                 try:
@@ -1048,6 +1061,7 @@ class Sale(Journaler):
                 return True
             if try_name(nameobj.first+" "+nameobj.middle, nameobj.last):  # Might help with Chinese names?
                 return True
+
         return False
 
     class Meta:
