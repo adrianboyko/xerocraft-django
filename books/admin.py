@@ -677,7 +677,40 @@ class SaleAdmin(JournalerAdmin, ModelMailerAdmin):
         'total_paid_by_customer',
         '^ctrlid',
     ]
-    list_filter = ['payment_method', 'sale_date']
+
+    class PayerAcctFilter(admin.SimpleListFilter):
+        title = "Linked to Acct?"
+        parameter_name = "is-acct-linked"
+
+        def lookups(self, request, model_admin):
+            return (
+                ('yes', "Linked"),
+                ('no', "Unlinked"),
+            )
+
+        def queryset(self, request, queryset):
+            if self.value() == 'no':
+                return queryset.filter(payer_acct__isnull=True)
+            if self.value() == 'yes':
+                return queryset.filter(payer_acct__isnull=False)
+
+    class PaymentAmount(admin.SimpleListFilter):
+        title = "Payment Amount"
+        parameter_name = "payment-amount"
+
+        def lookups(self, request, model_admin):
+            return (
+                ('lt50', "< $50"),
+                ('gte50', ">= $50"),
+            )
+
+        def queryset(self, request, queryset):
+            if self.value() == 'lt50':
+                return queryset.filter(total_paid_by_customer__lt=50.0)
+            if self.value() == 'gte50':
+                return queryset.filter(total_paid_by_customer__gte=50.0)
+
+    list_filter = ['payment_method', PayerAcctFilter, PaymentAmount, 'sale_date']
     date_hierarchy = 'sale_date'
 
     change_actions = ['viewjournal_action', 'email_action']  # DjangoObjectActions

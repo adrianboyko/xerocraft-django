@@ -253,8 +253,8 @@ def member_tags(request, tag_pk=None, member_pk=None, op=None):
         form = Desktop_ChooseUserForm(initial={'userid': username})
 
     if member is not None:
-        members_tags = member.tags.all()
-        staff_can_tags = [tagging.tag for tagging in Tagging.objects.filter(can_tag=True, tagged_member=staff)]
+        members_tags = member.tags.filter(active=True)
+        staff_can_tags = [tagging.tag for tagging in Tagging.objects.filter(tag__active=True, can_tag=True, tagged_member=staff)]
         staff_addable_tags = list(staff_can_tags) # copy contents, not pointer.
         # staff member can't add tags that member already has, so:
         for tag in member.tags.all():

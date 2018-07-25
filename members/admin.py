@@ -24,25 +24,51 @@ from tasks.models import TemplateEligibleClaimant2  # TODO: Make these point at 
 @admin.register(Tag)
 class TagAdmin(VersionAdmin):
 
-    list_display = ['pk', 'name', 'meaning']
+    list_filter = ['active']
 
-    fields = ['name', 'meaning']
+    list_display = ['pk', 'name', 'active', 'meaning']
+
+    fields = ['name', 'active', 'meaning']
 
     search_fields = ['name', 'meaning']
+
+    class Media:
+        css = {
+            "all": ("members/tag-admin.css",)
+        }
 
 
 @admin.register(Tagging)
 class TaggingAdmin(VersionAdmin):
 
-    def members_username(self, object):
+    def members_username(self, object: Tagging):
         return object.tagged_member.username
     members_username.admin_order_field = 'tagged_member__auth_user__username'
+    members_username.short_description = 'Username'
 
-    list_filter = ['tag__name']
+    def tag_active(self, object: Tagging):
+        return object.tag.active
+    tag_active.short_description = "Active"
+    tag_active.boolean = True
+
+    class TagFilter(admin.SimpleListFilter):
+        title = "Tag Name"
+        parameter_name = "tag-name"
+
+        def lookups(self, request, model_admin):
+            return [(t.name, t.name) for t in Tag.objects.filter(active=True)]
+
+        def queryset(self, request, queryset):
+            if self.value() is None:
+                return queryset
+            else:
+                return queryset.filter(tag__name=self.value())
+
+    list_filter = ['tag__active', 'can_tag', TagFilter]
 
     raw_id_fields = ['tagged_member', 'authorizing_member']
 
-    list_display = ['pk', 'tagged_member', 'members_username', 'tag', 'can_tag', 'date_tagged', 'authorizing_member']
+    list_display = ['pk', 'tag_active', 'tagged_member', 'members_username', 'tag', 'can_tag', 'date_tagged', 'authorizing_member']
 
     search_fields = [
         '^tagged_member__auth_user__first_name',
@@ -486,7 +512,7 @@ class DiscoveryMethodAdmin(VersionAdmin):
 @admin.register(ExternalId)
 class ExternalIdAdmin(VersionAdmin):
 
-    list_display = ['pk', 'provider', 'uid', 'user', 'extra_data']
+    list_display = ['pk', 'user', 'provider', 'uid', 'extra_data']
 
     raw_id_fields = ['user']
 
