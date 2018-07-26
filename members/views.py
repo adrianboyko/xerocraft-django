@@ -15,14 +15,15 @@ from django.urls import reverse
 from django.core.exceptions import PermissionDenied
 from django.contrib.auth import authenticate
 from django.contrib.auth.decorators import login_required
-from django.views.decorators.csrf import ensure_csrf_cookie
+from django.views.decorators.csrf import ensure_csrf_cookie, csrf_exempt
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import get_template
 
-from rest_framework.decorators import api_view, authentication_classes, permission_classes
-from rest_framework.permissions import IsAdminUser
+from rest_framework.decorators import api_view, authentication_classes, permission_classes, throttle_classes
+from rest_framework.permissions import IsAdminUser, AllowAny
 from rest_framework.authentication import TokenAuthentication
+from rest_framework.throttling import UserRateThrottle, AnonRateThrottle
 
 from reportlab.pdfgen import canvas
 from reportlab.graphics.shapes import Drawing
@@ -494,7 +495,10 @@ def reception_kiosk_email_mship_buy_info(request) -> HttpResponse:
 
 
 @api_view(['POST'])
-@authentication_classes([TokenAuthentication])
+@csrf_exempt
+@throttle_classes([UserRateThrottle, AnonRateThrottle])
+@permission_classes([AllowAny])
+@authentication_classes([])
 def api_authenticate(request) -> JsonResponse:
 
     data = json.loads(request.body.decode())

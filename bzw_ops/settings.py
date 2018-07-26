@@ -111,7 +111,7 @@ if ISDEVHOST:
     INSTALLED_APPS += (
         'django_jenkins',
         'django_extensions',
-        'debug_toolbar',
+        #'debug_toolbar',
     )
 
 INSTALLED_APPS += (
@@ -155,7 +155,7 @@ MIDDLEWARE = (
 
 if DEBUG:
     MIDDLEWARE += (
-        'debug_toolbar.middleware.DebugToolbarMiddleware',
+        #'debug_toolbar.middleware.DebugToolbarMiddleware',
     )
     INTERNAL_IPS = ('127.0.0.1', '192.168.0.101',)
 
@@ -345,6 +345,11 @@ REST_FRAMEWORK = {
         'rest_framework.renderers.JSONRenderer',
         #'rest_framework.renderers.BrowsableAPIRenderer',
     ],
+
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '15/minute',
+        'user': '15/minute'
+    },
 
     'PAGE_SIZE': 100,
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
