@@ -4,7 +4,7 @@ module DjOps exposing (..)
 import Html exposing (Html, div, text, select, option, input, p, br, span, table, tr, td)
 import Html as Html
 import Html.Attributes exposing (style, href, attribute)
-import Html.Events exposing (onClick, on)
+import Html.Events exposing (onInput, on, on)
 import Http as Http
 import Time exposing (Time, second)
 import Date exposing (Date)
@@ -29,6 +29,7 @@ import List.Nonempty as NonEmpty exposing (Nonempty)
 import List.Extra as ListX
 import Hex as Hex
 import Dialog as Dialog
+import Maybe.Extra as MaybeEx exposing (isJust, isNothing)
 
 -- Local
 import ClockTime as CT
@@ -37,6 +38,13 @@ import PointInTime as PiT exposing (PointInTime)
 import XisRestApi as XisApi
 import DjangoRestFramework as DRF
 
+
+-----------------------------------------------------------------------------
+-- CONSTANTS
+-----------------------------------------------------------------------------
+
+userIdFieldId = [1000, 1]
+passwordFieldId = [1000, 2]
 
 -----------------------------------------------------------------------------
 -- MAIN
@@ -69,11 +77,13 @@ type RfidReaderState
   | FoundRfidToBe Bool  -- Bool is True if Rfid was registered, else False.
 
 type alias Model =
-  { mdl : Material.Model
+  { errMsgs : List String
+  , mdl : Material.Model
   , xis : XisApi.Session Msg
   , currTime : PointInTime
   , selectedTab : Int
   , shows : List XisApi.Show
+  , chosenShowsId : Maybe Int
   , showDate : Maybe Date
   , datePicker : DatePicker.DatePicker
   , member : Maybe XisApi.Member
@@ -82,6 +92,9 @@ type alias Model =
   , typed : String
   , rfidsToCheck : List Int
   , loggedAsPresent : Set Int
+  --- Credentials:
+  , userid : Maybe String
+  , password : Maybe String
   }
 
 init : Flags -> ( Model, Cmd Msg )
@@ -93,11 +106,13 @@ init flags =
     getShowsCmd = model.xis.listShows ShowList_Result
     (datePicker, datePickerCmd ) = DatePicker.init
     model =
-      { mdl = Material.model
+      { errMsgs = []
+      , mdl = Material.model
       , xis = XisApi.createSession flags.xisRestFlags auth
       , currTime = 0
       , selectedTab = 0
       , shows = []
+      , chosenShowsId = Nothing
       , showDate = Nothing
       , datePicker = datePicker
       , member = Nothing
@@ -106,9 +121,18 @@ init flags =
       , typed = ""
       , rfidsToCheck = []
       , loggedAsPresent = Set.empty
+      --- Credentials:
+      , userid = Nothing
+      , password = Nothing
       }
   in
-    (model, Cmd.batch [getShowsCmd, Cmd.map SetDatePicker datePickerCmd])
+    ( model
+    , Cmd.batch
+      [ getShowsCmd
+      , Cmd.map SetDatePicker datePickerCmd
+      , Layout.sub0 Mdl
+      ]
+    )
 
 
 -----------------------------------------------------------------------------
@@ -121,12 +145,17 @@ type
   = Tick Time
   | Mdl (Material.Msg Msg)
   | ShowList_Result (Result Http.Error (DRF.PageOf XisApi.Show))
+  | ShowWasChosen String  -- ID of chosen show, as a String.
   | SelectTab Int
   | SetDatePicker DatePicker.Msg
-  | KeyDown Keyboard.KeyCode
+  | KeyDownRfid Keyboard.KeyCode
+  | KeyDownAuthenticate Keyboard.KeyCode
+  | Authenticate_Result (Result Http.Error XisApi.AuthenticationResult)
   | MemberListResult (Result Http.Error (DRF.PageOf XisApi.Member))
   | MemberPresentResult (Result Http.Error XisApi.VisitEvent)
   | AcknowledgeDialog
+  | UseridInput String
+  | PasswordInput String
 
 
 
@@ -137,7 +166,8 @@ update action model =
 
     AcknowledgeDialog ->
       ( { model
-        | state = Nominal
+        | errMsgs = []
+        , state = Nominal
         , typed = ""
         , rfidsToCheck = []
         , loggedAsPresent = Set.empty
@@ -158,11 +188,23 @@ update action model =
       in
         ( newModel, Cmd.none )
 
+    UseridInput s ->
+      ({model | userid = Just s}, Cmd.none)
+
+    PasswordInput s ->
+      ({model | password = Just s}, Cmd.none)
+
     ShowList_Result (Ok {results}) ->
       ({model | shows=results}, Cmd.none)
 
     ShowList_Result (Err error) ->
-      (model, Cmd.none)
+      ({model | errMsgs=[toString error]}, Cmd.none)
+
+    ShowWasChosen idStr ->
+      let
+        chosenShowsId = String.toInt idStr |> Result.toMaybe
+      in
+        ({ model | chosenShowsId = chosenShowsId}, Cmd.none)
 
     SetDatePicker msg ->
       let
@@ -176,7 +218,28 @@ update action model =
         , Cmd.map SetDatePicker datePickerCmd
         )
 
-    KeyDown code ->
+    KeyDownAuthenticate code ->
+      case (model.userid, model.password) of
+        (Just id, Just pw) ->
+          ( model
+          , if code==13 then
+              model.xis.authenticate id pw Authenticate_Result
+            else
+              Cmd.none
+          )
+        _ ->
+          (model, Cmd.none)
+
+    Authenticate_Result (Ok {isAuthentic, authenticatedMember}) ->
+      let
+        errMsgs = if isAuthentic then [] else ["Bad userid and/or password provided.", "Close this dialog and try again."]
+      in
+        ({model | member=authenticatedMember, errMsgs=errMsgs}, Cmd.none)
+
+    Authenticate_Result (Err error) ->
+      ({model | errMsgs=[toString error]}, Cmd.none)
+
+    KeyDownRfid code ->
       let
         typed = case code of
           16 -> model.typed  -- i.e. ignore this shift code.
@@ -258,7 +321,9 @@ tabs model =
     , text "underwriting"
     , text "finish"
     ]
-  , [ Color.background (Color.color Color.DeepPurple Color.S400) ]
+  , [ Color.background <| Color.color Color.DeepPurple Color.S400
+    , Color.text <| Color.color Color.Green Color.S400
+    ]
   )
 
 
@@ -267,7 +332,9 @@ view model =
   div []
   [ Layout.render Mdl model.mdl
     [ Layout.fixedHeader
+    , Layout.fixedTabs
     , Layout.onSelectTab SelectTab
+    , Layout.selectedTab model.selectedTab
     ]
     { header = layout_header model
     , drawer = []
@@ -275,24 +342,56 @@ view model =
     , main = [layout_main model]
     }
   , Dialog.view <| rfid_dialog_config model
+  , Dialog.view <| err_dialog_config model
   ]
 
+
+err_dialog_config : Model -> Maybe (Dialog.Config Msg)
+err_dialog_config model =
+
+  if List.length model.errMsgs > 0 then
+    Just
+      { closeMessage = Just AcknowledgeDialog
+      , containerClass = Nothing
+      , containerId = Nothing
+      , header = Just (text "😱 Error")
+      , body = Just <| div [] <| List.map ((p [])<<List.singleton<<text) model.errMsgs
+      , footer = Nothing
+      }
+  else
+    Nothing
 
 tagattr x = attribute x x
 
 
 showSelector : Model -> Html Msg
 showSelector model =
-  select [style ["margin-left"=>"0px"], attribute "required" ""] <|
+  select
+    [ onInput ShowWasChosen
+    , style ["margin-left"=>"0px"]
+    , attribute "required" ""
+    ]
+    <|
     ( option
-       [attribute "value" "", tagattr "selected", tagattr "disabled", tagattr "hidden"]
+       [ attribute "value" ""
+       , tagattr <| if isNothing model.chosenShowsId then "selected" else "dummy"
+       , tagattr "disabled"
+       , tagattr "hidden"
+       ]
        [text "Please pick a show..."]
     )
-
     ::
     (
       List.map
-        (.data >> .title >> text >> List.singleton >> option [])
+        (\show ->
+          option
+            [ attribute "value" (toString show.id)
+            , tagattr <| case model.chosenShowsId of
+                Just id -> if show.id == id then "selected" else "dummy"
+                Nothing -> "dummy"
+            ]
+            [text show.data.title]
+        )
         model.shows
     )
 
@@ -328,31 +427,49 @@ layout_main model =
       p [] [text <| "Tab " ++ toString model.selectedTab ++ " not yet implemented."]
 
 
+tab_start : Model -> Html Msg
 tab_start model =
   let
-    numTd = td [style ["padding-left"=>"5px", "font-size"=>"24pt", "color"=>"#3f51b5"]]
+    numTd isSet = td [style ["padding-left"=>"5px", "font-size"=>"24pt", "color"=>(if isSet then "green" else "red")]]
     instTd = td [style ["padding-left"=>"15px"]]
     checkTd = td []
     para = p [style ["margin-top"=>"10px"]]
     row = tr []
+    break = br [] []
   in
     div [style ["margin"=>"30px", "zoom"=>"1.3"]]
     [ p [] [text "Welcome to the DJ Ops Console!"]
     , table []
       [ row
-        [ numTd [text "➊ "]
-        , instTd [para [text "Use your RFID to log in."]]
-        , checkTd [text "✔"]
+        [ numTd (isJust model.userid && isJust model.password && isJust model.member) [text "➊ "]
+        , instTd
+          [ para
+            [ text "Log In:"
+            , break
+            , input
+                [ attribute "placeholder" "userid"
+                , attribute "value" <| Maybe.withDefault "" model.userid
+                , onInput UseridInput
+                ]
+                []
+            , break
+            , input
+                [ attribute "placeholder" "password"
+                , attribute "type" "password"
+                , attribute "value" <| Maybe.withDefault "" model.password
+                , onInput PasswordInput
+                ]
+                []
+            ]
+          ]
         ]
       , row
-        [ numTd [text "➋ "]
+        [ numTd (isJust model.chosenShowsId) [text "➋ "]
         , instTd [para [text "Choose a show to work on: ", br [] [], showSelector model]]
-        , checkTd [text "✔"]
         ]
       , row
-        [ numTd [text "➌ "]
+        [ numTd (isJust model.showDate) [text "➌ "]
         , instTd [para [text "Specify the show date: ", showDateSelector model]]
-        , checkTd [text "✔"]
         ]
       ]
     ]
@@ -400,7 +517,9 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
   Sub.batch
     [ Time.every second Tick
-    , Keyboard.downs KeyDown
+    , Keyboard.downs KeyDownRfid
+    , Keyboard.downs KeyDownAuthenticate
+    , Layout.subs Mdl model.mdl
     ]
 
 

@@ -57,7 +57,7 @@
   border-collapse: collapse;
   font-size: 0.8em; }
   .elm-datepicker--table td {
-    width: 2em;
+    width: 3em;
     height: 2em;
     text-align: center; }
 
@@ -69,9 +69,13 @@
   cursor: default; }
 
 .elm-datepicker--day {
-  cursor: pointer; }
+  cursor: pointer;
+  padding: 1px;
+}
+
   .elm-datepicker--day:hover {
-    background: #F2F2F2; }
+    background: #e2e2e2;
+  }
 
 .elm-datepicker--disabled {
   cursor: default;
