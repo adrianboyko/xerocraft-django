@@ -1660,11 +1660,11 @@ decodeShowData =
 
 type alias TrackData =
   { artist : String
-  , durationSeconds : Int
+  , durationSeconds : Float
   , radioDjId : Int
   , title : String
   , trackType : Int
-  , remainingSeconds : Maybe Int  -- Read-only, used in "now playing" context.
+  , remainingSeconds : Float  -- Read-only, meaningful in "now playing" context, else 0.
   }
 
 
@@ -1685,11 +1685,11 @@ decodeTrackData : Dec.Decoder TrackData
 decodeTrackData =
   Dec.map6 TrackData
     (Dec.field "artist" Dec.string)
-    (Dec.field "duration_seconds" Dec.int)
+    (Dec.field "duration_seconds" Dec.float)
     (Dec.field "radiodj_id" Dec.int)
     (Dec.field "title" Dec.string)
     (Dec.field "track_type" Dec.int)
-    (Dec.field "remaining_seconds" (Dec.maybe Dec.int))
+    (Dec.field "remaining_seconds" Dec.float)
 
 
 -----------------------------------------------------------------------------

@@ -13,6 +13,7 @@ import Char
 import Keyboard
 import Set exposing (Set)
 import Task exposing (Task)
+import Process
 
 -- Third Party
 import Material
@@ -148,6 +149,7 @@ type
   Msg
   = AcknowledgeDialog
   | Authenticate_Result (Result Http.Error XisApi.AuthenticationResult)
+  | CheckNowPlaying
   | KeyDownRfid Keyboard.KeyCode
   | KeyDownAuthenticate Keyboard.KeyCode
   | Mdl (Material.Msg Msg)
@@ -307,7 +309,26 @@ update action model =
       (model, Cmd.none)
 
     NowPlaying_Result (Ok np) ->
-      ({model | nowPlaying = Just np} , Cmd.none)
+      let
+        nowPlayingCmd = model.xis.nowPlaying NowPlaying_Result
+        delaySeconds = case np.track of
+          Just t ->
+            let
+              rs = t.remainingSeconds
+            in
+              if rs > 0 then rs * second
+              else if rs < 1 && rs > -5 then 0.1 * second
+              else 1 * second
+          Nothing -> 1 * second
+      in
+        ( { model | nowPlaying = Just np }
+        , delay delaySeconds CheckNowPlaying
+        )
+
+    CheckNowPlaying ->
+        ( model
+        , model.xis.nowPlaying NowPlaying_Result
+        )
 
     -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
@@ -576,6 +597,10 @@ subscriptions model =
 -----------------------------------------------------------------------------
 -- UTILITIES
 -----------------------------------------------------------------------------
+
+-- From https://stackoverflow.com/questions/40599512/how-to-achieve-behavior-of-settimeout-in-elm
+delay : Time.Time -> msg -> Cmd msg
+delay time msg = Process.sleep time |> Task.perform (\_ -> msg)
 
 
 -----------------------------------------------------------------------------
