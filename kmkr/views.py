@@ -24,7 +24,7 @@ logger = getLogger("kmkr")
 
 
 @csrf_exempt
-@require_http_methods(["GET", "POST", "OPTIONS"])
+@require_http_methods(["GET", "POST"])
 def now_playing(request) -> JsonResponse:
 
     tznow = timezone.now()  # Get current time ASAP.
