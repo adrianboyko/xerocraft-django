@@ -8,6 +8,7 @@ app_name = "kmkr"  # This is the app namespace not the app name.
 router = routers.DefaultRouter()
 router.register(r'playlogentries', restviews.PlayLogEntryViewSet)
 router.register(r'shows', restviews.ShowViewSet)
+router.register(r'tracks', restviews.TrackViewSet)
 
 urlpatterns = [
 

@@ -87,6 +87,7 @@ type alias Model =
   , showDate : Maybe Date
   , datePicker : DatePicker.DatePicker
   , member : Maybe XisApi.Member
+  , nowPlaying : Maybe XisApi.NowPlaying
   --- RFID Reader state:
   , state : RfidReaderState
   , typed : String
@@ -104,6 +105,7 @@ init flags =
       Just csrf -> DRF.LoggedIn csrf
       Nothing -> DRF.NoAuthorization
     getShowsCmd = model.xis.listShows ShowList_Result
+    nowPlayingCmd = model.xis.nowPlaying NowPlaying_Result
     (datePicker, datePickerCmd ) = DatePicker.init
     model =
       { errMsgs = []
@@ -116,6 +118,7 @@ init flags =
       , showDate = Nothing
       , datePicker = datePicker
       , member = Nothing
+      , nowPlaying = Nothing
       --- RFID Reader state:
       , state = Nominal
       , typed = ""
@@ -129,6 +132,7 @@ init flags =
     ( model
     , Cmd.batch
       [ getShowsCmd
+      , nowPlayingCmd
       , Cmd.map SetDatePicker datePickerCmd
       , Layout.sub0 Mdl
       ]
@@ -142,20 +146,21 @@ init flags =
 
 type
   Msg
-  = Tick Time
+  = AcknowledgeDialog
+  | Authenticate_Result (Result Http.Error XisApi.AuthenticationResult)
+  | KeyDownRfid Keyboard.KeyCode
+  | KeyDownAuthenticate Keyboard.KeyCode
   | Mdl (Material.Msg Msg)
+  | MemberListResult (Result Http.Error (DRF.PageOf XisApi.Member))
+  | MemberPresentResult (Result Http.Error XisApi.VisitEvent)
+  | NowPlaying_Result (Result Http.Error XisApi.NowPlaying)
+  | PasswordInput String
   | ShowList_Result (Result Http.Error (DRF.PageOf XisApi.Show))
   | ShowWasChosen String  -- ID of chosen show, as a String.
   | SelectTab Int
   | SetDatePicker DatePicker.Msg
-  | KeyDownRfid Keyboard.KeyCode
-  | KeyDownAuthenticate Keyboard.KeyCode
-  | Authenticate_Result (Result Http.Error XisApi.AuthenticationResult)
-  | MemberListResult (Result Http.Error (DRF.PageOf XisApi.Member))
-  | MemberPresentResult (Result Http.Error XisApi.VisitEvent)
-  | AcknowledgeDialog
+  | Tick Time
   | UseridInput String
-  | PasswordInput String
 
 
 
@@ -301,6 +306,9 @@ update action model =
       -- Don't need to do anything when this succeeds.
       (model, Cmd.none)
 
+    NowPlaying_Result (Ok np) ->
+      ({model | nowPlaying = Just np} , Cmd.none)
+
     -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
     MemberListResult (Err e) ->
@@ -308,6 +316,9 @@ update action model =
 
     MemberPresentResult (Err e) ->
       ({model | state=HitAnHttpErr e}, Cmd.none)
+
+    NowPlaying_Result (Err e) ->
+      ({model | nowPlaying = Nothing}, Cmd.none)
 
 
 -----------------------------------------------------------------------------
@@ -406,12 +417,42 @@ showDateSelector model =
     ) |> Html.map SetDatePicker
   ]
 
-
 layout_header : Model -> List (Html Msg)
 layout_header model =
   [ Layout.title [css "margin" "20px"]
-    [ span [style ["margin-right"=>"10px"]] [text "🎶 "]
-    , text "DJ Ops Console"
+    [ table [ style ["width"=>"100%"]]
+      [ tr []
+        [ td [] (layout_header_left model)
+        , td [] (layout_header_center model)
+        , td [] (layout_header_right model)
+        ]
+      ]
+    ]
+  ]
+
+
+layout_header_left : Model -> List (Html Msg)
+layout_header_left model =
+  [ span [style ["margin-right"=>"10px"]] [text "🎶 "]
+  , text "DJ Ops"
+  ]
+
+
+layout_header_center : Model -> List (Html Msg)
+layout_header_center model =
+  case model.nowPlaying of
+    Just {show, track} ->
+      case (show, track) of
+        (Nothing, Just t) -> [text "Now Playing: '", text t.title, text "' by ", text t.artist ]
+        _ -> [text "Not Yet Implemented"]
+    Nothing -> []
+
+
+layout_header_right : Model -> List (Html Msg)
+layout_header_right model =
+  [ div [style ["float"=>"right"]]
+    [ span [style ["margin-right"=>"10px"]]
+      [ text "Show Starts in 00:33:34"]
     ]
   ]
 

@@ -36,10 +36,13 @@
             padding:0;
             background-color:#f8f8f8;
             overflow-y: hidden;
-            font-size:24pt;
+            font-size: 24pt;
         }
 
-
+        .mdl-layout--fixed-tabs .mdl-layout__tab {
+            font-size: 14pt;
+            font-weight: bolder;
+        }
     </style>
 </head>
 <body class="unselectable">
@@ -66,12 +69,14 @@
             "logMessageUrl":          "/ops/log-message/",
             "memberListUrl":          "{% url 'memb:member-list' %}",
             "membershipListUrl":      "{% url 'memb:membership-list' %}",
+            "nowPlayingUrl":          "https://xis.xerocraft.us{% url 'kmkr:now-playing' %}",
             "playListUrl":            "{% url 'task:play-list' %}",
             "productListUrl":         "{% url 'soda:product-list' %}",
             "showListUrl":            "{% url 'kmkr:show-list' %}",
             "taskListUrl":            "{% url 'task:task-list' %}",
             "timeBlocksUrl":          "/ops/api/time_blocks/",
             "timeBlockTypesUrl":      "/ops/api/time_block_types/",
+            "trackListUrl":           "{% url 'kmkr:track-list' %}",
             "vendLogListUrl":         "{% url 'soda:vendlog-list' %}",
             "visitEventListUrl":      "{% url 'memb:visitevent-list' %}",
             "workListUrl":            "{% url 'task:work-list' %}",

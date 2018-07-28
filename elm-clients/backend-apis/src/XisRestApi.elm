@@ -18,14 +18,16 @@ module XisRestApi
     , Membership, MembershipData
     , MemberListFilter (..)
     , MembershipListFilter (..)
+    , NowPlaying
     , Play, PlayData, PlayListFilter (..)
     , Session
-    , Show
+    , Show, ShowData
     , Task, StaffingStatus(..), TaskData
     , TaskListFilter (..)
     , TaskPriority (..)
     , TimeBlock, TimeBlockData
     , TimeBlockType, TimeBlockTypeData
+    , TrackData
     , VendLog, VendLogData
     , VisitEvent, VisitEventDataOut
     , VisitEventType(..), VisitEventReason(..), VisitEventListFilter(..), VisitEventMethod(..)
@@ -75,12 +77,14 @@ type alias XisRestFlags =
   , logMessageUrl : ServiceUrl  -- This logs a message on the server side.
   , memberListUrl : ResourceListUrl
   , membershipListUrl : ResourceListUrl
+  , nowPlayingUrl : ServiceUrl
   , playListUrl : ResourceListUrl
   , productListUrl : ResourceListUrl
   , showListUrl : ResourceListUrl
   , taskListUrl : ResourceListUrl
   , timeBlocksUrl : ResourceListUrl  -- TODO: Should be timeBlockListUrl
   , timeBlockTypesUrl : ResourceListUrl  -- TODO: Should be timeBlockTypeListUrl
+  , trackListUrl : ResourceListUrl
   , vendLogListUrl : ResourceListUrl
   , visitEventListUrl : ResourceListUrl
   , workListUrl : ResourceListUrl
@@ -198,6 +202,7 @@ type alias Session msg =
   , membersStatusOnTask : Int -> Task -> Maybe ClaimStatus
   , membersWithStatusOnTask : ClaimStatus -> Task -> List ResourceUrl
   , mostRecentMembership : List Membership -> Maybe Membership
+  , nowPlaying : (Result Http.Error NowPlaying -> msg) -> Cmd msg
   , pitInBlock : PointInTime -> TimeBlock -> Bool
   }
 
@@ -269,6 +274,7 @@ createSession flags auth =
   , membersStatusOnTask = membersStatusOnTask flags
   , membersWithStatusOnTask = membersWithStatusOnTask
   , mostRecentMembership = mostRecentMembership
+  , nowPlaying = nowPlaying flags auth
   , pitInBlock = pitInBlock
   }
 
@@ -1649,6 +1655,44 @@ decodeShowData =
 
 
 -----------------------------------------------------------------------------
+-- KMKR TRACKS
+-----------------------------------------------------------------------------
+
+type alias TrackData =
+  { artist : String
+  , durationSeconds : Int
+  , radioDjId : Int
+  , title : String
+  , trackType : Int
+  , remainingSeconds : Maybe Int  -- Read-only, used in "now playing" context.
+  }
+
+
+type alias Track = Resource TrackData
+
+
+listTracks : XisRestFlags -> Authorization -> Lister Track msg
+listTracks model auth resultToMsg =
+  let request = Http.get model.trackListUrl (decodePageOf decodeTrack)
+  in Http.send resultToMsg request
+
+
+decodeTrack : Dec.Decoder Track
+decodeTrack = decodeResource decodeTrackData
+
+
+decodeTrackData : Dec.Decoder TrackData
+decodeTrackData =
+  Dec.map6 TrackData
+    (Dec.field "artist" Dec.string)
+    (Dec.field "duration_seconds" Dec.int)
+    (Dec.field "radiodj_id" Dec.int)
+    (Dec.field "title" Dec.string)
+    (Dec.field "track_type" Dec.int)
+    (Dec.field "remaining_seconds" (Dec.maybe Dec.int))
+
+
+-----------------------------------------------------------------------------
 -- NON-REST FUNCTIONALITY
 -----------------------------------------------------------------------------
 
@@ -1739,3 +1783,24 @@ emailMembershipInfo flags auth memberId tagger =
   in
     Http.send tagger request
 
+-- NOW PLAYING on KMKR -------------------------------------------------------------
+
+type alias NowPlaying =
+  { show : Maybe ShowData
+  , track : Maybe TrackData
+  }
+
+
+decodeNowPlaying : Dec.Decoder NowPlaying
+decodeNowPlaying =
+  Dec.map2 NowPlaying
+    (Dec.field "show" (Dec.maybe decodeShowData))
+    (Dec.field "track" (Dec.maybe decodeTrackData))
+
+
+nowPlaying: XisRestFlags -> Authorization -> (Result Http.Error NowPlaying -> msg) -> Cmd msg
+nowPlaying flags auth tagger =
+  let
+    request = getRequest auth flags.nowPlayingUrl decodeNowPlaying
+  in
+    Http.send tagger request

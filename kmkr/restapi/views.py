@@ -31,3 +31,13 @@ class ShowViewSet(viewsets.ModelViewSet):
     ordering_fields = {}
     permission_classes = [DjangoModelPermissionsOrAnonReadOnly]
 
+
+class TrackViewSet(viewsets.ModelViewSet):
+    """
+    REST API endpoint that allows Tracks to be viewed or edited.
+    """
+    queryset = mod.Track.objects.all().order_by('pk')
+    serializer_class = ser.TrackSerializer
+    filter_fields = {}
+    ordering_fields = {}
+    permission_classes = [DjangoModelPermissionsOrAnonReadOnly]
