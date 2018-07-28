@@ -1,7 +1,7 @@
 module DjOps exposing (..)
 
 -- Standard
-import Html exposing (Html, div, text, select, option, input, p, br, span, table, tr, td)
+import Html exposing (Html, div, text, select, option, input, p, br, span, table, tr, td, i)
 import Html as Html
 import Html.Attributes exposing (style, href, attribute)
 import Html.Events exposing (onInput, on, on)
@@ -419,42 +419,51 @@ showDateSelector model =
 
 layout_header : Model -> List (Html Msg)
 layout_header model =
-  [ Layout.title [css "margin" "20px"]
-    [ table [ style ["width"=>"100%"]]
-      [ tr []
-        [ td [] (layout_header_left model)
-        , td [] (layout_header_center model)
-        , td [] (layout_header_right model)
-        ]
-      ]
+  [Layout.title []
+  [ Layout.row []
+    [ layout_header_left model
+    , Layout.spacer
+    , layout_header_center model
+    , Layout.spacer
+    , layout_header_right model
     ]
   ]
-
-
-layout_header_left : Model -> List (Html Msg)
-layout_header_left model =
-  [ span [style ["margin-right"=>"10px"]] [text "🎶 "]
-  , text "DJ Ops"
   ]
 
 
-layout_header_center : Model -> List (Html Msg)
+layout_header_left : Model -> Html Msg
+layout_header_left model =
+  div [style ["width"=>"10%"]]
+    [ span [style ["margin-right"=>"10px"]] [text "🎶 "]
+    , text "DJ Ops"
+    ]
+
+
+layout_header_center : Model -> Html Msg
 layout_header_center model =
-  case model.nowPlaying of
-    Just {show, track} ->
-      case (show, track) of
-        (Nothing, Just t) -> [text "Now Playing: '", text t.title, text "' by ", text t.artist ]
-        _ -> [text "Not Yet Implemented"]
-    Nothing -> []
+  let
+    children title artist =
+      [ text "Title: ", i [] [text title]
+      , br [] []
+      , text " Artist: ", i [] [text artist]
+      ]
+  in
+    div [style ["width"=>"50%", "font-size"=>"smaller"]]
+    ( case model.nowPlaying of
+        Just {show, track} ->
+          case (show, track) of
+            (Nothing, Just t) -> children t.title t.artist
+            (_, _) -> [text "Not Yet Implemented"]
+        Nothing -> children "..." "..."
+    )
 
 
-layout_header_right : Model -> List (Html Msg)
+layout_header_right : Model -> Html Msg
 layout_header_right model =
-  [ div [style ["float"=>"right"]]
+  div [style ["width"=>"30%"]]
     [ span [style ["margin-right"=>"10px"]]
       [ text "Show Starts in 00:33:34"]
     ]
-  ]
 
 
 layout_main : Model -> Html Msg
