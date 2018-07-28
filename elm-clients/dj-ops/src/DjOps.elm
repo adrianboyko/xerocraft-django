@@ -30,7 +30,8 @@ import List.Nonempty as NonEmpty exposing (Nonempty)
 import List.Extra as ListX
 import Hex as Hex
 import Dialog as Dialog
-import Maybe.Extra as MaybeEx exposing (isJust, isNothing)
+import Maybe.Extra as MaybeX exposing (isJust, isNothing)
+import Update.Extra as UpdateX
 
 -- Local
 import ClockTime as CT
@@ -157,11 +158,13 @@ type
   | MemberPresentResult (Result Http.Error XisApi.VisitEvent)
   | NowPlaying_Result (Result Http.Error XisApi.NowPlaying)
   | PasswordInput String
+  | RfidTick  -- see Tick Time
   | ShowList_Result (Result Http.Error (DRF.PageOf XisApi.Show))
   | ShowWasChosen String  -- ID of chosen show, as a String.
   | SelectTab Int
   | SetDatePicker DatePicker.Msg
   | Tick Time
+  | TrackTick -- see Tick Time
   | UseridInput String
 
 
@@ -190,10 +193,11 @@ update action model =
 
     Tick newTime ->
       let
-        seconds = (round newTime) // 1000
         newModel = { model | currTime = newTime }
       in
-        ( newModel, Cmd.none )
+        (newModel, Cmd.none)
+          |> UpdateX.andThen update RfidTick
+          |> UpdateX.andThen update TrackTick
 
     UseridInput s ->
       ({model | userid = Just s}, Cmd.none)
@@ -325,10 +329,33 @@ update action model =
         , delay delaySeconds CheckNowPlaying
         )
 
+    RfidTick ->
+      case model.state of
+        CheckingAnRfid wc ->
+          ({model | state=CheckingAnRfid (wc+1)}, Cmd.none)
+        _ ->
+          (model, Cmd.none)
+
+    TrackTick ->
+      case model.nowPlaying of
+        Just np ->
+          case np.track of
+            Just t ->
+              let
+                updatedTrack = {t | remainingSeconds = t.remainingSeconds - 1}
+                updatedNowPlaying = {np | track = Just updatedTrack}
+                updatedModel = {model | nowPlaying = Just updatedNowPlaying}
+              in
+                (updatedModel, Cmd.none)
+            Nothing ->
+                (model, Cmd.none)
+        Nothing ->
+          (model, Cmd.none)
+
     CheckNowPlaying ->
-        ( model
-        , model.xis.nowPlaying NowPlaying_Result
-        )
+      ( model
+      , model.xis.nowPlaying NowPlaying_Result
+      )
 
     -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
@@ -442,50 +469,68 @@ layout_header : Model -> List (Html Msg)
 layout_header model =
   [Layout.title []
   [ Layout.row []
-    [ layout_header_left model
+    [ layout_header_col_appName model
     , Layout.spacer
-    , layout_header_center model
-    , Layout.spacer
-    , layout_header_right model
+    , layout_header_col_trackInfo model
     ]
   ]
   ]
 
 
-layout_header_left : Model -> Html Msg
-layout_header_left model =
-  div [style ["width"=>"10%"]]
-    [ span [style ["margin-right"=>"10px"]] [text "🎶 "]
+layout_header_col_appName : Model -> Html Msg
+layout_header_col_appName model =
+  div [style ["font-size"=>"20pt"]]
+    [ span [style ["margin-right"=>"8px"]] [text "🎶 "]
     , text "DJ Ops"
     ]
 
 
-layout_header_center : Model -> Html Msg
-layout_header_center model =
+timeRemaining min sec =
   let
-    children title artist =
-      [ text "Title: ", i [] [text title]
-      , br [] []
-      , text " Artist: ", i [] [text artist]
-      ]
+    min0 = if String.length min < 2 then "0"++min else min
+    sec0 = if String.length sec < 2 then "0"++sec else sec
   in
-    div [style ["width"=>"50%", "font-size"=>"smaller"]]
-    ( case model.nowPlaying of
-        Just {show, track} ->
-          case (show, track) of
-            (Nothing, Just t) -> children t.title t.artist
-            (_, _) -> [text "Not Yet Implemented"]
-        Nothing -> children "..." "..."
-    )
-
-
-layout_header_right : Model -> Html Msg
-layout_header_right model =
-  div [style ["width"=>"30%"]]
-    [ span [style ["margin-right"=>"10px"]]
-      [ text "Show Starts in 00:33:34"]
+    div [style ["display"=>"inline-block", "vertical-align"=>"bottom", "padding-left"=>"3px", "padding-right"=>"3px", "margin-right"=>"10px", "font-size"=>"24pt", "border"=>"solid white 1px"]]
+    [ span [style ["font-family"=>"courier"]] [ text min0 ]
+    , text ":"
+    , span [style ["font-family"=>"courier"]] [ text sec0 ]
     ]
 
+
+titleAndArtist title artist =
+  div [style ["display"=>"inline-block", "vertical-align"=>"bottom", "width"=>"50%", "font-size"=>"14pt"]]
+  [ span [style ["margin-top"=>"4px"]] [text "Title: ", i [] [text title]]
+  , br [] []
+  , text " Artist: ", i [] [text artist]
+  ]
+
+
+layout_header_col_trackInfo : Model -> Html Msg
+layout_header_col_trackInfo model =
+  let blankInfo = [ timeRemaining "--" "--", titleAndArtist "..." "..."]
+  in div [style ["width"=>"80%"]]
+    (
+    case model.nowPlaying of
+      Just {show, track} ->
+        (
+          case track of
+            Just t ->
+              if t.remainingSeconds > 0 then
+                [ timeRemaining
+                    (toString <| floor <| t.remainingSeconds/60)
+                    (toString <| rem (floor t.remainingSeconds) 60)
+                , titleAndArtist t.title t.artist
+                ]
+              else
+                blankInfo
+
+            Nothing ->
+              blankInfo
+        )
+
+      Nothing ->
+        blankInfo
+    )
 
 layout_main : Model -> Html Msg
 layout_main model =
@@ -722,23 +767,6 @@ rfid_dialog_body model =
         ]
 
     _ -> text ""
-
-
-
-
------------------------------------------------------------------------------
--- TICK (called each second)
------------------------------------------------------------------------------
-
-tick : Time -> Model -> (Model, Cmd Msg)
-tick time model =
-  case model.state of
-
-    CheckingAnRfid wc ->
-      ({model | state=CheckingAnRfid (wc+1)}, Cmd.none)
-
-    _ ->
-      (model, Cmd.none)
 
 
 -----------------------------------------------------------------------------
