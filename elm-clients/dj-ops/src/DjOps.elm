@@ -14,6 +14,8 @@ import Keyboard
 import Set exposing (Set)
 import Task exposing (Task)
 import Process
+import Array exposing (Array)
+import Maybe exposing (Maybe(..), withDefault)
 
 -- Third Party
 import Material
@@ -45,8 +47,21 @@ import DjangoRestFramework as DRF
 -- CONSTANTS
 -----------------------------------------------------------------------------
 
-userIdFieldId = [1000, 1]
-passwordFieldId = [1000, 2]
+startTabId = 0
+tracksTabId = 1
+underwritingTabId = 2
+finishTabId = 3
+
+-- For Start Tab
+userIdFieldId = [startTabId, 1]
+passwordFieldId = [startTabId, 2]
+
+-- For Tracks Tab
+numTrackRows = 60
+artistColId = 0
+titleColId = 1
+durationColId = 2
+
 
 -----------------------------------------------------------------------------
 -- MAIN
@@ -78,6 +93,7 @@ type RfidReaderState
   | HitAnHttpErr Http.Error
   | FoundRfidToBe Bool  -- Bool is True if Rfid was registered, else False.
 
+
 type alias Model =
   { errMsgs : List String
   , mdl : Material.Model
@@ -90,6 +106,10 @@ type alias Model =
   , datePicker : DatePicker.DatePicker
   , member : Maybe XisApi.Member
   , nowPlaying : Maybe XisApi.NowPlaying
+  --- Tracks Tab model:
+  , artists : Array String
+  , titles : Array String
+  , durations : Array String
   --- RFID Reader state:
   , state : RfidReaderState
   , typed : String
@@ -121,6 +141,10 @@ init flags =
       , datePicker = datePicker
       , member = Nothing
       , nowPlaying = Nothing
+      --- Tracks Tab model:
+      , artists = Array.repeat numTrackRows ""
+      , titles = Array.repeat numTrackRows ""
+      , durations = Array.repeat numTrackRows ""
       --- RFID Reader state:
       , state = Nominal
       , typed = ""
@@ -165,6 +189,7 @@ type
   | SetDatePicker DatePicker.Msg
   | Tick Time
   | TrackTick -- see Tick Time
+  | TrackFieldUpdate Int Int String  -- row, col, value
   | UseridInput String
 
 
@@ -335,6 +360,14 @@ update action model =
           ({model | state=CheckingAnRfid (wc+1)}, Cmd.none)
         _ ->
           (model, Cmd.none)
+
+    TrackFieldUpdate row col val ->
+      let newModel =
+        if col == artistColId then {model | artists = Array.set row val model.artists}
+        else if col == titleColId then {model | titles = Array.set row val model.titles}
+        else if col == durationColId then {model | durations = Array.set row val model.durations}
+        else model -- TODO: Note unexpected situation.
+      in (newModel, Cmd.none)
 
     TrackTick ->
       case model.nowPlaying of
@@ -564,7 +597,7 @@ tab_start model =
             , break
             , input
                 [ attribute "placeholder" "userid"
-                , attribute "value" <| Maybe.withDefault "" model.userid
+                , attribute "value" <| withDefault "" model.userid
                 , onInput UseridInput
                 ]
                 []
@@ -572,7 +605,7 @@ tab_start model =
             , input
                 [ attribute "placeholder" "password"
                 , attribute "type" "password"
-                , attribute "value" <| Maybe.withDefault "" model.password
+                , attribute "value" <| withDefault "" model.password
                 , onInput PasswordInput
                 ]
                 []
@@ -596,23 +629,39 @@ tab_tracks model =
   div []
   [ Table.table [css "margin" "20px"]
     [ Table.tbody []
-      (List.map (tableRow model) (List.range 1 60))
+      (List.map (tracks_tableRow model) (List.range 1 numTrackRows))
     ]
   ]
 
 
-tableRow : Model -> Int -> Html Msg
-tableRow model r =
+tracks_tableRow : Model -> Int -> Html Msg
+tracks_tableRow model r =
   let
     aTd s r c opts =
       Table.td restTdStyle
-        [Textfield.render Mdl [r,c] model.mdl (opts++[Textfield.label s]) []]
+        [Textfield.render
+          Mdl
+          [tracksTabId, r, c]  -- Textfield ID
+          model.mdl
+          ( opts
+            ++
+            [ Textfield.label s
+            , Textfield.value <|
+                if c == artistColId then withDefault "" (Array.get r model.artists)
+                else if c == titleColId then withDefault "" (Array.get r model.titles)
+                else if c == durationColId then withDefault "" (Array.get r model.durations)
+                else "" -- TODO: Note unexpected situation.
+            , Opts.onInput (TrackFieldUpdate r c)
+            ]
+          )
+          []
+        ]
   in
     Table.tr []
     [ Table.td firstTdStyle [text <| toString r]
-    , aTd "Artist" r 1 []
-    , aTd "Title" r 2 []
-    , aTd "MM:SS" r 3 [css "width" "55px"]
+    , aTd "Artist" r artistColId []
+    , aTd "Title" r titleColId []
+    , aTd "MM:SS" r durationColId [css "width" "55px"]
     , Table.td firstTdStyle
       [ Button.render Mdl [r] model.mdl
         [ Button.fab
