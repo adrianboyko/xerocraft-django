@@ -121,6 +121,18 @@ class ShowTime(models.Model):
     fridays = models.BooleanField(default=False, verbose_name="Fri")
     saturdays = models.BooleanField(default=False, verbose_name="Sat")
 
+    PRODUCTION_LIVE = "LIV"
+    PRODUCTION_PRERECORDED = "PRE"
+    PRODUCTION_REPEAT = "RPT"
+    PRODUCTION_CHOICES = [
+        (PRODUCTION_LIVE, "Live"),
+        (PRODUCTION_PRERECORDED, "Prerecorded"),
+        (PRODUCTION_REPEAT, "Repeat"),
+    ]
+    production_method = models.CharField(max_length=3, choices=PRODUCTION_CHOICES,
+        null=False, blank=False,
+        help_text="Production method.")
+
     # Some dynamic code (in other modules) requires these aliases:
     @property
     def sunday(self) -> bool: return self.sundays
@@ -163,14 +175,14 @@ class UnderwritingSpots (SaleLineItem):
         validators=[MinValueValidator(0)],
         help_text="The length of each spot in seconds.")
 
-    SLOT_DAY    = "DAY"
-    SLOT_DRIVE  = "DRV"
-    SLOT_SHOW   = "SHW"
+    SLOT_DAY = "DAY"
+    SLOT_DRIVE = "DRV"
+    SLOT_SHOW = "SHW"
     SLOT_CUSTOM = "CST"
     SLOT_CHOICES = [
-        (SLOT_DAY,    "Daytime"),
-        (SLOT_DRIVE,  "Drivetime"),
-        (SLOT_SHOW,   "Specific Show(s)"),
+        (SLOT_DAY, "Daytime"),
+        (SLOT_DRIVE, "Drivetime"),
+        (SLOT_SHOW, "Specific Show(s)"),
         (SLOT_CUSTOM, "Custom Time")
     ]
     slot = models.CharField(max_length=3, choices=SLOT_CHOICES, null=False, blank=False,
@@ -276,7 +288,36 @@ class Track (models.Model):
         return '"{}" by {}'.format(self.title, self.artist)
 
 
+class ManualPlayList(models.Model):
+    """
+      A place for DJs to manually enter the music they'll play during a show.
+      They can do this before or during the show, using the "DJ Ops" app.
+      Information staged here will transition into PlayLogEntry
+      as the DJ indicates that they are being played.
+    """
+
+    show = models.ForeignKey(Show, blank=True, null=True,
+        on_delete=models.SET_NULL,
+        help_text="The associated show, if track was played as part of a show.")
+
+    show_date = models.DateField(blank=True, null=True,
+        help_text="If show is specified, this date specifies a specific instance of it.")
+
+    sequence = models.IntegerField(blank=False, null=False,
+        help_text="The position of the track in the playlist.")
+
+    artist = models.CharField(max_length=Track.ARTIST_MAX_LENGTH, blank=True, null=False,
+        help_text="The artist who performed the track.")
+
+    title = models.CharField(max_length=Track.TITLE_MAX_LENGTH, blank=True, null=False,
+        help_text="The title of the track.")
+
+    duration = models.DurationField(blank=True, null=False,
+        help_text="The duration of the track.")
+
+
 class PlayLogEntry (models.Model):
+    """This is the official record of what played on-air."""
 
     start = models.DateTimeField(blank=True, null=True,
         help_text="The exact datetime (within a few seconds) that play began.")

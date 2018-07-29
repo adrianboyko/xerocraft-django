@@ -13,7 +13,7 @@ from kmkr.models import (
     UnderwritingLogEntry,
     OnAirPersonality,
     OnAirPersonalitySocialMedia,
-    PlayLogEntry, Track, Rating
+    PlayLogEntry, ManualPlayList, Track, Rating
 )
 from books.admin import Sellable
 
@@ -42,6 +42,7 @@ class OnAirPersonalityAdmin(VersionAdmin):
             # This hides "denormalized object descs", to use Wojciech's term.
             "all": ("abutils/admin-tabular-inline.css",)
         }
+
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # SHOW
@@ -257,3 +258,24 @@ class PlayLogEntryAdmin(admin.ModelAdmin):
         raw_id_fields = ['who']
 
     inlines = [Rating_Inline]
+
+
+@admin.register(ManualPlayList)
+class ManualPlayListAdmin(admin.ModelAdmin):
+
+    list_filter = ['show']
+
+    date_hierarchy = 'show_date'
+
+    list_display = [
+        'pk',
+        'show',
+        'show_date',
+        'sequence',
+        'artist',
+        'title',
+        'duration',
+    ]
+
+    raw_id_fields = ['show']
+
