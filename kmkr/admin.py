@@ -8,12 +8,12 @@ from reversion.admin import VersionAdmin
 
 # Local
 from kmkr.models import (
-    Show, ShowTime,
+    Show, ShowTime, ShowInstance,
     UnderwritingSpots,
     UnderwritingLogEntry,
     OnAirPersonality,
     OnAirPersonalitySocialMedia,
-    PlayLogEntry, ManualPlayList, Track, Rating
+    PlayLogEntry, ManualPlayListEntry, Track, Rating
 )
 from books.admin import Sellable
 
@@ -260,22 +260,47 @@ class PlayLogEntryAdmin(admin.ModelAdmin):
     inlines = [Rating_Inline]
 
 
-@admin.register(ManualPlayList)
-class ManualPlayListAdmin(admin.ModelAdmin):
+@admin.register(ManualPlayListEntry)
+class ManualPlayListEntryAdmin(admin.ModelAdmin):
 
-    list_filter = ['show']
+    list_filter = ['live_show_instance__show']
 
-    date_hierarchy = 'show_date'
+    date_hierarchy = 'live_show_instance__date'
 
     list_display = [
         'pk',
-        'show',
-        'show_date',
+        'live_show_instance',
         'sequence',
         'artist',
         'title',
         'duration',
     ]
 
-    raw_id_fields = ['show']
+    raw_id_fields = ['live_show_instance']
 
+
+@admin.register(ShowInstance)
+class ShowInstanceAdmin(admin.ModelAdmin):
+
+    list_display = [
+        'pk',
+        'show',
+        'date',
+        'host_checked_in',
+        'repeat_of',
+    ]
+
+    raw_id_fields = ['show', 'repeat_of']
+
+    class Playlist_Inline(admin.TabularInline):
+        model = ManualPlayListEntry
+        extra = 0
+        raw_id_fields = []
+
+    inlines = [Playlist_Inline]
+
+    class Media:
+        css = {
+            # This hides "denormalized object descs", to use Wojciech's term.
+            "all": ("abutils/admin-tabular-inline.css",)
+        }

@@ -288,20 +288,46 @@ class Track (models.Model):
         return '"{}" by {}'.format(self.title, self.artist)
 
 
-class ManualPlayList(models.Model):
+class ShowInstance(models.Model):
     """
-      A place for DJs to manually enter the music they'll play during a show.
+    Represents an instance of a live show. Used to verify that the host actually showed up
+    and that the official play log should ignore RadioDJ for the duration of the show. Also
+    the grouping mechanism for ManualPlayListEntries.
+    """
+
+    show = models.ForeignKey(Show, blank=True, null=True,
+        on_delete=models.SET_NULL,
+        help_text="The show info.")
+
+    date = models.DateField(blank=True, null=True,
+        help_text="The date on which this instance of the show aired.")
+
+    host_checked_in = models.TimeField(blank=True, null=True,
+        help_text="Specify for original live broadcast, but not for repeat broadcasts.")
+
+    repeat_of = models.ForeignKey('self', blank=True, null=True,
+        on_delete=models.PROTECT,
+        help_text="Specify the previous live instance of this show, if this is a repeat broadcast.")
+
+    def __str__(self):
+        return "{} on {}".format(self.show, self.date)
+
+    def clean(self):
+        if self.host_checked_in is not None and self.repeat_of is not None:
+            raise ValidationError("Only one of 'host checked in' or 'repeat of' can be specified.")
+
+
+class ManualPlayListEntry(models.Model):
+    """
+      A place for DJs to manually enter the music they'll play during a live show.
       They can do this before or during the show, using the "DJ Ops" app.
       Information staged here will transition into PlayLogEntry
       as the DJ indicates that they are being played.
     """
 
-    show = models.ForeignKey(Show, blank=True, null=True,
-        on_delete=models.SET_NULL,
-        help_text="The associated show, if track was played as part of a show.")
-
-    show_date = models.DateField(blank=True, null=True,
-        help_text="If show is specified, this date specifies a specific instance of it.")
+    live_show_instance = models.ForeignKey(ShowInstance, blank=False, null=False,
+        on_delete=models.CASCADE,
+        help_text="The associated show.")
 
     sequence = models.IntegerField(blank=False, null=False,
         help_text="The position of the track in the playlist.")
@@ -314,6 +340,10 @@ class ManualPlayList(models.Model):
 
     duration = models.DurationField(blank=True, null=False,
         help_text="The duration of the track.")
+
+    class Meta:
+        verbose_name = "Manual Playlist Entry"
+        verbose_name_plural = "Manual Playlist Entries"
 
 
 class PlayLogEntry (models.Model):
