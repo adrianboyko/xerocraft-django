@@ -11,27 +11,27 @@ module XisRestApi
     , AuthenticationResult
     , Claim, ClaimData
     , ClaimStatus (..)
-    , ClaimListFilter (..)
+    , ClaimFilter (..)
     , DiscoveryMethod, DiscoveryMethodData
     , LogLevel (..)
     , Member, MemberData
     , Membership, MembershipData
-    , MemberListFilter (..)
-    , MembershipListFilter (..)
+    , MemberFilter (..)
+    , MembershipFilter (..)
     , NowPlaying
-    , Play, PlayData, PlayListFilter (..)
+    , Play, PlayData, PlayFilter (..)
     , Session
     , Show, ShowData
     , Task, StaffingStatus(..), TaskData
-    , TaskListFilter (..)
+    , TaskFilter (..)
     , TaskPriority (..)
     , TimeBlock, TimeBlockData
     , TimeBlockType, TimeBlockTypeData
     , TrackData
     , VendLog, VendLogData
     , VisitEvent, VisitEventDataOut
-    , VisitEventType(..), VisitEventReason(..), VisitEventListFilter(..), VisitEventMethod(..)
-    , Work, WorkData, WorkListFilter (..)
+    , VisitEventType(..), VisitEventReason(..), VisitEventFilter(..), VisitEventMethod(..)
+    , Work, WorkData, WorkFilter (..)
     , WorkNote, WorkNoteData
     , XisRestFlags
     )
@@ -81,6 +81,7 @@ type alias XisRestFlags =
   , playListUrl : ResourceListUrl
   , productListUrl : ResourceListUrl
   , showListUrl : ResourceListUrl
+  , showInstanceListUrl: ResourceListUrl
   , taskListUrl : ResourceListUrl
   , timeBlocksUrl : ResourceListUrl  -- TODO: Should be timeBlockListUrl
   , timeBlockTypesUrl : ResourceListUrl  -- TODO: Should be timeBlockTypeListUrl
@@ -159,17 +160,18 @@ type alias Session msg =
   , deleteWorkByUrl : DeleterByUrl msg
 
   ----- RESOURCE LISTERS -----
-  , listClaims : FilteringLister ClaimListFilter Claim msg
+  , listClaims : FilteringLister ClaimFilter Claim msg
   , listDiscoveryMethods : Lister DiscoveryMethod msg
-  , listMembers : FilteringLister MemberListFilter Member msg
-  , listMemberships : FilteringLister MembershipListFilter Membership msg
-  , listPlays : FilteringLister PlayListFilter Play msg
+  , listMembers : FilteringLister MemberFilter Member msg
+  , listMemberships : FilteringLister MembershipFilter Membership msg
+  , listPlays : FilteringLister PlayFilter Play msg
   , listShows : Lister Show msg
-  , listTasks : FilteringLister TaskListFilter Task msg
+  , listShowInstances : FilteringLister ShowInstanceFilter ShowInstance msg
+  , listTasks : FilteringLister TaskFilter Task msg
   , listTimeBlocks : Lister TimeBlock msg
   , listTimeBlockTypes : Lister TimeBlockType msg
-  , listVisitEvents : FilteringLister VisitEventListFilter VisitEvent msg
-  , listWorks : FilteringLister WorkListFilter Work msg
+  , listVisitEvents : FilteringLister VisitEventFilter VisitEvent msg
+  , listWorks : FilteringLister WorkFilter Work msg
   , moreVisitEvents : ListPager VisitEvent msg
 
   ----- RESOURCE REPLACERS
@@ -237,6 +239,7 @@ createSession flags auth =
   , listMemberships = listMemberships flags auth
   , listPlays = listPlays flags auth
   , listShows = listShows flags auth
+  , listShowInstances = listShowInstances flags auth
   , listTasks = listTasks flags auth
   , listTimeBlocks = listTimeBlocks flags auth
   , listTimeBlockTypes = listTimeBlockTypes flags auth
@@ -312,24 +315,24 @@ type alias TaskData =
 
 type alias Task = Resource TaskData
 
-type TaskListFilter
+type TaskFilter
   = ScheduledDateEquals CalendarDate
   -- | ScheduledDateInRange Date Date
   -- | WorkStartTimeRange ClockTime ClockTime
 
 
-taskListFilterToString : TaskListFilter -> String
-taskListFilterToString filter =
+taskFilterToString : TaskFilter -> String
+taskFilterToString filter =
   case filter of
     ScheduledDateEquals d -> "scheduled_date=" ++ CalendarDate.toString d
 
 
-listTasks : XisRestFlags -> Authorization -> FilteringLister TaskListFilter Task msg
+listTasks : XisRestFlags -> Authorization -> FilteringLister TaskFilter Task msg
 listTasks flags auth filters resultToMsg =
   let
     request = getRequest
       auth
-      (filteredListUrl flags.taskListUrl filters taskListFilterToString)
+      (filteredListUrl flags.taskListUrl filters taskFilterToString)
       (decodePageOf decodeTask)
   in
     Http.send resultToMsg request
@@ -509,7 +512,7 @@ claimStatusValue status =  -- Per tasks.models.Claim in Python backend.
     WorkingClaimStatus -> "W"
 
 
-type ClaimListFilter
+type ClaimFilter
   = ClaimStatusEquals ClaimStatus
   | ClaimingMemberEquals Int
   | ClaimedTaskEquals Int
@@ -535,20 +538,20 @@ setClaimsStatus newSetting oldClaim =
     {oldClaim | data = newData}
 
 
-claimListFilterToString : ClaimListFilter -> String
-claimListFilterToString filter =
+claimFilterToString : ClaimFilter -> String
+claimFilterToString filter =
   case filter of
     ClaimStatusEquals stat -> "status=" ++ claimStatusValue stat
     ClaimingMemberEquals membNum -> "claiming_member=" ++ toString membNum
     ClaimedTaskEquals taskNum -> "claimed_task=" ++ toString taskNum
 
 
-listClaims : XisRestFlags -> Authorization -> FilteringLister ClaimListFilter Claim msg
+listClaims : XisRestFlags -> Authorization -> FilteringLister ClaimFilter Claim msg
 listClaims flags auth filters resultToMsg =
   let
     request = getRequest
       auth
-      (filteredListUrl flags.claimListUrl filters claimListFilterToString)
+      (filteredListUrl flags.claimListUrl filters claimFilterToString)
       (decodePageOf decodeClaim)
   in
     Http.send resultToMsg request
@@ -693,24 +696,24 @@ setWorksDuration newSetting oldWork =
 --  }
 
 
-type WorkListFilter
+type WorkFilter
   = WorkedClaimEquals Int
   | WorkDurationIsNull Bool
 
 
-workListFilterToString : WorkListFilter -> String
-workListFilterToString filter =
+workFilterToString : WorkFilter -> String
+workFilterToString filter =
   case filter of
     WorkedClaimEquals id -> "claim=" ++ toString id
     WorkDurationIsNull setting -> "work_duration__isnull=" ++ (setting |> toString |> String.toLower)
 
 
-listWorks : XisRestFlags -> Authorization -> FilteringLister WorkListFilter Work msg
+listWorks : XisRestFlags -> Authorization -> FilteringLister WorkFilter Work msg
 listWorks flags auth  filters resultToMsg =
   let
     request = getRequest
       auth
-      (filteredListUrl flags.workListUrl filters workListFilterToString)
+      (filteredListUrl flags.workListUrl filters workFilterToString)
       (decodePageOf decodeWork)
   in
     Http.send resultToMsg request
@@ -903,26 +906,26 @@ setPlaysDuration newSetting oldPlay =
     {oldPlay | data = newData}
 
 
-type PlayListFilter
+type PlayFilter
   = PlayDurationIsNull Bool
   | PlayingMemberEquals Int
   | PlayDateEquals CalendarDate
 
 
-playListFilterToString : PlayListFilter -> String
-playListFilterToString filter =
+playFilterToString : PlayFilter -> String
+playFilterToString filter =
   case filter of
     PlayDurationIsNull setting -> "play_duration__isnull=" ++ (setting |> toString |> String.toLower)
     PlayingMemberEquals id ->  "playing_member=" ++ toString id
     PlayDateEquals d -> "play_date=" ++ CalendarDate.toString d
 
 
-listPlays : XisRestFlags -> Authorization -> FilteringLister PlayListFilter Play msg
+listPlays : XisRestFlags -> Authorization -> FilteringLister PlayFilter Play msg
 listPlays flags auth  filters resultToMsg =
   let
     request = getRequest
       auth
-      (filteredListUrl flags.playListUrl filters playListFilterToString)
+      (filteredListUrl flags.playListUrl filters playFilterToString)
       (decodePageOf decodePlay)
   in
     Http.send resultToMsg request
@@ -1025,7 +1028,7 @@ type alias MemberData =
 type alias Member = Resource MemberData
 
 
-type MemberListFilter
+type MemberFilter
   = RfidNumberEquals Int
   | EmailEquals String
   | UsernameEquals String
@@ -1036,8 +1039,8 @@ type MemberListFilter
   | IsActive Bool
 
 
-memberListFilterToString : MemberListFilter -> String
-memberListFilterToString filter =
+memberFilterToString : MemberFilter -> String
+memberFilterToString filter =
   case filter of
     RfidNumberEquals n -> "rfidnum=" ++ toString n
     EmailEquals s -> "auth_user__email__iexact=" ++ s
@@ -1049,12 +1052,12 @@ memberListFilterToString filter =
     IsActive b -> "auth_user__is_active=" ++ (if b then "1" else "0")
 
 
-listMembers : XisRestFlags -> Authorization -> FilteringLister MemberListFilter Member msg
+listMembers : XisRestFlags -> Authorization -> FilteringLister MemberFilter Member msg
 listMembers flags auth filters resultToMsg =
   let
     request = getRequest
       auth
-      (filteredListUrl flags.memberListUrl filters memberListFilterToString)
+      (filteredListUrl flags.memberListUrl filters memberFilterToString)
       (decodePageOf decodeMember)
   in
     Http.send resultToMsg request
@@ -1247,22 +1250,22 @@ type alias MembershipData =
 type alias Membership = Resource MembershipData
 
 
-type MembershipListFilter
+type MembershipFilter
   = MembershipsWithMemberIdEqualTo Int
 
 
-membershipListFilterToString : MembershipListFilter -> String
-membershipListFilterToString filter =
+membershipFilterToString : MembershipFilter -> String
+membershipFilterToString filter =
   case filter of
     MembershipsWithMemberIdEqualTo id -> "member=" ++ toString id
 
 
-listMemberships : XisRestFlags -> Authorization -> FilteringLister MembershipListFilter Membership msg
+listMemberships : XisRestFlags -> Authorization -> FilteringLister MembershipFilter Membership msg
 listMemberships flags auth filters resultToMsg =
   let
     request = getRequest
       auth
-      (filteredListUrl flags.membershipListUrl filters membershipListFilterToString)
+      (filteredListUrl flags.membershipListUrl filters membershipFilterToString)
       (decodePageOf decodeMembership)
   in
     Http.send resultToMsg request
@@ -1493,26 +1496,26 @@ eventReasonString x =
     VER_Volunteer -> "VOL"
 
 
-type VisitEventListFilter
+type VisitEventFilter
   = VEF_WhenGreaterOrEquals PointInTime
   | VEF_EventTypeEquals VisitEventType
   | VEF_EventMethodEquals VisitEventMethod
 
 
-visitEventListFilterToString : VisitEventListFilter -> String
-visitEventListFilterToString filter =
+visitEventFilterToString : VisitEventFilter -> String
+visitEventFilterToString filter =
   case filter of
     VEF_WhenGreaterOrEquals pit -> "when__gte=" ++ (PointInTime.isoString pit)
     VEF_EventTypeEquals vet -> "event_type=" ++ eventTypeString(vet)
     VEF_EventMethodEquals meth -> "method=" ++ eventMethodString(meth)
 
 
-listVisitEvents : XisRestFlags -> Authorization -> FilteringLister VisitEventListFilter VisitEvent msg
+listVisitEvents : XisRestFlags -> Authorization -> FilteringLister VisitEventFilter VisitEvent msg
 listVisitEvents flags auth filters resultToMsg =
   let
     request = getRequest
       auth
-      (filteredListUrl flags.visitEventListUrl filters visitEventListFilterToString)
+      (filteredListUrl flags.visitEventListUrl filters visitEventFilterToString)
       (decodePageOf decodeVisitEvent)
   in
     Http.send resultToMsg request
@@ -1653,6 +1656,52 @@ decodeShowData =
     (Dec.field "description" Dec.string)
     (Dec.field "active" Dec.bool)
 
+------------------
+
+type alias ShowInstanceData =
+  { title : String
+  , duration : Duration
+  , description : String
+  , active : Bool
+  }
+
+
+type alias ShowInstance = Resource ShowInstanceData
+
+
+type ShowInstanceFilter
+  = DateEquals CalendarDate
+  | ShowEquals Int
+
+
+showInstanceFilterToString : ShowInstanceFilter -> String
+showInstanceFilterToString filter =
+  case filter of
+    DateEquals d -> "date=" ++ CalendarDate.toString d
+    ShowEquals showNum -> "show=" ++ toString showNum
+
+
+listShowInstances : XisRestFlags -> Authorization -> FilteringLister ShowInstanceFilter ShowInstance msg
+listShowInstances flags auth filters resultToMsg =
+  let
+    request = getRequest
+      auth
+      (filteredListUrl flags.showInstanceListUrl filters showInstanceFilterToString)
+      (decodePageOf decodeShowInstance)
+  in Http.send resultToMsg request
+
+
+decodeShowInstance : Dec.Decoder ShowInstance
+decodeShowInstance = decodeResource decodeShowInstanceData
+
+
+decodeShowInstanceData : Dec.Decoder ShowInstanceData
+decodeShowInstanceData =
+  Dec.map4 ShowInstanceData
+    (Dec.field "title" Dec.string)
+    (Dec.field "duration" DRF.decodeDuration)
+    (Dec.field "description" Dec.string)
+    (Dec.field "active" Dec.bool)
 
 -----------------------------------------------------------------------------
 -- KMKR TRACKS
