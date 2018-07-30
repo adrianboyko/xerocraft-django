@@ -68,8 +68,6 @@ class TrackSerializer(serializers.ModelSerializer):
 
 class PlayLogEntrySerializer(serializers.ModelSerializer):
 
-    show = serializers.HyperlinkedRelatedField(read_only=True, view_name='kmkr:show-detail')
-
     track_embed = TrackSerializer(many=False, read_only=True, source='track')
 
     class Meta:
@@ -78,6 +76,4 @@ class PlayLogEntrySerializer(serializers.ModelSerializer):
             'id',
             'track_embed',
             'start',
-            'show',
-            'show_date'
         )

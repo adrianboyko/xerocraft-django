@@ -6,8 +6,9 @@ from rest_framework import viewsets
 from rest_framework.permissions import DjangoModelPermissionsOrAnonReadOnly
 
 # Local
-import kmkr.restapi.serializers as ser
-import kmkr.models as mod
+from .. import models as mod
+from . import filters as filt
+from . import serializers as ser
 
 
 class PlayLogEntryViewSet(viewsets.ModelViewSet):
@@ -16,7 +17,7 @@ class PlayLogEntryViewSet(viewsets.ModelViewSet):
     """
     queryset = mod.PlayLogEntry.objects.all().order_by('-start')
     serializer_class = ser.PlayLogEntrySerializer
-    filter_fields = {'start', 'show', 'show_date'}
+    filter_fields = {'start'}
     ordering_fields = {'start'}
     permission_classes = [DjangoModelPermissionsOrAnonReadOnly]
 
@@ -38,7 +39,7 @@ class ShowInstanceViewSet(viewsets.ModelViewSet):
     """
     queryset = mod.ShowInstance.objects.all().order_by('pk')
     serializer_class = ser.ShowInstanceSerializer
-    filter_fields = {}
+    filter_class = filt.ShowInstanceFilter
     ordering_fields = {}
     permission_classes = [DjangoModelPermissionsOrAnonReadOnly]
 

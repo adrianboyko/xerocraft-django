@@ -349,23 +349,12 @@ class ManualPlayListEntry(models.Model):
 class PlayLogEntry (models.Model):
     """This is the official record of what played on-air."""
 
-    start = models.DateTimeField(blank=True, null=True,
+    start = models.DateTimeField(blank=False, null=False,
         help_text="The exact datetime (within a few seconds) that play began.")
 
     track = models.ForeignKey(Track, null=False, blank=False,
         on_delete=models.PROTECT,  # Don't allow deletion of track if it has been aired.
         help_text="The track which was played.")
-
-    show = models.ForeignKey(Show, blank=True, null=True,
-        on_delete=models.SET_NULL,
-        help_text="The associated show, if track was played as part of a show.")
-
-    show_date = models.DateField(blank=True, null=True,
-        help_text="If show is specified, this is the date on which the show aired.")
-
-    def clean(self):
-        if self.start is None and (self.show is None or self.show_date is None):
-            raise ValidationError("If start is not specified then show AND show_date MUST be.")
 
     class Meta:
         verbose_name = "Play Log Entry"

@@ -243,8 +243,6 @@ class PlayLogEntryAdmin(admin.ModelAdmin):
     list_display = [
         'pk',
         'start',
-        'show',
-        'show_date',
         'track',
         'rating',
         'votes',
@@ -290,6 +288,8 @@ class ShowInstanceAdmin(admin.ModelAdmin):
         'repeat_of',
     ]
 
+    date_hierarchy = 'date'
+
     raw_id_fields = ['show', 'repeat_of']
 
     class Playlist_Inline(admin.TabularInline):
@@ -299,6 +299,7 @@ class ShowInstanceAdmin(admin.ModelAdmin):
 
     inlines = [Playlist_Inline]
 
+    list_filter = ['show']
     class Media:
         css = {
             # This hides "denormalized object descs", to use Wojciech's term.
