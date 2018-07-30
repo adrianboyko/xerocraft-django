@@ -32,6 +32,28 @@ class ShowViewSet(viewsets.ModelViewSet):
     permission_classes = [DjangoModelPermissionsOrAnonReadOnly]
 
 
+class ShowInstanceViewSet(viewsets.ModelViewSet):
+    """
+    REST API endpoint that allows Show Instances to be viewed or edited.
+    """
+    queryset = mod.ShowInstance.objects.all().order_by('pk')
+    serializer_class = ser.ShowInstanceSerializer
+    filter_fields = {}
+    ordering_fields = {}
+    permission_classes = [DjangoModelPermissionsOrAnonReadOnly]
+
+
+class ManualPlayListEntrySet(viewsets.ModelViewSet):
+    """
+    REST API endpoint that allows Manual Playlist Entries to be viewed or edited.
+    """
+    queryset = mod.ManualPlayListEntry.objects.all().order_by('pk')
+    serializer_class = ser.ManualPlayListEntrySerializer
+    filter_fields = {}
+    ordering_fields = {}
+    permission_classes = [DjangoModelPermissionsOrAnonReadOnly]
+
+
 class TrackViewSet(viewsets.ModelViewSet):
     """
     REST API endpoint that allows Tracks to be viewed or edited.

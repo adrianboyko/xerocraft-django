@@ -21,6 +21,37 @@ class ShowSerializer(serializers.ModelSerializer):
         )
 
 
+class ManualPlayListEntrySerializer(serializers.ModelSerializer):
+
+    live_show_instance = serializers.HyperlinkedRelatedField(read_only=True, view_name='kmkr:showinstance-detail')
+
+    class Meta:
+        model = models.ManualPlayListEntry
+        fields = (
+            'live_show_instance',
+            'sequence',
+            'artist',
+            'title',
+            'duration'
+        )
+
+
+class ShowInstanceSerializer(serializers.ModelSerializer):
+
+    show = serializers.HyperlinkedRelatedField(read_only=True, view_name='kmkr:show-detail')
+    playlist_embed = ManualPlayListEntrySerializer(many=True, read_only=True, source='manualplaylistentry_set')
+
+    class Meta:
+        model = models.ShowInstance
+        fields = (
+            'show',
+            'date',
+            'host_checked_in',
+            'repeat_of',
+            'playlist_embed'
+        )
+
+
 class TrackSerializer(serializers.ModelSerializer):
 
     class Meta:
