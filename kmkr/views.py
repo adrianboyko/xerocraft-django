@@ -1,7 +1,7 @@
 
 # Standard
 from logging import getLogger
-from datetime import timedelta
+from datetime import timedelta, time, datetime
 
 # Third Party
 from django.http import JsonResponse, HttpResponse
@@ -13,7 +13,7 @@ from django.shortcuts import render
 from django.conf import settings
 
 # Local
-from .models import PlayLogEntry, Track, Show
+from .models import PlayLogEntry, Track, Show, ShowTime
 
 
 ORG_NAME = settings.BZWOPS_ORG_NAME
@@ -27,25 +27,35 @@ logger = getLogger("kmkr")
 @require_http_methods(["GET", "POST"])
 def now_playing(request) -> JsonResponse:
 
-    tznow = timezone.now()  # Get current time ASAP.
+    localnow = timezone.localtime(timezone.now())  # Get current time ASAP.
 
     if request.method == "GET":
 
         showdata = None
         show = Show.current_show()  # type: Show
         if show is not None:
-            showtime = show.current_showtime()
+            showtime = show.current_showtime()  # type: ShowTime
+            t = showtime.start_time
+            d = localnow.date()
+            show_start_datetime = timezone.make_aware(
+                datetime(d.year, d.month, d.day, t.hour, t.minute, t.second),
+                timezone.get_current_timezone()
+            )
+            time_remaining = show_start_datetime+show.duration - localnow  # type: timedelta
             showdata = {
                 'title': show.title,
                 'hosts': [x.moniker for x in show.hosts.all()],
-                'start_time': showtime.start_time,
-                'duration_seconds': round(show.duration.total_seconds(), 1),
+                'start_time': show_start_datetime,
+                'duration': str(show.duration),
+                'description': show.description,
+                'remaining_seconds': round(time_remaining.total_seconds(), 1),
+                'active': show.active
             }
 
         trackdata = None
         try:
             ple = PlayLogEntry.objects.latest('start')  # type: PlayLogEntry
-            time_remaining = (ple.start + ple.track.duration) - tznow  # type: timedelta
+            time_remaining = (ple.start + ple.track.duration) - localnow  # type: timedelta
             trackdata = {
                 'title': ple.track.title,
                 'artist': ple.track.artist,
@@ -89,7 +99,7 @@ def now_playing(request) -> JsonResponse:
             # Only create the play log entry if there's no show scheduled for this time.
             # Reason: KMKR leaves RadioDJ running during their live shows, but faded out.
             PlayLogEntry.objects.create(
-                start=tznow,
+                start=localnow,
                 track=track
             )
         else:

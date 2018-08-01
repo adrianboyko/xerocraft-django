@@ -1632,6 +1632,8 @@ type alias ShowData =
   , duration : Duration
   , description : String
   , active : Bool
+  , hosts : List String
+  , remainingSeconds : Float  -- Read-only, meaningful in "now playing" context, else 0.
   }
 
 
@@ -1650,11 +1652,14 @@ decodeShow = decodeResource decodeShowData
 
 decodeShowData : Dec.Decoder ShowData
 decodeShowData =
-  Dec.map4 ShowData
-    (Dec.field "title" Dec.string)
-    (Dec.field "duration" DRF.decodeDuration)
-    (Dec.field "description" Dec.string)
-    (Dec.field "active" Dec.bool)
+  decode ShowData
+    |> required "title" Dec.string
+    |> required "duration" DRF.decodeDuration
+    |> required "description" Dec.string
+    |> required "active" Dec.bool
+    |> optional "hosts" (Dec.list Dec.string) []
+    |> optional "remaining_seconds" Dec.float 0.0
+
 
 ------------------
 
