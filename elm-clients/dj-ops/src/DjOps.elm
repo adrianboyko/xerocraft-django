@@ -556,13 +556,15 @@ stackedPair name1 val1 name2 val2 =
       ]
     ]
 
+dashes = "--"
+dots = "..."
 
 layout_header_col_trackInfo : Model -> Html Msg
 layout_header_col_trackInfo model =
   let
     titleLabel = "Title"
     artistLabel = "Artist"
-    blankInfo = [ timeRemaining "--" "--", stackedPair titleLabel "..." artistLabel "..."]
+    blankInfo = [ timeRemaining dashes dashes, stackedPair titleLabel dots artistLabel dots]
   in div [style ["width"=>"40%"]]
     (
     case model.nowPlaying of
@@ -592,7 +594,7 @@ layout_header_col_showInfo model =
   let
     showLabel = "Show"
     hostLabel = "Host"
-    blankInfo = [ timeRemaining "--" "--", stackedPair showLabel "..." hostLabel "..."]
+    blankInfo = [timeRemaining dashes dashes, stackedPair showLabel dots hostLabel dots]
   in div [style ["width"=>"40%"]]
     (
     case model.nowPlaying of
@@ -642,7 +644,7 @@ tab_start model =
     [ p [] [text "Welcome to the DJ Ops Console!"]
     , table []
       [ row
-        [ numTd (isJust model.userid && isJust model.password && isJust model.member) [text "➊ "]
+        [ numTd (isJust model.userid && isJust model.password && isJust model.member) [text "❶ "]
         , instTd
           [ para
             [ text "Log In:"
@@ -665,12 +667,28 @@ tab_start model =
           ]
         ]
       , row
-        [ numTd (isJust model.chosenShowsId) [text "➋ "]
+        [ numTd (isJust model.chosenShowsId) [text "❷ "]
         , instTd [para [text "Choose a show to work on: ", br [] [], showSelector model]]
         ]
       , row
-        [ numTd (isJust model.showDate) [text "➌ "]
+        [ numTd (isJust model.showDate) [text "❸ "]
         , instTd [para [text "Specify the show date: ", showDateSelector model]]
+        ]
+      , row
+        [ numTd False [text "❹ "]
+        , instTd
+          [ para
+            [ text "Optional:"
+            , br [] []
+            , Button.render Mdl [0] model.mdl
+              [ Button.raised
+              , Button.colored
+              , Button.ripple
+              --, Opts.onClick MyClickMsg
+              ]
+              [ text "Begin Broadcast!"]
+            ]
+          ]
         ]
       ]
     ]
