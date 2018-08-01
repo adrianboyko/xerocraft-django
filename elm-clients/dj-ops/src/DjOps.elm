@@ -177,10 +177,12 @@ type
   | CheckNowPlaying
   | KeyDownRfid Keyboard.KeyCode
   | KeyDownAuthenticate Keyboard.KeyCode
+  | LoadTracksTabData
   | Mdl (Material.Msg Msg)
   | MemberListResult (Result Http.Error (DRF.PageOf XisApi.Member))
   | MemberPresentResult (Result Http.Error XisApi.VisitEvent)
   | NowPlaying_Result (Result Http.Error XisApi.NowPlaying)
+  | NowPlaying_Tick -- see Tick Time
   | PasswordInput String
   | RfidTick  -- see Tick Time
   | ShowList_Result (Result Http.Error (DRF.PageOf XisApi.Show))
@@ -188,7 +190,6 @@ type
   | SelectTab Int
   | SetDatePicker DatePicker.Msg
   | Tick Time
-  | TrackTick -- see Tick Time
   | TrackFieldUpdate Int Int String  -- row, col, value
   | UseridInput String
 
@@ -210,49 +211,16 @@ update action model =
       , Cmd.none
       )
 
-    Mdl msg_ ->
-      Material.update Mdl msg_ model
-
-    SelectTab k ->
-      ( { model | selectedTab = k }, Cmd.none )
-
-    Tick newTime ->
+    Authenticate_Result (Ok {isAuthentic, authenticatedMember}) ->
       let
-        newModel = { model | currTime = newTime }
+        errMsgs = if isAuthentic then [] else ["Bad userid and/or password provided.", "Close this dialog and try again."]
       in
-        (newModel, Cmd.none)
-          |> UpdateX.andThen update RfidTick
-          |> UpdateX.andThen update TrackTick
+        ({model | member=authenticatedMember, errMsgs=errMsgs}, Cmd.none)
 
-    UseridInput s ->
-      ({model | userid = Just s}, Cmd.none)
-
-    PasswordInput s ->
-      ({model | password = Just s}, Cmd.none)
-
-    ShowList_Result (Ok {results}) ->
-      ({model | shows=results}, Cmd.none)
-
-    ShowList_Result (Err error) ->
-      ({model | errMsgs=[toString error]}, Cmd.none)
-
-    ShowWasChosen idStr ->
-      let
-        chosenShowsId = String.toInt idStr |> Result.toMaybe
-      in
-        ({ model | chosenShowsId = chosenShowsId}, Cmd.none)
-
-    SetDatePicker msg ->
-      let
-        (newDatePicker, datePickerCmd, dateEvent) =
-          DatePicker.update DatePicker.defaultSettings msg model.datePicker
-        date = case dateEvent of
-          DatePicker.NoChange -> model.showDate
-          DatePicker.Changed newDate -> newDate
-      in
-        ( { model | showDate = date, datePicker = newDatePicker}
-        , Cmd.map SetDatePicker datePickerCmd
-        )
+    CheckNowPlaying ->
+      ( model
+      , model.xis.nowPlaying NowPlaying_Result
+      )
 
     KeyDownAuthenticate code ->
       case (model.userid, model.password) of
@@ -265,15 +233,6 @@ update action model =
           )
         _ ->
           (model, Cmd.none)
-
-    Authenticate_Result (Ok {isAuthentic, authenticatedMember}) ->
-      let
-        errMsgs = if isAuthentic then [] else ["Bad userid and/or password provided.", "Close this dialog and try again."]
-      in
-        ({model | member=authenticatedMember, errMsgs=errMsgs}, Cmd.none)
-
-    Authenticate_Result (Err error) ->
-      ({model | errMsgs=[toString error]}, Cmd.none)
 
     KeyDownRfid code ->
       let
@@ -297,6 +256,12 @@ update action model =
             newRfidsToCheck = ListX.unique (model.rfidsToCheck++intMatches)
           in
             checkAnRfid {model | typed=typed, rfidsToCheck=newRfidsToCheck}
+
+    LoadTracksTabData ->
+      (model, Cmd.none)
+
+    Mdl msg_ ->
+      Material.update Mdl msg_ model
 
     MemberListResult (Ok {results}) ->
       case results of
@@ -354,22 +319,7 @@ update action model =
         , delay delaySeconds CheckNowPlaying
         )
 
-    RfidTick ->
-      case model.state of
-        CheckingAnRfid wc ->
-          ({model | state=CheckingAnRfid (wc+1)}, Cmd.none)
-        _ ->
-          (model, Cmd.none)
-
-    TrackFieldUpdate row col val ->
-      let newModel =
-        if col == artistColId then {model | artists = Array.set row val model.artists}
-        else if col == titleColId then {model | titles = Array.set row val model.titles}
-        else if col == durationColId then {model | durations = Array.set row val model.durations}
-        else model -- TODO: Note unexpected situation.
-      in (newModel, Cmd.none)
-
-    TrackTick ->
+    NowPlaying_Tick ->
       case model.nowPlaying of
         Just np ->
           case np.track of
@@ -385,12 +335,67 @@ update action model =
         Nothing ->
           (model, Cmd.none)
 
-    CheckNowPlaying ->
-      ( model
-      , model.xis.nowPlaying NowPlaying_Result
-      )
+    PasswordInput s ->
+      ({model | password = Just s}, Cmd.none)
+
+    RfidTick ->
+      case model.state of
+        CheckingAnRfid wc ->
+          ({model | state=CheckingAnRfid (wc+1)}, Cmd.none)
+        _ ->
+          (model, Cmd.none)
+
+    SelectTab k ->
+      ( { model | selectedTab = k }, Cmd.none )
+
+    SetDatePicker msg ->
+      let
+        (newDatePicker, datePickerCmd, dateEvent) =
+          DatePicker.update DatePicker.defaultSettings msg model.datePicker
+        date = case dateEvent of
+          DatePicker.NoChange -> model.showDate
+          DatePicker.Changed newDate -> newDate
+      in
+        ( { model | showDate = date, datePicker = newDatePicker}
+        , Cmd.map SetDatePicker datePickerCmd
+        )
+
+    ShowList_Result (Ok {results}) ->
+      ({model | shows=results}, Cmd.none)
+
+    ShowList_Result (Err error) ->
+      ({model | errMsgs=[toString error]}, Cmd.none)
+
+    ShowWasChosen idStr ->
+      let
+        chosenShowsId = String.toInt idStr |> Result.toMaybe
+      in
+        ({ model | chosenShowsId = chosenShowsId}, Cmd.none)
+          |> UpdateX.andThen update LoadTracksTabData
+
+    Tick newTime ->
+      let
+        newModel = { model | currTime = newTime }
+      in
+        (newModel, Cmd.none)
+          |> UpdateX.andThen update RfidTick
+          |> UpdateX.andThen update NowPlaying_Tick
+
+    TrackFieldUpdate row col val ->
+      let newModel =
+        if col == artistColId then {model | artists = Array.set row val model.artists}
+        else if col == titleColId then {model | titles = Array.set row val model.titles}
+        else if col == durationColId then {model | durations = Array.set row val model.durations}
+        else model -- TODO: Note unexpected situation.
+      in (newModel, Cmd.none)
+
+    UseridInput s ->
+      ({model | userid = Just s}, Cmd.none)
 
     -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+    Authenticate_Result (Err error) ->
+      ({model | errMsgs=[toString error]}, Cmd.none)
 
     MemberListResult (Err e) ->
       ({model | state=HitAnHttpErr e}, Cmd.none)
