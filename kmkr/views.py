@@ -99,7 +99,7 @@ def now_playing(request) -> JsonResponse:
             # Only create the play log entry if there's no show scheduled for this time.
             # Reason: KMKR leaves RadioDJ running during their live shows, but faded out.
             PlayLogEntry.objects.create(
-                start=tznow,
+                start=localnow,
                 track=track
             )
         else:
