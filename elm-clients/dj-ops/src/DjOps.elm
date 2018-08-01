@@ -510,6 +510,8 @@ layout_header model =
     [ layout_header_col_appName model
     , Layout.spacer
     , layout_header_col_trackInfo model
+    , Layout.spacer
+    , layout_header_col_showInfo model
     ]
   ]
   ]
@@ -535,21 +537,36 @@ timeRemaining min sec =
     ]
 
 
-titleAndArtist title artist =
-  div [style ["display"=>"inline-block", "vertical-align"=>"bottom", "width"=>"50%", "font-size"=>"14pt"]]
-  [ span [style ["margin-top"=>"4px"]] [text "Title: ", i [] [text title]]
-  , br [] []
-  , text " Artist: ", i [] [text artist]
-  ]
+stackedPair name1 val1 name2 val2 =
+  let
+    colonize s = text <| s ++ ": "
+    italicize s = i [] [text s]
+    theStyle = style
+      [ "display"=>"inline-block"
+      , "vertical-align"=>"bottom"
+      , "width"=>"50%"
+      , "font-size"=>"14pt"
+      ]
+  in
+    div [theStyle]
+    [ span [style ["margin-top"=>"4px"]]
+      [ colonize name1, italicize val1
+      , br [] []
+      , colonize name2, italicize val2
+      ]
+    ]
 
 
 layout_header_col_trackInfo : Model -> Html Msg
 layout_header_col_trackInfo model =
-  let blankInfo = [ timeRemaining "--" "--", titleAndArtist "..." "..."]
-  in div [style ["width"=>"80%"]]
+  let
+    titleLabel = "Title"
+    artistLabel = "Artist"
+    blankInfo = [ timeRemaining "--" "--", stackedPair titleLabel "..." artistLabel "..."]
+  in div [style ["width"=>"40%"]]
     (
     case model.nowPlaying of
-      Just {show, track} ->
+      Just {track} ->
         (
           case track of
             Just t ->
@@ -557,7 +574,37 @@ layout_header_col_trackInfo model =
                 [ timeRemaining
                     (toString <| floor <| t.remainingSeconds/60)
                     (toString <| rem (floor t.remainingSeconds) 60)
-                , titleAndArtist t.title t.artist
+                , stackedPair titleLabel t.title artistLabel t.artist
+                ]
+              else
+                blankInfo
+
+            Nothing ->
+              blankInfo
+        )
+
+      Nothing ->
+        blankInfo
+    )
+
+layout_header_col_showInfo : Model -> Html Msg
+layout_header_col_showInfo model =
+  let
+    showLabel = "Show"
+    hostLabel = "Host"
+    blankInfo = [ timeRemaining "--" "--", stackedPair showLabel "..." hostLabel "..."]
+  in div [style ["width"=>"40%"]]
+    (
+    case model.nowPlaying of
+      Just {show} ->
+        (
+          case show of
+            Just s ->
+              if s.remainingSeconds > 0 then
+                [ timeRemaining
+                    (toString <| floor <| s.remainingSeconds/60)
+                    (toString <| rem (floor s.remainingSeconds) 60)
+                , stackedPair showLabel s.title hostLabel (String.join " & " s.hosts)
                 ]
               else
                 blankInfo
