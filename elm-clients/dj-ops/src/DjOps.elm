@@ -508,9 +508,7 @@ layout_header model =
   [Layout.title []
   [ Layout.row []
     [ layout_header_col_appName model
-    , Layout.spacer
     , layout_header_col_trackInfo model
-    , Layout.spacer
     , layout_header_col_showInfo model
     ]
   ]
@@ -519,7 +517,7 @@ layout_header model =
 
 layout_header_col_appName : Model -> Html Msg
 layout_header_col_appName model =
-  div [style ["font-size"=>"20pt"]]
+  div [style ["font-size"=>"20pt", "margin-right"=>"50px"]]
     [ span [style ["margin-right"=>"8px"]] [text "🎶 "]
     , text "DJ Ops"
     ]
@@ -544,7 +542,6 @@ stackedPair name1 val1 name2 val2 =
     theStyle = style
       [ "display"=>"inline-block"
       , "vertical-align"=>"bottom"
-      , "width"=>"50%"
       , "font-size"=>"14pt"
       ]
   in
@@ -565,7 +562,15 @@ layout_header_col_trackInfo model =
     titleLabel = "Title"
     artistLabel = "Artist"
     blankInfo = [ timeRemaining dashes dashes, stackedPair titleLabel dots artistLabel dots]
-  in div [style ["width"=>"40%"]]
+    divStyle =
+      style
+      [ "width"=>"450px"
+      , "white-space"=>"nowrap"
+      , "overflow"=>"hidden"
+      , "text-overflow"=>"ellipsis"
+      , "margin-right"=>"50px"
+      ]
+  in div [divStyle]
     (
     case model.nowPlaying of
       Just {track} ->
@@ -594,8 +599,8 @@ layout_header_col_showInfo model =
   let
     showLabel = "Show"
     hostLabel = "Host"
-    blankInfo = [timeRemaining dashes dashes, stackedPair showLabel dots hostLabel dots]
-  in div [style ["width"=>"40%"]]
+    blankInfo = [timeRemaining dashes dashes, stackedPair showLabel "Assorted Music" hostLabel "None"]
+  in div [style ["width"=>"450px", "white-space"=>"nowrap", "overflow"=>"hidden", "text-overflow"=>"ellipsis"]]
     (
     case model.nowPlaying of
       Just {show} ->
@@ -675,15 +680,19 @@ tab_start model =
         , instTd [para [text "Specify the show date: ", showDateSelector model]]
         ]
       , row
-        [ numTd False [text "❹ "]
+        [ numTd False [span [style ["color"=>"green"]] [text "❹ "]]
         , instTd
           [ para
-            [ text "Optional:"
+            [ text "ONLY when it's time to start your LIVE show:"
             , br [] []
             , Button.render Mdl [0] model.mdl
               [ Button.raised
               , Button.colored
               , Button.ripple
+              , if isNothing model.chosenShowsId || isNothing model.member || isNothing model.showDate then
+                  Button.disabled
+                else
+                  Opts.nop
               --, Opts.onClick MyClickMsg
               ]
               [ text "Begin Broadcast!"]
