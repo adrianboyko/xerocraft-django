@@ -531,10 +531,14 @@ timeRemaining min sec =
       [ "font-family"=>"'Share Tech Mono', monospace"
       , "letter-spacing"=>"-3px"
       ]
+    colonStyle = style
+      [ "margin-right"=>"-2px"
+      , "margin-bottom"=>"3px"
+      ]
   in
     div [style ["display"=>"inline-block", "vertical-align"=>"bottom", "padding-left"=>"3px", "padding-right"=>"3px", "margin-right"=>"10px", "font-size"=>"26pt", "border"=>"solid white 1px"]]
     [ span [digitStyle] [ text min0 ]
-    , text ":"
+    , span [colonStyle] [ text ":" ]
     , span [digitStyle] [ text sec0 ]
     ]
 
