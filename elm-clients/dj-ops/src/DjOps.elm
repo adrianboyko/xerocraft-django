@@ -527,11 +527,15 @@ timeRemaining min sec =
   let
     min0 = if String.length min < 2 then "0"++min else min
     sec0 = if String.length sec < 2 then "0"++sec else sec
+    digitStyle = style
+      [ "font-family"=>"'Share Tech Mono', monospace"
+      , "letter-spacing"=>"-3px"
+      ]
   in
-    div [style ["display"=>"inline-block", "vertical-align"=>"bottom", "padding-left"=>"3px", "padding-right"=>"3px", "margin-right"=>"10px", "font-size"=>"24pt", "border"=>"solid white 1px"]]
-    [ span [style ["font-family"=>"courier"]] [ text min0 ]
+    div [style ["display"=>"inline-block", "vertical-align"=>"bottom", "padding-left"=>"3px", "padding-right"=>"3px", "margin-right"=>"10px", "font-size"=>"26pt", "border"=>"solid white 1px"]]
+    [ span [digitStyle] [ text min0 ]
     , text ":"
-    , span [style ["font-family"=>"courier"]] [ text sec0 ]
+    , span [digitStyle] [ text sec0 ]
     ]
 
 
@@ -599,7 +603,7 @@ layout_header_col_showInfo model =
   let
     showLabel = "Show"
     hostLabel = "Host"
-    blankInfo = [timeRemaining dashes dashes, stackedPair showLabel "Assorted Music" hostLabel "None"]
+    blankInfo = [timeRemaining dashes dashes, stackedPair showLabel dots hostLabel dots]
   in div [style ["width"=>"450px", "white-space"=>"nowrap", "overflow"=>"hidden", "text-overflow"=>"ellipsis"]]
     (
     case model.nowPlaying of
