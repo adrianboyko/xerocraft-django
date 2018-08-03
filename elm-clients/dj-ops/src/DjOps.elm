@@ -120,6 +120,7 @@ type alias Model =
   , password : Maybe String
   }
 
+
 init : Flags -> ( Model, Cmd Msg )
 init flags =
   let
@@ -177,7 +178,7 @@ type
   | CheckNowPlaying
   | KeyDownRfid Keyboard.KeyCode
   | KeyDownAuthenticate Keyboard.KeyCode
-  | LoadTracksTabData
+  | FetchTracksTabData
   | Mdl (Material.Msg Msg)
   | MemberListResult (Result Http.Error (DRF.PageOf XisApi.Member))
   | MemberPresentResult (Result Http.Error XisApi.VisitEvent)
@@ -216,6 +217,7 @@ update action model =
         errMsgs = if isAuthentic then [] else ["Bad userid and/or password provided.", "Close this dialog and try again."]
       in
         ({model | member=authenticatedMember, errMsgs=errMsgs}, Cmd.none)
+        |> UpdateX.andThen update FetchTracksTabData
 
     CheckNowPlaying ->
       ( model
@@ -257,8 +259,8 @@ update action model =
           in
             checkAnRfid {model | typed=typed, rfidsToCheck=newRfidsToCheck}
 
-    LoadTracksTabData ->
-      (model, Cmd.none)
+    FetchTracksTabData ->
+      fetchTracksTabData model
 
     Mdl msg_ ->
       Material.update Mdl msg_ model
@@ -359,6 +361,7 @@ update action model =
         ( { model | showDate = date, datePicker = newDatePicker}
         , Cmd.map SetDatePicker datePickerCmd
         )
+        |> UpdateX.andThen update FetchTracksTabData
 
     ShowList_Result (Ok {results}) ->
       ({model | shows=results}, Cmd.none)
@@ -371,7 +374,7 @@ update action model =
         chosenShowsId = String.toInt idStr |> Result.toMaybe
       in
         ({ model | chosenShowsId = chosenShowsId}, Cmd.none)
-          |> UpdateX.andThen update LoadTracksTabData
+          |> UpdateX.andThen update FetchTracksTabData
 
     Tick newTime ->
       let
@@ -405,6 +408,18 @@ update action model =
 
     NowPlaying_Result (Err e) ->
       ({model | nowPlaying = Nothing}, Cmd.none)
+
+
+fetchTracksTabData : Model -> (Model, Cmd Msg)
+fetchTracksTabData model =
+  case (model.member, model.chosenShowsId, model.showDate) of
+
+    (Just member, Just showId, Just showDate) ->
+      (model, Cmd.none)
+
+    _ ->
+      -- TODO: Unload TracksTab data here?
+      (model, Cmd.none)
 
 
 -----------------------------------------------------------------------------
