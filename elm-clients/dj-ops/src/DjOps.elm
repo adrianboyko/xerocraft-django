@@ -16,6 +16,7 @@ import Task exposing (Task)
 import Process
 import Array exposing (Array)
 import Maybe exposing (Maybe(..), withDefault)
+import List exposing (head, tail)
 
 -- Third Party
 import Material
@@ -39,6 +40,7 @@ import Update.Extra as UpdateX
 import ClockTime as CT
 import Duration as Dur
 import PointInTime as PiT exposing (PointInTime)
+import CalendarDate as CD
 import XisRestApi as XisApi
 import DjangoRestFramework as DRF
 
@@ -186,6 +188,7 @@ type
   | NowPlaying_Tick -- see Tick Time
   | PasswordInput String
   | RfidTick  -- see Tick Time
+  | ShowInstanceList_Result (Result Http.Error (DRF.PageOf XisApi.ShowInstance))
   | ShowList_Result (Result Http.Error (DRF.PageOf XisApi.Show))
   | ShowWasChosen String  -- ID of chosen show, as a String.
   | SelectTab Int
@@ -354,14 +357,23 @@ update action model =
       let
         (newDatePicker, datePickerCmd, dateEvent) =
           DatePicker.update DatePicker.defaultSettings msg model.datePicker
-        date = case dateEvent of
-          DatePicker.NoChange -> model.showDate
-          DatePicker.Changed newDate -> newDate
       in
-        ( { model | showDate = date, datePicker = newDatePicker}
-        , Cmd.map SetDatePicker datePickerCmd
-        )
-        |> UpdateX.andThen update FetchTracksTabData
+        case dateEvent of
+          DatePicker.NoChange ->
+            ( { model | datePicker = newDatePicker }
+            , Cmd.map SetDatePicker datePickerCmd
+            )
+          DatePicker.Changed d ->
+            ( { model | showDate = d, datePicker = newDatePicker }
+            , Cmd.map SetDatePicker datePickerCmd
+            )
+            |> UpdateX.andThen update FetchTracksTabData
+
+    ShowInstanceList_Result (Ok {count, results}) ->
+      let
+        tracksForTab = head results |> Maybe.map (.data >> .manualPlayList) |> withDefault []
+      in
+        (populateTracksTabData model tracksForTab, Cmd.none)
 
     ShowList_Result (Ok {results}) ->
       ({model | shows=results}, Cmd.none)
@@ -407,7 +419,16 @@ update action model =
       ({model | state=HitAnHttpErr e}, Cmd.none)
 
     NowPlaying_Result (Err e) ->
-      ({model | nowPlaying = Nothing}, Cmd.none)
+      let
+        dummy = toString e |> Debug.log "NowPlaying_Result"
+      in
+        ({model | nowPlaying = Nothing}, Cmd.none)
+
+    ShowInstanceList_Result (Err e) ->
+      let
+        dummy = toString e |> Debug.log "ShowInstanceList_Result"
+      in
+        (model, Cmd.none)
 
 
 fetchTracksTabData : Model -> (Model, Cmd Msg)
@@ -415,11 +436,37 @@ fetchTracksTabData model =
   case (model.member, model.chosenShowsId, model.showDate) of
 
     (Just member, Just showId, Just showDate) ->
-      (model, Cmd.none)
-
+      let
+        showFilter = XisApi.SI_ShowEquals showId
+        dateFilter = XisApi.SI_DateEquals <| CD.fromDate showDate
+        fetchCmd = model.xis.listShowInstances [showFilter, dateFilter] ShowInstanceList_Result
+      in
+        (model, fetchCmd)
     _ ->
       -- TODO: Unload TracksTab data here?
       (model, Cmd.none)
+
+populateTracksTabData : Model -> List XisApi.ManualPlayListEntry -> Model
+populateTracksTabData model ples =
+  case ples of
+    [] ->
+      model
+    mple::mples ->
+      let
+        title = withDefault "" mple.data.title
+        artist = withDefault "" mple.data.artist
+        pyDurStr = withDefault "" <| Maybe.map DRF.durationToPythonRepr mple.data.duration
+        duration = String.dropLeft 5 pyDurStr
+        seq = mple.data.sequence
+        newModel =
+          { model
+          | titles = Array.set seq title model.titles
+          , artists = Array.set seq artist model.artists
+          , durations = Array.set seq duration model.durations
+          }
+      in
+        populateTracksTabData newModel mples
+
 
 
 -----------------------------------------------------------------------------
@@ -923,9 +970,3 @@ rfid_dialog_body model =
 -----------------------------------------------------------------------------
 -- UTILITY
 -----------------------------------------------------------------------------
-
-send : msg -> Cmd msg
-send msg =
-  Task.succeed msg
-
-  |> Task.perform identity

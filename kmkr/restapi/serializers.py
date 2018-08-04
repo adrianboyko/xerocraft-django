@@ -28,6 +28,7 @@ class ManualPlayListEntrySerializer(serializers.ModelSerializer):
     class Meta:
         model = models.ManualPlayListEntry
         fields = (
+            'id',
             'live_show_instance',
             'sequence',
             'artist',
@@ -44,6 +45,7 @@ class ShowInstanceSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.ShowInstance
         fields = (
+            'id',
             'show',
             'date',
             'host_checked_in',

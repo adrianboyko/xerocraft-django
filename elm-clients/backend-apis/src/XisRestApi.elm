@@ -14,6 +14,7 @@ module XisRestApi
     , ClaimFilter (..)
     , DiscoveryMethod, DiscoveryMethodData
     , LogLevel (..)
+    , ManualPlayListEntry, ManualPlayListEntryData
     , Member, MemberData
     , Membership, MembershipData
     , MemberFilter (..)
@@ -22,6 +23,7 @@ module XisRestApi
     , Play, PlayData, PlayFilter (..)
     , Session
     , Show, ShowData
+    , ShowInstance, ShowInstanceData, ShowInstanceFilter (..)
     , Task, StaffingStatus(..), TaskData
     , TaskFilter (..)
     , TaskPriority (..)
@@ -1664,10 +1666,11 @@ decodeShowData =
 ------------------
 
 type alias ShowInstanceData =
-  { title : String
-  , duration : Duration
-  , description : String
-  , active : Bool
+  { show : ResourceUrl
+  , date : CalendarDate
+  , hostCheckedIn : Maybe ClockTime
+  , repeatOf : Maybe ResourceUrl
+  , manualPlayList : List ManualPlayListEntry
   }
 
 
@@ -1675,15 +1678,15 @@ type alias ShowInstance = Resource ShowInstanceData
 
 
 type ShowInstanceFilter
-  = DateEquals CalendarDate
-  | ShowEquals Int
+  = SI_DateEquals CalendarDate
+  | SI_ShowEquals Int
 
 
 showInstanceFilterToString : ShowInstanceFilter -> String
 showInstanceFilterToString filter =
   case filter of
-    DateEquals d -> "date=" ++ CalendarDate.toString d
-    ShowEquals showNum -> "show=" ++ toString showNum
+    SI_DateEquals d -> "date=" ++ CalendarDate.toString d
+    SI_ShowEquals showNum -> "show=" ++ toString showNum
 
 
 listShowInstances : XisRestFlags -> Authorization -> FilteringLister ShowInstanceFilter ShowInstance msg
@@ -1702,11 +1705,39 @@ decodeShowInstance = decodeResource decodeShowInstanceData
 
 decodeShowInstanceData : Dec.Decoder ShowInstanceData
 decodeShowInstanceData =
-  Dec.map4 ShowInstanceData
-    (Dec.field "title" Dec.string)
-    (Dec.field "duration" DRF.decodeDuration)
-    (Dec.field "description" Dec.string)
-    (Dec.field "active" Dec.bool)
+  Dec.map5 ShowInstanceData
+    (Dec.field "show" DRF.decodeResourceUrl)
+    (Dec.field "date" DRF.decodeCalendarDate)
+    (Dec.field "host_checked_in" (Dec.maybe DRF.decodeClockTime))
+    (Dec.field "repeat_of" (Dec.maybe DRF.decodeResourceUrl))
+    (Dec.field "playlist_embed" (Dec.list decodeManualPlayListEntry))
+
+
+------------------
+
+type alias ManualPlayListEntryData =
+  { sequence : Int
+  , artist : Maybe String
+  , title : Maybe String
+  , duration : Maybe Duration
+  }
+
+
+type alias ManualPlayListEntry = Resource ManualPlayListEntryData
+
+
+decodeManualPlayListEntry : Dec.Decoder ManualPlayListEntry
+decodeManualPlayListEntry = decodeResource decodeManualPlayListEntryData
+
+
+decodeManualPlayListEntryData : Dec.Decoder ManualPlayListEntryData
+decodeManualPlayListEntryData =
+  Dec.map4 ManualPlayListEntryData
+    (Dec.field "sequence" Dec.int)
+    (Dec.field "artist" (Dec.maybe Dec.string))
+    (Dec.field "title" (Dec.maybe Dec.string))
+    (Dec.field "duration" (Dec.maybe DRF.decodeDuration))
+
 
 -----------------------------------------------------------------------------
 -- KMKR TRACKS
