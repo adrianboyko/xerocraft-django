@@ -28,6 +28,7 @@ import Material.Icon as Icon
 import Material.Layout as Layout
 import Material.Color as Color
 import Material.Footer as Footer
+import Material.Badge as Badge
 import DatePicker
 import List.Nonempty as NonEmpty exposing (Nonempty)
 import List.Extra as ListX
@@ -498,7 +499,7 @@ populateTracksTabData_Helper model ples =
 tabs model =
   (
     [ text "start"
-    , text "tracks"
+    , tracksTabTitle model
     , text "underwriting"
     , text "finish"
     ]
@@ -506,6 +507,18 @@ tabs model =
     , Color.text <| Color.color Color.Green Color.S400
     ]
   )
+
+tracksTabTitle : Model -> Html Msg
+tracksTabTitle model =
+  let
+    -- TODO: This is an expensive way to count the tracks. Is there a better way?
+    trackCount = model.titles |> Array.toList |> List.filter (not << String.isEmpty) |> List.length
+  in
+    if trackCount > 0 then
+      Opts.span [Badge.add (toString trackCount)] [text "tracks"]
+    else
+      -- Margin-right, here, takes up same space as missing badge so that tab title spacing remains the same.
+      span [style ["margin-right"=>"24px"]] [text "tracks"]
 
 
 view : Model -> Html Msg
@@ -781,6 +794,7 @@ tab_start model =
               [ Button.raised
               , Button.colored
               , Button.ripple
+              -- TODO: test, below, should also be true if today is NOT show date.
               , if isNothing model.chosenShow || isNothing model.member || isNothing model.showDate then
                   Button.disabled
                 else
