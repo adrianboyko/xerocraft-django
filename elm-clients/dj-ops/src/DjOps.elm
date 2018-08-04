@@ -103,7 +103,7 @@ type alias Model =
   , currTime : PointInTime
   , selectedTab : Int
   , shows : List XisApi.Show
-  , chosenShowsId : Maybe Int
+  , chosenShow : Maybe XisApi.Show
   , showDate : Maybe Date
   , datePicker : DatePicker.DatePicker
   , member : Maybe XisApi.Member
@@ -139,7 +139,7 @@ init flags =
       , currTime = 0
       , selectedTab = 0
       , shows = []
-      , chosenShowsId = Nothing
+      , chosenShow = Nothing
       , showDate = Nothing
       , datePicker = datePicker
       , member = Nothing
@@ -382,11 +382,19 @@ update action model =
       ({model | errMsgs=[toString error]}, Cmd.none)
 
     ShowWasChosen idStr ->
-      let
-        chosenShowsId = String.toInt idStr |> Result.toMaybe
-      in
-        ({ model | chosenShowsId = chosenShowsId}, Cmd.none)
-          |> UpdateX.andThen update FetchTracksTabData
+      case idStr |> String.toInt |> Result.toMaybe of
+        Just id ->
+          let
+            show = ListX.find (\s->s.id==id) model.shows
+          in
+            ({ model | chosenShow = show}, Cmd.none)
+              |> UpdateX.andThen update FetchTracksTabData
+        Nothing ->
+          let
+            -- Should be impossible to get here since ids in question are integer PKs from database.
+            dummy = Debug.log "Bad Show ID" idStr
+          in
+            (model, Cmd.none)
 
     Tick newTime ->
       let
@@ -433,11 +441,11 @@ update action model =
 
 fetchTracksTabData : Model -> (Model, Cmd Msg)
 fetchTracksTabData model =
-  case (model.member, model.chosenShowsId, model.showDate) of
+  case (model.member, model.chosenShow, model.showDate) of
 
-    (Just member, Just showId, Just showDate) ->
+    (Just member, Just show, Just showDate) ->
       let
-        showFilter = XisApi.SI_ShowEquals showId
+        showFilter = XisApi.SI_ShowEquals show.id
         dateFilter = XisApi.SI_DateEquals <| CD.fromDate showDate
         fetchCmd = model.xis.listShowInstances [showFilter, dateFilter] ShowInstanceList_Result
       in
@@ -446,8 +454,22 @@ fetchTracksTabData model =
       -- TODO: Unload TracksTab data here?
       (model, Cmd.none)
 
+
 populateTracksTabData : Model -> List XisApi.ManualPlayListEntry -> Model
 populateTracksTabData model ples =
+  let
+    newModel =
+      { model
+      | artists = Array.repeat numTrackRows ""
+      , titles = Array.repeat numTrackRows ""
+      , durations = Array.repeat numTrackRows ""
+      }
+  in
+    populateTracksTabData_Helper newModel ples
+
+
+populateTracksTabData_Helper : Model -> List XisApi.ManualPlayListEntry -> Model
+populateTracksTabData_Helper model ples =
   case ples of
     [] ->
       model
@@ -465,7 +487,7 @@ populateTracksTabData model ples =
           , durations = Array.set seq duration model.durations
           }
       in
-        populateTracksTabData newModel mples
+        populateTracksTabData_Helper newModel mples
 
 
 
@@ -533,7 +555,7 @@ showSelector model =
     <|
     ( option
        [ attribute "value" ""
-       , tagattr <| if isNothing model.chosenShowsId then "selected" else "dummy"
+       , tagattr <| if isNothing model.chosenShow then "selected" else "dummy"
        , tagattr "disabled"
        , tagattr "hidden"
        ]
@@ -545,8 +567,8 @@ showSelector model =
         (\show ->
           option
             [ attribute "value" (toString show.id)
-            , tagattr <| case model.chosenShowsId of
-                Just id -> if show.id == id then "selected" else "dummy"
+            , tagattr <| case model.chosenShow of
+                Just s -> if show.id == s.id then "selected" else "dummy"
                 Nothing -> "dummy"
             ]
             [text show.data.title]
@@ -742,7 +764,7 @@ tab_start model =
           ]
         ]
       , row
-        [ numTd (isJust model.chosenShowsId) [text "❷ "]
+        [ numTd (isJust model.chosenShow) [text "❷ "]
         , instTd [para [text "Choose a show to work on: ", br [] [], showSelector model]]
         ]
       , row
@@ -759,7 +781,7 @@ tab_start model =
               [ Button.raised
               , Button.colored
               , Button.ripple
-              , if isNothing model.chosenShowsId || isNothing model.member || isNothing model.showDate then
+              , if isNothing model.chosenShow || isNothing model.member || isNothing model.showDate then
                   Button.disabled
                 else
                   Opts.nop
@@ -773,14 +795,48 @@ tab_start model =
     ]
 
 
-
+tab_tracks : Model -> Html Msg
 tab_tracks model =
   div []
-  [ Table.table [css "margin" "20px"]
+    [ tracks_info model
+    , tracks_table model
+    ]
+
+
+tracks_info : Model -> Html Msg
+tracks_info model =
+  div
+    [ style
+      [ "float"=>"right"
+      , "position"=>"fixed"
+      , "right"=>"50px"
+      , "top"=>"150px"
+      , "font-size"=>"16pt"
+      ]
+    ]
+    [ p [style ["font-size"=>"16pt"]]
+      ( case (model.chosenShow, model.showDate) of
+        (Just show, Just date) ->
+          [ text "🡄"
+          , br [] []
+          , text "Tracks for"
+          , br [] []
+          , text show.data.title
+          , br [] []
+          , text (date |> CD.fromDate |> CD.format "%a, %b %ddd")
+          ]
+        _ ->
+          [ text "Finish the START tab."
+          ]
+      )
+    ]
+
+tracks_table : Model -> Html Msg
+tracks_table model =
+  Table.table [css "margin" "20px"]
     [ Table.tbody []
       (List.map (tracks_tableRow model) (List.range 1 numTrackRows))
     ]
-  ]
 
 
 tracks_tableRow : Model -> Int -> Html Msg
