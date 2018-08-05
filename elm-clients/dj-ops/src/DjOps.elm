@@ -119,8 +119,8 @@ type alias Model =
   , currTime : PointInTime
   , selectedTab : Int
   , shows : List XisApi.Show
-  , chosenShow : Maybe XisApi.Show
-  , showDate : Maybe Date
+  , selectedShow : Maybe XisApi.Show
+  , selectedShowDate : Maybe Date
   , datePicker : DatePicker.DatePicker
   , member : Maybe XisApi.Member
   , nowPlaying : Maybe XisApi.NowPlaying
@@ -153,8 +153,8 @@ init flags =
       , currTime = 0
       , selectedTab = 0
       , shows = []
-      , chosenShow = Nothing
-      , showDate = Nothing
+      , selectedShow = Nothing
+      , selectedShowDate = Nothing
       , datePicker = datePicker
       , member = Nothing
       , nowPlaying = Nothing
@@ -376,7 +376,7 @@ update action model =
             , Cmd.map SetDatePicker datePickerCmd
             )
           DatePicker.Changed d ->
-            ( { model | showDate = d, datePicker = newDatePicker }
+            ( { model | selectedShowDate = d, datePicker = newDatePicker }
             , Cmd.map SetDatePicker datePickerCmd
             )
             |> UpdateX.andThen update FetchTracksTabData
@@ -399,7 +399,7 @@ update action model =
           let
             show = ListX.find (\s->s.id==id) model.shows
           in
-            ({ model | chosenShow = show}, Cmd.none)
+            ({ model | selectedShow = show}, Cmd.none)
               |> UpdateX.andThen update FetchTracksTabData
         Nothing ->
           let
@@ -457,12 +457,12 @@ update action model =
 
 fetchTracksTabData : Model -> (Model, Cmd Msg)
 fetchTracksTabData model =
-  case (model.member, model.chosenShow, model.showDate) of
+  case (model.member, model.selectedShow, model.selectedShowDate) of
 
-    (Just member, Just show, Just showDate) ->
+    (Just member, Just show, Just selectedShowDate) ->
       let
         showFilter = XisApi.SI_ShowEquals show.id
-        dateFilter = XisApi.SI_DateEquals <| CD.fromDate showDate
+        dateFilter = XisApi.SI_DateEquals <| CD.fromDate selectedShowDate
         fetchCmd = model.xis.listShowInstances [showFilter, dateFilter] ShowInstanceList_Result
       in
         (model, fetchCmd)
@@ -570,7 +570,7 @@ showSelector model =
     <|
     ( option
        [ attribute "value" ""
-       , tagattr <| if isNothing model.chosenShow then "selected" else "dummy"
+       , tagattr <| if isNothing model.selectedShow then "selected" else "dummy"
        , tagattr "disabled"
        , tagattr "hidden"
        ]
@@ -582,7 +582,7 @@ showSelector model =
         (\show ->
           option
             [ attribute "value" (toString show.id)
-            , tagattr <| case model.chosenShow of
+            , tagattr <| case model.selectedShow of
                 Just s -> if show.id == s.id then "selected" else "dummy"
                 Nothing -> "dummy"
             ]
@@ -596,7 +596,7 @@ showDateSelector : Model -> Html Msg
 showDateSelector model =
   div [style ["margin-left"=>"0px"]]
   [ (DatePicker.view
-      model.showDate
+      model.selectedShowDate
       DatePicker.defaultSettings
       model.datePicker
     ) |> Html.map SetDatePicker
@@ -779,11 +779,11 @@ tab_start model =
           ]
         ]
       , row
-        [ numTd (isJust model.chosenShow) [text "❷ "]
+        [ numTd (isJust model.selectedShow) [text "❷ "]
         , instTd [para [text "Choose a show to work on: ", br [] [], showSelector model]]
         ]
       , row
-        [ numTd (isJust model.showDate) [text "❸ "]
+        [ numTd (isJust model.selectedShowDate) [text "❸ "]
         , instTd [para [text "Specify the show date: ", showDateSelector model]]
         ]
       , row
@@ -797,11 +797,11 @@ tab_start model =
               , Button.colored
               , Button.ripple
               -- TODO: test, below, should also be true if today is NOT show date.
-              , if isNothing model.chosenShow || isNothing model.member || isNothing model.showDate then
+              , if isNothing model.selectedShow || isNothing model.member || isNothing model.selectedShowDate then
                   Button.disabled
-                else case model.showDate of
-                  Just showDate ->
-                    if CD.fromDate showDate /= CD.fromTime model.currTime then Button.disabled else Opts.nop
+                else case model.selectedShowDate of
+                  Just ssd ->
+                    if CD.fromDate ssd /= CD.fromTime model.currTime then Button.disabled else Opts.nop
                   Nothing ->
                     Button.disabled
               --, Opts.onClick MyClickMsg
@@ -834,7 +834,7 @@ tracks_info model =
       ]
     ]
     [ p [style ["font-size"=>"16pt"]]
-      ( case (model.chosenShow, model.showDate) of
+      ( case (model.selectedShow, model.selectedShowDate) of
         (Just show, Just date) ->
           [ text "🡄"
           , br [] []
