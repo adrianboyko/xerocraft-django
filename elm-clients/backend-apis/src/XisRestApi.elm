@@ -1717,9 +1717,9 @@ decodeShowInstanceData =
 
 type alias ManualPlayListEntryData =
   { sequence : Int
-  , artist : Maybe String
-  , title : Maybe String
-  , duration : Maybe Duration
+  , artist : String
+  , title : String
+  , duration : String
   }
 
 
@@ -1734,9 +1734,9 @@ decodeManualPlayListEntryData : Dec.Decoder ManualPlayListEntryData
 decodeManualPlayListEntryData =
   Dec.map4 ManualPlayListEntryData
     (Dec.field "sequence" Dec.int)
-    (Dec.field "artist" (Dec.maybe Dec.string))
-    (Dec.field "title" (Dec.maybe Dec.string))
-    (Dec.field "duration" (Dec.maybe DRF.decodeDuration))
+    (Dec.field "artist" Dec.string)
+    (Dec.field "title" Dec.string)
+    (Dec.field "duration" Dec.string)
 
 
 -----------------------------------------------------------------------------

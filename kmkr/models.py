@@ -317,6 +317,8 @@ class ShowInstance(models.Model):
             raise ValidationError("Only one of 'host checked in' or 'repeat of' can be specified.")
 
 
+# Since this table is scratch space, all metadata fields including duration are strings. Fields like
+# duration will be changed into more precise types when data migrates from this table to PlayLogEntry.
 class ManualPlayListEntry(models.Model):
     """
       A place for DJs to manually enter the music they'll play during a live show.
@@ -332,14 +334,14 @@ class ManualPlayListEntry(models.Model):
     sequence = models.IntegerField(blank=False, null=False,
         help_text="The position of the track in the playlist.")
 
-    artist = models.CharField(max_length=Track.ARTIST_MAX_LENGTH, blank=True, null=False,
+    artist = models.CharField(max_length=Track.ARTIST_MAX_LENGTH, blank=True, null=False, default="",
         help_text="The artist who performed the track.")
 
-    title = models.CharField(max_length=Track.TITLE_MAX_LENGTH, blank=True, null=False,
+    title = models.CharField(max_length=Track.TITLE_MAX_LENGTH, blank=True, null=False, default="",
         help_text="The title of the track.")
 
-    duration = models.DurationField(blank=True, null=False,
-        help_text="The duration of the track.")
+    duration = models.CharField(max_length=5, blank=True, null=False, default="",
+        help_text="The duration of the track as MM:SS.")
 
     class Meta:
         verbose_name = "Manual Playlist Entry"

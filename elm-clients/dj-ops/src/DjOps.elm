@@ -96,6 +96,21 @@ type RfidReaderState
   | HitAnHttpErr Http.Error
   | FoundRfidToBe Bool  -- Bool is True if Rfid was registered, else False.
 
+type alias TracksTabEntry =
+  { lastChanged : Maybe PointInTime
+  , playListEntryId : Maybe Int
+  , artist : String
+  , title : String
+  , duration : String
+  }
+
+newTracksTabEntry : Maybe Int -> String -> String -> String -> TracksTabEntry
+newTracksTabEntry id artist title duration =
+  TracksTabEntry Nothing id artist title duration
+
+blankTracksTabEntry : TracksTabEntry
+blankTracksTabEntry =
+  newTracksTabEntry Nothing "" "" ""
 
 type alias Model =
   { errMsgs : List String
@@ -110,9 +125,7 @@ type alias Model =
   , member : Maybe XisApi.Member
   , nowPlaying : Maybe XisApi.NowPlaying
   --- Tracks Tab model:
-  , artists : Array String
-  , titles : Array String
-  , durations : Array String
+  , tracksTabEntries : Array TracksTabEntry
   --- RFID Reader state:
   , state : RfidReaderState
   , typed : String
@@ -146,9 +159,7 @@ init flags =
       , member = Nothing
       , nowPlaying = Nothing
       --- Tracks Tab model:
-      , artists = Array.repeat numTrackRows ""
-      , titles = Array.repeat numTrackRows ""
-      , durations = Array.repeat numTrackRows ""
+      , tracksTabEntries = Array.repeat numTrackRows blankTracksTabEntry
       --- RFID Reader state:
       , state = Nominal
       , typed = ""
@@ -406,12 +417,16 @@ update action model =
           |> UpdateX.andThen update NowPlaying_Tick
 
     TrackFieldUpdate row col val ->
-      let newModel =
-        if col == artistColId then {model | artists = Array.set row val model.artists}
-        else if col == titleColId then {model | titles = Array.set row val model.titles}
-        else if col == durationColId then {model | durations = Array.set row val model.durations}
-        else model -- TODO: Note unexpected situation.
-      in (newModel, Cmd.none)
+      let
+        tte = withDefault blankTracksTabEntry (Array.get row model.tracksTabEntries)
+        tteUpdated =
+          if col == artistColId then {tte | artist = val}
+          else if col == titleColId then {tte | title = val}
+          else if col == durationColId then {tte | duration = val}
+          else tte -- TODO: Note unexpected situation.
+        newModel = { model | tracksTabEntries = Array.set row tteUpdated model.tracksTabEntries}
+      in
+        (newModel, Cmd.none)
 
     UseridInput s ->
       ({model | userid = Just s}, Cmd.none)
@@ -459,36 +474,23 @@ fetchTracksTabData model =
 populateTracksTabData : Model -> List XisApi.ManualPlayListEntry -> Model
 populateTracksTabData model ples =
   let
-    newModel =
-      { model
-      | artists = Array.repeat numTrackRows ""
-      , titles = Array.repeat numTrackRows ""
-      , durations = Array.repeat numTrackRows ""
-      }
+    newModel = { model | tracksTabEntries = Array.repeat numTrackRows blankTracksTabEntry }
   in
     populateTracksTabData_Helper newModel ples
 
 
 populateTracksTabData_Helper : Model -> List XisApi.ManualPlayListEntry -> Model
-populateTracksTabData_Helper model ples =
-  case ples of
+populateTracksTabData_Helper model plesRemaining =
+  case plesRemaining of
     [] ->
       model
-    mple::mples ->
+    ple::ples ->
       let
-        title = withDefault "" mple.data.title
-        artist = withDefault "" mple.data.artist
-        pyDurStr = withDefault "" <| Maybe.map DRF.durationToPythonRepr mple.data.duration
-        duration = String.dropLeft 5 pyDurStr
-        seq = mple.data.sequence
-        newModel =
-          { model
-          | titles = Array.set seq title model.titles
-          , artists = Array.set seq artist model.artists
-          , durations = Array.set seq duration model.durations
-          }
+        seq = ple.data.sequence
+        tte = newTracksTabEntry (Just ple.id) ple.data.artist ple.data.title ple.data.duration
+        newModel = { model | tracksTabEntries = Array.set seq tte model.tracksTabEntries }
       in
-        populateTracksTabData_Helper newModel mples
+        populateTracksTabData_Helper newModel ples
 
 
 
@@ -511,8 +513,8 @@ tabs model =
 tracksTabTitle : Model -> Html Msg
 tracksTabTitle model =
   let
-    -- TODO: This is an expensive way to count the tracks. Is there a better way?
-    trackCount = model.titles |> Array.toList |> List.filter (not << String.isEmpty) |> List.length
+    filter = isJust << .playListEntryId
+    trackCount = model.tracksTabEntries |> Array.filter filter |> Array.length
   in
     if trackCount > 0 then
       Opts.span [Badge.add (toString trackCount)] [text "tracks"]
@@ -869,10 +871,15 @@ tracks_tableRow model r =
             ++
             [ Textfield.label s
             , Textfield.value <|
-                if c == artistColId then withDefault "" (Array.get r model.artists)
-                else if c == titleColId then withDefault "" (Array.get r model.titles)
-                else if c == durationColId then withDefault "" (Array.get r model.durations)
-                else "" -- TODO: Note unexpected situation.
+                case Array.get r model.tracksTabEntries of
+                  Just tte ->
+                    if c == artistColId then tte.artist
+                    else if c == titleColId then tte.title
+                    else if c == durationColId then tte.duration
+                    else "ERR1" -- TODO: Note unexpected situation?
+                  _ ->
+                    -- TODO Note unexpected situation?
+                    "ERR2"
             , Opts.onInput (TrackFieldUpdate r c)
             ]
           )
