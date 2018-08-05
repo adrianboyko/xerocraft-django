@@ -193,8 +193,8 @@ type
   | Authenticate_Result (Result Http.Error XisApi.AuthenticationResult)
   | CheckNowPlaying
   | KeyDownRfid Keyboard.KeyCode
-  | KeyDownAuthenticate Keyboard.KeyCode
   | FetchTracksTabData
+  | Login_Clicked
   | Mdl (Material.Msg Msg)
   | MemberListResult (Result Http.Error (DRF.PageOf XisApi.Member))
   | MemberPresentResult (Result Http.Error XisApi.VisitEvent)
@@ -241,17 +241,8 @@ update action model =
       , model.xis.nowPlaying NowPlaying_Result
       )
 
-    KeyDownAuthenticate code ->
-      case (model.userid, model.password) of
-        (Just id, Just pw) ->
-          ( model
-          , if code==13 then
-              model.xis.authenticate id pw Authenticate_Result
-            else
-              Cmd.none
-          )
-        _ ->
-          (model, Cmd.none)
+    FetchTracksTabData ->
+      fetchTracksTabData model
 
     KeyDownRfid code ->
       let
@@ -276,8 +267,12 @@ update action model =
           in
             checkAnRfid {model | typed=typed, rfidsToCheck=newRfidsToCheck}
 
-    FetchTracksTabData ->
-      fetchTracksTabData model
+    Login_Clicked ->
+      case (model.userid, model.password) of
+        (Just id, Just pw) ->
+          (model, model.xis.authenticate id pw Authenticate_Result)
+        _ ->
+          (model, Cmd.none)
 
     Mdl msg_ ->
       Material.update Mdl msg_ model
@@ -763,9 +758,7 @@ tab_start model =
         [ numTd (isJust model.userid && isJust model.password && isJust model.member) [text "❶ "]
         , instTd
           [ para
-            [ text "Log In:"
-            , break
-            , input
+            [ input
                 [ attribute "placeholder" "userid"
                 , attribute "value" <| withDefault "" model.userid
                 , onInput UseridInput
@@ -773,12 +766,23 @@ tab_start model =
                 []
             , break
             , input
-                [ attribute "placeholder" "password"
+                [ style ["margin-top"=>"3px"]
+                , attribute "placeholder" "password"
                 , attribute "type" "password"
                 , attribute "value" <| withDefault "" model.password
                 , onInput PasswordInput
                 ]
                 []
+            , Button.render Mdl [0] model.mdl
+              [ css "position" "relative"
+              , css "bottom" "20px"
+              , css "margin-left" "10px"
+              , Button.raised
+              , Button.colored
+              , Button.ripple
+              , Opts.onClick Login_Clicked
+              ]
+              [ text "Login"]
             ]
           ]
         ]
@@ -916,7 +920,6 @@ subscriptions model =
   Sub.batch
     [ Time.every second Tick
     , Keyboard.downs KeyDownRfid
-    , Keyboard.downs KeyDownAuthenticate
     , Layout.subs Mdl model.mdl
     ]
 
