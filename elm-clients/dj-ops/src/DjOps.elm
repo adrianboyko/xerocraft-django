@@ -797,8 +797,11 @@ tab_start model =
               -- TODO: test, below, should also be true if today is NOT show date.
               , if isNothing model.chosenShow || isNothing model.member || isNothing model.showDate then
                   Button.disabled
-                else
-                  Opts.nop
+                else case model.showDate of
+                  Just showDate ->
+                    if CD.fromDate showDate /= CD.fromTime model.currTime then Button.disabled else Opts.nop
+                  Nothing ->
+                    Button.disabled
               --, Opts.onClick MyClickMsg
               ]
               [ text "Begin Broadcast!"]
