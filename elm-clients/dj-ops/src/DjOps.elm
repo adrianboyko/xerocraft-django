@@ -35,7 +35,7 @@ import List.Extra as ListX
 import Hex as Hex
 import Dialog as Dialog
 import Maybe.Extra as MaybeX exposing (isJust, isNothing)
-import Update.Extra as UpdateX
+import Update.Extra as UpdateX exposing (updateModel)
 
 -- Local
 import ClockTime as CT
@@ -121,6 +121,7 @@ type alias Model =
   , shows : List XisApi.Show
   , selectedShow : Maybe XisApi.Show
   , selectedShowDate : Maybe Date
+  , showInstance : Maybe XisApi.ShowInstance  -- This is derived from selectedShow + selectedShowDate.
   , datePicker : DatePicker.DatePicker
   , member : Maybe XisApi.Member
   , nowPlaying : Maybe XisApi.NowPlaying
@@ -155,6 +156,7 @@ init flags =
       , shows = []
       , selectedShow = Nothing
       , selectedShowDate = Nothing
+      , showInstance = Nothing
       , datePicker = datePicker
       , member = Nothing
       , nowPlaying = Nothing
@@ -383,9 +385,11 @@ update action model =
 
     ShowInstanceList_Result (Ok {count, results}) ->
       let
-        tracksForTab = head results |> Maybe.map (.data >> .manualPlayList) |> withDefault []
+        showInstance = head results
+        tracksForTab = showInstance |> Maybe.map (.data >> .manualPlayList) |> withDefault []
       in
-        (populateTracksTabData model tracksForTab, Cmd.none)
+        ({model | showInstance = showInstance }, Cmd.none)
+          |> updateModel (populateTracksTabData tracksForTab)
 
     ShowList_Result (Ok {results}) ->
       ({model | shows=results}, Cmd.none)
@@ -471,8 +475,8 @@ fetchTracksTabData model =
       (model, Cmd.none)
 
 
-populateTracksTabData : Model -> List XisApi.ManualPlayListEntry -> Model
-populateTracksTabData model ples =
+populateTracksTabData : List XisApi.ManualPlayListEntry -> Model -> Model
+populateTracksTabData ples model =
   let
     newModel = { model | tracksTabEntries = Array.repeat numTrackRows blankTracksTabEntry }
   in
