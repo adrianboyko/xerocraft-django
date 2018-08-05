@@ -77,6 +77,7 @@ type alias XisRestFlags =
   , discoveryMethodListUrl : ResourceListUrl
   , emailMembershipInfoUrl : ServiceUrl
   , logMessageUrl : ServiceUrl  -- This logs a message on the server side.
+  , manualPlayListEntryListUrl : ResourceListUrl
   , memberListUrl : ResourceListUrl
   , membershipListUrl : ResourceListUrl
   , nowPlayingUrl : ServiceUrl
@@ -149,6 +150,7 @@ type alias Session msg =
 
   ----- RESOURCE CREATORS -----
   , createClaim : Creator ClaimData Claim msg
+  , createManualPlayListEntry : Creator ManualPlayListEntryData ManualPlayListEntry msg
   , createPlay : Creator PlayData Play msg
   , createVendLog : Creator VendLogData VendLog msg
   , createVisitEvent : Creator VisitEventDataOut VisitEvent msg
@@ -222,6 +224,7 @@ createSession flags auth =
 
   ----- RESOURCE CREATORS -----
   , createClaim = createClaim flags auth
+  , createManualPlayListEntry = createManualPlayListEntry flags auth
   , createPlay = createPlay flags auth
   , createVendLog = createVendLog flags auth
   , createVisitEvent = createVisitEvent flags auth
@@ -1716,7 +1719,8 @@ decodeShowInstanceData =
 ------------------
 
 type alias ManualPlayListEntryData =
-  { sequence : Int
+  { liveShowInstance : ResourceUrl
+  , sequence : Int
   , artist : String
   , title : String
   , duration : String
@@ -1732,11 +1736,62 @@ decodeManualPlayListEntry = decodeResource decodeManualPlayListEntryData
 
 decodeManualPlayListEntryData : Dec.Decoder ManualPlayListEntryData
 decodeManualPlayListEntryData =
-  Dec.map4 ManualPlayListEntryData
+  Dec.map5 ManualPlayListEntryData
+    (Dec.field "live_show_instance" DRF.decodeResourceUrl)
     (Dec.field "sequence" Dec.int)
     (Dec.field "artist" Dec.string)
     (Dec.field "title" Dec.string)
     (Dec.field "duration" Dec.string)
+
+
+encodeManualPlayListEntry : ManualPlayListEntry -> Enc.Value
+encodeManualPlayListEntry = encodeResource manualPlayListEntryDataNVPs
+
+
+encodeManualPlayListEntryData : ManualPlayListEntryData -> Enc.Value
+encodeManualPlayListEntryData = Enc.object << manualPlayListEntryDataNVPs
+
+
+manualPlayListEntryDataNVPs : ManualPlayListEntryData -> List (String, Enc.Value)
+manualPlayListEntryDataNVPs mple =
+  [ ( "live_show_instance", mple.liveShowInstance |> Enc.string )
+  , ( "sequence", mple.sequence |> Enc.int )
+  , ( "artist", mple.artist |> Enc.string)
+  , ( "title", mple.title |> Enc.string)
+  , ( "duration", mple.duration |> Enc.string )
+  ]
+
+
+replaceManualPlayListEntry : XisRestFlags -> Authorization -> Replacer ManualPlayListEntry msg
+replaceManualPlayListEntry flags auth mple resultToMsg =
+  let
+    request = Http.request
+      { method = "PUT"
+      , headers = [authenticationHeader auth]
+      , url = urlFromId flags.manualPlayListEntryListUrl mple.id
+      , body = mple.data |> encodeManualPlayListEntryData |> Http.jsonBody
+      , expect = Http.expectJson decodeManualPlayListEntry
+      , timeout = Nothing
+      , withCredentials = False
+      }
+  in
+    Http.send resultToMsg request
+
+
+createManualPlayListEntry : XisRestFlags -> Authorization -> Creator ManualPlayListEntryData ManualPlayListEntry msg
+createManualPlayListEntry flags auth mpleData resultToMsg =
+  let
+    request = Http.request
+      { method = "POST"
+      , headers = [authenticationHeader auth]
+      , url = flags.manualPlayListEntryListUrl
+      , body = mpleData |> encodeManualPlayListEntryData |> Http.jsonBody
+      , expect = Http.expectJson decodeManualPlayListEntry
+      , timeout = Nothing
+      , withCredentials = False
+      }
+  in
+    Http.send resultToMsg request
 
 
 -----------------------------------------------------------------------------
