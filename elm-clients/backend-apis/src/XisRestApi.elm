@@ -158,6 +158,7 @@ type alias Session msg =
   , createWorkNote : Creator WorkNoteData WorkNote msg
 
   ----- RESOURCE DELETERS -----
+  -- TODO: deleteManualPlayListEntryById
   , deletePlayById : DeleterById msg
   , deletePlayByUrl : DeleterByUrl msg
   , deleteWorkById : DeleterById msg
@@ -180,6 +181,7 @@ type alias Session msg =
 
   ----- RESOURCE REPLACERS
   , replaceClaim : Replacer Claim msg
+  , replaceManualPlayListEntry : Replacer ManualPlayListEntry msg
   , replaceWork : Replacer Work msg
   , replacePlay : Replacer Play msg
 
@@ -232,6 +234,7 @@ createSession flags auth =
   , createWorkNote = createWorkNote flags auth
 
   ----- RESOURCE DELETERS -----
+  -- TODO: deleteManualPlayListEntryById
   , deletePlayById = deletePlayById flags auth
   , deletePlayByUrl = deletePlayByUrl flags auth
   , deleteWorkById = deleteWorkById flags auth
@@ -254,6 +257,7 @@ createSession flags auth =
 
   ----- RESOURCE REPLACERS -----
   , replaceClaim = replaceClaim flags auth
+  , replaceManualPlayListEntry = replaceManualPlayListEntry flags auth
   , replaceWork = replaceWork flags auth
   , replacePlay = replacePlay flags auth
 

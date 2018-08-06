@@ -195,6 +195,7 @@ type
   | KeyDownRfid Keyboard.KeyCode
   | FetchTracksTabData
   | Login_Clicked
+  | ManualPlayListEntryUpsert_Result (Result Http.Error XisApi.ManualPlayListEntry)
   | Mdl (Material.Msg Msg)
   | MemberListResult (Result Http.Error (DRF.PageOf XisApi.Member))
   | MemberPresentResult (Result Http.Error XisApi.VisitEvent)
@@ -274,6 +275,9 @@ update action model =
           (model, model.xis.authenticate id pw Authenticate_Result)
         _ ->
           (model, Cmd.none)
+
+    ManualPlayListEntryUpsert_Result (Ok mple) ->
+      (model, Cmd.none)
 
     Mdl msg_ ->
       Material.update Mdl msg_ model
@@ -369,8 +373,9 @@ update action model =
                 let
                   newTte = { tte | lastChanged = Nothing }
                   newTtes = Array.set row newTte model.tracksTabEntries
+                  upsertCmd = upsertManualPlayListEntry model newTte
                 in
-                  ( { model | tracksTabEntries = newTtes}, Cmd.none )
+                  ( { model | tracksTabEntries = newTtes}, upsertCmd )
               else
                 (model, Cmd.none)
             Nothing ->
@@ -454,8 +459,11 @@ update action model =
 
     -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-    Authenticate_Result (Err error) ->
-      ({model | errMsgs=[toString error]}, Cmd.none)
+    Authenticate_Result (Err e) ->
+      ({model | errMsgs=[toString e]}, Cmd.none)
+
+    ManualPlayListEntryUpsert_Result (Err e) ->
+      ({model | errMsgs=[toString e]}, Cmd.none)
 
     MemberListResult (Err e) ->
       ({model | state=HitAnHttpErr e}, Cmd.none)
@@ -513,6 +521,14 @@ populateTracksTabData_Helper model plesRemaining =
       in
         populateTracksTabData_Helper newModel ples
 
+
+upsertManualPlayListEntry : Model -> TracksTabEntry -> Cmd Msg
+upsertManualPlayListEntry model tte =
+  let
+    mpleData = XisApi.ManualPlayListEntryData model.showInstance tte.sequence tte.artist tte.title tte.duration
+    mpleRes = XisApi.ManualPlayListEntry tte.id mpleData
+  in
+    model.xis.replaceManualPlayListEntry mpleRes ManualPlayListEntryUpsert_Result
 
 
 -----------------------------------------------------------------------------
