@@ -102,15 +102,16 @@ type alias TracksTabEntry =
   , artist : String
   , title : String
   , duration : String
+  , saving : Bool
   }
 
-newTracksTabEntry : Maybe Int -> String -> String -> String -> TracksTabEntry
-newTracksTabEntry id artist title duration =
-  TracksTabEntry Nothing id artist title duration
+newTracksTabEntry : Maybe Int -> String -> String -> String -> Bool -> TracksTabEntry
+newTracksTabEntry id artist title duration saving =
+  TracksTabEntry Nothing id artist title duration saving
 
 blankTracksTabEntry : TracksTabEntry
 blankTracksTabEntry =
-  newTracksTabEntry Nothing "" "" ""
+  newTracksTabEntry Nothing "" "" "" False
 
 type alias Model =
   { errMsgs : List String
@@ -141,7 +142,7 @@ type alias Model =
 init : Flags -> ( Model, Cmd Msg )
 init flags =
   let
-    auth = case flags.csrfToken of
+    auth = case flags.csrfToken of  -- TODO: REMOVE THIS
       Just csrf -> DRF.LoggedIn csrf
       Nothing -> DRF.NoAuthorization
     getShowsCmd = model.xis.listShows ShowList_Result
@@ -277,7 +278,18 @@ update action model =
           (model, Cmd.none)
 
     ManualPlayListEntryUpsert_Result (Ok mple) ->
-      (model, Cmd.none)
+      case Array.get mple.data.sequence model.tracksTabEntries of
+        Just tte ->
+          let
+            newTte = {tte | lastChanged = Nothing, saving = False, playListEntryId = Just mple.id }
+            newTtes = Array.set mple.data.sequence newTte model.tracksTabEntries
+          in
+            ( { model | tracksTabEntries = newTtes }
+            , Cmd.none
+            )
+        Nothing ->
+          -- TODO: Shouldn't ever get here. Log the fact that we did?
+          (model, Cmd.none)
 
     Mdl msg_ ->
       Material.update Mdl msg_ model
@@ -369,13 +381,14 @@ update action model =
         Just tte ->
           case tte.lastChanged of
             Just lastChanged ->
-              if (model.currTime - lastChanged) > 3*second then
+              if (model.currTime - lastChanged) > 3*second && (not tte.saving) then
                 let
-                  newTte = { tte | lastChanged = Nothing }
+                  newTte = {tte | saving = True}
                   newTtes = Array.set row newTte model.tracksTabEntries
-                  upsertCmd = upsertManualPlayListEntry model newTte
                 in
-                  ( { model | tracksTabEntries = newTtes}, upsertCmd )
+                  ( { model | tracksTabEntries = newTtes }
+                  , upsertManualPlayListEntry model row tte
+                  )
               else
                 (model, Cmd.none)
             Nothing ->
@@ -444,7 +457,7 @@ update action model =
     TrackFieldUpdate row col val ->
       let
         tte1 = withDefault blankTracksTabEntry (Array.get row model.tracksTabEntries)
-        tte2 = {tte1 | lastChanged = Just model.currTime }
+        tte2 = {tte1 | lastChanged = Just model.currTime, saving = False }
         tte3 =
           if col == artistColId then {tte2 | artist = val}
           else if col == titleColId then {tte2 | title = val}
@@ -516,19 +529,33 @@ populateTracksTabData_Helper model plesRemaining =
     ple::ples ->
       let
         seq = ple.data.sequence
-        tte = newTracksTabEntry (Just ple.id) ple.data.artist ple.data.title ple.data.duration
+        tte = newTracksTabEntry (Just ple.id) ple.data.artist ple.data.title ple.data.duration False
         newModel = { model | tracksTabEntries = Array.set seq tte model.tracksTabEntries }
       in
         populateTracksTabData_Helper newModel ples
 
 
-upsertManualPlayListEntry : Model -> TracksTabEntry -> Cmd Msg
-upsertManualPlayListEntry model tte =
-  let
-    mpleData = XisApi.ManualPlayListEntryData model.showInstance tte.sequence tte.artist tte.title tte.duration
-    mpleRes = XisApi.ManualPlayListEntry tte.id mpleData
-  in
-    model.xis.replaceManualPlayListEntry mpleRes ManualPlayListEntryUpsert_Result
+upsertManualPlayListEntry : Model -> Int -> TracksTabEntry -> Cmd Msg
+upsertManualPlayListEntry model row tte =
+  case model.showInstance of
+    Just showInstance ->
+      let
+        mpleData = XisApi.ManualPlayListEntryData
+          (model.xis.showInstanceUrl showInstance.id) row tte.artist tte.title tte.duration
+      in
+        case tte.playListEntryId of
+          Just idToUpdate ->
+            model.xis.replaceManualPlayListEntry
+              (DRF.Resource idToUpdate mpleData)
+              ManualPlayListEntryUpsert_Result
+          Nothing ->
+            model.xis.createManualPlayListEntry
+              mpleData
+              ManualPlayListEntryUpsert_Result
+
+    Nothing ->
+      -- TODO: Log unexpected result? Show instance should have been created by now.
+      Cmd.none
 
 
 -----------------------------------------------------------------------------

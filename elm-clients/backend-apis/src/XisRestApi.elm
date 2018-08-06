@@ -190,6 +190,7 @@ type alias Session msg =
   , memberUrl : Int -> ResourceUrl
   , productUrl : Int  -> ResourceUrl
   , showUrl : Int -> ResourceUrl
+  , showInstanceUrl : Int -> ResourceUrl
   , taskUrl : Int -> ResourceUrl
   , vendLogUrl : Int -> ResourceUrl
   , visitEventUrl : Int -> ResourceUrl
@@ -266,6 +267,7 @@ createSession flags auth =
   , memberUrl = urlFromId flags.memberListUrl
   , productUrl = urlFromId flags.productListUrl
   , showUrl = urlFromId flags.showListUrl
+  , showInstanceUrl = urlFromId flags.showInstanceListUrl
   , taskUrl = urlFromId flags.taskListUrl
   , vendLogUrl = urlFromId flags.visitEventListUrl
   , visitEventUrl = urlFromId flags.visitEventListUrl
