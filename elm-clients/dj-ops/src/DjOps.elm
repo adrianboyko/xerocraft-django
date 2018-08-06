@@ -98,6 +98,7 @@ type RfidReaderState
 
 type alias TracksTabEntry =
   { lastChanged : Maybe PointInTime
+  , changeCount : Int
   , playListEntryId : Maybe Int
   , artist : String
   , title : String
@@ -106,7 +107,7 @@ type alias TracksTabEntry =
 
 newTracksTabEntry : Maybe Int -> String -> String -> String -> TracksTabEntry
 newTracksTabEntry id artist title duration =
-  TracksTabEntry Nothing id artist title duration
+  TracksTabEntry Nothing 0 id artist title duration
 
 blankTracksTabEntry : TracksTabEntry
 blankTracksTabEntry =
@@ -202,6 +203,7 @@ type
   | NowPlaying_Tick -- see Tick Time
   | PasswordInput String
   | RfidTick  -- see Tick Time
+  | SaveTracksTabEntry Int  -- Row to save
   | ShowInstanceList_Result (Result Http.Error (DRF.PageOf XisApi.ShowInstance))
   | ShowList_Result (Result Http.Error (DRF.PageOf XisApi.Show))
   | ShowWasChosen String  -- ID of chosen show, as a String.
@@ -359,6 +361,25 @@ update action model =
         _ ->
           (model, Cmd.none)
 
+    SaveTracksTabEntry row ->
+      case Array.get row model.tracksTabEntries of
+        Just tte ->
+          if tte.changeCount > 1 then
+            let
+              newTte = { tte | changeCount = tte.changeCount - 1 }
+              newTtes = Array.set row newTte model.tracksTabEntries
+            in
+              ( { model | tracksTabEntries = newTtes}, Cmd.none )
+          else
+            let
+              newTte = { tte | lastChanged = Nothing, changeCount = 0 }
+              newTtes = Array.set row newTte model.tracksTabEntries
+            in
+              ( { model | tracksTabEntries = newTtes}, Cmd.none )
+
+        Nothing ->
+          (model, Cmd.none)
+
     SelectTab k ->
       ( { model | selectedTab = k }, Cmd.none )
 
@@ -417,15 +438,16 @@ update action model =
 
     TrackFieldUpdate row col val ->
       let
-        tte = withDefault blankTracksTabEntry (Array.get row model.tracksTabEntries)
-        tteUpdated =
-          if col == artistColId then {tte | artist = val}
-          else if col == titleColId then {tte | title = val}
-          else if col == durationColId then {tte | duration = val}
-          else tte -- TODO: Note unexpected situation.
-        newModel = { model | tracksTabEntries = Array.set row tteUpdated model.tracksTabEntries}
+        tte1 = withDefault blankTracksTabEntry (Array.get row model.tracksTabEntries)
+        tte2 = {tte1 | lastChanged = Just model.currTime, changeCount = 1 + tte1.changeCount }
+        tte3 =
+          if col == artistColId then {tte2 | artist = val}
+          else if col == titleColId then {tte2 | title = val}
+          else if col == durationColId then {tte2 | duration = val}
+          else tte2 -- TODO: Note unexpected situation.
+        newModel = { model | tracksTabEntries = Array.set row tte3 model.tracksTabEntries}
       in
-        (newModel, Cmd.none)
+        (newModel, delay (5*second) (SaveTracksTabEntry row))
 
     UseridInput s ->
       ({model | userid = Just s}, Cmd.none)
@@ -869,7 +891,7 @@ tracks_table model =
 tracks_tableRow : Model -> Int -> Html Msg
 tracks_tableRow model r =
   let
-    aTd s r c opts =
+    aTd s tte c opts =
       Table.td restTdStyle
         [Textfield.render
           Mdl
@@ -879,36 +901,36 @@ tracks_tableRow model r =
             ++
             [ Textfield.label s
             , Textfield.value <|
-                case Array.get r model.tracksTabEntries of
-                  Just tte ->
-                    if c == artistColId then tte.artist
-                    else if c == titleColId then tte.title
-                    else if c == durationColId then tte.duration
-                    else "ERR1" -- TODO: Note unexpected situation?
-                  _ ->
-                    -- TODO Note unexpected situation?
-                    "ERR2"
+                if c == artistColId then tte.artist
+                else if c == titleColId then tte.title
+                else if c == durationColId then tte.duration
+                else "ERR1" -- TODO: Note unexpected situation?
             , Opts.onInput (TrackFieldUpdate r c)
             ]
           )
           []
         ]
   in
-    Table.tr []
-    [ Table.td firstTdStyle [text <| toString r]
-    , aTd "Artist" r artistColId []
-    , aTd "Title" r titleColId []
-    , aTd "MM:SS" r durationColId [css "width" "55px"]
-    , Table.td firstTdStyle
-      [ Button.render Mdl [r] model.mdl
-        [ Button.fab
-        , Button.plain
-        -- , Options.onClick MyClickMsg
+    case Array.get r model.tracksTabEntries of
+      Just tte ->
+        Table.tr [css "color" (if isNothing tte.lastChanged then "black" else "red")]
+        [ Table.td firstTdStyle [text <| toString r]
+        , aTd "Artist" tte artistColId []
+        , aTd "Title" tte titleColId []
+        , aTd "MM:SS" tte durationColId [css "width" "55px"]
+        , Table.td firstTdStyle
+          [ Button.render Mdl [r] model.mdl
+            [ Button.fab
+            , Button.plain
+            -- , Options.onClick MyClickMsg
+            ]
+            [ Icon.i "play_arrow"]
+          ]
         ]
-        [ Icon.i "play_arrow"]
-      ]
+      Nothing ->
+        -- TODO: Log this unexpected situation?
+        Table.tr [] []
 
-    ]
 
 
 -----------------------------------------------------------------------------
