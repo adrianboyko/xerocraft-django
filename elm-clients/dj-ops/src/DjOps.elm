@@ -98,7 +98,6 @@ type RfidReaderState
 
 type alias TracksTabEntry =
   { lastChanged : Maybe PointInTime
-  , changeCount : Int
   , playListEntryId : Maybe Int
   , artist : String
   , title : String
@@ -107,7 +106,7 @@ type alias TracksTabEntry =
 
 newTracksTabEntry : Maybe Int -> String -> String -> String -> TracksTabEntry
 newTracksTabEntry id artist title duration =
-  TracksTabEntry Nothing 0 id artist title duration
+  TracksTabEntry Nothing id artist title duration
 
 blankTracksTabEntry : TracksTabEntry
 blankTracksTabEntry =
@@ -364,20 +363,21 @@ update action model =
     SaveTracksTabEntry row ->
       case Array.get row model.tracksTabEntries of
         Just tte ->
-          if tte.changeCount > 1 then
-            let
-              newTte = { tte | changeCount = tte.changeCount - 1 }
-              newTtes = Array.set row newTte model.tracksTabEntries
-            in
-              ( { model | tracksTabEntries = newTtes}, Cmd.none )
-          else
-            let
-              newTte = { tte | lastChanged = Nothing, changeCount = 0 }
-              newTtes = Array.set row newTte model.tracksTabEntries
-            in
-              ( { model | tracksTabEntries = newTtes}, Cmd.none )
-
+          case tte.lastChanged of
+            Just lastChanged ->
+              if (model.currTime - lastChanged) > 3*second then
+                let
+                  newTte = { tte | lastChanged = Nothing }
+                  newTtes = Array.set row newTte model.tracksTabEntries
+                in
+                  ( { model | tracksTabEntries = newTtes}, Cmd.none )
+              else
+                (model, Cmd.none)
+            Nothing ->
+              -- This means that the row was already saved.
+              (model, Cmd.none)
         Nothing ->
+          -- TODO: Shouldn't get here. Log unexpected situation?
           (model, Cmd.none)
 
     SelectTab k ->
@@ -439,7 +439,7 @@ update action model =
     TrackFieldUpdate row col val ->
       let
         tte1 = withDefault blankTracksTabEntry (Array.get row model.tracksTabEntries)
-        tte2 = {tte1 | lastChanged = Just model.currTime, changeCount = 1 + tte1.changeCount }
+        tte2 = {tte1 | lastChanged = Just model.currTime }
         tte3 =
           if col == artistColId then {tte2 | artist = val}
           else if col == titleColId then {tte2 | title = val}
