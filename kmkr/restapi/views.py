@@ -4,6 +4,7 @@
 # Third-Party
 from rest_framework import viewsets
 from rest_framework.permissions import DjangoModelPermissionsOrAnonReadOnly
+from rest_framework.authentication import BasicAuthentication
 
 # Local
 from .. import models as mod
@@ -53,6 +54,7 @@ class ManualPlayListEntrySet(viewsets.ModelViewSet):
     filter_fields = {}
     ordering_fields = {}
     permission_classes = [DjangoModelPermissionsOrAnonReadOnly]
+    authentication_classes = [BasicAuthentication]
 
 
 class TrackViewSet(viewsets.ModelViewSet):
