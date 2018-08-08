@@ -13,6 +13,7 @@ import List.Extra as ListX
 
 -- Third-Party
 import Json.Decode.Pipeline exposing (decode, required)
+import BasicAuth exposing (buildAuthorizationHeader)
 
 -- Local
 import ClockTime exposing (ClockTime)
@@ -273,6 +274,7 @@ type Authorization
   = NoAuthorization
   | LoggedIn String -- Logged in with CSRF token
   | Token String  -- A token registered with Django.
+  | Basic String String  -- Basic Auth, userid & pw
 
 
 authenticationHeader : Authorization -> Http.Header
@@ -280,6 +282,7 @@ authenticationHeader auth =
   case auth of
     Token t -> Http.header "Authorization" ("Token " ++ t) -- Django auth token
     LoggedIn t -> Http.header "X-CSRFToken" t
+    Basic u p -> buildAuthorizationHeader u p
     NoAuthorization -> Http.header "X-NoAuth" "NoAuth"
 
 

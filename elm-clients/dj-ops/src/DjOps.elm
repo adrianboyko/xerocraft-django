@@ -138,6 +138,7 @@ type alias Model =
   { errMsgs : List String
   , keyboardIdleTime : Int
   , mdl : Material.Model
+  , xisFlags : XisApi.XisRestFlags
   , xis : XisApi.Session Msg
   , currTime : PointInTime
   , selectedTab : Int
@@ -174,6 +175,7 @@ init flags =
       { errMsgs = []
       , keyboardIdleTime = 0
       , mdl = Material.model
+      , xisFlags = flags.xisRestFlags
       , xis = XisApi.createSession flags.xisRestFlags auth
       , currTime = 0
       , selectedTab = 0
@@ -260,11 +262,26 @@ update action model =
       )
 
     Authenticate_Result (Ok {isAuthentic, authenticatedMember}) ->
-      let
-        errMsgs = if isAuthentic then [] else ["Bad userid and/or password provided.", "Close this dialog and try again."]
-      in
-        ({model | member=authenticatedMember, errMsgs=errMsgs}, Cmd.none)
-        |> UpdateX.andThen update FetchTracksTabData
+      if isAuthentic then
+        let
+          -- We just authenticated the userid & pw so they won't be Nothing.
+          userid = withDefault "NO_ID" model.userid
+          password = withDefault "NO_PW" model.password
+          newModel =
+            { model
+            | member = authenticatedMember
+            -- Need to create a new XIS session to change the authentication method to Basic.
+            , xis = XisApi.createSession model.xisFlags (DRF.Basic userid password)
+            }
+        in
+          (newModel, Cmd.none)
+            |> UpdateX.andThen update FetchTracksTabData
+      else
+        let
+          errMsgs = ["Bad userid and/or password provided.", "Close this dialog and try again."]
+          newModel = { model | member = Nothing, errMsgs = errMsgs }
+        in
+          (newModel, Cmd.none)
 
     CheckNowPlaying ->
       ( model
@@ -403,7 +420,9 @@ update action model =
       ({model | password = Just s}, Cmd.none)
 
     SelectTab k ->
-      ( { model | selectedTab = k }, Cmd.none )
+      saveTracksTab
+        { model | selectedTab = k }
+        0  -- Save tracks tab IMMEDIATELY!
 
     SetDatePicker msg ->
       let
@@ -486,7 +505,7 @@ update action model =
           (model, Cmd.none)
 
     Tick_SaveTracksTab ->
-      saveTracksTab model
+      saveTracksTab model 5  -- Save tracks tab if keyboard has been idle for 5 seconds.
 
     TrackFieldUpdate row col val ->
       let
@@ -575,8 +594,8 @@ populateTracksTabData_Helper model plesRemaining =
         populateTracksTabData_Helper newModel ples
 
 
-saveTracksTab : Model -> (Model, Cmd Msg)
-saveTracksTab model =
+saveTracksTab : Model -> Int -> (Model, Cmd Msg)
+saveTracksTab model minIdle =
   let
     reducer (row, tte) (model, cmd) =
       if tracksTabEntryIsDirty tte then
@@ -592,7 +611,7 @@ saveTracksTab model =
         -- Too soon after most recent change. Let's wait a bit more in case they're still typing.
         (model, cmd)
   in
-    if model.keyboardIdleTime > 5 then
+    if model.keyboardIdleTime >= minIdle then
       List.foldl
         reducer
         (model, Cmd.none)
