@@ -344,6 +344,7 @@ class ManualPlayListEntry(models.Model):
         help_text="The duration of the track as MM:SS.")
 
     class Meta:
+        unique_together = ['live_show_instance', 'sequence']
         verbose_name = "Manual Playlist Entry"
         verbose_name_plural = "Manual Playlist Entries"
 
