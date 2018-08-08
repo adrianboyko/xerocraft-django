@@ -10,7 +10,7 @@ import Time exposing (Time, second)
 import Date exposing (Date)
 import Regex
 import Char
-import Keyboard
+import Keyboard exposing (KeyCode)
 import Set exposing (Set)
 import Task exposing (Task)
 import Process
@@ -61,9 +61,6 @@ passwordFieldId = [startTabId, 2]
 
 -- For Tracks Tab
 numTrackRows = 60
-artistColId = 0
-titleColId = 1
-durationColId = 2
 
 
 -----------------------------------------------------------------------------
@@ -96,6 +93,18 @@ type RfidReaderState
   | HitAnHttpErr Http.Error
   | FoundRfidToBe Bool  -- Bool is True if Rfid was registered, else False.
 
+type TracksTabEntryColumn
+  = ArtistColumn
+  | TitleColumn
+  | DurationColumn
+
+trackTabEntryColumnId : TracksTabEntryColumn -> Int
+trackTabEntryColumnId col =
+  case col of
+    ArtistColumn -> 1
+    TitleColumn -> 2
+    DurationColumn -> 3
+
 type alias TracksTabEntry =
   { playListEntryId : Maybe Int
   , artist : String
@@ -118,8 +127,16 @@ tracksTabEntryIsDirty : TracksTabEntry -> Bool
 tracksTabEntryIsDirty tte =
     [tte.artist, tte.title, tte.duration] /= [tte.savedArtist, tte.savedTitle, tte.savedDuration]
 
+tracksTabEntryColumnIsDirty : TracksTabEntry -> TracksTabEntryColumn -> Bool
+tracksTabEntryColumnIsDirty tte col =
+  case col of
+    ArtistColumn -> tte.artist /= tte.savedArtist
+    TitleColumn -> tte.title /= tte.savedTitle
+    DurationColumn -> tte.duration /= tte.savedDuration
+
 type alias Model =
   { errMsgs : List String
+  , keyboardIdleTime : Int
   , mdl : Material.Model
   , xis : XisApi.Session Msg
   , currTime : PointInTime
@@ -155,6 +172,7 @@ init flags =
     (datePicker, datePickerCmd ) = DatePicker.init
     model =
       { errMsgs = []
+      , keyboardIdleTime = 0
       , mdl = Material.model
       , xis = XisApi.createSession flags.xisRestFlags auth
       , currTime = 0
@@ -198,7 +216,9 @@ type
   = AcknowledgeDialog
   | Authenticate_Result (Result Http.Error XisApi.AuthenticationResult)
   | CheckNowPlaying
-  | KeyDownRfid Keyboard.KeyCode
+  | KeyDown KeyCode
+  | KeyDown_RFID KeyCode
+  | KeyDown_Idle KeyCode
   | FetchTracksTabData
   | Login_Clicked
   | ManualPlayListEntryDelete_Result Int (Result Http.Error String)
@@ -214,10 +234,11 @@ type
   | SelectTab Int
   | SetDatePicker DatePicker.Msg
   | Tick Time
+  | Tick_Idle
   | Tick_NowPlaying
   | Tick_RFID
   | Tick_SaveTracksTab
-  | TrackFieldUpdate Int Int String  -- row, col, value
+  | TrackFieldUpdate Int TracksTabEntryColumn String  -- row, col, value
   | UseridInput String
 
 
@@ -253,7 +274,15 @@ update action model =
     FetchTracksTabData ->
       fetchTracksTabData model
 
-    KeyDownRfid code ->
+    KeyDown code ->
+      (model, Cmd.none)
+        |> UpdateX.andThen update (KeyDown_RFID code)
+        |> UpdateX.andThen update (KeyDown_Idle code)
+
+    KeyDown_Idle code ->
+      ( {model | keyboardIdleTime = 0 }, Cmd.none )
+
+    KeyDown_RFID code ->
       let
         typed = case code of
           16 -> model.typed  -- i.e. ignore this shift code.
@@ -422,13 +451,16 @@ update action model =
             (model, Cmd.none)
 
     Tick newTime ->
-      let
-        newModel = { model | currTime = newTime }
-      in
-        (newModel, Cmd.none)
-          |> UpdateX.andThen update Tick_RFID
-          |> UpdateX.andThen update Tick_NowPlaying
-          |> UpdateX.andThen update Tick_SaveTracksTab
+      ({ model | currTime = newTime }, Cmd.none)
+        |> UpdateX.andThen update Tick_RFID
+        |> UpdateX.andThen update Tick_NowPlaying
+        |> UpdateX.andThen update Tick_Idle
+        |> UpdateX.andThen update Tick_SaveTracksTab
+
+    Tick_Idle ->
+      ( { model | keyboardIdleTime = model.keyboardIdleTime + 1 }
+      , Cmd.none
+      )
 
     Tick_NowPlaying ->
       case model.nowPlaying of
@@ -460,10 +492,10 @@ update action model =
       let
         tte1 = withDefault blankTracksTabEntry (Array.get row model.tracksTabEntries)
         tte2 =
-          if col == artistColId then {tte1 | artist = val}
-          else if col == titleColId then {tte1 | title = val}
-          else if col == durationColId then {tte1 | duration = val}
-          else tte1 -- TODO: Note unexpected situation.
+          case col of
+            ArtistColumn -> {tte1 | artist = val}
+            TitleColumn -> {tte1 | title = val}
+            DurationColumn -> {tte1 | duration = val}
         newModel = { model | tracksTabEntries = Array.set row tte2 model.tracksTabEntries}
       in
         (newModel, Cmd.none)
@@ -560,10 +592,13 @@ saveTracksTab model =
         -- Too soon after most recent change. Let's wait a bit more in case they're still typing.
         (model, cmd)
   in
-    List.foldl
-      reducer
+    if model.keyboardIdleTime > 5 then
+      List.foldl
+        reducer
+        (model, Cmd.none)
+        (Array.toIndexedList model.tracksTabEntries)
+    else
       (model, Cmd.none)
-      (Array.toIndexedList model.tracksTabEntries)
 
 
 deleteManualPlayListEntry : Model -> Int -> TracksTabEntry -> Cmd Msg
@@ -976,19 +1011,19 @@ tracks_tableRow : Model -> Int -> Html Msg
 tracks_tableRow model r =
   let
     aTd s tte c opts =
-      Table.td restTdStyle
+      Table.td (restTdStyle++[css "color" (if tracksTabEntryColumnIsDirty tte c then "red" else "black")])
         [Textfield.render
           Mdl
-          [tracksTabId, r, c]  -- Textfield ID
+          [tracksTabId, r, trackTabEntryColumnId c]  -- Textfield ID
           model.mdl
           ( opts
             ++
             [ Textfield.label s
             , Textfield.value <|
-                if c == artistColId then tte.artist
-                else if c == titleColId then tte.title
-                else if c == durationColId then tte.duration
-                else "ERR1" -- TODO: Note unexpected situation?
+                case c of
+                  ArtistColumn -> tte.artist
+                  TitleColumn -> tte.title
+                  DurationColumn -> tte.duration
             , Opts.onInput (TrackFieldUpdate r c)
             ]
           )
@@ -999,9 +1034,9 @@ tracks_tableRow model r =
       Just tte ->
         Table.tr [css "color" (if tracksTabEntryIsDirty tte then "red" else "black")]
         [ Table.td firstTdStyle [text <| toString r]
-        , aTd "Artist" tte artistColId []
-        , aTd "Title" tte titleColId []
-        , aTd "MM:SS" tte durationColId [css "width" "55px"]
+        , aTd "Artist" tte ArtistColumn []
+        , aTd "Title" tte TitleColumn []
+        , aTd "MM:SS" tte DurationColumn [css "width" "55px"]
         , Table.td firstTdStyle
           [ Button.render Mdl [r] model.mdl
             [ Button.fab
@@ -1025,7 +1060,7 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
   Sub.batch
     [ Time.every second Tick
-    , Keyboard.downs KeyDownRfid
+    , Keyboard.downs KeyDown
     , Layout.subs Mdl model.mdl
     ]
 
