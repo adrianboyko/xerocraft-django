@@ -158,7 +158,8 @@ type alias Session msg =
   , createWorkNote : Creator WorkNoteData WorkNote msg
 
   ----- RESOURCE DELETERS -----
-  -- TODO: deleteManualPlayListEntryById
+  , deleteManualPlayListEntryById : DeleterById msg
+  , deleteManualPlayListEntryByUrl : DeleterByUrl msg
   , deletePlayById : DeleterById msg
   , deletePlayByUrl : DeleterByUrl msg
   , deleteWorkById : DeleterById msg
@@ -235,7 +236,8 @@ createSession flags auth =
   , createWorkNote = createWorkNote flags auth
 
   ----- RESOURCE DELETERS -----
-  -- TODO: deleteManualPlayListEntryById
+  , deleteManualPlayListEntryById = deleteManualPlayListEntryById flags auth
+  , deleteManualPlayListEntryByUrl = deleteManualPlayListEntryByUrl flags auth
   , deletePlayById = deletePlayById flags auth
   , deletePlayByUrl = deletePlayByUrl flags auth
   , deleteWorkById = deleteWorkById flags auth
@@ -1798,6 +1800,18 @@ createManualPlayListEntry flags auth mpleData resultToMsg =
       }
   in
     Http.send resultToMsg request
+
+
+deleteManualPlayListEntryById : XisRestFlags -> Authorization -> DeleterById msg
+deleteManualPlayListEntryById flags auth id tagger =
+  let url = urlFromId flags.manualPlayListEntryListUrl id
+  in deleteManualPlayListEntryByUrl flags auth url tagger
+
+
+deleteManualPlayListEntryByUrl : XisRestFlags -> Authorization -> DeleterByUrl msg
+deleteManualPlayListEntryByUrl flags auth url tagger =
+  let request = deleteRequest auth url
+  in Http.send tagger request
 
 
 -----------------------------------------------------------------------------

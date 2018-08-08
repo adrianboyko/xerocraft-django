@@ -35,7 +35,7 @@ import List.Extra as ListX
 import Hex as Hex
 import Dialog as Dialog
 import Maybe.Extra as MaybeX exposing (isJust, isNothing)
-import Update.Extra as UpdateX exposing (updateModel)
+import Update.Extra as UpdateX exposing (updateModel, addCmd)
 
 -- Local
 import ClockTime as CT
@@ -97,21 +97,26 @@ type RfidReaderState
   | FoundRfidToBe Bool  -- Bool is True if Rfid was registered, else False.
 
 type alias TracksTabEntry =
-  { lastChanged : Maybe PointInTime
-  , playListEntryId : Maybe Int
+  { playListEntryId : Maybe Int
   , artist : String
   , title : String
   , duration : String
-  , saving : Bool
+  , savedArtist : String
+  , savedTitle : String
+  , savedDuration : String
   }
 
-newTracksTabEntry : Maybe Int -> String -> String -> String -> Bool -> TracksTabEntry
-newTracksTabEntry id artist title duration saving =
-  TracksTabEntry Nothing id artist title duration saving
+newTracksTabEntry : Maybe Int -> String -> String -> String -> String -> String -> String -> TracksTabEntry
+newTracksTabEntry id artist title duration sArtist sTitle sDuration =
+  TracksTabEntry id artist title duration sArtist sTitle sDuration
 
 blankTracksTabEntry : TracksTabEntry
 blankTracksTabEntry =
-  newTracksTabEntry Nothing "" "" "" False
+  newTracksTabEntry Nothing "" "" "" "" "" ""
+
+tracksTabEntryIsDirty : TracksTabEntry -> Bool
+tracksTabEntryIsDirty tte =
+    [tte.artist, tte.title, tte.duration] /= [tte.savedArtist, tte.savedTitle, tte.savedDuration]
 
 type alias Model =
   { errMsgs : List String
@@ -196,21 +201,22 @@ type
   | KeyDownRfid Keyboard.KeyCode
   | FetchTracksTabData
   | Login_Clicked
+  | ManualPlayListEntryDelete_Result Int (Result Http.Error String)
   | ManualPlayListEntryUpsert_Result (Result Http.Error XisApi.ManualPlayListEntry)
   | Mdl (Material.Msg Msg)
   | MemberListResult (Result Http.Error (DRF.PageOf XisApi.Member))
   | MemberPresentResult (Result Http.Error XisApi.VisitEvent)
   | NowPlaying_Result (Result Http.Error XisApi.NowPlaying)
-  | NowPlaying_Tick -- see Tick Time
   | PasswordInput String
-  | RfidTick  -- see Tick Time
-  | SaveTracksTabEntry Int  -- Row to save
   | ShowInstanceList_Result (Result Http.Error (DRF.PageOf XisApi.ShowInstance))
   | ShowList_Result (Result Http.Error (DRF.PageOf XisApi.Show))
   | ShowWasChosen String  -- ID of chosen show, as a String.
   | SelectTab Int
   | SetDatePicker DatePicker.Msg
   | Tick Time
+  | Tick_NowPlaying
+  | Tick_RFID
+  | Tick_SaveTracksTab
   | TrackFieldUpdate Int Int String  -- row, col, value
   | UseridInput String
 
@@ -277,11 +283,25 @@ update action model =
         _ ->
           (model, Cmd.none)
 
+    ManualPlayListEntryDelete_Result row (Ok s) ->
+      let
+        newTtes = Array.set row blankTracksTabEntry model.tracksTabEntries
+      in
+        ( { model | tracksTabEntries = newTtes }
+        , Cmd.none
+        )
+
     ManualPlayListEntryUpsert_Result (Ok mple) ->
       case Array.get mple.data.sequence model.tracksTabEntries of
         Just tte ->
           let
-            newTte = {tte | lastChanged = Nothing, saving = False, playListEntryId = Just mple.id }
+            newTte =
+              { tte
+              | playListEntryId = Just mple.id
+              , savedArtist = mple.data.artist
+              , savedTitle = mple.data.title
+              , savedDuration = mple.data.duration
+              }
             newTtes = Array.set mple.data.sequence newTte model.tracksTabEntries
           in
             ( { model | tracksTabEntries = newTtes }
@@ -350,53 +370,8 @@ update action model =
         , delay delaySeconds CheckNowPlaying
         )
 
-    NowPlaying_Tick ->
-      case model.nowPlaying of
-        Just np ->
-          case np.track of
-            Just t ->
-              let
-                updatedTrack = {t | remainingSeconds = t.remainingSeconds - 1}
-                updatedNowPlaying = {np | track = Just updatedTrack}
-                updatedModel = {model | nowPlaying = Just updatedNowPlaying}
-              in
-                (updatedModel, Cmd.none)
-            Nothing ->
-                (model, Cmd.none)
-        Nothing ->
-          (model, Cmd.none)
-
     PasswordInput s ->
       ({model | password = Just s}, Cmd.none)
-
-    RfidTick ->
-      case model.state of
-        CheckingAnRfid wc ->
-          ({model | state=CheckingAnRfid (wc+1)}, Cmd.none)
-        _ ->
-          (model, Cmd.none)
-
-    SaveTracksTabEntry row ->
-      case Array.get row model.tracksTabEntries of
-        Just tte ->
-          case tte.lastChanged of
-            Just lastChanged ->
-              if (model.currTime - lastChanged) > 3*second && (not tte.saving) then
-                let
-                  newTte = {tte | saving = True}
-                  newTtes = Array.set row newTte model.tracksTabEntries
-                in
-                  ( { model | tracksTabEntries = newTtes }
-                  , upsertManualPlayListEntry model row tte
-                  )
-              else
-                (model, Cmd.none)
-            Nothing ->
-              -- This means that the row was already saved.
-              (model, Cmd.none)
-        Nothing ->
-          -- TODO: Shouldn't get here. Log unexpected situation?
-          (model, Cmd.none)
 
     SelectTab k ->
       ( { model | selectedTab = k }, Cmd.none )
@@ -451,21 +426,47 @@ update action model =
         newModel = { model | currTime = newTime }
       in
         (newModel, Cmd.none)
-          |> UpdateX.andThen update RfidTick
-          |> UpdateX.andThen update NowPlaying_Tick
+          |> UpdateX.andThen update Tick_RFID
+          |> UpdateX.andThen update Tick_NowPlaying
+          |> UpdateX.andThen update Tick_SaveTracksTab
+
+    Tick_NowPlaying ->
+      case model.nowPlaying of
+        Just np ->
+          case np.track of
+            Just t ->
+              let
+                updatedTrack = {t | remainingSeconds = t.remainingSeconds - 1}
+                updatedNowPlaying = {np | track = Just updatedTrack}
+                updatedModel = {model | nowPlaying = Just updatedNowPlaying}
+              in
+                (updatedModel, Cmd.none)
+            Nothing ->
+                (model, Cmd.none)
+        Nothing ->
+          (model, Cmd.none)
+
+    Tick_RFID ->
+      case model.state of
+        CheckingAnRfid wc ->
+          ({model | state=CheckingAnRfid (wc+1)}, Cmd.none)
+        _ ->
+          (model, Cmd.none)
+
+    Tick_SaveTracksTab ->
+      saveTracksTab model
 
     TrackFieldUpdate row col val ->
       let
         tte1 = withDefault blankTracksTabEntry (Array.get row model.tracksTabEntries)
-        tte2 = {tte1 | lastChanged = Just model.currTime, saving = False }
-        tte3 =
-          if col == artistColId then {tte2 | artist = val}
-          else if col == titleColId then {tte2 | title = val}
-          else if col == durationColId then {tte2 | duration = val}
-          else tte2 -- TODO: Note unexpected situation.
-        newModel = { model | tracksTabEntries = Array.set row tte3 model.tracksTabEntries}
+        tte2 =
+          if col == artistColId then {tte1 | artist = val}
+          else if col == titleColId then {tte1 | title = val}
+          else if col == durationColId then {tte1 | duration = val}
+          else tte1 -- TODO: Note unexpected situation.
+        newModel = { model | tracksTabEntries = Array.set row tte2 model.tracksTabEntries}
       in
-        (newModel, delay (5*second) (SaveTracksTabEntry row))
+        (newModel, Cmd.none)
 
     UseridInput s ->
       ({model | userid = Just s}, Cmd.none)
@@ -473,6 +474,9 @@ update action model =
     -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
     Authenticate_Result (Err e) ->
+      ({model | errMsgs=[toString e]}, Cmd.none)
+
+    ManualPlayListEntryDelete_Result row (Err e) ->
       ({model | errMsgs=[toString e]}, Cmd.none)
 
     ManualPlayListEntryUpsert_Result (Err e) ->
@@ -529,10 +533,47 @@ populateTracksTabData_Helper model plesRemaining =
     ple::ples ->
       let
         seq = ple.data.sequence
-        tte = newTracksTabEntry (Just ple.id) ple.data.artist ple.data.title ple.data.duration False
+        tte =
+          newTracksTabEntry
+            (Just ple.id)
+            ple.data.artist ple.data.title ple.data.duration
+            ple.data.artist ple.data.title ple.data.duration
         newModel = { model | tracksTabEntries = Array.set seq tte model.tracksTabEntries }
       in
         populateTracksTabData_Helper newModel ples
+
+
+saveTracksTab : Model -> (Model, Cmd Msg)
+saveTracksTab model =
+  let
+    reducer (row, tte) (model, cmd) =
+      if tracksTabEntryIsDirty tte then
+        let
+          extraCmd =
+            if List.all String.isEmpty [tte.artist, tte.title, tte.duration] then
+              deleteManualPlayListEntry model row tte
+            else
+              upsertManualPlayListEntry model row tte
+        in
+          (model, cmd) |> addCmd extraCmd
+      else
+        -- Too soon after most recent change. Let's wait a bit more in case they're still typing.
+        (model, cmd)
+  in
+    List.foldl
+      reducer
+      (model, Cmd.none)
+      (Array.toIndexedList model.tracksTabEntries)
+
+
+deleteManualPlayListEntry : Model -> Int -> TracksTabEntry -> Cmd Msg
+deleteManualPlayListEntry model row tte =
+  case tte.playListEntryId of
+    Just id ->
+      model.xis.deleteManualPlayListEntryById id (ManualPlayListEntryDelete_Result row)
+    Nothing ->
+      -- Not yet saved, so nothing to delete.
+      Cmd.none
 
 
 upsertManualPlayListEntry : Model -> Int -> TracksTabEntry -> Cmd Msg
@@ -577,7 +618,7 @@ tabs model =
 tracksTabTitle : Model -> Html Msg
 tracksTabTitle model =
   let
-    filter = isJust << .playListEntryId
+    filter = .playListEntryId >> isJust
     trackCount = model.tracksTabEntries |> Array.filter filter |> Array.length
   in
     if trackCount > 0 then
@@ -956,7 +997,7 @@ tracks_tableRow model r =
   in
     case Array.get r model.tracksTabEntries of
       Just tte ->
-        Table.tr [css "color" (if isNothing tte.lastChanged then "black" else "red")]
+        Table.tr [css "color" (if tracksTabEntryIsDirty tte then "red" else "black")]
         [ Table.td firstTdStyle [text <| toString r]
         , aTd "Artist" tte artistColId []
         , aTd "Title" tte titleColId []
