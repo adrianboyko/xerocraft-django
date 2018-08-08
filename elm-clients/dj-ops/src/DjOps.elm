@@ -985,7 +985,7 @@ tracks_info model =
     [ p [style ["font-size"=>"16pt"]]
       ( case (model.selectedShow, model.selectedShowDate) of
         (Just show, Just date) ->
-          [ text "🡄"
+          [ text "⟵"
           , br [] []
           , text "Tracks for"
           , br [] []
