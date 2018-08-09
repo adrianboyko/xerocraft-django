@@ -152,6 +152,7 @@ type alias Session msg =
   , createClaim : Creator ClaimData Claim msg
   , createManualPlayListEntry : Creator ManualPlayListEntryData ManualPlayListEntry msg
   , createPlay : Creator PlayData Play msg
+  , createShowInstance : Creator ShowInstanceData ShowInstance msg
   , createVendLog : Creator VendLogData VendLog msg
   , createVisitEvent : Creator VisitEventDataOut VisitEvent msg
   , createWork : Creator WorkData Work msg
@@ -230,6 +231,7 @@ createSession flags auth =
   , createClaim = createClaim flags auth
   , createManualPlayListEntry = createManualPlayListEntry flags auth
   , createPlay = createPlay flags auth
+  , createShowInstance = createShowInstance flags auth
   , createVendLog = createVendLog flags auth
   , createVisitEvent = createVisitEvent flags auth
   , createWork = createWork flags auth
@@ -1393,6 +1395,7 @@ vendLogDataNVPs flags log =
   , ( "product", log.product |> Enc.string )
   ]
 
+
 createVendLog : XisRestFlags -> Authorization -> Creator VendLogData VendLog msg
 createVendLog flags auth vendLogData resultToMsg =
   let
@@ -1723,6 +1726,29 @@ decodeShowInstanceData =
     (Dec.field "repeat_of" (Dec.maybe DRF.decodeResourceUrl))
     (Dec.field "playlist_embed" (Dec.list decodeManualPlayListEntry))
 
+
+showInstanceDataNVPs : ShowInstanceData -> List (String, Enc.Value)
+showInstanceDataNVPs sid =
+  [ ( "show", sid.show |> Enc.string )
+  , ( "date", sid.date |> DRF.encodeCalendarDate )
+  , ( "host_checked_in", sid.hostCheckedIn |> EncX.maybe DRF.encodeClockTime )
+  , ( "repeat_of", sid.repeatOf |> EncX.maybe Enc.string )
+  ]
+
+createShowInstance : XisRestFlags -> Authorization -> Creator ShowInstanceData ShowInstance msg
+createShowInstance flags auth sid resultToMsg =
+  let
+    request = Http.request
+      { method = "POST"
+      , headers = [authenticationHeader auth]
+      , url = flags.showInstanceListUrl
+      , body = sid |> showInstanceDataNVPs |> Enc.object |> Http.jsonBody
+      , expect = Http.expectJson decodeShowInstance
+      , timeout = Nothing
+      , withCredentials = False
+      }
+  in
+    Http.send resultToMsg request
 
 ------------------
 

@@ -58,6 +58,8 @@ finishTabId = 3
 -- For Start Tab
 userIdFieldId = [startTabId, 1]
 passwordFieldId = [startTabId, 2]
+loginButtonId = [startTabId, 3]
+beginBroadcastButtonId = [startTabId, 4]
 
 -- For Tracks Tab
 numTrackRows = 60
@@ -208,7 +210,8 @@ type
   | Mdl (Material.Msg Msg)
   | NowPlaying_Result (Result Http.Error XisApi.NowPlaying)
   | PasswordInput String
-  | ShowInstanceList_Result (Result Http.Error (DRF.PageOf XisApi.ShowInstance))
+  | ShowInstanceCreate_Result XisApi.Show Date (Result Http.Error XisApi.ShowInstance)
+  | ShowInstanceList_Result XisApi.Show Date (Result Http.Error (DRF.PageOf XisApi.ShowInstance))
   | ShowList_Result (Result Http.Error (DRF.PageOf XisApi.Show))
   | ShowWasChosen String  -- ID of chosen show, as a String.
   | SelectTab Int
@@ -246,7 +249,6 @@ update action model =
             }
         in
           (newModel, Cmd.none)
-            |> UpdateX.andThen update FetchTracksTabData
       else
         let
           errMsgs = ["Bad userid and/or password provided.", "Close this dialog and try again."]
@@ -350,13 +352,36 @@ update action model =
             )
             |> UpdateX.andThen update FetchTracksTabData
 
-    ShowInstanceList_Result (Ok {count, results}) ->
+    ShowInstanceCreate_Result selShow selShowDate (Ok showInstance) ->
       let
-        showInstance = head results
-        tracksForTab = showInstance |> Maybe.map (.data >> .manualPlayList) |> withDefault []
+        msg = ShowInstanceList_Result selShow selShowDate <| Ok <| DRF.singletonPageOf showInstance
       in
-        ({model | showInstance = showInstance }, Cmd.none)
-          |> updateModel (populateTracksTabData tracksForTab)
+        ( { model | showInstance = Just showInstance}, Cmd.none)
+          |> UpdateX.andThen update msg
+
+    ShowInstanceList_Result selShow selShowDate (Ok {count, results}) ->
+      if count == 1 then
+        let
+          showInstance = head results
+          tracksForTab = showInstance |> Maybe.map (.data >> .manualPlayList) |> withDefault []
+        in
+          ({model | showInstance = showInstance }, Cmd.none)
+            |> updateModel (populateTracksTabData tracksForTab)
+      else if count == 0 then
+        let
+          selShowUrl = model.xis.showUrl selShow.id
+          siData = XisApi.ShowInstanceData selShowUrl (CD.fromDate selShowDate) Nothing Nothing []
+          tagger = ShowInstanceCreate_Result selShow selShowDate
+          createCmd = model.xis.createShowInstance siData tagger
+        in
+          (model, createCmd)
+      else
+        -- This should never happen because of "unique together" constraint in database.
+        let
+          dummy = results |> Debug.log ">1 Show Instance"
+        in
+          (model, Cmd.none)
+
 
     ShowList_Result (Ok {results}) ->
       ({model | shows=results}, Cmd.none)
@@ -441,7 +466,13 @@ update action model =
       in
         ({model | nowPlaying = Nothing}, Cmd.none)
 
-    ShowInstanceList_Result (Err e) ->
+    ShowInstanceCreate_Result show date (Err e) ->
+      let
+        dummy = toString e |> Debug.log "ShowInstanceCreate_Result"
+      in
+        (model, Cmd.none)
+
+    ShowInstanceList_Result show date (Err e) ->
       let
         dummy = toString e |> Debug.log "ShowInstanceList_Result"
       in
@@ -450,13 +481,14 @@ update action model =
 
 fetchTracksTabData : Model -> (Model, Cmd Msg)
 fetchTracksTabData model =
-  case (model.member, model.selectedShow, model.selectedShowDate) of
+  case (model.selectedShow, model.selectedShowDate) of
 
-    (Just member, Just show, Just selectedShowDate) ->
+    (Just selShow, Just selShowDate) ->
       let
-        showFilter = XisApi.SI_ShowEquals show.id
-        dateFilter = XisApi.SI_DateEquals <| CD.fromDate selectedShowDate
-        fetchCmd = model.xis.listShowInstances [showFilter, dateFilter] ShowInstanceList_Result
+        showFilter = XisApi.SI_ShowEquals selShow.id
+        dateFilter = XisApi.SI_DateEquals <| CD.fromDate selShowDate
+        tagger = ShowInstanceList_Result selShow selShowDate
+        fetchCmd = model.xis.listShowInstances [showFilter, dateFilter] tagger
       in
         (model, fetchCmd)
     _ ->
@@ -829,7 +861,7 @@ tab_start model =
                 , onInput PasswordInput
                 ]
                 []
-            , Button.render Mdl [0] model.mdl
+            , Button.render Mdl loginButtonId model.mdl
               [ css "position" "relative"
               , css "bottom" "20px"
               , css "margin-left" "10px"
@@ -856,7 +888,7 @@ tab_start model =
           [ para
             [ text "ONLY when it's time to start your LIVE show:"
             , br [] []
-            , Button.render Mdl [0] model.mdl
+            , Button.render Mdl beginBroadcastButtonId model.mdl
               [ Button.raised
               , Button.colored
               , Button.ripple
@@ -938,6 +970,7 @@ tracks_tableRow model r =
                   ArtistColumn -> tte.artist
                   TitleColumn -> tte.title
                   DurationColumn -> tte.duration
+            , if isJust model.member then Opts.nop else Textfield.disabled
             , Opts.onInput (TrackFieldUpdate r c)
             ]
           )
@@ -952,7 +985,7 @@ tracks_tableRow model r =
         , aTd "Title" tte TitleColumn []
         , aTd "MM:SS" tte DurationColumn [css "width" "55px"]
         , Table.td firstTdStyle
-          [ Button.render Mdl [r] model.mdl
+          [ Button.render Mdl [tracksTabId, r] model.mdl
             [ Button.fab
             , Button.plain
             -- , Options.onClick MyClickMsg
