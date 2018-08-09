@@ -43,6 +43,7 @@ class ShowInstanceViewSet(viewsets.ModelViewSet):
     filter_class = filt.ShowInstanceFilter
     ordering_fields = {}
     permission_classes = [DjangoModelPermissionsOrAnonReadOnly]
+    authentication_classes = [BasicAuthentication]
 
 
 class ManualPlayListEntrySet(viewsets.ModelViewSet):

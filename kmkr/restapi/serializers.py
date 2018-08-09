@@ -42,7 +42,10 @@ class ManualPlayListEntrySerializer(serializers.ModelSerializer):
 
 class ShowInstanceSerializer(serializers.ModelSerializer):
 
-    show = serializers.HyperlinkedRelatedField(read_only=True, view_name='kmkr:show-detail')
+    show = serializers.HyperlinkedRelatedField(
+        view_name='kmkr:show-detail',
+        queryset = models.Show.objects.all()
+    )
     playlist_embed = ManualPlayListEntrySerializer(many=True, read_only=True, source='manualplaylistentry_set')
 
     class Meta:
