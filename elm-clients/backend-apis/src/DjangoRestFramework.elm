@@ -34,6 +34,9 @@ type alias PageOf a =
   , results: List a
   }
 
+singletonPageOf : a -> PageOf a
+singletonPageOf x = PageOf 1 Nothing Nothing [x]
+
 
 -----------------------------------------------------------------------------
 -- UTILITIES
