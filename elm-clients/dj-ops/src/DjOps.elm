@@ -200,6 +200,7 @@ type
   Msg
   = AcknowledgeDialog
   | Authenticate_Result (Result Http.Error XisApi.AuthenticationResult)
+  | BeginBroadcast_Clicked
   | CheckNowPlaying
   | KeyDown KeyCode
   | KeyDown_Idle KeyCode
@@ -210,6 +211,7 @@ type
   | Mdl (Material.Msg Msg)
   | NowPlaying_Result (Result Http.Error XisApi.NowPlaying)
   | PasswordInput String
+  | ShowInstanceCheckInUpdate_Result (Result Http.Error XisApi.ShowInstance)
   | ShowInstanceCreate_Result XisApi.Show Date (Result Http.Error XisApi.ShowInstance)
   | ShowInstanceList_Result XisApi.Show Date (Result Http.Error (DRF.PageOf XisApi.ShowInstance))
   | ShowList_Result (Result Http.Error (DRF.PageOf XisApi.Show))
@@ -255,6 +257,23 @@ update action model =
           newModel = { model | member = Nothing, errMsgs = errMsgs }
         in
           (newModel, Cmd.none)
+
+    BeginBroadcast_Clicked ->
+      case model.showInstance of
+        Just si ->
+          let
+            siData = si.data
+            newSiData = {siData | hostCheckedIn = Just (CT.fromPointInTime model.currTime) }
+            newSi = {si | data = newSiData }
+            updateCmd = model.xis.replaceShowInstance newSi ShowInstanceCheckInUpdate_Result
+          in
+            (model, updateCmd)
+        Nothing ->
+          let
+            -- Should be impossible to get here because button can only be clicked if showInstance is set.
+            dummy = Debug.log "ERR" "BeginBroadcast_Clicked"
+          in
+            (model, Cmd.none)
 
     CheckNowPlaying ->
       ( model
@@ -352,6 +371,10 @@ update action model =
             )
             |> UpdateX.andThen update FetchTracksTabData
 
+
+    ShowInstanceCheckInUpdate_Result (Ok showInstance) ->
+      ( { model | showInstance = Just showInstance}, Cmd.none)
+
     ShowInstanceCreate_Result selShow selShowDate (Ok showInstance) ->
       let
         msg = ShowInstanceList_Result selShow selShowDate <| Ok <| DRF.singletonPageOf showInstance
@@ -381,7 +404,6 @@ update action model =
           dummy = results |> Debug.log ">1 Show Instance"
         in
           (model, Cmd.none)
-
 
     ShowList_Result (Ok {results}) ->
       ({model | shows=results}, Cmd.none)
@@ -465,6 +487,9 @@ update action model =
         dummy = toString e |> Debug.log "NowPlaying_Result"
       in
         ({model | nowPlaying = Nothing}, Cmd.none)
+
+    ShowInstanceCheckInUpdate_Result  (Err e) ->
+      ({model | errMsgs=[toString e]}, Cmd.none)
 
     ShowInstanceCreate_Result show date (Err e) ->
       let
@@ -892,14 +917,14 @@ tab_start model =
               [ Button.raised
               , Button.colored
               , Button.ripple
-              , if isNothing model.selectedShow || isNothing model.member || isNothing model.selectedShowDate then
+              , if isNothing model.showInstance || isNothing model.member then
                   Button.disabled
                 else case model.selectedShowDate of
                   Just ssd ->
                     if CD.fromDate ssd /= CD.fromTime model.currTime then Button.disabled else Opts.nop
                   Nothing ->
                     Button.disabled
-              --, Opts.onClick MyClickMsg
+              , Opts.onClick BeginBroadcast_Clicked
               ]
               [ text "Begin Broadcast!"]
             ]
