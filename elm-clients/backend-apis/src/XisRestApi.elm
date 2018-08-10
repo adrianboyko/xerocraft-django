@@ -186,6 +186,7 @@ type alias Session msg =
   , replaceManualPlayListEntry : Replacer ManualPlayListEntry msg
   , replaceWork : Replacer Work msg
   , replacePlay : Replacer Play msg
+  , replaceShowInstance : Replacer ShowInstance msg
 
   ----- RESOURCE URLS -----
   , claimUrl : Int -> ResourceUrl
@@ -265,6 +266,7 @@ createSession flags auth =
   , replaceManualPlayListEntry = replaceManualPlayListEntry flags auth
   , replaceWork = replaceWork flags auth
   , replacePlay = replacePlay flags auth
+  , replaceShowInstance = replaceShowInstance flags auth
 
   ----- RESOURCE URLS -----
   , claimUrl = urlFromId flags.claimListUrl
@@ -1735,6 +1737,15 @@ showInstanceDataNVPs sid =
   , ( "repeat_of", sid.repeatOf |> EncX.maybe Enc.string )
   ]
 
+
+encodeShowInstance : ShowInstance -> Enc.Value
+encodeShowInstance = encodeResource showInstanceDataNVPs
+
+
+encodeShowInstanceData : ShowInstanceData -> Enc.Value
+encodeShowInstanceData = Enc.object << showInstanceDataNVPs
+
+
 createShowInstance : XisRestFlags -> Authorization -> Creator ShowInstanceData ShowInstance msg
 createShowInstance flags auth sid resultToMsg =
   let
@@ -1742,13 +1753,30 @@ createShowInstance flags auth sid resultToMsg =
       { method = "POST"
       , headers = [authenticationHeader auth]
       , url = flags.showInstanceListUrl
-      , body = sid |> showInstanceDataNVPs |> Enc.object |> Http.jsonBody
+      , body = sid |> encodeShowInstanceData |> Http.jsonBody
       , expect = Http.expectJson decodeShowInstance
       , timeout = Nothing
       , withCredentials = False
       }
   in
     Http.send resultToMsg request
+
+
+replaceShowInstance : XisRestFlags -> Authorization -> Replacer ShowInstance msg
+replaceShowInstance flags auth showInstance resultToMsg =
+  let
+    request = Http.request
+      { method = "PUT"
+      , headers = [authenticationHeader auth]
+      , url = urlFromId flags.showInstanceListUrl showInstance.id
+      , body = showInstance.data |> encodeShowInstanceData |> Http.jsonBody
+      , expect = Http.expectJson decodeShowInstance
+      , timeout = Nothing
+      , withCredentials = False
+      }
+  in
+    Http.send resultToMsg request
+
 
 ------------------
 
