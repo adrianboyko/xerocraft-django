@@ -131,7 +131,7 @@ class ShowTime(models.Model):
     ]
     production_method = models.CharField(max_length=3, choices=PRODUCTION_CHOICES,
         null=False, blank=False,
-        help_text="Production method.")
+        help_text="Default production method for this show time.")
 
     # Some dynamic code (in other modules) requires these aliases:
     @property
@@ -288,48 +288,65 @@ class Track (models.Model):
         return '"{}" by {}'.format(self.title, self.artist)
 
 
-class ShowInstance(models.Model):
-    """
-    Represents an instance of a live show. Used to verify that the host actually showed up
-    and that the official play log should ignore RadioDJ for the duration of the show. Also
-    the grouping mechanism for ManualPlayListEntries.
-    """
+class Episode(models.Model):
 
     show = models.ForeignKey(Show, blank=True, null=True,
         on_delete=models.SET_NULL,
-        help_text="The show info.")
+        help_text="Specify the show of which this is an episode.")
+
+    first_broadcast = models.DateField(blank=True, null=True,
+        help_text="The date of the first broadcast of this episode.")
+
+    # Might as well reuse TITLE_MAX_LENGTH here.
+    title = models.CharField(max_length=Track.TITLE_MAX_LENGTH, blank=True, null=False, default="",
+        help_text="The (optional) title of this episode.")
+
+    class Meta:
+        unique_together = ['show', 'first_broadcast']
+
+
+class Broadcast(models.Model):
+    """
+    Represents a broadcast of an episode of a show. For live episodes, this is used to verify that the host
+    actually showed up and that the official play log should ignore RadioDJ for the duration of the show.
+    Also the grouping mechanism for ManualPlayListEntries.
+    """
+
+    episode = models.ForeignKey(Show, blank=True, null=True,
+        on_delete=models.SET_NULL,
+        help_text="The episode that will be broadcast.")
 
     date = models.DateField(blank=True, null=True,
-        help_text="The date on which this instance of the show aired.")
+        help_text="The date of the broadcast.")
 
     host_checked_in = models.TimeField(blank=True, null=True,
         help_text="Specify for original live broadcast, but not for repeat broadcasts.")
 
-    repeat_of = models.ForeignKey('self', blank=True, null=True,
-        on_delete=models.PROTECT,
-        help_text="Specify the previous live instance of this show, if this is a repeat broadcast.")
+    production_method = models.CharField(max_length=3, choices=ShowTime.PRODUCTION_CHOICES,
+        null=False, blank=False,
+        help_text="For this particular broadcast. Might differ from default in ShowTime.")
 
     def __str__(self):
-        return "{} on {}".format(self.show, self.date)
+        return "{} on {}".format(self.episode, self.date)
 
     def clean(self):
-        if self.host_checked_in is not None and self.repeat_of is not None:
-            raise ValidationError("Only one of 'host checked in' or 'repeat of' can be specified.")
+        if self.host_checked_in is not None and self.production_method != ShowTime.PRODUCTION_LIVE:
+            raise ValidationError("Host doesn't need to check in if broadcast is not live.")
 
 
 # Since this table is scratch space, all metadata fields including duration are strings. Fields like
 # duration will be changed into more precise types when data migrates from this table to PlayLogEntry.
-class ManualPlayListEntry(models.Model):
+class EpisodeTrack(models.Model):
     """
-      A place for DJs to manually enter the music they'll play during a live show.
+      A place for DJs to manually enter the music associated with an episode.
       They can do this before or during the show, using the "DJ Ops" app.
       Information staged here will transition into PlayLogEntry
       as the DJ indicates that they are being played.
     """
 
-    live_show_instance = models.ForeignKey(ShowInstance, blank=False, null=False,
+    episode = models.ForeignKey(Episode, blank=False, null=False,
         on_delete=models.CASCADE,
-        help_text="The associated show.")
+        help_text="The associated episode.")
 
     sequence = models.IntegerField(blank=False, null=False,
         help_text="The position of the track in the playlist.")
@@ -344,9 +361,7 @@ class ManualPlayListEntry(models.Model):
         help_text="The duration of the track as MM:SS.")
 
     class Meta:
-        unique_together = ['live_show_instance', 'sequence']
-        verbose_name = "Manual Playlist Entry"
-        verbose_name_plural = "Manual Playlist Entries"
+        unique_together = ['episode', 'sequence']
 
 
 class PlayLogEntry (models.Model):

@@ -34,24 +34,24 @@ class ShowViewSet(viewsets.ModelViewSet):
     permission_classes = [DjangoModelPermissionsOrAnonReadOnly]
 
 
-class ShowInstanceViewSet(viewsets.ModelViewSet):
+class EpisodeViewSet(viewsets.ModelViewSet):
     """
-    REST API endpoint that allows Show Instances to be viewed or edited.
+    REST API endpoint that allows Episodes to be viewed or edited.
     """
-    queryset = mod.ShowInstance.objects.all().order_by('pk')
-    serializer_class = ser.ShowInstanceSerializer
-    filter_class = filt.ShowInstanceFilter
+    queryset = mod.Episode.objects.all().order_by('pk')
+    serializer_class = ser.EpisodeSerializer
+    filter_class = filt.EpisodeFilter
     ordering_fields = {}
     permission_classes = [DjangoModelPermissionsOrAnonReadOnly]
     authentication_classes = [BasicAuthentication]
 
 
-class ManualPlayListEntrySet(viewsets.ModelViewSet):
+class EpisodeTrackViewSet(viewsets.ModelViewSet):
     """
-    REST API endpoint that allows Manual Playlist Entries to be viewed or edited.
+    REST API endpoint that allows Episode Tracks to be viewed or edited.
     """
-    queryset = mod.ManualPlayListEntry.objects.all().order_by('pk')
-    serializer_class = ser.ManualPlayListEntrySerializer
+    queryset = mod.EpisodeTrack.objects.all().order_by('pk')
+    serializer_class = ser.EpisodeTrackSerializer
     filter_fields = {}
     ordering_fields = {}
     permission_classes = [DjangoModelPermissionsOrAnonReadOnly]

@@ -9,8 +9,8 @@ router = routers.DefaultRouter()
 router.register(r'playlogentries', restviews.PlayLogEntryViewSet)
 router.register(r'shows', restviews.ShowViewSet)
 router.register(r'tracks', restviews.TrackViewSet)
-router.register(r'show-instances', restviews.ShowInstanceViewSet)
-router.register(r'manual-playlist-entries', restviews.ManualPlayListEntrySet)
+router.register(r'show-instances', restviews.EpisodeViewSet)
+router.register(r'manual-playlist-entries', restviews.EpisodeTrackViewSet)
 
 urlpatterns = [
 

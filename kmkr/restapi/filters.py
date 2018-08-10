@@ -6,16 +6,17 @@ import rest_framework.filters as filters
 from django_filters import rest_framework as rf
 
 # Local
-from kmkr.models import ShowInstance
+from kmkr.models import Episode
 
-class ShowInstanceFilter(rf.FilterSet):
+
+class EpisodeFilter(rf.FilterSet):
     class Meta:
-        model = ShowInstance
+        model = Episode
         fields = {
             'show': [
                 'exact'
             ],
-            'date': [
+            'first_broadcast': [
                 'exact'
             ],
         }

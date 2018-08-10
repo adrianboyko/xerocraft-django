@@ -141,7 +141,7 @@ type alias Model =
   , shows : List XisApi.Show
   , selectedShow : Maybe XisApi.Show
   , selectedShowDate : Maybe Date
-  , showInstance : Maybe XisApi.ShowInstance  -- This is derived from selectedShow + selectedShowDate.
+  , episode : Maybe XisApi.Episode  -- This is derived from selectedShow + selectedShowDate.
   , datePicker : DatePicker.DatePicker
   , member : Maybe XisApi.Member
   , nowPlaying : Maybe XisApi.NowPlaying
@@ -170,7 +170,7 @@ init flags =
       , shows = []
       , selectedShow = Nothing
       , selectedShowDate = Nothing
-      , showInstance = Nothing
+      , episode = Nothing
       , datePicker = datePicker
       , member = Nothing
       , nowPlaying = Nothing
@@ -206,14 +206,14 @@ type
   | KeyDown_Idle KeyCode
   | FetchTracksTabData
   | Login_Clicked
-  | ManualPlayListEntryDelete_Result Int (Result Http.Error String)
-  | ManualPlayListEntryUpsert_Result (Result Http.Error XisApi.ManualPlayListEntry)
+  | EpisodeTrackDelete_Result Int (Result Http.Error String)
+  | EpisodeTrackUpsert_Result (Result Http.Error XisApi.EpisodeTrack)
   | Mdl (Material.Msg Msg)
   | NowPlaying_Result (Result Http.Error XisApi.NowPlaying)
   | PasswordInput String
-  | ShowInstanceCheckInUpdate_Result (Result Http.Error XisApi.ShowInstance)
-  | ShowInstanceCreate_Result XisApi.Show Date (Result Http.Error XisApi.ShowInstance)
-  | ShowInstanceList_Result XisApi.Show Date (Result Http.Error (DRF.PageOf XisApi.ShowInstance))
+  | EpisodeCheckInUpdate_Result (Result Http.Error XisApi.Episode)
+  | EpisodeCreate_Result XisApi.Show Date (Result Http.Error XisApi.Episode)
+  | EpisodeList_Result XisApi.Show Date (Result Http.Error (DRF.PageOf XisApi.Episode))
   | ShowList_Result (Result Http.Error (DRF.PageOf XisApi.Show))
   | ShowWasChosen String  -- ID of chosen show, as a String.
   | SelectTab Int
@@ -259,21 +259,22 @@ update action model =
           (newModel, Cmd.none)
 
     BeginBroadcast_Clicked ->
-      case model.showInstance of
-        Just si ->
-          let
-            siData = si.data
-            newSiData = {siData | hostCheckedIn = Just (CT.fromPointInTime model.currTime) }
-            newSi = {si | data = newSiData }
-            updateCmd = model.xis.replaceShowInstance newSi ShowInstanceCheckInUpdate_Result
-          in
-            (model, updateCmd)
-        Nothing ->
-          let
-            -- Should be impossible to get here because button can only be clicked if showInstance is set.
-            dummy = Debug.log "ERR" "BeginBroadcast_Clicked"
-          in
-            (model, Cmd.none)
+      (model, Cmd.none)
+--      case model.episode of
+--        Just ep ->
+--          let
+--            epData = ep.data
+--            newEpData = {epData | hostCheckedIn = Just (CT.fromPointInTime model.currTime) }
+--            newEp = {ep | data = newEpData }
+--            updateCmd = model.xis.replaceEpisode newEp EpisodeCheckInUpdate_Result
+--          in
+--            (model, updateCmd)
+--        Nothing ->
+--          let
+--            -- Should be impossible to get here because button can only be clicked if episode is set.
+--            dummy = Debug.log "ERR" "BeginBroadcast_Clicked"
+--          in
+--            (model, Cmd.none)
 
     CheckNowPlaying ->
       ( model
@@ -297,7 +298,7 @@ update action model =
         _ ->
           (model, Cmd.none)
 
-    ManualPlayListEntryDelete_Result row (Ok s) ->
+    EpisodeTrackDelete_Result row (Ok s) ->
       let
         newTtes = Array.set row blankTracksTabEntry model.tracksTabEntries
       in
@@ -305,25 +306,25 @@ update action model =
         , Cmd.none
         )
 
-    ManualPlayListEntryUpsert_Result (Ok mple) ->
-      case Array.get mple.data.sequence model.tracksTabEntries of
+    EpisodeTrackUpsert_Result (Ok et) ->
+      case Array.get et.data.sequence model.tracksTabEntries of
         Just tte ->
           let
             newTte =
               { tte
-              | playListEntryId = Just mple.id
-              , savedArtist = mple.data.artist
-              , savedTitle = mple.data.title
-              , savedDuration = mple.data.duration
+              | playListEntryId = Just et.id
+              , savedArtist = et.data.artist
+              , savedTitle = et.data.title
+              , savedDuration = et.data.duration
               }
-            newTtes = Array.set mple.data.sequence newTte model.tracksTabEntries
+            newTtes = Array.set et.data.sequence newTte model.tracksTabEntries
           in
             ( { model | tracksTabEntries = newTtes }
             , Cmd.none
             )
         Nothing ->
           let
-            dummy = mple |> Debug.log "Couldn't find row for"
+            dummy = et |> Debug.log "Couldn't find row for"
           in
             (model, Cmd.none)
 
@@ -372,36 +373,36 @@ update action model =
             |> UpdateX.andThen update FetchTracksTabData
 
 
-    ShowInstanceCheckInUpdate_Result (Ok showInstance) ->
-      ( { model | showInstance = Just showInstance}, Cmd.none)
+    EpisodeCheckInUpdate_Result (Ok episode) ->
+      ( { model | episode = Just episode}, Cmd.none)
 
-    ShowInstanceCreate_Result selShow selShowDate (Ok showInstance) ->
+    EpisodeCreate_Result selShow selShowDate (Ok episode) ->
       let
-        msg = ShowInstanceList_Result selShow selShowDate <| Ok <| DRF.singletonPageOf showInstance
+        msg = EpisodeList_Result selShow selShowDate <| Ok <| DRF.singletonPageOf episode
       in
-        ( { model | showInstance = Just showInstance}, Cmd.none)
+        ( { model | episode = Just episode}, Cmd.none)
           |> UpdateX.andThen update msg
 
-    ShowInstanceList_Result selShow selShowDate (Ok {count, results}) ->
+    EpisodeList_Result selShow selShowDate (Ok {count, results}) ->
       if count == 1 then
         let
-          showInstance = head results
-          tracksForTab = showInstance |> Maybe.map (.data >> .manualPlayList) |> withDefault []
+          episode = head results
+          tracksForTab = episode |> Maybe.map (.data >> .tracks) |> withDefault []
         in
-          ({model | showInstance = showInstance }, Cmd.none)
+          ({model | episode = episode }, Cmd.none)
             |> updateModel (populateTracksTabData tracksForTab)
       else if count == 0 then
         let
           selShowUrl = model.xis.showUrl selShow.id
-          siData = XisApi.ShowInstanceData selShowUrl (CD.fromDate selShowDate) Nothing Nothing []
-          tagger = ShowInstanceCreate_Result selShow selShowDate
-          createCmd = model.xis.createShowInstance siData tagger
+          epData = XisApi.EpisodeData selShowUrl (CD.fromDate selShowDate) "" []
+          tagger = EpisodeCreate_Result selShow selShowDate
+          createCmd = model.xis.createEpisode epData tagger
         in
           (model, createCmd)
       else
         -- This should never happen because of "unique together" constraint in database.
         let
-          dummy = results |> Debug.log ">1 Show Instance"
+          dummy = results |> Debug.log ">1 Episode"
         in
           (model, Cmd.none)
 
@@ -476,10 +477,10 @@ update action model =
     Authenticate_Result (Err e) ->
       ({model | errMsgs=[toString e]}, Cmd.none)
 
-    ManualPlayListEntryDelete_Result row (Err e) ->
+    EpisodeTrackDelete_Result row (Err e) ->
       ({model | errMsgs=[toString e]}, Cmd.none)
 
-    ManualPlayListEntryUpsert_Result (Err e) ->
+    EpisodeTrackUpsert_Result (Err e) ->
       ({model | errMsgs=[toString e]}, Cmd.none)
 
     NowPlaying_Result (Err e) ->
@@ -488,18 +489,18 @@ update action model =
       in
         ({model | nowPlaying = Nothing}, Cmd.none)
 
-    ShowInstanceCheckInUpdate_Result  (Err e) ->
+    EpisodeCheckInUpdate_Result  (Err e) ->
       ({model | errMsgs=[toString e]}, Cmd.none)
 
-    ShowInstanceCreate_Result show date (Err e) ->
+    EpisodeCreate_Result show date (Err e) ->
       let
-        dummy = toString e |> Debug.log "ShowInstanceCreate_Result"
+        dummy = toString e |> Debug.log "EpisodeCreate_Result"
       in
         (model, Cmd.none)
 
-    ShowInstanceList_Result show date (Err e) ->
+    EpisodeList_Result show date (Err e) ->
       let
-        dummy = toString e |> Debug.log "ShowInstanceList_Result"
+        dummy = toString e |> Debug.log "EpisodeList_Result"
       in
         (model, Cmd.none)
 
@@ -510,17 +511,17 @@ fetchTracksTabData model =
 
     (Just selShow, Just selShowDate) ->
       let
-        showFilter = XisApi.SI_ShowEquals selShow.id
-        dateFilter = XisApi.SI_DateEquals <| CD.fromDate selShowDate
-        tagger = ShowInstanceList_Result selShow selShowDate
-        fetchCmd = model.xis.listShowInstances [showFilter, dateFilter] tagger
+        showFilter = XisApi.EpisodeShowEquals selShow.id
+        dateFilter = XisApi.EpisodeDateEquals <| CD.fromDate selShowDate
+        tagger = EpisodeList_Result selShow selShowDate
+        fetchCmd = model.xis.listEpisodes [showFilter, dateFilter] tagger
       in
         (model, fetchCmd)
     _ ->
       (model, Cmd.none)
 
 
-populateTracksTabData : List XisApi.ManualPlayListEntry -> Model -> Model
+populateTracksTabData : List XisApi.EpisodeTrack -> Model -> Model
 populateTracksTabData ples model =
   let
     newModel = { model | tracksTabEntries = Array.repeat numTrackRows blankTracksTabEntry }
@@ -528,7 +529,7 @@ populateTracksTabData ples model =
     populateTracksTabData_Helper newModel ples
 
 
-populateTracksTabData_Helper : Model -> List XisApi.ManualPlayListEntry -> Model
+populateTracksTabData_Helper : Model -> List XisApi.EpisodeTrack -> Model
 populateTracksTabData_Helper model plesRemaining =
   case plesRemaining of
     [] ->
@@ -554,9 +555,9 @@ saveTracksTab model minIdle =
         let
           extraCmd =
             if List.all String.isEmpty [tte.artist, tte.title, tte.duration] then
-              deleteManualPlayListEntry model row tte
+              deleteEpisodeTrack model row tte
             else
-              upsertManualPlayListEntry model row tte
+              upsertEpisodeTrack model row tte
         in
           (model, cmd) |> addCmd extraCmd
       else
@@ -572,37 +573,37 @@ saveTracksTab model minIdle =
       (model, Cmd.none)
 
 
-deleteManualPlayListEntry : Model -> Int -> TracksTabEntry -> Cmd Msg
-deleteManualPlayListEntry model row tte =
+deleteEpisodeTrack : Model -> Int -> TracksTabEntry -> Cmd Msg
+deleteEpisodeTrack model row tte =
   case tte.playListEntryId of
     Just id ->
-      model.xis.deleteManualPlayListEntryById id (ManualPlayListEntryDelete_Result row)
+      model.xis.deleteEpisodeTrackById id (EpisodeTrackDelete_Result row)
     Nothing ->
       -- Not yet saved, so nothing to delete.
       Cmd.none
 
 
-upsertManualPlayListEntry : Model -> Int -> TracksTabEntry -> Cmd Msg
-upsertManualPlayListEntry model row tte =
-  case model.showInstance of
-    Just showInstance ->
+upsertEpisodeTrack : Model -> Int -> TracksTabEntry -> Cmd Msg
+upsertEpisodeTrack model row tte =
+  case model.episode of
+    Just episode ->
       let
-        mpleData = XisApi.ManualPlayListEntryData
-          (model.xis.showInstanceUrl showInstance.id) row tte.artist tte.title tte.duration
+        etData = XisApi.EpisodeTrackData
+          (model.xis.episodeUrl episode.id) row tte.artist tte.title tte.duration
       in
         case tte.playListEntryId of
           Just idToUpdate ->
-            model.xis.replaceManualPlayListEntry
-              (DRF.Resource idToUpdate mpleData)
-              ManualPlayListEntryUpsert_Result
+            model.xis.replaceEpisodeTrack
+              (DRF.Resource idToUpdate etData)
+              EpisodeTrackUpsert_Result
           Nothing ->
-            model.xis.createManualPlayListEntry
-              mpleData
-              ManualPlayListEntryUpsert_Result
+            model.xis.createEpisodeTrack
+              etData
+              EpisodeTrackUpsert_Result
 
     Nothing ->
       let
-        dummy = (model.selectedShow, model.selectedShowDate) |> Debug.log "Show instance is Nothing"
+        dummy = (model.selectedShow, model.selectedShowDate) |> Debug.log "Episode is Nothing"
       in
         Cmd.none
 
@@ -851,7 +852,7 @@ layout_main model =
     1 ->
       tab_tracks model
     _ ->
-      p [] [text <| "Tab " ++ toString model.selectedTab ++ " not yet implemented."]
+      p [] [text <| "Tab " ++ toString model.selectedTab ++ " not yet ietmented."]
 
 
 tab_start : Model -> Html Msg
@@ -917,7 +918,7 @@ tab_start model =
               [ Button.raised
               , Button.colored
               , Button.ripple
-              , if isNothing model.showInstance || isNothing model.member then
+              , if isNothing model.episode || isNothing model.member then
                   Button.disabled
                 else case model.selectedShowDate of
                   Just ssd ->

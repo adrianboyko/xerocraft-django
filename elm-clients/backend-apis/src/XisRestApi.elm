@@ -14,7 +14,7 @@ module XisRestApi
     , ClaimFilter (..)
     , DiscoveryMethod, DiscoveryMethodData
     , LogLevel (..)
-    , ManualPlayListEntry, ManualPlayListEntryData
+    , EpisodeTrack, EpisodeTrackData
     , Member, MemberData
     , Membership, MembershipData
     , MemberFilter (..)
@@ -23,7 +23,7 @@ module XisRestApi
     , Play, PlayData, PlayFilter (..)
     , Session
     , Show, ShowData
-    , ShowInstance, ShowInstanceData, ShowInstanceFilter (..)
+    , Episode, EpisodeData, EpisodeFilter (..)
     , Task, StaffingStatus(..), TaskData
     , TaskFilter (..)
     , TaskPriority (..)
@@ -76,15 +76,15 @@ type alias XisRestFlags =
   , claimListUrl : ResourceListUrl
   , discoveryMethodListUrl : ResourceListUrl
   , emailMembershipInfoUrl : ServiceUrl
+  , episodeListUrl: ResourceListUrl
+  , episodeTrackListUrl : ResourceListUrl
   , logMessageUrl : ServiceUrl  -- This logs a message on the server side.
-  , manualPlayListEntryListUrl : ResourceListUrl
   , memberListUrl : ResourceListUrl
   , membershipListUrl : ResourceListUrl
   , nowPlayingUrl : ServiceUrl
   , playListUrl : ResourceListUrl
   , productListUrl : ResourceListUrl
   , showListUrl : ResourceListUrl
-  , showInstanceListUrl: ResourceListUrl
   , taskListUrl : ResourceListUrl
   , timeBlocksUrl : ResourceListUrl  -- TODO: Should be timeBlockListUrl
   , timeBlockTypesUrl : ResourceListUrl  -- TODO: Should be timeBlockTypeListUrl
@@ -150,17 +150,17 @@ type alias Session msg =
 
   ----- RESOURCE CREATORS -----
   , createClaim : Creator ClaimData Claim msg
-  , createManualPlayListEntry : Creator ManualPlayListEntryData ManualPlayListEntry msg
+  , createEpisodeTrack : Creator EpisodeTrackData EpisodeTrack msg
   , createPlay : Creator PlayData Play msg
-  , createShowInstance : Creator ShowInstanceData ShowInstance msg
+  , createEpisode : Creator EpisodeData Episode msg
   , createVendLog : Creator VendLogData VendLog msg
   , createVisitEvent : Creator VisitEventDataOut VisitEvent msg
   , createWork : Creator WorkData Work msg
   , createWorkNote : Creator WorkNoteData WorkNote msg
 
   ----- RESOURCE DELETERS -----
-  , deleteManualPlayListEntryById : DeleterById msg
-  , deleteManualPlayListEntryByUrl : DeleterByUrl msg
+  , deleteEpisodeTrackById : DeleterById msg
+  , deleteEpisodeTrackByUrl : DeleterByUrl msg
   , deletePlayById : DeleterById msg
   , deletePlayByUrl : DeleterByUrl msg
   , deleteWorkById : DeleterById msg
@@ -173,7 +173,7 @@ type alias Session msg =
   , listMemberships : FilteringLister MembershipFilter Membership msg
   , listPlays : FilteringLister PlayFilter Play msg
   , listShows : Lister Show msg
-  , listShowInstances : FilteringLister ShowInstanceFilter ShowInstance msg
+  , listEpisodes : FilteringLister EpisodeFilter Episode msg
   , listTasks : FilteringLister TaskFilter Task msg
   , listTimeBlocks : Lister TimeBlock msg
   , listTimeBlockTypes : Lister TimeBlockType msg
@@ -183,17 +183,17 @@ type alias Session msg =
 
   ----- RESOURCE REPLACERS
   , replaceClaim : Replacer Claim msg
-  , replaceManualPlayListEntry : Replacer ManualPlayListEntry msg
+  , replaceEpisodeTrack : Replacer EpisodeTrack msg
   , replaceWork : Replacer Work msg
   , replacePlay : Replacer Play msg
-  , replaceShowInstance : Replacer ShowInstance msg
+  , replaceEpisode : Replacer Episode msg
 
   ----- RESOURCE URLS -----
   , claimUrl : Int -> ResourceUrl
   , memberUrl : Int -> ResourceUrl
   , productUrl : Int  -> ResourceUrl
   , showUrl : Int -> ResourceUrl
-  , showInstanceUrl : Int -> ResourceUrl
+  , episodeUrl : Int -> ResourceUrl
   , taskUrl : Int -> ResourceUrl
   , vendLogUrl : Int -> ResourceUrl
   , visitEventUrl : Int -> ResourceUrl
@@ -230,17 +230,17 @@ createSession flags auth =
 
   ----- RESOURCE CREATORS -----
   , createClaim = createClaim flags auth
-  , createManualPlayListEntry = createManualPlayListEntry flags auth
+  , createEpisodeTrack = createEpisodeTrack flags auth
   , createPlay = createPlay flags auth
-  , createShowInstance = createShowInstance flags auth
+  , createEpisode = createEpisode flags auth
   , createVendLog = createVendLog flags auth
   , createVisitEvent = createVisitEvent flags auth
   , createWork = createWork flags auth
   , createWorkNote = createWorkNote flags auth
 
   ----- RESOURCE DELETERS -----
-  , deleteManualPlayListEntryById = deleteManualPlayListEntryById flags auth
-  , deleteManualPlayListEntryByUrl = deleteManualPlayListEntryByUrl flags auth
+  , deleteEpisodeTrackById = deleteEpisodeTrackById flags auth
+  , deleteEpisodeTrackByUrl = deleteEpisodeTrackByUrl flags auth
   , deletePlayById = deletePlayById flags auth
   , deletePlayByUrl = deletePlayByUrl flags auth
   , deleteWorkById = deleteWorkById flags auth
@@ -253,7 +253,7 @@ createSession flags auth =
   , listMemberships = listMemberships flags auth
   , listPlays = listPlays flags auth
   , listShows = listShows flags auth
-  , listShowInstances = listShowInstances flags auth
+  , listEpisodes = listEpisodes flags auth
   , listTasks = listTasks flags auth
   , listTimeBlocks = listTimeBlocks flags auth
   , listTimeBlockTypes = listTimeBlockTypes flags auth
@@ -263,17 +263,17 @@ createSession flags auth =
 
   ----- RESOURCE REPLACERS -----
   , replaceClaim = replaceClaim flags auth
-  , replaceManualPlayListEntry = replaceManualPlayListEntry flags auth
+  , replaceEpisodeTrack = replaceEpisodeTrack flags auth
   , replaceWork = replaceWork flags auth
   , replacePlay = replacePlay flags auth
-  , replaceShowInstance = replaceShowInstance flags auth
+  , replaceEpisode = replaceEpisode flags auth
 
   ----- RESOURCE URLS -----
   , claimUrl = urlFromId flags.claimListUrl
   , memberUrl = urlFromId flags.memberListUrl
   , productUrl = urlFromId flags.productListUrl
   , showUrl = urlFromId flags.showListUrl
-  , showInstanceUrl = urlFromId flags.showInstanceListUrl
+  , episodeUrl = urlFromId flags.episodeListUrl
   , taskUrl = urlFromId flags.taskListUrl
   , vendLogUrl = urlFromId flags.visitEventListUrl
   , visitEventUrl = urlFromId flags.visitEventListUrl
@@ -1681,80 +1681,107 @@ decodeShowData =
 
 ------------------
 
-type alias ShowInstanceData =
-  { show : ResourceUrl
+
+type alias Broadcast = Resource BroadcastData
+
+
+type alias BroadcastData =
+  { episode : ResourceUrl
   , date : CalendarDate
   , hostCheckedIn : Maybe ClockTime
-  , repeatOf : Maybe ResourceUrl
-  , manualPlayList : List ManualPlayListEntry
   }
 
 
-type alias ShowInstance = Resource ShowInstanceData
-
-
-type ShowInstanceFilter
-  = SI_DateEquals CalendarDate
-  | SI_ShowEquals Int
-
-
-showInstanceFilterToString : ShowInstanceFilter -> String
-showInstanceFilterToString filter =
-  case filter of
-    SI_DateEquals d -> "date=" ++ CalendarDate.toString d
-    SI_ShowEquals showNum -> "show=" ++ toString showNum
-
-
-listShowInstances : XisRestFlags -> Authorization -> FilteringLister ShowInstanceFilter ShowInstance msg
-listShowInstances flags auth filters resultToMsg =
-  let
-    request = getRequest
-      auth
-      (filteredListUrl flags.showInstanceListUrl filters showInstanceFilterToString)
-      (decodePageOf decodeShowInstance)
-  in Http.send resultToMsg request
-
-
-decodeShowInstance : Dec.Decoder ShowInstance
-decodeShowInstance = decodeResource decodeShowInstanceData
-
-
-decodeShowInstanceData : Dec.Decoder ShowInstanceData
-decodeShowInstanceData =
-  Dec.map5 ShowInstanceData
-    (Dec.field "show" DRF.decodeResourceUrl)
+decodeBroadcastData : Dec.Decoder BroadcastData
+decodeBroadcastData =
+  Dec.map3 BroadcastData
+    (Dec.field "episode" DRF.decodeResourceUrl)
     (Dec.field "date" DRF.decodeCalendarDate)
     (Dec.field "host_checked_in" (Dec.maybe DRF.decodeClockTime))
-    (Dec.field "repeat_of" (Dec.maybe DRF.decodeResourceUrl))
-    (Dec.field "playlist_embed" (Dec.list decodeManualPlayListEntry))
 
 
-showInstanceDataNVPs : ShowInstanceData -> List (String, Enc.Value)
-showInstanceDataNVPs sid =
-  [ ( "show", sid.show |> Enc.string )
-  , ( "date", sid.date |> DRF.encodeCalendarDate )
-  , ( "host_checked_in", sid.hostCheckedIn |> EncX.maybe DRF.encodeClockTime )
-  , ( "repeat_of", sid.repeatOf |> EncX.maybe Enc.string )
+broadcastDataNVPs : BroadcastData -> List (String, Enc.Value)
+broadcastDataNVPs bc =
+  [ ( "episode", bc.episode |> Enc.string )
+  , ( "date", bc.date |> DRF.encodeCalendarDate )
+  , ( "host_checked_in", bc.hostCheckedIn |> EncX.maybe DRF.encodeClockTime )
   ]
 
 
-encodeShowInstance : ShowInstance -> Enc.Value
-encodeShowInstance = encodeResource showInstanceDataNVPs
+------------------
 
 
-encodeShowInstanceData : ShowInstanceData -> Enc.Value
-encodeShowInstanceData = Enc.object << showInstanceDataNVPs
+type alias EpisodeData =
+  { show : ResourceUrl
+  , firstBroadcast : CalendarDate
+  , title : String
+  , tracks : List EpisodeTrack
+  }
 
 
-createShowInstance : XisRestFlags -> Authorization -> Creator ShowInstanceData ShowInstance msg
-createShowInstance flags auth sid resultToMsg =
+type alias Episode = Resource EpisodeData
+
+
+type EpisodeFilter
+  = EpisodeDateEquals CalendarDate
+  | EpisodeShowEquals Int
+
+
+episodeFilterToString : EpisodeFilter -> String
+episodeFilterToString filter =
+  case filter of
+    EpisodeDateEquals d -> "first_broadcast=" ++ CalendarDate.toString d
+    EpisodeShowEquals showNum -> "show=" ++ toString showNum
+
+
+listEpisodes : XisRestFlags -> Authorization -> FilteringLister EpisodeFilter Episode msg
+listEpisodes flags auth filters resultToMsg =
+  let
+    request = getRequest
+      auth
+      (filteredListUrl flags.episodeListUrl filters episodeFilterToString)
+      (decodePageOf decodeEpisode)
+  in Http.send resultToMsg request
+
+
+decodeEpisode : Dec.Decoder Episode
+decodeEpisode = decodeResource decodeEpisodeData
+
+
+decodeEpisodeData : Dec.Decoder EpisodeData
+decodeEpisodeData =
+  Dec.map4 EpisodeData
+    (Dec.field "show" DRF.decodeResourceUrl)
+    (Dec.field "first_broadcast" DRF.decodeCalendarDate)
+    (Dec.field "title" Dec.string)
+    (Dec.field "tracks_embed" (Dec.list decodeEpisodeTrack))
+
+
+episodeDataNVPs : EpisodeData -> List (String, Enc.Value)
+episodeDataNVPs ep =
+  [ ( "show", ep.show |> Enc.string )
+  , ( "first_broadcast", ep.firstBroadcast |> DRF.encodeCalendarDate )
+  , ( "title", ep.title |> Enc.string )
+  ]
+
+
+encodeEpisode : Episode -> Enc.Value
+encodeEpisode = encodeResource episodeDataNVPs
+
+
+encodeEpisodeData : EpisodeData -> Enc.Value
+encodeEpisodeData = Enc.object << episodeDataNVPs
+
+
+createEpisode : XisRestFlags -> Authorization -> Creator EpisodeData Episode msg
+createEpisode flags auth sid resultToMsg =
   let
     request = Http.request
       { method = "POST"
       , headers = [authenticationHeader auth]
-      , url = flags.showInstanceListUrl
-      , body = sid |> encodeShowInstanceData |> Http.jsonBody
-      , expect = Http.expectJson decodeShowInstance
+      , url = flags.episodeListUrl
+      , body = sid |> encodeEpisodeData |> Http.jsonBody
+      , expect = Http.expectJson decodeEpisode
       , timeout = Nothing
       , withCredentials = False
       }
@@ -1762,15 +1789,15 @@ createShowInstance flags auth sid resultToMsg =
     Http.send resultToMsg request
 
 
-replaceShowInstance : XisRestFlags -> Authorization -> Replacer ShowInstance msg
-replaceShowInstance flags auth showInstance resultToMsg =
+replaceEpisode : XisRestFlags -> Authorization -> Replacer Episode msg
+replaceEpisode flags auth episode resultToMsg =
   let
     request = Http.request
       { method = "PUT"
       , headers = [authenticationHeader auth]
-      , url = urlFromId flags.showInstanceListUrl showInstance.id
-      , body = showInstance.data |> encodeShowInstanceData |> Http.jsonBody
-      , expect = Http.expectJson decodeShowInstance
+      , url = urlFromId flags.episodeListUrl episode.id
+      , body = episode.data |> encodeEpisodeData |> Http.jsonBody
+      , expect = Http.expectJson decodeEpisode
       , timeout = Nothing
       , withCredentials = False
       }
@@ -1780,8 +1807,9 @@ replaceShowInstance flags auth showInstance resultToMsg =
 
 ------------------
 
-type alias ManualPlayListEntryData =
-  { liveShowInstance : ResourceUrl
+
+type alias EpisodeTrackData =
+  { episode : ResourceUrl
   , sequence : Int
   , artist : String
   , title : String
@@ -1789,50 +1817,50 @@ type alias ManualPlayListEntryData =
   }
 
 
-type alias ManualPlayListEntry = Resource ManualPlayListEntryData
+type alias EpisodeTrack = Resource EpisodeTrackData
 
 
-decodeManualPlayListEntry : Dec.Decoder ManualPlayListEntry
-decodeManualPlayListEntry = decodeResource decodeManualPlayListEntryData
+decodeEpisodeTrack : Dec.Decoder EpisodeTrack
+decodeEpisodeTrack = decodeResource decodeEpisodeTrackData
 
 
-decodeManualPlayListEntryData : Dec.Decoder ManualPlayListEntryData
-decodeManualPlayListEntryData =
-  Dec.map5 ManualPlayListEntryData
-    (Dec.field "live_show_instance" DRF.decodeResourceUrl)
+decodeEpisodeTrackData : Dec.Decoder EpisodeTrackData
+decodeEpisodeTrackData =
+  Dec.map5 EpisodeTrackData
+    (Dec.field "episode" DRF.decodeResourceUrl)
     (Dec.field "sequence" Dec.int)
     (Dec.field "artist" Dec.string)
     (Dec.field "title" Dec.string)
     (Dec.field "duration" Dec.string)
 
 
-encodeManualPlayListEntry : ManualPlayListEntry -> Enc.Value
-encodeManualPlayListEntry = encodeResource manualPlayListEntryDataNVPs
+encodeEpisodeTrack : EpisodeTrack -> Enc.Value
+encodeEpisodeTrack = encodeResource episodeTrackDataNVPs
 
 
-encodeManualPlayListEntryData : ManualPlayListEntryData -> Enc.Value
-encodeManualPlayListEntryData = Enc.object << manualPlayListEntryDataNVPs
+encodeEpisodeTrackData : EpisodeTrackData -> Enc.Value
+encodeEpisodeTrackData = Enc.object << episodeTrackDataNVPs
 
 
-manualPlayListEntryDataNVPs : ManualPlayListEntryData -> List (String, Enc.Value)
-manualPlayListEntryDataNVPs mple =
-  [ ( "live_show_instance", mple.liveShowInstance |> Enc.string )
-  , ( "sequence", mple.sequence |> Enc.int )
-  , ( "artist", mple.artist |> Enc.string)
-  , ( "title", mple.title |> Enc.string)
-  , ( "duration", mple.duration |> Enc.string )
+episodeTrackDataNVPs : EpisodeTrackData -> List (String, Enc.Value)
+episodeTrackDataNVPs etd =
+  [ ( "episode", etd.episode |> Enc.string )
+  , ( "sequence", etd.sequence |> Enc.int )
+  , ( "artist", etd.artist |> Enc.string)
+  , ( "title", etd.title |> Enc.string)
+  , ( "duration", etd.duration |> Enc.string )
   ]
 
 
-replaceManualPlayListEntry : XisRestFlags -> Authorization -> Replacer ManualPlayListEntry msg
-replaceManualPlayListEntry flags auth mple resultToMsg =
+replaceEpisodeTrack : XisRestFlags -> Authorization -> Replacer EpisodeTrack msg
+replaceEpisodeTrack flags auth mple resultToMsg =
   let
     request = Http.request
       { method = "PUT"
       , headers = [authenticationHeader auth]
-      , url = urlFromId flags.manualPlayListEntryListUrl mple.id
-      , body = mple.data |> encodeManualPlayListEntryData |> Http.jsonBody
-      , expect = Http.expectJson decodeManualPlayListEntry
+      , url = urlFromId flags.episodeTrackListUrl mple.id
+      , body = mple.data |> encodeEpisodeTrackData |> Http.jsonBody
+      , expect = Http.expectJson decodeEpisodeTrack
       , timeout = Nothing
       , withCredentials = False
       }
@@ -1840,15 +1868,15 @@ replaceManualPlayListEntry flags auth mple resultToMsg =
     Http.send resultToMsg request
 
 
-createManualPlayListEntry : XisRestFlags -> Authorization -> Creator ManualPlayListEntryData ManualPlayListEntry msg
-createManualPlayListEntry flags auth mpleData resultToMsg =
+createEpisodeTrack : XisRestFlags -> Authorization -> Creator EpisodeTrackData EpisodeTrack msg
+createEpisodeTrack flags auth mpleData resultToMsg =
   let
     request = Http.request
       { method = "POST"
       , headers = [authenticationHeader auth]
-      , url = flags.manualPlayListEntryListUrl
-      , body = mpleData |> encodeManualPlayListEntryData |> Http.jsonBody
-      , expect = Http.expectJson decodeManualPlayListEntry
+      , url = flags.episodeTrackListUrl
+      , body = mpleData |> encodeEpisodeTrackData |> Http.jsonBody
+      , expect = Http.expectJson decodeEpisodeTrack
       , timeout = Nothing
       , withCredentials = False
       }
@@ -1856,14 +1884,14 @@ createManualPlayListEntry flags auth mpleData resultToMsg =
     Http.send resultToMsg request
 
 
-deleteManualPlayListEntryById : XisRestFlags -> Authorization -> DeleterById msg
-deleteManualPlayListEntryById flags auth id tagger =
-  let url = urlFromId flags.manualPlayListEntryListUrl id
-  in deleteManualPlayListEntryByUrl flags auth url tagger
+deleteEpisodeTrackById : XisRestFlags -> Authorization -> DeleterById msg
+deleteEpisodeTrackById flags auth id tagger =
+  let url = urlFromId flags.episodeTrackListUrl id
+  in deleteEpisodeTrackByUrl flags auth url tagger
 
 
-deleteManualPlayListEntryByUrl : XisRestFlags -> Authorization -> DeleterByUrl msg
-deleteManualPlayListEntryByUrl flags auth url tagger =
+deleteEpisodeTrackByUrl : XisRestFlags -> Authorization -> DeleterByUrl msg
+deleteEpisodeTrackByUrl flags auth url tagger =
   let request = deleteRequest auth url
   in Http.send tagger request
 

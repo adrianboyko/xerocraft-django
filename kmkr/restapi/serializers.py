@@ -21,18 +21,18 @@ class ShowSerializer(serializers.ModelSerializer):
         )
 
 
-class ManualPlayListEntrySerializer(serializers.ModelSerializer):
+class EpisodeTrackSerializer(serializers.ModelSerializer):
 
-    live_show_instance = serializers.HyperlinkedRelatedField(
-        view_name='kmkr:showinstance-detail',
-        queryset = models.ShowInstance.objects.all(),
+    episode = serializers.HyperlinkedRelatedField(
+        view_name='kmkr:episode-detail',
+        queryset = models.Episode.objects.all(),
     )
 
     class Meta:
-        model = models.ManualPlayListEntry
+        model = models.EpisodeTrack
         fields = (
             'id',
-            'live_show_instance',
+            'episode',
             'sequence',
             'artist',
             'title',
@@ -40,23 +40,22 @@ class ManualPlayListEntrySerializer(serializers.ModelSerializer):
         )
 
 
-class ShowInstanceSerializer(serializers.ModelSerializer):
+class EpisodeSerializer(serializers.ModelSerializer):
 
     show = serializers.HyperlinkedRelatedField(
         view_name='kmkr:show-detail',
         queryset = models.Show.objects.all()
     )
-    playlist_embed = ManualPlayListEntrySerializer(many=True, read_only=True, source='manualplaylistentry_set')
+    tracks_embed = EpisodeTrackSerializer(many=True, read_only=True, source='episodetrack_set')
 
     class Meta:
-        model = models.ShowInstance
+        model = models.Episode
         fields = (
             'id',
             'show',
-            'date',
-            'host_checked_in',
-            'repeat_of',
-            'playlist_embed'
+            'first_broadcast',
+            'title',
+            'tracks_embed'
         )
 
 

@@ -8,12 +8,12 @@ from reversion.admin import VersionAdmin
 
 # Local
 from kmkr.models import (
-    Show, ShowTime, ShowInstance,
+    Show, ShowTime, Episode, EpisodeTrack, Broadcast,
     UnderwritingSpots,
     UnderwritingLogEntry,
     OnAirPersonality,
     OnAirPersonalitySocialMedia,
-    PlayLogEntry, ManualPlayListEntry, Track, Rating
+    PlayLogEntry, Track, Rating
 )
 from books.admin import Sellable
 
@@ -258,50 +258,54 @@ class PlayLogEntryAdmin(admin.ModelAdmin):
     inlines = [Rating_Inline]
 
 
-@admin.register(ManualPlayListEntry)
-class ManualPlayListEntryAdmin(admin.ModelAdmin):
+@admin.register(EpisodeTrack)
+class EpisodeTrackAdmin(admin.ModelAdmin):
 
-    list_filter = ['live_show_instance__show']
+    list_filter = ['episode__show']
 
-    date_hierarchy = 'live_show_instance__date'
+    date_hierarchy = 'episode__first_broadcast'
 
     list_display = [
         'pk',
-        'live_show_instance',
+        'episode',
         'sequence',
         'artist',
         'title',
         'duration',
     ]
 
-    raw_id_fields = ['live_show_instance']
+    raw_id_fields = ['episode']
 
 
-@admin.register(ShowInstance)
-class ShowInstanceAdmin(admin.ModelAdmin):
+@admin.register(Episode)
+class EpisodeAdmin(admin.ModelAdmin):
 
     list_display = [
         'pk',
         'show',
-        'date',
-        'host_checked_in',
-        'repeat_of',
+        'first_broadcast',
+        'title',
     ]
 
-    date_hierarchy = 'date'
+    date_hierarchy = 'first_broadcast'
 
-    raw_id_fields = ['show', 'repeat_of']
+    raw_id_fields = ['show']
 
     class Playlist_Inline(admin.TabularInline):
-        model = ManualPlayListEntry
+        model = EpisodeTrack
         extra = 0
         raw_id_fields = []
 
     inlines = [Playlist_Inline]
 
     list_filter = ['show']
+
     class Media:
         css = {
             # This hides "denormalized object descs", to use Wojciech's term.
             "all": ("abutils/admin-tabular-inline.css",)
         }
+
+@admin.register(Broadcast)
+class EpisodeAdmin(admin.ModelAdmin):
+    pass
