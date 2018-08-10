@@ -63,6 +63,8 @@ format fmt ct =
     DateXFormat.format config fmt d
 
 
+fromPointInTime = fromTime
+
 fromTime : Time -> ClockTime
 fromTime t =
   let
