@@ -12,6 +12,18 @@ from . import filters as filt
 from . import serializers as ser
 
 
+class BroadcastViewSet(viewsets.ModelViewSet):
+    """
+    REST API endpoint that allows Broadcasts to be viewed or edited.
+    """
+    queryset = mod.Broadcast.objects.all().order_by('pk')
+    serializer_class = ser.BroadcastSerializer
+    filter_fields = {}
+    ordering_fields = {}
+    permission_classes = [DjangoModelPermissionsOrAnonReadOnly]
+    authentication_classes = [BasicAuthentication]
+
+
 class PlayLogEntryViewSet(viewsets.ModelViewSet):
     """
     REST API endpoint that allows PlayLogEntries to be viewed or edited.

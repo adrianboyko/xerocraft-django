@@ -307,5 +307,12 @@ class EpisodeAdmin(admin.ModelAdmin):
         }
 
 @admin.register(Broadcast)
-class EpisodeAdmin(admin.ModelAdmin):
-    pass
+class BroadcastAdmin(admin.ModelAdmin):
+
+    list_display = [
+        'pk',
+        'episode',
+        'date',
+        'host_checked_in',
+        'type'
+    ]

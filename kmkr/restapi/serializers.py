@@ -8,6 +8,24 @@ from rest_framework import serializers
 import kmkr.models as models
 
 
+class BroadcastSerializer(serializers.ModelSerializer):
+
+    episode = serializers.HyperlinkedRelatedField(
+        view_name='kmkr:episode-detail',
+        queryset = models.Episode.objects.all()
+    )
+
+    class Meta:
+        model = models.Broadcast
+        fields = (
+            'id',
+            'episode',
+            'date',
+            'host_checked_in',
+            'type'
+        )
+
+
 class ShowSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -59,6 +77,7 @@ class EpisodeSerializer(serializers.ModelSerializer):
         )
 
 
+# These are tracks that were played on-air, e.g. according to RadioDJ.
 class TrackSerializer(serializers.ModelSerializer):
 
     class Meta:

@@ -123,11 +123,9 @@ class ShowTime(models.Model):
 
     PRODUCTION_LIVE = "LIV"
     PRODUCTION_PRERECORDED = "PRE"
-    PRODUCTION_REPEAT = "RPT"
     PRODUCTION_CHOICES = [
         (PRODUCTION_LIVE, "Live"),
         (PRODUCTION_PRERECORDED, "Prerecorded"),
-        (PRODUCTION_REPEAT, "Repeat"),
     ]
     production_method = models.CharField(max_length=3, choices=PRODUCTION_CHOICES,
         null=False, blank=False,
@@ -301,6 +299,9 @@ class Episode(models.Model):
     title = models.CharField(max_length=Track.TITLE_MAX_LENGTH, blank=True, null=False, default="",
         help_text="The (optional) title of this episode.")
 
+    def __str__(self):
+        return "'{}' episode 1st aired {}".format(self.show, self.first_broadcast)
+
     class Meta:
         unique_together = ['show', 'first_broadcast']
 
@@ -312,19 +313,25 @@ class Broadcast(models.Model):
     Also the grouping mechanism for ManualPlayListEntries.
     """
 
-    episode = models.ForeignKey(Show, blank=True, null=True,
-        on_delete=models.SET_NULL,
+    episode = models.ForeignKey(Episode, blank=False, null=False,
+        on_delete=models.PROTECT,
         help_text="The episode that will be broadcast.")
 
-    date = models.DateField(blank=True, null=True,
+    date = models.DateField(blank=False, null=False,
         help_text="The date of the broadcast.")
 
     host_checked_in = models.TimeField(blank=True, null=True,
         help_text="Specify for original live broadcast, but not for repeat broadcasts.")
 
-    production_method = models.CharField(max_length=3, choices=ShowTime.PRODUCTION_CHOICES,
+    TYPE_FIRST_RUN = "1ST"  # These can be either live or recorded
+    TYPE_REPEAT = "RPT"  # These are always recorded.
+    TYPE_CHOICES = [
+        (TYPE_FIRST_RUN, "First Broadcast"),
+        (TYPE_REPEAT, "Repeat Broadcast"),
+    ]
+    type = models.CharField(max_length=3, choices=TYPE_CHOICES,
         null=False, blank=False,
-        help_text="For this particular broadcast. Might differ from default in ShowTime.")
+        help_text="Is this an original or repeat broadcast?")
 
     def __str__(self):
         return "{} on {}".format(self.episode, self.date)

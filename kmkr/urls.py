@@ -6,11 +6,12 @@ from rest_framework import routers
 app_name = "kmkr"  # This is the app namespace not the app name.
 
 router = routers.DefaultRouter()
+router.register(r'broadcasts', restviews.BroadcastViewSet)
+router.register(r'episodes', restviews.EpisodeViewSet)
+router.register(r'episodetracks', restviews.EpisodeTrackViewSet)
 router.register(r'playlogentries', restviews.PlayLogEntryViewSet)
 router.register(r'shows', restviews.ShowViewSet)
 router.register(r'tracks', restviews.TrackViewSet)
-router.register(r'show-instances', restviews.EpisodeViewSet)
-router.register(r'manual-playlist-entries', restviews.EpisodeTrackViewSet)
 
 urlpatterns = [
 
