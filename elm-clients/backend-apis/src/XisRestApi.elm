@@ -9,6 +9,7 @@ module XisRestApi
     , setWorksWitness
     --------------------
     , AuthenticationResult
+    , Broadcast, BroadcastData
     , Claim, ClaimData
     , ClaimStatus (..)
     , ClaimFilter (..)
@@ -73,6 +74,7 @@ import RangeOfTime
 
 type alias XisRestFlags =
   { authenticateUrl : ServiceUrl
+  , broadcastListUrl : ResourceListUrl
   , claimListUrl : ResourceListUrl
   , discoveryMethodListUrl : ResourceListUrl
   , emailMembershipInfoUrl : ServiceUrl
@@ -149,6 +151,7 @@ type alias Session msg =
   , getWorkFromUrl : GetterFromUrl Work msg
 
   ----- RESOURCE CREATORS -----
+  , createBroadcast : Creator BroadcastData Broadcast msg
   , createClaim : Creator ClaimData Claim msg
   , createEpisodeTrack : Creator EpisodeTrackData EpisodeTrack msg
   , createPlay : Creator PlayData Play msg
@@ -189,6 +192,7 @@ type alias Session msg =
   , replaceEpisode : Replacer Episode msg
 
   ----- RESOURCE URLS -----
+  , broadcastUrl : Int -> ResourceUrl
   , claimUrl : Int -> ResourceUrl
   , memberUrl : Int -> ResourceUrl
   , productUrl : Int  -> ResourceUrl
@@ -229,14 +233,15 @@ createSession flags auth =
   , getWorkFromUrl = getWorkFromUrl flags auth
 
   ----- RESOURCE CREATORS -----
-  , createClaim = createClaim flags auth
-  , createEpisodeTrack = createEpisodeTrack flags auth
-  , createPlay = createPlay flags auth
-  , createEpisode = createEpisode flags auth
-  , createVendLog = createVendLog flags auth
-  , createVisitEvent = createVisitEvent flags auth
-  , createWork = createWork flags auth
-  , createWorkNote = createWorkNote flags auth
+  , createBroadcast = createResource auth flags.broadcastListUrl encodeBroadcastData decodeBroadcastData
+  , createClaim = createResource auth flags.claimListUrl encodeClaimData decodeClaimData
+  , createEpisodeTrack = createResource auth flags.episodeTrackListUrl encodeEpisodeTrackData decodeEpisodeTrackData
+  , createPlay = createResource auth flags.playListUrl encodePlayData decodePlayData
+  , createEpisode = createResource auth flags.episodeListUrl encodeEpisodeData decodeEpisodeData
+  , createVendLog = createResource auth flags.vendLogListUrl encodeVendLogData decodeVendLogData
+  , createVisitEvent = createVisitEvent auth flags.visitEventListUrl  -- REVIEW: Can this one be reconciled with other creators?
+  , createWork = createResource auth flags.workListUrl encodeWorkData decodeWorkData
+  , createWorkNote = createResource auth flags.workNoteListUrl encodeWorkNoteData decodeWorkNoteData
 
   ----- RESOURCE DELETERS -----
   , deleteEpisodeTrackById = deleteEpisodeTrackById flags auth
@@ -269,6 +274,7 @@ createSession flags auth =
   , replaceEpisode = replaceEpisode flags auth
 
   ----- RESOURCE URLS -----
+  , broadcastUrl = urlFromId flags.broadcastListUrl
   , claimUrl = urlFromId flags.claimListUrl
   , memberUrl = urlFromId flags.memberListUrl
   , productUrl = urlFromId flags.productListUrl
@@ -367,22 +373,6 @@ getTaskFromUrl flags auth url resultToMsg =
     request = getRequest auth url decodeTask
   in
     Http.send resultToMsg request
-
-
---putTask : XisRestFlags -> Replacer Task msg
---putTask flags task resultToMsg =
---  let
---    request = Http.request
---      { method = "PUT"
---      , headers = [authenticationHeader flags.authorization]
---      , url = urlFromId flags.taskListUrl task.id
---      , body = task |> encodeTask |> Http.jsonBody
---      , expect = Http.expectJson decodeTask
---      , timeout = Nothing
---      , withCredentials = False
---      }
---  in
---    Http.send resultToMsg request
 
 
 memberCanClaimTask : XisRestFlags -> Int -> Task -> Bool
@@ -618,11 +608,9 @@ encodeClaimStatus status =
     WorkingClaimStatus -> Enc.string "W"
 
 
-encodeClaim : Claim -> Enc.Value
-encodeClaim = encodeResource claimDataNVPs
-
 encodeClaimData : ClaimData -> Enc.Value
 encodeClaimData = Enc.object << claimDataNVPs
+
 
 claimDataNVPs : ClaimData -> List (String, Enc.Value)
 claimDataNVPs cd =
@@ -643,22 +631,6 @@ replaceClaim flags auth claim resultToMsg =
       , headers = [authenticationHeader auth]
       , url = urlFromId flags.claimListUrl claim.id
       , body = claim.data |> encodeClaimData |> Http.jsonBody
-      , expect = Http.expectJson decodeClaim
-      , timeout = Nothing
-      , withCredentials = False
-      }
-  in
-    Http.send resultToMsg request
-
-
-createClaim : XisRestFlags -> Authorization -> Creator ClaimData Claim msg
-createClaim flags auth claimData resultToMsg =
-  let
-    request = Http.request
-      { method = "POST"
-      , headers = [authenticationHeader auth]
-      , url = flags.claimListUrl
-      , body = claimData |> encodeClaimData |> Http.jsonBody
       , expect = Http.expectJson decodeClaim
       , timeout = Nothing
       , withCredentials = False
@@ -731,29 +703,14 @@ listWorks flags auth  filters resultToMsg =
     request = getRequest
       auth
       (filteredListUrl flags.workListUrl filters workFilterToString)
-      (decodePageOf decodeWork)
+      (decodePageOf (decodeResource decodeWorkData))
   in
     Http.send resultToMsg request
 
 getWorkFromUrl : XisRestFlags -> Authorization -> GetterFromUrl Work msg
 getWorkFromUrl flags auth url resultToMsg =
   let
-    request = getRequest auth url decodeWork
-  in
-    Http.send resultToMsg request
-
-createWork : XisRestFlags -> Authorization -> Creator WorkData Work msg
-createWork flags auth workData resultToMsg =
-  let
-    request = Http.request
-      { method = "POST"
-      , headers = [authenticationHeader auth]
-      , url = flags.workListUrl
-      , body = workData |> encodeWorkData |> Http.jsonBody
-      , expect = Http.expectJson decodeWork
-      , timeout = Nothing
-      , withCredentials = False
-      }
+    request = getRequest auth url (decodeResource decodeWorkData)
   in
     Http.send resultToMsg request
 
@@ -767,7 +724,7 @@ replaceWork flags auth work resultToMsg =
       , headers = [authenticationHeader auth]
       , url = urlFromId flags.workListUrl work.id
       , body = work.data |> encodeWorkData |> Http.jsonBody
-      , expect = Http.expectJson decodeWork
+      , expect = Http.expectJson (decodeResource decodeWorkData)
       , timeout = Nothing
       , withCredentials = False
       }
@@ -798,10 +755,6 @@ workDataNVPs wd =
   , ( "work_duration", wd.workDuration |> EncX.maybe DRF.encodeDuration)
   , ( "work_start_time", wd.workStartTime |> EncX.maybe DRF.encodeClockTime)
   ]
-
-
-decodeWork : Dec.Decoder Work
-decodeWork = decodeResource decodeWorkData
 
 
 decodeWorkData : Dec.Decoder WorkData
@@ -859,20 +812,8 @@ type alias WorkNoteData =
 type alias WorkNote = Resource WorkNoteData
 
 
-createWorkNote : XisRestFlags -> Authorization -> Creator WorkNoteData WorkNote msg
-createWorkNote flags auth workNoteData resultToMsg =
-  let
-    request = Http.request
-      { method = "POST"
-      , headers = [authenticationHeader auth]
-      , url = flags.workNoteListUrl
-      , body = workNoteData |> workNoteDataNVPs |> Enc.object |> Http.jsonBody
-      , expect = Http.expectJson decodeWorkNote
-      , timeout = Nothing
-      , withCredentials = False
-      }
-  in
-    Http.send resultToMsg request
+encodeWorkNoteData : WorkNoteData -> Enc.Value
+encodeWorkNoteData = Enc.object << workNoteDataNVPs
 
 
 {-| Name Value Pairs for WorkNoteData -}
@@ -883,10 +824,6 @@ workNoteDataNVPs wnd =
   , ( "work", wnd.work |> Enc.string)
   , ( "when_written", wnd.whenWritten |> PointInTime.isoString |> Enc.string)
   ]
-
-
-decodeWorkNote : Dec.Decoder WorkNote
-decodeWorkNote = decodeResource decodeWorkNoteData
 
 
 decodeWorkNoteData : Dec.Decoder WorkNoteData
@@ -943,7 +880,7 @@ listPlays flags auth  filters resultToMsg =
     request = getRequest
       auth
       (filteredListUrl flags.playListUrl filters playFilterToString)
-      (decodePageOf decodePlay)
+      (decodePageOf (decodeResource decodePlayData))
   in
     Http.send resultToMsg request
 
@@ -951,23 +888,7 @@ listPlays flags auth  filters resultToMsg =
 getPlayFromUrl : XisRestFlags -> Authorization -> GetterFromUrl Play msg
 getPlayFromUrl flags auth url resultToMsg =
   let
-    request = getRequest auth url decodePlay
-  in
-    Http.send resultToMsg request
-
-
-createPlay : XisRestFlags -> Authorization -> Creator PlayData Play msg
-createPlay flags auth playData resultToMsg =
-  let
-    request = Http.request
-      { method = "POST"
-      , headers = [authenticationHeader auth]
-      , url = flags.playListUrl
-      , body = playData |> encodePlayData |> Http.jsonBody
-      , expect = Http.expectJson decodePlay
-      , timeout = Nothing
-      , withCredentials = False
-      }
+    request = getRequest auth url (decodeResource decodePlayData)
   in
     Http.send resultToMsg request
 
@@ -980,7 +901,7 @@ replacePlay flags auth play resultToMsg =
       , headers = [authenticationHeader auth]
       , url = urlFromId flags.playListUrl play.id
       , body = play.data |> encodePlayData |> Http.jsonBody
-      , expect = Http.expectJson decodePlay
+      , expect = Http.expectJson (decodeResource decodePlayData)
       , timeout = Nothing
       , withCredentials = False
       }
@@ -1003,6 +924,7 @@ deletePlayByUrl flags auth url tagger =
 encodePlayData : PlayData -> Enc.Value
 encodePlayData = Enc.object << playDataNVPs
 
+
 playDataNVPs : PlayData -> List (String, Enc.Value)
 playDataNVPs pd =
   [ ( "playing_member", pd.playingMember |> Enc.string)
@@ -1010,10 +932,6 @@ playDataNVPs pd =
   , ( "play_duration", pd.playDuration |> EncX.maybe DRF.encodeDuration)
   , ( "play_start_time", pd.playStartTime |> EncX.maybe DRF.encodeClockTime)
   ]
-
-
-decodePlay : Dec.Decoder Play
-decodePlay = decodeResource decodePlayData
 
 
 decodePlayData : Dec.Decoder PlayData
@@ -1390,32 +1308,16 @@ type alias VendLogData =
 type alias VendLog = Resource VendLogData
 
 
-vendLogDataNVPs : XisRestFlags -> VendLogData -> List (String, Enc.Value)
-vendLogDataNVPs flags log =
+encodeVendLogData : VendLogData -> Enc.Value
+encodeVendLogData = Enc.object << vendLogDataNVPs
+
+
+vendLogDataNVPs : VendLogData -> List (String, Enc.Value)
+vendLogDataNVPs log =
   [ ( "who_for", log.whoFor |> Enc.string)
   , ( "when", log.when |> DRF.encodePointInTime )
   , ( "product", log.product |> Enc.string )
   ]
-
-
-createVendLog : XisRestFlags -> Authorization -> Creator VendLogData VendLog msg
-createVendLog flags auth vendLogData resultToMsg =
-  let
-    request = Http.request
-      { method = "POST"
-      , headers = [authenticationHeader auth]
-      , url = flags.vendLogListUrl
-      , body = vendLogData |> vendLogDataNVPs flags |> Enc.object |> Http.jsonBody
-      , expect = Http.expectJson decodeVendLog
-      , timeout = Nothing
-      , withCredentials = False
-      }
-  in
-    Http.send resultToMsg request
-
-
-decodeVendLog : Dec.Decoder VendLog
-decodeVendLog = decodeResource decodeVendLogData
 
 
 decodeVendLogData : Dec.Decoder VendLogData
@@ -1450,8 +1352,12 @@ type alias VisitEventDataOut =
 type alias VisitEvent = Resource VisitEventDataIn
 
 
-visitEventDataNVPs : XisRestFlags -> VisitEventDataOut -> List (String, Enc.Value)
-visitEventDataNVPs flags ved =
+encodeVisitEventDataOut : VisitEventDataOut -> Enc.Value
+encodeVisitEventDataOut = Enc.object << visitEventDataNVPs
+
+
+visitEventDataNVPs : VisitEventDataOut -> List (String, Enc.Value)
+visitEventDataNVPs ved =
   [ ( "who", ved.who |> Enc.string)
   , ( "when", ved.when |> DRF.encodePointInTime )
   , ( "event_type", ved.eventType |> eventTypeString |> Enc.string )
@@ -1534,7 +1440,7 @@ listVisitEvents flags auth filters resultToMsg =
     request = getRequest
       auth
       (filteredListUrl flags.visitEventListUrl filters visitEventFilterToString)
-      (decodePageOf decodeVisitEvent)
+      (decodePageOf (decodeResource decodeVisitEventDataIn))
   in
     Http.send resultToMsg request
 
@@ -1542,19 +1448,19 @@ listVisitEvents flags auth filters resultToMsg =
 moreVisitEvents : XisRestFlags -> Authorization -> ListPager VisitEvent msg
 moreVisitEvents flags auth pageUrl resultToMsg =
   let
-    request = getRequest auth pageUrl (decodePageOf decodeVisitEvent)
+    request = getRequest auth pageUrl (decodePageOf (decodeResource decodeVisitEventDataIn))
   in
     Http.send resultToMsg request
 
 
-createVisitEvent : XisRestFlags -> Authorization -> Creator VisitEventDataOut VisitEvent msg
-createVisitEvent flags auth visitEventData resultToMsg =
+createVisitEvent : Authorization -> ResourceUrl -> Creator VisitEventDataOut VisitEvent msg
+createVisitEvent auth listUrl visitEventData resultToMsg =
   let
     request = Http.request
       { method = "POST"
       , headers = [authenticationHeader auth]
-      , url = flags.visitEventListUrl
-      , body = visitEventData |> visitEventDataNVPs flags |> Enc.object |> Http.jsonBody
+      , url = listUrl
+      , body = visitEventData |> visitEventDataNVPs |> Enc.object |> Http.jsonBody
       , expect = Http.expectJson decodeVisitEvent
       , timeout = Nothing
       , withCredentials = False
@@ -1689,15 +1595,17 @@ type alias BroadcastData =
   { episode : ResourceUrl
   , date : CalendarDate
   , hostCheckedIn : Maybe ClockTime
+  , theType : String  -- TODO: Make this a type instead of using "1ST" and "RPT" strings.
   }
 
 
 decodeBroadcastData : Dec.Decoder BroadcastData
 decodeBroadcastData =
-  Dec.map3 BroadcastData
+  Dec.map4 BroadcastData
     (Dec.field "episode" DRF.decodeResourceUrl)
     (Dec.field "date" DRF.decodeCalendarDate)
     (Dec.field "host_checked_in" (Dec.maybe DRF.decodeClockTime))
+    (Dec.field "type" Dec.string)
 
 
 broadcastDataNVPs : BroadcastData -> List (String, Enc.Value)
@@ -1705,7 +1613,12 @@ broadcastDataNVPs bc =
   [ ( "episode", bc.episode |> Enc.string )
   , ( "date", bc.date |> DRF.encodeCalendarDate )
   , ( "host_checked_in", bc.hostCheckedIn |> EncX.maybe DRF.encodeClockTime )
+  , ( "type", bc.theType |> Enc.string)
   ]
+
+
+encodeBroadcastData : BroadcastData -> Enc.Value
+encodeBroadcastData = Enc.object << broadcastDataNVPs
 
 
 ------------------
@@ -1740,12 +1653,8 @@ listEpisodes flags auth filters resultToMsg =
     request = getRequest
       auth
       (filteredListUrl flags.episodeListUrl filters episodeFilterToString)
-      (decodePageOf decodeEpisode)
+      (decodePageOf (decodeResource decodeEpisodeData))
   in Http.send resultToMsg request
-
-
-decodeEpisode : Dec.Decoder Episode
-decodeEpisode = decodeResource decodeEpisodeData
 
 
 decodeEpisodeData : Dec.Decoder EpisodeData
@@ -1754,7 +1663,7 @@ decodeEpisodeData =
     (Dec.field "show" DRF.decodeResourceUrl)
     (Dec.field "first_broadcast" DRF.decodeCalendarDate)
     (Dec.field "title" Dec.string)
-    (Dec.field "tracks_embed" (Dec.list decodeEpisodeTrack))
+    (Dec.field "tracks_embed" (Dec.list (decodeResource decodeEpisodeTrackData)))
 
 
 episodeDataNVPs : EpisodeData -> List (String, Enc.Value)
@@ -1765,28 +1674,8 @@ episodeDataNVPs ep =
   ]
 
 
-encodeEpisode : Episode -> Enc.Value
-encodeEpisode = encodeResource episodeDataNVPs
-
-
 encodeEpisodeData : EpisodeData -> Enc.Value
 encodeEpisodeData = Enc.object << episodeDataNVPs
-
-
-createEpisode : XisRestFlags -> Authorization -> Creator EpisodeData Episode msg
-createEpisode flags auth sid resultToMsg =
-  let
-    request = Http.request
-      { method = "POST"
-      , headers = [authenticationHeader auth]
-      , url = flags.episodeListUrl
-      , body = sid |> encodeEpisodeData |> Http.jsonBody
-      , expect = Http.expectJson decodeEpisode
-      , timeout = Nothing
-      , withCredentials = False
-      }
-  in
-    Http.send resultToMsg request
 
 
 replaceEpisode : XisRestFlags -> Authorization -> Replacer Episode msg
@@ -1797,7 +1686,7 @@ replaceEpisode flags auth episode resultToMsg =
       , headers = [authenticationHeader auth]
       , url = urlFromId flags.episodeListUrl episode.id
       , body = episode.data |> encodeEpisodeData |> Http.jsonBody
-      , expect = Http.expectJson decodeEpisode
+      , expect = Http.expectJson (decodeResource decodeEpisodeData)
       , timeout = Nothing
       , withCredentials = False
       }
@@ -1820,10 +1709,6 @@ type alias EpisodeTrackData =
 type alias EpisodeTrack = Resource EpisodeTrackData
 
 
-decodeEpisodeTrack : Dec.Decoder EpisodeTrack
-decodeEpisodeTrack = decodeResource decodeEpisodeTrackData
-
-
 decodeEpisodeTrackData : Dec.Decoder EpisodeTrackData
 decodeEpisodeTrackData =
   Dec.map5 EpisodeTrackData
@@ -1832,10 +1717,6 @@ decodeEpisodeTrackData =
     (Dec.field "artist" Dec.string)
     (Dec.field "title" Dec.string)
     (Dec.field "duration" Dec.string)
-
-
-encodeEpisodeTrack : EpisodeTrack -> Enc.Value
-encodeEpisodeTrack = encodeResource episodeTrackDataNVPs
 
 
 encodeEpisodeTrackData : EpisodeTrackData -> Enc.Value
@@ -1860,23 +1741,7 @@ replaceEpisodeTrack flags auth mple resultToMsg =
       , headers = [authenticationHeader auth]
       , url = urlFromId flags.episodeTrackListUrl mple.id
       , body = mple.data |> encodeEpisodeTrackData |> Http.jsonBody
-      , expect = Http.expectJson decodeEpisodeTrack
-      , timeout = Nothing
-      , withCredentials = False
-      }
-  in
-    Http.send resultToMsg request
-
-
-createEpisodeTrack : XisRestFlags -> Authorization -> Creator EpisodeTrackData EpisodeTrack msg
-createEpisodeTrack flags auth mpleData resultToMsg =
-  let
-    request = Http.request
-      { method = "POST"
-      , headers = [authenticationHeader auth]
-      , url = flags.episodeTrackListUrl
-      , body = mpleData |> encodeEpisodeTrackData |> Http.jsonBody
-      , expect = Http.expectJson decodeEpisodeTrack
+      , expect = Http.expectJson (decodeResource decodeEpisodeTrackData)
       , timeout = Nothing
       , withCredentials = False
       }
@@ -1932,6 +1797,32 @@ decodeTrackData =
     (Dec.field "title" Dec.string)
     (Dec.field "track_type" Dec.int)
     (Dec.field "remaining_seconds" Dec.float)
+
+-----------------------------------------------------------------------------
+-- GENERIC CREATE, UPDATE
+-----------------------------------------------------------------------------
+
+createResource :
+  Authorization
+  -> ResourceListUrl
+  -> (data -> Enc.Value)     -- data encoder
+  -> Dec.Decoder data        -- data decoder
+  -> data
+  -> ResultTagger (Resource data) msg
+  -> Cmd msg
+createResource auth resourceListUrl encoder decoder data tagger =
+  let
+    request = Http.request
+      { method = "POST"
+      , headers = [authenticationHeader auth]
+      , url = resourceListUrl
+      , body = data |> encoder |> Http.jsonBody
+      , expect = Http.expectJson (DRF.decodeResource decoder)
+      , timeout = Nothing
+      , withCredentials = False
+      }
+  in
+    Http.send tagger request
 
 
 -----------------------------------------------------------------------------
