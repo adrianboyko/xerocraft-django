@@ -954,6 +954,9 @@ tracks_info model =
       , "right"=>"50px"
       , "top"=>"150px"
       , "font-size"=>"16pt"
+      , "background-color"=>"lemonchiffon"
+      , "padding"=>"10px"
+      , "border"=>"solid 1px"
       ]
     ]
     [ p [style ["font-size"=>"16pt"]]
