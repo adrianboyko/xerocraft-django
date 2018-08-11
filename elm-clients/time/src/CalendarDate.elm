@@ -8,6 +8,7 @@ module CalendarDate exposing
   , equal
   , format
   , fromDate
+  , fromPointInTime
   , fromString
   , fromTime
   , intToMonth
@@ -167,6 +168,7 @@ fromDate d =
 fromTime : Time -> CalendarDate
 fromTime = Date.fromTime >> fromDate
 
+fromPointInTime = fromTime
 
 ----------------------------------------------------------
 
