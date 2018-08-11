@@ -8,7 +8,7 @@ import Html.Events exposing (onInput, on, on)
 import Http as Http
 import Time exposing (Time, second)
 import Date exposing (Date)
-import Regex
+import Regex exposing (regex)
 import Char
 import Keyboard exposing (KeyCode)
 import Set exposing (Set)
@@ -36,6 +36,7 @@ import Hex as Hex
 import Dialog as Dialog
 import Maybe.Extra as MaybeX exposing (isJust, isNothing)
 import Update.Extra as UpdateX exposing (updateModel, addCmd)
+import String.Extra as StringX
 
 -- Local
 import ClockTime as CT
@@ -466,7 +467,7 @@ update action model =
           case col of
             ArtistColumn -> {tte1 | artist = val}
             TitleColumn -> {tte1 | title = val}
-            DurationColumn -> {tte1 | duration = val}
+            DurationColumn -> {tte1 | duration = mmss_mask val}
         newModel = { model | tracksTabEntries = Array.set row tte2 model.tracksTabEntries}
       in
         (newModel, Cmd.none)
@@ -505,6 +506,21 @@ update action model =
         dummy = toString e |> Debug.log "EpisodeList_Result"
       in
         (model, Cmd.none)
+
+
+-- This is used to maintain a "<digit><digit>:<digit><digit>" mask on an input field.
+mmss_mask : String -> String
+mmss_mask val =
+  let
+    trimLeftZeros = Regex.replace (Regex.AtMost 1) (regex "^0*") (always "")
+    digits = val |> String.trim |> StringX.replace ":" "" |> trimLeftZeros |> String.left 4
+    len = String.length digits
+    padded = String.padLeft 4 '0' digits
+  in
+    if len == 0 then
+      ""
+    else
+      StringX.insertAt ":" -2 padded
 
 
 fetchTracksTabData : Model -> (Model, Cmd Msg)
@@ -987,6 +1003,7 @@ tracks_table model =
 tracks_tableRow : Model -> Int -> Html Msg
 tracks_tableRow model r =
   let
+    mmss = regex "^\\d*\\:\\d\\d$"
     aTd s tte c opts =
       Table.td (restTdStyle++[css "color" (if tracksTabEntryColumnIsDirty tte c then "red" else "black")])
         [Textfield.render
@@ -996,12 +1013,20 @@ tracks_tableRow model r =
           ( opts
             ++
             [ Textfield.label s
+            , Textfield.maxlength 6 |> Opts.when (c == DurationColumn)
             , Textfield.value <|
                 case c of
                   ArtistColumn -> tte.artist
                   TitleColumn -> tte.title
                   DurationColumn -> tte.duration
-            , if isJust model.member then Opts.nop else Textfield.disabled
+            , Textfield.disabled
+               |> Opts.when (isNothing model.member || isNothing model.episode)
+            , Textfield.error "Must be MM:SS"
+               |> Opts.when
+                    ( c == DurationColumn
+                    && String.length tte.duration > 0
+                    && (not << Regex.contains mmss) tte.duration
+                    )
             , Opts.onInput (TrackFieldUpdate r c)
             ]
           )
@@ -1014,7 +1039,7 @@ tracks_tableRow model r =
         [ Table.td firstTdStyle [text <| toString r]
         , aTd "Artist" tte ArtistColumn []
         , aTd "Title" tte TitleColumn []
-        , aTd "MM:SS" tte DurationColumn [css "width" "55px"]
+        , aTd "Dur" tte DurationColumn [css "width" "55px"]
         , Table.td firstTdStyle
           [ Button.render Mdl [tracksTabId, r] model.mdl
             [ Button.fab
