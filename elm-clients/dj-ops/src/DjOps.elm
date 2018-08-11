@@ -201,19 +201,19 @@ type
   = AcknowledgeDialog
   | Authenticate_Result (Result Http.Error XisApi.AuthenticationResult)
   | BeginBroadcast_Clicked
+  | BroadcastCheckInUpdate_Result (Result Http.Error XisApi.Broadcast)
   | CheckNowPlaying
-  | KeyDown KeyCode
-  | KeyDown_Idle KeyCode
-  | FetchTracksTabData
-  | Login_Clicked
+  | EpisodeCreate_Result XisApi.Show Date (Result Http.Error XisApi.Episode)
+  | EpisodeList_Result XisApi.Show Date (Result Http.Error (DRF.PageOf XisApi.Episode))
   | EpisodeTrackDelete_Result Int (Result Http.Error String)
   | EpisodeTrackUpsert_Result (Result Http.Error XisApi.EpisodeTrack)
+  | FetchTracksTabData
+  | KeyDown KeyCode
+  | KeyDown_Idle KeyCode
+  | Login_Clicked
   | Mdl (Material.Msg Msg)
   | NowPlaying_Result (Result Http.Error XisApi.NowPlaying)
   | PasswordInput String
-  | EpisodeCheckInUpdate_Result (Result Http.Error XisApi.Episode)
-  | EpisodeCreate_Result XisApi.Show Date (Result Http.Error XisApi.Episode)
-  | EpisodeList_Result XisApi.Show Date (Result Http.Error (DRF.PageOf XisApi.Episode))
   | ShowList_Result (Result Http.Error (DRF.PageOf XisApi.Show))
   | ShowWasChosen String  -- ID of chosen show, as a String.
   | SelectTab Int
@@ -259,22 +259,28 @@ update action model =
           (newModel, Cmd.none)
 
     BeginBroadcast_Clicked ->
-      (model, Cmd.none)
---      case model.episode of
---        Just ep ->
---          let
---            epData = ep.data
---            newEpData = {epData | hostCheckedIn = Just (CT.fromPointInTime model.currTime) }
---            newEp = {ep | data = newEpData }
---            updateCmd = model.xis.replaceEpisode newEp EpisodeCheckInUpdate_Result
---          in
---            (model, updateCmd)
---        Nothing ->
---          let
---            -- Should be impossible to get here because button can only be clicked if episode is set.
---            dummy = Debug.log "ERR" "BeginBroadcast_Clicked"
---          in
---            (model, Cmd.none)
+      case model.episode of
+        Just ep ->
+          let
+            bcData =
+              { episode = model.xis.episodeUrl ep.id
+              , date = CD.fromPointInTime model.currTime
+              , hostCheckedIn = Just (CT.fromPointInTime model.currTime)
+              , theType = "1ST"
+              }
+            createCmd = model.xis.createBroadcast bcData BroadcastCheckInUpdate_Result
+          in
+            (model, createCmd)
+        Nothing ->
+          let
+            -- Should be impossible to get here because button can only be clicked if episode is set.
+            dummy = Debug.log "ERR" "BeginBroadcast_Clicked"
+          in
+            (model, Cmd.none)
+
+    BroadcastCheckInUpdate_Result (Ok broadcast) ->
+      -- TODO: Record the broadcast?
+      ( model, Cmd.none)
 
     CheckNowPlaying ->
       ( model
@@ -371,10 +377,6 @@ update action model =
             , Cmd.map SetDatePicker datePickerCmd
             )
             |> UpdateX.andThen update FetchTracksTabData
-
-
-    EpisodeCheckInUpdate_Result (Ok episode) ->
-      ( { model | episode = Just episode}, Cmd.none)
 
     EpisodeCreate_Result selShow selShowDate (Ok episode) ->
       let
@@ -489,7 +491,7 @@ update action model =
       in
         ({model | nowPlaying = Nothing}, Cmd.none)
 
-    EpisodeCheckInUpdate_Result  (Err e) ->
+    BroadcastCheckInUpdate_Result  (Err e) ->
       ({model | errMsgs=[toString e]}, Cmd.none)
 
     EpisodeCreate_Result show date (Err e) ->
