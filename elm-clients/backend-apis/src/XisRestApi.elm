@@ -267,11 +267,11 @@ createSession flags auth =
   , moreVisitEvents = moreVisitEvents flags auth  -- TODO: Need a generic "moreResources"
 
   ----- RESOURCE REPLACERS -----
-  , replaceClaim = replaceClaim flags auth
-  , replaceEpisodeTrack = replaceEpisodeTrack flags auth
-  , replaceWork = replaceWork flags auth
-  , replacePlay = replacePlay flags auth
-  , replaceEpisode = replaceEpisode flags auth
+  , replaceClaim = replaceResource auth flags.claimListUrl encodeClaimData decodeClaimData
+  , replaceEpisodeTrack = replaceResource auth flags.episodeTrackListUrl encodeEpisodeTrackData decodeEpisodeTrackData
+  , replaceWork = replaceResource auth flags.workListUrl encodeWorkData decodeWorkData
+  , replacePlay = replaceResource auth flags.playListUrl encodePlayData decodePlayData
+  , replaceEpisode = replaceResource auth flags.episodeListUrl encodeEpisodeData decodeEpisodeData
 
   ----- RESOURCE URLS -----
   , broadcastUrl = urlFromId flags.broadcastListUrl
@@ -584,22 +584,6 @@ claimDataNVPs cd =
   ]
 
 
-replaceClaim : XisRestFlags -> Authorization -> Replacer Claim msg
-replaceClaim flags auth claim resultToMsg =
-  let
-    request = Http.request
-      { method = "PUT"
-      , headers = [authenticationHeader auth]
-      , url = urlFromId flags.claimListUrl claim.id
-      , body = claim.data |> encodeClaimData |> Http.jsonBody
-      , expect = Http.expectJson (decodeResource decodeClaimData)
-      , timeout = Nothing
-      , withCredentials = False
-      }
-  in
-    Http.send resultToMsg request
-
-
 -----------------------------------------------------------------------------
 -- WORK
 -----------------------------------------------------------------------------
@@ -648,25 +632,9 @@ workFilterToString filter =
     WorkDurationIsNull setting -> "work_duration__isnull=" ++ (setting |> toString |> String.toLower)
 
 
--- If "witness" is provided, the witness's password needs to be in an X-Witness-PW header.
-replaceWork : XisRestFlags -> Authorization -> Replacer Work msg
-replaceWork flags auth work resultToMsg =
-  let
-    request = Http.request
-      { method = "PUT"
-      , headers = [authenticationHeader auth]
-      , url = urlFromId flags.workListUrl work.id
-      , body = work.data |> encodeWorkData |> Http.jsonBody
-      , expect = Http.expectJson (decodeResource decodeWorkData)
-      , timeout = Nothing
-      , withCredentials = False
-      }
-  in
-    Http.send resultToMsg request
-
-
 encodeWorkData : WorkData -> Enc.Value
 encodeWorkData = Enc.object << workDataNVPs
+
 
 workDataNVPs : WorkData -> List (String, Enc.Value)
 workDataNVPs wd =
@@ -802,22 +770,6 @@ listPlays flags auth  filters resultToMsg =
       auth
       (filteredListUrl flags.playListUrl filters playFilterToString)
       (decodePageOf (decodeResource decodePlayData))
-  in
-    Http.send resultToMsg request
-
-
-replacePlay : XisRestFlags -> Authorization -> Replacer Play msg
-replacePlay flags auth play resultToMsg =
-  let
-    request = Http.request
-      { method = "PUT"
-      , headers = [authenticationHeader auth]
-      , url = urlFromId flags.playListUrl play.id
-      , body = play.data |> encodePlayData |> Http.jsonBody
-      , expect = Http.expectJson (decodeResource decodePlayData)
-      , timeout = Nothing
-      , withCredentials = False
-      }
   in
     Http.send resultToMsg request
 
@@ -1484,22 +1436,6 @@ encodeEpisodeData : EpisodeData -> Enc.Value
 encodeEpisodeData = Enc.object << episodeDataNVPs
 
 
-replaceEpisode : XisRestFlags -> Authorization -> Replacer Episode msg
-replaceEpisode flags auth episode resultToMsg =
-  let
-    request = Http.request
-      { method = "PUT"
-      , headers = [authenticationHeader auth]
-      , url = urlFromId flags.episodeListUrl episode.id
-      , body = episode.data |> encodeEpisodeData |> Http.jsonBody
-      , expect = Http.expectJson (decodeResource decodeEpisodeData)
-      , timeout = Nothing
-      , withCredentials = False
-      }
-  in
-    Http.send resultToMsg request
-
-
 ------------------
 
 
@@ -1539,22 +1475,6 @@ episodeTrackDataNVPs etd =
   ]
 
 
-replaceEpisodeTrack : XisRestFlags -> Authorization -> Replacer EpisodeTrack msg
-replaceEpisodeTrack flags auth mple resultToMsg =
-  let
-    request = Http.request
-      { method = "PUT"
-      , headers = [authenticationHeader auth]
-      , url = urlFromId flags.episodeTrackListUrl mple.id
-      , body = mple.data |> encodeEpisodeTrackData |> Http.jsonBody
-      , expect = Http.expectJson (decodeResource decodeEpisodeTrackData)
-      , timeout = Nothing
-      , withCredentials = False
-      }
-  in
-    Http.send resultToMsg request
-
-
 -----------------------------------------------------------------------------
 -- KMKR TRACKS
 -----------------------------------------------------------------------------
@@ -1584,7 +1504,7 @@ decodeTrackData =
 
 
 -----------------------------------------------------------------------------
--- GENERIC CREATE, LIST, DELETE, GET
+-- GENERIC CREATE, LIST, DELETE, GET, REPLACE
 -----------------------------------------------------------------------------
 
 createResource :
@@ -1677,6 +1597,29 @@ getResourceFromUrl :
 getResourceFromUrl auth decoder resUrl tagger =
   let
     request = getRequest auth resUrl (decodeResource decoder)
+  in
+    Http.send tagger request
+
+
+replaceResource :
+  Authorization
+  -> ResourceListUrl
+  -> (data -> Enc.Value) -- data encoder
+  -> Dec.Decoder data    -- data decoder
+  -> (Resource data)
+  -> ResultTagger (Resource data) msg
+  -> Cmd msg
+replaceResource auth listUrl encoder decoder resource tagger =
+  let
+    request = Http.request
+      { method = "PUT"
+      , headers = [authenticationHeader auth]
+      , url = urlFromId listUrl resource.id
+      , body = resource.data |> encoder |> Http.jsonBody
+      , expect = Http.expectJson (decodeResource decoder)
+      , timeout = Nothing
+      , withCredentials = False
+      }
   in
     Http.send tagger request
 
