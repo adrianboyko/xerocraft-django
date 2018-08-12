@@ -1,9 +1,6 @@
 #!/usr/bin/env bash
-# Expects to be run with working directory $ProjectFileDir$
 
 set -x
-
-pushd elm-clients/ops-calendar
 
 ELM=src/OpsCalendar.elm
 JS=out/OpsCalendar.js
@@ -17,5 +14,4 @@ then
 fi
 
 paplay /usr/share/sounds/ubuntu/stereo/dialog-information.ogg
-popd
 
