@@ -88,8 +88,8 @@ type alias XisRestFlags =
   , productListUrl : ResourceListUrl
   , showListUrl : ResourceListUrl
   , taskListUrl : ResourceListUrl
-  , timeBlocksUrl : ResourceListUrl  -- TODO: Should be timeBlockListUrl
-  , timeBlockTypesUrl : ResourceListUrl  -- TODO: Should be timeBlockTypeListUrl
+  , timeBlockListUrl : ResourceListUrl
+  , timeBlockTypeListUrl : ResourceListUrl
   , trackListUrl : ResourceListUrl
   , vendLogListUrl : ResourceListUrl
   , visitEventListUrl : ResourceListUrl
@@ -172,11 +172,11 @@ type alias Session msg =
   ----- RESOURCE LISTERS -----
   , listClaims : FilteringLister ClaimFilter Claim msg
   , listDiscoveryMethods : Lister DiscoveryMethod msg
+  , listEpisodes : FilteringLister EpisodeFilter Episode msg
   , listMembers : FilteringLister MemberFilter Member msg
   , listMemberships : FilteringLister MembershipFilter Membership msg
   , listPlays : FilteringLister PlayFilter Play msg
   , listShows : Lister Show msg
-  , listEpisodes : FilteringLister EpisodeFilter Episode msg
   , listTasks : FilteringLister TaskFilter Task msg
   , listTimeBlocks : Lister TimeBlock msg
   , listTimeBlockTypes : Lister TimeBlockType msg
@@ -252,19 +252,19 @@ createSession flags auth =
   , deleteWorkByUrl = deleteWorkByUrl flags auth
 
   ----- RESOURCE LISTERS -----
-  , listClaims = listClaims flags auth
-  , listDiscoveryMethods = listDiscoveryMethods flags auth
-  , listMembers = listMembers flags auth
-  , listMemberships = listMemberships flags auth
-  , listPlays = listPlays flags auth
-  , listShows = listShows flags auth
-  , listEpisodes = listEpisodes flags auth
-  , listTasks = listTasks flags auth
-  , listTimeBlocks = listTimeBlocks flags auth
-  , listTimeBlockTypes = listTimeBlockTypes flags auth
-  , listVisitEvents = listVisitEvents flags auth
-  , listWorks = listWorks flags auth
-  , moreVisitEvents = moreVisitEvents flags auth
+  , listClaims = listFilteredResources auth flags.claimListUrl decodeClaimData claimFilterToString
+  , listDiscoveryMethods = listResources auth flags.discoveryMethodListUrl decodeDiscoveryMethodData
+  , listEpisodes = listFilteredResources auth flags.episodeListUrl decodeEpisodeData episodeFilterToString
+  , listMembers = listFilteredResources auth flags.memberListUrl decodeMemberData memberFilterToString
+  , listMemberships = listFilteredResources auth flags.membershipListUrl decodeMembershipData membershipFilterToString
+  , listPlays = listFilteredResources auth flags.playListUrl decodePlayData playFilterToString
+  , listShows = listResources auth flags.showListUrl decodeShowData
+  , listTasks = listFilteredResources auth flags.taskListUrl decodeTaskData taskFilterToString
+  , listTimeBlocks = listResources auth flags.timeBlockListUrl decodeTimeBlockData
+  , listTimeBlockTypes = listResources auth flags.timeBlockTypeListUrl decodeTimeBlockTypeData
+  , listVisitEvents = listFilteredResources auth flags.visitEventListUrl decodeVisitEventDataIn visitEventFilterToString
+  , listWorks = listFilteredResources auth flags.workListUrl decodeWorkData workFilterToString
+  , moreVisitEvents = moreVisitEvents flags auth  -- TODO: Need a generic "moreResources"
 
   ----- RESOURCE REPLACERS -----
   , replaceClaim = replaceClaim flags auth
@@ -309,9 +309,8 @@ createSession flags auth =
 -- TASKS
 -----------------------------------------------------------------------------
 
-type TaskPriority = HighPriority | MediumPriority | LowPriority
+type alias Task = Resource TaskData
 
-type StaffingStatus = SS_Staffed | SS_Unstaffed | SS_Provisional | SS_Done
 
 type alias TaskData =
   { anybodyIsEligible : Bool
@@ -336,7 +335,12 @@ type alias TaskData =
   , workStartTime : Maybe ClockTime
   }
 
-type alias Task = Resource TaskData
+
+type TaskPriority = HighPriority | MediumPriority | LowPriority
+
+
+type StaffingStatus = SS_Staffed | SS_Unstaffed | SS_Provisional | SS_Done
+
 
 type TaskFilter
   = ScheduledDateEquals CalendarDate
@@ -350,17 +354,6 @@ taskFilterToString filter =
     ScheduledDateEquals d -> "scheduled_date=" ++ CalendarDate.toString d
 
 
-listTasks : XisRestFlags -> Authorization -> FilteringLister TaskFilter Task msg
-listTasks flags auth filters resultToMsg =
-  let
-    request = getRequest
-      auth
-      (filteredListUrl flags.taskListUrl filters taskFilterToString)
-      (decodePageOf decodeTask)
-  in
-    Http.send resultToMsg request
-
-
 getTaskById : XisRestFlags -> Authorization -> GetterById Task msg
 getTaskById flags auth taskNum resultToMsg =
   let url = urlFromId flags.taskListUrl taskNum
@@ -370,7 +363,7 @@ getTaskById flags auth taskNum resultToMsg =
 getTaskFromUrl : XisRestFlags -> Authorization -> GetterFromUrl Task msg
 getTaskFromUrl flags auth url resultToMsg =
   let
-    request = getRequest auth url decodeTask
+    request = getRequest auth url (decodeResource decodeTaskData)
   in
     Http.send resultToMsg request
 
@@ -427,15 +420,11 @@ membersWithStatusOnTask status task =
     List.map (.data >> .claimingMember) claimsWithStatus
 
 
-decodeTask : Dec.Decoder Task
-decodeTask = decodeResource decodeTaskData
-
-
 decodeTaskData : Dec.Decoder TaskData
 decodeTaskData =
   decode TaskData
     |> required "anybody_is_eligible" Dec.bool
-    |> required "claim_set" (Dec.list decodeClaim)
+    |> required "claim_set" (Dec.list (decodeResource decodeClaimData))
     |> required "creation_date" DRF.decodeCalendarDate
     |> required "deadline" (Dec.maybe DRF.decodeCalendarDate)
     |> required "eligible_claimants" (Dec.list decodeResourceUrl)
@@ -484,6 +473,10 @@ staffingStatusDecoder =
 -- CLAIMS
 -----------------------------------------------------------------------------
 
+
+type alias Claim = Resource ClaimData
+
+
 type alias ClaimData =
   { claimedDuration : Duration
   , claimedStartTime : Maybe ClockTime
@@ -493,9 +486,6 @@ type alias ClaimData =
   , status : ClaimStatus
   , workSet : List ResourceUrl
   }
-
-
-type alias Claim = Resource ClaimData
 
 
 type ClaimStatus -- Per tasks.models.Claim in Python backend.
@@ -551,21 +541,6 @@ claimFilterToString filter =
     ClaimStatusEquals stat -> "status=" ++ claimStatusValue stat
     ClaimingMemberEquals membNum -> "claiming_member=" ++ toString membNum
     ClaimedTaskEquals taskNum -> "claimed_task=" ++ toString taskNum
-
-
-listClaims : XisRestFlags -> Authorization -> FilteringLister ClaimFilter Claim msg
-listClaims flags auth filters resultToMsg =
-  let
-    request = getRequest
-      auth
-      (filteredListUrl flags.claimListUrl filters claimFilterToString)
-      (decodePageOf decodeClaim)
-  in
-    Http.send resultToMsg request
-
-
-decodeClaim : Dec.Decoder Claim
-decodeClaim = decodeResource decodeClaimData
 
 
 decodeClaimData : Dec.Decoder ClaimData
@@ -631,7 +606,7 @@ replaceClaim flags auth claim resultToMsg =
       , headers = [authenticationHeader auth]
       , url = urlFromId flags.claimListUrl claim.id
       , body = claim.data |> encodeClaimData |> Http.jsonBody
-      , expect = Http.expectJson decodeClaim
+      , expect = Http.expectJson (decodeResource decodeClaimData)
       , timeout = Nothing
       , withCredentials = False
       }
@@ -643,6 +618,9 @@ replaceClaim flags auth claim resultToMsg =
 -- WORK
 -----------------------------------------------------------------------------
 
+type alias Work = Resource WorkData
+
+
 type alias WorkData =
   { claim: ResourceUrl
   , witness : Maybe ResourceUrl
@@ -650,9 +628,6 @@ type alias WorkData =
   , workDuration : Maybe Duration
   , workStartTime : Maybe ClockTime
   }
-
-
-type alias Work = Resource WorkData
 
 
 -- "Changing" nested records is awkward in Elm, so these "setters" are provided.
@@ -675,16 +650,6 @@ setWorksDuration newSetting oldWork =
     {oldWork | data = newData}
 
 
---{-| WorkPatch (used for partial updates) is the same as Work but all fields are optional -}
---type alias WorkPatch =
---  { claim: Maybe ResourceUrl
---  , witness : Maybe ResourceUrl
---  , workDate : Maybe CalendarDate
---  , workDuration : Maybe Duration
---  , workStartTime : Maybe ClockTime
---  }
-
-
 type WorkFilter
   = WorkedClaimEquals Int
   | WorkDurationIsNull Bool
@@ -696,16 +661,6 @@ workFilterToString filter =
     WorkedClaimEquals id -> "claim=" ++ toString id
     WorkDurationIsNull setting -> "work_duration__isnull=" ++ (setting |> toString |> String.toLower)
 
-
-listWorks : XisRestFlags -> Authorization -> FilteringLister WorkFilter Work msg
-listWorks flags auth  filters resultToMsg =
-  let
-    request = getRequest
-      auth
-      (filteredListUrl flags.workListUrl filters workFilterToString)
-      (decodePageOf (decodeResource decodeWorkData))
-  in
-    Http.send resultToMsg request
 
 getWorkFromUrl : XisRestFlags -> Authorization -> GetterFromUrl Work msg
 getWorkFromUrl flags auth url resultToMsg =
@@ -947,6 +902,9 @@ decodePlayData =
 -- MEMBER
 -----------------------------------------------------------------------------
 
+type alias Member = Resource MemberData
+
+
 type alias MemberData =
   { email : Maybe String
   , firstName : Maybe String
@@ -958,9 +916,6 @@ type alias MemberData =
   , userName : String
   , worker : Worker  -- Read only
   }
-
-
-type alias Member = Resource MemberData
 
 
 type MemberFilter
@@ -987,21 +942,6 @@ memberFilterToString filter =
     IsActive b -> "auth_user__is_active=" ++ (if b then "1" else "0")
 
 
-listMembers : XisRestFlags -> Authorization -> FilteringLister MemberFilter Member msg
-listMembers flags auth filters resultToMsg =
-  let
-    request = getRequest
-      auth
-      (filteredListUrl flags.memberListUrl filters memberFilterToString)
-      (decodePageOf decodeMember)
-  in
-    Http.send resultToMsg request
-
-
-decodeMember : Dec.Decoder Member
-decodeMember = decodeResource decodeMemberData
-
-
 decodeMemberData : Dec.Decoder MemberData
 decodeMemberData =
   -- Note: email, first_name, and last_name might not be included in JSON, depending on permissions.
@@ -1012,32 +952,23 @@ decodeMemberData =
     |> required "is_active" Dec.bool
     |> required "is_currently_paid" Dec.bool
     |> optional "last_name"  (Dec.maybe Dec.string) Nothing
-    |> required "latest_nonfuture_membership" (Dec.maybe decodeMembership)
+    |> required "latest_nonfuture_membership" (Dec.maybe (decodeResource decodeMembershipData))
     |> required "username" Dec.string
     |> required "worker" decodeWorker
+
 
 -----------------------------------------------------------------------------
 -- TIME BLOCK TYPES
 -----------------------------------------------------------------------------
+
+type alias TimeBlockType = Resource TimeBlockTypeData
+
 
 type alias TimeBlockTypeData =
   { name : String
   , description : String
   , isDefault : Bool
   }
-
-
-type alias TimeBlockType = Resource TimeBlockTypeData
-
-
-listTimeBlockTypes : XisRestFlags -> Authorization -> Lister TimeBlockType msg
-listTimeBlockTypes model auth resultToMsg =
-  let request = Http.get model.timeBlockTypesUrl (decodePageOf decodeTimeBlockType)
-  in Http.send resultToMsg request
-
-
-decodeTimeBlockType : Dec.Decoder TimeBlockType
-decodeTimeBlockType = decodeResource decodeTimeBlockTypeData
 
 
 decodeTimeBlockTypeData : Dec.Decoder TimeBlockTypeData
@@ -1057,6 +988,9 @@ defaultBlockType allBlockTypes =
 -- TIME BLOCKS
 -----------------------------------------------------------------------------
 
+type alias TimeBlock = Resource TimeBlockData
+
+
 type alias TimeBlockData =
   { startTime : ClockTime
   , duration : Duration
@@ -1075,19 +1009,6 @@ type alias TimeBlockData =
   , sunday : Bool
   , types : List String
   }
-
-
-type alias TimeBlock = Resource TimeBlockData
-
-
-listTimeBlocks : XisRestFlags -> Authorization -> Lister TimeBlock msg
-listTimeBlocks flags auth resultToMsg =
-  let request = Http.get flags.timeBlocksUrl (decodePageOf decodeTimeBlock)
-  in Http.send resultToMsg request
-
-
-decodeTimeBlock : Dec.Decoder TimeBlock
-decodeTimeBlock = decodeResource decodeTimeBlockData
 
 
 decodeTimeBlockData : Dec.Decoder TimeBlockData
@@ -1171,6 +1092,9 @@ pitInBlock pit block =
 -- MEMBERSHIPS
 -----------------------------------------------------------------------------
 
+type alias Membership = Resource MembershipData
+
+
 type alias MembershipData =
   { member : String
   , startDate : CalendarDate
@@ -1180,9 +1104,6 @@ type alias MembershipData =
   , ctrlid : String
   , protected : Bool
   }
-
-
-type alias Membership = Resource MembershipData
 
 
 type MembershipFilter
@@ -1195,17 +1116,6 @@ membershipFilterToString filter =
     MembershipsWithMemberIdEqualTo id -> "member=" ++ toString id
 
 
-listMemberships : XisRestFlags -> Authorization -> FilteringLister MembershipFilter Membership msg
-listMemberships flags auth filters resultToMsg =
-  let
-    request = getRequest
-      auth
-      (filteredListUrl flags.membershipListUrl filters membershipFilterToString)
-      (decodePageOf decodeMembership)
-  in
-    Http.send resultToMsg request
-
-
 getMembershipById : XisRestFlags -> Authorization -> GetterById Membership msg
 getMembershipById flags auth memberNum resultToMsg =
   let url = urlFromId flags.memberListUrl memberNum
@@ -1215,13 +1125,9 @@ getMembershipById flags auth memberNum resultToMsg =
 getMembershipFromUrl : XisRestFlags -> Authorization -> GetterFromUrl Membership msg
 getMembershipFromUrl flags auth url resultToMsg =
   let
-    request = getRequest auth url decodeMembership
+    request = getRequest auth url (decodeResource decodeMembershipData)
   in
     Http.send resultToMsg request
-
-
-decodeMembership : Dec.Decoder Membership
-decodeMembership = decodeResource decodeMembershipData
 
 
 decodeMembershipData : Dec.Decoder MembershipData
@@ -1267,20 +1173,14 @@ coverTime memberships now =
 -- DISCOVERY METHODS
 -----------------------------------------------------------------------------
 
+type alias DiscoveryMethod = Resource DiscoveryMethodData
+
+
 type alias DiscoveryMethodData =
   { name : String
   , order : Int
   , visible : Bool
   }
-
-
-type alias DiscoveryMethod = Resource DiscoveryMethodData
-
-
-listDiscoveryMethods : XisRestFlags -> Authorization -> Lister DiscoveryMethod msg
-listDiscoveryMethods flags auth resultToMsg =
-  let request = Http.get flags.discoveryMethodListUrl (decodePageOf decodeDiscoveryMethod)
-  in Http.send resultToMsg request
 
 
 decodeDiscoveryMethod : Dec.Decoder DiscoveryMethod
@@ -1298,14 +1198,14 @@ decodeDiscoveryMethodData =
 -- VEND LOG (SODA)
 -----------------------------------------------------------------------------
 
+type alias VendLog = Resource VendLogData
+
+
 type alias VendLogData =
   { whoFor : ResourceUrl
   , when : PointInTime
   , product : ResourceUrl
   }
-
-
-type alias VendLog = Resource VendLogData
 
 
 encodeVendLogData : VendLogData -> Enc.Value
@@ -1333,6 +1233,9 @@ decodeVendLogData =
 -- VISIT EVENTS
 -----------------------------------------------------------------------------
 
+type alias VisitEvent = Resource VisitEventDataIn
+
+
 type alias VisitEventDataIn =
   { who : Member
   , when : PointInTime
@@ -1348,8 +1251,6 @@ type alias VisitEventDataOut =
   , reason : Maybe VisitEventReason
   , method : VisitEventMethod
   }
-
-type alias VisitEvent = Resource VisitEventDataIn
 
 
 encodeVisitEventDataOut : VisitEventDataOut -> Enc.Value
@@ -1434,17 +1335,6 @@ visitEventFilterToString filter =
     VEF_EventMethodEquals meth -> "method=" ++ eventMethodString(meth)
 
 
-listVisitEvents : XisRestFlags -> Authorization -> FilteringLister VisitEventFilter VisitEvent msg
-listVisitEvents flags auth filters resultToMsg =
-  let
-    request = getRequest
-      auth
-      (filteredListUrl flags.visitEventListUrl filters visitEventFilterToString)
-      (decodePageOf (decodeResource decodeVisitEventDataIn))
-  in
-    Http.send resultToMsg request
-
-
 moreVisitEvents : XisRestFlags -> Authorization -> ListPager VisitEvent msg
 moreVisitEvents flags auth pageUrl resultToMsg =
   let
@@ -1476,7 +1366,7 @@ decodeVisitEvent = decodeResource decodeVisitEventDataIn
 decodeVisitEventDataIn : Dec.Decoder VisitEventDataIn
 decodeVisitEventDataIn =
   decode VisitEventDataIn
-    |> required "who_embed" decodeMember
+    |> required "who_embed" (decodeResource decodeMemberData)
     |> required "when" DRF.decodePointInTime
     |> required "event_type" decodeVisitEventType
     |> required "reason" (Dec.maybe decodeVisitEventReason)
@@ -1546,10 +1436,13 @@ replaceAll {oldSub, newSub} whole =
   Regex.replace Regex.All (regex oldSub) (\_ -> newSub) whole
 
 
-
 -----------------------------------------------------------------------------
 -- KMKR SHOWS
 -----------------------------------------------------------------------------
+
+
+type alias Show = Resource ShowData
+
 
 type alias ShowData =
   { title : String
@@ -1559,15 +1452,6 @@ type alias ShowData =
   , hosts : List String
   , remainingSeconds : Float  -- Read-only, meaningful in "now playing" context, else 0.
   }
-
-
-type alias Show = Resource ShowData
-
-
-listShows : XisRestFlags -> Authorization -> Lister Show msg
-listShows model auth resultToMsg =
-  let request = Http.get model.showListUrl (decodePageOf decodeShow)
-  in Http.send resultToMsg request
 
 
 decodeShow : Dec.Decoder Show
@@ -1624,15 +1508,15 @@ encodeBroadcastData = Enc.object << broadcastDataNVPs
 ------------------
 
 
+type alias Episode = Resource EpisodeData
+
+
 type alias EpisodeData =
   { show : ResourceUrl
   , firstBroadcast : CalendarDate
   , title : String
   , tracks : List EpisodeTrack
   }
-
-
-type alias Episode = Resource EpisodeData
 
 
 type EpisodeFilter
@@ -1645,16 +1529,6 @@ episodeFilterToString filter =
   case filter of
     EpisodeDateEquals d -> "first_broadcast=" ++ CalendarDate.toString d
     EpisodeShowEquals showNum -> "show=" ++ toString showNum
-
-
-listEpisodes : XisRestFlags -> Authorization -> FilteringLister EpisodeFilter Episode msg
-listEpisodes flags auth filters resultToMsg =
-  let
-    request = getRequest
-      auth
-      (filteredListUrl flags.episodeListUrl filters episodeFilterToString)
-      (decodePageOf (decodeResource decodeEpisodeData))
-  in Http.send resultToMsg request
 
 
 decodeEpisodeData : Dec.Decoder EpisodeData
@@ -1697,6 +1571,9 @@ replaceEpisode flags auth episode resultToMsg =
 ------------------
 
 
+type alias EpisodeTrack = Resource EpisodeTrackData
+
+
 type alias EpisodeTrackData =
   { episode : ResourceUrl
   , sequence : Int
@@ -1704,9 +1581,6 @@ type alias EpisodeTrackData =
   , title : String
   , duration : String
   }
-
-
-type alias EpisodeTrack = Resource EpisodeTrackData
 
 
 decodeEpisodeTrackData : Dec.Decoder EpisodeTrackData
@@ -1765,6 +1639,10 @@ deleteEpisodeTrackByUrl flags auth url tagger =
 -- KMKR TRACKS
 -----------------------------------------------------------------------------
 
+
+type alias Track = Resource TrackData
+
+
 type alias TrackData =
   { artist : String
   , durationSeconds : Float
@@ -1773,19 +1651,6 @@ type alias TrackData =
   , trackType : Int
   , remainingSeconds : Float  -- Read-only, meaningful in "now playing" context, else 0.
   }
-
-
-type alias Track = Resource TrackData
-
-
-listTracks : XisRestFlags -> Authorization -> Lister Track msg
-listTracks model auth resultToMsg =
-  let request = Http.get model.trackListUrl (decodePageOf decodeTrack)
-  in Http.send resultToMsg request
-
-
-decodeTrack : Dec.Decoder Track
-decodeTrack = decodeResource decodeTrackData
 
 
 decodeTrackData : Dec.Decoder TrackData
@@ -1798,8 +1663,9 @@ decodeTrackData =
     (Dec.field "track_type" Dec.int)
     (Dec.field "remaining_seconds" Dec.float)
 
+
 -----------------------------------------------------------------------------
--- GENERIC CREATE, UPDATE
+-- GENERIC CREATE, LIST, UPDATE
 -----------------------------------------------------------------------------
 
 createResource :
@@ -1821,6 +1687,34 @@ createResource auth resourceListUrl encoder decoder data tagger =
       , timeout = Nothing
       , withCredentials = False
       }
+  in
+    Http.send tagger request
+
+
+listResources :
+  Authorization
+  -> ResourceListUrl
+  -> Dec.Decoder data
+  -> ResultTagger (PageOf (Resource data)) msg
+  -> Cmd msg
+listResources auth resourceListUrl decoder tagger =
+  listFilteredResources auth resourceListUrl decoder (always "") [] tagger
+
+
+listFilteredResources :
+  Authorization
+  -> ResourceListUrl
+  -> Dec.Decoder data
+  -> (filter -> String)
+  -> List filter
+  -> ResultTagger (PageOf (Resource data)) msg
+  -> Cmd msg
+listFilteredResources auth resourceListUrl decoder filterToStr filters tagger =
+  let
+    request = getRequest
+      auth
+      (filteredListUrl resourceListUrl filters filterToStr)
+      (decodePageOf (decodeResource decoder))
   in
     Http.send tagger request
 
@@ -1899,7 +1793,7 @@ decodeAuthenticationResult : Dec.Decoder AuthenticationResult
 decodeAuthenticationResult =
   decode AuthenticationResult
     |> required "is_authentic" Dec.bool
-    |> optional "authenticated_member" (Dec.maybe decodeMember) Nothing
+    |> optional "authenticated_member" (Dec.maybe (decodeResource decodeMemberData)) Nothing
 
 
 -- SEND MEMBERSHIP INFO -----------------------------------------------------
