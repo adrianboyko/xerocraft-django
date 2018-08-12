@@ -226,11 +226,11 @@ createSession : XisRestFlags -> Authorization -> Session msg
 createSession flags auth =
 
   ----- RESOURCE GETTERS -----
-  { getMembershipById = getMembershipById flags auth
-  , getPlayByUrl = getPlayFromUrl flags auth
-  , getTaskById = getTaskById flags auth
-  , getTaskFromUrl = getTaskFromUrl flags auth
-  , getWorkFromUrl = getWorkFromUrl flags auth
+  { getMembershipById = getResourceById auth flags.membershipListUrl decodeMembershipData
+  , getPlayByUrl = getResourceFromUrl auth decodePlayData
+  , getTaskById = getResourceById auth flags.taskListUrl decodeTaskData
+  , getTaskFromUrl = getResourceFromUrl auth decodeTaskData
+  , getWorkFromUrl = getResourceFromUrl auth decodeWorkData
 
   ----- RESOURCE CREATORS -----
   , createBroadcast = createResource auth flags.broadcastListUrl encodeBroadcastData decodeBroadcastData
@@ -352,20 +352,6 @@ taskFilterToString : TaskFilter -> String
 taskFilterToString filter =
   case filter of
     ScheduledDateEquals d -> "scheduled_date=" ++ CalendarDate.toString d
-
-
-getTaskById : XisRestFlags -> Authorization -> GetterById Task msg
-getTaskById flags auth taskNum resultToMsg =
-  let url = urlFromId flags.taskListUrl taskNum
-  in getTaskFromUrl flags auth url resultToMsg
-
-
-getTaskFromUrl : XisRestFlags -> Authorization -> GetterFromUrl Task msg
-getTaskFromUrl flags auth url resultToMsg =
-  let
-    request = getRequest auth url (decodeResource decodeTaskData)
-  in
-    Http.send resultToMsg request
 
 
 memberCanClaimTask : XisRestFlags -> Int -> Task -> Bool
@@ -662,14 +648,6 @@ workFilterToString filter =
     WorkDurationIsNull setting -> "work_duration__isnull=" ++ (setting |> toString |> String.toLower)
 
 
-getWorkFromUrl : XisRestFlags -> Authorization -> GetterFromUrl Work msg
-getWorkFromUrl flags auth url resultToMsg =
-  let
-    request = getRequest auth url (decodeResource decodeWorkData)
-  in
-    Http.send resultToMsg request
-
-
 -- If "witness" is provided, the witness's password needs to be in an X-Witness-PW header.
 replaceWork : XisRestFlags -> Authorization -> Replacer Work msg
 replaceWork flags auth work resultToMsg =
@@ -824,14 +802,6 @@ listPlays flags auth  filters resultToMsg =
       auth
       (filteredListUrl flags.playListUrl filters playFilterToString)
       (decodePageOf (decodeResource decodePlayData))
-  in
-    Http.send resultToMsg request
-
-
-getPlayFromUrl : XisRestFlags -> Authorization -> GetterFromUrl Play msg
-getPlayFromUrl flags auth url resultToMsg =
-  let
-    request = getRequest auth url (decodeResource decodePlayData)
   in
     Http.send resultToMsg request
 
@@ -1090,20 +1060,6 @@ membershipFilterToString : MembershipFilter -> String
 membershipFilterToString filter =
   case filter of
     MembershipsWithMemberIdEqualTo id -> "member=" ++ toString id
-
-
-getMembershipById : XisRestFlags -> Authorization -> GetterById Membership msg
-getMembershipById flags auth memberNum resultToMsg =
-  let url = urlFromId flags.memberListUrl memberNum
-  in getMembershipFromUrl flags auth url resultToMsg
-
-
-getMembershipFromUrl : XisRestFlags -> Authorization -> GetterFromUrl Membership msg
-getMembershipFromUrl flags auth url resultToMsg =
-  let
-    request = getRequest auth url (decodeResource decodeMembershipData)
-  in
-    Http.send resultToMsg request
 
 
 decodeMembershipData : Dec.Decoder MembershipData
@@ -1628,7 +1584,7 @@ decodeTrackData =
 
 
 -----------------------------------------------------------------------------
--- GENERIC CREATE, LIST, DELETE
+-- GENERIC CREATE, LIST, DELETE, GET
 -----------------------------------------------------------------------------
 
 createResource :
@@ -1684,14 +1640,45 @@ listFilteredResources auth resourceListUrl decoder filterToStr filters tagger =
 
 deleteResourceById : Authorization -> ResourceListUrl -> Int -> StringTagger msg -> Cmd msg
 deleteResourceById auth listUrl id tagger =
-  let url = urlFromId listUrl id
-  in deleteResourceByUrl auth url tagger
+  let
+    url = urlFromId listUrl id
+  in
+    deleteResourceByUrl auth url tagger
 
 
 deleteResourceByUrl : Authorization -> ResourceUrl -> StringTagger msg -> Cmd msg
 deleteResourceByUrl auth resUrl tagger =
-  let request = deleteRequest auth resUrl
-  in Http.send tagger request
+  let
+    request = deleteRequest auth resUrl
+  in
+    Http.send tagger request
+
+
+getResourceById :
+  Authorization
+  -> ResourceListUrl
+  -> Dec.Decoder data
+  -> Int
+  -> ResultTagger (Resource data) msg
+  -> Cmd msg
+getResourceById auth listUrl decoder memberNum tagger =
+  let
+    resUrl = urlFromId listUrl memberNum
+  in
+    getResourceFromUrl auth decoder resUrl tagger
+
+
+getResourceFromUrl :
+  Authorization
+  -> Dec.Decoder data
+  -> ResourceUrl
+  -> ResultTagger (Resource data) msg
+  -> Cmd msg
+getResourceFromUrl auth decoder resUrl tagger =
+  let
+    request = getRequest auth resUrl (decodeResource decoder)
+  in
+    Http.send tagger request
 
 
 -----------------------------------------------------------------------------
