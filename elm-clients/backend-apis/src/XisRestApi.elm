@@ -244,12 +244,12 @@ createSession flags auth =
   , createWorkNote = createResource auth flags.workNoteListUrl encodeWorkNoteData decodeWorkNoteData
 
   ----- RESOURCE DELETERS -----
-  , deleteEpisodeTrackById = deleteEpisodeTrackById flags auth
-  , deleteEpisodeTrackByUrl = deleteEpisodeTrackByUrl flags auth
-  , deletePlayById = deletePlayById flags auth
-  , deletePlayByUrl = deletePlayByUrl flags auth
-  , deleteWorkById = deleteWorkById flags auth
-  , deleteWorkByUrl = deleteWorkByUrl flags auth
+  , deleteEpisodeTrackById = deleteResourceById auth flags.episodeTrackListUrl
+  , deleteEpisodeTrackByUrl = deleteResourceByUrl auth
+  , deletePlayById = deleteResourceById auth flags.playListUrl
+  , deletePlayByUrl = deleteResourceByUrl auth
+  , deleteWorkById = deleteResourceById auth flags.workListUrl
+  , deleteWorkByUrl = deleteResourceByUrl auth
 
   ----- RESOURCE LISTERS -----
   , listClaims = listFilteredResources auth flags.claimListUrl decodeClaimData claimFilterToString
@@ -687,18 +687,6 @@ replaceWork flags auth work resultToMsg =
     Http.send resultToMsg request
 
 
-deleteWorkById : XisRestFlags -> Authorization -> DeleterById msg
-deleteWorkById flags auth id tagger =
-  let url = urlFromId flags.workListUrl id
-  in deleteWorkByUrl flags auth url tagger
-
-
-deleteWorkByUrl : XisRestFlags -> Authorization -> DeleterByUrl msg
-deleteWorkByUrl flags auth url tagger =
-  let request = deleteRequest auth url
-  in Http.send tagger request
-
-
 encodeWorkData : WorkData -> Enc.Value
 encodeWorkData = Enc.object << workDataNVPs
 
@@ -862,18 +850,6 @@ replacePlay flags auth play resultToMsg =
       }
   in
     Http.send resultToMsg request
-
-
-deletePlayById : XisRestFlags -> Authorization -> DeleterById msg
-deletePlayById flags auth id tagger =
-  let url = urlFromId flags.playListUrl id
-  in deletePlayByUrl flags auth url tagger
-
-
-deletePlayByUrl : XisRestFlags -> Authorization -> DeleterByUrl msg
-deletePlayByUrl flags auth url tagger =
-  let request = deleteRequest auth url
-  in Http.send tagger request
 
 
 encodePlayData : PlayData -> Enc.Value
@@ -1623,22 +1599,9 @@ replaceEpisodeTrack flags auth mple resultToMsg =
     Http.send resultToMsg request
 
 
-deleteEpisodeTrackById : XisRestFlags -> Authorization -> DeleterById msg
-deleteEpisodeTrackById flags auth id tagger =
-  let url = urlFromId flags.episodeTrackListUrl id
-  in deleteEpisodeTrackByUrl flags auth url tagger
-
-
-deleteEpisodeTrackByUrl : XisRestFlags -> Authorization -> DeleterByUrl msg
-deleteEpisodeTrackByUrl flags auth url tagger =
-  let request = deleteRequest auth url
-  in Http.send tagger request
-
-
 -----------------------------------------------------------------------------
 -- KMKR TRACKS
 -----------------------------------------------------------------------------
-
 
 type alias Track = Resource TrackData
 
@@ -1665,7 +1628,7 @@ decodeTrackData =
 
 
 -----------------------------------------------------------------------------
--- GENERIC CREATE, LIST, UPDATE
+-- GENERIC CREATE, LIST, DELETE
 -----------------------------------------------------------------------------
 
 createResource :
@@ -1717,6 +1680,18 @@ listFilteredResources auth resourceListUrl decoder filterToStr filters tagger =
       (decodePageOf (decodeResource decoder))
   in
     Http.send tagger request
+
+
+deleteResourceById : Authorization -> ResourceListUrl -> Int -> StringTagger msg -> Cmd msg
+deleteResourceById auth listUrl id tagger =
+  let url = urlFromId listUrl id
+  in deleteResourceByUrl auth url tagger
+
+
+deleteResourceByUrl : Authorization -> ResourceUrl -> StringTagger msg -> Cmd msg
+deleteResourceByUrl auth resUrl tagger =
+  let request = deleteRequest auth resUrl
+  in Http.send tagger request
 
 
 -----------------------------------------------------------------------------
