@@ -38,9 +38,53 @@ singletonPageOf : a -> PageOf a
 singletonPageOf x = PageOf 1 Nothing Nothing [x]
 
 
+type alias Creator data rsrc msg =
+  data -> ResultTagger rsrc msg -> Cmd msg
+
+type alias DeleterByUrl msg =
+  ResourceUrl -> StringTagger msg -> Cmd msg
+
+type alias DeleterById msg =
+  Int -> StringTagger msg -> Cmd msg
+
+type alias FilteringLister filter rsrc msg =
+  List filter -> ResultTagger (PageOf rsrc) msg -> Cmd msg
+
+type alias GetterById rsrc msg =
+  Int -> ResultTagger rsrc msg -> Cmd msg
+
+type alias GetterFromUrl rsrc msg =
+  ResourceUrl -> ResultTagger rsrc msg -> Cmd msg
+
+type alias Lister rsrc msg =
+  ResultTagger (PageOf rsrc) msg -> Cmd msg
+
+type alias ListPager rsrc msg =
+  PageUrl -> ResultTagger (PageOf rsrc) msg -> Cmd msg
+
+type alias Replacer rsrc msg =
+  rsrc -> ResultTagger rsrc msg -> Cmd msg
+
+type alias ResultTagger rsrc msg =
+  Result Http.Error rsrc -> msg
+
+type alias StringTagger msg =
+  Result Http.Error String -> msg
+
+
 -----------------------------------------------------------------------------
 -- UTILITIES
 -----------------------------------------------------------------------------
+
+
+filteredListUrl : String -> List filter -> (filter -> String) -> ResourceListUrl
+filteredListUrl listUrl filters filterToString =
+  let
+    filtersStr = case filters of
+      [] -> ""
+      _ -> "?" ++ (String.join "&" (List.map filterToString filters))
+  in
+    listUrl ++ filtersStr
 
 
 -----------------------------------------------------------------------------
@@ -267,6 +311,127 @@ idFromUrl url =
         Err "Unhandled URL format."
       else
         String.toInt numberStr
+
+
+-----------------------------------------------------------------------------
+-- GENERIC CREATE, LIST, DELETE, GET, REPLACE
+-----------------------------------------------------------------------------
+
+createResource :
+  Authorization
+  -> ResourceListUrl
+  -> (data -> Enc.Value)     -- data encoder
+  -> Dec.Decoder data        -- data decoder
+  -> data
+  -> ResultTagger (Resource data) msg
+  -> Cmd msg
+createResource auth resourceListUrl encoder decoder data tagger =
+  let
+    request = Http.request
+      { method = "POST"
+      , headers = [authenticationHeader auth]
+      , url = resourceListUrl
+      , body = data |> encoder |> Http.jsonBody
+      , expect = Http.expectJson (decodeResource decoder)
+      , timeout = Nothing
+      , withCredentials = False
+      }
+  in
+    Http.send tagger request
+
+
+listResources :
+  Authorization
+  -> ResourceListUrl
+  -> Dec.Decoder data
+  -> ResultTagger (PageOf (Resource data)) msg
+  -> Cmd msg
+listResources auth resourceListUrl decoder tagger =
+  listFilteredResources auth resourceListUrl decoder (always "") [] tagger
+
+
+listFilteredResources :
+  Authorization
+  -> ResourceListUrl
+  -> Dec.Decoder data
+  -> (filter -> String)
+  -> List filter
+  -> ResultTagger (PageOf (Resource data)) msg
+  -> Cmd msg
+listFilteredResources auth resourceListUrl decoder filterToStr filters tagger =
+  let
+    request = getRequest
+      auth
+      (filteredListUrl resourceListUrl filters filterToStr)
+      (decodePageOf (decodeResource decoder))
+  in
+    Http.send tagger request
+
+
+deleteResourceById : Authorization -> ResourceListUrl -> Int -> StringTagger msg -> Cmd msg
+deleteResourceById auth listUrl id tagger =
+  let
+    url = urlFromId listUrl id
+  in
+    deleteResourceByUrl auth url tagger
+
+
+deleteResourceByUrl : Authorization -> ResourceUrl -> StringTagger msg -> Cmd msg
+deleteResourceByUrl auth resUrl tagger =
+  let
+    request = deleteRequest auth resUrl
+  in
+    Http.send tagger request
+
+
+getResourceById :
+  Authorization
+  -> ResourceListUrl
+  -> Dec.Decoder data
+  -> Int
+  -> ResultTagger (Resource data) msg
+  -> Cmd msg
+getResourceById auth listUrl decoder memberNum tagger =
+  let
+    resUrl = urlFromId listUrl memberNum
+  in
+    getResourceFromUrl auth decoder resUrl tagger
+
+
+getResourceFromUrl :
+  Authorization
+  -> Dec.Decoder data
+  -> ResourceUrl
+  -> ResultTagger (Resource data) msg
+  -> Cmd msg
+getResourceFromUrl auth decoder resUrl tagger =
+  let
+    request = getRequest auth resUrl (decodeResource decoder)
+  in
+    Http.send tagger request
+
+
+replaceResource :
+  Authorization
+  -> ResourceListUrl
+  -> (data -> Enc.Value) -- data encoder
+  -> Dec.Decoder data    -- data decoder
+  -> (Resource data)
+  -> ResultTagger (Resource data) msg
+  -> Cmd msg
+replaceResource auth listUrl encoder decoder resource tagger =
+  let
+    request = Http.request
+      { method = "PUT"
+      , headers = [authenticationHeader auth]
+      , url = urlFromId listUrl resource.id
+      , body = resource.data |> encoder |> Http.jsonBody
+      , expect = Http.expectJson (decodeResource decoder)
+      , timeout = Nothing
+      , withCredentials = False
+      }
+  in
+    Http.send tagger request
 
 
 -----------------------------------------------------------------------------

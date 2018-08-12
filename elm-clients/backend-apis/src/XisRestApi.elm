@@ -98,40 +98,6 @@ type alias XisRestFlags =
   }
 
 
-type alias Creator data rsrc msg =
-  data -> ResultTagger rsrc msg -> Cmd msg
-
-type alias DeleterByUrl msg =
-  ResourceUrl -> StringTagger msg -> Cmd msg
-
-type alias DeleterById msg =
-  Int -> StringTagger msg -> Cmd msg
-
-type alias FilteringLister filter rsrc msg =
-  List filter -> ResultTagger (PageOf rsrc) msg -> Cmd msg
-
-type alias GetterById rsrc msg =
-  Int -> ResultTagger rsrc msg -> Cmd msg
-
-type alias GetterFromUrl rsrc msg =
-  ResourceUrl -> ResultTagger rsrc msg -> Cmd msg
-
-type alias Lister rsrc msg =
-  ResultTagger (PageOf rsrc) msg -> Cmd msg
-
-type alias ListPager rsrc msg =
-  PageUrl -> ResultTagger (PageOf rsrc) msg -> Cmd msg
-
-type alias Replacer rsrc msg =
-  rsrc -> ResultTagger rsrc msg -> Cmd msg
-
-type alias ResultTagger rsrc msg =
-  Result Http.Error rsrc -> msg
-
-type alias StringTagger msg =
-  Result Http.Error String -> msg
-
-
 -----------------------------------------------------------------------------
 -- API INSTANCE
 -----------------------------------------------------------------------------
@@ -411,24 +377,24 @@ decodeTaskData =
   decode TaskData
     |> required "anybody_is_eligible" Dec.bool
     |> required "claim_set" (Dec.list (decodeResource decodeClaimData))
-    |> required "creation_date" DRF.decodeCalendarDate
-    |> required "deadline" (Dec.maybe DRF.decodeCalendarDate)
+    |> required "creation_date" decodeCalendarDate
+    |> required "deadline" (Dec.maybe decodeCalendarDate)
     |> required "eligible_claimants" (Dec.list decodeResourceUrl)
     |> required "instructions" Dec.string
     |> required "is_fully_claimed" Dec.bool
-    |> required "max_work" DRF.decodeDuration
+    |> required "max_work" decodeDuration
     |> required "max_workers" Dec.int
     |> required "name_of_likely_worker" (Dec.maybe Dec.string)
     |> required "owner" (Dec.maybe decodeResourceUrl)
     |> required "priority" taskPriorityDecoder
     |> required "reviewer" (Dec.maybe decodeResourceUrl)
-    |> required "scheduled_date" DRF.decodeCalendarDate
+    |> required "scheduled_date" decodeCalendarDate
     |> required "short_desc" Dec.string
     |> required "should_nag" Dec.bool
     |> required "staffing_status" staffingStatusDecoder
     |> required "status" Dec.string
-    |> required "work_duration" (Dec.maybe DRF.decodeDuration)
-    |> required "work_start_time" (Dec.maybe DRF.decodeClockTime)
+    |> required "work_duration" (Dec.maybe decodeDuration)
+    |> required "work_start_time" (Dec.maybe decodeClockTime)
 
 
 taskPriorityDecoder : Dec.Decoder TaskPriority
@@ -532,11 +498,11 @@ claimFilterToString filter =
 decodeClaimData : Dec.Decoder ClaimData
 decodeClaimData =
   decode ClaimData
-    |> required "claimed_duration" DRF.decodeDuration
-    |> required "claimed_start_time" (Dec.maybe DRF.decodeClockTime)
+    |> required "claimed_duration" decodeDuration
+    |> required "claimed_start_time" (Dec.maybe decodeClockTime)
     |> required "claimed_task" decodeResourceUrl
     |> required "claiming_member" decodeResourceUrl
-    |> required "date_verified" (Dec.maybe DRF.decodeCalendarDate)
+    |> required "date_verified" (Dec.maybe decodeCalendarDate)
     |> required "status" decodeClaimStatus
     |> required "work_set" (Dec.list decodeResourceUrl)
 
@@ -640,9 +606,9 @@ workDataNVPs : WorkData -> List (String, Enc.Value)
 workDataNVPs wd =
   [ ( "claim", wd.claim |> Enc.string )
   , ( "witness", wd.witness |> EncX.maybe Enc.string)
-  , ( "work_date", wd.workDate |> DRF.encodeCalendarDate)
-  , ( "work_duration", wd.workDuration |> EncX.maybe DRF.encodeDuration)
-  , ( "work_start_time", wd.workStartTime |> EncX.maybe DRF.encodeClockTime)
+  , ( "work_date", wd.workDate |> encodeCalendarDate)
+  , ( "work_duration", wd.workDuration |> EncX.maybe encodeDuration)
+  , ( "work_start_time", wd.workStartTime |> EncX.maybe encodeClockTime)
   ]
 
 
@@ -650,10 +616,10 @@ decodeWorkData : Dec.Decoder WorkData
 decodeWorkData =
   decode WorkData
     |> required "claim" decodeResourceUrl
-    |> required "witness" (Dec.maybe DRF.decodeResourceUrl)
-    |> required "work_date" DRF.decodeCalendarDate
-    |> required "work_duration" (Dec.maybe DRF.decodeDuration)
-    |> required "work_start_time" (Dec.maybe DRF.decodeClockTime)
+    |> required "witness" (Dec.maybe decodeResourceUrl)
+    |> required "work_date" decodeCalendarDate
+    |> required "work_duration" (Dec.maybe decodeDuration)
+    |> required "work_start_time" (Dec.maybe decodeClockTime)
 
 
 -----------------------------------------------------------------------------
@@ -718,9 +684,9 @@ workNoteDataNVPs wnd =
 decodeWorkNoteData : Dec.Decoder WorkNoteData
 decodeWorkNoteData =
   decode WorkNoteData
-    |> required "author" (Dec.maybe DRF.decodeResourceUrl)
+    |> required "author" (Dec.maybe decodeResourceUrl)
     |> required "content" Dec.string
-    |> required "work" DRF.decodeResourceUrl
+    |> required "work" decodeResourceUrl
     |> required "when_written" (Dec.string |> Dec.andThen (PointInTime.fromString >> DecX.fromResult))
 
 
@@ -781,9 +747,9 @@ encodePlayData = Enc.object << playDataNVPs
 playDataNVPs : PlayData -> List (String, Enc.Value)
 playDataNVPs pd =
   [ ( "playing_member", pd.playingMember |> Enc.string)
-  , ( "play_date", pd.playDate |> DRF.encodeCalendarDate)
-  , ( "play_duration", pd.playDuration |> EncX.maybe DRF.encodeDuration)
-  , ( "play_start_time", pd.playStartTime |> EncX.maybe DRF.encodeClockTime)
+  , ( "play_date", pd.playDate |> encodeCalendarDate)
+  , ( "play_duration", pd.playDuration |> EncX.maybe encodeDuration)
+  , ( "play_start_time", pd.playStartTime |> EncX.maybe encodeClockTime)
   ]
 
 
@@ -791,9 +757,9 @@ decodePlayData : Dec.Decoder PlayData
 decodePlayData =
   decode PlayData
     |> required "playing_member" decodeResourceUrl
-    |> required "play_date" DRF.decodeCalendarDate
-    |> required "play_duration" (Dec.maybe DRF.decodeDuration)
-    |> required "play_start_time" (Dec.maybe DRF.decodeClockTime)
+    |> required "play_date" decodeCalendarDate
+    |> required "play_duration" (Dec.maybe decodeDuration)
+    |> required "play_start_time" (Dec.maybe decodeClockTime)
 
 
 -----------------------------------------------------------------------------
@@ -912,8 +878,8 @@ type alias TimeBlockData =
 decodeTimeBlockData : Dec.Decoder TimeBlockData
 decodeTimeBlockData =
   decode TimeBlockData
-    |> required "start_time" DRF.decodeClockTime
-    |> required "duration" DRF.decodeDuration
+    |> required "start_time" decodeClockTime
+    |> required "duration" decodeDuration
     |> required "first" Dec.bool
     |> required "second" Dec.bool
     |> required "third" Dec.bool
@@ -1018,8 +984,8 @@ decodeMembershipData : Dec.Decoder MembershipData
 decodeMembershipData =
   decode MembershipData
     |> required "member" Dec.string
-    |> required "start_date" DRF.decodeCalendarDate
-    |> required "end_date" DRF.decodeCalendarDate
+    |> required "start_date" decodeCalendarDate
+    |> required "end_date" decodeCalendarDate
     |> required "sale" (Dec.maybe Dec.int)
     |> required "sale_price" Dec.string
     |> required "ctrlid" Dec.string
@@ -1099,7 +1065,7 @@ encodeVendLogData = Enc.object << vendLogDataNVPs
 vendLogDataNVPs : VendLogData -> List (String, Enc.Value)
 vendLogDataNVPs log =
   [ ( "who_for", log.whoFor |> Enc.string)
-  , ( "when", log.when |> DRF.encodePointInTime )
+  , ( "when", log.when |> encodePointInTime )
   , ( "product", log.product |> Enc.string )
   ]
 
@@ -1108,7 +1074,7 @@ decodeVendLogData : Dec.Decoder VendLogData
 decodeVendLogData =
   decode VendLogData
     |> required "who_for" decodeResourceUrl
-    |> required "when" DRF.decodePointInTime
+    |> required "when" decodePointInTime
     |> required "product" decodeResourceUrl
 
 
@@ -1144,7 +1110,7 @@ encodeVisitEventDataOut = Enc.object << visitEventDataNVPs
 visitEventDataNVPs : VisitEventDataOut -> List (String, Enc.Value)
 visitEventDataNVPs ved =
   [ ( "who", ved.who |> Enc.string)
-  , ( "when", ved.when |> DRF.encodePointInTime )
+  , ( "when", ved.when |> encodePointInTime )
   , ( "event_type", ved.eventType |> eventTypeString |> Enc.string )
   , ( "reason", ved.reason |> Maybe.map eventReasonString |> EncX.maybe Enc.string )
   , ( "method", ved.method |> eventMethodString |> Enc.string )
@@ -1251,7 +1217,7 @@ decodeVisitEventDataIn : Dec.Decoder VisitEventDataIn
 decodeVisitEventDataIn =
   decode VisitEventDataIn
     |> required "who_embed" (decodeResource decodeMemberData)
-    |> required "when" DRF.decodePointInTime
+    |> required "when" decodePointInTime
     |> required "event_type" decodeVisitEventType
     |> required "reason" (Dec.maybe decodeVisitEventReason)
     |> required "method" decodeVisitEventMethod
@@ -1299,15 +1265,6 @@ decodeVisitEventReason =
 -- UTILITIES
 -----------------------------------------------------------------------------
 
-filteredListUrl : String -> List filter -> (filter -> String) -> ResourceListUrl
-filteredListUrl listUrl filters filterToString =
-  let
-    filtersStr = case filters of
-      [] -> ""
-      _ -> "?" ++ (String.join "&" (List.map filterToString filters))
-  in
-    listUrl ++ filtersStr
-
 
 djangoizeId : String -> String
 djangoizeId rawId =
@@ -1346,7 +1303,7 @@ decodeShowData : Dec.Decoder ShowData
 decodeShowData =
   decode ShowData
     |> required "title" Dec.string
-    |> required "duration" DRF.decodeDuration
+    |> required "duration" decodeDuration
     |> required "description" Dec.string
     |> required "active" Dec.bool
     |> optional "hosts" (Dec.list Dec.string) []
@@ -1370,17 +1327,17 @@ type alias BroadcastData =
 decodeBroadcastData : Dec.Decoder BroadcastData
 decodeBroadcastData =
   Dec.map4 BroadcastData
-    (Dec.field "episode" DRF.decodeResourceUrl)
-    (Dec.field "date" DRF.decodeCalendarDate)
-    (Dec.field "host_checked_in" (Dec.maybe DRF.decodeClockTime))
+    (Dec.field "episode" decodeResourceUrl)
+    (Dec.field "date" decodeCalendarDate)
+    (Dec.field "host_checked_in" (Dec.maybe decodeClockTime))
     (Dec.field "type" Dec.string)
 
 
 broadcastDataNVPs : BroadcastData -> List (String, Enc.Value)
 broadcastDataNVPs bc =
   [ ( "episode", bc.episode |> Enc.string )
-  , ( "date", bc.date |> DRF.encodeCalendarDate )
-  , ( "host_checked_in", bc.hostCheckedIn |> EncX.maybe DRF.encodeClockTime )
+  , ( "date", bc.date |> encodeCalendarDate )
+  , ( "host_checked_in", bc.hostCheckedIn |> EncX.maybe encodeClockTime )
   , ( "type", bc.theType |> Enc.string)
   ]
 
@@ -1418,8 +1375,8 @@ episodeFilterToString filter =
 decodeEpisodeData : Dec.Decoder EpisodeData
 decodeEpisodeData =
   Dec.map4 EpisodeData
-    (Dec.field "show" DRF.decodeResourceUrl)
-    (Dec.field "first_broadcast" DRF.decodeCalendarDate)
+    (Dec.field "show" decodeResourceUrl)
+    (Dec.field "first_broadcast" decodeCalendarDate)
     (Dec.field "title" Dec.string)
     (Dec.field "tracks_embed" (Dec.list (decodeResource decodeEpisodeTrackData)))
 
@@ -1427,7 +1384,7 @@ decodeEpisodeData =
 episodeDataNVPs : EpisodeData -> List (String, Enc.Value)
 episodeDataNVPs ep =
   [ ( "show", ep.show |> Enc.string )
-  , ( "first_broadcast", ep.firstBroadcast |> DRF.encodeCalendarDate )
+  , ( "first_broadcast", ep.firstBroadcast |> encodeCalendarDate )
   , ( "title", ep.title |> Enc.string )
   ]
 
@@ -1454,7 +1411,7 @@ type alias EpisodeTrackData =
 decodeEpisodeTrackData : Dec.Decoder EpisodeTrackData
 decodeEpisodeTrackData =
   Dec.map5 EpisodeTrackData
-    (Dec.field "episode" DRF.decodeResourceUrl)
+    (Dec.field "episode" decodeResourceUrl)
     (Dec.field "sequence" Dec.int)
     (Dec.field "artist" Dec.string)
     (Dec.field "title" Dec.string)
@@ -1501,127 +1458,6 @@ decodeTrackData =
     (Dec.field "title" Dec.string)
     (Dec.field "track_type" Dec.int)
     (Dec.field "remaining_seconds" Dec.float)
-
-
------------------------------------------------------------------------------
--- GENERIC CREATE, LIST, DELETE, GET, REPLACE
------------------------------------------------------------------------------
-
-createResource :
-  Authorization
-  -> ResourceListUrl
-  -> (data -> Enc.Value)     -- data encoder
-  -> Dec.Decoder data        -- data decoder
-  -> data
-  -> ResultTagger (Resource data) msg
-  -> Cmd msg
-createResource auth resourceListUrl encoder decoder data tagger =
-  let
-    request = Http.request
-      { method = "POST"
-      , headers = [authenticationHeader auth]
-      , url = resourceListUrl
-      , body = data |> encoder |> Http.jsonBody
-      , expect = Http.expectJson (DRF.decodeResource decoder)
-      , timeout = Nothing
-      , withCredentials = False
-      }
-  in
-    Http.send tagger request
-
-
-listResources :
-  Authorization
-  -> ResourceListUrl
-  -> Dec.Decoder data
-  -> ResultTagger (PageOf (Resource data)) msg
-  -> Cmd msg
-listResources auth resourceListUrl decoder tagger =
-  listFilteredResources auth resourceListUrl decoder (always "") [] tagger
-
-
-listFilteredResources :
-  Authorization
-  -> ResourceListUrl
-  -> Dec.Decoder data
-  -> (filter -> String)
-  -> List filter
-  -> ResultTagger (PageOf (Resource data)) msg
-  -> Cmd msg
-listFilteredResources auth resourceListUrl decoder filterToStr filters tagger =
-  let
-    request = getRequest
-      auth
-      (filteredListUrl resourceListUrl filters filterToStr)
-      (decodePageOf (decodeResource decoder))
-  in
-    Http.send tagger request
-
-
-deleteResourceById : Authorization -> ResourceListUrl -> Int -> StringTagger msg -> Cmd msg
-deleteResourceById auth listUrl id tagger =
-  let
-    url = urlFromId listUrl id
-  in
-    deleteResourceByUrl auth url tagger
-
-
-deleteResourceByUrl : Authorization -> ResourceUrl -> StringTagger msg -> Cmd msg
-deleteResourceByUrl auth resUrl tagger =
-  let
-    request = deleteRequest auth resUrl
-  in
-    Http.send tagger request
-
-
-getResourceById :
-  Authorization
-  -> ResourceListUrl
-  -> Dec.Decoder data
-  -> Int
-  -> ResultTagger (Resource data) msg
-  -> Cmd msg
-getResourceById auth listUrl decoder memberNum tagger =
-  let
-    resUrl = urlFromId listUrl memberNum
-  in
-    getResourceFromUrl auth decoder resUrl tagger
-
-
-getResourceFromUrl :
-  Authorization
-  -> Dec.Decoder data
-  -> ResourceUrl
-  -> ResultTagger (Resource data) msg
-  -> Cmd msg
-getResourceFromUrl auth decoder resUrl tagger =
-  let
-    request = getRequest auth resUrl (decodeResource decoder)
-  in
-    Http.send tagger request
-
-
-replaceResource :
-  Authorization
-  -> ResourceListUrl
-  -> (data -> Enc.Value) -- data encoder
-  -> Dec.Decoder data    -- data decoder
-  -> (Resource data)
-  -> ResultTagger (Resource data) msg
-  -> Cmd msg
-replaceResource auth listUrl encoder decoder resource tagger =
-  let
-    request = Http.request
-      { method = "PUT"
-      , headers = [authenticationHeader auth]
-      , url = urlFromId listUrl resource.id
-      , body = resource.data |> encoder |> Http.jsonBody
-      , expect = Http.expectJson (decodeResource decoder)
-      , timeout = Nothing
-      , withCredentials = False
-      }
-  in
-    Http.send tagger request
 
 
 -----------------------------------------------------------------------------
