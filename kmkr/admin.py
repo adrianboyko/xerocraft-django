@@ -3,7 +3,8 @@
 
 # Third-Party
 from django.contrib import admin
-from django.db.models import Sum, Count
+from django.db.models import Sum, Count, F
+from django.utils import timezone
 from reversion.admin import VersionAdmin
 
 # Local
@@ -109,23 +110,30 @@ class UnderwritingSpotsAdmin(VersionAdmin):
     def transaction_number(self, obj: UnderwritingSpots) -> str:
         return str(obj.sale.pk)
 
-    raw_id_fields = ['holds_donation']
+    def _qty_aired(self, obj: UnderwritingSpots) -> int:
+        return obj.qty_aired
+    _qty_aired.short_description = "#aired"
+
+    def _qty_sold(self, obj: UnderwritingSpots) -> int:
+        return obj.qty_sold
+    _qty_sold.short_description = "#sold"
 
     list_display = [
         'pk',
         'underwriter',
-        'sale_price', 'qty_sold',
-        'start_date', 'end_date',
+        'sale_price',
+        '_qty_sold',
+        '_qty_aired',
+        'start_date',
+        'end_date',
         'spot_seconds',
-        'slot',
-        'holds_donation'
+        'slot'
     ]
 
     list_display_links = ['pk']
 
     fields = [
         ('transaction_number', 'underwriter'),
-        'holds_donation',
         ('sale_price', 'qty_sold'),
         ('start_date', 'end_date'),
         ('spot_seconds', 'slot', 'track_id'),
@@ -148,13 +156,52 @@ class UnderwritingSpotsAdmin(VersionAdmin):
 
     readonly_fields = ['transaction_number', 'underwriter']
 
-    list_filter = ['slot']
+    class ActiveFilter(admin.SimpleListFilter):
+        title = "delivery status"
+        parameter_name = "delivered"
+
+        def lookups(self, request, model_admin):
+            return (
+                ('yes', "Fully Delivered"),
+                ('no', "Spots Left To Air"),
+            )
+
+        def annotate_qty_delivered(self, queryset):
+            return queryset.annotate(
+                qty_delivered=Count('underwritinglogentry')
+            )
+
+        def queryset(self, request, queryset):
+            qs = self.annotate_qty_delivered(queryset)
+            if self.value() == 'yes':
+                return qs.filter(qty_delivered__gte=F('qty_sold'))
+            if self.value() == 'no':
+                return qs.filter(qty_delivered__lt=F('qty_sold'))
+
+    class DateRangeFilter(admin.SimpleListFilter):
+        title = "delivery range"
+        parameter_name = "range"
+
+        def lookups(self, request, model_admin):
+            return (
+                ('past', "Past"),
+                ('current', "Current"),
+                ('future', "Future"),
+            )
+
+        def queryset(self, request, queryset):
+            d = timezone.now().date()
+            if self.value() == 'past':
+                return queryset.filter(end_date__lt=d)
+            if self.value() == 'future':
+                return queryset.filter(start_date__gt=d)
+            if self.value() == 'current':
+                return queryset.filter(start_date__lte=d, end_date__gte=d)
+
+    list_filter = [ActiveFilter, DateRangeFilter, 'slot']
 
     search_fields = [
         'sale__payer_name',
-        'holds_donation__auth_user__first_name',
-        'holds_donation__auth_user__last_name',
-        'holds_donation__auth_user__username'
     ]
 
     def has_add_permission(self, request):
@@ -181,7 +228,6 @@ class UnderwritingSpotsAdmin(VersionAdmin):
 @Sellable(UnderwritingSpots)
 class UnderwritingSpots_LineItem(admin.StackedInline):
     fields = [
-        'holds_donation',
         ('sale_price', 'qty_sold'),
         ('start_date', 'end_date'),
         'spot_seconds',
@@ -191,7 +237,6 @@ class UnderwritingSpots_LineItem(admin.StackedInline):
         'custom_details'
     ]
     extra = 0
-    raw_id_fields = ['holds_donation']
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =

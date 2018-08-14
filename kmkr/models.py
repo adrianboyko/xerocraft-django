@@ -157,11 +157,8 @@ class ShowTime(models.Model):
         return True if day_match and time_match else False
 
 
+# TODO: @register_journaler()  ... Class must inherit from Journaler.
 class UnderwritingSpots (SaleLineItem):
-
-    holds_donation = models.ForeignKey(Member, null=True, blank=True,
-        on_delete=models.PROTECT,
-        help_text="Who currently has the donation in hand. Blank if already deposited or submitted to treasurer.")
 
     start_date = models.DateField(null=False, blank=False, default=date.today,
         help_text="The first day on which a spot can run.")
@@ -197,6 +194,14 @@ class UnderwritingSpots (SaleLineItem):
 
     custom_details = models.TextField(max_length=1024, blank=True,
         help_text="Specify details if slot is CUSTOM.")
+
+    @property
+    def is_fully_delivered(self) -> bool:
+        return self.underwritinglogentry_set.count() >= self.qty_sold
+
+    @property
+    def qty_aired(self) -> int:
+        return self.underwritinglogentry_set.count()
 
     def clean(self) -> None:
 
