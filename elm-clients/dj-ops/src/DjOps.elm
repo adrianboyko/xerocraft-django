@@ -783,7 +783,7 @@ stackedPair name1 val1 name2 val2 =
       , "font-size"=>"14pt"
       , "width" => "375px"
       , "text-overflow" => "ellipsis"
-      , "overflow-x" => "hidden"
+      , "overflow" => "hidden"
       ]
   in
     div [theStyle]
