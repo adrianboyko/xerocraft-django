@@ -94,6 +94,7 @@ def now_playing(request) -> JsonResponse:
             }
         )
 
+        # TODO: This needs to be rewritten to use Broadcast.host_checked_in
         currentshow = Show.current_show()
         if currentshow is None:
             # Only create the play log entry if there's no show scheduled for this time.
