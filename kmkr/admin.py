@@ -361,3 +361,5 @@ class BroadcastAdmin(admin.ModelAdmin):
         'host_checked_in',
         'type'
     ]
+
+    raw_id_fields = ['episode']
