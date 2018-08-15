@@ -781,14 +781,15 @@ stackedPair name1 val1 name2 val2 =
       [ "display"=>"inline-block"
       , "vertical-align"=>"bottom"
       , "font-size"=>"14pt"
+      , "width" => "375px"
+      , "text-overflow" => "ellipsis"
+      , "overflow" => "hidden"
       ]
   in
     div [theStyle]
-    [ span [style ["margin-top"=>"4px"]]
-      [ colonize name1, italicize val1
-      , br [] []
-      , colonize name2, italicize val2
-      ]
+    [ colonize name1, italicize val1
+    , br [] []
+    , colonize name2, italicize val2
     ]
 
 dashes = "--"
@@ -804,8 +805,6 @@ layout_header_col_trackInfo model =
       style
       [ "width"=>"450px"
       , "white-space"=>"nowrap"
-      , "overflow"=>"hidden"
-      , "text-overflow"=>"ellipsis"
       , "margin-right"=>"50px"
       ]
   in div [divStyle]
@@ -838,7 +837,7 @@ layout_header_col_showInfo model =
     showLabel = "Show"
     hostLabel = "Host"
     blankInfo = [timeRemaining dashes dashes, stackedPair showLabel dots hostLabel dots]
-  in div [style ["width"=>"450px", "white-space"=>"nowrap", "overflow"=>"hidden", "text-overflow"=>"ellipsis"]]
+  in div [style ["width"=>"450px", "white-space"=>"nowrap"]]
     (
     case model.nowPlaying of
       Just {show} ->
