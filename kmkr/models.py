@@ -345,6 +345,9 @@ class Broadcast(models.Model):
         if self.host_checked_in is not None and self.production_method != ShowTime.PRODUCTION_LIVE:
             raise ValidationError("Host doesn't need to check in if broadcast is not live.")
 
+    class Meta:
+        unique_together = ['episode', 'date', 'type']
+
 
 # Since this table is scratch space, all metadata fields including duration are strings. Fields like
 # duration will be changed into more precise types when data migrates from this table to PlayLogEntry.
