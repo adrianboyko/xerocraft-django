@@ -9,7 +9,7 @@ module XisRestApi
     , setWorksWitness
     --------------------
     , AuthenticationResult
-    , Broadcast, BroadcastData
+    , Broadcast, BroadcastData, BroadcastFilter(..), BroadcastType(..)
     , Claim, ClaimData
     , ClaimStatus (..)
     , ClaimFilter (..)
@@ -136,6 +136,7 @@ type alias Session msg =
   , deleteWorkByUrl : DeleterByUrl msg
 
   ----- RESOURCE LISTERS -----
+  , listBroadcasts : FilteringLister BroadcastFilter Broadcast msg
   , listClaims : FilteringLister ClaimFilter Claim msg
   , listDiscoveryMethods : Lister DiscoveryMethod msg
   , listEpisodes : FilteringLister EpisodeFilter Episode msg
@@ -218,6 +219,7 @@ createSession flags auth =
   , deleteWorkByUrl = deleteResourceByUrl auth
 
   ----- RESOURCE LISTERS -----
+  , listBroadcasts = listFilteredResources auth flags.broadcastListUrl decodeBroadcastData broadcastFilterToString
   , listClaims = listFilteredResources auth flags.claimListUrl decodeClaimData claimFilterToString
   , listDiscoveryMethods = listResources auth flags.discoveryMethodListUrl decodeDiscoveryMethodData
   , listEpisodes = listFilteredResources auth flags.episodeListUrl decodeEpisodeData episodeFilterToString
@@ -1320,8 +1322,13 @@ type alias BroadcastData =
   { episode : ResourceUrl
   , date : CalendarDate
   , hostCheckedIn : Maybe ClockTime
-  , theType : String  -- TODO: Make this a type instead of using "1ST" and "RPT" strings.
+  , theType : BroadcastType
   }
+
+
+type BroadcastType
+ = FirstBroadcast
+ | RepeatBroadcast
 
 
 decodeBroadcastData : Dec.Decoder BroadcastData
@@ -1330,7 +1337,7 @@ decodeBroadcastData =
     (Dec.field "episode" decodeResourceUrl)
     (Dec.field "date" decodeCalendarDate)
     (Dec.field "host_checked_in" (Dec.maybe decodeClockTime))
-    (Dec.field "type" Dec.string)
+    (Dec.field "type" broadcastTypeDecoder)
 
 
 broadcastDataNVPs : BroadcastData -> List (String, Enc.Value)
@@ -1338,13 +1345,47 @@ broadcastDataNVPs bc =
   [ ( "episode", bc.episode |> Enc.string )
   , ( "date", bc.date |> encodeCalendarDate )
   , ( "host_checked_in", bc.hostCheckedIn |> EncX.maybe encodeClockTime )
-  , ( "type", bc.theType |> Enc.string)
+  , ( "type", bc.theType |> encodeBroadcastType)
   ]
 
 
 encodeBroadcastData : BroadcastData -> Enc.Value
 encodeBroadcastData = Enc.object << broadcastDataNVPs
 
+
+broadcastTypeDecoder : Dec.Decoder BroadcastType
+broadcastTypeDecoder =
+  Dec.string |> Dec.andThen
+    ( \str ->
+      case str of
+        "1ST" -> Dec.succeed FirstBroadcast
+        "RPT" -> Dec.succeed RepeatBroadcast
+        other -> Dec.fail <| "Unknown broadcast type: " ++ other
+    )
+
+
+broadcastTypeToString : BroadcastType -> String
+broadcastTypeToString x =
+  case x of
+    FirstBroadcast -> "1ST"
+    RepeatBroadcast -> "RPT"
+
+
+encodeBroadcastType : BroadcastType -> Enc.Value
+encodeBroadcastType theType =
+  broadcastTypeToString theType |> Enc.string
+
+
+type BroadcastFilter
+  = BroadcastsWithEpisodeIdEqualTo Int
+  | BroadcastsWithTypeEqualTo BroadcastType
+
+
+broadcastFilterToString : BroadcastFilter -> String
+broadcastFilterToString filter =
+  case filter of
+    BroadcastsWithEpisodeIdEqualTo id -> "episode=" ++ toString id
+    BroadcastsWithTypeEqualTo theType -> "type=" ++ broadcastTypeToString theType
 
 ------------------
 

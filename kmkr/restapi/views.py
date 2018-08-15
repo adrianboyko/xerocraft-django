@@ -18,7 +18,7 @@ class BroadcastViewSet(viewsets.ModelViewSet):
     """
     queryset = mod.Broadcast.objects.all().order_by('pk')
     serializer_class = ser.BroadcastSerializer
-    filter_fields = {}
+    filter_fields = {'episode', 'type'}
     ordering_fields = {}
     permission_classes = [DjangoModelPermissionsOrAnonReadOnly]
     authentication_classes = [BasicAuthentication]
