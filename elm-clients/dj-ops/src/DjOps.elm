@@ -143,6 +143,7 @@ type alias Model =
   , selectedShow : Maybe XisApi.Show
   , selectedShowDate : Maybe Date
   , episode : Maybe XisApi.Episode  -- This is derived from selectedShow + selectedShowDate.
+  , broadcast : Maybe XisApi.Broadcast  -- If Just x, the DJ has indicated that they're ready to begin their show.
   , datePicker : DatePicker.DatePicker
   , member : Maybe XisApi.Member
   , nowPlaying : Maybe XisApi.NowPlaying
@@ -172,6 +173,7 @@ init flags =
       , selectedShow = Nothing
       , selectedShowDate = Nothing
       , episode = Nothing
+      , broadcast = Nothing
       , datePicker = datePicker
       , member = Nothing
       , nowPlaying = Nothing
@@ -203,14 +205,13 @@ type
   | Authenticate_Result (Result Http.Error XisApi.AuthenticationResult)
   | BeginBroadcast_Clicked
   | BroadcastCheckInUpdate_Result (Result Http.Error XisApi.Broadcast)
+  | BroadcastExists_Result (Result Http.Error (DRF.PageOf XisApi.Broadcast))
   | CheckNowPlaying
   | EpisodeCreate_Result XisApi.Show Date (Result Http.Error XisApi.Episode)
   | EpisodeList_Result XisApi.Show Date (Result Http.Error (DRF.PageOf XisApi.Episode))
   | EpisodeTrackDelete_Result Int (Result Http.Error String)
   | EpisodeTrackUpsert_Result (Result Http.Error XisApi.EpisodeTrack)
-  | FetchTracksTabData
   | KeyDown KeyCode
-  | KeyDown_Idle KeyCode
   | Login_Clicked
   | Mdl (Material.Msg Msg)
   | NowPlaying_Result (Result Http.Error XisApi.NowPlaying)
@@ -220,9 +221,6 @@ type
   | SelectTab Int
   | SetDatePicker DatePicker.Msg
   | Tick Time
-  | Tick_Idle
-  | Tick_NowPlaying
-  | Tick_SaveTracksTab
   | TrackFieldUpdate Int TracksTabEntryColumn String  -- row, col, value
   | UseridInput String
 
@@ -267,7 +265,7 @@ update action model =
               { episode = model.xis.episodeUrl ep.id
               , date = CD.fromPointInTime model.currTime
               , hostCheckedIn = Just (CT.fromPointInTime model.currTime)
-              , theType = "1ST"
+              , theType = XisApi.FirstBroadcast
               }
             createCmd = model.xis.createBroadcast bcData BroadcastCheckInUpdate_Result
           in
@@ -280,22 +278,29 @@ update action model =
             (model, Cmd.none)
 
     BroadcastCheckInUpdate_Result (Ok broadcast) ->
-      -- TODO: Record the broadcast?
-      ( model, Cmd.none)
+      ( {model | broadcast = Just broadcast}, Cmd.none)
+
+    BroadcastExists_Result (Ok {count, results}) ->
+      case results of
+        [] ->
+          -- Does not exist (which is is OK)
+          ({model | broadcast = Nothing}, Cmd.none)
+        bc :: [] ->
+          -- Exactly one exists (which is OK)
+          ({model | broadcast = Just bc}, Cmd.none )
+        _ ->
+          -- Too many exist (which is BAD)
+          ( {model | errMsgs = ["Multiple matching broadcast records.", "Please contact Admin.", toString results]}
+          , Cmd.none
+          )
+
 
     CheckNowPlaying ->
       ( model
       , model.xis.nowPlaying NowPlaying_Result
       )
 
-    FetchTracksTabData ->
-      fetchTracksTabData model
-
     KeyDown code ->
-      (model, Cmd.none)
-        |> UpdateX.andThen update (KeyDown_Idle code)
-
-    KeyDown_Idle code ->
       ( {model | keyboardIdleTime = 0 }, Cmd.none )
 
     Login_Clicked ->
@@ -303,6 +308,38 @@ update action model =
         (Just id, Just pw) ->
           (model, model.xis.authenticate id pw Authenticate_Result)
         _ ->
+          (model, Cmd.none)
+
+    EpisodeCreate_Result selShow selShowDate (Ok episode) ->
+      let
+        msg = EpisodeList_Result selShow selShowDate <| Ok <| DRF.singletonPageOf episode
+      in
+        ( { model | episode = Just episode}, Cmd.none)
+          |> UpdateX.andThen update msg
+
+    EpisodeList_Result selShow selShowDate (Ok {count, results}) ->
+      if count == 1 then
+        let
+          episode = head results
+          tracksForTab = episode |> Maybe.map (.data >> .tracks) |> withDefault []
+        in
+          ({model | episode = episode }, Cmd.none)
+            |> updateModel (populateTracksTabData tracksForTab)
+            |> fetchBroadcastData
+
+      else if count == 0 then
+        let
+          selShowUrl = model.xis.showUrl selShow.id
+          epData = XisApi.EpisodeData selShowUrl (CD.fromDate selShowDate) "" []
+          tagger = EpisodeCreate_Result selShow selShowDate
+          createCmd = model.xis.createEpisode epData tagger
+        in
+          (model, createCmd)
+      else
+        -- This should never happen because of "unique together" constraint in database.
+        let
+          dummy = results |> Debug.log ">1 Episode"
+        in
           (model, Cmd.none)
 
     EpisodeTrackDelete_Result row (Ok s) ->
@@ -359,9 +396,8 @@ update action model =
       ({model | password = Just s}, Cmd.none)
 
     SelectTab k ->
-      saveTracksTab
-        { model | selectedTab = k }
-        0  -- Save tracks tab IMMEDIATELY!
+      ({ model | selectedTab = k }, Cmd.none)
+        |> saveTracksTab 0  -- Save tracks tab IMMEDIATELY!
 
     SetDatePicker msg ->
       let
@@ -377,37 +413,7 @@ update action model =
             ( { model | selectedShowDate = d, datePicker = newDatePicker }
             , Cmd.map SetDatePicker datePickerCmd
             )
-            |> UpdateX.andThen update FetchTracksTabData
-
-    EpisodeCreate_Result selShow selShowDate (Ok episode) ->
-      let
-        msg = EpisodeList_Result selShow selShowDate <| Ok <| DRF.singletonPageOf episode
-      in
-        ( { model | episode = Just episode}, Cmd.none)
-          |> UpdateX.andThen update msg
-
-    EpisodeList_Result selShow selShowDate (Ok {count, results}) ->
-      if count == 1 then
-        let
-          episode = head results
-          tracksForTab = episode |> Maybe.map (.data >> .tracks) |> withDefault []
-        in
-          ({model | episode = episode }, Cmd.none)
-            |> updateModel (populateTracksTabData tracksForTab)
-      else if count == 0 then
-        let
-          selShowUrl = model.xis.showUrl selShow.id
-          epData = XisApi.EpisodeData selShowUrl (CD.fromDate selShowDate) "" []
-          tagger = EpisodeCreate_Result selShow selShowDate
-          createCmd = model.xis.createEpisode epData tagger
-        in
-          (model, createCmd)
-      else
-        -- This should never happen because of "unique together" constraint in database.
-        let
-          dummy = results |> Debug.log ">1 Episode"
-        in
-          (model, Cmd.none)
+            |> fetchTracksTabData
 
     ShowList_Result (Ok {results}) ->
       ({model | shows=results}, Cmd.none)
@@ -422,7 +428,7 @@ update action model =
             show = ListX.find (\s->s.id==id) model.shows
           in
             ({ model | selectedShow = show}, Cmd.none)
-              |> UpdateX.andThen update FetchTracksTabData
+              |> fetchTracksTabData
         Nothing ->
           let
             -- Should be impossible to get here since ids in question are integer PKs from database.
@@ -432,33 +438,10 @@ update action model =
 
     Tick newTime ->
       ({ model | currTime = newTime }, Cmd.none)
-        |> UpdateX.andThen update Tick_NowPlaying
-        |> UpdateX.andThen update Tick_Idle
-        |> UpdateX.andThen update Tick_SaveTracksTab
+        |> tick_NowPlaying
+        |> tick_Idle
+        |> tick_SaveTracksTab
 
-    Tick_Idle ->
-      ( { model | keyboardIdleTime = model.keyboardIdleTime + 1 }
-      , Cmd.none
-      )
-
-    Tick_NowPlaying ->
-      case model.nowPlaying of
-        Just np ->
-          case np.track of
-            Just t ->
-              let
-                updatedTrack = {t | remainingSeconds = t.remainingSeconds - 1}
-                updatedNowPlaying = {np | track = Just updatedTrack}
-                updatedModel = {model | nowPlaying = Just updatedNowPlaying}
-              in
-                (updatedModel, Cmd.none)
-            Nothing ->
-                (model, Cmd.none)
-        Nothing ->
-          (model, Cmd.none)
-
-    Tick_SaveTracksTab ->
-      saveTracksTab model 5  -- Save tracks tab if keyboard has been idle for 5 seconds.
 
     TrackFieldUpdate row col val ->
       let
@@ -495,6 +478,9 @@ update action model =
     BroadcastCheckInUpdate_Result  (Err e) ->
       ({model | errMsgs=[toString e]}, Cmd.none)
 
+    BroadcastExists_Result (Err e) ->
+      ({model | errMsgs=[toString e]}, Cmd.none)
+
     EpisodeCreate_Result show date (Err e) ->
       let
         dummy = toString e |> Debug.log "EpisodeCreate_Result"
@@ -508,25 +494,24 @@ update action model =
         (model, Cmd.none)
 
 
--- This is used to maintain a "<digit><digit>:<digit><digit>" mask on an input field.
-mmss_mask : String -> String
-mmss_mask val =
-  let
-    trimLeftZeros = Regex.replace (Regex.AtMost 1) (regex "^0*") (always "")
-    digits = val |> String.trim |> StringX.replace ":" "" |> trimLeftZeros |> String.left 4
-    len = String.length digits
-    padded = String.padLeft 4 '0' digits
-  in
-    if len == 0 then
-      ""
-    else
-      StringX.insertAt ":" -2 padded
+fetchBroadcastData : (Model, Cmd Msg) -> (Model, Cmd Msg)
+fetchBroadcastData (model, cmd) =
+  case (model.episode) of
+    Just ep ->
+      let
+        epiFilter = XisApi.BroadcastsWithEpisodeIdEqualTo ep.id
+        typeFilter = XisApi.BroadcastsWithTypeEqualTo XisApi.FirstBroadcast
+        tagger = BroadcastExists_Result
+        fetchCmd = model.xis.listBroadcasts [epiFilter, typeFilter] tagger
+      in
+        (model, cmd) |> addCmd fetchCmd
+    Nothing ->
+      (model, cmd)
 
 
-fetchTracksTabData : Model -> (Model, Cmd Msg)
-fetchTracksTabData model =
+fetchTracksTabData : (Model, Cmd Msg) -> (Model, Cmd Msg)
+fetchTracksTabData (model, cmd) =
   case (model.selectedShow, model.selectedShowDate) of
-
     (Just selShow, Just selShowDate) ->
       let
         showFilter = XisApi.EpisodeShowEquals selShow.id
@@ -536,7 +521,7 @@ fetchTracksTabData model =
       in
         (model, fetchCmd)
     _ ->
-      (model, Cmd.none)
+      (model, cmd)
 
 
 populateTracksTabData : List XisApi.EpisodeTrack -> Model -> Model
@@ -565,8 +550,8 @@ populateTracksTabData_Helper model plesRemaining =
         populateTracksTabData_Helper newModel ples
 
 
-saveTracksTab : Model -> Int -> (Model, Cmd Msg)
-saveTracksTab model minIdle =
+saveTracksTab : Int -> (Model, Cmd Msg) -> (Model, Cmd Msg)
+saveTracksTab minIdle (model, cmd) =
   let
     reducer (row, tte) (model, cmd) =
       if tracksTabEntryIsDirty tte then
@@ -585,7 +570,7 @@ saveTracksTab model minIdle =
     if model.keyboardIdleTime >= minIdle then
       List.foldl
         reducer
-        (model, Cmd.none)
+        (model, cmd)
         (Array.toIndexedList model.tracksTabEntries)
     else
       (model, Cmd.none)
@@ -599,6 +584,35 @@ deleteEpisodeTrack model row tte =
     Nothing ->
       -- Not yet saved, so nothing to delete.
       Cmd.none
+
+
+tick_Idle : (Model, Cmd Msg) -> (Model, Cmd Msg)
+tick_Idle (model, cmd) =
+  ( { model | keyboardIdleTime = model.keyboardIdleTime + 1 }
+  , cmd
+  )
+
+tick_NowPlaying : (Model, Cmd Msg) -> (Model, Cmd Msg)
+tick_NowPlaying (model, cmd) =
+  case model.nowPlaying of
+    Just np ->
+      case np.track of
+        Just t ->
+          let
+            updatedTrack = {t | remainingSeconds = t.remainingSeconds - 1}
+            updatedNowPlaying = {np | track = Just updatedTrack}
+            updatedModel = {model | nowPlaying = Just updatedNowPlaying}
+          in
+            (updatedModel, cmd)
+        Nothing ->
+            (model, cmd)
+    Nothing ->
+      (model, cmd)
+
+
+tick_SaveTracksTab : (Model, Cmd Msg) -> (Model, Cmd Msg)
+tick_SaveTracksTab (model, cmd) =
+  (model, cmd) |> saveTracksTab 5  -- Save tracks tab if keyboard has been idle for 5 seconds.
 
 
 upsertEpisodeTrack : Model -> Int -> TracksTabEntry -> Cmd Msg
@@ -926,30 +940,38 @@ tab_start model =
         , instTd [para [text "Specify the show date: ", showDateSelector model]]
         ]
       , row
-        [ numTd False [span [style ["color"=>"green"]] [text "❹ "]]
+        [ numTd (isJust model.broadcast) [text "❹ "]
         , instTd
           [ para
-            [ text "ONLY when it's time to start your LIVE show:"
-            , br [] []
-            , Button.render Mdl beginBroadcastButtonId model.mdl
-              [ Button.raised
-              , Button.colored
-              , Button.ripple
-              , if isNothing model.episode || isNothing model.member then
-                  Button.disabled
-                else case model.selectedShowDate of
-                  Just ssd ->
-                    if CD.fromDate ssd /= CD.fromTime model.currTime then Button.disabled else Opts.nop
-                  Nothing ->
-                    Button.disabled
-              , Opts.onClick BeginBroadcast_Clicked
-              ]
-              [ text "Begin Broadcast!"]
-            ]
+            (
+              if isJust model.broadcast then
+                [ text "Host has checked in!" ]
+              else
+                [ text "ONLY when it's time to start your LIVE show:"
+                , br [] []
+                , beginBroadcast_Button model
+                ]
+            )
           ]
         ]
       ]
     ]
+
+beginBroadcast_Button model =
+  Button.render Mdl beginBroadcastButtonId model.mdl
+  [ Button.raised
+  , Button.colored
+  , Button.ripple
+  , if isNothing model.episode || isNothing model.member then
+      Button.disabled
+    else case model.selectedShowDate of
+      Just ssd ->
+        if CD.fromDate ssd /= CD.fromTime model.currTime then Button.disabled else Opts.nop
+      Nothing ->
+        Button.disabled
+  , Opts.onClick BeginBroadcast_Clicked
+  ]
+  [ text "Begin Broadcast!"]
 
 
 tab_tracks : Model -> Html Msg
@@ -1077,6 +1099,21 @@ delay : Time.Time -> msg -> Cmd msg
 delay time msg = Process.sleep time |> Task.perform (\_ -> msg)
 
 
+-- This is used to maintain a "<digit><digit>:<digit><digit>" mask on an input field.
+mmss_mask : String -> String
+mmss_mask val =
+  let
+    trimLeftZeros = Regex.replace (Regex.AtMost 1) (regex "^0*") (always "")
+    digits = val |> String.trim |> StringX.replace ":" "" |> trimLeftZeros |> String.left 4
+    len = String.length digits
+    padded = String.padLeft 4 '0' digits
+  in
+    if len == 0 then
+      ""
+    else
+      StringX.insertAt ":" -2 padded
+
+
 -----------------------------------------------------------------------------
 -- STYLES
 -----------------------------------------------------------------------------
@@ -1100,6 +1137,3 @@ restTdStyle =
   , css "padding-top" "0"
   ]
 
------------------------------------------------------------------------------
--- UTILITY
------------------------------------------------------------------------------
