@@ -94,12 +94,32 @@ class TrackSerializer(serializers.ModelSerializer):
 
 class PlayLogEntrySerializer(serializers.ModelSerializer):
 
-    track_embed = TrackSerializer(many=False, read_only=True, source='track')
+    library_track_embed = TrackSerializer(
+        many=False, read_only=True, source='track'
+    )
+
+    non_library_track_embed = EpisodeTrackSerializer(
+        many=False, read_only=True, source='non_library_track'
+    )
+
+    library_track = serializers.HyperlinkedRelatedField(
+        view_name = 'kmkr:track-detail',
+        queryset = models.Track.objects.all(),
+        source = 'track'
+    )
+
+    non_library_track = serializers.HyperlinkedRelatedField(
+        view_name = 'kmkr:episodetrack-detail',
+        queryset = models.EpisodeTrack.objects.all(),
+    )
 
     class Meta:
         model = models.PlayLogEntry
         fields = (
             'id',
-            'track_embed',
+            'library_track',
+            'non_library_track',
+            'library_track_embed',
+            'non_library_track_embed',
             'start',
         )

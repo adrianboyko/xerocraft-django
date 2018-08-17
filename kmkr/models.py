@@ -2,6 +2,7 @@
 # Standard
 from datetime import date, time, datetime, timedelta
 from typing import Optional, Tuple
+from logging import getLogger
 
 # Third-party
 from django.db import models
@@ -13,6 +14,8 @@ from django.utils import timezone
 from books.models import SaleLineItem
 from members.models import Member
 import abutils.time as abtime
+
+logger = getLogger("kmkr")
 
 
 class OnAirPersonality (models.Model):
@@ -377,6 +380,9 @@ class EpisodeTrack(models.Model):
     duration = models.CharField(max_length=5, blank=True, null=False, default="",
         help_text="The duration of the track as MM:SS.")
 
+    def __str__(self) -> str:
+        return '"{}" by {}'.format(self.title, self.artist)
+
     class Meta:
         unique_together = ['episode', 'sequence']
         verbose_name = "Track for episode"
@@ -389,9 +395,40 @@ class PlayLogEntry (models.Model):
     start = models.DateTimeField(blank=False, null=False,
         help_text="The exact datetime (within a few seconds) that play began.")
 
-    track = models.ForeignKey(Track, null=False, blank=False,
+    # TODO: Rename track to library_track
+    track = models.ForeignKey(Track, null=True, blank=True,
         on_delete=models.PROTECT,  # Don't allow deletion of track if it has been aired.
-        help_text="The track which was played.")
+        help_text="The library track which was played.")
+
+    non_library_track = models.ForeignKey(EpisodeTrack, null=True, blank=True,
+        on_delete=models.PROTECT,  # Don't allow deletion of track if it has been aired.
+        help_text="The NON-library track which was played.")
+
+    def clean(self):
+        if self.track is not None and self.non_library_track is not None:
+            raise ValidationError("Specify ONE of library track or NON-library track, not both.")
+        if self.track is None and self.non_library_track is None:
+            raise ValidationError("You must specify ONE of library track or NON-library track.")
+
+    @property
+    def artist(self):
+        if self.track is not None:
+            return self.track.artist
+        elif self.non_library_track is not None:
+            return self.non_library_track.artist
+        else:
+            logger.error("Track broadcast #{} has NULL track and non_libary_track.", self.id)
+            return "uknown"
+
+    @property
+    def title(self):
+        if self.track is not None:
+            return self.track.title
+        elif self.non_library_track is not None:
+            return self.non_library_track.title
+        else:
+            logger.error("Track broadcast #{} has NULL track and non_libary_track.", self.id)
+            return "uknown"
 
     class Meta:
         verbose_name = "Track broadcast"

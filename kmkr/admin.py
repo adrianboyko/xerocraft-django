@@ -288,12 +288,13 @@ class PlayLogEntryAdmin(admin.ModelAdmin):
     list_display = [
         'pk',
         'start',
-        'track',
+        'artist',
+        'title',
         'rating',
         'votes',
     ]
 
-    raw_id_fields = ['track']
+    raw_id_fields = ['track', 'non_library_track']
 
     class Rating_Inline(admin.TabularInline):
         model = Rating
