@@ -34,8 +34,8 @@ class OnAirPersonality (models.Model):
         return "{} aka '{}'".format(self.member.username, self.moniker)
 
     class Meta:
-        verbose_name = "On Air Personality"
-        verbose_name_plural = "On Air Personalities"
+        verbose_name = "On air personality"
+        verbose_name_plural = "On air personalities"
 
 
 class OnAirPersonalitySocialMedia (models.Model):
@@ -48,8 +48,7 @@ class OnAirPersonalitySocialMedia (models.Model):
         help_text="URL for the personality's social media account.")
 
     class Meta:
-        verbose_name = "On Air Personality's Social Media"
-        verbose_name_plural = "On Air Personality's Social Media"
+        verbose_name = "On Air Personality's Social Acct"
 
 
 class Show (models.Model):
@@ -217,8 +216,7 @@ class UnderwritingSpots (SaleLineItem):
             raise ValidationError("At least one show must be specified if slot is 'speciic show(s)'")
 
     class Meta:
-        verbose_name = "Underwriting Spots"
-        verbose_name_plural = "Underwriting Spots"
+        verbose_name = "Underwriting spot"
 
 
 class UnderwritingLogEntry (models.Model):
@@ -231,8 +229,7 @@ class UnderwritingLogEntry (models.Model):
         help_text="The date & time the spot was read on-air.")
 
     class Meta:
-        verbose_name = "Underwriting Log Entry"
-        verbose_name_plural = "Underwriting Log Entries"
+        verbose_name = "Underwriting broadcast"
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -290,6 +287,10 @@ class Track (models.Model):
     def __str__(self) -> str:
         return '"{}" by {}'.format(self.title, self.artist)
 
+    class Meta:
+        verbose_name = "Track in library"
+        verbose_name_plural = "Tracks in library"
+
 
 class Episode(models.Model):
 
@@ -342,11 +343,12 @@ class Broadcast(models.Model):
         return "{} on {}".format(self.episode, self.date)
 
     def clean(self):
-        if self.host_checked_in is not None and self.production_method != ShowTime.PRODUCTION_LIVE:
+        if self.host_checked_in is not None and self.type != self.TYPE_FIRST_RUN:
             raise ValidationError("Host doesn't need to check in if broadcast is not live.")
 
     class Meta:
         unique_together = ['episode', 'date', 'type']
+        verbose_name = "Episode broadcast"
 
 
 # Since this table is scratch space, all metadata fields including duration are strings. Fields like
@@ -377,6 +379,8 @@ class EpisodeTrack(models.Model):
 
     class Meta:
         unique_together = ['episode', 'sequence']
+        verbose_name = "Track for episode"
+        verbose_name_plural = "Tracks for episode"
 
 
 class PlayLogEntry (models.Model):
@@ -390,8 +394,8 @@ class PlayLogEntry (models.Model):
         help_text="The track which was played.")
 
     class Meta:
-        verbose_name = "Play Log Entry"
-        verbose_name_plural = "Play Log Entries"
+        verbose_name = "Track broadcast"
+        verbose_name_plural = "Tracks broadcast"
 
 
 class Rating (models.Model):
