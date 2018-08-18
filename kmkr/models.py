@@ -389,6 +389,7 @@ class EpisodeTrack(models.Model):
         verbose_name_plural = "Tracks for episode"
 
 
+# TODO: Rename PlayLogEntry to TrackBroadcast
 class PlayLogEntry (models.Model):
     """This is the official record of what played on-air."""
 
@@ -411,7 +412,7 @@ class PlayLogEntry (models.Model):
             raise ValidationError("You must specify ONE of library track or NON-library track.")
 
     @property
-    def artist(self):
+    def artist(self) -> str:
         if self.track is not None:
             return self.track.artist
         elif self.non_library_track is not None:
@@ -421,7 +422,7 @@ class PlayLogEntry (models.Model):
             return "uknown"
 
     @property
-    def title(self):
+    def title(self) -> str:
         if self.track is not None:
             return self.track.title
         elif self.non_library_track is not None:
@@ -429,6 +430,17 @@ class PlayLogEntry (models.Model):
         else:
             logger.error("Track broadcast #{} has NULL track and non_libary_track.", self.id)
             return "uknown"
+
+    @property
+    def duration(self) -> timedelta :
+        if self.track is not None:
+            return self.track.duration
+        elif self.non_library_track is not None:
+            parts = self.non_library_track.duration.split(":")
+            return timedelta(seconds=int(parts[0])*60 + int(parts[1]))
+        else:
+            logger.error("Track broadcast #{} has NULL track and non_libary_track.", self.id)
+            return timedelta(seconds=0)
 
     class Meta:
         verbose_name = "Track broadcast"

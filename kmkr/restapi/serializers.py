@@ -103,14 +103,18 @@ class PlayLogEntrySerializer(serializers.ModelSerializer):
     )
 
     library_track = serializers.HyperlinkedRelatedField(
-        view_name = 'kmkr:track-detail',
-        queryset = models.Track.objects.all(),
-        source = 'track'
+        view_name='kmkr:track-detail',
+        queryset=models.Track.objects.all(),
+        source='track',
+        required=False,
+        allow_null=True
     )
 
     non_library_track = serializers.HyperlinkedRelatedField(
-        view_name = 'kmkr:episodetrack-detail',
-        queryset = models.EpisodeTrack.objects.all(),
+        view_name='kmkr:episodetrack-detail',
+        queryset=models.EpisodeTrack.objects.all(),
+        required=False,
+        allow_null=True
     )
 
     class Meta:
