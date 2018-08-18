@@ -30,6 +30,7 @@ module XisRestApi
     , TaskPriority (..)
     , TimeBlock, TimeBlockData
     , TimeBlockType, TimeBlockTypeData
+    , TrackBroadcast, TrackBroadcastData
     , TrackData
     , VendLog, VendLogData
     , VisitEvent, VisitEventDataOut
@@ -84,12 +85,13 @@ type alias XisRestFlags =
   , memberListUrl : ResourceListUrl
   , membershipListUrl : ResourceListUrl
   , nowPlayingUrl : ServiceUrl
-  , playListUrl : ResourceListUrl
+  , playListUrl : ResourceListUrl  -- Tasks
   , productListUrl : ResourceListUrl
   , showListUrl : ResourceListUrl
   , taskListUrl : ResourceListUrl
   , timeBlockListUrl : ResourceListUrl
   , timeBlockTypeListUrl : ResourceListUrl
+  , trackBroadcastListUrl : ResourceListUrl
   , trackListUrl : ResourceListUrl
   , vendLogListUrl : ResourceListUrl
   , visitEventListUrl : ResourceListUrl
@@ -122,6 +124,7 @@ type alias Session msg =
   , createEpisodeTrack : Creator EpisodeTrackData EpisodeTrack msg
   , createPlay : Creator PlayData Play msg
   , createEpisode : Creator EpisodeData Episode msg
+  , createTrackBroadcast : Creator TrackBroadcastData TrackBroadcast msg
   , createVendLog : Creator VendLogData VendLog msg
   , createVisitEvent : Creator VisitEventDataOut VisitEvent msg
   , createWork : Creator WorkData Work msg
@@ -161,11 +164,13 @@ type alias Session msg =
   ----- RESOURCE URLS -----
   , broadcastUrl : Int -> ResourceUrl
   , claimUrl : Int -> ResourceUrl
+  , episodeUrl : Int -> ResourceUrl
+  , episodeTrackUrl : Int -> ResourceUrl
   , memberUrl : Int -> ResourceUrl
   , productUrl : Int  -> ResourceUrl
   , showUrl : Int -> ResourceUrl
-  , episodeUrl : Int -> ResourceUrl
   , taskUrl : Int -> ResourceUrl
+  , trackBroadcastUrl : Int -> ResourceUrl
   , vendLogUrl : Int -> ResourceUrl
   , visitEventUrl : Int -> ResourceUrl
   , workUrl : Int -> ResourceUrl
@@ -205,6 +210,7 @@ createSession flags auth =
   , createEpisodeTrack = createResource auth flags.episodeTrackListUrl encodeEpisodeTrackData decodeEpisodeTrackData
   , createPlay = createResource auth flags.playListUrl encodePlayData decodePlayData
   , createEpisode = createResource auth flags.episodeListUrl encodeEpisodeData decodeEpisodeData
+  , createTrackBroadcast = createResource auth flags.trackBroadcastListUrl encodeTrackBroadcastData decodeTrackBroadcastData
   , createVendLog = createResource auth flags.vendLogListUrl encodeVendLogData decodeVendLogData
   , createVisitEvent = createVisitEvent auth flags.visitEventListUrl  -- REVIEW: Can this one be reconciled with other creators?
   , createWork = createResource auth flags.workListUrl encodeWorkData decodeWorkData
@@ -244,11 +250,13 @@ createSession flags auth =
   ----- RESOURCE URLS -----
   , broadcastUrl = urlFromId flags.broadcastListUrl
   , claimUrl = urlFromId flags.claimListUrl
+  , episodeUrl = urlFromId flags.episodeListUrl
+  , episodeTrackUrl = urlFromId flags.episodeTrackListUrl
   , memberUrl = urlFromId flags.memberListUrl
   , productUrl = urlFromId flags.productListUrl
   , showUrl = urlFromId flags.showListUrl
-  , episodeUrl = urlFromId flags.episodeListUrl
   , taskUrl = urlFromId flags.taskListUrl
+  , trackBroadcastUrl = urlFromId flags.trackBroadcastListUrl
   , vendLogUrl = urlFromId flags.visitEventListUrl
   , visitEventUrl = urlFromId flags.visitEventListUrl
   , workUrl = urlFromId flags.workListUrl
@@ -693,7 +701,7 @@ decodeWorkNoteData =
 
 
 -----------------------------------------------------------------------------
--- PLAY
+-- PLAY (FROM TASKS)
 -----------------------------------------------------------------------------
 
 type alias PlayData =
@@ -1471,6 +1479,40 @@ episodeTrackDataNVPs etd =
   , ( "title", etd.title |> Enc.string)
   , ( "duration", etd.duration |> Enc.string )
   ]
+
+
+------------------
+
+
+type alias TrackBroadcast = Resource TrackBroadcastData
+
+
+type alias TrackBroadcastData =
+  { start : PointInTime
+  , libraryTrack : Maybe ResourceUrl
+  , nonLibraryTrack : Maybe ResourceUrl
+  , libraryTrackEmbed : Maybe Track
+  , nonLibraryTrackEmbed : Maybe EpisodeTrack
+  }
+
+
+decodeTrackBroadcastData : Dec.Decoder TrackBroadcastData
+decodeTrackBroadcastData =
+  Dec.map5 TrackBroadcastData
+    (Dec.field "start" decodePointInTime)
+    (Dec.field "library_track" (Dec.maybe <| decodeResourceUrl))
+    (Dec.field "non_library_track" (Dec.maybe <| decodeResourceUrl))
+    (Dec.field "library_track_embed" (Dec.maybe <| decodeResource <| decodeTrackData))
+    (Dec.field "non_library_track_embed" (Dec.maybe <| decodeResource <| decodeEpisodeTrackData))
+
+
+encodeTrackBroadcastData : TrackBroadcastData -> Enc.Value
+encodeTrackBroadcastData tbd = Enc.object
+  [ ( "start", tbd.start |> encodePointInTime )
+  , ( "library_track", tbd.libraryTrack |> (EncX.maybe Enc.string))
+  , ( "non_library_track", tbd.nonLibraryTrack |> (EncX.maybe Enc.string))
+  ]
+
 
 
 -----------------------------------------------------------------------------
