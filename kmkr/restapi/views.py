@@ -33,6 +33,7 @@ class PlayLogEntryViewSet(viewsets.ModelViewSet):
     filter_fields = {'start'}
     ordering_fields = {'start'}
     permission_classes = [DjangoModelPermissionsOrAnonReadOnly]
+    authentication_classes = [BasicAuthentication]
 
 
 class ShowViewSet(viewsets.ModelViewSet):
