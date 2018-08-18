@@ -103,18 +103,19 @@ trackTabEntryColumnId col =
     DurationColumn -> 3
 
 type alias TracksTabEntry =
-  { playListEntryId : Maybe Int
+  { episodeTrackId : Maybe Int
   , artist : String
   , title : String
   , duration : String
   , savedArtist : String
   , savedTitle : String
   , savedDuration : String
+  , trackBroadcast : Maybe XisApi.TrackBroadcast
   }
 
 newTracksTabEntry : Maybe Int -> String -> String -> String -> String -> String -> String -> TracksTabEntry
-newTracksTabEntry id artist title duration sArtist sTitle sDuration =
-  TracksTabEntry id artist title duration sArtist sTitle sDuration
+newTracksTabEntry id artist title duration sArtist sTitle sDuration=
+  TracksTabEntry id artist title duration sArtist sTitle sDuration Nothing
 
 blankTracksTabEntry : TracksTabEntry
 blankTracksTabEntry =
@@ -216,11 +217,13 @@ type
   | Mdl (Material.Msg Msg)
   | NowPlaying_Result (Result Http.Error XisApi.NowPlaying)
   | PasswordInput String
+  | PlayTrack_Clicked Int TracksTabEntry
   | ShowList_Result (Result Http.Error (DRF.PageOf XisApi.Show))
   | ShowWasChosen String  -- ID of chosen show, as a String.
   | SelectTab Int
   | SetDatePicker DatePicker.Msg
   | Tick Time
+  | TrackBroadastCreate_Result Int TracksTabEntry (Result Http.Error XisApi.TrackBroadcast)
   | TrackFieldUpdate Int TracksTabEntryColumn String  -- row, col, value
   | UseridInput String
 
@@ -294,21 +297,10 @@ update action model =
           , Cmd.none
           )
 
-
     CheckNowPlaying ->
       ( model
       , model.xis.nowPlaying NowPlaying_Result
       )
-
-    KeyDown code ->
-      ( {model | keyboardIdleTime = 0 }, Cmd.none )
-
-    Login_Clicked ->
-      case (model.userid, model.password) of
-        (Just id, Just pw) ->
-          (model, model.xis.authenticate id pw Authenticate_Result)
-        _ ->
-          (model, Cmd.none)
 
     EpisodeCreate_Result selShow selShowDate (Ok episode) ->
       let
@@ -356,7 +348,7 @@ update action model =
           let
             newTte =
               { tte
-              | playListEntryId = Just et.id
+              | episodeTrackId = Just et.id
               , savedArtist = et.data.artist
               , savedTitle = et.data.title
               , savedDuration = et.data.duration
@@ -371,6 +363,16 @@ update action model =
             dummy = et |> Debug.log "Couldn't find row for"
           in
             (model, Cmd.none)
+
+    KeyDown code ->
+      ( {model | keyboardIdleTime = 0 }, Cmd.none )
+
+    Login_Clicked ->
+      case (model.userid, model.password) of
+        (Just id, Just pw) ->
+          (model, model.xis.authenticate id pw Authenticate_Result)
+        _ ->
+          (model, Cmd.none)
 
     Mdl msg_ ->
       Material.update Mdl msg_ model
@@ -394,6 +396,29 @@ update action model =
 
     PasswordInput s ->
       ({model | password = Just s}, Cmd.none)
+
+    PlayTrack_Clicked row tte ->
+      case tte.episodeTrackId of
+        Just epTrackId ->
+          let
+            trackBroadcastData =
+              { start = model.currTime
+              , libraryTrack = Nothing
+              , nonLibraryTrack = Just (model.xis.episodeTrackUrl epTrackId)
+              , libraryTrackEmbed = Nothing  -- embeds are read-only
+              , nonLibraryTrackEmbed = Nothing  -- embeds are read-only
+              }
+            callback = TrackBroadastCreate_Result row tte
+            cmd = model.xis.createTrackBroadcast trackBroadcastData callback
+          in
+            (model, cmd)
+              |> saveTracksTab 0  -- Save tracks tab IMMEDIATELY!
+        Nothing ->
+          let
+            -- Shouldn't get here. Button should only enabled if tte is Just <something>.
+            dummy = Debug.log "EpisodeTrackId is Nothing: " tte
+          in
+            (model, Cmd.none)
 
     SelectTab k ->
       ({ model | selectedTab = k }, Cmd.none)
@@ -442,6 +467,13 @@ update action model =
         |> tick_Idle
         |> tick_SaveTracksTab
 
+    TrackBroadastCreate_Result row tte (Ok tb) ->
+      let
+        newTracksTabEntry = {tte | trackBroadcast = Just tb}
+        newTracksTabEntries = Array.set row newTracksTabEntry model.tracksTabEntries
+      in
+        ({model | tracksTabEntries = newTracksTabEntries}, Cmd.none)
+          |> UpdateX.andThen update CheckNowPlaying
 
     TrackFieldUpdate row col val ->
       let
@@ -492,6 +524,9 @@ update action model =
         dummy = toString e |> Debug.log "EpisodeList_Result"
       in
         (model, Cmd.none)
+
+    TrackBroadastCreate_Result row tte (Err e) ->
+      ({model | errMsgs=[toString e]}, Cmd.none)
 
 
 fetchBroadcastData : (Model, Cmd Msg) -> (Model, Cmd Msg)
@@ -578,7 +613,7 @@ saveTracksTab minIdle (model, cmd) =
 
 deleteEpisodeTrack : Model -> Int -> TracksTabEntry -> Cmd Msg
 deleteEpisodeTrack model row tte =
-  case tte.playListEntryId of
+  case tte.episodeTrackId of
     Just id ->
       model.xis.deleteEpisodeTrackById id (EpisodeTrackDelete_Result row)
     Nothing ->
@@ -623,7 +658,7 @@ upsertEpisodeTrack model row tte =
         etData = XisApi.EpisodeTrackData
           (model.xis.episodeUrl episode.id) row tte.artist tte.title tte.duration
       in
-        case tte.playListEntryId of
+        case tte.episodeTrackId of
           Just idToUpdate ->
             model.xis.replaceEpisodeTrack
               (DRF.Resource idToUpdate etData)
@@ -659,7 +694,7 @@ tabs model =
 tracksTabTitle : Model -> Html Msg
 tracksTabTitle model =
   let
-    filter = .playListEntryId >> isJust
+    filter = .episodeTrackId >> isJust
     trackCount = model.tracksTabEntries |> Array.filter filter |> Array.length
   in
     if trackCount > 0 then
@@ -1065,9 +1100,9 @@ tracks_tableRow model r =
           [ Button.render Mdl [tracksTabId, r] model.mdl
             [ Button.fab
             , Button.plain
-            -- , Options.onClick MyClickMsg
+            , Opts.onClick (PlayTrack_Clicked r tte)
             ]
-            [ Icon.i "play_arrow"]
+            [ Icon.i <| if isJust tte.trackBroadcast then "done" else "play_arrow"]
           ]
         ]
       Nothing ->
