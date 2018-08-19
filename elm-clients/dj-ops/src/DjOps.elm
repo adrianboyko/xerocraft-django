@@ -107,23 +107,27 @@ type alias TracksTabEntry =
   , artist : String
   , title : String
   , duration : String
+  , trackBroadcast : Maybe DRF.ResourceUrl
   , savedArtist : String
   , savedTitle : String
   , savedDuration : String
-  , trackBroadcast : Maybe XisApi.TrackBroadcast
+  , savedTrackBroadcast : Maybe DRF.ResourceUrl
   }
-
-newTracksTabEntry : Maybe Int -> String -> String -> String -> String -> String -> String -> TracksTabEntry
-newTracksTabEntry id artist title duration sArtist sTitle sDuration=
-  TracksTabEntry id artist title duration sArtist sTitle sDuration Nothing
 
 blankTracksTabEntry : TracksTabEntry
 blankTracksTabEntry =
-  newTracksTabEntry Nothing "" "" "" "" "" ""
+  TracksTabEntry
+    Nothing
+    "" "" "" Nothing
+    "" "" "" Nothing
 
 tracksTabEntryIsDirty : TracksTabEntry -> Bool
 tracksTabEntryIsDirty tte =
-    [tte.artist, tte.title, tte.duration] /= [tte.savedArtist, tte.savedTitle, tte.savedDuration]
+  let
+    curr = (tte.artist, tte.title, tte.duration, tte.trackBroadcast)
+    saved = (tte.savedArtist, tte.savedTitle, tte.savedDuration, tte.savedTrackBroadcast)
+  in
+    curr /= saved
 
 tracksTabEntryColumnIsDirty : TracksTabEntry -> TracksTabEntryColumn -> Bool
 tracksTabEntryColumnIsDirty tte col =
@@ -160,7 +164,6 @@ init : Flags -> ( Model, Cmd Msg )
 init flags =
   let
     getShowsCmd = model.xis.listShows ShowList_Result
-    nowPlayingCmd = model.xis.nowPlaying NowPlaying_Result
     (datePicker, datePickerCmd ) = DatePicker.init
     model =
       { errMsgs = []
@@ -188,7 +191,6 @@ init flags =
     ( model
     , Cmd.batch
       [ getShowsCmd
-      , nowPlayingCmd
       , Cmd.map SetDatePicker datePickerCmd
       , Layout.sub0 Mdl
       ]
@@ -352,6 +354,7 @@ update action model =
               , savedArtist = et.data.artist
               , savedTitle = et.data.title
               , savedDuration = et.data.duration
+              , savedTrackBroadcast = et.data.trackBroadcast
               }
             newTtes = Array.set et.data.sequence newTte model.tracksTabEntries
           in
@@ -378,21 +381,32 @@ update action model =
       Material.update Mdl msg_ model
 
     NowPlaying_Result (Ok np) ->
-      let
-        nowPlayingCmd = model.xis.nowPlaying NowPlaying_Result
-        delaySeconds = case np.track of
-          Just t ->
-            let
-              rs = t.remainingSeconds
-            in
-              if rs > 0 then rs * second
-              else if rs < 1 && rs > -5 then 0.1 * second
-              else 1 * second
-          Nothing -> 1 * second
-      in
-        ( { model | nowPlaying = Just np }
-        , delay delaySeconds CheckNowPlaying
-        )
+      case model.nowPlaying of
+        Just mnp ->
+          let
+            joinHosts = Maybe.map (String.join ", ")
+
+            -- These are the values in the model, defaulting to "":
+            mTitle = mnp.track |> Maybe.map .title |> withDefault ""
+            mArtist = mnp.track |> Maybe.map .artist |> withDefault ""
+            mShow = mnp.show |> Maybe.map .title |> withDefault ""
+            mHost = mnp.show |> Maybe.map .hosts |> joinHosts |> withDefault ""
+
+            -- These are the newly arrived values in the message, defaulting to "":
+            title = np.track |> Maybe.map .title |> withDefault ""
+            artist = np.track |> Maybe.map .artist |> withDefault ""
+            show = np.show |> Maybe.map .title |> withDefault ""
+            host = np.show |> Maybe.map .hosts |> joinHosts |> withDefault ""
+
+            -- Build a new NowPlaying out of newly arrived values *if they're different*:
+            modifiedNP = XisApi.NowPlaying
+              (if mShow/=show || mHost/=host then np.show else mnp.show)
+              (if mTitle/=title || mArtist/=artist then np.track else mnp.track)
+          in
+            ( { model | nowPlaying = Just modifiedNP }, Cmd.none)
+
+        Nothing ->
+          ( { model | nowPlaying = Just np }, Cmd.none)
 
     PasswordInput s ->
       ({model | password = Just s}, Cmd.none)
@@ -463,16 +477,19 @@ update action model =
 
     Tick newTime ->
       ({ model | currTime = newTime }, Cmd.none)
-        |> tick_NowPlaying
+        |> tick_NowPlayingClocks
+        |> tick_NowPlayingCheck
         |> tick_Idle
         |> tick_SaveTracksTab
 
     TrackBroadastCreate_Result row tte (Ok tb) ->
       let
-        newTracksTabEntry = {tte | trackBroadcast = Just tb}
-        newTracksTabEntries = Array.set row newTracksTabEntry model.tracksTabEntries
+        trackBroadcastUrl = model.xis.trackBroadcastUrl tb.id
+        newTte = {tte | trackBroadcast = Just trackBroadcastUrl}
+        newTtes = Array.set row newTte model.tracksTabEntries
       in
-        ({model | tracksTabEntries = newTracksTabEntries}, Cmd.none)
+        ({model | tracksTabEntries = newTtes}, Cmd.none)
+          |> saveTracksTab 0  -- in order to save the new tracksTabEntry.
           |> UpdateX.andThen update CheckNowPlaying
 
     TrackFieldUpdate row col val ->
@@ -560,29 +577,29 @@ fetchTracksTabData (model, cmd) =
 
 
 populateTracksTabData : List XisApi.EpisodeTrack -> Model -> Model
-populateTracksTabData ples model =
+populateTracksTabData ets model =
   let
     newModel = { model | tracksTabEntries = Array.repeat numTrackRows blankTracksTabEntry }
   in
-    populateTracksTabData_Helper newModel ples
+    populateTracksTabData_Helper newModel ets
 
 
 populateTracksTabData_Helper : Model -> List XisApi.EpisodeTrack -> Model
-populateTracksTabData_Helper model plesRemaining =
-  case plesRemaining of
+populateTracksTabData_Helper model etsRemaining =
+  case etsRemaining of
     [] ->
       model
-    ple::ples ->
+    et::ets ->
       let
-        seq = ple.data.sequence
+        seq = et.data.sequence
         tte =
-          newTracksTabEntry
-            (Just ple.id)
-            ple.data.artist ple.data.title ple.data.duration
-            ple.data.artist ple.data.title ple.data.duration
+          TracksTabEntry
+            (Just et.id)
+            et.data.artist et.data.title et.data.duration et.data.trackBroadcast
+            et.data.artist et.data.title et.data.duration et.data.trackBroadcast
         newModel = { model | tracksTabEntries = Array.set seq tte model.tracksTabEntries }
       in
-        populateTracksTabData_Helper newModel ples
+        populateTracksTabData_Helper newModel ets
 
 
 saveTracksTab : Int -> (Model, Cmd Msg) -> (Model, Cmd Msg)
@@ -621,26 +638,66 @@ deleteEpisodeTrack model row tte =
       Cmd.none
 
 
+nowPlayingTimeRemaining : Model -> {showSecsLeft : Float, trackSecsLeft : Float }
+nowPlayingTimeRemaining model =
+  let
+    remaining x =
+      model.nowPlaying
+      |> Maybe.andThen x
+      |> Maybe.map .remainingSeconds
+      |> withDefault 0.0
+  in
+    { showSecsLeft = remaining .show
+    , trackSecsLeft = remaining .track
+    }
+
+
+-- When necessary, this will create a command to check for new "now playing" info.
+tick_NowPlayingCheck : (Model, Cmd Msg) -> (Model, Cmd Msg)
+tick_NowPlayingCheck (model, cmd) =
+  let
+    {showSecsLeft, trackSecsLeft} = nowPlayingTimeRemaining model
+
+    trackCmd =
+      if trackSecsLeft < 1.0 && trackSecsLeft > -5.0 then
+        Cmd.batch
+          [ delay (0.25*second) CheckNowPlaying
+          , delay (0.50*second) CheckNowPlaying
+          , delay (0.75*second) CheckNowPlaying
+          , delay (1.00*second) CheckNowPlaying
+          ]
+      else if trackSecsLeft <= -5.0 then
+        delay (0.5*second) CheckNowPlaying
+      else
+        Cmd.none
+
+    showCmd =
+      if showSecsLeft <=0.0 && trackSecsLeft >= 1.0 then
+        delay (0.5*second) CheckNowPlaying
+      else
+        Cmd.none
+  in
+    (model, cmd) |> addCmd trackCmd |> addCmd showCmd
+
+
 tick_Idle : (Model, Cmd Msg) -> (Model, Cmd Msg)
 tick_Idle (model, cmd) =
   ( { model | keyboardIdleTime = model.keyboardIdleTime + 1 }
   , cmd
   )
 
-tick_NowPlaying : (Model, Cmd Msg) -> (Model, Cmd Msg)
-tick_NowPlaying (model, cmd) =
+
+tick_NowPlayingClocks : (Model, Cmd Msg) -> (Model, Cmd Msg)
+tick_NowPlayingClocks (model, cmd) =
   case model.nowPlaying of
     Just np ->
-      case np.track of
-        Just t ->
-          let
-            updatedTrack = {t | remainingSeconds = t.remainingSeconds - 1}
-            updatedNowPlaying = {np | track = Just updatedTrack}
-            updatedModel = {model | nowPlaying = Just updatedNowPlaying}
-          in
-            (updatedModel, cmd)
-        Nothing ->
-            (model, cmd)
+      let
+        decRemaining x = {x | remainingSeconds = x.remainingSeconds - 1.0}
+        updatedTrack = Maybe.map decRemaining np.track
+        updatedShow = Maybe.map decRemaining np.show
+        updatedNowPlaying = XisApi.NowPlaying updatedShow updatedTrack
+      in
+        ({model | nowPlaying = Just updatedNowPlaying}, cmd)
     Nothing ->
       (model, cmd)
 
@@ -656,7 +713,10 @@ upsertEpisodeTrack model row tte =
     Just episode ->
       let
         etData = XisApi.EpisodeTrackData
-          (model.xis.episodeUrl episode.id) row tte.artist tte.title tte.duration
+          (model.xis.episodeUrl episode.id)
+          row
+          tte.artist tte.title tte.duration
+          tte.trackBroadcast
       in
         case tte.episodeTrackId of
           Just idToUpdate ->
@@ -1102,7 +1162,7 @@ tracks_tableRow model r =
             , Button.plain
             , Opts.onClick (PlayTrack_Clicked r tte)
             ]
-            [ Icon.i <| if isJust tte.trackBroadcast then "done" else "play_arrow"]
+            [ tracksTabEntryIcon model r tte ]
           ]
         ]
       Nothing ->
@@ -1110,6 +1170,27 @@ tracks_tableRow model r =
           dummy = Debug.log <| "Couldn't get row."
         in
           Table.tr [] []
+
+
+tracksTabEntryIcon : Model -> Int -> TracksTabEntry -> Html Msg
+tracksTabEntryIcon model row tte =
+  let
+    maybeTrack = model.nowPlaying |> Maybe.andThen .track
+    title = maybeTrack |> Maybe.map .title |> withDefault ""
+    artist = maybeTrack |> Maybe.map .artist |> withDefault ""
+    remaining = maybeTrack |> Maybe.map .remainingSeconds |> withDefault 0.0
+  in
+    Icon.i
+    (
+      if tte.artist == artist && tte.title == title && isJust tte.trackBroadcast && remaining > 0.0 then
+        "hourglass_full"
+      else if isJust tte.trackBroadcast then
+        "done"
+      else if isJust tte.episodeTrackId then
+        "play_arrow"
+      else
+        "none"
+    )
 
 
 -----------------------------------------------------------------------------
