@@ -1454,35 +1454,33 @@ type alias EpisodeTrackData =
   , artist : String
   , title : String
   , duration : String
+  , trackBroadcast : Maybe ResourceUrl
   }
 
 
 decodeEpisodeTrackData : Dec.Decoder EpisodeTrackData
 decodeEpisodeTrackData =
-  Dec.map5 EpisodeTrackData
+  Dec.map6 EpisodeTrackData
     (Dec.field "episode" decodeResourceUrl)
     (Dec.field "sequence" Dec.int)
     (Dec.field "artist" Dec.string)
     (Dec.field "title" Dec.string)
     (Dec.field "duration" Dec.string)
+    (Dec.field "track_broadcast" (Dec.maybe <| decodeResourceUrl))
 
 
 encodeEpisodeTrackData : EpisodeTrackData -> Enc.Value
-encodeEpisodeTrackData = Enc.object << episodeTrackDataNVPs
-
-
-episodeTrackDataNVPs : EpisodeTrackData -> List (String, Enc.Value)
-episodeTrackDataNVPs etd =
+encodeEpisodeTrackData etd = Enc.object
   [ ( "episode", etd.episode |> Enc.string )
   , ( "sequence", etd.sequence |> Enc.int )
   , ( "artist", etd.artist |> Enc.string)
   , ( "title", etd.title |> Enc.string)
   , ( "duration", etd.duration |> Enc.string )
+  , ( "track_broadcast", etd.trackBroadcast |> (EncX.maybe Enc.string))
   ]
 
 
 ------------------
-
 
 type alias TrackBroadcast = Resource TrackBroadcastData
 

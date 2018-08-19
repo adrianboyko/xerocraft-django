@@ -43,7 +43,13 @@ class EpisodeTrackSerializer(serializers.ModelSerializer):
 
     episode = serializers.HyperlinkedRelatedField(
         view_name='kmkr:episode-detail',
-        queryset = models.Episode.objects.all(),
+        queryset=models.Episode.objects.all(),
+    )
+
+    track_broadcast = serializers.HyperlinkedRelatedField(
+        view_name='kmkr:playlogentry-detail',
+        queryset=models.PlayLogEntry.objects.all(),
+        allow_null=True
     )
 
     class Meta:
@@ -54,7 +60,8 @@ class EpisodeTrackSerializer(serializers.ModelSerializer):
             'sequence',
             'artist',
             'title',
-            'duration'
+            'duration',
+            'track_broadcast'
         )
 
 

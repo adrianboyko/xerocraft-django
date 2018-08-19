@@ -380,6 +380,10 @@ class EpisodeTrack(models.Model):
     duration = models.CharField(max_length=5, blank=True, null=False, default="",
         help_text="The duration of the track as MM:SS.")
 
+    track_broadcast = models.ForeignKey('PlayLogEntry', blank=True, null=True,
+        on_delete=models.PROTECT,
+        help_text="The record of this track's broadcast, if it was broadcast.")
+
     def __str__(self) -> str:
         return '"{}" by {}'.format(self.title, self.artist)
 
