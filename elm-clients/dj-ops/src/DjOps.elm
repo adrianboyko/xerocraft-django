@@ -1161,6 +1161,13 @@ tracks_tableRow model r =
             [ Button.fab
             , Button.plain
             , Opts.onClick (PlayTrack_Clicked r tte)
+            , Button.disabled
+               |> Opts.when
+                 ( model.broadcast
+                   |> Maybe.map .data
+                   |> Maybe.andThen .hostCheckedIn
+                   |> isNothing
+                 )
             ]
             [ tracksTabEntryIcon model r tte ]
           ]
