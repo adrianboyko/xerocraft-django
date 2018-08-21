@@ -16,7 +16,7 @@ class CaseInsensitiveModelBackend(ModelBackend):
     By default ModelBackend does case _sensitive_ username authentication, which isn't what is
     generally expected. This backend supports case insensitive username authentication.
     """
-    def authenticate(self, username=None, password=None):
+    def authenticate(self, request, username=None, password=None, **kwargs):
         identifier = username  # Given username is actually a more generic identifier.
 
         # Member.get_local_user() is case-insensitive

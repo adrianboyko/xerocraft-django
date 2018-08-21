@@ -5,7 +5,6 @@
 from django.apps import AppConfig
 
 # Local
-from abutils.utils import generic_autodiscover
 
 __author__ = 'Adrian'
 
@@ -15,4 +14,5 @@ class ModelMailerAppConfig(AppConfig):
     verbose_name = 'Model Mailer'
 
     def ready(self):
-        generic_autodiscover('mailviews')
+        from django.utils.module_loading import autodiscover_modules
+        autodiscover_modules('mailviews')

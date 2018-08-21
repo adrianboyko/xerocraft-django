@@ -13,7 +13,7 @@ from xis.xerocraft_org_utils.accountscraper import AccountScraper
 
 class XerocraftBackend(ModelBackend):
 
-    def authenticate(self, username=None, password=None):
+    def authenticate(self, request, username=None, password=None, **kwargs):
 
         # TODO: This would be a lot better/simpler if xerocraft.org's actions.php would offer
         # action:authenticate, SignInIdentifier:<email or username>, SignInPassword:<password>
