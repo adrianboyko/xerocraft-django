@@ -422,7 +422,7 @@ class PlayLogEntry (models.Model):
         elif self.non_library_track is not None:
             return self.non_library_track.artist
         else:
-            logger.error("Track broadcast #{} has NULL track and non_libary_track.", self.id)
+            logger.error("Track broadcast #{} has NULL track and non_libary_track.".format(self.id))
             return "uknown"
 
     @property
@@ -432,7 +432,7 @@ class PlayLogEntry (models.Model):
         elif self.non_library_track is not None:
             return self.non_library_track.title
         else:
-            logger.error("Track broadcast #{} has NULL track and non_libary_track.", self.id)
+            logger.error("Track broadcast #{} has NULL track and non_libary_track.".format(self.id))
             return "uknown"
 
     @property
@@ -440,10 +440,15 @@ class PlayLogEntry (models.Model):
         if self.track is not None:
             return self.track.duration
         elif self.non_library_track is not None:
-            parts = self.non_library_track.duration.split(":")
-            return timedelta(seconds=int(parts[0])*60 + int(parts[1]))
+            try:
+                dur_str = self.non_library_track.duration
+                parts = dur_str.split(":")
+                return timedelta(seconds=int(parts[0])*60 + int(parts[1]))
+            except:
+                logger.error("Track broadcast #{}, can't parse duration: {}".format(self.id, dur_str))
+                return timedelta(seconds=0)
         else:
-            logger.error("Track broadcast #{} has NULL track and non_libary_track.", self.id)
+            logger.error("Track broadcast #{} has NULL track and non_libary_track.".format(self.id))
             return timedelta(seconds=0)
 
     class Meta:
