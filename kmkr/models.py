@@ -440,8 +440,12 @@ class PlayLogEntry (models.Model):
         if self.track is not None:
             return self.track.duration
         elif self.non_library_track is not None:
+            dur_str = ""
             try:
+                # REVIEW: Is returning 0 for unspecified and unparsable the best approach?
                 dur_str = self.non_library_track.duration
+                if len(dur_str.strip()) == 0:
+                    return timedelta(seconds=0)
                 parts = dur_str.split(":")
                 return timedelta(seconds=int(parts[0])*60 + int(parts[1]))
             except:
