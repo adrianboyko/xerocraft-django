@@ -1,7 +1,7 @@
 module DjOps exposing (..)
 
 -- Standard
-import Html exposing (Html, div, text, select, option, input, p, br, span, table, tr, td, i)
+import Html exposing (Html, div, text, select, option, input, p, br, span, table, tr, td, i, textarea)
 import Html as Html
 import Html.Attributes exposing (style, href, attribute)
 import Html.Events exposing (onInput, on, on)
@@ -64,6 +64,7 @@ beginBroadcastButtonId = [startTabId, 4]
 
 -- For Tracks Tab
 numTrackRows = 60
+pasteTextButtonId = [tracksTabId, 1]
 
 
 -----------------------------------------------------------------------------
@@ -90,10 +91,12 @@ type alias Flags =
   , xisRestFlags : XisApi.XisRestFlags
   }
 
+
 type TracksTabEntryColumn
   = ArtistColumn
   | TitleColumn
   | DurationColumn
+
 
 trackTabEntryColumnId : TracksTabEntryColumn -> Int
 trackTabEntryColumnId col =
@@ -114,12 +117,14 @@ type alias TracksTabEntry =
   , savedTrackBroadcast : Maybe DRF.ResourceUrl
   }
 
+
 blankTracksTabEntry : TracksTabEntry
 blankTracksTabEntry =
   TracksTabEntry
     Nothing
     "" "" "" Nothing
     "" "" "" Nothing
+
 
 tracksTabEntryIsDirty : TracksTabEntry -> Bool
 tracksTabEntryIsDirty tte =
@@ -129,12 +134,22 @@ tracksTabEntryIsDirty tte =
   in
     curr /= saved
 
+
 tracksTabEntryColumnIsDirty : TracksTabEntry -> TracksTabEntryColumn -> Bool
 tracksTabEntryColumnIsDirty tte col =
   case col of
     ArtistColumn -> tte.artist /= tte.savedArtist
     TitleColumn -> tte.title /= tte.savedTitle
     DurationColumn -> tte.duration /= tte.savedDuration
+
+
+tracksTabEntryIsEmpty : TracksTabEntry -> Bool
+tracksTabEntryIsEmpty tte =
+  let
+    e = String.isEmpty << String.trim
+  in
+    e tte.artist && e tte.title && e tte.duration
+
 
 type alias Model =
   { errMsgs : List String
@@ -152,6 +167,8 @@ type alias Model =
   , datePicker : DatePicker.DatePicker
   , member : Maybe XisApi.Member
   , nowPlaying : Maybe XisApi.NowPlaying
+  , showBatchEntryDialog : Bool
+  , batchEntryText : Maybe String
   --- Tracks Tab model:
   , tracksTabEntries : Array TracksTabEntry
   --- Credentials:
@@ -181,6 +198,8 @@ init flags =
       , datePicker = datePicker
       , member = Nothing
       , nowPlaying = Nothing
+      , showBatchEntryDialog = False
+      , batchEntryText = Nothing
       --- Tracks Tab model:
       , tracksTabEntries = Array.repeat numTrackRows blankTracksTabEntry
       --- Credentials:
@@ -204,8 +223,12 @@ init flags =
 
 type
   Msg
-  = AcknowledgeDialog
+  = AcknowledgeErrorDialog
   | Authenticate_Result (Result Http.Error XisApi.AuthenticationResult)
+  | BatchEntry_Clicked -- The button to bring up the dialog was clicked
+  | BatchEntry_Closed -- The dialog was closed
+  | BatchEntry_Input String -- When the dialog's textarea content is changed.
+  | BatchEntry_Process -- The "process" button on the dialog was clicked
   | BeginBroadcast_Clicked
   | BroadcastCheckInUpdate_Result (Result Http.Error XisApi.Broadcast)
   | BroadcastExists_Result (Result Http.Error (DRF.PageOf XisApi.Broadcast))
@@ -230,13 +253,12 @@ type
   | UseridInput String
 
 
-
 update : Msg -> Model -> ( Model, Cmd Msg )
 update action model =
   let xis = model.xis
   in case action of
 
-    AcknowledgeDialog ->
+    AcknowledgeErrorDialog ->
       ( { model | errMsgs = [] }
       , Cmd.none
       )
@@ -261,6 +283,35 @@ update action model =
           newModel = { model | member = Nothing, errMsgs = errMsgs }
         in
           (newModel, Cmd.none)
+
+    BatchEntry_Clicked ->
+      ( {model | showBatchEntryDialog = True}, Cmd.none )
+
+    BatchEntry_Closed ->
+      ( { model
+        | showBatchEntryDialog = False
+        , batchEntryText = Nothing
+        }
+      , Cmd.none
+      )
+
+    BatchEntry_Input s ->
+      ( {model | batchEntryText = Just s}, Cmd.none )
+
+    BatchEntry_Process ->
+      case model.batchEntryText of
+        Just batch ->
+          let
+            lines = List.map String.trim (String.split "\n" batch)
+          in
+            ( model, Cmd.none )
+              |> updateModel (\m -> ingestBatchEntry lines 1 Nothing Nothing Nothing m)
+              |> updateModel (\m -> {m | batchEntryText = Nothing})
+              |> UpdateX.andThen update BatchEntry_Closed
+        Nothing ->
+          -- No changes were made to the batch text, so there's nothing to process.
+          ( model, Cmd.none )
+            |> UpdateX.andThen update BatchEntry_Closed
 
     BeginBroadcast_Clicked ->
       case model.episode of
@@ -576,6 +627,40 @@ fetchTracksTabData (model, cmd) =
       (model, cmd)
 
 
+ingestBatchEntry : List String -> Int -> Maybe String -> Maybe String -> Maybe String -> Model -> Model
+ingestBatchEntry lines row mArtist mTitle mDuration model =
+  case lines of
+    [] ->
+      model
+    line :: rest ->
+      if String.isEmpty line then
+        if isNothing mArtist && isNothing mTitle && isNothing mDuration then
+          -- Uninteresting blank line because nothing preceded it.
+          ingestBatchEntry rest row Nothing Nothing Nothing model
+        else
+          let
+            def =  Maybe.withDefault ""
+            artist = def mArtist
+            title = def mTitle
+            duration = mmss_mask <| def mDuration
+            mCurrEpTrackId = Array.get row model.tracksTabEntries |> Maybe.andThen .episodeTrackId
+            tte = TracksTabEntry
+              mCurrEpTrackId
+              artist title duration Nothing
+              "" "" "" Nothing
+            newTtes = Array.set row tte model.tracksTabEntries
+            newModel = { model | tracksTabEntries = newTtes }
+          in
+            ingestBatchEntry rest (row+1) Nothing Nothing Nothing newModel
+      else
+        if isNothing mArtist then
+          ingestBatchEntry rest row (Just line) Nothing Nothing model
+        else if isNothing mTitle then
+          ingestBatchEntry rest row mArtist (Just line) Nothing model
+        else
+          ingestBatchEntry rest row mArtist mTitle (Just line) model
+
+
 populateTracksTabData : List XisApi.EpisodeTrack -> Model -> Model
 populateTracksTabData ets model =
   let
@@ -779,6 +864,53 @@ view model =
     , main = [layout_main model]
     }
   , Dialog.view <| err_dialog_config model
+  , Dialog.view <| batch_track_entry model
+  ]
+
+
+batch_track_entry : Model -> Maybe (Dialog.Config Msg)
+batch_track_entry model =
+
+  if model.showBatchEntryDialog then
+    Just
+      { closeMessage = Just BatchEntry_Closed
+      , containerClass = Nothing
+      , containerId = Nothing
+      , header = Just (text "Batch Track Entry")
+      , body = Just (track_entry_textarea model)
+      , footer = Just (track_entry_footer model)
+      }
+  else
+    Nothing
+
+
+track_entry_textarea : Model -> Html Msg
+track_entry_textarea model =
+  textarea
+    [style
+      [ "width"=>"100%"
+      , "height" => "400px"
+      , "font-size"=>"14pt"
+      , "line-height"=>"1"
+      ]
+    , attribute "placeholder" "Artist Name\nTrack Title\nMM:SS\n\nArtist Name\nTrack Title\nMM:SS\n\n"
+    , onInput BatchEntry_Input
+    ]
+    ( List.map
+        (\tte -> text <| String.concat [tte.artist, "\n", tte.title, "\n", tte.duration, "\n\n"])
+        (List.filter (not << tracksTabEntryIsEmpty) <| Array.toList model.tracksTabEntries)
+    )
+
+
+track_entry_footer : Model -> Html Msg
+track_entry_footer model =
+  div []
+  [ Button.render Mdl loginButtonId model.mdl
+    [ Button.raised
+    , Button.colored
+    , Opts.onClick BatchEntry_Process
+    ]
+    [ text "Process"]
   ]
 
 
@@ -787,7 +919,7 @@ err_dialog_config model =
 
   if List.length model.errMsgs > 0 then
     Just
-      { closeMessage = Just AcknowledgeDialog
+      { closeMessage = Just AcknowledgeErrorDialog
       , containerClass = Nothing
       , containerId = Nothing
       , header = Just (text "😱 Error")
@@ -796,6 +928,7 @@ err_dialog_config model =
       }
   else
     Nothing
+
 
 tagattr x = attribute x x
 
@@ -1079,34 +1212,53 @@ tab_tracks model =
 
 tracks_info : Model -> Html Msg
 tracks_info model =
-  div
+  let para = p [style ["font-size"=>"14pt", "margin-bottom"=>"0"]]
+  in div
     [ style
       [ "float"=>"right"
       , "position"=>"fixed"
       , "right"=>"50px"
       , "top"=>"150px"
-      , "font-size"=>"16pt"
       , "background-color"=>"lemonchiffon"
       , "padding"=>"10px"
       , "border"=>"solid 1px"
+      , "width" => "250px"
       ]
     ]
-    [ p [style ["font-size"=>"16pt"]]
-      ( case (model.selectedShow, model.selectedShowDate) of
-        (Just show, Just date) ->
-          [ text "⟵"
-          , br [] []
-          , text "Tracks for"
-          , br [] []
-          , text show.data.title
-          , br [] []
-          , text (date |> CD.fromDate |> CD.format "%a, %b %ddd")
+
+    ( case (model.selectedShow, model.selectedShowDate) of
+
+      (Just show, Just date) ->
+        [ para
+          [ text "⟵ "
+          , text "Manually enter tracks for"
+          , text " "
+          , span [style ["font-style"=>"italic"]] [text show.data.title]
+          , text ", "
+          , text (date |> CD.fromDate |> CD.format "%a %b %ddd")
+          , text "."
           ]
-        _ ->
-          [ text "Finish the START tab."
+        , para
+          [ br [] []
+          , text "Or use: "
+          , Button.render Mdl pasteTextButtonId model.mdl
+            [ Button.raised
+            , Button.plain
+            , Opts.onClick BatchEntry_Clicked
+            , Button.disabled
+               -- Don't allow batch entry once broadcast of songs has begun.
+               |> Opts.when (List.any (isJust << .trackBroadcast) (Array.toList model.tracksTabEntries))
+            ]
+            [ text "Batch Entry" ]
           ]
-      )
-    ]
+        ]
+
+      _ ->
+        [ para
+          [ text "You must first specify an episode on the START tab."]
+        ]
+    )
+
 
 tracks_table : Model -> Html Msg
 tracks_table model =
