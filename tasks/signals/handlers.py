@@ -29,16 +29,6 @@ USER_VOLUNTEER = settings.BZWOPS_TASKS_CONFIG.get("USER_VOLUNTEER", None)
 def unused(x): x  # To suppress unused argument warnings.
 
 
-@receiver(post_save, sender=Tagging)
-def act_on_new_tag(sender, **kwargs):
-    unused(sender)
-    if kwargs.get('created', True):
-        pass
-        """ TODO: Check to see if this new tagging makes the tagged_member eligible for a task
-            they weren't previously eligible for. If so, email them with info.
-        """
-
-
 @receiver(post_save, sender=Member)
 def create_default_worker(sender, **kwargs):
     unused(sender)

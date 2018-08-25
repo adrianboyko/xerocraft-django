@@ -42,8 +42,8 @@ class TagAdmin(VersionAdmin):
 class TaggingAdmin(VersionAdmin):
 
     def members_username(self, object: Tagging):
-        return object.tagged_member.username
-    members_username.admin_order_field = 'tagged_member__auth_user__username'
+        return object.member.username
+    members_username.admin_order_field = 'member__auth_user__username'
     members_username.short_description = 'Username'
 
     def tag_active(self, object: Tagging):
@@ -64,17 +64,27 @@ class TaggingAdmin(VersionAdmin):
             else:
                 return queryset.filter(tag__name=self.value())
 
-    list_filter = ['tag__active', 'can_tag', TagFilter]
+    list_filter = ['tag__active', 'can_tag', 'is_tagged', TagFilter]
 
-    raw_id_fields = ['tagged_member', 'authorizing_member']
+    raw_id_fields = ['member', 'authorizing_member']
 
-    list_display = ['pk', 'tag_active', 'tagged_member', 'members_username', 'tag', 'can_tag', 'date_tagged', 'authorizing_member']
+    list_display = [
+        'pk',
+        'tag_active',
+        'member',
+        'members_username',
+        'tag',
+        'can_tag',
+        'is_tagged',
+        'date_tagged',
+        'authorizing_member'
+    ]
 
     search_fields = [
-        '^tagged_member__auth_user__first_name',
-        '^tagged_member__auth_user__last_name',
+        '^member__auth_user__first_name',
+        '^member__auth_user__last_name',
         'tag__name',
-        '^tagged_member__auth_user__username',
+        '^member__auth_user__username',
     ]
 
 
@@ -120,7 +130,7 @@ class MemberTypeFilter(admin.SimpleListFilter):
 
 class TaggingForMember(admin.TabularInline):
     model = Tagging
-    fk_name = 'tagged_member'
+    fk_name = 'member'
     raw_id_fields = ['authorizing_member']
     # model._meta.verbose_name = "Tag"
     # model._meta.verbose_name_plural = "Tags"

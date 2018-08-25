@@ -9,6 +9,7 @@ from datetime import datetime, date, timedelta, time
 from decimal import Decimal
 from typing import Union, Tuple, Optional
 import abc
+from logging import getLogger
 
 # Third Party
 from django.conf import settings
@@ -31,6 +32,8 @@ from abutils.time import is_very_last_day_of_month
 TZ = timezone.get_default_timezone()
 
 ORG_NAME = settings.BZWOPS_CONFIG.get('ORG_NAME', "")
+
+logger = getLogger("members")
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # CTRLID Functions
@@ -85,6 +88,16 @@ class Tag(models.Model):
 
     # meta_tags = models.ManyToManyField(MetaTag, blank=True,
     #     help_text="A tag can have zero or more metatags.")
+
+    @staticmethod
+    def get(tag_or_tagname: Union['Tag', str]) -> Optional['Tag']:
+        if type(tag_or_tagname) is Tag:
+            return tag_or_tagname
+        try:
+            tag = Tag.objects.get(name=tag_or_tagname)
+            return tag
+        except Tag.DoesNotExist:
+            return None
 
     def __str__(self) -> str:
         suffix = "" if self.active == True else " (DON'T USE)"
@@ -147,9 +160,6 @@ class Member(models.Model):
     #     help_text="MAC address of member's phone.")
     #
 
-    tags = models.ManyToManyField(Tag, blank=True, related_name="members",
-        through='Tagging', through_fields=('tagged_member', 'tag'))
-
     discovery = models.ManyToManyField(DiscoveryMethod,
         help_text="How this member learned about the organization.")
 
@@ -194,20 +204,26 @@ class Member(models.Model):
         self.save()
         return b64
 
-    def is_tagged_with(self, tag_or_tagname) -> bool:
-        '''Determine if member is tagged with the given tag or tag-name.'''
-        if type(tag_or_tagname) is Tag:
-            tag = tag_or_tagname  # type: Tag
-            return tag in self.tags.all()
-        elif type(tag_or_tagname) is str:
-            tagname = tag_or_tagname  # type: str
-            return tagname in [x.name for x in self.tags.all()]
+    def get_tagging(self, tag_or_tagname: Union[Tag, str]) -> Optional['Tagging']:
+        tag = Tag.get(tag_or_tagname)
+        if tag is not None:
+            for tagging in self.taggings.all():
+                if tagging.tag.name == tag.name:
+                    return tagging
+        return None
 
-    def can_tag_with(self, tag):
-        '''Determine if member can tag others with tags having given tag-name.'''
-        for tagging in self.taggings.all():
-            if tagging.tag.name == tag.name:
-                return tagging.can_tag
+    def is_tagged_with(self, tag_or_tagname: Union[Tag, str]) -> bool:
+        """Determine if member is tagged with the given tag or tag-name."""
+        tagging = self.get_tagging(tag_or_tagname)
+        if tagging is not None:
+            return tagging.is_tagged
+        return False
+
+    def can_tag_with(self, tag_or_tagname: Union[Tag, str]) -> bool:
+        """Determine if member can tag others with the given tag or tag-name."""
+        tagging = self.get_tagging(tag_or_tagname)
+        if tagging is not None:
+            return tagging.can_tag
         return False
 
     def is_domain_staff(self):  # Different than website staff.
@@ -381,7 +397,7 @@ class Pushover(models.Model):
 class Tagging(models.Model):
     """ Intermediate table representing the many-tomany relation between Member and Tag
     """
-    tagged_member = models.ForeignKey(Member, related_name='taggings',
+    member = models.ForeignKey(Member, related_name='taggings',
         on_delete=models.CASCADE,  # If a member is deleted, it doesn't make sense to keep their taggings.
         help_text="The member tagged.")
 
@@ -399,32 +415,51 @@ class Tagging(models.Model):
         # Note: If authorizing member is deleted, his/her Taggings shouldn't be. Hence on_delete=SET_NULL.
         # However, blank=False because somebody using admin really should provide the authorizing member info.
 
+    is_tagged = models.BooleanField(default=True,
+        help_text="If True, the member has this tag.")
+
     can_tag = models.BooleanField(default=False,
-        help_text="If True, the tagged member can be a authorizing member for this tag.")
-        # Note: Above assumes that only people with a certain tag can grant that tag.
-        # However, Django admins with appropriate permissions can tag any member with any tag, when required.
+        help_text="If True, the member can tag other members with this tag.")
 
     @staticmethod
-    def add_if_permitted(tagger, taggee, tag):
-        if taggee.is_tagged_with(tag.name): return
-        if tagger.can_tag_with(tag):
-            Tagging.objects.create(tagged_member=taggee, tag=tag, authorizing_member=tagger)
+    def add_if_permitted(tagger: Member, taggee: Member, tag: Tag) -> None:
+        if not tagger.can_tag_with(tag):
+            return
+        tagging = taggee.get_tagging(tag)
+        if tagging is None:
+            Tagging.objects.create(
+                member=taggee,
+                tag=tag,
+                is_tagged=True,
+                can_tag=False,
+                authorizing_member=tagger
+            )
+        else:
+            tagging.is_tagged = True
+            tagging.save()
 
     @staticmethod
-    def remove_if_permitted(tagger, taggee, tag):
-        if not taggee.is_tagged_with(tag.name): return
-        if tagger.can_tag_with(tag):
-            try:
-                tag = Tagging.objects.get(tagged_member=taggee, tag=tag)
-                tag.delete()
-            except Tagging.DoesNotExist:
-                pass
+    def remove_if_permitted(tagger: Member, taggee: Member, tag: Tag) -> None:
+        if not tagger.can_tag_with(tag):
+            return
+        tagging = taggee.get_tagging(tag)
+        if tagging is None:
+            # There's nothing to remove.
+            return
+        if tagging.can_tag:
+            # We still need to keep this record because the tagee can tag.
+            # It's an unusual but valid scenario because we have some people who can tag X without having tag X.
+            tagging.is_tagged = False
+            tagging.save()
+        else:
+            # There's no longer any reason to keep this tagging record.
+            tagging.delete()
 
     def __str__(self):
-        return "%s/%s/%s" % (self.tagged_member.auth_user.username, self.tag.name, self.can_tag)
+        return "{}/{}/{}/{}".format(self.member.username, self.tag.name, self.is_tagged, self.can_tag)
 
     class Meta:
-        unique_together = ('tagged_member', 'tag')
+        unique_together = ('member', 'tag')
 
 
 class MemberNote(models.Model):

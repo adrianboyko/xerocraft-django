@@ -140,8 +140,7 @@ class TestMembers(TestCase):
         for u in User.objects.all():
             m = u.member
             self.assertTrue(m is not None)
-            tag_names = [x.name for x in m.tags.all()]
-            self.assertTrue("Member" in tag_names)  # Every member should have this tag.
+            self.assertTrue(m.is_tagged_with("Member"))  # Every member should have this tag.
             self.assertTrue(m.auth_user is not None)  # Every member should be connected to a Django user.
 
 
@@ -164,7 +163,7 @@ class TestCardsAndApi(TestCase):
 
     def test_member_details_is_staff(self):
         tag = Tag.objects.create(name="Staff", meaning="spam")
-        Tagging.objects.create(tagged_member=self.m2, tag=tag, authorizing_member=self.m2)
+        Tagging.objects.create(member=self.m2, tag=tag, authorizing_member=self.m2)
         c = Client()
         path = "/members/api/member-details/%s_%s/" % (self.str1, self.str2)
         response = c.get(path)
@@ -259,7 +258,7 @@ class TestRestApi_Member(TestCase):
 
     def test_get_as_director(self):
         tag = Tag.objects.create(name="Director", meaning="spam")
-        Tagging.objects.create(tagged_member=self.caller, tag=tag)
+        Tagging.objects.create(member=self.caller, tag=tag)
         urlstr = reverse("memb:member-detail", kwargs={'pk': self.poi.auth_user.member.pk})
         response = self.client.get(urlstr)
         # Director should be able to see private field of another member.
@@ -267,7 +266,7 @@ class TestRestApi_Member(TestCase):
 
     def test_get_as_staff(self):
         tag = Tag.objects.create(name="Staff", meaning="spam")
-        Tagging.objects.create(tagged_member=self.caller, tag=tag)
+        Tagging.objects.create(member=self.caller, tag=tag)
         urlstr = reverse("memb:member-detail", kwargs={'pk': self.poi.auth_user.member.pk})
         response = self.client.get(urlstr)
         # Staff should be able to see private field of another member.

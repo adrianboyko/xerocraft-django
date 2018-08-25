@@ -34,20 +34,12 @@ def create_default_member(sender, **kwargs):
         except ObjectDoesNotExist:
             t = Tag.objects.create(name="Member", meaning="All members have this tag.")
 
-        Tagging.objects.create(tagged_member=m, tag=t)
+        Tagging.objects.create(member=m, tag=t, is_tagged=True, can_tag=False)
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # TAGGING
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-@receiver(post_save, sender=Tagging)
-def email_for_saved_tagging(sender, **kwargs):
-    if kwargs.get('created', True):
-        #TODO: Send SIGNED email to tagged_member informing them of addition, along with all other current tags.
-        #TODO: Send email to authorizing_member informing them that this tagging was authorized in their name.
-        #TODO: Send email to other members with the same can_tag privilege informing them.
-        pass
 
 # NOTE: DO NOT attempt to automatically manage group memberships here.
 

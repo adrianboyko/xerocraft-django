@@ -99,7 +99,7 @@ def api_member_details(request, member_card_str, staff_card_str):
         error_msg = info
         return JsonResponse({'error': error_msg})
 
-    member, _ = info  # type: Tuple[Member, Member]
+    member = info[0]  # type: Member
     data = {
         'pk': member.pk,
         'is_active': member.is_active,
@@ -107,7 +107,7 @@ def api_member_details(request, member_card_str, staff_card_str):
         'first_name': member.first_name,
         'last_name': member.last_name,
         'email': member.email,
-        'tags': [tag.name for tag in member.tags.all()]
+        'tags': [tagging.tag.name for tagging in member.taggings.filter(tag__active=True, is_tagged=True).all()]
     }
     return JsonResponse(data)
 
@@ -115,15 +115,15 @@ def api_member_details(request, member_card_str, staff_card_str):
 def api_member_details_pub(request, member_card_str):
     """ Respond with corresponding user/member tags given the membership card string. """
 
-    subject = Member.get_by_card_str(member_card_str)
+    subject = Member.get_by_card_str(member_card_str)  # type: Member
 
     if subject is None:
-        return JsonResponse({'error':"Invalid member card string"})
+        return JsonResponse({'error': "Invalid member card string"})
 
     data = {
         'pk': subject.pk,
         'is_active': subject.is_active,
-        'tags': [tag.name for tag in subject.tags.all()]
+        'tags': [tagging.tag.name for tagging in subject.taggings.filter(tag__active=True, is_tagged=True).all()]
     }
     return JsonResponse(data)
 
@@ -254,13 +254,13 @@ def member_tags(request, tag_pk=None, member_pk=None, op=None):
         form = Desktop_ChooseUserForm(initial={'userid': username})
 
     if member is not None:
-        members_tags = member.tags.filter(active=True)
-        staff_can_tags = [tagging.tag for tagging in Tagging.objects.filter(tag__active=True, can_tag=True, tagged_member=staff)]
+        members_tags = [tagging.tag for tagging in Tagging.objects.filter(tag__active=True, is_tagged=True, member=member)]
+        staff_can_tags = [tagging.tag for tagging in Tagging.objects.filter(tag__active=True, can_tag=True, member=staff)]
         staff_addable_tags = list(staff_can_tags) # copy contents, not pointer.
         # staff member can't add tags that member already has, so:
-        for tag in member.tags.all():
-            if tag in staff_addable_tags:
-                staff_addable_tags.remove(tag)
+        for tagging in member.taggings.filter(tag__active=True, is_tagged=True).all():
+            if tagging.tag in staff_addable_tags:
+                staff_addable_tags.remove(tagging.tag)
 
     today = date.today()
     visits = VisitEvent.objects.filter(when__gt=today)

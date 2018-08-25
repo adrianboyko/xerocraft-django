@@ -8,7 +8,7 @@
     <body style='font-family:Arial; font-color:black'>
         <p>Hi {{member.first_name}},</p>
         <p>New taggings have been recorded with you as the authorizing member:</p>
-        <ul>{% for tagging in tagging_list %}<li>{{tagging.tagged_member}} was tagged with "{{tagging.tag}}"</li>{% endfor %}</ul>
+        <ul>{% for tagging in tagging_list %}<li>{{tagging.member}} was tagged with "{{tagging.tag}}"</li>{% endfor %}</ul>
         <p>If you did not authorize these taggings, please reply with details.</p>
         <p>Thanks!</p>
     </body>
