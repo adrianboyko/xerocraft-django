@@ -10,17 +10,17 @@ form .aligned input + p.help, form .aligned textarea + p.help, form .aligned sel
     margin-left: 0;
 }
 
-.aligned div.field-box.field-transaction_number label + div.readonly {
+.aligned div.fieldBox.field-transaction_number label + div.readonly {
     margin-left: 135px;
     width: 100px;
 }
 
-.aligned div.field-box.field-underwriter label + div.readonly {
+.aligned div.fieldBox.field-underwriter label + div.readonly {
     margin-left: 85px;
     width: 200px;
 }
 
-div.field-box.field-end_date {
+div.fieldBox.field-end_date {
     margin-left: 30px;
 }
 

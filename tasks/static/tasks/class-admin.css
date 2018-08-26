@@ -2,19 +2,19 @@
 .aligned label {width:auto}
 
 
-.aligned div.field-box.field-scheduled_date label + div.readonly {
+.aligned div.fieldBox.field-scheduled_date label + div.readonly {
     margin-left: 130px;
 }
 
-.aligned div.field-box.field-scheduled_date {
+.aligned div.fieldBox.field-scheduled_date {
     margin-right: 50px;
 }
 
-.aligned div.field-box.field-start_time label + div.readonly {
+.aligned div.fieldBox.field-start_time label + div.readonly {
     margin-left: 90px;
 }
 
-.aligned div.field-box.field-start_time {
+.aligned div.fieldBox.field-start_time {
     margin-right: 50px;
 }
 
