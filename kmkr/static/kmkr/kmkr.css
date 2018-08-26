@@ -27,3 +27,16 @@ div.fieldBox.field-end_date {
 form .aligned div.help {
     margin-left: 0;
 }
+
+#underwritingschedule_set-group .inline-related.tabular fieldset.module table {
+    width: 50%;
+}
+
+#underwritingbroadcast_set-group .inline-related.tabular fieldset.module table {
+    width: 50%;
+}
+
+div.datetimespacer {
+    display: inline-block;
+    width: 50px;
+}

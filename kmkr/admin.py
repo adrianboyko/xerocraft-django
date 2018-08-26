@@ -11,7 +11,7 @@ from reversion.admin import VersionAdmin
 from kmkr.models import (
     Show, ShowTime, Episode, EpisodeTrack, Broadcast,
     UnderwritingAgreement,
-    UnderwritingBroadcast,
+    UnderwritingBroadcast, UnderwritingSchedule,
     OnAirPersonality,
     OnAirPersonalitySocialMedia,
     PlayLogEntry, Track, Rating
@@ -121,7 +121,6 @@ class UnderwritingAgreementAdmin(VersionAdmin):
         'start_date',
         'end_date',
         'spot_seconds',
-        'slot'
     ]
 
     list_display_links = ['pk']
@@ -130,22 +129,21 @@ class UnderwritingAgreementAdmin(VersionAdmin):
         ('transaction_number', 'underwriter'),
         ('sale_price'),
         ('start_date', 'end_date'),
-        ('spots_included', 'spot_seconds', 'slot', 'track_id'),
-        ('script', 'custom_details')
+        ('spots_included', 'spot_seconds', 'track_id'),
+        ('script')
     ]
 
-    class SpecificShows_Inline(admin.TabularInline):
-        model = UnderwritingAgreement.specific_shows.through
-        model._meta.verbose_name = "Specific Show"
-        model._meta.verbose_name_plural = "Specific Shows"
+    class UnderwritingSchedule_Inline(admin.TabularInline):
+        model = UnderwritingSchedule
         extra = 0
+        raw_id_fields = ['agreement']
 
     class UnderwritingLog_Inline(admin.TabularInline):
         model = UnderwritingBroadcast
         model._meta.verbose_name = "Underwriting Broadcast"
         extra = 0
 
-    inlines = [SpecificShows_Inline, UnderwritingLog_Inline]
+    inlines = [UnderwritingSchedule_Inline, UnderwritingLog_Inline]
 
     readonly_fields = ['transaction_number', 'underwriter']
 
@@ -191,7 +189,7 @@ class UnderwritingAgreementAdmin(VersionAdmin):
             if self.value() == 'current':
                 return queryset.filter(start_date__lte=d, end_date__gte=d)
 
-    list_filter = [ActiveFilter, DateRangeFilter, 'slot']
+    list_filter = [ActiveFilter, DateRangeFilter]
 
     search_fields = [
         'sale__payer_name',
@@ -212,6 +210,7 @@ class UnderwritingAgreementAdmin(VersionAdmin):
                 "kmkr/kmkr.css"
             )
         }
+        js = ["kmkr/kmkr.js"]
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -225,10 +224,7 @@ class UnderwritingAgreement_LineItem(admin.StackedInline):
         ('start_date', 'end_date'),
         'spots_included',
         'spot_seconds',
-        'slot',
         'script',
-        'specific_shows',
-        'custom_details'
     ]
     extra = 0
 

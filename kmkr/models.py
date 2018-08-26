@@ -163,8 +163,7 @@ class ShowTime(models.Model):
 class UnderwritingAgreement (SaleLineItem):
 
     # Overrides SaleLineItem.qty_sold b/c I want it to default to 1 in this class.
-    qty_sold = models.IntegerField(null=False, blank=False, default=1,
-        help_text=".")
+    qty_sold = models.IntegerField(null=False, blank=False, default=1)
 
     start_date = models.DateField(null=False, blank=False, default=date.today,
         help_text="The first day on which a spot can run.")
@@ -180,30 +179,11 @@ class UnderwritingAgreement (SaleLineItem):
         validators=[MinValueValidator(0)],
         help_text="The length of each spot in seconds.")
 
-    SLOT_DAY = "DAY"
-    SLOT_DRIVE = "DRV"
-    SLOT_SHOW = "SHW"
-    SLOT_CUSTOM = "CST"
-    SLOT_CHOICES = [
-        (SLOT_DAY, "Daytime"),
-        (SLOT_DRIVE, "Drivetime"),
-        (SLOT_SHOW, "Specific Show(s)"),
-        (SLOT_CUSTOM, "Custom Time")
-    ]
-    slot = models.CharField(max_length=3, choices=SLOT_CHOICES, null=False, blank=False,
-        help_text="The time slot during which the spot(s) can air.")
-
-    specific_shows = models.ManyToManyField(Show, blank=True,
-        help_text="If spot(s) MUST run during some specific show(s), select them.")
-
     track_id = models.IntegerField(blank=True, null=True,
         help_text="The ID of the associated track on Radio DJ.")
 
     script = models.TextField(max_length=2048, blank=False,
         help_text="The text to read on-air.")
-
-    custom_details = models.TextField(max_length=1024, blank=True,
-        help_text="Specify details if slot is CUSTOM.")
 
     @property
     def is_fully_delivered(self) -> bool:
@@ -218,14 +198,6 @@ class UnderwritingAgreement (SaleLineItem):
         if self.start_date >= self.end_date:
             raise ValidationError("End date must be later than start date.")
 
-        if self.slot == self.SLOT_CUSTOM and len(self.custom_details.strip())==0:
-            raise ValidationError("Instructions must be specified if slot is 'custom'")
-
-    def dbcheck(self):
-
-        if self.slot == self.SLOT_SHOW and len(self.specific_shows.count())==0:
-            raise ValidationError("At least one show must be specified if slot is 'speciic show(s)'")
-
 
 class UnderwritingBroadcast (models.Model):
 
@@ -235,6 +207,45 @@ class UnderwritingBroadcast (models.Model):
 
     when_read = models.DateTimeField(blank=False,
         help_text="The date & time the spot was read on-air.")
+
+
+class UnderwritingSchedule (models.Model):
+
+    agreement = models.ForeignKey(UnderwritingAgreement, null=False, blank=False,
+        on_delete=models.CASCADE,
+        help_text="The associated agreement.")
+
+    time = models.TimeField(null=False, blank=False,
+        help_text="The time to broadcast the underwriter's spot.")
+
+    weekdays = models.BooleanField(default=False)
+    weekend = models.BooleanField(default=False)
+
+    # Some dynamic code (in other modules) requires these aliases:
+    @property
+    def sunday(self) -> bool: return self.weekend
+    @property
+    def monday(self) -> bool: return self.weekdays
+    @property
+    def tuesday(self) -> bool: return self.weekdays
+    @property
+    def wednesday(self) -> bool: return self.weekdays
+    @property
+    def thursday(self) -> bool: return self.weekdays
+    @property
+    def friday(self) -> bool: return self.weekdays
+    @property
+    def saturday(self) -> bool: return self.weekend
+    @property
+    def first(self) -> bool: return False
+    @property
+    def second(self) -> bool: return False
+    @property
+    def third(self) -> bool: return False
+    @property
+    def fourth(self) -> bool: return False
+    @property
+    def every(self) -> bool: return True
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
