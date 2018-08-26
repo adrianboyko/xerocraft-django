@@ -10,8 +10,8 @@ from reversion.admin import VersionAdmin
 # Local
 from kmkr.models import (
     Show, ShowTime, Episode, EpisodeTrack, Broadcast,
-    UnderwritingSpots,
-    UnderwritingLogEntry,
+    UnderwritingAgreement,
+    UnderwritingBroadcast,
     OnAirPersonality,
     OnAirPersonalitySocialMedia,
     PlayLogEntry, Track, Rating
@@ -95,34 +95,28 @@ class ShowAdmin(VersionAdmin):
 # UNDERWRITING SPOTS
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-@admin.register(UnderwritingSpots)
-class UnderwritingSpotsAdmin(VersionAdmin):
+@admin.register(UnderwritingAgreement)
+class UnderwritingAgreementAdmin(VersionAdmin):
 
-    def underwriter(self, obj: UnderwritingSpots) -> str:
+    def underwriter(self, obj: UnderwritingAgreement) -> str:
         return obj.sale.payer_name
 
-    def num_spots(self, obj: UnderwritingSpots) -> str:
-        return str(obj.qty_sold)
-
-    def spot_price(self, obj: UnderwritingSpots) -> str:
-        return str(obj.sale_price)
-
-    def transaction_number(self, obj: UnderwritingSpots) -> str:
+    def transaction_number(self, obj: UnderwritingAgreement) -> str:
         return str(obj.sale.pk)
 
-    def _qty_aired(self, obj: UnderwritingSpots) -> int:
+    def _qty_aired(self, obj: UnderwritingAgreement) -> int:
         return obj.qty_aired
     _qty_aired.short_description = "#aired"
 
-    def _qty_sold(self, obj: UnderwritingSpots) -> int:
-        return obj.qty_sold
-    _qty_sold.short_description = "#sold"
+    def _spots_included(self, obj: UnderwritingAgreement) -> int:
+        return obj.spots_included
+    _spots_included.short_description = "#spots"
 
     list_display = [
         'pk',
         'underwriter',
         'sale_price',
-        '_qty_sold',
+        '_spots_included',
         '_qty_aired',
         'start_date',
         'end_date',
@@ -134,22 +128,21 @@ class UnderwritingSpotsAdmin(VersionAdmin):
 
     fields = [
         ('transaction_number', 'underwriter'),
-        ('sale_price', 'qty_sold'),
+        ('sale_price'),
         ('start_date', 'end_date'),
-        ('spot_seconds', 'slot', 'track_id'),
+        ('spots_included', 'spot_seconds', 'slot', 'track_id'),
         ('script', 'custom_details')
     ]
 
     class SpecificShows_Inline(admin.TabularInline):
-        model = UnderwritingSpots.specific_shows.through
+        model = UnderwritingAgreement.specific_shows.through
         model._meta.verbose_name = "Specific Show"
         model._meta.verbose_name_plural = "Specific Shows"
         extra = 0
 
     class UnderwritingLog_Inline(admin.TabularInline):
-        model = UnderwritingLogEntry
-        model._meta.verbose_name = "Log Entry"
-        model._meta.verbose_name_plural = "Log Entries"
+        model = UnderwritingBroadcast
+        model._meta.verbose_name = "Underwriting Broadcast"
         extra = 0
 
     inlines = [SpecificShows_Inline, UnderwritingLog_Inline]
@@ -168,7 +161,7 @@ class UnderwritingSpotsAdmin(VersionAdmin):
 
         def annotate_qty_delivered(self, queryset):
             return queryset.annotate(
-                qty_delivered=Count('underwritinglogentry')
+                qty_delivered=Count('underwritingbroadcast')
             )
 
         def queryset(self, request, queryset):
@@ -225,11 +218,12 @@ class UnderwritingSpotsAdmin(VersionAdmin):
 # Line-Item Inlines for SaleAdmin in Books app.
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-@Sellable(UnderwritingSpots)
-class UnderwritingSpots_LineItem(admin.StackedInline):
+@Sellable(UnderwritingAgreement)
+class UnderwritingAgreement_LineItem(admin.StackedInline):
     fields = [
-        ('sale_price', 'qty_sold'),
+        ('sale_price'),
         ('start_date', 'end_date'),
+        'spots_included',
         'spot_seconds',
         'slot',
         'script',

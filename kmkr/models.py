@@ -160,13 +160,21 @@ class ShowTime(models.Model):
 
 
 # TODO: @register_journaler()  ... Class must inherit from Journaler.
-class UnderwritingSpots (SaleLineItem):
+class UnderwritingAgreement (SaleLineItem):
+
+    # Overrides SaleLineItem.qty_sold b/c I want it to default to 1 in this class.
+    qty_sold = models.IntegerField(null=False, blank=False, default=1,
+        help_text=".")
 
     start_date = models.DateField(null=False, blank=False, default=date.today,
         help_text="The first day on which a spot can run.")
 
     end_date = models.DateField(null=False, blank=False, default=date.today,
         help_text="The last day on which a spot can run.")
+
+    spots_included = models.IntegerField(null=False, blank=False,
+        validators=[MinValueValidator(0)],
+        help_text="The number of spots included in this agreement.")
 
     spot_seconds = models.IntegerField(null=False, blank=False,
         validators=[MinValueValidator(0)],
@@ -199,11 +207,11 @@ class UnderwritingSpots (SaleLineItem):
 
     @property
     def is_fully_delivered(self) -> bool:
-        return self.underwritinglogentry_set.count() >= self.qty_sold
+        return self.underwritingbroadcast_set.count() >= self.qty_sold
 
     @property
     def qty_aired(self) -> int:
-        return self.underwritinglogentry_set.count()
+        return self.underwritingbroadcast_set.count()
 
     def clean(self) -> None:
 
@@ -218,21 +226,15 @@ class UnderwritingSpots (SaleLineItem):
         if self.slot == self.SLOT_SHOW and len(self.specific_shows.count())==0:
             raise ValidationError("At least one show must be specified if slot is 'speciic show(s)'")
 
-    class Meta:
-        verbose_name = "Underwriting spot"
 
+class UnderwritingBroadcast (models.Model):
 
-class UnderwritingLogEntry (models.Model):
-
-    spec = models.ForeignKey(UnderwritingSpots, null=False, blank=False,
+    spec = models.ForeignKey(UnderwritingAgreement, null=False, blank=False,
         on_delete=models.PROTECT,  # Don't allow deletion of an agreement that we've partially fulfilled.
         help_text="The associated agreement.")
 
     when_read = models.DateTimeField(blank=False,
         help_text="The date & time the spot was read on-air.")
-
-    class Meta:
-        verbose_name = "Underwriting broadcast"
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
