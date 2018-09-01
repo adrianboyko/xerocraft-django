@@ -1,5 +1,8 @@
 from django.apps import AppConfig
 
 
-class KmkrConfig(AppConfig):
+class KmkrAppConfig(AppConfig):
     name = 'kmkr'
+
+    def ready(self):
+        import kmkr.signals.handlers

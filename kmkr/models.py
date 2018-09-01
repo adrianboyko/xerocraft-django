@@ -9,13 +9,16 @@ from django.db import models
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.utils import timezone
+from django.utils.html import format_html
 
 # Local
-from books.models import SaleLineItem
+from books.models import SaleLineItem, Entity
 from members.models import Member
 import abutils.time as abtime
+from abutils.models import get_url_str
 
 logger = getLogger("kmkr")
+oneday = timedelta(days=1)
 
 
 class OnAirPersonality (models.Model):
@@ -159,21 +162,24 @@ class ShowTime(models.Model):
         return True if day_match and time_match else False
 
 
-# TODO: @register_journaler()  ... Class must inherit from Journaler.
-class UnderwritingAgreement (SaleLineItem):
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+# Underwriting
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-    # Overrides SaleLineItem.qty_sold b/c I want it to default to 1 in this class.
-    qty_sold = models.IntegerField(null=False, blank=False, default=1)
+class UnderwritingQuote(models.Model):
 
-    start_date = models.DateField(null=False, blank=False, default=date.today,
-        help_text="The first day on which a spot can run.")
+    prepared_for = models.ForeignKey(Entity, null=False, blank=False,
+        on_delete=models.CASCADE,
+        help_text="The business/organization for whom this quote was prepared.")
 
-    end_date = models.DateField(null=False, blank=False, default=date.today,
-        help_text="The last day on which a spot can run.")
+    date_prepared = models.DateField(null=False, blank=False, default=date.today,
+        help_text="The date on which this quote was prepared.")
 
-    spots_included = models.IntegerField(null=False, blank=False,
-        validators=[MinValueValidator(0)],
-        help_text="The number of spots included in this agreement.")
+    active = models.BooleanField(default=True,
+        help_text="Checked if this quote is still being offered to the underwriter.")
+
+    quoted_price = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False,
+        help_text="The quoted price.")
 
     spot_seconds = models.IntegerField(null=False, blank=False,
         validators=[MinValueValidator(0)],
@@ -185,58 +191,54 @@ class UnderwritingAgreement (SaleLineItem):
     script = models.TextField(max_length=2048, blank=False,
         help_text="The text to read on-air.")
 
-    @property
-    def is_fully_delivered(self) -> bool:
-        return self.underwritingbroadcast_set.count() >= self.qty_sold
+    def __str__(self):
+        return "{} quote for {}".format(self.date_prepared, self.prepared_for.name)
 
-    @property
-    def qty_aired(self) -> int:
-        return self.underwritingbroadcast_set.count()
-
-    def clean(self) -> None:
-
-        if self.start_date >= self.end_date:
-            raise ValidationError("End date must be later than start date.")
-
-
-class UnderwritingBroadcast (models.Model):
-
-    spec = models.ForeignKey(UnderwritingAgreement, null=False, blank=False,
-        on_delete=models.PROTECT,  # Don't allow deletion of an agreement that we've partially fulfilled.
-        help_text="The associated agreement.")
-
-    when_read = models.DateTimeField(blank=False,
-        help_text="The date & time the spot was read on-air.")
+    def best_schedule_match(self, dt: datetime) -> 'UnderwritingBroadcastSchedule':
+        dt = timezone.localtime(dt)  # Schedules are specified in local days/times, so make sure dt is local.
+        dt_weekday = dt.weekday()
+        min_diff = None  # type: Optional[float]
+        best_match = None  # type: Optional[UnderwritingBroadcastSchedule]
+        for sched in self.underwritingbroadcastschedule_set.all():  # type: UnderwritingBroadcastSchedule
+            diff = None  # type: Optional[float]
+            for n in [-1, 0, 1]:  # prev weekday, same weekday, next weekday
+                if sched.covers_weekday((dt_weekday-n) % 7):
+                    # The schedule covers the previous weekday BEFORE dt's weekday.
+                    sched_dt = (dt+n*oneday).replace(hour=sched.time.hour, minute=sched.time.minute)
+                    diff = abs((dt-sched_dt).total_seconds())
+                    if min_diff is None or (diff < min_diff):
+                        min_diff = diff
+                        best_match = sched
+        return best_match
 
 
-class UnderwritingSchedule (models.Model):
+class UnderwritingBroadcastSchedule (models.Model):  # TODO: Rename to UnderwritingScheduleLineItem?
 
-    agreement = models.ForeignKey(UnderwritingAgreement, null=False, blank=False,
+    # TODO: Rename agreement -> quote
+    agreement = models.ForeignKey(UnderwritingQuote, null=False, blank=False,
         on_delete=models.CASCADE,
-        help_text="The associated agreement.")
+        help_text="The associated quote.")
+    @property
+    def quote(self) -> UnderwritingQuote:
+        return self.agreement
+
+    num_spots = models.IntegerField(null=False, blank=False,
+        validators=[MinValueValidator(0)],
+        help_text="The number of spots to broadcast in this time slot.")
 
     time = models.TimeField(null=False, blank=False,
         help_text="The time to broadcast the underwriter's spot.")
 
-    weekdays = models.BooleanField(default=False)
-    weekend = models.BooleanField(default=False)
+    # Day of week:
+    sundays = models.BooleanField(default=False, verbose_name="Sun")
+    mondays = models.BooleanField(default=False, verbose_name="Mon")
+    tuesdays = models.BooleanField(default=False, verbose_name="Tue")
+    wednesdays = models.BooleanField(default=False, verbose_name="Wed")
+    thursdays = models.BooleanField(default=False, verbose_name="Thu")
+    fridays = models.BooleanField(default=False, verbose_name="Fri")
+    saturdays = models.BooleanField(default=False, verbose_name="Sat")
 
     # Some dynamic code (in other modules) requires these aliases:
-    @property
-    def sunday(self) -> bool: return self.weekend
-    @property
-    def monday(self) -> bool: return self.weekdays
-    @property
-    def tuesday(self) -> bool: return self.weekdays
-    @property
-    def wednesday(self) -> bool: return self.weekdays
-    @property
-    def thursday(self) -> bool: return self.weekdays
-    @property
-    def friday(self) -> bool: return self.weekdays
-    @property
-    def saturday(self) -> bool: return self.weekend
-    @property
     def first(self) -> bool: return False
     @property
     def second(self) -> bool: return False
@@ -246,6 +248,70 @@ class UnderwritingSchedule (models.Model):
     def fourth(self) -> bool: return False
     @property
     def every(self) -> bool: return True
+
+    def covers_weekday(self, wd: int):
+        return (wd==0 and self.mondays) \
+         or (wd==1 and self.tuesdays) \
+         or (wd==2 and self.wednesdays) \
+         or (wd==3 and self.thursdays) \
+         or (wd==4 and self.fridays) \
+         or (wd==5 and self.saturdays) \
+         or (wd==6 and self.sundays)
+
+    def __str__(self):
+        return "{} @ {}".format(abtime.days_of_week_str(self), self.time)
+
+
+# TODO: @register_journaler()  ... Class must inherit from Journaler.
+class UnderwritingDeal(SaleLineItem):
+
+    quote = models.ForeignKey(UnderwritingQuote, null=False, blank=False,
+        on_delete=models.PROTECT,
+        help_text="The associated quote, which contains the terms of this dea.")
+
+    start_date = models.DateField(null=False, blank=False, default=date.today,
+        help_text="Underwriter's preference for first day on which a spot will run.")
+
+    end_date = models.DateField(null=False, blank=False, default=date.today,
+        help_text="Underwriter's preference for last day on which a spot will run.")
+
+    @property
+    def underwriter_name(self):
+        return self.sale.payer_str
+
+    @property
+    def quote_link(self):
+        url_str = get_url_str(self.quote)
+        return format_html("<a href='{}'>{}</a>", url_str, self.quote)
+
+    @property
+    def is_fully_delivered(self) -> bool:
+        return False  # TODO: IMPLEMENT ME
+
+    def __str__(self) -> str:
+        return "{} deal dated {}".format(self.sale.payer_str, self.sale.sale_date)
+
+    def clean(self) -> None:
+        if self.start_date >= self.end_date:
+            raise ValidationError("End date must be later than start date.")
+
+
+class UnderwritingBroadcastLog (models.Model):
+
+    deal = models.ForeignKey(UnderwritingDeal, null=False, blank=False,
+        on_delete=models.PROTECT,  # Don't allow deletion of a sale line item if we're partially delivered it.
+        help_text="The associated sale line item.")
+
+    # NOTE: Each schedule line item needs to be independently satisfied.
+    schedule = models.ForeignKey(UnderwritingBroadcastSchedule, null=False, blank=False,
+        on_delete=models.PROTECT,
+        help_text="The associated schedule the quote.")
+
+    when_read = models.DateTimeField(blank=False,
+        help_text="The date & time the spot was read on-air.")
+
+    class Meta:
+        unique_together = ['deal', 'when_read']
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =

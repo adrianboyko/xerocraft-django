@@ -40,3 +40,7 @@ div.datetimespacer {
     display: inline-block;
     width: 50px;
 }
+
+.aligned label + p, .aligned label + div.help, .aligned label + div.readonly {
+    margin-left: 0;
+}

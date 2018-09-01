@@ -15,13 +15,16 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.sites.models import Site
-from django.utils.translation import ugettext_lazy as _
 from django.conf import settings
 from nameparser import HumanName
 from django.urls import reverse
+from django.utils.html import format_html
+from django.utils.translation import ugettext_lazy as _
+
 
 # Local
 from abutils.utils import generate_ctrlid
+from abutils.models import get_url_str
 
 logger = getLogger("books")
 
@@ -1191,6 +1194,11 @@ class SaleLineItem (models.Model):
 
     qty_sold = models.IntegerField(null=True, blank=True, default=None,
         help_text="The quantity of the item sold. Leave blank if quantity is not known.")
+
+    @property
+    def sale_link(self):
+        url_str = get_url_str(self.sale)
+        return format_html("<a href='{}'>{}</a>", url_str, self.sale)
 
     class Meta:
         abstract = True

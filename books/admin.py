@@ -31,6 +31,7 @@ from books.models import (
 )
 from modelmailer.admin import ModelMailerAdmin
 from books.views import journalentry_view
+from abutils.models import get_url_str
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -47,14 +48,6 @@ def name_colfunc(user: User, ent: Entity):
         n = ent.name
         result = n if len(n) > len(result) else result
     return result
-
-
-def get_url_str(obj):
-    app = obj._meta.app_label
-    mod = obj._meta.model_name
-    url_name = 'admin:{}_{}_change'.format(app, mod)
-    url_str = reverse(url_name, args=[obj.id])
-    return url_str
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =

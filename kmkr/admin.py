@@ -10,8 +10,8 @@ from reversion.admin import VersionAdmin
 # Local
 from kmkr.models import (
     Show, ShowTime, Episode, EpisodeTrack, Broadcast,
-    UnderwritingAgreement,
-    UnderwritingBroadcast, UnderwritingSchedule,
+    UnderwritingQuote, UnderwritingDeal,
+    UnderwritingBroadcastLog, UnderwritingBroadcastSchedule,
     OnAirPersonality,
     OnAirPersonalitySocialMedia,
     PlayLogEntry, Track, Rating
@@ -95,79 +95,86 @@ class ShowAdmin(VersionAdmin):
 # UNDERWRITING SPOTS
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-@admin.register(UnderwritingAgreement)
-class UnderwritingAgreementAdmin(VersionAdmin):
-
-    def underwriter(self, obj: UnderwritingAgreement) -> str:
-        return obj.sale.payer_name
-
-    def transaction_number(self, obj: UnderwritingAgreement) -> str:
-        return str(obj.sale.pk)
-
-    def _qty_aired(self, obj: UnderwritingAgreement) -> int:
-        return obj.qty_aired
-    _qty_aired.short_description = "#aired"
-
-    def _spots_included(self, obj: UnderwritingAgreement) -> int:
-        return obj.spots_included
-    _spots_included.short_description = "#spots"
+@admin.register(UnderwritingQuote)
+class UnderwritingQuoteAdmin(VersionAdmin):
 
     list_display = [
         'pk',
-        'underwriter',
-        'sale_price',
-        '_spots_included',
-        '_qty_aired',
-        'start_date',
-        'end_date',
+        'active',
+        'prepared_for',
+        'date_prepared',
+        'quoted_price',
         'spot_seconds',
+        'track_id'
     ]
 
     list_display_links = ['pk']
 
     fields = [
-        ('transaction_number', 'underwriter'),
-        ('sale_price'),
-        ('start_date', 'end_date'),
-        ('spots_included', 'spot_seconds', 'track_id'),
-        ('script')
+        'active',
+        ('prepared_for', 'date_prepared'),
+        'quoted_price',
+        'spot_seconds',
+        'track_id',
+        'script'
     ]
 
-    class UnderwritingSchedule_Inline(admin.TabularInline):
-        model = UnderwritingSchedule
+    class UnderwritingBroadcastSchedule_Inline(admin.TabularInline):
+        model = UnderwritingBroadcastSchedule
         extra = 0
         raw_id_fields = ['agreement']
 
-    class UnderwritingLog_Inline(admin.TabularInline):
-        model = UnderwritingBroadcast
-        model._meta.verbose_name = "Underwriting Broadcast"
-        extra = 0
+    inlines = [UnderwritingBroadcastSchedule_Inline]
 
-    inlines = [UnderwritingSchedule_Inline, UnderwritingLog_Inline]
+    date_hierarchy = 'date_prepared'
 
-    readonly_fields = ['transaction_number', 'underwriter']
+    list_filter = ['active']
 
-    class ActiveFilter(admin.SimpleListFilter):
-        title = "delivery status"
-        parameter_name = "delivered"
+    search_fields = [
+        'prepared_for',
+    ]
 
-        def lookups(self, request, model_admin):
-            return (
-                ('yes', "Fully Delivered"),
-                ('no', "Spots Left To Air"),
+    class Media:
+        css = {
+            "all": (
+                "abutils/admin-tabular-inline.css",  # This hides "denormalized object descs", to use Wojciech's term.
+                "kmkr/kmkr.css"
             )
+        }
+        js = ["kmkr/kmkr.js"]
 
-        def annotate_qty_delivered(self, queryset):
-            return queryset.annotate(
-                qty_delivered=Count('underwritingbroadcast')
-            )
 
-        def queryset(self, request, queryset):
-            qs = self.annotate_qty_delivered(queryset)
-            if self.value() == 'yes':
-                return qs.filter(qty_delivered__gte=F('qty_sold'))
-            if self.value() == 'no':
-                return qs.filter(qty_delivered__lt=F('qty_sold'))
+@admin.register(UnderwritingDeal)
+class UnderwritingDealAdmin(VersionAdmin):
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    list_display = [
+        'pk',
+        'underwriter_name',
+        'start_date',
+        'end_date',
+        'quote_link',
+        'sale_link',
+    ]
+
+    fields = [
+        'underwriter_name',
+        'start_date',
+        'end_date',
+        'quote_link',
+        'sale_link',
+    ]
+
+    readonly_fields = ['sale_link', 'quote_link', 'underwriter_name']
+
+    search_fields = [
+        'sale__payer_name',
+    ]
 
     class DateRangeFilter(admin.SimpleListFilter):
         title = "delivery range"
@@ -189,44 +196,45 @@ class UnderwritingAgreementAdmin(VersionAdmin):
             if self.value() == 'current':
                 return queryset.filter(start_date__lte=d, end_date__gte=d)
 
-    list_filter = [ActiveFilter, DateRangeFilter]
+    list_filter = [DateRangeFilter]
 
-    search_fields = [
-        'sale__payer_name',
-    ]
+    class UnderwritingBroadcastLog_Inline(admin.TabularInline):
+        model = UnderwritingBroadcastLog
+        extra = 0
+        raw_id_fields = []
+        readonly_fields = ['schedule']
+        fields = ['schedule', 'when_read']
+        ordering = ['when_read']
 
-    def has_add_permission(self, request):
-        return False
-        # Add users instead, which drives creation of a Member.
-
-    def has_delete_permission(self, request, obj=None):
-        return False
-        # Deactivate users instead.
+    inlines = [UnderwritingBroadcastLog_Inline]
 
     class Media:
         css = {
             "all": (
-                "abutils/admin-tabular-inline.css", # This hides "denormalized object descs", to use Wojciech's term.
+                "abutils/admin-tabular-inline.css",  # This hides synthesized obj descriptions
                 "kmkr/kmkr.css"
             )
         }
-        js = ["kmkr/kmkr.js"]
+        js = ["kmkr/kmkr.js"]  # This modifies layout of DateTime widget.
 
 
-# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-# Line-Item Inlines for SaleAdmin in Books app.
-# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-
-@Sellable(UnderwritingAgreement)
-class UnderwritingAgreement_LineItem(admin.StackedInline):
+@Sellable(UnderwritingDeal)  # Line-Item Inline for SaleAdmin in Books app.
+class UnderwritingDeal_Inline(admin.StackedInline):
     fields = [
-        ('sale_price'),
+        'sale_price',
         ('start_date', 'end_date'),
-        'spots_included',
-        'spot_seconds',
-        'script',
+        'quote'
     ]
+
     extra = 0
+
+    raw_id_fields = ['quote']
+
+
+# TODO: Comment out. Only for development/debugging.
+# @admin.register(UnderwritingBroadcastLog)
+# class UnderwritingBroadcastLogAdmin(VersionAdmin):
+#     pass
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -343,7 +351,7 @@ class EpisodeAdmin(admin.ModelAdmin):
 
     class Media:
         css = {
-            # This hides "denormalized object descs", to use Wojciech's term.
+            # This hides synthesized obj descriptions
             "all": ("abutils/admin-tabular-inline.css",)
         }
 
