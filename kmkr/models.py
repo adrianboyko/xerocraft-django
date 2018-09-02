@@ -12,7 +12,12 @@ from django.utils import timezone
 from django.utils.html import format_html
 
 # Local
-from books.models import SaleLineItem, Entity
+from books.models import (
+    SaleLineItem, Entity, JournalLiner, JournalEntry, JournalEntryLineItem, Account,
+    ACCT_ASSET_CASH,
+    quote_entity
+)
+
 from members.models import Member
 import abutils.time as abtime
 from abutils.models import get_url_str
@@ -20,6 +25,8 @@ from abutils.models import get_url_str
 logger = getLogger("kmkr")
 oneday = timedelta(days=1)
 
+ACCT_KMKR_CASH = 86
+ACCT_KMKR_DONATION = 52
 
 class OnAirPersonality (models.Model):
 
@@ -262,8 +269,7 @@ class UnderwritingBroadcastSchedule (models.Model):  # TODO: Rename to Underwrit
         return "{} @ {}".format(abtime.days_of_week_str(self), self.time)
 
 
-# TODO: @register_journaler()  ... Class must inherit from Journaler.
-class UnderwritingDeal(SaleLineItem):
+class UnderwritingDeal(SaleLineItem, JournalLiner):
 
     quote = models.ForeignKey(UnderwritingQuote, null=False, blank=False,
         on_delete=models.PROTECT,
@@ -294,6 +300,31 @@ class UnderwritingDeal(SaleLineItem):
     def clean(self) -> None:
         if self.start_date >= self.end_date:
             raise ValidationError("End date must be later than start date.")
+
+    # Override JournalLiner method to provide real implementation:
+    def create_journalentry_lineitems(self, je: JournalEntry):
+
+        # The Sale Journaler has already put the case into the general cash account, so we need to get that back:
+        je.prebatch(JournalEntryLineItem(
+            account=Account.get(ACCT_ASSET_CASH),
+            action=JournalEntryLineItem.ACTION_BALANCE_DECREASE,
+            amount=self.sale_price,
+            description="{} paid us".format(quote_entity(self.sale.payer_str))
+        ))
+
+        # The next two line items are the balanced KMKR Cash/Revenue pair, where cash was clawed back by prev line item:
+        je.prebatch(JournalEntryLineItem(
+            account=Account.get(ACCT_KMKR_CASH),
+            action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
+            amount=self.sale_price,
+            description="{} paid us".format(quote_entity(self.sale.payer_str))
+        ))
+        je.prebatch(JournalEntryLineItem(
+            account=Account.get(ACCT_KMKR_DONATION),
+            action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
+            amount=self.sale_price,
+            description = "Underwriting by {}".format(quote_entity(str(self.quote.prepared_for)))
+        ))
 
 
 class UnderwritingBroadcastLog (models.Model):
