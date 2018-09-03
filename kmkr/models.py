@@ -1,7 +1,7 @@
 
 # Standard
-from datetime import date, time, datetime, timedelta
-from typing import Optional, Tuple
+from datetime import date, datetime, timedelta
+from typing import Optional
 from logging import getLogger
 
 # Third-party
@@ -27,6 +27,7 @@ oneday = timedelta(days=1)
 
 ACCT_KMKR_CASH = 86
 ACCT_KMKR_DONATION = 52
+
 
 class OnAirPersonality (models.Model):
 
@@ -97,7 +98,7 @@ class Show (models.Model):
     def current_show(cls) -> Optional['Show']:
         for show in Show.objects.all():
             if show.is_in_progress():
-              return show
+                return show
         return None
 
     def current_showtime(self) -> Optional['ShowTime']:
@@ -225,6 +226,7 @@ class UnderwritingBroadcastSchedule (models.Model):  # TODO: Rename to Underwrit
     agreement = models.ForeignKey(UnderwritingQuote, null=False, blank=False,
         on_delete=models.CASCADE,
         help_text="The associated quote.")
+
     @property
     def quote(self) -> UnderwritingQuote:
         return self.agreement
@@ -257,13 +259,13 @@ class UnderwritingBroadcastSchedule (models.Model):  # TODO: Rename to Underwrit
     def every(self) -> bool: return True
 
     def covers_weekday(self, wd: int):
-        return (wd==0 and self.mondays) \
-         or (wd==1 and self.tuesdays) \
-         or (wd==2 and self.wednesdays) \
-         or (wd==3 and self.thursdays) \
-         or (wd==4 and self.fridays) \
-         or (wd==5 and self.saturdays) \
-         or (wd==6 and self.sundays)
+        return (wd == 0 and self.mondays) \
+         or (wd == 1 and self.tuesdays) \
+         or (wd == 2 and self.wednesdays) \
+         or (wd == 3 and self.thursdays) \
+         or (wd == 4 and self.fridays) \
+         or (wd == 5 and self.saturdays) \
+         or (wd == 6 and self.sundays)
 
     def __str__(self):
         return "{} @ {}".format(abtime.days_of_week_str(self), self.time)
@@ -323,7 +325,7 @@ class UnderwritingDeal(SaleLineItem, JournalLiner):
             account=Account.get(ACCT_KMKR_DONATION),
             action=JournalEntryLineItem.ACTION_BALANCE_INCREASE,
             amount=self.sale_price,
-            description = "Underwriting by {}".format(quote_entity(str(self.quote.prepared_for)))
+            description="Underwriting by {}".format(quote_entity(str(self.quote.prepared_for)))
         ))
 
 
@@ -546,7 +548,7 @@ class PlayLogEntry (models.Model):
             return "uknown"
 
     @property
-    def duration(self) -> timedelta :
+    def duration(self) -> timedelta:
         if self.track is not None:
             return self.track.duration
         elif self.non_library_track is not None:
