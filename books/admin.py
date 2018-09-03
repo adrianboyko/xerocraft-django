@@ -140,7 +140,7 @@ class AccountAdmin(VersionAdmin):
         sub_link.allow_tags = True
         sub_link.short_description = "Name"
 
-        def has_add_permission(self, request):
+        def has_add_permission(self, request, obj=None):
             return False
 
         def has_delete_permission(self, request, obj=None):
@@ -311,7 +311,7 @@ class CampaignAdmin(VersionAdmin):
     class MonetaryDonationInlineForCampaign(admin.TabularInline):
         model = MonetaryDonation
 
-        def has_add_permission(self, request):
+        def has_add_permission(self, request, obj=None):
             return False
 
         def has_delete_permission(self, request, obj=None):
