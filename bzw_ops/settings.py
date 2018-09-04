@@ -18,8 +18,9 @@ import sys
 TESTING = 'test' in sys.argv or 'jenkins' in sys.argv
 
 DEVHOSTS = [
-    238402988951122,  # Adrian Linux
+    238402988951122,  # Adrian Linux (Pavillion)
     220083055528387,  # Adrian Mac
+    149885691750610,  # Adrian Linux (EliteDesk)
 ]
 CURRHOST = uuid.getnode()
 ISDEVHOST = CURRHOST in DEVHOSTS
