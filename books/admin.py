@@ -577,13 +577,18 @@ class OtherItemInline(admin.StackedInline):
 
 @admin.register(OtherItemType)
 class OtherItemTypeAdmin(VersionAdmin):
+
+    search_fields = ['name']
+
     list_display = [
         'pk',
         'name',
         'description',
+        'cash_acct',
         'revenue_acct',
     ]
 
+    raw_id_fields = ['cash_acct', 'revenue_acct']
 
 @admin.register(Sale)
 class SaleAdmin(JournalerAdmin, ModelMailerAdmin):

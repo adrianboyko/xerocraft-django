@@ -1224,10 +1224,16 @@ class OtherItemType(models.Model):
     description = models.TextField(max_length=1024,
         help_text="A description of the item.")
 
+    cash_acct = models.ForeignKey(Account, null=False, blank=False, default=ACCT_ASSET_CASH,
+        related_name="otheritemtypes_cash",
+        on_delete=models.PROTECT,  # Don't allow deletion of acct if item types reference it.
+        help_text="The cash account associated with items of this type.")
+
     # TODO:
     # Revenue acct shouldn't ever be null but needs to temporarily so I can fix up existing entries.
     # Switch to null=False, blank=False, and delete default.
     revenue_acct = models.ForeignKey(Account, null=True, blank=True, default=None,
+        related_name="otheritemtypes_revenue",
         on_delete=models.PROTECT,  # Don't allow deletion of acct if item types reference it.
         help_text="The revenue account associated with items of this type.")
 
