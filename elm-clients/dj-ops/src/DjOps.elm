@@ -129,18 +129,20 @@ blankTracksTabEntry =
 tracksTabEntryIsDirty : TracksTabEntry -> Bool
 tracksTabEntryIsDirty tte =
   let
-    curr = (tte.artist, tte.title, tte.duration, tte.trackBroadcast)
-    saved = (tte.savedArtist, tte.savedTitle, tte.savedDuration, tte.savedTrackBroadcast)
+    st = String.trim
+    curr = (st tte.artist, st tte.title, st tte.duration, tte.trackBroadcast)
+    saved = (st tte.savedArtist, st tte.savedTitle, st tte.savedDuration, tte.savedTrackBroadcast)
   in
     curr /= saved
 
 
 tracksTabEntryColumnIsDirty : TracksTabEntry -> TracksTabEntryColumn -> Bool
 tracksTabEntryColumnIsDirty tte col =
-  case col of
-    ArtistColumn -> tte.artist /= tte.savedArtist
-    TitleColumn -> tte.title /= tte.savedTitle
-    DurationColumn -> tte.duration /= tte.savedDuration
+  let st = String.trim
+  in case col of
+    ArtistColumn -> st tte.artist /= st tte.savedArtist
+    TitleColumn -> st tte.title /= st tte.savedTitle
+    DurationColumn -> st tte.duration /= st tte.savedDuration
 
 
 tracksTabEntryIsEmpty : TracksTabEntry -> Bool
