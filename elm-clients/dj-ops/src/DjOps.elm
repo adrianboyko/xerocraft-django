@@ -173,6 +173,7 @@ type alias Model =
   , batchEntryText : Maybe String
   --- Tracks Tab model:
   , tracksTabEntries : Array TracksTabEntry
+  , tracksTabEntriesChanging : Set Int  -- Row#s of the entries that we are currently trying to change, i.e. waiting for result from backend.
   --- Credentials:
   , userid : Maybe String
   , password : Maybe String
@@ -204,6 +205,7 @@ init flags =
       , batchEntryText = Nothing
       --- Tracks Tab model:
       , tracksTabEntries = Array.repeat numTrackRows blankTracksTabEntry
+      , tracksTabEntriesChanging = Set.empty
       --- Credentials:
       , userid = Nothing
       , password = Nothing
@@ -238,7 +240,7 @@ type
   | EpisodeCreate_Result XisApi.Show Date (Result Http.Error XisApi.Episode)
   | EpisodeList_Result XisApi.Show Date (Result Http.Error (DRF.PageOf XisApi.Episode))
   | EpisodeTrackDelete_Result Int (Result Http.Error String)
-  | EpisodeTrackUpsert_Result (Result Http.Error XisApi.EpisodeTrack)
+  | EpisodeTrackUpsert_Result Int (Result Http.Error XisApi.EpisodeTrack)
   | KeyDown KeyCode
   | Login_Clicked
   | Mdl (Material.Msg Msg)
@@ -390,14 +392,14 @@ update action model =
           (model, Cmd.none)
 
     EpisodeTrackDelete_Result row (Ok s) ->
-      let
-        newTtes = Array.set row blankTracksTabEntry model.tracksTabEntries
-      in
-        ( { model | tracksTabEntries = newTtes }
-        , Cmd.none
-        )
+      ( { model
+        | tracksTabEntries = Array.set row blankTracksTabEntry model.tracksTabEntries
+        , tracksTabEntriesChanging = Set.remove row model.tracksTabEntriesChanging
+        }
+      , Cmd.none
+      )
 
-    EpisodeTrackUpsert_Result (Ok et) ->
+    EpisodeTrackUpsert_Result row (Ok et) ->
       case Array.get et.data.sequence model.tracksTabEntries of
         Just tte ->
           let
@@ -410,8 +412,9 @@ update action model =
               , savedTrackBroadcast = et.data.trackBroadcast
               }
             newTtes = Array.set et.data.sequence newTte model.tracksTabEntries
+            newTtesChanging = Set.remove row model.tracksTabEntriesChanging
           in
-            ( { model | tracksTabEntries = newTtes }
+            ( { model | tracksTabEntries = newTtes, tracksTabEntriesChanging = newTtesChanging }
             , Cmd.none
             )
         Nothing ->
@@ -566,10 +569,20 @@ update action model =
       ({model | errMsgs=[toString e]}, Cmd.none)
 
     EpisodeTrackDelete_Result row (Err e) ->
-      ({model | errMsgs=[toString e]}, Cmd.none)
+      ( { model
+        | errMsgs=[toString e]
+        , tracksTabEntriesChanging = Set.remove row model.tracksTabEntriesChanging
+        }
+      , Cmd.none
+      )
 
-    EpisodeTrackUpsert_Result (Err e) ->
-      ({model | errMsgs=[toString e]}, Cmd.none)
+    EpisodeTrackUpsert_Result row (Err e) ->
+      ( { model
+        | errMsgs=[toString e]
+        , tracksTabEntriesChanging = Set.remove row model.tracksTabEntriesChanging
+        }
+      , Cmd.none
+      )
 
     NowPlaying_Result (Err e) ->
       let
@@ -693,15 +706,16 @@ saveTracksTab : Int -> (Model, Cmd Msg) -> (Model, Cmd Msg)
 saveTracksTab minIdle (model, cmd) =
   let
     reducer (row, tte) (model, cmd) =
-      if tracksTabEntryIsDirty tte then
+      if tracksTabEntryIsDirty tte && not (Set.member row model.tracksTabEntriesChanging) then
         let
           extraCmd =
             if List.all String.isEmpty [tte.artist, tte.title, tte.duration] then
               deleteEpisodeTrack model row tte
             else
               upsertEpisodeTrack model row tte
+          newTtesChanging = Set.insert row model.tracksTabEntriesChanging
         in
-          (model, cmd) |> addCmd extraCmd
+          ({model | tracksTabEntriesChanging=newTtesChanging}, cmd) |> addCmd extraCmd
       else
         -- Too soon after most recent change. Let's wait a bit more in case they're still typing.
         (model, cmd)
@@ -809,11 +823,11 @@ upsertEpisodeTrack model row tte =
           Just idToUpdate ->
             model.xis.replaceEpisodeTrack
               (DRF.Resource idToUpdate etData)
-              EpisodeTrackUpsert_Result
+              (EpisodeTrackUpsert_Result row)
           Nothing ->
             model.xis.createEpisodeTrack
               etData
-              EpisodeTrackUpsert_Result
+              (EpisodeTrackUpsert_Result row)
 
     Nothing ->
       let
@@ -1112,9 +1126,15 @@ layout_main model =
       tab_start model
     1 ->
       tab_tracks model
+--    3 ->
+--      tab_finish model
     _ ->
-      p [] [text <| "Tab " ++ toString model.selectedTab ++ " not yet ietmented."]
+      p [style ["margin"=>"50px", "font-size"=>"24pt"]] [text <| "This tab is not yet implemented."]
 
+
+tab_finish : Model -> Html Msg
+tab_finish model =
+  text ""
 
 tab_start : Model -> Html Msg
 tab_start model =
