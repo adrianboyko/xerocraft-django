@@ -17,6 +17,7 @@ import Process
 import Array exposing (Array)
 import Maybe exposing (Maybe(..), withDefault)
 import List exposing (head, tail)
+import Navigation
 
 -- Third Party
 import Material
@@ -65,6 +66,9 @@ beginBroadcastButtonId = [startTabId, 4]
 -- For Tracks Tab
 numTrackRows = 60
 pasteTextButtonId = [tracksTabId, 1]
+
+-- For Finish Tab
+logoutButtonId = [finishTabId, 1]
 
 
 -----------------------------------------------------------------------------
@@ -243,6 +247,7 @@ type
   | EpisodeTrackUpsert_Result Int (Result Http.Error XisApi.EpisodeTrack)
   | KeyDown KeyCode
   | Login_Clicked
+  | Logout_Clicked
   | Mdl (Material.Msg Msg)
   | NowPlaying_Result (Result Http.Error XisApi.NowPlaying)
   | PasswordInput String
@@ -432,6 +437,9 @@ update action model =
           (model, model.xis.authenticate id pw Authenticate_Result)
         _ ->
           (model, Cmd.none)
+
+    Logout_Clicked ->
+      (model, Navigation.reload)
 
     Mdl msg_ ->
       Material.update Mdl msg_ model
@@ -1126,15 +1134,25 @@ layout_main model =
       tab_start model
     1 ->
       tab_tracks model
---    3 ->
---      tab_finish model
+    3 ->
+      tab_finish model
     _ ->
-      p [style ["margin"=>"50px", "font-size"=>"24pt"]] [text <| "This tab is not yet implemented."]
+      p [style ["margin"=>"50px", "font-size"=>"16pt"]] [text <| "This tab is not yet implemented."]
 
 
 tab_finish : Model -> Html Msg
 tab_finish model =
-  text ""
+  div [style ["margin"=>"50px"]]
+  [ Button.render Mdl logoutButtonId model.mdl
+    [ Button.raised
+    , Button.colored
+    , Button.ripple
+    , Opts.onClick Logout_Clicked
+    ]
+    [ text "Logout"]
+
+  ]
+
 
 tab_start : Model -> Html Msg
 tab_start model =
@@ -1146,7 +1164,7 @@ tab_start model =
     row = tr []
     break = br [] []
   in
-    div [style ["margin"=>"30px", "zoom"=>"1.3"]]
+    div [style ["margin"=>"30px", "zoom"=>"1"]]
     [ p [] [text "Welcome to the DJ Ops Console!"]
     , table []
       [ row
