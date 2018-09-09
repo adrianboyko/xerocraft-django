@@ -3,7 +3,7 @@ module DjOps exposing (..)
 -- Standard
 import Html exposing (Html, div, text, select, option, input, p, br, span, table, tr, td, i, textarea)
 import Html as Html
-import Html.Attributes exposing (style, href, attribute)
+import Html.Attributes exposing (style, href, attribute, value, placeholder)
 import Html.Events exposing (onInput, on, on)
 import Http as Http
 import Time exposing (Time, second)
@@ -66,6 +66,8 @@ beginBroadcastButtonId = [startTabId, 4]
 -- For Tracks Tab
 numTrackRows = 60
 pasteTextButtonId = [tracksTabId, 1]
+processButtonId = [startTabId, 2]
+jjpButtonId = [startTabId, 3]
 
 -- For Finish Tab
 logoutButtonId = [finishTabId, 1]
@@ -236,7 +238,8 @@ type
   | BatchEntry_Clicked -- The button to bring up the dialog was clicked
   | BatchEntry_Closed -- The dialog was closed
   | BatchEntry_Input String -- When the dialog's textarea content is changed.
-  | BatchEntry_Process -- The "process" button on the dialog was clicked
+  | BatchEntry_JJP_Clicked -- The "JJP" button on the dialog was clicked
+  | BatchEntry_Process_Clicked -- The "Process" button on the dialog was clicked
   | BeginBroadcast_Clicked
   | BroadcastCheckInUpdate_Result (Result Http.Error XisApi.Broadcast)
   | BroadcastExists_Result (Result Http.Error (DRF.PageOf XisApi.Broadcast))
@@ -299,7 +302,6 @@ update action model =
     BatchEntry_Closed ->
       ( { model
         | showBatchEntryDialog = False
-        , batchEntryText = Nothing
         }
       , Cmd.none
       )
@@ -307,7 +309,18 @@ update action model =
     BatchEntry_Input s ->
       ( {model | batchEntryText = Just s}, Cmd.none )
 
-    BatchEntry_Process ->
+    BatchEntry_JJP_Clicked ->
+      let
+        doubleEol = Regex.replace (Regex.All) (regex "\\n") (always "\n\n")
+        dashToEol = Regex.replace (Regex.All) (regex " - ") (always "\n")
+        ensureFinalEol s = if String.endsWith "\n" s then s else s++"\n"
+        jjpTransform = doubleEol >> dashToEol >> ensureFinalEol
+        transformed = Maybe.map jjpTransform model.batchEntryText
+      in
+        ( { model | batchEntryText = transformed }, Cmd.none )
+
+    BatchEntry_Process_Clicked ->
+      -- TODO: Clear the TTEs first?
       case model.batchEntryText of
         Just batch ->
           let
@@ -315,7 +328,6 @@ update action model =
           in
             ( model, Cmd.none )
               |> updateModel (\m -> ingestBatchEntry lines 1 Nothing Nothing Nothing m)
-              |> updateModel (\m -> {m | batchEntryText = Nothing})
               |> UpdateX.andThen update BatchEntry_Closed
         Nothing ->
           -- No changes were made to the batch text, so there's nothing to process.
@@ -917,13 +929,15 @@ track_entry_textarea model =
       , "font-size"=>"14pt"
       , "line-height"=>"1"
       ]
-    , attribute "placeholder" "Artist Name\nTrack Title\nMM:SS\n\nArtist Name\nTrack Title\nMM:SS\n\n"
+    , placeholder "Artist Name\nTrack Title\nMM:SS\n\nArtist Name\nTrack Title\nMM:SS\n\n"
+    , value <| withDefault "" model.batchEntryText
     , onInput BatchEntry_Input
     ]
-    ( List.map
-        (\tte -> text <| String.concat [tte.artist, "\n", tte.title, "\n", tte.duration, "\n\n"])
-        (List.filter (not << tracksTabEntryIsEmpty) <| Array.toList model.tracksTabEntries)
-    )
+    []
+--    ( List.map
+--        (\tte -> text <| String.concat [tte.artist, "\n", tte.title, "\n", tte.duration, "\n\n"])
+--        (List.filter (not << tracksTabEntryIsEmpty) <| Array.toList model.tracksTabEntries)
+--    )
 
 
 track_entry_footer : Model -> Html Msg
@@ -932,7 +946,14 @@ track_entry_footer model =
   [ Button.render Mdl loginButtonId model.mdl
     [ Button.raised
     , Button.colored
-    , Opts.onClick BatchEntry_Process
+    , Opts.onClick BatchEntry_JJP_Clicked
+    , css "margin-right" "15px"
+    ]
+    [ text "JJP"]
+  , Button.render Mdl processButtonId model.mdl
+    [ Button.raised
+    , Button.colored
+    , Opts.onClick BatchEntry_Process_Clicked
     ]
     [ text "Process"]
   ]
@@ -1266,9 +1287,9 @@ tracks_info model =
       ]
     ]
 
-    ( case (model.selectedShow, model.selectedShowDate) of
+    ( case (model.selectedShow, model.selectedShowDate, model.member) of
 
-      (Just show, Just date) ->
+      (Just show, Just date, Just member) ->
         [ para
           [ text "⟵ "
           , text "Manually enter tracks for"
@@ -1295,7 +1316,7 @@ tracks_info model =
 
       _ ->
         [ para
-          [ text "You must first specify an episode on the START tab."]
+          [ text "You must first log in and specify an episode on the START tab."]
         ]
     )
 
