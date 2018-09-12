@@ -129,18 +129,26 @@ class Fetcher(AbstractFetcher):
 
     # TODO: Move this map to the database.
     OTHER_ITEM_TYPE_MAP = {
-        "Workshop Fee": "Workshop Fee",
+        "Workshop Fee": "Req'd Workshop Fee (NOT FOR DONATIONS)",  # sku: WORKSHOP_FEE
+        "Required Workshop Fee": "Req'd Workshop Fee (NOT FOR DONATIONS)",  # sku: WORKSHOP_FEE
 
+        "Small Sticker": "Sticker",
         "Bumper Sticker": "Sticker",
         "Medium Sticker": "Sticker",
 
+        # These snack items are for XEROCRAFT, in general. I.e. NOT KMKR:
         "Soda": "Food/Drink",
         "Can of Soda": "Food/Drink",
         "Bag of Chips": "Food/Drink",
         "RBar": "Food/Drink",
 
+        # These items are for KMKR:
+        "KMKR Can of Soda": "KMKR Can of Soda",
+        "KMKR Bag of Chips": "KMKR Bag of Chips",
+        "KMKR Donation": "KMKR Donation",
+
+
         "Refill Soda Account": "Refill Soda Account (DON'T USE)",
-        "Bracelet, 3D Printed": "3D Print",
         "1 M4T Raffle Tkt": "1 Jim Click Raffle Ticket",
 
         "Baltic Birch Plywood for Laser Cutter": "Materials, Laser Cutter",
@@ -165,6 +173,13 @@ class Fetcher(AbstractFetcher):
 
         "In-depth technical mentoring hours": "Contracted Class, Workshop, or Mentoring",
         "Two-hour hands-on workshops": "Contracted Class, Workshop, or Mentoring",
+
+        # Gift Shop items:
+        "Bracelet, 3D Printed": "Gift Shop Item, 3D Printed",
+        "Drinking Glass, Laser-Etched": "Xerocraft Branded Merchandise",
+        "Keychain, 3D Printed": "Xerocraft Branded Merchandise",
+        "Keychain, Lasercut": "Xerocraft Branded Merchandise",
+
     }
 
     def _process_other_item(self, sale, item, item_num):
@@ -239,11 +254,11 @@ class Fetcher(AbstractFetcher):
             if item['name'] in self.UNINTERESTING_ITEMS:
                 pass
 
-            elif item['name'] == "Workshop Fee":
+            elif item['name'] in ["Workshop Fee", "Required Workshop Fee"]:
                 # Before 15 March 2016, these were mostly (entirely?) donations.
                 # After 15 March 2016, these should only be cost-covering fees (NOT donations)
                 sale_date = parse(sale["sale_date"]).date()
-                if sale_date < date(2016,3,15):
+                if sale_date < date(2016, 3, 15):
                     self._process_donation_item(sale, item, item_num)
                 else:
                     self._process_other_item(sale, item, item_num)
@@ -262,6 +277,9 @@ class Fetcher(AbstractFetcher):
 
             elif item['name'] == "One Month Membership":
                 self._process_membership_item(sale, item, item_num, Membership.MT_REGULAR, 1, "months")
+
+            elif item['name'] == "Two Month Membership":
+                self._process_membership_item(sale, item, item_num, Membership.MT_REGULAR, 2, "months")
 
             elif item['name'] == "Three Month Membership":
                 self._process_membership_item(sale, item, item_num, Membership.MT_REGULAR, 3, "months")
