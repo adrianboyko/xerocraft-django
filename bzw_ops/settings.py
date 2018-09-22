@@ -67,7 +67,7 @@ ALLOWED_HOSTS = (
 )
 if ISDEVHOST:
     ALLOWED_HOSTS += (
-        '192.168.1.101',
+        '192.168.1.122',
         '127.0.0.1',
         'localhost',
     )
