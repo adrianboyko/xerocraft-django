@@ -37,6 +37,7 @@ import Date.Extra.Config.Config_en_us exposing (config)
 import Date.Extra.I18n.I_en_us as EnUs
 import Date.Extra.Duration as DateXDur
 import String.Extra exposing (replace)
+import List.Extra as ListX
 import Json.Encode exposing (string)
 
 -- Local
@@ -57,18 +58,22 @@ type alias CalendarDate =
 toString : CalendarDate -> String
 toString = format "%Y-%m-%d"
 
-{-| Parses strings that are bare dates without a time part. -}
+{-| Parses a YYYY-MM-DD string. -}
 fromString : String -> Result String CalendarDate
 fromString s =
   let
-    -- Note: Javascript (and hence Elm) treats a bare date string as being UTC.
-    -- If "00:00:00" is added to the date, it treats string as being in local timezone.
-    s2 = s ++ " 00:00:00"
+    err = "String must have format YYYY-MM-DD, e.g. 2001-12-31"
+    parts = String.split "-" s
+    intPart x = ListX.getAt x parts |> Result.fromMaybe err |> Result.andThen String.toInt
   in
-    Result.map
-      (\x -> CalendarDate (Date.year x) (Date.month x) (Date.day x))
-      (Date.fromString (s ++ " 00:00:00"))
-
+    if List.length parts == 3 then
+        Result.map3
+          (\x y z -> CalendarDate x (intToMonth y) z)
+          (intPart 0)  -- year
+          (intPart 1)  -- month
+          (intPart 2)  -- day
+    else
+      Err err
 
 ----------------------------------------------------------
 

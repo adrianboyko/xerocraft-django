@@ -1,6 +1,6 @@
 module Tests exposing (..)
 
-import Expect exposing (Expectation)
+import Expect exposing (Expectation, fail)
 import Fuzz exposing (Fuzzer, int, list, string)
 import Test exposing (..)
 import Date exposing (Month(..))
@@ -26,6 +26,20 @@ calendarDateTest =
        \_ ->
          let someCD = {year=2018, month=Apr, day=13}
          in Expect.equal (CalendarDate.format "%ddd" someCD) "13th"
+    , test "Parse 2018-09-21" <|
+       \_ ->
+         let someCD = CalendarDate.fromString "2018-09-21"
+         in case someCD of
+           Ok cd -> Expect.equal cd (CalendarDate.CalendarDate 2018 Sep 21)
+           Err s -> fail s
+    , test "Parse XXXX-09-21" <|
+       \_ ->
+         let someCD = CalendarDate.fromString "XXXX-09-21"
+         in Expect.err someCD
+    , test "Parse 2018-09-21-99" <|
+       \_ ->
+         let someCD = CalendarDate.fromString "2018-09-21-99"
+         in Expect.err someCD
     ]
 
 clockTimeTest : Test
