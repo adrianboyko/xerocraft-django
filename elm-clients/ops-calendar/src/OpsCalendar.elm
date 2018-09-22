@@ -27,6 +27,7 @@ import Material.Button as Button
 import Material.Icon as Icon
 import Material.Options as Options exposing (css)
 import Maybe.Extra exposing (isJust)
+import Update.Extra as UpdateX
 
 -- Local
 import DjangoRestFramework as DRF exposing (PageOf, httpErrToStr)
@@ -91,13 +92,12 @@ type alias Model =
 init : Flags -> ( Model, Cmd Msg )
 init flags =
   let
-    calPage = CP.calendarPage flags.year (CD.intToMonth flags.month)
     auth = case flags.csrfToken of
       Just csrf -> DRF.LoggedIn csrf
       Nothing -> DRF.NoAuthorization
     xis = XisApi.createSession flags.xisRestFlags auth
     model =
-      { calendarPage = calPage
+      { calendarPage = CP.calendarPage flags.year (CD.intToMonth flags.month)
       , detailPt = Position 0 0
       , dragStartPt = Nothing
       , errorStr = Nothing
@@ -112,12 +112,8 @@ init flags =
       , userName = flags.userName
       , xis = xis
       }
-    cmds =
-      CP.mapToList
-        (\sq -> xis.listTasks [XisApi.ScheduledDateEquals sq.calendarDate] (DayOfTasksResult sq.calendarDate))
-        calPage
   in
-    (model, Cmd.batch cmds)
+    (model, Task.perform Tick Time.now)
 
 
 -----------------------------------------------------------------------------
@@ -142,7 +138,7 @@ type
   | ClaimOpResult (Result Http.Error XisApi.Claim)
   | Tick Time
   | Mdl (Material.Msg Msg)
-
+  | UpdateCalendar
 
 
 -- For elm-mdl
@@ -302,20 +298,19 @@ update action model =
         newModel = { model | time = newTime, idleSeconds = model.idleSeconds+1 }
         updateCmd =
           -- This is for occassional update of data:
-          if rem seconds 900 == 0 then updateCurrentMonth model else Cmd.none
+          if rem seconds 900 == 0 then getTasksForMonth model else Cmd.none
         reloadCmd =
           -- This is to update the page when a logged in user times out:
           if model.idleSeconds > 600 && isJust model.userName then Nav.reload else Cmd.none
       in
-        ( newModel, Cmd.batch [updateCmd, reloadCmd] )
+        if model.time == 0 then
+          ( newModel, Cmd.none )
+            |> UpdateX.andThen update UpdateCalendar
+        else
+          ( newModel, Cmd.batch [updateCmd, reloadCmd] )
 
-
-updateCurrentMonth : Model -> Cmd Msg
-updateCurrentMonth model =
-  Cmd.batch
-    <| List.map
-         (getTasksForDay model)
-         (CP.mapToList .calendarDate model.calendarPage)
+    UpdateCalendar ->
+      (model, getTasksForMonth model)
 
 
 getNewMonth : Model -> Int -> (Model, Cmd Msg)
@@ -341,11 +336,19 @@ getNewMonth model delta =
       else
         CP.calendarPage year (CD.intToMonth month)
 
-    dates = CP.mapToList .calendarDate calPage
-    cmdList = List.map (getTasksForDay model) dates
 
   in
-    ({model | calendarPage=calPage}, Cmd.batch cmdList)
+    ({model | calendarPage=calPage}, Cmd.none)
+      |> UpdateX.andThen update UpdateCalendar
+
+
+getTasksForMonth : Model -> Cmd Msg
+getTasksForMonth model =
+  let
+    dates = CP.mapToList .calendarDate model.calendarPage
+    cmdList = List.map (getTasksForDay model) dates
+  in
+    Cmd.batch cmdList
 
 
 getTasksForDay : Model -> CalendarDate -> Cmd Msg
@@ -355,7 +358,6 @@ getTasksForDay model date =
     msger = (DayOfTasksResult date)
   in
     model.xis.listTasks filters msger
-
 
 
 -----------------------------------------------------------------------------
@@ -605,7 +607,7 @@ view model =
 subscriptions : Model -> Sub Msg
 subscriptions model =
   Sub.batch
-    [ Time.every second Tick
+    [ if model.time > 0 then Time.every second Tick else Sub.none
     , Mouse.moves MouseMove
     , Mouse.ups DragFinish
     ]

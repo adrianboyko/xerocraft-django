@@ -5,6 +5,7 @@ module CalendarDate exposing
   , compare
   , dayOfWeek
   , dayOfWeekToInt
+  , diffInDays
   , equal
   , format
   , fromDate
@@ -39,8 +40,6 @@ import Date.Extra.Duration as DateXDur
 import String.Extra exposing (replace)
 import List.Extra as ListX
 import Json.Encode exposing (string)
-
--- Local
 
 
 ----------------------------------------------------------
@@ -85,6 +84,14 @@ compare x y =
 equal : CalendarDate -> CalendarDate -> Bool
 equal x y =
     x.year == y.year && x.month == y.month && x.day == y.day
+
+
+diffInDays : CalendarDate -> CalendarDate -> Int
+diffInDays cd1 cd2 =
+  let
+    deltarec = DateXDur.diff (toDate cd1) (toDate cd2)
+  in
+    deltarec.day
 
 
 ----------------------------------------------------------
