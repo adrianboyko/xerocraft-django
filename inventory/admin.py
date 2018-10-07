@@ -145,6 +145,7 @@ class ToolAdmin(VersionAdmin):
         'status',
         'serial_num',
         'loaned_by',
+        'shop',
         'location'
     ]
 
