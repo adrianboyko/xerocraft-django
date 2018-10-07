@@ -128,14 +128,17 @@ class Tool(TaggedItem):
         on_delete=models.SET_NULL,
         help_text="The shop that owns the tool.")
 
+    serial_num = models.CharField(max_length=40, null=False, blank=True, default="",
+        help_text="Serial# of the tool.")
+
     public_info = models.URLField(null=True, blank=True,
         help_text="A link to the public wiki page about this tool.")
 
-    TS_GOOD     = "G"  # The tool is in good shape.
+    TS_GOOD = "G"  # The tool is in good shape.
     TS_DEGRADED = "D"  # The tool works but certain issues should be noted. See VALID ToolIssues.
     TS_UNUSABLE = "U"  # The tool cannot or should not be used. See VALID ToolIssues.
     TOOL_STATUS_CHOICES = [
-        (TS_GOOD,     "Good"),
+        (TS_GOOD, "Good"),
         (TS_DEGRADED, "Degraded"),
         (TS_UNUSABLE, "Unusable"),
     ]
@@ -145,11 +148,11 @@ class Tool(TaggedItem):
     is_loaned = models.BooleanField(default=False,
         help_text="Checked if this tool is on loan to us. Unchecked if we own it.")
 
-    loaned_by = models.ForeignKey(Member, null=True, default=None,
+    loaned_by = models.ForeignKey(Member, null=True, default=None, blank=True,
         on_delete=models.PROTECT,
         help_text="If tool is loaned, this is the member who loaned it to us.")
 
-    loan_terms = models.TextField(max_length=1024, default="",
+    loan_terms = models.TextField(max_length=1024, default="", blank=True,
         help_text="If tool is loaned, these are the terms specified by the loaner.")
 
     def __str__(self):

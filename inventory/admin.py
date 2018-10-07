@@ -123,7 +123,8 @@ class ShopAdmin(VersionAdmin):
     list_display_links = ['pk', 'name']
     fields = [
         'name',
-        ('manager', 'backup_manager'),
+        'manager',
+        'backup_manager',
         'public_info',
     ]
     raw_id_fields = ['manager', 'backup_manager']
@@ -138,13 +139,14 @@ class ShopAdmin(VersionAdmin):
 @admin.register(Tool)
 class ToolAdmin(VersionAdmin):
 
-    def manager(self, obj):
-        return obj.shop.manager
-
-    def backup_mgr(self, obj):
-        return obj.shop.backup_manager
-
-    list_display = ['pk', 'short_desc', 'status', 'shop', 'manager', 'backup_mgr', 'loaned_by', 'location']
+    list_display = [
+        'pk',
+        'short_desc',
+        'status',
+        'serial_num',
+        'loaned_by',
+        'location'
+    ]
 
     list_display_links = ['pk', 'short_desc']
 
@@ -152,19 +154,31 @@ class ToolAdmin(VersionAdmin):
 
     fields = [
         'short_desc',
+        'serial_num',
         'shop',
         'status',
         'public_info',
         'location',
+        'loaned_by',
+        'loan_terms'
     ]
 
-    search_fields = ['short_desc']
+    search_fields = [
+        'short_desc',
+        '^loaned_by__auth_user__first_name',
+        '^loaned_by__auth_user__last_name',
+        '^loaned_by__auth_user__email',
+    ]
 
-    raw_id_fields = ['location']
+    raw_id_fields = ['location', 'loaned_by', 'shop']
 
     class Media:
         css = {
-            "all": ("abutils/admin-tabular-inline.css",)  # This hides "denormalized object descs", to use Wojciech's term.
+            "all":
+                (
+                    "abutils/admin-tabular-inline.css", # This hides "denormalized object descs", to use Wojciech's term.
+                    "inventory/styles.css"
+                )
         }
 
 
