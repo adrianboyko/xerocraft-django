@@ -5,7 +5,7 @@ boto==2.42.0
 
 coverage==4.2
 defusedxml==0.5.0
-Django==2.1.0
+Django==2.1.2
 django-bootstrap-form==3.3.0
 django-crispy-forms==1.7.0
 django-debug-toolbar==1.9.1
@@ -27,7 +27,7 @@ django-storages==1.5.1
 djangorestframework==3.7.1
 django-webpack-loader==0.3.0
 freezegun==0.3.9
-gunicorn==19.3.0
+gunicorn==19.5.0
 icalendar==3.11.7
 inflection==0.3.1
 jupyter
