@@ -88,9 +88,9 @@ class Test_VerifyClaim_Base(LiveServerTestCase):
 
         display = Display(visible=0, size=(1024, 768))
         display.start()
-        DRIVER = "/usr/local/bin/geckodriver"
-        # os.environ["webdriver.firefox.driver"] = DRIVER
-        self.browser = webdriver.Firefox(executable_path=DRIVER)
+        DRIVER = "/usr/lib/chromium-browser/chromedriver"
+        # self.browser = webdriver.Firefox(executable_path=DRIVER)
+        self.browser = webdriver.Chrome(executable_path=DRIVER)
 
         try:
             for offset in range(-4, 2):
