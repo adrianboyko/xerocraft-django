@@ -12,7 +12,7 @@ services:
   - postgresql
 
 before_install:
-  - pip intall -U pip
+  - pip install -U pip
   - export DJANGO_SETTINGS_MODULE=bzw_ops.settings
   - export PYTHONPATH=$PYTHONPATH:$HOME/builds/adrianboyko/xerocraft-django
   - export PIP_USE_MIRRORS=true
