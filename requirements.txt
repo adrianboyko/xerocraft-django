@@ -31,10 +31,10 @@ gunicorn==19.5.0
 icalendar==3.11.7
 inflection==0.3.1
 jupyter
-lxml==3.6.1
+lxml==4.2.5
 nameparser==0.3.11
 nptime==1.1
-numpy==1.13.3
+numpy==1.15.3
 oauthlib==1.0.3
 paho-mqtt==1.2.3
 paypalrestsdk==1.13.1  # This is for other PayPal payment mechanisms.
