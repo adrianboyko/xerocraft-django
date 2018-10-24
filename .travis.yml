@@ -1,11 +1,27 @@
 language: python
+
 python:
   - "3.6"
-  - "3.6-dev"  # 3.6 development branch
-  - "3.7-dev"  # 3.7 development branch
-# command to install dependencies
+  - "3.6-dev"
+  - "3.7-dev"
+
+env:
+  - DJANGO=2.1.2
+
+services:
+  - postgresql
+
+before_install:
+  - pip intall -U pip
+  - export DJANGO_SETTINGS_MODULE=bzw_ops.settings
+  - export PYTHONPATH=$PYTHONPATH:$HOME/builds/adrianboyko/xerocraft-django
+  - export PIP_USE_MIRRORS=true
+
 install:
   - pip install -r requirements.txt
-# command to run tests
+
+before_script:
+  - psql -c 'create database test_db;' -U postgres
+
 script:
-  - pytest
+  - python manage.py test
