@@ -5,6 +5,7 @@ from sys import exc_info
 
 # Third party
 from django.contrib.auth.models import User
+from django.conf import settings
 from nameparser import HumanName
 from members.models import ExternalId
 import requests
@@ -28,6 +29,8 @@ DJANGO_USERNAME_KEY = "Django user name"  # Constructed by _djangofy_username()
 ADULT_KEY = "IsAdult"
 
 PROVIDER = "xerocraft.org"
+
+TESTING = getattr(settings, 'TESTING', False)
 
 
 class AccountScraper(XerocraftScraper):
@@ -83,9 +86,14 @@ class AccountScraper(XerocraftScraper):
             extra_data="",  # Will probably be removing this field.
         )
 
-        self.logger.info(
-            "Scraped a new user: %s > %s",
-            attrs[USERNAME_KEY], attrs[DJANGO_USERNAME_KEY])
+        if TESTING:
+            # In tests, this will generate info for EVERY user, so suppress it.
+            pass
+        else:
+            # In production, this will generate only occasional info.
+            self.logger.info(
+                "Scraped a new user: %s > %s",
+                attrs[USERNAME_KEY], attrs[DJANGO_USERNAME_KEY])
 
         return new_user
 
