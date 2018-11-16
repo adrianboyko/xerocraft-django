@@ -77,132 +77,16 @@ except:
     HOST = "example.com"
 
 
-@receiver(post_save, sender=VisitEvent)
-def notify_staff_of_checkin(sender, **kwargs):
-    """Notify a staffer of a visitor's paid status when that visitor checks in."""
-    # TODO: Per feedback from Annette, don't send notices if it's currently "open house".
-    unused(sender)
-    try:
-        if kwargs.get('created', True):
-            visit = kwargs.get('instance')
-
-            # We're only interested in arrivals
-            if visit.event_type != VisitEvent.EVT_ARRIVAL:
-                return
-
-            if visit.who.is_currently_paid():
-                # Let's not overwhelm the staffer with info that doesn't require action.
-                # A paid visitor is welcome anytime, so don't notify the staffer.
-                return
-
-            recipient = Worker.scheduled_receptionist()
-            if recipient is None:
-                return
-
-            if visit.debounced():
-                vname = "{} {}".format(visit.who.first_name, visit.who.last_name).strip()
-                vname = "Anonymous" if len(vname) == 0 else vname
-                vstat = "Paid" if visit.who.is_currently_paid() else "Unpaid"
-                message = "{}\n{}\n{}".format(visit.who.username, vname, vstat)
-                notifications.notify(recipient, "Check-In", message)
-
-    except Exception as e:
-        # Makes sure that problems here do not prevent the visit event from being saved!
-        logger.error("Problem in note_checkin: %s", str(e))
+# @receiver(post_save, sender=VisitEvent)
+# def notify_staff_of_checkin(sender, **kwargs):
+# Notify a staffer of a visitor's paid status when that visitor checks in
+# Nobody is acting on these alerts so I'm giving up on this mechanism.
+# Will try replacing this with a "Reception Ops" application, at some point.
 
 
-@receiver(post_save, sender=VisitEvent)
-def maintenance_nag(sender, **kwargs):
-    unused(sender)
-    try:
-        visit = kwargs.get('instance')  # type: VisitEvent
-
-        # We're only interested in arrivals
-        if visit.event_type != VisitEvent.EVT_ARRIVAL:
-            return
-
-        # Only act on a member's first visit of the day.
-        start_of_today = localtime(timezone.now()).replace(
-            hour=4,  # For the purpose of this nag, I'm going to say that day begins at 4am.
-            minute=0,
-            second=0,
-            microsecond=0,
-        )
-        num_visits_today = VisitEvent.objects.filter(
-            who=visit.who,
-            event_type=VisitEvent.EVT_ARRIVAL,
-            when__gte=start_of_today,
-        ).count()
-        if num_visits_today > 1:
-            return
-
-        # This gets tasks that are scheduled like maintenance tasks.
-        # I.e. those that need to be done every X days, but can slide.
-        tasks = Task.objects.filter(
-            eligibleclaimant2__member=visit.who,
-            eligibleclaimant2__should_nag=True,
-            scheduled_date=date.today(),
-            status=Task.STAT_ACTIVE,
-            should_nag=True,
-            recurring_task_template__repeat_interval__isnull=False,
-            recurring_task_template__missed_date_action=RecurringTaskTemplate.MDA_SLIDE_SELF_AND_LATER,
-        )
-
-        # We're going to want to send msgs to a manager to let them know that people were asked to do the work.
-        # TODO: Shouldn't have a hard-coded userid here. Make configurable, perhaps with tags.
-        try:
-            mgr = Member.objects.get(auth_user__username=USER_VOLUNTEER)
-        except Member.DoesNotExist:
-            mgr = None
-
-        # Nag the visitor by sending a notification for each task they could work.
-        for task in tasks:  # type: Task
-
-            # Create the nag
-            b64, md5 = Member.generate_auth_token_str(
-                lambda token: Nag.objects.filter(auth_token_md5=token).count() == 0  # uniqueness test
-            )
-            nag = Nag.objects.create(who=visit.who, auth_token_md5=md5)
-            nag.tasks.add(task)
-
-            # Generate an informative message
-            try:
-                last_done = Task.objects.filter(
-                    scheduled_date__lt=date.today(),
-                    status=Task.STAT_DONE,
-                    recurring_task_template=task.recurring_task_template,
-                ).latest('scheduled_date')
-                delta = date.today() - last_done.scheduled_date  # type: timedelta
-                message = "This task was last completed {} days ago!".format(delta.days)
-            except Task.DoesNotExist:
-                message = ""
-            message += " If you can complete this task today, please click the link AFTER the work is done."
-
-            relative = reverse('task:note-task-done', kwargs={'task_pk': task.id, 'auth_token': b64})
-            # Send the notification
-            was_sent = notifications.notify(
-                visit.who,
-                task.short_desc,
-                message,
-                url=HOST+relative,
-                url_title="I Did It!",
-            )
-
-            if was_sent:
-                # Let manager know:
-                if visit.who != mgr:
-                    notifications.notify(
-                        mgr,
-                        task.short_desc,
-                        visit.who.friendly_name + " was asked to work this task.",
-                    )
-            else:
-                # If the notification wasn't sent, then the user wasn't actually nagged.
-                nag.delete()
-
-    except Exception as e:
-        # Makes sure that problems here do not prevent subsequent processing.
-        logger.error("Problem in maintenance_nag: %s", str(e))
+# @receiver(post_save, sender=VisitEvent)
+# def maintenance_nag(sender, **kwargs):
+# Nobody is acting on these alerts so I'm giving up on this mechanism.
 
 
 @receiver(post_save, sender=VisitEvent)
