@@ -62,9 +62,9 @@ class Test_ScrapeMemberList(TestCase):
 class TestAccountScraper(TestCase):
 
     def test_single_user(self):
-        scraper = AccountScraper()
+        scraper = AccountScraper(XerocraftScraper.SERVER_PROD)
         # This test depends on the current contents of the xerocraft.org test system.
-        u = scraper.scrape_one_account(5)  # type: User
+        u = scraper.scrape_one_account(86)  # type: User
         self.assertEqual(u.first_name, "Kyle")
 
     def test_all_users(self):
