@@ -17,7 +17,6 @@ from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 import lxml.html
 import requests
-from pyvirtualdisplay import Display
 from rest_framework.test import APIRequestFactory
 from rest_framework.test import force_authenticate
 
@@ -86,11 +85,13 @@ class Test_VerifyClaim_Base(LiveServerTestCase):
         management.call_command("scheduletasks", "0")
         self.task = rt.instances.all()[0]
 
-        display = Display(visible=0, size=(1024, 768))
-        display.start()
-        DRIVER = "/usr/lib/chromium-browser/chromedriver"
-        # self.browser = webdriver.Firefox(executable_path=DRIVER)
-        self.browser = webdriver.Chrome(executable_path=DRIVER)
+        # See: https://www.amihaiemil.com/2017/07/14/selenium-headless-chrome-travis.html
+        chrome_options = webdriver.ChromeOptions()
+        chrome_options.binary_location="/usr/bin/google-chrome-stable"
+        chrome_options.add_argument("--headless")
+        chrome_options.add_argument("--disable-gpu")
+        chrome_options.add_argument("--disable-extensions")
+        self.browser = webdriver.Chrome(chrome_options=chrome_options)
 
         try:
             for offset in range(-4, 2):
@@ -105,7 +106,6 @@ class Test_VerifyClaim_Base(LiveServerTestCase):
                         getattr(self, method_name)()
         finally:
             self.browser.quit()
-            display.stop()
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
