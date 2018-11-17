@@ -22,7 +22,8 @@ class XerocraftBackend(ModelBackend):
         identifier = username  # Given "username" is actually a more generic identifier.
         session = requests.session()
         logger = logging.getLogger("xis")
-        server = "https://www.xerocraft.org/kfritz/" if settings.ISDEVHOST else "https://www.xerocraft.org/"
+        # REVIEW: What was the logic behind switching to /kfritz/ for auth, below?
+        server = "https://www.xerocraft.org/kfritz/" if settings.TESTING else "https://www.xerocraft.org/"
         action_url = server+"actions.php"
 
         # Try logging in to xerocraft.org to authenticate given username and password:
