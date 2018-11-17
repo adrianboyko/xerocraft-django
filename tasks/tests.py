@@ -16,7 +16,6 @@ from freezegun import freeze_time
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 import lxml.html
-import requests
 from rest_framework.test import APIRequestFactory
 from rest_framework.test import force_authenticate
 
@@ -274,9 +273,8 @@ class Test_VerifyClaim_Scenario3(Test_VerifyClaim_Base):
         # But his original claim is gone so he's redirected to offer_task which tells him the task has been claimed.
         yes_url = html_dom.xpath("//a[@id='Y']/@href")[0]
         try:
-            response = requests.get(yes_url)
-            response.raise_for_status()
-            self.assertTrue("already staffed" in response.text)
+            self.browser.get(yes_url)
+            self.assertTrue("already staffed" in self.browser.page_source)
         except:
             self.fail("Bad (or no) response from: "+yes_url)
 
@@ -288,8 +286,8 @@ class Test_VerifyClaim_Scenario3(Test_VerifyClaim_Base):
         # Nothing happens on this day in this scenario
         self.assertEqual(len(mail.outbox), 3)
 
-# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
 class TestTemplateToInstanceCopy(TransactionTestCase):
 
