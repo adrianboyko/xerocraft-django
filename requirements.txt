@@ -52,7 +52,7 @@ python-pushover==0.2
 python3-openid==3.0.10
 pytz==2018.3
 reportlab==3.5.5
-requests==2.18.4
+requests==2.20.0
 requests-oauthlib==0.6.1
 rq==0.6.0
 selenium==3.5.0
