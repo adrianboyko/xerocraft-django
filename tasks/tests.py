@@ -625,14 +625,14 @@ class RunEmailWMTD(TestCase):
         self.user = User.objects.create_superuser(username='JoeSmith', password='123', email='somebody@email.com')
         self.member = self.user.member
 
-        self.task = Task.objects.create(  # type: Task
+        self.task = Task.objects.create(
             short_desc="Do Something",
             max_work=timedelta(hours=1.5),
             work_start_time=time(18, 00),
             work_duration=timedelta(hours=1.5),
             scheduled_date=date.today(),
             orig_sched_date=date.today(),
-        )
+        )  # type: Task
         self.task.full_clean()
 
         self.claim = Claim.objects.create(

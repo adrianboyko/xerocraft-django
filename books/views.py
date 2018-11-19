@@ -244,8 +244,8 @@ def get_bank_pts(start: date, end:date) -> List[DatedFloat]:
                 when__gte=start,
                 when__lte=end,
                 order_on_date=0,
-            ).order_by("when")  # type: List[DatedFloat]
-        )
+            ).order_by("when")
+        )  # type: List[DatedFloat]
         grouped_pts = _grp(list(grouped_pts) + list(_fill(ba_pts)))
     return list(grouped_pts)
 
