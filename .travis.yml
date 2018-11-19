@@ -8,10 +8,6 @@ python:
   - "3.6"
   - "3.7"
 
-env:
-  - DJANGO=2.1.2
-  - DJANGO=2.1.4
-
 addons:
   postgresql: "9.4"
   chrome: stable
