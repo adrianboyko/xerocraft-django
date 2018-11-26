@@ -111,23 +111,6 @@ class VisitEventAdmin(admin.ModelAdmin):  # No need to version events.
     raw_id_fields = ['who']
 
 
-class MemberTypeFilter(admin.SimpleListFilter):
-    title = "Worker Type"
-    parameter_name = 'type'
-
-    def lookups(self, request, model_admin):
-        return (
-            ('worktrade', _('Work-Trader')),
-            ('intern', _('Intern')),
-            ('scholar', _('Scholarship')),
-        )
-
-    def queryset(self, request, queryset):
-        if self.value() == 'worktrade': return queryset.filter(tags__name="Work-Trader")
-        if self.value() == 'intern':    return queryset.filter(tags__name="Intern")
-        if self.value() == 'scholar':   return queryset.filter(tags__name="Scholarship")
-
-
 class TaggingForMember(admin.TabularInline):
     model = Tagging
     fk_name = 'member'
@@ -232,7 +215,7 @@ class MemberAdmin(VersionAdmin):
         'email',
     ]
 
-    list_filter = [MemberTypeFilter, 'is_adult']
+    list_filter = ['is_adult', 'auth_user__is_active']
 
     inlines = [
         MemberNoteInline,
