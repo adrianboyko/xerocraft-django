@@ -131,7 +131,6 @@ INSTALLED_APPS += (
     'kmkr',
     'reversion',
     'modelmailer',
-    'flock',
     'django_filters',
 
     'markdown_deux',  # for helpdesk
@@ -188,7 +187,6 @@ TEMPLATES = [
             os.path.join(BASE_DIR, 'tasks/templates/'),
             os.path.join(BASE_DIR, 'members/templates/'),
             os.path.join(BASE_DIR, 'inventory/templates/'),
-            os.path.join(BASE_DIR, 'flock/templates/'),
             os.path.join(BASE_DIR, 'soda/templates/'),
         ],
         'APP_DIRS': True,
@@ -291,10 +289,6 @@ LOGGING = {
             'handlers': ['console'],
             'level': 'INFO',
         },
-        'flock': {
-            'handlers': ['console'],
-            'level': 'INFO',
-        },
         'helpdesk': {
             'handlers': ['console'],
             'level': 'INFO',
@@ -375,7 +369,6 @@ HELPDESK_KB_ENABLED = False
 PROJECT_APPS = (
     'abutils',
     'books',
-    'flock',
     'inventory',
     'members',
     'modelmailer',
