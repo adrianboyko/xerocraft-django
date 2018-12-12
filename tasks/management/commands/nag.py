@@ -174,6 +174,7 @@ class Command(BaseCommand):
             # REVIEW: Is the following 'claiming_member' restriction actually required?
             claiming_member=F('claimed_task__recurring_task_template__default_claimant'),
             date_verified__isnull=True,
+            claimed_task__should_nag=True,
             claiming_member__worker__should_nag=True,
         )
 
