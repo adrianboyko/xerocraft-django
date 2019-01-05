@@ -97,13 +97,14 @@ def group_membership_post_save(sender, **kwargs):
 
     gm = kwargs.get('instance')
     if gm.membership_set.count() == 0:
-        for taggee in gm.group_tag.members.all():  # type Member
-            Membership.objects.create(
-                member=taggee,
-                group=gm,
-                start_date=gm.start_date,
-                end_date=gm.end_date,
-                membership_type=Membership.MT_GROUP
-            )
+        for tagging in gm.group_tag.tagging_set.all():  # type Tagging
+            if tagging.is_tagged:
+                Membership.objects.create(
+                    member=tagging.member,
+                    group=gm,
+                    start_date=gm.start_date,
+                    end_date=gm.end_date,
+                    membership_type=Membership.MT_GROUP
+                )
 
 
