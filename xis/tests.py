@@ -3,7 +3,7 @@
 import os
 
 # Third Party
-from django.test import TestCase
+from django.test import TestCase, TransactionTestCase
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from django.core.management import call_command
@@ -59,7 +59,7 @@ class Test_ScrapeMemberList(TestCase):
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 
-class TestAccountScraper(TestCase):
+class TestAccountScraper(TransactionTestCase):
 
     def test_single_user(self):
         scraper = AccountScraper(XerocraftScraper.SERVER_PROD)
