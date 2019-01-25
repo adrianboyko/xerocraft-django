@@ -199,11 +199,23 @@ class UnderwritingDealAdmin(VersionAdmin):
     list_filter = [DateRangeFilter]
 
     class UnderwritingBroadcastLog_Inline(admin.TabularInline):
+
+        def date_aired(self, obj: UnderwritingBroadcastLog) -> str:
+            lt = timezone.localtime(obj.when_read)
+            return lt.strftime("%m/%d (%a)")
+
+        def time_aired(self, obj: UnderwritingBroadcastLog) -> str:
+            lt = timezone.localtime(obj.when_read)
+            return lt.strftime("%I:%M %p")
+
+        def per_schedule_in_quote(self, obj: UnderwritingBroadcastLog) -> str:
+            return str(obj.schedule)
+
         model = UnderwritingBroadcastLog
         extra = 0
         raw_id_fields = []
-        readonly_fields = ['schedule']
-        fields = ['schedule', 'when_read']
+        readonly_fields = ['date_aired','time_aired', 'per_schedule_in_quote']
+        fields = ['date_aired', 'time_aired', 'per_schedule_in_quote']
         ordering = ['when_read']
 
     inlines = [UnderwritingBroadcastLog_Inline]
@@ -343,7 +355,7 @@ class EpisodeAdmin(admin.ModelAdmin):
     class Playlist_Inline(admin.TabularInline):
         model = EpisodeTrack
         extra = 0
-        raw_id_fields = []
+        fields = ['sequence', 'artist', 'title','duration']
 
     inlines = [Playlist_Inline]
 
