@@ -160,6 +160,10 @@ class ShowTime(models.Model):
     @property
     def saturday(self) -> bool: return self.saturdays
 
+    # Shows will never be scheduled for the last xday of the month.
+    @property
+    def last(self) -> bool: return False
+
     def covers(self, dt: datetime) -> bool:
         day_match = abtime.matches_weekday_of_month_pattern(self, dt.date())
         time_match = abtime.time_in_timespan(
