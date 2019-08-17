@@ -85,11 +85,14 @@ class Test_VerifyClaim_Base(LiveServerTestCase):
         self.task = rt.instances.all()[0]
 
         # See: https://www.amihaiemil.com/2017/07/14/selenium-headless-chrome-travis.html
+        # See: https://stackoverflow.com/questions/50642308/webdriverexception-unknown-error-devtoolsactiveport-file-doesnt-exist-while-t
         chrome_options = webdriver.ChromeOptions()
-        chrome_options.binary_location="/usr/bin/google-chrome-stable"
+        chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--headless")
         chrome_options.add_argument("--disable-gpu")
         chrome_options.add_argument("--disable-extensions")
+        chrome_options.add_argument("--disable-dev-shm-usage")
+        chrome_options.binary_location="/usr/bin/google-chrome-stable"
         self.browser = webdriver.Chrome(chrome_options=chrome_options)
 
         try:
