@@ -44,8 +44,6 @@ urlpatterns = [
     url(r'^ops/api/', include(router.urls)),
     url(r'^ops/log-message/$', views.log_message),
 
-    url(r'^helpdesk/', include('helpdesk.urls')),
-
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
 if settings.DEBUG:

@@ -101,8 +101,7 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'django.contrib.sites',  # Req'd by helpdesk
-    'django.contrib.humanize',  # Req'd by helpdesk
+    'django.contrib.sites',  # Req'd by helpdesk. Will keep, even though helpdesk is being removed.
     'storages',  # For uploads from users, as in helpdesk and possibly other apps.
 )
 
@@ -132,10 +131,6 @@ INSTALLED_APPS += (
     'reversion',
     'modelmailer',
     'django_filters',
-
-    'markdown_deux',  # for helpdesk
-    'bootstrapform',  # for helpdesk
-    'helpdesk',
 )
 
 SITE_ID = 1  # For django.contrib.sites
@@ -356,12 +351,6 @@ WEBPACK_LOADER = {
         'STATS_FILE': os.path.join(BASE_DIR, 'webpack-stats.json'),
     }
 }
-
-# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-# DJANGO-HELPDESK
-
-HELPDESK_KB_ENABLED = False
-
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 # JENKINS
