@@ -1,7 +1,6 @@
 
 # Standard
 from typing import Optional
-from sys import exc_info
 
 # Third party
 from django.contrib.auth.models import User
@@ -66,22 +65,25 @@ class AccountScraper(XerocraftScraper):
         if user_changed:
             user.save()
 
-    def _create_account(self, attrs) -> User:
+    def _create_account(self, attrs) -> Optional[User]:
 
-        # Following should be a CREATE, with *no* possibility of update.
-        # However, xerocraft.org doesn't have a uniqueness constraint on username so I'm going to deal with that by allowing update here.
-        # The only GOOD solution is for xerocraft.org (which is DIFFERENT than this project) to add the uniquness constraint.
-        new_user, _ = User.objects.update_or_create(
+        if len(User.objects.filter(username=attrs[DJANGO_USERNAME_KEY])) > 0:
+            # We've run into a problem with colliding user names. Two possible reasons:
+            # 1. The lack of a username uniqueness constraint on xerocraft.org
+            # 2. A collision caused by "djangofy_username"
+            # In either case, we can't create the account, so return None.
+            self.logger.warning("Username collision: %s", attrs[DJANGO_USERNAME_KEY])
+            return None
+
+        new_user = User.objects.create(
             username=attrs[DJANGO_USERNAME_KEY],
             first_name=attrs.get(FIRSTNAME_KEY, ""),
             last_name=attrs.get(LASTNAME_KEY, ""),
             email=attrs.get(EMAIL_KEY, ""),
-            defaults={
-                'is_superuser': False,
-                'is_staff': False,
-                'is_active': True,
-                'password': User.objects.make_random_password()
-            }
+            is_superuser=False,
+            is_staff=False,
+            is_active=True,
+            password=User.objects.make_random_password(),
         )
 
         new_extidrec = ExternalId.objects.create(
