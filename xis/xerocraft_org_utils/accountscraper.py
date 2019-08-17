@@ -68,15 +68,20 @@ class AccountScraper(XerocraftScraper):
 
     def _create_account(self, attrs) -> User:
 
-        new_user = User.objects.create(
+        # Following should be a CREATE, with *no* possibility of update.
+        # However, xerocraft.org doesn't have a uniqueness constraint on username so I'm going to deal with that by allowing update here.
+        # The only GOOD solution is for xerocraft.org (which is DIFFERENT than this project) to add the uniquness constraint.
+        new_user, _ = User.objects.update_or_create(
             username=attrs[DJANGO_USERNAME_KEY],
             first_name=attrs.get(FIRSTNAME_KEY, ""),
             last_name=attrs.get(LASTNAME_KEY, ""),
             email=attrs.get(EMAIL_KEY, ""),
-            is_superuser=False,
-            is_staff=False,
-            is_active=True,
-            password=User.objects.make_random_password(),
+            defaults={
+                'is_superuser': False,
+                'is_staff': False,
+                'is_active': True,
+                'password': User.objects.make_random_password()
+            }
         )
 
         new_extidrec = ExternalId.objects.create(
