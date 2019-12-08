@@ -216,6 +216,11 @@ class Fetcher(AbstractFetcher):
             self._process_subscription_charges(charges, subscription, family_count)
 
     def _process_plans(self, plans):
+
+        if "error" in plans:
+            print("\n" + plans["error_description"])
+            return
+
         for plan in plans:
 
             if plan["number_of_subscriptions"] == 0:
@@ -261,7 +266,7 @@ class Fetcher(AbstractFetcher):
         if len(accounts)+len(rest_token) == 0:
             self.skip = True
         else:
-            self.skip = False
+            self.skip = True  # Haven't taken WePay payments since April 2019, so skipping.
             self.accounts = accounts
             self.auth_headers = {'Authorization': "Bearer " + rest_token}
 
