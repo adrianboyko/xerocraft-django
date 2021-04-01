@@ -33,7 +33,7 @@ oauthlib==1.0.3
 paho-mqtt==1.2.3
 paypalrestsdk==1.13.1  # This is for other PayPal payment mechanisms.
 paypal==1.2.5  # This is for PayPal Express, used by Facebook
-Pillow==6.2.0
+Pillow==8.1.1
 psycopg2-binary==2.8.2
 pyflakes==1.3.0
 Pygments==2.2.0
